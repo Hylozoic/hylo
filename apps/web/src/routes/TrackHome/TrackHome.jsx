@@ -151,7 +151,7 @@ function TrackHome () {
           <PeopleTab currentTrack={currentTrack} />
         )}
 
-        {currentTab === 'edit' && (
+        {canEdit && currentTab === 'edit' && (
           <EditTab currentTrack={currentTrack} />
         )}
       </div>

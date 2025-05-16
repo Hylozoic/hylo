@@ -46,8 +46,8 @@ export default function ActionCompletionResponsesDialog ({ portalTarget, post, o
       style={{ width: '100%', maxWidth: '620px' }}
     >
       {post.completionResponses.map(response => (
-        <div key={response.id} className='flex flex-row gap-2 bg-midground rounded p-4 border-b-2 border-dashed border-foreground/20'>
-          <div className='w-full flex flex-row justify-between'>
+        <div key={response.id} className='flex flex-row gap-4 bg-midground rounded p-4 border-b-2 border-dashed border-foreground/20'>
+          <div className='gap-4 w-full flex flex-row justify-between'>
             <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
             <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
           </div>
@@ -61,15 +61,15 @@ export default function ActionCompletionResponsesDialog ({ portalTarget, post, o
 function CompletionResponse ({ action, response }) {
   switch (action) {
     case 'selectMultiple':
-      return <p>{response.join(', ')}</p>
+      return response.join(', ')
     case 'selectOne':
-      return <p>{response[0]}</p>
+      return response[0]
     case 'comment':
-      return <p><HyloHTML html={response[0]} /></p>
+      return <HyloHTML html={response[0]} className='[&>p]:mt-0' />
     case 'reaction':
-      return <p>{response[0]}</p>
+      return response[0]
     case 'text':
-      return <p><HyloHTML html={response[0]} /></p>
+      return <HyloHTML html={response[0]} />
     case 'uploadFile':
       return <CardFileAttachments attachments={response.map(a => ({ ...a, type: 'file' }))} />
     default:

@@ -55,7 +55,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
 
   const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
-  let completionResponseText = completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>)
+  let completionResponseText = completionResponse?.length > 0 ? completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>) : null
   switch (completionAction) {
     case 'button':
       completionControls = null
