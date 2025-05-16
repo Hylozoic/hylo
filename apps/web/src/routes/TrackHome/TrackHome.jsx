@@ -7,12 +7,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { useNavigate, Routes, Route } from 'react-router-dom'
+import { useNavigate, Routes, Route, Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
+
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Button from 'components/ui/button'
@@ -30,7 +31,7 @@ import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
-import { createPostUrl, groupUrl } from 'util/navigation'
+import { createPostUrl, groupUrl, personUrl } from 'util/navigation'
 
 import ActionSummary from './ActionSummary'
 
@@ -234,6 +235,7 @@ function ActionsTab ({ currentTrack }) {
 
 function PeopleTab ({ currentTrack }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
   const { enrolledUsers } = currentTrack
 
   return (
@@ -243,9 +245,11 @@ function PeopleTab ({ currentTrack }) {
         <div className='flex flex-col gap-2 pt-4'>
           {enrolledUsers?.map(user => (
             <div key={user.id} className='flex flex-row gap-2 items-center justify-between'>
-              <div className='flex flex-row gap-2 items-center'>
-                <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
-                <span>{user.name}</span>
+              <div>
+                <Link to={personUrl(user.id, routeParams.groupSlug)} className='flex flex-row gap-2 items-center text-foreground'>
+                  <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
+                  <span>{user.name}</span>
+                </Link>
               </div>
               <div className='flex flex-row gap-2 items-center text-xs text-foreground/60'>
                 <div>
