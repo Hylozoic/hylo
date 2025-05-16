@@ -46,7 +46,7 @@ export default function PostCompletion ({ post, currentUser }) {
 
   const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
-  let completionResponseText = <p>{completionResponse.map(r => r).join(', ')}</p>
+  let completionResponseText = completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>)
   switch (completionAction) {
     case 'button':
       completionControls = null

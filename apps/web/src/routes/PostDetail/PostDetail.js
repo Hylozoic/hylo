@@ -8,9 +8,8 @@ import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import Avatar from 'components/Avatar'
+import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
-import ModalDialog from 'components/ModalDialog'
 import {
   PostBody,
   PostFooter,
@@ -22,8 +21,6 @@ import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Button from 'components/ui/button'
-import CardFileAttachments from 'components/CardFileAttachments'
-import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
@@ -45,7 +42,7 @@ import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
-import { removePostFromUrl, personUrl } from 'util/navigation'
+import { removePostFromUrl } from 'util/navigation'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
 import PostCompletion from './PostCompletion'
@@ -206,7 +203,7 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
@@ -421,9 +418,9 @@ export function ActionCompletionsSection ({ currentUser, post }) {
         </Button>
       )}
       {showCompletionResponsesDialog && (
-        <CompletionResponsesDialog
+        <ActionCompletionResponsesDialog
+          portalTarget={`post-detail-container-${post.id}`}
           post={post}
-          currentUser={currentUser}
           onClose={toggleCompletionResponsesDialog}
         />
       )}
@@ -431,69 +428,4 @@ export function ActionCompletionsSection ({ currentUser, post }) {
   )
 }
 
-export function CompletionResponsesDialog ({ post, currentUser, onClose }) {
-  const { t } = useTranslation()
-
-  let title = t('Completions: ')
-  switch (post.completionAction) {
-    case 'button':
-      title += t('By Button')
-      break
-    case 'comment':
-      title += t('By Comment')
-      break
-    case 'reaction':
-      title += t('By Reaction')
-      break
-    case 'selectMultiple':
-      title += t('By Selected Options')
-      break
-    case 'selectOne':
-      title += t('By Selected Option')
-      break
-    case 'text':
-      title += t('By Text Reflection')
-      break
-    case 'uploadFile':
-      title += t('By File Upload')
-      break
-  }
-  return (
-    <ModalDialog
-      key='completion-responses-dialog'
-      closeModal={onClose}
-      modalTitle={title}
-      showCancelButton={false}
-      showSubmitButton={false}
-      style={{ width: '100%', maxWidth: '620px' }}
-    >
-      {post.completionResponses.map(response => (
-        <div key={response.id} className='flex flex-row gap-2 bg-midground rounded-lg p-4'>
-          <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
-          <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
-          <span><CompletionResponse action={post.completionAction} response={response.completionResponse} /></span>
-        </div>
-      ))}
-    </ModalDialog>
-  )
-}
-
-export function CompletionResponse ({ action, response }) {
-  switch (action) {
-    case 'selectMultiple':
-      return <p>{response.join(', ')}</p>
-    case 'selectOne':
-      return <p>{response[0]}</p>
-    case 'comment':
-      return <p><HyloHTML html={response[0]} /></p>
-    case 'reaction':
-      return <p>{response[0]}</p>
-    case 'text':
-      return <p><HyloHTML html={response[0]} /></p>
-    case 'uploadFile':
-      return <CardFileAttachments attachments={response.map(a => ({ ...a, type: 'file' }))} />
-    default:
-      return null
-  }
-}
 export default PostDetail

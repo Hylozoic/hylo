@@ -57,6 +57,18 @@ const PostFieldsFragment = `
     total
     hasMore
   }
+  completionResponses {
+    items {
+      id
+      completedAt
+      completionResponse
+      user {
+        id
+        name
+        avatarUrl
+      }
+    }
+  }
   groups {
     id
     name

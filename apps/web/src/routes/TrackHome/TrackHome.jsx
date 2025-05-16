@@ -9,12 +9,14 @@ import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useNavigate, Routes, Route } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
+import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Button from 'components/ui/button'
+import * as Dialog from '@radix-ui/react-dialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -53,8 +55,8 @@ function TrackHome () {
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
   const isLoading = useSelector(state => isPendingFor(state, FETCH_TRACK))
   const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
-  const [container, setContainer] = React.useState(null)
-
+  const [container, setContainer] = useState(null)
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false)
   const [currentTab, setCurrentTab] = useState(queryParams.tab || 'about')
 
   const changeTab = useCallback((tab) => {
@@ -80,6 +82,13 @@ function TrackHome () {
       dispatch(updateTrack({ trackId: currentTrack.id, publishedAt }))
     }
   }, [currentTrack?.id])
+
+  const handleEnrollInTrack = useCallback(() => {
+    dispatch(enrollInTrack(currentTrack.id))
+    if (currentTrack?.welcomeMessage) {
+      setShowWelcomeMessage(true)
+    }
+  }, [currentTrack?.id, currentTrack?.welcomeMessage])
 
   if (isLoading) return <Loading />
   if (!currentTrack) return <Loading />
@@ -173,10 +182,12 @@ function TrackHome () {
               : (
                 <div className='flex flex-row gap-2 items-center justify-between w-full'>
                   <span>{t('Ready to jump in?')}</span>
-                  <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={() => dispatch(enrollInTrack(currentTrack.id))}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                  <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
                 </div>
                 )}
       </div>
+
+      <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
 
       <Routes>
         <Route path='post/:postId' element={<PostDialog container={container} />} />
@@ -293,6 +304,29 @@ function EditTab ({ currentTrack }) {
         + {t('Add {{actionName}}', { actionName: currentTrack?.actionsName?.slice(0, -1) })}
       </button>
     </>
+  )
+}
+
+function WelcomeMessage ({ showWelcomeMessage, setShowWelcomeMessage, currentTrack }) {
+  const { welcomeMessage } = currentTrack
+
+  return (
+    <Dialog.Root open={showWelcomeMessage} onOpenChange={setShowWelcomeMessage}>
+      <Dialog.Portal>
+        <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
+          <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
+            <Dialog.Title className='sr-only'>Welcome to {currentTrack?.name}!</Dialog.Title>
+            <Dialog.Description className='sr-only'>Welcome to {currentTrack?.name}!</Dialog.Description>
+            <h3 className='text-2xl font-bold text-center'>👋 Welcome to {currentTrack?.name}!</h3>
+            {welcomeMessage && (
+              <ClickCatcher>
+                <HyloHTML element='p' html={TextHelpers.markdown(welcomeMessage)} className='text-center text-foreground/70' />
+              </ClickCatcher>
+            )}
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
