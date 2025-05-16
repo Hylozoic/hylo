@@ -140,7 +140,7 @@ class ModalDialog extends Component {
             {useNotificationFormat &&
               <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
             {showModalTitle && (
-              <h1 className={cn({ [classes.notificationTitle]: useNotificationFormat })}>
+              <h1 className={cn('text-lg font-bold flex flex-row gap-2 items-center justify-center', { [classes.notificationTitle]: useNotificationFormat })}>
                 {modalTitle}
               </h1>
             )}

@@ -121,6 +121,11 @@ function TrackHome () {
               onClick={() => changeTab('people')}
             >
               {t('People')}
+              {currentTrack.enrolledUsers?.length > 0 && (
+                <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  {currentTrack.enrolledUsers.length}
+                </span>
+              )}
             </button>
             {canEdit && (
               <button
@@ -233,26 +238,26 @@ function PeopleTab ({ currentTrack }) {
 
   return (
     <div>
-      <h1>{enrolledUsers?.length ? t('{{numPeopleEnrolled}} people enrolled', { numPeopleEnrolled: enrolledUsers?.length }) : t('No one is enrolled in this track')}</h1>
+      {enrolledUsers?.length === 0 && <h1>{t('No one is enrolled in this track')}</h1>}
       {enrolledUsers?.length > 0 && (
-        <table className='w-full'>
-          <tbody>
-            {enrolledUsers?.map(user => (
-              <tr key={user.id}>
-                <td className='flex flex-row gap-2 items-center'>
-                  <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
-                  <span>{user.name}</span>
-                </td>
-                <td>
+        <div className='flex flex-col gap-2 pt-4'>
+          {enrolledUsers?.map(user => (
+            <div key={user.id} className='flex flex-row gap-2 items-center justify-between'>
+              <div className='flex flex-row gap-2 items-center'>
+                <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
+                <span>{user.name}</span>
+              </div>
+              <div className='flex flex-row gap-2 items-center text-xs text-foreground/60'>
+                <div>
                   <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
-                </td>
-                <td>
+                </div>
+                <div>
                   <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
