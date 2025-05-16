@@ -65,7 +65,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   }
 
   return (
-    <div className={cn(className, 'relative inline-block border-2 border-foreground/30 rounded-md p-2 transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
+    <div className={cn(className, 'relative inline-block rounded-md transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
       <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
