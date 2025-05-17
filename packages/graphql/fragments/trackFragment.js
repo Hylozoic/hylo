@@ -4,22 +4,24 @@ export default gql`
   fragment TrackFieldsFragment on Track {
     id
     bannerUrl
-    actionsName
+    actionDescriptor
+    actionDescriptorPlural
     description
     didComplete
-  isEnrolled
-  name
-  numActions
-  numPeopleCompleted
-  numPeopleEnrolled
-  userSettings
-  publishedAt
-  groups {
-    items {
-      id
-      avatarUrl
-      name
-      slug
+    isEnrolled
+    name
+    numActions
+    numPeopleCompleted
+    numPeopleEnrolled
+    userSettings
+    publishedAt
+    groups {
+      items {
+        id
+        avatarUrl
+        name
+        slug
+      }
     }
   }
-}`
+`

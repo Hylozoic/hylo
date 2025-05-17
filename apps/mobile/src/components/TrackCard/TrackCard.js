@@ -36,7 +36,7 @@ function TrackCard({ track, groupSlug }) {
     )
   }, [track.id])
 
-  const { actionsName, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, didComplete, isEnrolled } = track
+  const { actionDescriptor, actionDescriptorPlural, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, didComplete, isEnrolled } = track
 
   const navigateToTrack = () => {
     const trackUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'tracks')}/${track.id}`
@@ -53,7 +53,7 @@ function TrackCard({ track, groupSlug }) {
         <View className='flex flex-row justify-between items-center pb-1'>
           <Text className='text-base text-foreground font-medium' numberOfLines={1}>{name}</Text>
           <Text className='text-xs text-foreground/60 ml-2'>
-            {t('{{num}} {{actionName}}', { num: numActions, actionName: actionsName })}
+            {t('{{num}} {{actionName}}', { num: numActions, actionName: numActions === 1 ? actionDescriptor : actionDescriptorPlural })}
           </Text>
         </View>
 

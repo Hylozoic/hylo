@@ -4,7 +4,8 @@ export default gql`
   fragment TrackFields on Track {
     id
     bannerUrl
-    actionsName
+    actionDescriptor
+    actionDescriptorPlural
     description
     completionMessage
     completionRole {
