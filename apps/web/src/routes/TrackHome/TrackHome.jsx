@@ -7,12 +7,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { useNavigate, Routes, Route } from 'react-router-dom'
+import { useNavigate, Routes, Route, Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
+
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Button from 'components/ui/button'
@@ -30,7 +31,7 @@ import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
-import { createPostUrl, groupUrl } from 'util/navigation'
+import { createPostUrl, groupUrl, personUrl } from 'util/navigation'
 
 import ActionSummary from './ActionSummary'
 
@@ -114,13 +115,18 @@ function TrackHome () {
               className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
               onClick={() => changeTab('actions')}
             >
-              {currentTrack.actionsName}
+              {currentTrack.actionDescriptorPlural}
             </button>
             <button
               className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
               onClick={() => changeTab('people')}
             >
               {t('People')}
+              {currentTrack.enrolledUsers?.length > 0 && (
+                <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  {currentTrack.enrolledUsers.length}
+                </span>
+              )}
             </button>
             {canEdit && (
               <button
@@ -145,7 +151,7 @@ function TrackHome () {
           <PeopleTab currentTrack={currentTrack} />
         )}
 
-        {currentTab === 'edit' && (
+        {canEdit && currentTab === 'edit' && (
           <EditTab currentTrack={currentTrack} />
         )}
       </div>
@@ -219,7 +225,7 @@ function ActionsTab ({ currentTrack }) {
 
   return (
     <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
-      <h1>{currentTrack.actionsName}</h1>
+      <h1>{currentTrack.actionDescriptorPlural}</h1>
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
       ))}
@@ -229,30 +235,33 @@ function ActionsTab ({ currentTrack }) {
 
 function PeopleTab ({ currentTrack }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
   const { enrolledUsers } = currentTrack
 
   return (
     <div>
-      <h1>{enrolledUsers?.length ? t('{{numPeopleEnrolled}} people enrolled', { numPeopleEnrolled: enrolledUsers?.length }) : t('No one is enrolled in this track')}</h1>
+      {enrolledUsers?.length === 0 && <h1>{t('No one is enrolled in this track')}</h1>}
       {enrolledUsers?.length > 0 && (
-        <table className='w-full'>
-          <tbody>
-            {enrolledUsers?.map(user => (
-              <tr key={user.id}>
-                <td className='flex flex-row gap-2 items-center'>
+        <div className='flex flex-col gap-2 pt-4'>
+          {enrolledUsers?.map(user => (
+            <div key={user.id} className='flex flex-row gap-2 items-center justify-between'>
+              <div>
+                <Link to={personUrl(user.id, routeParams.groupSlug)} className='flex flex-row gap-2 items-center text-foreground'>
                   <img src={user.avatarUrl} alt={user.name} className='w-10 h-10 rounded-full my-2' />
                   <span>{user.name}</span>
-                </td>
-                <td>
+                </Link>
+              </div>
+              <div className='flex flex-row gap-2 items-center text-xs text-foreground/60'>
+                <div>
                   <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
-                </td>
-                <td>
+                </div>
+                <div>
                   <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -284,7 +293,7 @@ function EditTab ({ currentTrack }) {
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Open Track Settings', { actionName: currentTrack?.actionsName?.slice(0, -1) })}</span>
+        <span>{t('Open Track Settings')}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}
@@ -301,7 +310,7 @@ function EditTab ({ currentTrack }) {
         className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
         onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}
       >
-        + {t('Add {{actionName}}', { actionName: currentTrack?.actionsName?.slice(0, -1) })}
+        + {t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}
       </button>
     </>
   )

@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react'
+import { Pencil, PartyPopper } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { TextHelpers } from '@hylo/shared'
@@ -6,7 +7,6 @@ import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
-import { PartyPopper } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Button from 'components/ui/button'
@@ -17,26 +17,35 @@ import useRouteParams from 'hooks/useRouteParams'
 import completePost from 'store/actions/completePost'
 import getTrack from 'store/selectors/getTrack'
 
-export default function PostCompletion ({ post, currentUser }) {
+export default function ActionCompletionSection ({ post, currentUser }) {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const [completionResponse, setCompletionResponse] = useState(post.completionResponse || [])
   const [showTrackCompletionDialog, setShowTrackCompletionDialog] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const { completionAction, completionActionSettings } = post
   const { instructions, options } = completionActionSettings
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
 
   const handleSubmitCompletion = useCallback(() => {
-    if (!post.completedAt && (completionAction === 'button' || completionResponse.length > 0)) {
+    if (completionAction === 'button' || completionResponse.length > 0) {
       // Check if the person has completed all actions in the track
       const allActionsCompleted = currentTrack?.posts.every(action => action.id === post.id || action.completedAt)
-      if (allActionsCompleted) {
+      if (allActionsCompleted && !post.completedAt) {
         setShowTrackCompletionDialog(true)
       }
       dispatch(completePost(post.id, completionResponse, currentTrack?.id, allActionsCompleted))
     }
+    setIsEditing(false)
   }, [post, completionResponse, currentTrack?.id])
+
+  useEffect(() => {
+    // If the post is completed, or re-completed, close edit mode
+    // This is needed when editing a comment or reaction type action completion
+    setIsEditing(false)
+    setCompletionResponse(post.completionResponse)
+  }, [post.completedAt, post.completionResponse])
 
   const handleUploadAttachment = useCallback((attachments) => {
     setCompletionResponse(attachments.map(a => ({ id: a.id, url: a.url })))
@@ -46,7 +55,7 @@ export default function PostCompletion ({ post, currentUser }) {
 
   const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
-  let completionResponseText = completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>)
+  let completionResponseText = completionResponse?.length > 0 ? completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>) : null
   switch (completionAction) {
     case 'button':
       completionControls = null
@@ -142,13 +151,14 @@ export default function PostCompletion ({ post, currentUser }) {
 
   return (
     <div className='border-2 border-dashed border-foreground/20 rounded-md p-3 m-2'>
-      {post.completedAt && (
+      {post.completedAt && !isEditing && (
         <div className='mb-1'>
-          <p>{t('You completed this {{actionTerm}} {{date}}.', { date: completedAt, actionTerm: currentTrack?.actionsName.slice(0, -1) })} {alreadyCompletedMessage}</p>
+          <p>{t('You completed this {{actionDescriptor}} {{date}}.', { date: completedAt, actionDescriptor: currentTrack?.actionDescriptor })} {alreadyCompletedMessage}</p>
           {completionResponse?.length > 0 && completionResponseText}
+          <Button variant='outline' onClick={() => setIsEditing(true)}><Pencil className='w-4 h-4 cursor-pointer' /> Edit Response</Button>
         </div>
       )}
-      {!post.completedAt && (
+      {(!post.completedAt || isEditing) && (
         <>
           <h3>Complete this action</h3>
           <p className='font-bold'>{instructions}</p>

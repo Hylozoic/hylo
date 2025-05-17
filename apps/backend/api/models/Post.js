@@ -531,17 +531,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
   complete (userId, completionResponse, trx) {
     const runInTransaction = async (transaction) => {
       let pu = await this.loadPostInfoForUser(userId, { transacting: transaction })
+      let completedBefore = false
       if (pu) {
         if (pu.get('completed_at')) {
-          return pu
+          completedBefore = true
         }
         await pu.save({ completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
       } else {
         pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
       }
-      await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: transaction })
 
-      Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
+      if (!completedBefore) {
+        await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: transaction })
+        Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
+      }
 
       return pu
     }
@@ -1003,6 +1006,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
         // If completed the track
         if (parseInt(completedActionsCount) === trackActions.length) {
           const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
+          if (trackUser.get('completed_at')) {
+            // Don't complete the track again if it's already completed
+            continue
+          }
           await trackUser.save({ completed_at: new Date() }, { transacting: trx })
           await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
           // See if there is a role/badge for completing the track

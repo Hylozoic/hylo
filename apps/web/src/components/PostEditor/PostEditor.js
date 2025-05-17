@@ -180,7 +180,7 @@ function PostEditor ({
   const initialPost = useMemo(() => ({
     acceptContributions: false,
     completionAction: 'button',
-    completionActionSettings: { instructions: t('postCompletionActions.button.instructions') },
+    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
     details: '',
     groups: currentGroup ? [currentGroup] : [],
     isAnonymousVote: false,
@@ -280,6 +280,12 @@ function PostEditor ({
       return baseOption.concat(chatRoomOptions)
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
+
+  useEffect(() => {
+    if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
+      setCurrentPost({ ...currentPost, completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } })
+    }
+  }, [currentTrack?.actionDescriptor, currentPost.completionActionSettings])
 
   useEffect(() => {
     if (isChat) {
@@ -760,7 +766,7 @@ function PostEditor ({
             />
             )
           : (
-            <div className=''>{isEditing ? t('Edit {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) }) : t('Add {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
             )}
       </div>
       {!isChat && !isAction && (
@@ -1213,12 +1219,14 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { completionAction, completionActionSettings } = currentPost
 
   const handleCompletionActionChange = useCallback((value) => {
-    const completionActionSettings = { instructions: t('postCompletionActions.' + value + '.instructions') }
+    const completionActionSettings = {
+      instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
+    }
     if (value === 'selectMultiple' || value === 'selectOne') {
       completionActionSettings.options = []
     }
     setCurrentPost({ ...currentPost, completionAction: value, completionActionSettings })
-  }, [currentPost, setCurrentPost])
+  }, [currentPost, setCurrentPost, currentTrack?.actionDescriptor, t])
 
   const handleAddOption = useCallback(() => {
     const newOptions = [...completionActionSettings.options, '']
@@ -1231,7 +1239,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
 
   return (
     <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-3 mt-4 mb-2 gap-2'>
-      <div>{t('How can people complete this {{actionName}}?', { actionName: currentTrack?.actionsName.slice(0, -1) })}</div>
+      <div>{t('How can people complete this {{actionDescriptor}}?', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
       <div className='w-full mb-2'>
         <Select value={completionAction} onValueChange={handleCompletionActionChange}>
           <SelectTrigger className={cn('w-fit py-1 h-8 border-2')}>
@@ -1248,8 +1256,8 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
         <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'
-          placeholder={t('Add instructions for completing this {{actionName}}', { actionName: currentTrack?.actionsName.slice(0, -1) })}
-          value={completionActionSettings.instructions}
+          placeholder={t('Add instructions for completing this {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}
+          value={completionActionSettings?.instructions}
           onChange={handleInstructionsChange}
         />
         {(completionAction === 'selectMultiple' || completionAction === 'selectOne') && (

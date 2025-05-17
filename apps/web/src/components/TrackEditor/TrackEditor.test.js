@@ -41,7 +41,8 @@ describe('TrackEditor', () => {
   it('allows for passing in initial track data via props', async () => {
     const initialTrack = {
       name: 'Test Track',
-      actionsName: 'Steps',
+      actionDescriptor: 'Step',
+      actionDescriptorPlural: 'Steps',
       description: '<p>Test description</p>',
       welcomeMessage: '<p>Welcome message</p>',
       completionMessage: '<p>Completion message</p>',

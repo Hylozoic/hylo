@@ -23,7 +23,8 @@ export default Track
 Track.modelName = 'Track'
 
 Track.fields = {
-  actionsName: attr(),
+  actionDescriptor: attr(),
+  actionDescriptorPlural: attr(),
   bannerUrl: attr(),
   completionMessage: attr(),
   completionRole: fk('Role', 'tracks'),

@@ -45,7 +45,7 @@ import { cn } from 'util/index'
 import { removePostFromUrl } from 'util/navigation'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
-import PostCompletion from './PostCompletion'
+import ActionCompletionSection from './ActionCompletionSection'
 
 import classes from './PostDetail.module.scss'
 
@@ -311,7 +311,7 @@ function PostDetail () {
           />
         )}
         {post.type === 'action' && post.completionAction && (
-          <PostCompletion
+          <ActionCompletionSection
             post={post}
             currentUser={currentUser}
           />
@@ -403,7 +403,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
         onClick={toggleCompletionResponsesDialog}
         excludePersonId={currentUser.id}
         phrases={{
-          emptyMessage: t('No one has completed this - be the first!'),
+          emptyMessage: t('No one has completed this action yet'),
           phraseSingular: t('has completed this action'),
           mePhraseSingular: t('have completed this action'),
           pluralPhrase: t('have completed this action')
