@@ -6,6 +6,7 @@ import { TextHelpers } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useTrack from '@hylo/hooks/useTrack'
 import useTracks from '@hylo/hooks/useTracks'
 import useTrackEnrollment from '@hylo/hooks/useTrackEnrollment'
@@ -13,6 +14,8 @@ import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
 import useRouteParams from 'hooks/useRouteParams'
+
+const sixMinutes = 6 * 60 * 1000
 
 const TabButton = ({ isSelected, onPress, children }) => (
   <TouchableOpacity
@@ -33,7 +36,10 @@ const AboutTab = ({ trackDetail }) => {
   const { bannerUrl, name, description, isEnrolled } = trackDetail
 
   return (
-    <View className='flex-1'>
+    <ScrollView 
+      className='flex-1'
+      showsVerticalScrollIndicator={true}
+    >
       <View className={`mt-4 w-full rounded-xl h-[40vh] items-center justify-center bg-foreground/20 ${Platform.OS === 'ios' ? 'shadow-2xl' : ''}`}>
         {bannerUrl && (
           <Image 
@@ -45,13 +51,11 @@ const AboutTab = ({ trackDetail }) => {
         <Text className='text-white text-4xl font-bold'>{name}</Text>
       </View>
       
-      <View className='flex-1'>
-        <ScrollView className='flex-1'>
-          <HyloHTML html={TextHelpers.markdown(description)} />
-          <View className='h-20' />
-        </ScrollView>
+      <View className='flex-1 mt-4'>
+        <HyloHTML html={TextHelpers.markdown(description)} />
+        <View className='h-20' />
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
@@ -171,6 +175,7 @@ function TrackDetail() {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
+  const [{ currentUser }] = useCurrentUser()
   const [tracks, { fetching: fetchingTracks }] = useTracks({ 
     groupId: currentGroup?.id
   })
@@ -182,6 +187,11 @@ function TrackDetail() {
   const initialTrack = tracks?.find(t => t.id === routeParams.trackId)
   const [currentTab, setCurrentTab] = useState(initialTrack?.isEnrolled ? 'actions' : 'about')
   
+  // Get current user's enrollment date
+  const currentUserEnrollment = trackDetail?.enrolledUsers?.find(user => user.id === currentUser?.id)
+  const enrolledAt = currentUserEnrollment?.enrolledAt
+
+  
   const { 
     enrollInTrack, 
     leaveTrack, 
@@ -192,6 +202,7 @@ function TrackDetail() {
 
   // Animation values
   const [tabAnimation] = useState(new Animated.Value(0))
+  const [welcomeAnimation] = useState(new Animated.Value(0))
   
   useEffect(() => {
     if (trackDetail?.isEnrolled) {
@@ -199,19 +210,39 @@ function TrackDetail() {
       Animated.spring(tabAnimation, {
         toValue: 1,
         useNativeDriver: true,
-        tension: 50,
-        friction: 7
+        tension: 30,
+        friction: 10
       }).start()
     } else {
       // Animate out
       Animated.spring(tabAnimation, {
         toValue: 0,
         useNativeDriver: true,
+        tension: 30,
+        friction: 10
+      }).start()
+    }
+  }, [trackDetail?.isEnrolled])
+
+  useEffect(() => {
+    if (trackDetail?.isEnrolled && enrolledAt && Date.now() - new Date(enrolledAt).getTime() < sixMinutes) {
+      // Animate welcome message in
+      Animated.spring(welcomeAnimation, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7
+      }).start()
+    } else {
+      // Animate welcome message out
+      Animated.spring(welcomeAnimation, {
+        toValue: 0,
+        useNativeDriver: true,
         tension: 50,
         friction: 7
       }).start()
     }
-  }, [trackDetail?.isEnrolled])
+  }, [trackDetail?.isEnrolled, enrolledAt])
 
   if (fetching) return <Loading />
   if (error || enrollmentError) return (
@@ -253,6 +284,16 @@ function TrackDetail() {
       translateY: tabAnimation.interpolate({
         inputRange: [0, 1],
         outputRange: [-20, 0]
+      })
+    }]
+  }
+
+  const welcomeAnimatedStyle = {
+    opacity: welcomeAnimation,
+    transform: [{
+      translateY: welcomeAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [50, 0] // Slide up from 50 units below
       })
     }]
   }
@@ -315,6 +356,23 @@ function TrackDetail() {
 
       {currentTab === 'about' && (
         <View className='absolute bottom-0 left-0 right-0 bg-background shadow-lg'>
+          { trackDetail?.isEnrolled && enrolledAt && Date.now() - new Date(enrolledAt).getTime() < sixMinutes && (
+            <Animated.View 
+              style={welcomeAnimatedStyle}
+              className='w-full'
+            >
+              <View className='flex-row gap-2 w-full px-4 py-2 justify-between items-center bg-input'>
+                <ScrollView 
+                  className='flex-1'
+                  style={{ maxHeight: 120 }}
+                  showsVerticalScrollIndicator={true}
+                >
+                  <Text className='text-foreground font-bold mb-2'>{t('Welcome Message')}</Text>
+                  <HyloHTML html={TextHelpers.markdown(trackDetail.welcomeMessage)} />
+                </ScrollView>
+              </View>
+            </Animated.View>
+          )}
           {trackDetail.didComplete ? (
             <View className='flex-row gap-2 w-full px-4 py-2 justify-between items-center bg-input'>
               <Text className='text-foreground'>{t('You completed this track')}</Text>
