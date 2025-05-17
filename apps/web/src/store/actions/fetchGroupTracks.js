@@ -18,7 +18,8 @@ query (
       items {
         id
         bannerUrl
-        actionsName
+        actionDescriptor
+        actionDescriptorPlural
         description
         completionMessage
         completionRole {

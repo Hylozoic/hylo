@@ -1136,7 +1136,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
     Track: {
       model: Track,
       attributes: [
-        'actions_name',
+        'action_descriptor',
+        'action_descriptor_plural',
         'created_at',
         'banner_url',
         'completion_role_type',

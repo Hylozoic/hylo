@@ -33,7 +33,8 @@ function TrackEditor (props) {
   const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
 
   const [trackState, setTrackState] = useState(Object.assign({
-    actionsName: currentGroup.settings.actionsName || 'Actions',
+    actionDescriptor: currentGroup.settings.actionDescriptor || 'Action',
+    actionDescriptorPlural: currentGroup.settings.actionDescriptorPlural || 'Actions',
     bannerUrl: '',
     completionRole: null,
     completionRoleType: '',
@@ -54,8 +55,8 @@ function TrackEditor (props) {
   const completionMessageEditorRef = useRef(null)
 
   const isValid = useMemo(() => {
-    return trackState.name?.length > 0 && trackState.actionsName?.length > 0
-  }, [errors, trackState.name, trackState.actionsName])
+    return trackState.name?.length > 0 && trackState.actionDescriptor?.length > 0 && trackState.actionDescriptorPlural?.length > 0
+  }, [errors, trackState.name, trackState.actionDescriptor, trackState.actionDescriptorPlural])
 
   useEffect(() => {
     if (editingTrack) {
@@ -77,14 +78,17 @@ function TrackEditor (props) {
     if (field === 'name') {
       setErrors({ ...errors, name: trimmedValue === '' ? t('Please enter a track name') : false })
       setNameCharacterCount(trimmedValue.length)
-    } else if (field === 'actionsName') {
-      setErrors({ ...errors, actionsName: trimmedValue === '' ? t('Please enter a track actions name') : false })
+    } else if (field === 'actionDescriptor') {
+      setErrors({ ...errors, actionDescriptor: trimmedValue === '' ? t('Please enter a descriptor for actions in this track') : false })
+    } else if (field === 'actionDescriptorPlural') {
+      setErrors({ ...errors, actionDescriptorPlural: trimmedValue === '' ? t('Please enter a plural descriptor for actions in this track') : false })
     }
   }
 
   const onSubmit = useCallback(() => {
     let {
-      actionsName,
+      actionDescriptor,
+      actionDescriptorPlural,
       bannerUrl,
       completionRole,
       completionRoleType,
@@ -107,7 +111,8 @@ function TrackEditor (props) {
     const save = editingTrack ? updateTrack : createTrack
 
     dispatch(save({
-      actionsName,
+      actionDescriptor,
+      actionDescriptorPlural,
       bannerUrl,
       completionMessage,
       completionRole,
@@ -135,7 +140,7 @@ function TrackEditor (props) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
   }
 
-  const { actionsName, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
+  const { actionDescriptor, actionDescriptorPlural, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
@@ -258,16 +263,27 @@ function TrackEditor (props) {
       </div>
 
       <div>
-        <h3>Term for track units</h3>
-        <p className='text-xs text-foreground/60'>{t('actionsTermHelp')}:</p>
+        <h3>Term to describe track units</h3>
+        <p className='text-xs text-foreground/60'>{t('actionsTermHelp')}</p>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
           <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
           <input
             className='p-2 border-none bg-transparent w-full'
             maxLength='40'
-            name='actionsName'
-            onChange={updateField('actionsName')}
-            value={actionsName}
+            name='actionDescriptor'
+            onChange={updateField('actionDescriptor')}
+            value={actionDescriptor}
+            type='text'
+          />
+        </div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
+          <input
+            className='p-2 border-none bg-transparent w-full'
+            maxLength='40'
+            name='actionDescriptorPlural'
+            onChange={updateField('actionDescriptorPlural')}
+            value={actionDescriptorPlural}
             type='text'
           />
         </div>

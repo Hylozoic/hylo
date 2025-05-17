@@ -2363,8 +2363,10 @@ type TopicFollowSettings {
 
 type Track {
   id: ID
-  # The word used in this track to describe actions
-  actionsName: String
+  # The word used in this track to describe an action
+  actionDescriptor: String
+  # The word used in this track to describe multiple actions
+  actionDescriptorPlural: String
   # The URL of the banner image for this track
   bannerUrl: String
   # The message shown when a user completes this track
@@ -3510,8 +3512,10 @@ input SavedSearchInput {
 }
 
 input TrackInput {
-  # The word used in this track to describe actions
-  actionsName: String
+  # The word used in this track to describe an action
+  actionDescriptor: String
+  # The word used in this track to describe multiple actions
+  actionDescriptorPlural: String
   # The URL of the banner image for this track
   bannerUrl: String
   # The message shown when a user completes this track

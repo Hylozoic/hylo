@@ -153,7 +153,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
     <div className='border-2 border-dashed border-foreground/20 rounded-md p-3 m-2'>
       {post.completedAt && !isEditing && (
         <div className='mb-1'>
-          <p>{t('You completed this {{actionTerm}} {{date}}.', { date: completedAt, actionTerm: currentTrack?.actionsName.slice(0, -1) })} {alreadyCompletedMessage}</p>
+          <p>{t('You completed this {{actionDescriptor}} {{date}}.', { date: completedAt, actionDescriptor: currentTrack?.actionDescriptor })} {alreadyCompletedMessage}</p>
           {completionResponse?.length > 0 && completionResponseText}
           <Button variant='outline' onClick={() => setIsEditing(true)}><Pencil className='w-4 h-4 cursor-pointer' /> Edit Response</Button>
         </div>

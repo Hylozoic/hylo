@@ -32,7 +32,7 @@ function TrackCard ({ track }) {
     }
   }, [track.id])
 
-  const { actionsName, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
+  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
 
   const handleButtonClick = (event) => {
     event.preventDefault() // Prevents the click event from bubbling up to the Link
@@ -44,7 +44,7 @@ function TrackCard ({ track }) {
         <div className='flex justify-between items-center pb-1'>
           <Link className='w-full flex flex-row items-center gap-1 text-foreground hover:text-foreground/100 ' to={viewTrackUrl}>
             <h2 className='m-0 p-0 truncate'>{name}</h2>
-            <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionsName}</span>
+            <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
           </Link>
           {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Settings className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
         </div>

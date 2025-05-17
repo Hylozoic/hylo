@@ -140,7 +140,8 @@ export function fetchTrack (trackId) {
         ) {
           track (id: $id) {
             id
-            actionsName
+            actionDescriptor
+            actionDescriptorPlural
             bannerUrl
             completionMessage
             completionRole {
@@ -204,7 +205,8 @@ export function createTrack (data) {
       query: `mutation CreateTrack($data: TrackInput) {
         createTrack(data: $data) {
           id
-          actionsName
+          actionDescriptor
+          actionDescriptorPlural
           bannerUrl
           completionMessage
           completionRole {

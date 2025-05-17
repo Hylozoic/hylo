@@ -115,7 +115,7 @@ function TrackHome () {
               className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
               onClick={() => changeTab('actions')}
             >
-              {currentTrack.actionsName}
+              {currentTrack.actionDescriptorPlural}
             </button>
             <button
               className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
@@ -225,7 +225,7 @@ function ActionsTab ({ currentTrack }) {
 
   return (
     <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
-      <h1>{currentTrack.actionsName}</h1>
+      <h1>{currentTrack.actionDescriptorPlural}</h1>
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
       ))}
@@ -293,7 +293,7 @@ function EditTab ({ currentTrack }) {
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Open Track Settings', { actionName: currentTrack?.actionsName?.slice(0, -1) })}</span>
+        <span>{t('Open Track Settings')}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}
@@ -310,7 +310,7 @@ function EditTab ({ currentTrack }) {
         className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
         onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}
       >
-        + {t('Add {{actionName}}', { actionName: currentTrack?.actionsName?.slice(0, -1) })}
+        + {t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}
       </button>
     </>
   )

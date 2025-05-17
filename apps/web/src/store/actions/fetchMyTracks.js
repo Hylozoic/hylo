@@ -16,7 +16,8 @@ query FetchMyTracks (
       items {
         id
         bannerUrl
-        actionsName
+        actionDescriptor
+        actionDescriptorPlural
         description
         didComplete
         isEnrolled
