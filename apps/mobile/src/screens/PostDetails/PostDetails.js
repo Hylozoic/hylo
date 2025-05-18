@@ -20,7 +20,7 @@ import CommentEditor from 'components/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
-import PostCompletion from 'components/PostCompletion'
+import ActionCompletionSection from 'components/ActionCompletionSection/ActionCompletionSection'
 import { isIOS } from 'util/platform'
 
 export const postDetailsQuery = gql`
@@ -119,7 +119,7 @@ export default function PostDetails () {
               groupId={groupId}
             />
             {post.type === 'action' && post.completionAction && (
-              <PostCompletion
+              <ActionCompletionSection
                 post={post}
                 trackId={trackId}
               />
