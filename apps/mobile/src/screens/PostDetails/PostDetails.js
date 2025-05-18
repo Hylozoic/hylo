@@ -20,7 +20,7 @@ import CommentEditor from 'components/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
-import ActionCompletionSection from 'components/ActionCompletionSection/ActionCompletionSection'
+import ActionCompletionSection from 'components/ActionCompletionSection'
 import { isIOS } from 'util/platform'
 
 export const postDetailsQuery = gql`
