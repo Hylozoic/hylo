@@ -369,6 +369,7 @@
   "You completed this {{actionTerm}} {{date}}. You selected:": "You completed this {{actionTerm}}: {{date}}. You selected:",
   "You completed this {{actionTerm}} {{date}}. Your response was:": "You completed this {{actionTerm}}: {{date}}. Your response was:",
   "You completed this {{date}}": "You completed this: {{date}}",
+  "You have completed": "You have completed",
   "You have completed the track: {{trackName}}": "You have completed the track: {{trackName}}",
   "You have unsaved changes": "You have unsaved changes",
   "You selected": "You selected",

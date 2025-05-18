@@ -66,7 +66,7 @@ export default function ActionCompletionSection({ post, trackId }) {
           refetchTrack()
           showToast({
             type: 'success',
-            text1: t('You have completed the track: {{trackName}}', { trackName: '' }),
+            text1: t('You have completed') + ':',
             text2: currentTrack.name,
             visibilityTime: 3000
           })

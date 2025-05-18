@@ -142,8 +142,9 @@ export default function UploadAction () {
           refetchTrack()
           showToast({
             type: 'success',
-            text1: t('You have completed the track: {{trackName}}', { trackName: currentTrack.name }),
-            visibilityTime: 4000
+            text1: t('You have completed') + ':',
+            text2: currentTrack.name,
+            visibilityTime: 3000
           })
         } else {
           showToast({

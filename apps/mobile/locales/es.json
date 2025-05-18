@@ -366,6 +366,7 @@
   "You completed this {{actionTerm}} {{date}}. You selected:": "Has completado esta {{actionTerm}}: {{date}}. Has seleccionado:",
   "You completed this {{actionTerm}} {{date}}. Your response was:": "Has completado esta {{actionTerm}}: {{date}}. Tu respuesta fue:",
   "You completed this {{date}}": "Has completado esta: {{date}}",
+  "You have completed": "Has completado",
   "You have completed the track: {{trackName}}": "Has completado la pista: {{trackName}}",
   "You have unsaved changes": "Tiene cambios sin guardar",
   "You selected": "Usted seleccionó",
