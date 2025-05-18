@@ -212,26 +212,6 @@ export const postWithCompletionFragment = gql`
   ${postFieldsFragment}
 `
 
-// Fragment for posts with all completion responses
-export const postWithAllCompletionResponsesFragment = gql`
-  fragment PostWithAllCompletionResponsesFragment on Post {
-    ...PostFieldsFragment
-    completionResponses {
-      items {
-        id
-        completedAt
-        completionResponse
-        user {
-          id
-          name
-          avatarUrl
-        }
-      }
-    }
-  }
-  ${postFieldsFragment}
-`
-
 // Fragment combining both comments and completion responses
 export const postWithCommentsAndCompletionResponsesFragment = gql`
   fragment PostWithCommentsAndCompletionResponsesFragment on Post {
