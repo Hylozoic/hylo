@@ -691,6 +691,8 @@ type Group {
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Whether this group's posts can be shown in public feeds
+  allowInPublic: Boolean
   # URL to the image of the avatar of the group
   avatarUrl: String
   # URL to the image of the banner for the group
