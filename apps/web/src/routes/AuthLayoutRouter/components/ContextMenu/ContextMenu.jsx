@@ -35,7 +35,7 @@ import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
 import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
@@ -743,28 +743,16 @@ function SpecialTopElementRenderer ({ widget }) {
   return null
 }
 
-const SETTINGS_MENU_ITEMS = [
-  { title: 'Group Details', url: 'settings' },
-  { title: 'Agreements', url: 'settings/agreements' },
-  { title: 'Welcome Page', url: 'settings/welcome' },
-  { title: 'Responsibilities', url: 'settings/responsibilities' },
-  { title: 'Roles & Badges', url: 'settings/roles' },
-  { title: 'Privacy & Access', url: 'settings/privacy' },
-  { title: 'Invitations', url: 'settings/invite' },
-  { title: 'Join Requests', url: 'settings/requests' },
-  { title: 'Related Groups', url: 'settings/relationships' },
-  { title: 'Tracks & Actions', url: 'settings/tracks' },
-  { title: 'Custom Views', url: 'settings/views' },
-  { title: 'Export Data', url: 'settings/export' },
-  { title: 'Delete', url: 'settings/delete' }
-]
-
-function GroupSettingsMenu () {
+function GroupSettingsMenu ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
   const { groupSlug } = useContextMenuContext()
+
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: group?.id }))
 
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
@@ -778,6 +766,22 @@ function GroupSettingsMenu () {
     }
   }, [confirm, previousLocation, groupSlug])
 
+  const settingsMenuItems = useMemo(() => [
+    canAdminister && { title: 'Group Details', url: 'settings' },
+    canAdminister && { title: 'Agreements', url: 'settings/agreements' },
+    canAdminister && { title: 'Welcome Page', url: 'settings/welcome' },
+    canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
+    canAdminister && { title: 'Roles & Badges', url: 'settings/roles' },
+    canAdminister && { title: 'Privacy & Access', url: 'settings/privacy' },
+    canAddMembers && { title: 'Invitations', url: 'settings/invite' },
+    canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
+    canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
+    canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
+    canAdminister && { title: 'Custom Views', url: 'settings/views' },
+    canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Delete', url: 'settings/delete' }
+  ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
+
   return (
     <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[88px] w-[300px] bg-background/60 z-10'>
       <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
@@ -786,7 +790,7 @@ function GroupSettingsMenu () {
           {t('Group Settings')}
         </h3>
         <ul className='flex flex-col gap-2 p-0'>
-          {SETTINGS_MENU_ITEMS.map(item => (
+          {settingsMenuItems.map(item => (
             <li key={item.url}>
               <MenuLink
                 to={groupUrl(groupSlug, item.url)}
