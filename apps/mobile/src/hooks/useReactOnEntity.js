@@ -59,7 +59,6 @@ export default function useReactOnEntity () {
   const [, deletePostReaction] = useMutation(deletePostReactionMutation)
   const [, deleteCommentReaction] = useMutation(deleteCommentReactionMutation)
   const reactOnEntity = async (entityType, entityId, emojiFull) => {
-    console.log('reactOnEntity workskdk', entityType, entityId, emojiFull)
     reactOn({ entityId, data: { emojiFull, entityType, entityId } })
     mixpanel.track(
       entityType === 'post' ? AnalyticsEvents.POST_REACTION : AnalyticsEvents.COMMENT_REACTION, {

@@ -18,7 +18,6 @@ export default function useTracks ({ groupId, groupSlug, hideUnpublished = false
     return [null, { fetching, error }, reQuery]
   }
 
-  // The tracks are nested under group in the response
   const tracks = data?.group?.tracks?.items || []
 
   const filteredTracks = hideUnpublished ? tracks.filter(track => track.publishedAt) : tracks

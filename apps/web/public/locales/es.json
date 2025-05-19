@@ -1108,10 +1108,7 @@
   "You can only select up to {{MAX_TOPICS}} topics": "Solo puedes seleccionar hasta {{MAX_TOPICS}} temas",
   "You can see how people voted": "Puedes ver cómo votó la gente.",
   "You can select a CSV file to import posts into {{name}}. Posts will be created by you. The file must have columns with the following headers:": "Puede seleccionar un archivo CSV para importar publicaciones en {{name}}. \nLas publicaciones serán creadas por usted. \nEl archivo debe tener columnas con los siguientes encabezados:",
-<<<<<<< HEAD
-=======
   "You completed this {{actionDescriptor}} {{date}}.": "Has completado esta {{actionDescriptor}} {{date}}.",
->>>>>>> tracks
   "You completed this track": "Has completado este curso",
   "You completed this {{actionTerm}} {{date}}.": "Has completado esta {{actionTerm}} {{date}}.",
   "You don't have any messages yet": "Aún no tienes ningún mensaje.",
