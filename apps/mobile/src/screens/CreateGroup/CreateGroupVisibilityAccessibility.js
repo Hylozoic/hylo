@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
-import { Text, View, ScrollView, TouchableOpacity } from 'react-native'
+import { Text, View, ScrollView, TouchableOpacity, Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import {
   GROUP_ACCESSIBILITY, GROUP_VISIBILITY,
@@ -39,6 +39,10 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
     updateGroupData({ visibility, accessibility })
   }, [visibility, accessibility]))
 
+  const handleCommonsFormPress = () => {
+    Linking.openURL('https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform')
+  }
+
   return (
     <>
       <View>
@@ -53,6 +57,26 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
             />
           ))}
         </View>
+
+        {visibility.value === GROUP_VISIBILITY.Public && (
+          <View className='mb-6 bg-foreground/5 p-4 rounded-lg'>
+            <Text className='text-foreground font-bold mb-2'>
+              {t('Optional') + ': ' + t('Allow my Group into the Commons')}
+            </Text>
+            <Text className='text-foreground/70 mb-2 text-sm'>
+              {t('commonsExplainerText1')}
+            </Text>
+            <Text className='text-foreground/70 mb-3 text-sm'>
+              {t('commonsExplainerText2')}
+            </Text>
+            <TouchableOpacity onPress={handleCommonsFormPress}>
+              <Text className='text-focus text-sm'>
+                {t('Apply here') + ': ' + t('Allow-in-Commons form')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View className='mb-6'>
           <Text className='text-foreground text-xl font-bold mb-2.5'>{t('Who can join this group?')}</Text>
           {groupAccessibilityOptions.map(option => (

@@ -435,5 +435,7 @@
   "wrote": "escribió:",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)",
-  "{{name}} joined your group": "{{name}} se unió a tu grupo"
+  "{{name}} joined your group": "{{name}} se unió a tu grupo",
+  "commonsExplainerText1": "Los Commons son el flujo público de contenido, el directorio público de grupos y el mapa público de Hylo.",
+  "commonsExplainerText2": "Para evitar el spam y el contenido desalineado, requerimos que los grupos que desean publicar en estas áreas pasen por un proceso de solicitud. Si a su grupo se le otorga este permiso, sus administradores serán responsables del contenido público publicado en asociación con sus grupos."
 }
