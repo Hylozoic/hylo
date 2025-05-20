@@ -342,7 +342,24 @@ function CreateGroup () {
           </div>
         )}
 
-        {/* {parentGroupOptions && parentGroupOptions.length > 0 && ( */}
+        {/* {parentGroupOptions && parentGroupOptions.length > 0 && (
+          <div className=''>
+            <div className=''>
+              <span className=''>{t('IS THIS GROUP A MEMBER OF OTHER GROUPS?')}</span>
+              <div className=''>
+                ?
+                <div>{t('groupParentGroupHelpText')}</div>
+              </div>
+              <GroupsSelector
+                options={parentGroupOptions}
+                selected={parentGroups}
+                onChange={(newGroups) => { updateField('parentGroups')(newGroups) }}
+                readOnly={false}
+                ref={groupsSelector}
+              />
+            </div>
+          </div>
+        )}  */}
 
         <div className='mt-10'>
           <Button
