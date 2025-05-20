@@ -238,6 +238,11 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
+      <SettingsSection>
+        <h3>{t('Allow my Group into the Commons')}</h3>
+        <p className={general.detailText}>{t('commonsExplainerText1')}</p>
+        <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
+      </SettingsSection>
       <SaveButton save={save} changed={changed} />
     </div>
   )
