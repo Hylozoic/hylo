@@ -323,24 +323,26 @@ function CreateGroup () {
           </Select>
         </div>
 
-        {/* {parentGroupOptions && parentGroupOptions.length > 0 && (
-          <div className=''>
-            <div className=''>
-              <span className=''>{t('IS THIS GROUP A MEMBER OF OTHER GROUPS?')}</span>
-              <div className=''>
-                ?
-                <div>{t('groupParentGroupHelpText')}</div>
-              </div>
-              <GroupsSelector
-                options={parentGroupOptions}
-                selected={parentGroups}
-                onChange={(newGroups) => { updateField('parentGroups')(newGroups) }}
-                readOnly={false}
-                ref={groupsSelector}
-              />
-            </div>
+        {visibility === GROUP_VISIBILITY.Public && (
+          <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+            <h3 className='font-semibold mb-2'>{t('Optional') + ': ' + t('Allow my Group into the Commons')}</h3>
+            <p className='text-sm opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
+            <p className='text-sm opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
+            <p className='text-sm'>
+              {t('Apply here') + ': '}
+              <a
+                href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-focus hover:underline'
+              >
+                {t('Allow-in-Commons form')}
+              </a>
+            </p>
           </div>
-        )}  */}
+        )}
+
+        {/* {parentGroupOptions && parentGroupOptions.length > 0 && ( */}
 
         <div className='mt-10'>
           <Button

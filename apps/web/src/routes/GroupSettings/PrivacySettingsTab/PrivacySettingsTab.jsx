@@ -115,6 +115,14 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
+      {visibility === GROUP_VISIBILITY.Public &&
+        <SettingsSection>
+          <h3>{t('Allow my Group into the Commons')}</h3>
+          <p className={general.detailText}>{t('commonsExplainerText1')}</p>
+          <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
+          <p className={cn(general.detailText, 'mt-3')}>{t('Apply here') + ': '} <a href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform' target='_blank' rel='noopener noreferrer'>{t('Allow-in-Commons form')}</a></p>
+        </SettingsSection>}
+
       <SettingsSection>
         <h3>{t('Access')}</h3>
         <p className={general.detailText}>{t('How can people become members of')} <strong>{name}</strong></p>
@@ -208,12 +216,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           </SettingsSection>
           )
         : ''}
-      <SettingsSection>
-        <h3>{t('Allow my Group into the Commons')}</h3>
-        <p className={general.detailText}>{t('commonsExplainerText1')}</p>
-        <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
-        <p className={cn(general.detailText, 'mt-3')}>{t('Apply here') + ': '} <a href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform' target='_blank' rel='noopener noreferrer'>{t('Allow-in-Commons form')}</a></p>
-      </SettingsSection>
 
       <SettingsSection>
         <h3>{t('Publish Murmurations Profile')}</h3>
