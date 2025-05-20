@@ -5,6 +5,7 @@ export default gql`
     id
     aboutVideoUri
     accessibility
+    allowInPublic
     avatarUrl
     bannerUrl
     description

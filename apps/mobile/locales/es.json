@@ -110,6 +110,7 @@
   "Hi {{firstName}}, what would you like to share?": "Hola {{firstName}}, ¿qué te gustaría compartir?",
   "Hylo Communities": "Comunidades de Hylo",
   "I agree to the above": "Estoy de acuerdo con lo anterior",
+  "If public this post will be visible in the Commons public feed and map": "Si es público, esta publicación será visible en los Comunes; \nFeed y mapa público",
   "If this function executes, User Credentials have been Revoked": "Si se ejecuta esta función, las credenciales de usuario han sido revocadas",
   "If you made changes they will be lost": "Si hiciste cambios se perderán",
   "Illegal": "Ilegal",

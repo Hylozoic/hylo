@@ -37,6 +37,7 @@ export default gql`
         showWelcomePage
       }
       slug
+      allowInPublic
     }
   }
 `
