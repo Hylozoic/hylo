@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.7] - 2025-05-25
+
+### Fixed
+- Blank screen when some users sign up and join a group
+- Extraneous borders around some dropdowns
+- Invisible text in custom views and roles settings in dark mode
+
 ## [6.0.6] - 2025-05-05
 
 ### Changed
