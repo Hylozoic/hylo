@@ -39,6 +39,7 @@ export function baseUrl ({
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
+  trackId,
   view
 }) {
   const safeMemberId = personId || memberId
@@ -49,6 +50,8 @@ export function baseUrl ({
     return chatUrl(topicName, { context, groupSlug })
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug })
+  } else if (trackId) {
+    return trackUrl(trackId, { context, groupSlug })
   } else if (view) {
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
@@ -74,6 +77,10 @@ export function createUrl (opts = {}, querystringParams = {}) {
 
 export function createGroupUrl (opts) {
   return baseUrl(opts) + '/create/group'
+}
+
+export function createTrackUrl (opts) {
+  return baseUrl(opts) + '/create/track'
 }
 
 // For specific views of a group like 'map', or 'projects'
@@ -230,9 +237,15 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
+  } else if (widget.viewTrack) {
+    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
   }
 
   return url
+}
+
+export function trackUrl (trackId, opts) {
+  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
 }
 
 // URL utility functions
@@ -249,10 +262,17 @@ export function addQuerystringToPath (path, querystringParams) {
   return `${path}${!isEmpty(querystringParams) ? '?' + qs.stringify(querystringParams) : ''}`
 }
 
-export function removePostEditorFromUrl (url) {
-  const matchForCreateRegex = '/create/post/*'
-  const matchForEditRegex = `/post/${POST_ID_MATCH}(/.*)?`
-  return url.replace(new RegExp(matchForCreateRegex), '').replace(new RegExp(matchForEditRegex), '')
+export function removeCreateEditModalFromUrl (url) {
+  const matchForCreateRegex = '/create/(post|track)/*'
+  const matchForEditRegex = `/post/${HYLO_ID_MATCH}(/.*)?`
+  const matchForEditTrackRegex = `/tracks/${HYLO_ID_MATCH}(/.*)?`
+  return url.replace(new RegExp(matchForCreateRegex), '')
+    .replace(new RegExp(matchForEditRegex), '')
+    .replace(new RegExp(matchForEditTrackRegex), (match) => {
+      // Split the match into parts so we only remove the "edit" part of the url
+      const parts = match.split('/')
+      return parts.slice(0, 3).join('/') // Keep '/tracks/{id}'
+    })
 }
 
 export function removePostFromUrl (url) {

@@ -19,6 +19,7 @@ export default function presentPost (post, groupId) {
       createdTimestamp: createdAtHumanDate,
       creator: post.creator, // needed to load the creator object
       commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
+      completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
       editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
       eventInvitations: (rawPost ? post.eventInvitations?.items || [] : post.eventInvitations.toModelArray()).map(eventInvitation => {
         return {

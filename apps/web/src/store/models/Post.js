@@ -24,6 +24,16 @@ export const PROPOSAL_STATUS_COMPLETED = 'completed'
 
 export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'event']
 
+export const POST_COMPLETION_ACTIONS = [
+  'button',
+  'comment',
+  'reaction',
+  'selectMultiple',
+  'selectOne',
+  'text',
+  'uploadFile'
+]
+
 export class PostFollower extends Model {}
 PostFollower.modelName = 'PostFollower'
 PostFollower.fields = {
@@ -51,6 +61,15 @@ ProposalOption.fields = {
   post: fk('Post', 'proposaloptions')
 }
 
+export class PostUser extends Model {}
+PostUser.modelName = 'PostUser'
+PostUser.fields = {
+  completedAt: attr(),
+  completionResponse: attr(),
+  post: fk('Post', 'postusers'),
+  user: fk('Person', 'postusers')
+}
+
 class Post extends Model {
   toString () {
     return `Post: ${this.name}`
@@ -62,15 +81,29 @@ export default Post
 Post.modelName = 'Post'
 Post.fields = {
   id: attr(),
+  commentersTotal: attr(),
+  createdAt: attr(),
+  details: attr(),
+  donationsLink: attr(),
+  endsAt: attr(),
+  fulfilledAt: attr(),
+  groupsTotal: attr(),
+  isPublic: attr(),
+  location: attr(),
+  peopleReactedTotal: attr(),
+  projectManagementLink: attr(),
+  sortOrder: attr(), // For actions in a track
+  startsAt: attr(),
+  timezone: attr(),
   title: attr(),
   type: attr(),
-  location: attr(),
-  locationId: fk({
-    to: 'Location',
-    as: 'locationObject'
+  commenters: many({
+    to: 'Person',
+    relatedName: 'postsCommented',
+    through: 'PostCommenter',
+    throughFields: ['post', 'commenter']
   }),
-  details: attr(),
-  linkPreview: fk('LinkPreview', 'posts'),
+  completionResponses: many('PostUser'),
   creator: fk('Person', 'posts'),
   followers: many({
     to: 'Person',
@@ -79,35 +112,30 @@ Post.fields = {
     throughFields: ['post', 'follower']
   }),
   groups: many('Group'),
-  groupsTotal: attr(),
-  postMemberships: many('PostMembership'),
-  commenters: many({
-    to: 'Person',
-    relatedName: 'postsCommented',
-    through: 'PostCommenter',
-    throughFields: ['post', 'commenter']
+  locationId: fk({
+    to: 'Location',
+    as: 'locationObject'
   }),
+  linkPreview: fk('LinkPreview', 'posts'),
   members: many({
     to: 'Person',
     relatedName: 'projectsJoined',
     through: 'ProjectMember',
     throughFields: ['post', 'member']
   }),
-  commentersTotal: attr(),
-  createdAt: attr(),
-  startsAt: attr(),
-  endsAt: attr(),
-  fulfilledAt: attr(),
-  donationsLink: attr(),
-  projectManagementLink: attr(),
-  peopleReactedTotal: attr(),
-  timezone: attr(),
-  topics: many('Topic'),
-  isPublic: attr(),
-  proposalOptions: many('ProposalOption')
+  postMemberships: many('PostMembership'),
+  proposalOptions: many('ProposalOption'),
+  topics: many('Topic')
 }
 
 export const POST_TYPES = {
+  action: {
+    primaryColor: [0, 163, 227, 255], // $color-picton-blue
+    backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water
+    map: false,
+    label: 'Action',
+    description: 'Actions that members can take'
+  },
   chat: {
     primaryColor: [0, 163, 227, 255], // $color-picton-blue
     backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water

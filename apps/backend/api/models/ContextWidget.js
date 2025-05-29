@@ -17,6 +17,7 @@ module.exports = bookshelf.Model.extend({
       if (model.get('view_post_id')) relationsToLoad.push('viewPost')
       if (model.get('view_group_id')) relationsToLoad.push('viewGroup')
       if (model.get('view_user_id')) relationsToLoad.push('viewUser')
+      if (model.get('view_track_id')) relationsToLoad.push('viewTrack')
       relationsToLoad.push('children')
 
       options.withRelated = options.withRelated.concat(relationsToLoad)
@@ -32,6 +33,7 @@ module.exports = bookshelf.Model.extend({
   customView () {
     return this.belongsTo(CustomView, 'custom_view_id')
   },
+
   ownerGroup () {
     return this.belongsTo(Group, 'group_id')
   },
@@ -115,6 +117,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Post, 'view_post_id')
   },
 
+  viewTrack () {
+    return this.belongsTo(Track, 'view_track_id')
+  },
+
   viewUser () {
     return this.belongsTo(User, 'view_user_id')
   }
@@ -127,6 +133,7 @@ module.exports = bookshelf.Model.extend({
     GROUP: 'view_group_id',
     USER: 'view_user_id',
     CUSTOM: 'custom_view_id',
+    TRACK: 'view_track_id',
     VIEW: 'view'
   },
 
@@ -171,6 +178,7 @@ module.exports = bookshelf.Model.extend({
         view_chat_id: data.view_chat_id,
         view_group_id: data.view_group_id,
         view_post_id: data.view_post_id,
+        view_track_id: data.view_track_id,
         view_user_id: data.view_user_id,
         custom_view_id: customViewId,
         created_at: new Date(),
@@ -198,13 +206,13 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
-  findForGroup: function(groupId, options = {}) {
-    return this.where({group_id: groupId})
+  findForGroup: function (groupId, options = {}) {
+    return this.where({ group_id: groupId })
       .orderBy('created_at', 'asc')
       .fetchAll(options)
   },
 
-  removeFromMenu: async function({id, trx: existingTrx}) {
+  removeFromMenu: async function({ id, trx: existingTrx }) {
     const doWork = async (trx) => {
       // Get the widget being removed
       const removedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
@@ -222,7 +230,7 @@ module.exports = bookshelf.Model.extend({
         }))
 
       // Get widgets that need order updates (all peers with higher order)
-      const reorderedWidgets = reorderTree({widgetToBeMovedId: removedWidget.get('id'), newWidgetPosition: {remove: true}, allWidgets})
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: removedWidget.get('id'), newWidgetPosition: { remove: true }, allWidgets })
       if (reorderedWidgets.length > 0) {
         // Update all affected widgets in a single query
         const query = `
@@ -240,7 +248,11 @@ module.exports = bookshelf.Model.extend({
         await bookshelf.knex.raw(query).transacting(trx)
       }
 
-      await removedWidget.refresh()
+      if (removedWidget.get('view_post_id') || removedWidget.get('view_group_id') || removedWidget.get('view_track_id')) {
+        await removedWidget.destroy({ transacting: trx })
+      } else {
+        await removedWidget.refresh()
+      }
 
       return removedWidget
     }
@@ -252,7 +264,7 @@ module.exports = bookshelf.Model.extend({
     return await bookshelf.transaction(trx => doWork(trx))
   },
 
-  reorder: async function({ id, addToEnd, orderInFrontOfWidgetId, parentId, trx: existingTrx }) {
+  reorder: async function ({ id, addToEnd, orderInFrontOfWidgetId, parentId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
       if (!movedWidget) throw new Error('Context widget not found')
@@ -269,7 +281,7 @@ module.exports = bookshelf.Model.extend({
       const newWidgetPosition = { id, addToEnd, orderInFrontOfWidgetId, parentId }
 
       // Reorder the widgets
-      const reorderedWidgets = reorderTree({widgetToBeMovedId: movedWidget.get('id'), newWidgetPosition, allWidgets})
+      const reorderedWidgets = reorderTree({ widgetToBeMovedId: movedWidget.get('id'), newWidgetPosition, allWidgets })
 
       // Update all affected widgets in a single query
       const query = `
@@ -373,8 +385,9 @@ module.exports = bookshelf.Model.extend({
         view_chat_id: data.view_chat_id,
         view_group_id: data.view_group_id,
         view_post_id: data.view_post_id,
+        view_track_id: data.view_track_id,
         view_user_id: data.view_user_id,
-        custom_view_id: data.custom_view_id,
+        custom_view_id: data.custom_view_id
       }, {
         patch: true,
         transacting: trx

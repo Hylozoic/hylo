@@ -5,11 +5,11 @@ import {
 } from 'store/constants'
 import postQuery from '@graphql/queries/postQuery'
 
-export default function fetchPost (id, query = postQuery) {
+export default function fetchPost (id, withCompletionResponses = false) {
   return {
     type: FETCH_POST,
     graphql: {
-      query,
+      query: postQuery(withCompletionResponses),
       variables: {
         id
       }

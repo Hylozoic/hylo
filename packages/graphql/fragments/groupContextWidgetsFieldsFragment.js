@@ -60,6 +60,12 @@ export default gql`
           id
           name
         }
+        viewTrack {
+          id
+          name
+          didComplete
+          isEnrolled
+        }
       }
     }
   }

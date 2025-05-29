@@ -7,14 +7,13 @@ import {
   UPDATE_GROUP_ROLE
 } from 'store/constants'
 
-export function addGroupRole ({ groupId, color, name, description, emoji }) {
+export function addGroupRole ({ groupId, name, description, emoji }) {
   return {
     type: ADD_GROUP_ROLE,
     graphql: {
-      query: `mutation ($groupId: ID, $color: String, $name: String, $description: String, $emoji: String) {
-        addGroupRole (groupId: $groupId, color: $color, name: $name, description: $description, emoji: $emoji) {
+      query: `mutation ($groupId: ID, $name: String, $description: String, $emoji: String) {
+        addGroupRole (groupId: $groupId, name: $name, description: $description, emoji: $emoji) {
           id
-          color
           name
           description
           emoji
@@ -22,12 +21,11 @@ export function addGroupRole ({ groupId, color, name, description, emoji }) {
         }
       }`,
       variables: {
-        groupId, color, name, description, emoji
+        groupId, name, description, emoji
       }
     },
     meta: {
       groupId,
-      color,
       name,
       description,
       emoji,
@@ -36,15 +34,14 @@ export function addGroupRole ({ groupId, color, name, description, emoji }) {
   }
 }
 
-export function updateGroupRole ({ active, groupId, groupRoleId, color, name, description, emoji }) {
+export function updateGroupRole ({ active, groupId, groupRoleId, name, description, emoji }) {
   return {
     type: UPDATE_GROUP_ROLE,
     graphql: {
-      query: `mutation ($groupRoleId: ID, $active: Boolean, $color: String, $name: String, $description: String, $emoji: String, $groupId: ID) {
-        updateGroupRole (groupRoleId: $groupRoleId, active: $active, groupId: $groupId, color: $color, name: $name, description: $description, emoji: $emoji) {
+      query: `mutation ($groupRoleId: ID, $active: Boolean, $name: String, $description: String, $emoji: String, $groupId: ID) {
+        updateGroupRole (groupRoleId: $groupRoleId, active: $active, groupId: $groupId, name: $name, description: $description, emoji: $emoji) {
           active
           id
-          color
           name
           description
           emoji
@@ -52,7 +49,7 @@ export function updateGroupRole ({ active, groupId, groupRoleId, color, name, de
         }
       }`,
       variables: {
-        active, groupRoleId, color, name, description, emoji, groupId
+        active, groupRoleId, name, description, emoji, groupId
       }
     },
     meta: {

@@ -1,8 +1,8 @@
 import { GraphQLError } from 'graphql'
-import { includes, isEmpty, trim } from 'lodash'
+import { includes, isEmpty } from 'lodash'
 
 export default function validatePostData (userId, data) {
-  const allowedTypes = [Post.Type.CHAT, Post.Type.REQUEST, Post.Type.OFFER, Post.Type.DISCUSSION, Post.Type.PROJECT, Post.Type.EVENT, Post.Type.RESOURCE, Post.Type.PROPOSAL]
+  const allowedTypes = [Post.Type.ACTION, Post.Type.CHAT, Post.Type.REQUEST, Post.Type.OFFER, Post.Type.DISCUSSION, Post.Type.PROJECT, Post.Type.EVENT, Post.Type.RESOURCE, Post.Type.PROPOSAL]
   if (data.type && !includes(allowedTypes, data.type)) {
     throw new GraphQLError('not a valid type')
   }

@@ -60,7 +60,7 @@ function CommentForm ({
   const placeholderText = placeholder || t('Add a comment...')
 
   return (
-    <div className={cn('flex flex-row items-center justify-between bg-input rounded-lg p-2', className)}>
+    <div className={cn('flex flex-col items-center justify-between bg-input rounded-lg p-2', className)}>
       <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
         {currentUser
           ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
@@ -75,10 +75,6 @@ function CommentForm ({
           placeholder={placeholderText}
           ref={editor}
         />
-
-        {currentUser && (
-          <AttachmentManager type='comment' id='new' attachmentType='image' />
-        )}
 
         {!currentUser
           ? (
@@ -121,6 +117,9 @@ function CommentForm ({
             </>
             )}
       </div>
+      {currentUser && (
+        <AttachmentManager type='comment' id='new' attachmentType='image' />
+      )}
     </div>
   )
 }
