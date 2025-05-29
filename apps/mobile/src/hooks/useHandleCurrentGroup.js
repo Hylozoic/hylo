@@ -15,7 +15,7 @@ import getActiveRoute from 'navigation/getActiveRoute'
 
 export function useHandleCurrentGroupSlug () {
   const { currentGroupSlug } = useCurrentGroupStore()
-  const { context, originalLinkingPath } = useRouteParams()
+  const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
   const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
@@ -30,8 +30,8 @@ export function useHandleCurrentGroupSlug () {
     if (context) {
       let newGroupSlug
 
-      if (context === 'groups' && groupSlugFromPath) {
-        newGroupSlug = groupSlugFromPath
+      if (context === 'groups' && (groupSlugFromPath || groupSlug)) {
+        newGroupSlug = groupSlugFromPath || groupSlug
       } else if (isStaticContext(context)) {
         newGroupSlug = context
       }
