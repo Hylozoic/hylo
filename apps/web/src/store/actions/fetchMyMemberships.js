@@ -26,6 +26,7 @@ export default function fetchMyMemberships () {
               }
               group {
                 id
+                allowInPublic
                 avatarUrl
                 bannerUrl
                 chatRooms {
