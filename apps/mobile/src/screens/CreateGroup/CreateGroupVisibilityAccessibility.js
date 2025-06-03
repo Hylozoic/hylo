@@ -61,7 +61,7 @@ export default function CreateGroupVisibilityAccessibility ({ navigation }) {
         {visibility.value === GROUP_VISIBILITY.Public && (
           <View className='mb-6 bg-foreground/5 p-4 rounded-lg'>
             <Text className='text-foreground font-bold mb-2'>
-              {t('Optional') + ': ' + t('Add my Group into the Commons')}
+              {t('Optional') + ': ' + t('Add my group into the commons')}
             </Text>
             <Text className='text-foreground/70 mb-2 text-sm'>
               {t('commonsExplainerText1')}

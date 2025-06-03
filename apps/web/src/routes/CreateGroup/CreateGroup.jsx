@@ -325,7 +325,7 @@ function CreateGroup () {
 
         {visibility === GROUP_VISIBILITY.Public && (
           <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
-            <h3 className='font-semibold mb-2'>{t('Optional') + ': ' + t('Add my Group into the Commons')}</h3>
+            <h3 className='font-semibold mb-2'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
             <p className='text-sm opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
             <p className='text-sm opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
             <p className='text-sm'>

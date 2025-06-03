@@ -117,7 +117,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
 
       {visibility === GROUP_VISIBILITY.Public &&
         <SettingsSection>
-          <h3>{t('Add my Group into the Commons')}</h3>
+          <h3>{t('Add my group into the commons')}</h3>
           <p className={general.detailText}>{t('commonsExplainerText1')}</p>
           <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
           <p className={cn(general.detailText, 'mt-3')}>{t('Apply here') + ': '} <a href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform' target='_blank' rel='noopener noreferrer'>{t('Allow-in-Commons form')}</a></p>
