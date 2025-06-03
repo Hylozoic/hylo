@@ -701,6 +701,8 @@ type Group {
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Whether this group's posts can be shown in public feeds
+  allowInPublic: Boolean
   # URL to the image of the avatar of the group
   avatarUrl: String
   # URL to the image of the banner for the group
@@ -2570,7 +2572,7 @@ type Mutation {
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
   # Mark a post as completed
-  completePost(postId: ID, completionResponse: JSON): GenericResult
+  completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
   # Create a new post Collection
@@ -2640,7 +2642,7 @@ type Mutation {
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
   # Enroll in a track
-  enrollInTrack(trackId: ID): GenericResult
+  enrollInTrack(trackId: ID): Track
   # Set an invitation to join a group as expired. Only a group host can call this.
   expireInvitation(invitationId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
@@ -2666,7 +2668,7 @@ type Mutation {
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
   # Leave a track
-  leaveTrack(trackId: ID): GenericResult
+  leaveTrack(trackId: ID): Track
   # Login to Hylo on current device using email and password. TODO: add more info about errors, sessions, etc.
   login(email: String, password: String): SignupResult
   # Logout from Hylo on the current device

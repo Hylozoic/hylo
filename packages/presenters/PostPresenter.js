@@ -5,9 +5,9 @@ import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue
 // Mobile PostEditor.store, etc
 export default function PostPresenter (post, { forGroupId } = {}) {
   if (!post) return post
-
   return {
     ...post,
+    completionResponses: post.completionResponses?.items || [],
     getAttachments: () => attachmentsResolver(post),
     getImages: () => imagesResolver(post),
     getFiles: () => filesResolver(post),

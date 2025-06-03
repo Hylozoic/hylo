@@ -3286,6 +3286,67 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@formatjs/ecma402-abstract@npm:2.3.4":
+  version: 2.3.4
+  resolution: "@formatjs/ecma402-abstract@npm:2.3.4"
+  dependencies:
+    "@formatjs/fast-memoize": "npm:2.2.7"
+    "@formatjs/intl-localematcher": "npm:0.6.1"
+    decimal.js: "npm:^10.4.3"
+    tslib: "npm:^2.8.0"
+  checksum: 10/573971ffc291096a4b9fcc80b4708124e89bf2e3ac50e0f78b41eb797e9aa1b842f4dc3665e4467a853c738386821769d9e40408a1d25bc73323a1f057a16cf2
+  languageName: node
+  linkType: hard
+
+"@formatjs/fast-memoize@npm:2.2.7":
+  version: 2.2.7
+  resolution: "@formatjs/fast-memoize@npm:2.2.7"
+  dependencies:
+    tslib: "npm:^2.8.0"
+  checksum: 10/e7e6efc677d63a13d99a854305db471b69f64cbfebdcb6dbe507dab9aa7eaae482ca5de86f343c856ca0a2c8f251672bd1f37c572ce14af602c0287378097d43
+  languageName: node
+  linkType: hard
+
+"@formatjs/intl-enumerator@npm:1.8.10":
+  version: 1.8.10
+  resolution: "@formatjs/intl-enumerator@npm:1.8.10"
+  dependencies:
+    "@formatjs/ecma402-abstract": "npm:2.3.4"
+    tslib: "npm:^2.8.0"
+  checksum: 10/9e0e762143248bf91e174d3abc15261b47ac7294632d26797cf5b001707aa68ca2deeb05c95f7308aa2cffa46d61b0fac46306dea722ab210dfa012990743798
+  languageName: node
+  linkType: hard
+
+"@formatjs/intl-getcanonicallocales@npm:2.5.5":
+  version: 2.5.5
+  resolution: "@formatjs/intl-getcanonicallocales@npm:2.5.5"
+  dependencies:
+    tslib: "npm:^2.8.0"
+  checksum: 10/2a32202765c9a4f16fc36f4e4afca7fd5f4f35885ad2ca671352a7bba1a19d5ec81933d52ab1855c8570e73247213739d9d2d95d2438bd9f02a1f0db7cb9b8a9
+  languageName: node
+  linkType: hard
+
+"@formatjs/intl-locale@npm:^4.2.11":
+  version: 4.2.11
+  resolution: "@formatjs/intl-locale@npm:4.2.11"
+  dependencies:
+    "@formatjs/ecma402-abstract": "npm:2.3.4"
+    "@formatjs/intl-enumerator": "npm:1.8.10"
+    "@formatjs/intl-getcanonicallocales": "npm:2.5.5"
+    tslib: "npm:^2.8.0"
+  checksum: 10/8746af66ebd5284f189c83e0d59a4d781490ce3eadaab284bf96c4240eaf8b9422130a94a842a1ab12fa14bb2cdf02e9f78ac3b9cf955156fafeffab9d73d7a2
+  languageName: node
+  linkType: hard
+
+"@formatjs/intl-localematcher@npm:0.6.1":
+  version: 0.6.1
+  resolution: "@formatjs/intl-localematcher@npm:0.6.1"
+  dependencies:
+    tslib: "npm:^2.8.0"
+  checksum: 10/c7b3bc8395d18670677f207b2fd107561fff5d6394a9b4273c29e0bea920300ec3a2eefead600ebb7761c04a770cada28f78ac059f84d00520bfb57a9db36998
+  languageName: node
+  linkType: hard
+
 "@formidable-webview/webshell@npm:^2.6.0":
   version: 2.6.0
   resolution: "@formidable-webview/webshell@npm:2.6.0"
@@ -3544,6 +3605,14 @@ __metadata:
 "@hylo/hooks@workspace:*, @hylo/hooks@workspace:packages/hooks":
   version: 0.0.0-use.local
   resolution: "@hylo/hooks@workspace:packages/hooks"
+  dependencies:
+    "@babel/runtime": "npm:^7.25.0"
+  languageName: unknown
+  linkType: soft
+
+"@hylo/navigation@workspace:*, @hylo/navigation@workspace:packages/navigation":
+  version: 0.0.0-use.local
+  resolution: "@hylo/navigation@workspace:packages/navigation"
   dependencies:
     "@babel/runtime": "npm:^7.25.0"
   languageName: unknown
@@ -25472,6 +25541,7 @@ __metadata:
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
+    "@hylo/navigation": "workspace:*"
     "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"
@@ -25586,7 +25656,7 @@ __metadata:
     react-native-reanimated: "npm:3.16.7"
     react-native-render-html: "patch:react-native-render-html@npm:6.3.4#.yarn/patches/react-native-render-html+6.3.4.patch"
     react-native-restart: "npm:^0.0.27"
-    react-native-safe-area-context: "npm:^5.1.0"
+    react-native-safe-area-context: "npm:^5.4.0"
     react-native-screens: "npm:^4.5.0"
     react-native-share: "npm:12.0.6"
     react-native-sse: "npm:^1.2.1"
@@ -30363,13 +30433,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-safe-area-context@npm:^5.1.0":
-  version: 5.2.0
-  resolution: "react-native-safe-area-context@npm:5.2.0"
+"react-native-safe-area-context@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "react-native-safe-area-context@npm:5.4.0"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/0972d6f1e2485b71c148aeabaf9f1bfbc533549c66de7d0ea617f92df0024646324c38dc9062ea0392761b72b0f7b6e605a784c09addce61e105e6737bbde7b0
+  checksum: 10/3b94e0a39398f23f4cbec2e49ebfd58c4e56f1d4157fda613c3bab66924a4e71ed6665a346dd71fd04ebd40e00f606f10d5a973b2616be4bfa0a422b361a425f
   languageName: node
   linkType: hard
 
@@ -35157,7 +35227,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:2.8.1, tslib@npm:^2.0.0, tslib@npm:^2.0.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.4.0, tslib@npm:^2.5.0, tslib@npm:^2.6.3, tslib@npm:^2.8.1":
+"tslib@npm:2.8.1, tslib@npm:^2.0.0, tslib@npm:^2.0.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.4.0, tslib@npm:^2.5.0, tslib@npm:^2.6.3, tslib@npm:^2.8.0, tslib@npm:^2.8.1":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10/3e2e043d5c2316461cb54e5c7fe02c30ef6dccb3384717ca22ae5c6b5bc95232a6241df19c622d9c73b809bea33b187f6dbc73030963e29950c2141bc32a79f7
@@ -36522,9 +36592,11 @@ __metadata:
     "@eslint/eslintrc": "npm:^3.1.0"
     "@eslint/js": "npm:^9.14.0"
     "@faker-js/faker": "npm:^6.0.0-alpha.5"
+    "@formatjs/intl-locale": "npm:^4.2.11"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
+    "@hylo/navigation": "workspace:*"
     "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"

@@ -316,7 +316,8 @@ export function enrollInTrack (trackId) {
       query: `
         mutation ($trackId: ID) {
           enrollInTrack(trackId: $trackId) {
-            success
+            id
+            isEnrolled
           }
         }
       `,
@@ -337,7 +338,8 @@ export function leaveTrack (trackId) {
       query: `
         mutation ($trackId: ID) {
           leaveTrack(trackId: $trackId) {
-            success
+            id
+            isEnrolled
           }
         }
       `,

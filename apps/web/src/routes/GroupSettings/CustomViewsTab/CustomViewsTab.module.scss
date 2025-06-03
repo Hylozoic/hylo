@@ -1,6 +1,6 @@
 // GroupSettingsTab
 .label {
-  composes: tag from 'css/typography.scss';
+  color: hsl(var(--foreground));
 }
 
 .new-custom-view {
@@ -101,7 +101,7 @@
 }
 
 .dropdown-label {
-  composes: bdy-drk-sm from 'css/typography.scss';
+  color: hsl(var(--foreground));
   font-size: 15px;
   padding: 3px;
   white-space: nowrap;
@@ -128,6 +128,10 @@
     vertical-align: middle;
     display: inline-block;
     position: relative;
+
+    > span {
+      color: hsl(var(--secondary));
+    }
   }
 
   .post-type {
@@ -177,7 +181,8 @@
 .post-types-selector {
   display: none;
   position: absolute;
-  background: white;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   z-index: 100;
   border: 1px solid black;
   padding: 3px;

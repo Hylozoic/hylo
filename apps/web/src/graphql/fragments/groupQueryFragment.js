@@ -7,6 +7,7 @@ export default function groupQueryFragment () {
     id
     aboutVideoUri
     accessibility
+    allowInPublic
     agreements {
       items {
         id

@@ -35,6 +35,7 @@ export default function ActionCompletionResponsesDialog ({ portalTarget, post, o
       title += t('By File Upload')
       break
   }
+
   return (
     <ModalDialog
       key='completion-responses-dialog'

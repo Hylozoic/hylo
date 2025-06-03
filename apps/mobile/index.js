@@ -20,6 +20,7 @@ import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-h
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
+import { ToastProvider } from 'components/Toast'
 import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
@@ -159,8 +160,10 @@ export default function App () {
                 systemFonts={[...defaultSystemFonts, 'Circular-Book']}
               >
                 <Provider store={store}>
-                  <VersionCheck />
-                  <RootNavigator />
+                  <ToastProvider>
+                    <VersionCheck />
+                    <RootNavigator />
+                  </ToastProvider>
                 </Provider>
               </TRenderEngineProvider>
             </ActionSheetProvider>

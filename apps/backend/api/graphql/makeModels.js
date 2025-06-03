@@ -494,6 +494,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'about_video_uri',
         'accessibility',
+        'allow_in_public',
         'avatar_url',
         'banner_url',
         'created_at',

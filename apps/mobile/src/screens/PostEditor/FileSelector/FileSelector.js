@@ -14,7 +14,6 @@ export function cleanName (url) {
 export default function FileSelector (props) {
   const { files = [], onRemove } = props
   if (isEmpty(files)) return null
-
   return (
     // TODO: Extra "View" wrapper moved from PostEditor, but may not be necessary. Confirm and remove.
     <View>
@@ -41,7 +40,6 @@ export async function showFilePicker ({
       allowMultiSelection
     })
     let fileUploaders = []
-
     documents.forEach(document => {
       fileUploaders = [
         ...fileUploaders,
@@ -53,7 +51,6 @@ export async function showFilePicker ({
           }
 
           onAdd && onAdd({ local: document.uri, remote: null })
-
           const { payload, error } = await upload(type, id, file)
 
           if (error) {
@@ -81,11 +78,11 @@ function renderFileButton (file, buttonIndex, onRemove) {
   const { t } = useTranslation()
   return (
     <PopupMenuButton
-      key={file.local}
+      key={file.local || file.localUri}
       actions={[[t('Remove File'), () => onRemove(file)]]}
       destructiveButtonIndex={0}
     >
-      <FileLabel url={file.local} />
+      <FileLabel url={file.local || file.localUri} />
     </PopupMenuButton>
   )
 }

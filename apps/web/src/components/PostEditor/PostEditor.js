@@ -221,7 +221,11 @@ function PostEditor ({
    * This creates an intersection between all available groups and selected groups,
    * ensuring we only work with valid, accessible groups that the user has selected.
    * @returns {Array} Array of group objects that are both available and selected
-   */
+
+  Might be worth cross-checking the use of selectedGroups (which is consistent in data shape),
+  and currentPost.groups (which is not consistent in data shape). https://github.com/Hylozoic/hylo/discussions/605
+  */
+
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
     return groupOptions.filter((g) =>
@@ -236,14 +240,15 @@ function PostEditor ({
       .filter(Boolean)
       .map((g) => {
         if (!g) return []
-        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g }]
+        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
             .map((cr) => ({
               id: cr?.groupTopic?.id,
               group: g,
               name: g.name + ' #' + cr?.groupTopic?.topic?.name,
               topic: cr?.groupTopic?.topic,
-              avatarUrl: g.avatarUrl
+              avatarUrl: g.avatarUrl,
+              allowInPublic: g.allowInPublic
             }))
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name)))
@@ -892,6 +897,7 @@ function PostEditor ({
           <PublicToggle
             togglePublic={togglePublic}
             isPublic={!!currentPost.isPublic}
+            selectedGroups={selectedGroups}
           />
         </div>
       )}
