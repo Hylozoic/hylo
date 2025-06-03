@@ -197,21 +197,23 @@ export default function ActionCompletionSection({ post, trackId }) {
             {alreadyCompletedMessage}
           </Text>
         </View>
-        {completionResponse?.length > 0 && completionAction !== 'text' && (
+        {completionResponse?.length > 0 && !['text', 'comment'].includes(completionAction) && (
           <View className='mt-2'>
             {completionResponseText}
           </View>
         )}
-        {completionAction === 'text' && completionResponse?.length > 0 && (
+        {['text', 'comment'].includes(completionAction) && completionResponse?.length > 0 && (
           <View className='mt-2'>
             <HyloHTML html={completionResponse[0]} />
-            <TouchableOpacity 
-              className='flex-row items-center mt-3 bg-background p-2 rounded-md self-start'
-              onPress={() => setIsEditing(true)}
-            >
-              <Pencil className='w-4 h-4 text-foreground mr-2' />
-              <Text className='text-foreground'>{t('Edit Response')}</Text>
-            </TouchableOpacity>
+            {completionAction === 'text' && (
+              <TouchableOpacity 
+                className='flex-row items-center mt-3 bg-background p-2 rounded-md self-start'
+                onPress={() => setIsEditing(true)}
+              >
+                <Pencil className='w-4 h-4 text-foreground mr-2' />
+                <Text className='text-foreground'>{t('Edit Response')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
