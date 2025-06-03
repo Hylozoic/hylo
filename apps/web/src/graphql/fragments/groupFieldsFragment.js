@@ -2,6 +2,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   id
   aboutVideoUri
   accessibility
+  allowInPublic
   avatarUrl
   bannerUrl
   description

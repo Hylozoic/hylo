@@ -41,6 +41,8 @@ const Map = forwardRef(({
   const [hoveredLayerFeatures, setHoveredLayerFeatures] = useState([])
   const [cursorLocation, setCursorLocation] = useState({ x: 0, y: 0 })
 
+  console.log({ onLoad, setViewport }, 'LIVING THE DREAM')
+
   const onMouseEnter = event => {
     const { features } = event
     setHoveredLayerFeatures(features)
