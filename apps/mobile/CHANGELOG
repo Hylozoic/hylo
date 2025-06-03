@@ -4,7 +4,7 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [6.1.000] - 2025-06-06
+### [6.1.001] - 2025-06-06
 - Beta release of Tracks and Actions. These can be used to offer courses and learning content to your group members
 - Better emoji picker for mobile
 - "Add to the Commons" section now available to group admins
