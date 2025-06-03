@@ -19,6 +19,7 @@ import { isDev } from 'config'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
+import useRouteParams from 'hooks/useRouteParams'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
@@ -78,6 +79,9 @@ export default function AuthRootNavigator () {
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
+  const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
+  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
+  
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
