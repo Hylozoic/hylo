@@ -280,6 +280,13 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
             id
             name
           }
+          viewTrack {
+            id
+            name
+            didComplete
+            isEnrolled
+            numActions
+          }
         }
       }`
       : ''}

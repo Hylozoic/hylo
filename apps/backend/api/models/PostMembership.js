@@ -16,19 +16,19 @@ module.exports = bookshelf.Model.extend({
 
   togglePinned: function () {
     if (this.pinned()) {
-      return this.save({pinned_at: null})
+      return this.save({ pinned_at: null })
     } else {
-      return this.save({pinned_at: new Date()})
+      return this.save({ pinned_at: new Date() })
     }
   }
 }, {
   find: function (postId, groupIdOrSlug, options) {
     const fetch = gid =>
-      PostMembership.where({post_id: postId, group_id: gid}).fetch(options)
+      PostMembership.where({ post_id: postId, group_id: gid }).fetch(options)
 
     if (isNaN(Number(groupIdOrSlug))) {
       return Group.find(groupIdOrSlug)
-      .then(g => g && fetch(g.id, options))
+        .then(g => g && fetch(g.id, options))
     }
 
     return fetch(groupIdOrSlug)

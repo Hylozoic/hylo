@@ -26,6 +26,7 @@ import {
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
   clearModerationAction,
+  completePost,
   createAffiliation,
   createCollection,
   createComment,
@@ -39,6 +40,7 @@ import {
   createProject,
   createProjectRole,
   createSavedSearch,
+  createTrack,
   createZapierTrigger,
   login,
   createTopic,
@@ -56,6 +58,7 @@ import {
   deleteReaction,
   deleteSavedSearch,
   deleteZapierTrigger,
+  enrollInTrack,
   expireInvitation,
   findOrCreateLinkPreviewByUrl,
   findOrCreateLocation,
@@ -68,6 +71,7 @@ import {
   joinProject,
   leaveGroup,
   leaveProject,
+  leaveTrack,
   logout,
   markActivityRead,
   markAllActivitiesRead,
@@ -117,6 +121,8 @@ import {
   updateGroupTopic,
   updateGroupTopicFollow,
   updateTopicFollow,
+  updateTrack,
+  updateTrackActionOrder,
   updateMe,
   updateMembership,
   updatePost,
@@ -160,6 +166,11 @@ export default async function makeSchema ({ req }) {
             return info.schema.getType('Post')
           }
           throw new GraphQLError('Post is the only implemented FeedItemContent type')
+        }
+      },
+      Role: {
+        __resolveType (data, context, info) {
+          return getTypeForInstance(data, models)
         }
       },
       SearchResultContent: {
@@ -280,7 +291,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
-    topics: (root, args) => fetchMany('Topic', args)
+    topics: (root, args) => fetchMany('Topic', args),
+    track: (root, { id }) => fetchOne('Track', id)
   }
 }
 
@@ -337,6 +349,8 @@ export function makeMutations ({ fetchOne }) {
 
     clearModerationAction: (root, { postId, groupId, moderationActionId }, context) => clearModerationAction({ userId: context.currentUserId, postId, groupId, moderationActionId }),
 
+    completePost: (root, { postId, completionResponse }, context) => completePost(context.currentUserId, postId, completionResponse),
+
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 
     createCollection: (root, { data }, context) => createCollection(context.currentUserId, data),
@@ -362,6 +376,8 @@ export function makeMutations ({ fetchOne }) {
     createProjectRole: (root, { projectId, roleName }, context) => createProjectRole(context.currentUserId, projectId, roleName),
 
     createSavedSearch: (root, { data }) => createSavedSearch(data),
+
+    createTrack: (root, { data }, context) => createTrack(context.currentUserId, data),
 
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
 
@@ -399,6 +415,8 @@ export function makeMutations ({ fetchOne }) {
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
 
+    enrollInTrack: (root, { trackId }, context) => enrollInTrack(context.currentUserId, trackId),
+
     expireInvitation: (root, { invitationId }, context) => expireInvitation(context.currentUserId, invitationId),
 
     findOrCreateThread: (root, { data }, context) => findOrCreateThread(context.currentUserId, data.participantIds),
@@ -418,6 +436,8 @@ export function makeMutations ({ fetchOne }) {
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
+
+    leaveTrack: (root, { trackId }, context) => leaveTrack(context.currentUserId, trackId),
 
     markActivityRead: (root, { id }, context) => markActivityRead(context.currentUserId, id),
 
@@ -527,6 +547,10 @@ export function makeMutations ({ fetchOne }) {
     updateComment: (root, args, context) => updateComment(context.currentUserId, args, context),
 
     updateStripeAccount: (root, { accountId }, context) => updateStripeAccount(context.currentUserId, accountId),
+
+    updateTrack: (root, { trackId, data }, context) => updateTrack(context.currentUserId, trackId, data),
+
+    updateTrackActionOrder: (root, { trackId, postId, newOrderIndex }, context) => updateTrackActionOrder(context.currentUserId, trackId, postId, newOrderIndex),
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 

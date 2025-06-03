@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
-import { personUrl, chatUrl } from 'util/navigation'
+import { personUrl, chatUrl, groupUrl } from 'util/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
@@ -21,6 +21,8 @@ export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_POST = 'newPost'
 export const ACTION_NEW_COMMENT = 'newComment'
 export const ACTION_TAG = 'tag'
+export const ACTION_TRACK_COMPLETED = 'trackCompleted'
+export const ACTION_TRACK_ENROLLMENT = 'trackEnrollment'
 export const NOTIFICATIONS_WHITELIST = [
   ACTION_CHAT,
   ACTION_NEW_COMMENT,
@@ -31,7 +33,9 @@ export const NOTIFICATIONS_WHITELIST = [
   ACTION_MENTION,
   ACTION_COMMENT_MENTION,
   ACTION_ANNOUNCEMENT,
-  ACTION_NEW_POST
+  ACTION_NEW_POST,
+  ACTION_TRACK_COMPLETED,
+  ACTION_TRACK_ENROLLMENT
 ]
 
 export const NOTIFICATION_TEXT_MAX = 76
@@ -57,7 +61,7 @@ export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { trunca
 
 export const truncateText = text => TextHelpers.truncateText(text, NOTIFICATION_TEXT_MAX)
 
-export function refineActivity ({ action, actor, comment, group, post, meta }, t) {
+export function refineActivity ({ action, actor, comment, group, post, track, meta }, t) {
   switch (action) {
     case ACTION_CHAT: {
       const topicReason = find(r => r.startsWith('chat: '), meta.reasons)
@@ -145,6 +149,18 @@ export function refineActivity ({ action, actor, comment, group, post, meta }, t
         nameInHeader: true,
         onPress: () => openURL(`/post/${post.id}/edit`),
       }
+    case ACTION_TRACK_COMPLETED:
+      return {
+        body: t('{{name}} completed track {{trackName}}', { name: actor.name, trackName: track.name }),
+        header: t('Track Completed'),
+        onPress: () => openURL(`${groupUrl(group?.slug, 'tracks')}/${track.id}`)
+      }
+    case ACTION_TRACK_ENROLLMENT:
+      return {
+        body: t('{{name}} enrolled in track {{trackName}}', { name: actor.name, trackName: track.name }),
+        header: t('Track Enrollment'),
+        onPress: () => openURL(`${groupUrl(group?.slug, 'tracks')}/${track.id}`)
+      }
   }
 }
 
@@ -172,7 +188,6 @@ export function refineNotification (t) {
 
 export const refineNotifications = (notifications, t) => {
   if (!notifications) return []
-
   return notifications
     .map(refineNotification(t))
     .filter(n => n.reasons.every(r => reasonInWhitelist(r, NOTIFICATIONS_WHITELIST)))
