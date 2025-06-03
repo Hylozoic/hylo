@@ -517,6 +517,11 @@ export default function PostEditor (props) {
                   />
                 </View>
               </View>
+              {post.groups?.some(g => g.allowInPublic) && (
+                <Text className='text-foreground/50 text-sm mt-2 px-2 ml-2'>
+                  {t('If public this post will be visible in the Commons public feed and map')}
+                </Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
