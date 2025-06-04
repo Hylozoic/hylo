@@ -146,7 +146,7 @@ function PostEditor ({
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
-  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || postPending
+  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -319,9 +319,9 @@ function PostEditor ({
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
+    setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
-    setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
@@ -438,12 +438,17 @@ function PostEditor ({
     })
   }, [currentPost])
 
-  // Checks for linkPreview every 1/2 second
-  const handleAddLinkPreview = debounce(500, (url, force) => {
-    const { linkPreview } = currentPost
-    if (linkPreview && !force) return
-    pollingFetchLinkPreview(dispatch, url)
-  })
+  // The useRef and useEventCallback is needed to make sure the currentPost.linkPreview is updated in the debounce function
+  const debouncedFetchLinkPreview = useRef(
+    debounce(500, (url, force, currentLinkPreview) => {
+      if (currentLinkPreview && !force) return
+      pollingFetchLinkPreview(dispatch, url)
+    })
+  ).current
+
+  const handleAddLinkPreview = useEventCallback((url, force) => {
+    debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
+  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
 
   const handleAddTopic = useEventCallback((topic) => {
     const { topics } = currentPost
@@ -643,9 +648,9 @@ function PostEditor ({
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
+    reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-    reset()
   }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   /**
