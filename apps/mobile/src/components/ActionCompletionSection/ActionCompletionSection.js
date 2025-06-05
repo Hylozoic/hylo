@@ -95,7 +95,8 @@ export default function ActionCompletionSection({ post, trackId }) {
   let completionControls = null
   let completionButtonText = null
   let alreadyCompletedMessage = null
-  let completionResponseText = <Text>{completionResponse.map(r => r).join(', ')}</Text>
+
+  let completionResponseText = <Text>{(completionResponse || []).map(r => r).join(', ')}</Text>
 
   switch (completionAction) {
     case 'button':
