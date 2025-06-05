@@ -146,7 +146,7 @@ function PostEditor ({
   const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
-  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending || postPending
+  const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
   let inputPost = propsPost
   const _editingPost = useSelector(state => getPost(state, editingPostId))
@@ -319,9 +319,9 @@ function PostEditor ({
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
     dispatch(clearLinkPreview())
+    setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
-    setCurrentPost(initialPost)
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
@@ -438,12 +438,17 @@ function PostEditor ({
     })
   }, [currentPost])
 
-  // Checks for linkPreview every 1/2 second
-  const handleAddLinkPreview = debounce(500, (url, force) => {
-    const { linkPreview } = currentPost
-    if (linkPreview && !force) return
-    pollingFetchLinkPreview(dispatch, url)
-  })
+  // The useRef and useEventCallback is needed to make sure the currentPost.linkPreview is updated in the debounce function
+  const debouncedFetchLinkPreview = useRef(
+    debounce(500, (url, force, currentLinkPreview) => {
+      if (currentLinkPreview && !force) return
+      pollingFetchLinkPreview(dispatch, url)
+    })
+  ).current
+
+  const handleAddLinkPreview = useEventCallback((url, force) => {
+    debouncedFetchLinkPreview(url, force, currentPost.linkPreview)
+  }, [currentPost.linkPreview, debouncedFetchLinkPreview])
 
   const handleAddTopic = useEventCallback((topic) => {
     const { topics } = currentPost
@@ -643,9 +648,9 @@ function PostEditor ({
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
+    reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-    reset()
   }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   /**
@@ -732,7 +737,7 @@ function PostEditor ({
   }
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative', { 'pb-1': !modal, [styles.noModal]: !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -740,13 +745,13 @@ function PostEditor ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
+      <div className={cn('PostEditorHeader relative')}>
         <PostTypeSelect
           disabled={loading}
           includeChat={!modal}
           postType={currentPost.type}
           setPostType={handlePostTypeSelection}
-          className={cn({ 'absolute top-1 right-1 z-10': isChat })}
+          className={cn({ 'absolute top-3 right-1 z-10': isChat })}
         />
       </div>
       {!isChat && (
@@ -845,7 +850,7 @@ function PostEditor ({
         />
       </div>
       {currentPost.type === 'project' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 mb-4'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50 w-[120px]'>{t('Project Members')}</div>
           <div className={styles.sectionGroups}>
             <MemberSelector
@@ -879,7 +884,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions.length === 0 && (
-        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50'>{t('Proposal template')}</div>
           <div>
             <Select
@@ -906,7 +911,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && currentPost.proposalOptions && (
-        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50 w-[130px]'>
             {t('Proposal options')}*
           </div>
@@ -986,7 +991,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 mb-4'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50'>{t('Voting method')}</div>
 
           <div>
@@ -1010,7 +1015,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'proposal' && (
-        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2 mb-4'>
+        <div className='border-2 border-transparent transition-all flex items-center gap-2 bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50 w-[100px]'>{t('Quorum')} <Icon name='Info' className={cn(styles.quorumTooltip)} data-tip={t('quorumExplainer')} data-tip-for='quorum-tt' /></div>
           <SliderInput percentage={currentPost.quorum || 0} setPercentage={handleSetQuorum} />
           <ReactTooltip
@@ -1064,7 +1069,7 @@ function PostEditor ({
         </span>
       )}
       {showLocation && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 mt-4 mb-2 gap-2'>
+        <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
@@ -1077,7 +1082,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'event' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 my-2'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2'>
           <div className='text-xs text-foreground/50 w-[100px]'>{t('Invite People')}</div>
           <div className={styles.sectionGroups}>
             <MemberSelector
@@ -1127,7 +1132,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'project' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 my-4'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className={cn('text-xs text-foreground/50 w-[100px]', { [styles.warning]: !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
           <div className={styles.sectionGroups}>
             <input
@@ -1142,7 +1147,7 @@ function PostEditor ({
         </div>
       )}
       {currentPost.type === 'project' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 my-4'>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className={cn('text-xs text-foreground/50 w-[160px]', { [styles.warning]: !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
           <div className={styles.sectionGroups}>
             <input
