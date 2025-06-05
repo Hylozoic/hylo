@@ -14,15 +14,16 @@ const PublicToggle = ({ isPublic = false, togglePublic, selectedGroups = [] }) =
         <div className='w-full flex gap-2'>
           <SwitchStyled checked={isPublic} onChange={togglePublic} backgroundColor={isPublic ? 'hsl(var(--selected))' : 'hsl(var(--foreground))'} />
           <div>
-            <span>{isPublic ? t('Post will be publicly visible and shareable') : t('Make Public - Currently, only groups you specify above will see this post')}</span>
+            <span>
+              {isPublic
+                ? allowedInTheCommons
+                  ? t('Public Post - This post will be publicly visible and shareable. This post will be visible in The Commons.')
+                  : t('Public Post - This post will be publicly visible and shareable.')
+                : t('Make Public - Currently this post will only be visible within groups you select.')}
+            </span>
           </div>
         </div>
       </div>
-      {allowedInTheCommons && (
-        <div className='text-foreground/50 text-xs h-4 bg-background rounded-full px-2'>
-          {t('visibleInCommonsText')}
-        </div>
-      )}
     </div>
   )
 }
