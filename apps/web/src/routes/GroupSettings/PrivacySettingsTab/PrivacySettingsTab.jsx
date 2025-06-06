@@ -115,6 +115,14 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
+      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic &&
+        <SettingsSection>
+          <h3>{t('Add my group into the commons')}</h3>
+          <p className={general.detailText}>{t('commonsExplainerText1')}</p>
+          <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
+          <p className={cn(general.detailText, 'mt-3')}>{t('Apply here') + ': '} <a href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform' target='_blank' rel='noopener noreferrer'>{t('Allow-in-Commons form')}</a></p>
+        </SettingsSection>}
+
       <SettingsSection>
         <h3>{t('Access')}</h3>
         <p className={general.detailText}>{t('How can people become members of')} <strong>{name}</strong></p>
@@ -216,7 +224,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
             Add your group to the <a href='https://murmurations.network' target='_blank' rel='noopener noreferrer'>Murmurations</a> directory so it can be found and easily added to third-party public maps. You must first set visibility to Public.
           </Trans>
         </p>
-        <div className={cn(general.switchContainer, { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
+        <div className={cn(general.switchContainer, 'mt-2 gap-1', { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
           <SwitchStyled
             checked={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile}
             onChange={() => updateSettingDirectly('settings.publishMurmurationsProfile')(!settings.publishMurmurationsProfile)}
@@ -230,14 +238,13 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
           </div>
         </div>
         {visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile && (
-          <p className={styles.dataDetail}>
+          <p className={cn(general.detailText, 'mt-2')}>
             <Trans i18nKey='murmurationsDescription'>
               Your group is now published to the Murmurations directory. You can find your profile <a href={`/noo/group/${slug}/murmurations`} target='_blank' rel='noopener noreferrer'>here</a>.
             </Trans>
           </p>
         )}
       </SettingsSection>
-
       <SaveButton save={save} changed={changed} />
     </div>
   )

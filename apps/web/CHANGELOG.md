@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.0.8] - 2025-06-05
+
+### Added
+- Information about and a link to the form for applying for a group to join The Commons, in the Privacy & Access group settings page.
+- Tweaked language when toggling a post to Public in the post editor that says whether the post will display in The Commons or not based on whether any of the selected groups have been allow in The Commons.
+
+### Changed
+- More quickly clear the chat box for the next post after creating a post
+- Improvements to spacing of post editor fields
+
+### Fixed
+- Make sure link preview clears from chat box after creating a post
+
+## [6.0.7] - 2025-05-25
+
+### Fixed
+- Blank screen when some users sign up and join a group
+- Extraneous borders around some dropdowns
+- Invisible text in custom views and roles settings in dark mode
+
 ## [6.0.6] - 2025-05-05
 
 ### Changed

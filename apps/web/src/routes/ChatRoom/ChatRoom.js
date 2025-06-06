@@ -543,7 +543,7 @@ export default function ChatRoom (props) {
   if (initialPostToScrollTo === null || topicFollowLoading) return <Loading />
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center p-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>

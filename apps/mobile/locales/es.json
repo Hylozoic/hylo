@@ -110,6 +110,7 @@
   "Hi {{firstName}}, what would you like to share?": "Hola {{firstName}}, ¿qué te gustaría compartir?",
   "Hylo Communities": "Comunidades de Hylo",
   "I agree to the above": "Estoy de acuerdo con lo anterior",
+  "If public this post will be visible in the Commons public feed and map": "Si es público, esta publicación será visible en los Comunes; Feed y mapa público",
   "If this function executes, User Credentials have been Revoked": "Si se ejecuta esta función, las credenciales de usuario han sido revocadas",
   "If you made changes they will be lost": "Si hiciste cambios se perderán",
   "Illegal": "Ilegal",
@@ -379,6 +380,7 @@
   "shareSubject": "\"{{title}}\" de {{name}} en hylo.com",
   "status-active": "Estado: Activo",
   "status-cleared": "Estado: Borrado por el moderador",
+  "visibleInCommonsText": "Si está alternado al público, esta publicación será visible en los Comunes; \nla alimentación pública y el mapa público",
   "we just need to know your name and password and youre account will be created": "sólo necesitamos saber su nombre y contraseña y se creará su cuenta",
   "welcome page backup text": "Tómese un momento para explorar y ver qué hay vivo en nuestro grupo.\n \n Preséntate haciendo clic en Crear y publicando una discusión para compartir quién eres y qué te trae aquí.\n \n  No olvide completar nuestro perfil para que personas con ideas afines puedan conectarse con usted.",
   "widget-about": "Acerca De",
@@ -433,5 +435,7 @@
   "wrote": "escribió:",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "Los grupos {{childGroupsLength}} son parte de {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} es parte de {{parentGroupsLength}} grupo(s)",
-  "{{name}} joined your group": "{{name}} se unió a tu grupo"
+  "{{name}} joined your group": "{{name}} se unió a tu grupo",
+  "commonsExplainerText1": "Los Comunes es el espacio público de Hylo que presenta un flujo de contenido de comunidades de todo el mundo, un directorio de grupos públicos y un mapa interactivo de la red global.",
+  "commonsExplainerText2": "Para evitar el spam y el contenido desalineado, los grupos deben solicitar permiso para publicar en áreas públicas. Una vez aprobado, los administradores de tu grupo se hacen responsables de todo el contenido público compartido que esté asociado con tu(s) grupo(s)"
 }
