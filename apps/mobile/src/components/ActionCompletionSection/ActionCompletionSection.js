@@ -158,7 +158,7 @@ export default function ActionCompletionSection({ post, trackId }) {
         </View>
       )
       completionButtonText = t('Submit')
-      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionDescriptor || t('action') }) + ' ' + completionResponse.map(r => r).join(', ')
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionDescriptor || t('action') })
       break
 
     case 'text':
