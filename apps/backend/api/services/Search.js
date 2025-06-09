@@ -4,7 +4,7 @@ import forModerationActions from './Search/forModerationActions'
 import { countTotal } from '../../lib/util/knex'
 import { filterAndSortGroups } from './Search/util'
 import { transform } from 'lodash'
-import { get } from 'lodash/fp'
+import { get, isNil } from 'lodash/fp'
 
 module.exports = {
   forPosts,
@@ -155,12 +155,21 @@ module.exports = {
       //   qb.whereIn('tracks.id', TracksUser.pluckIdsForMember(opts.userId))
       // }
 
-      if (opts.limit) {
-        qb.limit(opts.limit)
+      if (opts.limit || opts.first) {
+        qb.limit(opts.limit || opts.first)
       }
       if (opts.offset) {
         qb.offset(opts.offset)
       }
+
+      if (!isNil(opts.published)) {
+        if (opts.published) {
+          qb.where('tracks.published_at', 'is not', null)
+        } else {
+          qb.where('tracks.published_at', null)
+        }
+      }
+
       qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
     })
   },

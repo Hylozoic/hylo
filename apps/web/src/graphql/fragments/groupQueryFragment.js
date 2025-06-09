@@ -296,6 +296,7 @@ export default function groupQueryFragment () {
           didComplete
           isEnrolled
           numActions
+          publishedAt
         }
       }
     }
