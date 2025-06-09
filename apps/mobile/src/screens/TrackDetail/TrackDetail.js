@@ -303,7 +303,7 @@ function TrackDetail() {
 
   return (
     <View className='flex-1 bg-background'>
-      <View className='flex-1 px-4'>
+      <View className='flex-1 px-4 mt-2'>
         <View className='max-w-[750px] mx-auto flex-1 w-full'>
           {trackDetail?.isEnrolled && (
             <Animated.View 
