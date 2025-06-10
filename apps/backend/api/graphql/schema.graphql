@@ -2643,6 +2643,8 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
+  # Duplicate a track
+  duplicateTrack(trackId: ID): Track
   # Enroll in a track
   enrollInTrack(trackId: ID): Track
   # Set an invitation to join a group as expired. Only a group host can call this.

@@ -81,6 +81,43 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Getter to override access to the welcome_message attribute and sanitize the HTML
   welcomeMessage: function () {
     return RichText.processHTML(this.get('welcome_message'))
+  },
+
+  duplicate: async function () {
+    return bookshelf.transaction(async trx => {
+      const newTrack = await this.clone()
+      delete newTrack.attributes.id
+      delete newTrack.id
+      await newTrack.save({
+        name: this.get('name') + ' (copy)',
+        num_people_enrolled: 0,
+        num_people_completed: 0,
+        published_at: null
+      }, { transacting: trx })
+
+      const groups = await this.groups().fetch({ transacting: trx })
+      await newTrack.groups().attach(groups.map(group => ({ group_id: group.id, created_at: new Date() })), { transacting: trx })
+
+      // Duplicate all the actions in the track
+      const trackActions = await this.posts().fetch({ transacting: trx })
+
+      await Promise.all(trackActions.map(async action => {
+        const newAction = await action.clone()
+        delete newAction.attributes.id
+        delete newAction.id
+        await newAction.save({
+          created_at: new Date(),
+          updated_at: new Date(),
+          num_people_reacts: 0,
+          num_comments: 0,
+          num_people_completed: 0
+        }, { transacting: trx })
+        await newAction.groups().attach(groups.map(group => group.id), { transacting: trx })
+        return TrackPost.create({ track_id: newTrack.get('id'), post_id: newAction.id, sort_order: action.pivot.get('sort_order') }, { transacting: trx })
+      }))
+
+      return newTrack
+    })
   }
 
 }, HasSettings), {
@@ -108,7 +145,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   create: async function (attrs, { transacting } = {}) {
     attrs.settings = attrs.settings || { }
-    console.log('attrs', attrs)
     return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 

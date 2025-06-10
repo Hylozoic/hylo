@@ -140,6 +140,7 @@
   "Apply here": "Aplicar aquí",
   "Approve": "Aprobar",
   "Are you sure you want to ": "Estás seguro que quieres",
+  "Are you sure you want to duplicate this track?": "¿Estás seguro de que quieres duplicar esta ruta?",
   "Are you sure you want to cancel your request to join {{groupName}}?": "¿Estás seguro de que deseas cancelar tu solicitud para unirte a {{groupName}}?",
   "Are you sure you want to create a new join link? The current link won't work anymore if you do.": "¿Estás seguro de que deseas crear un nuevo enlace para unirse? El enlace actual ya no funcionará si lo haces",
   "Are you sure you want to decline the invitation to join {{groupName}}?": "¿Estás seguro de que deseas rechazar la invitación para unirse a {{groupName}}?",
