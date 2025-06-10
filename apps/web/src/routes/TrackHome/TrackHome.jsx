@@ -116,6 +116,9 @@ function TrackHome () {
               onClick={() => changeTab('actions')}
             >
               {currentTrack.actionDescriptorPlural}
+              <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                {currentTrack.numActions}
+              </span>
             </button>
             <button
               className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}

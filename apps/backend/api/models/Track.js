@@ -2,6 +2,7 @@
 /* eslint-disable camelcase  */
 import { GraphQLError } from 'graphql'
 import HasSettings from './mixins/HasSettings' // TODO: does it have settings?
+import uniq from 'lodash/uniq'
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'tracks',
@@ -210,5 +211,19 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
 
     return trackUser.save({ deactivated_at: new Date() }, { transacting })
+  },
+
+  // When a post is deactivated, we need to update the track's num_actions
+  removePost: async function (postId, trx) {
+    const trackPosts = await TrackPost.where({ post_id: postId }).fetchAll({ transacting: trx })
+    const trackIds = uniq(trackPosts.pluck('track_id'))
+    if (trackIds.length === 0) {
+      return
+    }
+    const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
+
+    await Promise.all(tracks.map(async track => {
+      await track.save({ num_actions: track.get('num_actions') - 1 }, { transacting: trx })
+    }))
   }
 })
