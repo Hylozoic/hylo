@@ -182,7 +182,7 @@ function TrackDetail() {
   const [tracks, { fetching: fetchingTracks }] = useTracks({ 
     groupId: currentGroup?.id
   })
-  const [trackDetail, { fetching, error }] = useTrack({ 
+  const [trackDetail, { fetching, error }, requeryTrack] = useTrack({ 
     trackId: routeParams.trackId
   })
 
@@ -247,13 +247,14 @@ function TrackDetail() {
     }
   }, [trackDetail?.isEnrolled, enrolledAt])
 
-  if (fetching) return <Loading />
+  if (fetching && trackDetail?.posts?.length === 0) return <Loading />
+  if (fetching && !trackDetail) return <Loading />
   if (error || enrollmentError) return (
     <Text className='text-error text-center py-4'>
       {t('Error loading track')}
     </Text>
   )
-  if (!trackDetail) return (
+  if (!trackDetail && !fetching) return (
     <Text className='text-error text-center py-4'>
       {t('Track not found')}
     </Text>
@@ -320,7 +321,10 @@ function TrackDetail() {
 
                 <TabButton
                   isSelected={currentTab === 'actions'}
-                  onPress={() => setCurrentTab('actions')}
+                  onPress={() => {
+                    setCurrentTab('actions')
+                    requeryTrack({ requestPolicy: 'network-only' })
+                  }}
                 >
                   {trackDetail.actionDescriptorPlural}
                 </TabButton>
