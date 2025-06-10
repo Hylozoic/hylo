@@ -4,7 +4,11 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [6.0.400] - 2025-04
+### [6.1.0] - 2025-04
+- Tracks and Actions available in the app
+- Updated emoji picker
+- Fixed a navigation bug on cold-start from notifications
+- Add "allow in public" section to group creation and group settings
 
 ### [6.0.3] - 2025-04-16
 - Fixed a 'double-bounce' in some navigation actions
