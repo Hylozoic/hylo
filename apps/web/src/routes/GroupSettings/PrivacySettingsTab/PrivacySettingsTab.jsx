@@ -115,7 +115,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
         )}
       </SettingsSection>
 
-      {visibility === GROUP_VISIBILITY.Public &&
+      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic &&
         <SettingsSection>
           <h3>{t('Add my group into the commons')}</h3>
           <p className={general.detailText}>{t('commonsExplainerText1')}</p>

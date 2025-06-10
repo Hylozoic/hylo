@@ -131,14 +131,14 @@ export function GroupCard ({ group, routeParams }) {
   const { t } = useTranslation()
   return (
     <Link to={group.memberStatus === 'member' ? groupUrl(group.slug) : groupDetailUrl(group.slug, routeParams)}>
-      <div className='flex relative rounded-lg p-4 bg-black shadow-xl hover:scale-105 transition-all duration-300'>
+      <div className='flex relative rounded-lg p-4 bg-black shadow-xl hover:scale-102 transition-all duration-300'>
         <div className='flex gap-2 relative z-10 w-full justify-between'>
           <div className='flex flex-row gap-2'>
             <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square className='shadow-xl' />
             <div className={cn('flex flex-row gap-2', classes.groupDetails)}>
               <div className='flex flex-col gap-0'>
                 <span className={classes.groupName}>{group.name}</span>
-                {group.memberCount ? <span className='text-xs text-foreground/50'>{group.memberCount} {t('Members')}</span> : ''}
+                {group.memberCount ? <span className='text-xs text-white/80'>{group.memberCount} {t('Members')}</span> : ''}
               </div>
             </div>
           </div>
@@ -161,7 +161,7 @@ export function GroupCard ({ group, routeParams }) {
                   ? <div className={classes.statusTag}><Icon name='Complete' className={classes.memberComplete} /> <b>{t('Member')}</b></div>
                   : group.memberStatus === 'requested'
                     ? <div className={classes.statusTag}><b>{t('Membership Requested')}</b></div>
-                    : <div className='focus:text-foreground relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center'><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
+                    : <div className='focus:text-foreground relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center'><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
               }
             </div>
           </div>
