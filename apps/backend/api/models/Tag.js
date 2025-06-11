@@ -62,12 +62,12 @@ const removeFromTaggable = (taggable, tag, opts) => {
 }
 
 const updateForTaggable = ({ taggable, tagNames, userId, transacting }) => {
-  const lowerTagNames = tagNames.map(name => name.toLowerCase())
-  return taggable.load('tags', {transacting})
+  const lowerTagNames = tagNames?.map(name => name.toLowerCase()) || []
+  return taggable.load('tags', { transacting })
     .then(() => {
       const toRemove = taggable.relations.tags.models
-      return Promise.map(toRemove, tag => removeFromTaggable(taggable, tag, {transacting}))
-        .then(() => Promise.map(uniq(lowerTagNames), name => addToTaggable(taggable, name, userId, {transacting})))
+      return Promise.map(toRemove, tag => removeFromTaggable(taggable, tag, { transacting }))
+        .then(() => Promise.map(uniq(lowerTagNames), name => addToTaggable(taggable, name, userId, { transacting })))
     })
 }
 
@@ -151,7 +151,7 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
-  updateForPost(post, tagNames, userId, trx) {
+  updateForPost (post, tagNames, userId, trx) {
     return updateForTaggable({
       taggable: post,
       tagNames,
