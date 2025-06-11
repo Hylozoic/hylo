@@ -17,9 +17,13 @@ const sendEmail = async opts => {
 const defaultOptions = {
   sender: {
     address: process.env.EMAIL_SENDER,
-    name: 'Hylo'
+    name: 'The Team at Hylo'
   },
-  locale: 'en-US'
+  locale: 'en-US',
+  headers: {
+    Precedence: 'bulk',
+    'X-Auto-Response-Suppress': 'All'
+  }
 }
 
 const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
