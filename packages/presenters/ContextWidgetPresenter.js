@@ -29,7 +29,8 @@ export const types = {
   USER: 'viewUser',
   CHAT: 'viewChat',
   CUSTOM_VIEW: 'customView',
-  CONTAINER: 'container'
+  CONTAINER: 'container',
+  TRACK: 'viewTrack'
 }
 
 /* == Attribute Resolvers == */
@@ -44,6 +45,7 @@ function titleResolver (widget) {
       widget?.viewPost?.title ||
       widget?.viewChat?.name ||
       widget?.customView?.name ||
+      widget?.viewTrack?.name ||
       ''
   } else {
     title = title
@@ -80,7 +82,8 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Topics',
   chat: 'Topics',
   viewPost: 'Posticon',
-  about: 'Info'
+  about: 'Info',
+  viewTrack: 'Shapes'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
@@ -120,6 +123,8 @@ export function humanReadableTypeResolver (type) {
       return 'chat'
     case type === 'customView' || type === 'customview':
       return 'custom view'
+    case type === 'viewTrack' || type === 'track':
+      return 'track'
     case type === null:
       return 'container'
     default:
@@ -135,6 +140,7 @@ function widgetTypeResolver ({ widget }) {
     (widget?.viewPost && 'viewPost') ||
     (widget?.viewUser && 'viewUser') ||
     (widget?.viewChat && 'viewChat') ||
+    (widget?.viewTrack && 'viewTrack') ||
     (widget?.customView && 'customView') ||
     (widget?.url && 'link') ||
     'container'
@@ -149,8 +155,10 @@ export const isHiddenInContextMenuResolver = (widget) => {
     the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
   */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
-  !widget.viewGroup && !widget.viewUser && !widget.viewPost &&
-  !widget.viewChat && !widget.customView)
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack &&
+  !widget.viewChat && !widget.customView) ||
+  // Hide unpublished tracks
+  (widget.type === 'viewTrack' && widget.viewTrack?.publishedAt === null)
 }
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */
@@ -186,6 +194,7 @@ export function isValidChildWidget ({ parentWidget, childWidget }) {
       || parentWidget?.viewUser?.id
       || parentWidget?.viewPost?.id
       || parentWidget?.customView?.id
+      || parentWidget?.viewTrack?.id
       || childWidget?.id?.includes('fake-id')
       || childWidget?.id === parentWidget?.id
       || (childWidgetIsContainer && parentWidgetIsContainer)
@@ -288,6 +297,7 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 2, parentId: 'widget-my-content' },
   { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 3, parentId: 'widget-my-content' },
   { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 4, parentId: 'widget-my-content' },
+  { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 5, parentId: 'widget-my-content' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
   { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
   { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
@@ -373,6 +383,10 @@ export const COMMON_VIEWS = {
   topics: {
     name: 'All Topics',
     iconName: 'Topics'
+  },
+  tracks: {
+    name: 'Tracks',
+    iconName: 'Shapes'
   },
   welcome: {
     name: 'Welcome',

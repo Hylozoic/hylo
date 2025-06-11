@@ -29,6 +29,10 @@ export default gql`
         name
         slug
       }
+      track {
+        id
+        name
+      }
       meta {
         reasons
       }

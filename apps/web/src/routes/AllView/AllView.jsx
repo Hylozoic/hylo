@@ -1,12 +1,12 @@
-import { House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil } from 'lucide-react'
+import { House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
 import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle, types } from '@hylo/presenters/ContextWidgetPresenter'
-import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
 import fetchContextWidgets from 'store/actions/fetchContextWidgets'
+import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -42,6 +42,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
+import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
 
 const CHAT = types.CHAT
 const POST = types.POST
@@ -49,6 +50,7 @@ const USER = types.USER
 const GROUP = types.GROUP
 const CUSTOM_VIEW = types.CUSTOM_VIEW
 const CONTAINER = types.CONTAINER
+const TRACK = types.TRACK
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -259,6 +261,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null,
       viewUserId: addChoice === USER ? selectedItem.id : null,
       viewChatId: addChoice === CHAT ? groupTopic.id : null,
+      viewTrackId: addChoice === TRACK ? selectedItem.id : null,
       parentId,
       orderInFrontOfWidgetId
     }
@@ -319,8 +322,14 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 onClick={() => setAddChoice(POST)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewPost: { id: 'fake-id' } } })}
               />
+              <AddOption
+                icon={<Shapes />}
+                title={t('Add Track')}
+                onClick={() => setAddChoice(TRACK)}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewTrack: { id: 'fake-id' } } })}
+              />
             </div>}
-          {addChoice && [CHAT, POST, GROUP, USER].includes(addChoice) && (
+          {addChoice && [CHAT, POST, GROUP, USER, TRACK].includes(addChoice) && (
             <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />
           )}
           {addChoice && addChoice === CUSTOM_VIEW && (
@@ -550,6 +559,28 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
     filterGroups()
   }, [debouncedSearch, groups, addChoice])
 
+  useEffect(() => {
+    async function getTracks () {
+      if (!debouncedSearch || addChoice !== TRACK) return
+
+      setIsLoading(true)
+      try {
+        const response = await dispatch(fetchGroupTracks(group.id, {
+          autocomplete: debouncedSearch,
+          first: 20,
+          published: true
+        }))
+        setItems(response?.payload?.data?.group?.tracks?.items.map(item => item) || [])
+      } catch (error) {
+        console.error('Error fetching tracks:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    getTracks()
+  }, [debouncedSearch, dispatch, addChoice])
+
   const textOptions = {
     [CHAT]: {
       searchPlaceholder: t('chatTopicSearchPlaceholder'),
@@ -565,13 +596,18 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
       searchPlaceholder: t('user-search-placeholder'),
       noResults: t('No members match'),
       heading: t('Members')
+    },
+    [TRACK]: {
+      searchPlaceholder: t('trackSearchPlaceholder'),
+      noResults: t('No tracks match'),
+      heading: t('Tracks')
     }
   }
 
   return (
     <div>
       {addChoice === POST && !selectedItem && <PostSelector group={group} onSelectPost={setSelectedItem} />}
-      {[CHAT, USER, GROUP].includes(addChoice) && !selectedItem && (
+      {[CHAT, USER, GROUP, TRACK].includes(addChoice) && !selectedItem && (
         <Command className='rounded-lg border shadow-md'>
           <CommandInput
             placeholder={textOptions[addChoice].searchPlaceholder}
@@ -638,6 +674,14 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                   {t('Selected Group')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
                 <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the group')}</p>
+              </>
+            )}
+            {addChoice === TRACK && (
+              <>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
+                  {t('Selected Track')}: <span className='font-extrabold'>{selectedItem.name}</span>
+                </h2>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the track')}</p>
               </>
             )}
           </div>

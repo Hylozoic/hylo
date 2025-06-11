@@ -32,6 +32,7 @@ import PostDetails from 'screens/PostDetails'
 import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
+import UploadAction from 'screens/UploadAction'
 import { twBackground } from 'style/colors'
 
 const updatesSubscription = gql`
@@ -189,6 +190,7 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
           <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
           <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+          <AuthRoot.Screen name='Upload Action' component={UploadAction} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
           <AuthRoot.Screen name={modalScreenName('Web View')} component={HyloWebView} />

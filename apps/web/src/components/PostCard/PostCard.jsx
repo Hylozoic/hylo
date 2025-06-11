@@ -30,6 +30,7 @@ export default function PostCard (props) {
     highlightProps,
     highlighted,
     group,
+    isCurrentAction,
     mapDrawer,
     post,
     onAddReaction = () => {},
@@ -90,7 +91,7 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cn(
-          'PostCard group/post-card rounded-xl cursor-pointer p-2 relative flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 ',
+          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 ',
           classes[postType],
           {
             [classes.expanded]: expanded,
@@ -107,6 +108,7 @@ export default function PostCard (props) {
             routeParams={routeParams}
             highlightProps={highlightProps}
             currentUser={currentUser}
+            isCurrentAction={isCurrentAction}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}

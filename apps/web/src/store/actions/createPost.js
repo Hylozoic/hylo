@@ -8,6 +8,8 @@ export default function createPost (postParams) {
 
   const {
     acceptContributions,
+    completionAction,
+    completionActionSettings,
     details,
     donationsLink,
     endTime,
@@ -33,6 +35,7 @@ export default function createPost (postParams) {
     timezone,
     title,
     topicNames,
+    trackId,
     type
   } = postParams
   const linkPreviewId = linkPreview && linkPreview.id
@@ -45,6 +48,8 @@ export default function createPost (postParams) {
       variables: {
         acceptContributions,
         announcement: sendAnnouncement,
+        completionAction,
+        completionActionSettings,
         details,
         donationsLink,
         endTime: endTime && endTime.valueOf(),
@@ -69,6 +74,7 @@ export default function createPost (postParams) {
         timezone,
         title,
         topicNames,
+        trackId,
         type
       }
     },
@@ -84,10 +90,12 @@ export default function createPost (postParams) {
         isAnnouncement: sendAnnouncement,
         isPublic,
         topics: topicNames,
+        trackId,
         type
       },
       type,
-      groupIds
+      groupIds,
+      trackId
     }
   }
 }

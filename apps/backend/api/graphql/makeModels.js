@@ -1,4 +1,4 @@
-import { camelCase, mapKeys, startCase } from 'lodash/fp'
+import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
 import searchQuerySet from './searchQuerySet'
@@ -85,7 +85,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewGroup',
         'viewPost',
         'viewUser',
-        'viewChat'
+        'viewChat',
+        'viewTrack'
       ],
       getters: {
         // XXX: has to be a getter not a relation because belongsTo doesn't support multiple keys
@@ -162,7 +163,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { messageThreads: { typename: 'MessageThread', querySet: true } },
-        { tagFollows: { alias: 'topicFollows', querySet: true } }
+        { tagFollows: { alias: 'topicFollows', querySet: true } },
+        { tracksEnrolledIn: { querySet: true } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
@@ -283,6 +285,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'tagline'
       ],
       getters: {
+        completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
+        enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
       relations: [
@@ -345,6 +349,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'announcement',
         'anonymous_voting',
         'commentsTotal',
+        'completion_action_settings',
+        'completion_action',
         'created_at',
         'donations_link',
         'edited_at',
@@ -354,33 +360,51 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'is_public',
         'link_preview_featured',
         'location',
+        'num_people_completed',
         'project_management_link',
-        'proposal_status',
-        'voting_method',
         'proposal_outcome',
+        'proposal_status',
         'quorum',
         'reactions_summary',
         'start_time',
         'timezone',
         'type',
-        'updated_at'
+        'updated_at',
+        'voting_method'
       ],
       getters: {
+        clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         commentersTotal: p => p.getCommentersTotal(userId),
+        completedAt: p => p.completedAtForUser(userId),
+        completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
-        // clickthrough: p => p.pivot && p.pivot.get('clickthrough'), // TODO COMOD: does not seem to work
-        clickthrough: p => p.checkClickthrough(userId),
         myEventResponse: p =>
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
-            : ''
+            : '',
+        sortOrder: p => p.pivot && p.pivot.get('sort_order') // For loading posts in order in a track
       },
       relations: [
         { comments: { querySet: true } },
+        {
+          completionResponses: {
+            querySet: true,
+            filter: (relation) => {
+              return relation.query(async q => {
+                const postUsers = await PostMembership.where({ post_id: relation.relatedData.parentId }).fetchAll()
+                const hasTracksResponsibility = postUsers.length > 0 && await Promise.any(postUsers.map(postUser => {
+                  return GroupMembership.hasResponsibility(userId, postUser.get('group_id'), Responsibility.constants.RESP_MANAGE_TRACKS)
+                }))
+                if (!hasTracksResponsibility) return q.where('user_id', userId)
+                return q
+              })
+            }
+          }
+        },
         'groups',
         { user: { alias: 'creator' } },
         'followers',
@@ -603,6 +627,32 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { suggestedSkills: { querySet: true } },
         {
+          tracks: {
+            querySet: true,
+            filter: (relation, { autocomplete, published, sortBy, order }) =>
+              relation.query(q => {
+                if (autocomplete) {
+                  q.whereRaw('tracks.name ilike ?', autocomplete + '%')
+                }
+
+                if (!isNil(published)) {
+                  if (published) {
+                    q.whereNotNull('tracks.published_at')
+                  } else {
+                    q.whereNull('tracks.published_at')
+                  }
+                }
+
+                q.orderBy(sortBy || 'id', order || 'asc')
+
+                // Only admins can see unpublished tracks
+                if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
+                  q.whereNotNull('tracks.published_at')
+                }
+              })
+          }
+        },
+        {
           viewPosts: {
             querySet: true,
             arguments: () => [userId],
@@ -772,7 +822,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
     GroupRole: {
       model: GroupRole,
       attributes: [
-        'color',
         'emoji',
         'description',
         'group_id',
@@ -1099,6 +1148,55 @@ export default function makeModels (userId, isAdmin, apiClient) {
       fetchMany: args => TagFollow.query()
     },
 
+    Track: {
+      model: Track,
+      attributes: [
+        'action_descriptor',
+        'action_descriptor_plural',
+        'created_at',
+        'banner_url',
+        'completion_role_type',
+        'completion_message',
+        'deactivated_at',
+        'description',
+        'name',
+        'num_actions',
+        'num_people_completed',
+        'num_people_enrolled',
+        'published_at',
+        'updated_at',
+        'welcome_message'
+      ],
+      relations: [
+        'completionRole',
+        { enrolledUsers: { querySet: true } },
+        { groups: { querySet: true } },
+        { posts: { querySet: true } },
+        { users: { querySet: true } }
+      ],
+      getters: {
+        isEnrolled: t => t && t.isEnrolled(userId),
+        didComplete: t => t && t.didComplete(userId),
+        userSettings: t => t ? t.userSettings(userId) : null
+      },
+      fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
+        searchQuerySet('tracks', {
+          autocomplete, first, offset, order, published, sortBy
+        })
+    },
+
+    TrackUser: {
+      model: TrackUser,
+      attributes: [
+        'completed_at',
+        'created_at',
+        'enrolled_at',
+        'settings',
+        'updated_at'
+      ],
+      relations: ['track', 'group', 'user']
+    },
+
     Notification: {
       model: Notification,
       relations: ['activity'],
@@ -1130,7 +1228,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'post',
         'comment',
         'group',
-        'otherGroup'
+        'otherGroup',
+        'track'
       ],
       getters: {
         action: a => Notification.priorityReason(a.get('meta').reasons)
@@ -1177,6 +1276,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
     PostUser: {
       model: PostUser,
+      attributes: [
+        'completed_at',
+        'completion_response'
+      ],
       relations: [
         'post',
         'user'
