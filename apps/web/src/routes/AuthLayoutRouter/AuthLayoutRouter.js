@@ -248,24 +248,6 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
-      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
-        <GlobalAlert
-          title={t('Welcome to the new Hylo!')}
-          onOpenChange={(open) => {
-            if (!open) {
-              window.localStorage.setItem('new-hylo-alert-seen', true)
-            }
-          }}
-          closeButton={<Button variant='secondary'>{t('Jump in!')}</Button>}
-        >
-          <div>
-            <Trans i18nKey='newHyloMessage'>
-              We just launched a major redesign of Hylo! To learn more about what's new, <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
-            </Trans>
-          </div>
-        </GlobalAlert>
-      )}
-
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
