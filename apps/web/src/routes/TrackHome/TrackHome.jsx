@@ -254,7 +254,7 @@ function PeopleTab ({ currentTrack }) {
                   <span>{user.name}</span>
                 </Link>
               </div>
-              <div className='flex flex-row gap-2 items-center text-xs text-foreground/60'>
+              <div className='flex flex-row gap-4 items-center text-xs text-foreground/60'>
                 <div>
                   <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
                 </div>
