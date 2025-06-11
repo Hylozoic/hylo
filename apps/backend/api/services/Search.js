@@ -99,6 +99,7 @@ module.exports = {
   },
 
   forTags: function (opts) {
+    console.log('forTags opts', opts)
     return Tag.query(q => {
       q.join('groups_tags', 'groups_tags.tag_id', '=', 'tags.id')
       q.join('groups', 'groups.id', '=', 'groups_tags.group_id')
