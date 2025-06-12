@@ -125,7 +125,7 @@ export default function ActionsBar ({
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
         >
-          <SendHorizontal className={!valid || loading ? 'text-foreground/30' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+          <SendHorizontal className={!valid || loading ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
 
         <Tooltip

@@ -5,16 +5,17 @@ export const FETCH_GROUP_TRACKS = 'FETCH_GROUP_TRACKS'
 const query = `
 query (
   $id: ID,
+  $autocomplete: String
+  $enrolled: Boolean,
   $first: Int,
   $offset: Int,
-  $sortBy: String,
   $order: String,
-  $enrolled: Boolean,
-  $autocomplete: String
+  $published: Boolean,
+  $sortBy: String,
 ) {
   group (id: $id) {
     id
-    tracks (autocomplete: $autocomplete, enrolled: $enrolled, first: $first, offset: $offset, sortBy: $sortBy, order: $order) {
+    tracks (autocomplete: $autocomplete, enrolled: $enrolled, first: $first, offset: $offset, order: $order, published: $published, sortBy: $sortBy) {
       items {
         id
         bannerUrl
@@ -56,6 +57,7 @@ export default function fetchGroupTracks (groupId, {
   first = 20,
   offset = 0,
   order = 'desc',
+  published = null,
   sortBy = 'published_at'
 }) {
   return {
@@ -69,6 +71,7 @@ export default function fetchGroupTracks (groupId, {
         first,
         offset,
         order,
+        published,
         sortBy
       }
     },

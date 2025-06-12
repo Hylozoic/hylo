@@ -6,7 +6,7 @@ const getTracksForGroup = ormCreateSelector(
   (state, props) => props.groupId,
   (session, groupId) => {
     const group = session.Group.withId(groupId)
-    return group.tracks.toModelArray()
+    return group.tracks.toModelArray().sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
   }
 )
 

@@ -58,6 +58,7 @@ import {
   deleteReaction,
   deleteSavedSearch,
   deleteZapierTrigger,
+  duplicateTrack,
   enrollInTrack,
   expireInvitation,
   findOrCreateLinkPreviewByUrl,
@@ -414,6 +415,8 @@ export function makeMutations ({ fetchOne }) {
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
+
+    duplicateTrack: (root, { trackId }, context) => duplicateTrack(context.currentUserId, trackId),
 
     enrollInTrack: (root, { trackId }, context) => enrollInTrack(context.currentUserId, trackId),
 

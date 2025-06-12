@@ -75,6 +75,7 @@ export function createContextWidget ({ groupId, data }) {
             didComplete
             isEnrolled
             numActions
+            publishedAt
           }
         }
       }`,

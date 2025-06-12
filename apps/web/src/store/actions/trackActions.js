@@ -3,6 +3,7 @@ import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
 
 export const MODULE_NAME = 'Tracks'
 export const CREATE_TRACK = `${MODULE_NAME}/CREATE_TRACK`
+export const DUPLICATE_TRACK = `${MODULE_NAME}/DUPLICATE_TRACK`
 export const ENROLL_IN_TRACK = `${MODULE_NAME}/ENROLL_IN_TRACK`
 export const ENROLL_IN_TRACK_PENDING = `${MODULE_NAME}/ENROLL_IN_TRACK_PENDING`
 export const FETCH_TRACK = `${MODULE_NAME}/FETCH_TRACK`
@@ -349,6 +350,24 @@ export function leaveTrack (trackId) {
     },
     meta: {
       trackId
+    }
+  }
+}
+
+export function duplicateTrack (trackId) {
+  return {
+    type: DUPLICATE_TRACK,
+    graphql: {
+      query: `
+        mutation ($trackId: ID) {
+          duplicateTrack(trackId: $trackId) {
+            id
+          }
+        }
+      `,
+      variables: {
+        trackId
+      }
     }
   }
 }

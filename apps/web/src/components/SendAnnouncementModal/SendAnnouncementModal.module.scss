@@ -1,5 +1,5 @@
 .modal {
-  background-color: rgba(0,0,0,0.5);
+  background-color: hsl(var(--foreground) / 0.3);
   position: fixed;
   height: 100%;
   width: 100%;
@@ -13,7 +13,7 @@
 }
 
 .modal-container {
-  background-color: $color-white;
+  background-color: hsl(var(--card));
   width: 390px;
   min-height: 150px;
   border-radius: 5px;
@@ -24,17 +24,17 @@
 
 .modal-header {
   font-size: 80%;
-  color: $color-rhino-50;
+  color: hsl(var(--foreground));
   text-align: left;
   padding-left: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid $color-rhino-30;
+  border-bottom: 1px solid hsl(var(--border));
   font-weight: bold;
 }
 
 .modal-paragraph {
   font-size: 90%;
-  color: $color-rhino-60;
+  color: hsl(var(--foreground));
   text-align: left;
   padding-left: 20px;
   padding-right: 20px;
@@ -43,12 +43,12 @@
 
 .close-button {
   margin-right: 10px;
-  background-color: $color-white;
+  background-color: hsl(var(--card));
   &:hover {
-    background-color: $color-white-80;
+    background-color: hsl(var(--card) / 0.8);
   }
-  border-color: $color-rhino-30;
-  color: $color-rhino-30;
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
   font-size: 14px;
   height: 35px;
 }

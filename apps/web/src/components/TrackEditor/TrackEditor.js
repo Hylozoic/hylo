@@ -60,7 +60,10 @@ function TrackEditor (props) {
 
   useEffect(() => {
     if (editingTrack) {
-      setTrackState(Object.assign(trackState, editingTrack))
+      setTrackState(prevState => ({
+        ...prevState,
+        ...editingTrack
+      }))
     }
   }, [editingTrack])
 

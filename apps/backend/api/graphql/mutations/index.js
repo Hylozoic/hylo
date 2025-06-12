@@ -116,6 +116,7 @@ export {
 export {
   createTrack,
   deleteTrack,
+  duplicateTrack,
   enrollInTrack,
   leaveTrack,
   updateTrack,

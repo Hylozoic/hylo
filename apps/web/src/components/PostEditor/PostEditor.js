@@ -665,7 +665,7 @@ function PostEditor ({
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
-    reset()
+    if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
   }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
@@ -764,7 +764,7 @@ function PostEditor ({
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 40px, rgba(0,0,0,1) calc(100% - 40px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className={cn('PostEditorHeader relative', { 'my-1 pb-2': !isChat })}>
+      <div className={cn('PostEditorHeader relative')}>
         {!isAction
           ? (
             <PostTypeSelect
@@ -772,7 +772,7 @@ function PostEditor ({
               includeChat={!modal}
               postType={currentPost.type}
               setPostType={handlePostTypeSelection}
-              className={cn({ 'absolute top-1 right-1 z-10': isChat })}
+              className={cn({ 'absolute top-3 right-1 z-10': isChat })}
             />
             )
           : (

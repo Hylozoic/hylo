@@ -167,6 +167,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   cleanEmailText: (user, text, opts = { useMarkdown: true }) => {
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
     const name = user.get('name').toLowerCase()
     const lines = text.split('\n')
 
@@ -175,7 +176,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (cutoff) return
       line = line.trim()
 
-      if (line.length > 0 && name.startsWith(line.toLowerCase().replace(/^[- ]*/, ''))) {
+      // Check for quoted text (lines starting with >)
+      if (line.startsWith('>')) {
+        cutoff = index
+      } else if (line.length > 0 && name.startsWith(line.toLowerCase().replace(/^[- ]*/, ''))) {
         // line contains only the user's name
         cutoff = index
         // also remove the common pattern of two dashes above the name

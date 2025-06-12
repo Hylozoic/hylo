@@ -156,7 +156,9 @@ export const isHiddenInContextMenuResolver = (widget) => {
   */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
   !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack &&
-  !widget.viewChat && !widget.customView)
+  !widget.viewChat && !widget.customView) ||
+  // Hide unpublished tracks
+  (widget.type === 'viewTrack' && widget.viewTrack?.publishedAt === null)
 }
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */

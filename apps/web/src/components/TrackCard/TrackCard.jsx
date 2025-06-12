@@ -1,17 +1,17 @@
-import { Eye, EyeOff, Settings, Users, UserCheck } from 'lucide-react'
+import { CopyPlus, Eye, EyeOff, Pencil, Users, UserCheck } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import useRouteParams from 'hooks/useRouteParams'
-import { updateTrack } from 'store/actions/trackActions'
+import { duplicateTrack, updateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import { trackUrl } from 'util/navigation'
 import { cn } from 'util/index'
-import Tooltip from 'components/Tooltip'
 
 function TrackCard ({ track }) {
   const routeParams = useRouteParams()
@@ -25,6 +25,14 @@ function TrackCard ({ track }) {
   }
   const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+
+  const handleDuplicateTrack = useCallback(async () => {
+    if (window.confirm(t('Are you sure you want to duplicate this track?'))) {
+      const newTrack = await dispatch(duplicateTrack(track.id))
+      navigate(trackUrl(newTrack.payload.data?.duplicateTrack?.id, routeParams) + '/edit')
+    }
+  }, [routeParams])
 
   const handlePublishTrack = useCallback((publishedAt) => {
     if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
@@ -46,7 +54,8 @@ function TrackCard ({ track }) {
             <h2 className='m-0 p-0 truncate'>{name}</h2>
             <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
           </Link>
-          {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Settings className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
+          {canEdit && <CopyPlus className='hover:scale-125 transition-all w-6 h-6 cursor-pointer text-foreground mr-2' onClick={handleDuplicateTrack} />}
+          {canEdit && <Link className='hover:scale-125 transition-all' to={`${viewTrackUrl}?tab=edit`}><Pencil className='w-6 h-6 cursor-pointer text-foreground' /></Link>}
         </div>
         <Link className='flex justify-between items-center text-foreground hover:text-foreground/100' to={viewTrackUrl}>
           <div className='flex justify-between items-center flex-row gap-2'>
