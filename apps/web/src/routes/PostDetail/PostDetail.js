@@ -198,7 +198,7 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} className={cn('max-w-[960px] mx-auto min-w-[320px] sm:min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
