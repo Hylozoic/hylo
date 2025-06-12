@@ -31,7 +31,7 @@ export default function presentPost (post, groupId) {
       exactEditedTimestamp: DateTime.fromISO(post.editedAt).toFormat('D t ZZZZ'),
       fileAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'file').sort((a, b) => a.position - b.position),
       imageAttachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).filter(a => a.type === 'image').sort((a, b) => a.position - b.position),
-      groups: (rawPost ? post.groups?.items || [] : post.groups.toModelArray()),
+      groups: (rawPost ? post.groups || [] : post.groups.toModelArray()),
       linkPreview: post.linkPreview, // needed to load the link preview object
       location: post.location, // needed to load the location object
       members: (rawPost ? post.members?.items || [] : post.members.toModelArray()).map(person => {
@@ -41,7 +41,7 @@ export default function presentPost (post, groupId) {
         }
       }),
       proposalOptions: (rawPost ? post.proposalOptions?.items || [] : post.proposalOptions.toModelArray()),
-      topics: (rawPost ? post.topics?.items || [] : post.topics.toModelArray()).map(topic => presentTopic(topic, {}))
+      topics: (rawPost ? post.topics || [] : post.topics.toModelArray().map(topic => presentTopic(topic, {})))
     }
     return finalPost
   } catch (e) {
