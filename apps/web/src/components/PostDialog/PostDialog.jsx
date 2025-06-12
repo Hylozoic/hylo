@@ -30,19 +30,11 @@ const PostDialog = ({
     }
   }, [])
 
-  // Capture container's scroll position when dialog opens
-  React.useEffect(() => {
-    if (container) {
-      setContainerScrollTop(container.scrollTop)
-    }
-  }, [container])
-
   return (
     <Dialog.Root defaultOpen onOpenChange={handleOpenChange}>
       <Dialog.Portal container={container}>
         <Dialog.Overlay
           className='PostDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'
-          style={{ top: `${containerScrollTop}px` }}
         >
           <Dialog.Content onInteractOutside={handleInteractOutside} className='PostDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none'>
             <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
