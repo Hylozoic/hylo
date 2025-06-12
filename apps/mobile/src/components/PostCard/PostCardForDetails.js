@@ -194,7 +194,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           style={styles.projectJoinButton}
         />
       )}
-      {showGroups && (
+      {showGroups && post.type !== 'action' && (
         <PostGroups
           groups={post.groups}
           includePublic={post.isPublic}
