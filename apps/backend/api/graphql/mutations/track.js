@@ -30,6 +30,20 @@ export async function deleteTrack (userId, id) {
   return true
 }
 
+export async function duplicateTrack (userId, trackId) {
+  const track = await Track.find(trackId)
+  if (!track) {
+    throw new GraphQLError('Track not found')
+  }
+
+  if (!canEdit(track, userId)) {
+    throw new GraphQLError('You do not have permission to duplicate this track')
+  }
+
+  const newTrack = await track.duplicate()
+  return newTrack
+}
+
 export async function enrollInTrack (userId, trackId) {
   // TODO: check if the user can see the track?
   await Track.enroll(trackId, userId)

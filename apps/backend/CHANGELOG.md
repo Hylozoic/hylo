@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.1] - 2025-06-11
+
+### Added
+- Attempt to prevent auto responder email replies from being posted as comments
+
+### Fixed
+- Removing a comment from a post as a steward
+- Detection of quoted text in email replies
+
+## [6.1.0] - 2025-06-10
+
+### Added
+- __Tracks!__ Tracks are a way to offer a series of actions/modules/lessons to a group. They can be used for courses, workshops, or any other kind of learning experience, as well as for certain kinds of projects or any other kind of sequential group activity offered to members. Tracks are made of actions, which can have different types of completion requirements, like a text response, an uploaded file, or choosing from a list of options.
+
 ## [6.0.5] - 2025-05-05
 
 ### Changed

@@ -1,4 +1,4 @@
-import { camelCase, mapKeys, startCase } from 'lodash/fp'
+import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
 import searchQuerySet from './searchQuerySet'
@@ -629,8 +629,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           tracks: {
             querySet: true,
-            filter: (relation, { enrolled }) =>
+            filter: (relation, { autocomplete, published, sortBy, order }) =>
               relation.query(q => {
+                if (autocomplete) {
+                  q.whereRaw('tracks.name ilike ?', autocomplete + '%')
+                }
+
+                if (!isNil(published)) {
+                  if (published) {
+                    q.whereNotNull('tracks.published_at')
+                  } else {
+                    q.whereNull('tracks.published_at')
+                  }
+                }
+
+                q.orderBy(sortBy || 'id', order || 'asc')
+
                 // Only admins can see unpublished tracks
                 if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
                   q.whereNotNull('tracks.published_at')
@@ -1164,7 +1178,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         isEnrolled: t => t && t.isEnrolled(userId),
         didComplete: t => t && t.didComplete(userId),
         userSettings: t => t ? t.userSettings(userId) : null
-      }
+      },
+      fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
+        searchQuerySet('tracks', {
+          autocomplete, first, offset, order, published, sortBy
+        })
     },
 
     TrackUser: {

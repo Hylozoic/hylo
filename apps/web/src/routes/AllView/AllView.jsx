@@ -567,7 +567,8 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
       try {
         const response = await dispatch(fetchGroupTracks(group.id, {
           autocomplete: debouncedSearch,
-          first: 20
+          first: 20,
+          published: true
         }))
         setItems(response?.payload?.data?.group?.tracks?.items.map(item => item) || [])
       } catch (error) {

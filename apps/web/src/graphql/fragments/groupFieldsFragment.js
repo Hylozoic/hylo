@@ -287,6 +287,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
             didComplete
             isEnrolled
             numActions
+            publishedAt
           }
         }
       }`

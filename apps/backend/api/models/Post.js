@@ -978,7 +978,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
     bookshelf.transaction(trx =>
       Promise.join(
         Activity.removeForPost(postId, trx),
-        Post.where('id', postId).query().update({ active: false }).transacting(trx)
+        Track.removePost(postId, trx),
+        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx)
       )),
 
   createActivities: (opts) =>

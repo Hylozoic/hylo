@@ -1011,14 +1011,16 @@ module.exports = bookshelf.Model.extend(merge({
           // Only add tracks widget if it is published
           const tracksWidget = widgets.find(w => w.get('view') === 'tracks')
           if (tracksWidget && !tracksWidget.get('auto_added')) {
-            // Make tracks widget visible to all, not just admins
-            await tracksWidget.save({ visibility: null }, { transacting: trx })
             await ContextWidget.reorder({
               id: tracksWidget.get('id'),
               parentId: autoAddWidget.get('id'),
               addToEnd: true,
               trx
             })
+          }
+          if (tracksWidget && tracksWidget.get('visibility') === 'admin') {
+            // Make tracks widget visible to all, not just admins
+            await tracksWidget.save({ visibility: null }, { transacting: trx })
           }
         }
 

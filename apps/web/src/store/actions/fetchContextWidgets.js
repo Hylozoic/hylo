@@ -72,6 +72,7 @@ export default function fetchContextWidgets (groupId) {
                 didComplete
                 isEnrolled
                 numActions
+                publishedAt
               }
             }
           }
