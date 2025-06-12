@@ -95,7 +95,8 @@ export default function ActionCompletionSection({ post, trackId }) {
   let completionControls = null
   let completionButtonText = null
   let alreadyCompletedMessage = null
-  let completionResponseText = <Text>{completionResponse.map(r => r).join(', ')}</Text>
+
+  let completionResponseText = <Text>{(completionResponse || []).map(r => r).join(', ')}</Text>
 
   switch (completionAction) {
     case 'button':
@@ -157,7 +158,7 @@ export default function ActionCompletionSection({ post, trackId }) {
         </View>
       )
       completionButtonText = t('Submit')
-      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionDescriptor || t('action') }) + ' ' + completionResponse.map(r => r).join(', ')
+      alreadyCompletedMessage = t('You completed this {{actionTerm}} {{date}}. You selected:', { date: completedAt, actionTerm: currentTrack?.actionDescriptor || t('action') })
       break
 
     case 'text':

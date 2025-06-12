@@ -78,9 +78,6 @@ export default function AuthRootNavigator () {
   const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
-
-  const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
-  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
   
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
