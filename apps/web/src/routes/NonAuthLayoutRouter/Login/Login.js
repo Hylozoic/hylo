@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { Link, useLocation } from 'react-router-dom'
@@ -8,7 +8,6 @@ import checkLogin from 'store/actions/checkLogin'
 import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
 import TextInput from 'components/TextInput'
-import Button from 'components/Button'
 import GoogleButton from 'components/GoogleButton'
 import classes from './Login.module.scss'
 
@@ -20,6 +19,22 @@ export default function Login (props) {
   const [error, setError] = useState(getQuerystringParam('error', location))
   const { t } = useTranslation()
   const DEFAULT_LOGIN_ERROR = t('Sorry, that Email and Password combination didn\'t work.')
+
+  useEffect(() => {
+    const checkAutofill = () => {
+      const emailInput = document.getElementById('email')
+      const passwordInput = document.getElementById('password')
+      if (emailInput?.value && !email) {
+        setEmail(emailInput.value)
+      }
+      if (passwordInput?.value && !password) {
+        setPassword(passwordInput.value)
+      }
+    }
+
+    const interval = setInterval(checkAutofill, 100)
+    return () => clearInterval(interval)
+  }, [email, password])
 
   const handleEmailChange = event => {
     setEmail(event.target.value)
@@ -77,9 +92,9 @@ export default function Login (props) {
   }
 
   return (
-    <div className={props.className}>
-      <div className={classes.formWrapper}>
-        <h1 className={classes.title}>{t('Sign in to Hylo')}</h1>
+    <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto'>
+      <div className='flex flex-col gap-2 p-4'>
+        <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Sign in to Hylo')}</h1>
 
         {error && formatError(error, 'Login', t)}
 
@@ -88,7 +103,8 @@ export default function Login (props) {
           autoFocus
           internalLabel={t('Email')}
           onChange={handleEmailChange}
-          className={classes.field}
+          className='bg-input rounded-md mb-3'
+          inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
           type='email'
           value={email || ''}
         />
@@ -98,18 +114,25 @@ export default function Login (props) {
           internalLabel={t('Password')}
           onChange={handlePasswordChange}
           onEnter={handleLogin}
-          className={classes.field}
+          className='bg-input rounded-md mb-3'
+          inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
           type='password'
           value={password || ''}
         />
-
-        <Link to='/reset-password' className={classes.forgotPassword}>
-          <span className={classes.forgotPassword}>{t('Forgot password?')}</span>
-        </Link>
-
-        <Button className={classes.submit} label={t('Sign in')} onClick={handleLogin} />
+        <div className='flex justify-center items-center p-2'>
+          <Link to='/reset-password' className={classes.forgotPassword}>
+            <span className='text-focus'>{t('Forgot password?')}</span>
+          </Link>
+        </div>
+        <button
+          className={`rounded-md text-white text-center p-2 ${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`}
+          onClick={handleLogin}
+          disabled={!email || !password}
+        >
+          {t('Sign in')}
+        </button>
       </div>
-      <div className={classes.authButtons}>
+      <div className='flex justify-center px-4 pb-4'>
         <GoogleButton onClick={() => handleLoginWithService('google')} />
       </div>
     </div>
