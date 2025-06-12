@@ -7,12 +7,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import checkLogin from 'store/actions/checkLogin'
 import { sendEmailVerification as sendEmailVerificationAction } from './Signup.store'
 import loginWithService from 'store/actions/loginWithService'
-import Button from 'components/Button'
 import GoogleButton from 'components/GoogleButton'
 import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
-
-import classes from './Signup.module.scss'
 
 export default function Signup (props) {
   const dispatch = useDispatch()
@@ -84,39 +81,36 @@ export default function Signup (props) {
   if (redirectTo) return <Navigate to={redirectTo} replace />
 
   return (
-    <div className={classes.form}>
-      <div className={classes.formWrapper}>
-        <h1 className={classes.title}>{t('Welcome to Hylo')}</h1>
-        <p className={classes.blurb}>{t('Stay connected, organized, and engaged with your group.')}</p>
-        <p className={classes.or}>{t('Enter your email to get started:')}</p>
+    <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+      <h1 className='text-2xl font-bold mb-0 text-foreground text-center'>{t('Welcome to Hylo')}</h1>
+      <p className='mb-4 text-foreground/80 text-center mt-0'>{t('Enter your email to get started:')}</p>
 
-        {error && formatError(error, 'Signup', t)}
+      {error && formatError(error, 'Signup', t)}
 
-        <TextInput
-          aria-label='email'
-          label='email'
-          name='email'
-          id='email'
-          autoComplete='off'
-          autoFocus
-          internalLabel={t('Email')}
-          onChange={handleEmailChange}
-          onEnter={submit}
-          className={classes.field}
-          type='text'
-          value={email || ''}
-        />
+      <TextInput
+        aria-label='email'
+        label='email'
+        name='email'
+        id='email'
+        autoComplete='off'
+        autoFocus
+        internalLabel={t('Your email address')}
+        onChange={handleEmailChange}
+        onEnter={submit}
+        className='bg-input rounded-md mb-3'
+        inputClassName='p-3 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
+        type='text'
+        value={email || ''}
+      />
 
-        <Button
-          className={cn(classes.submit, { [classes.green]: canSubmit, [classes.gray]: !canSubmit })}
-          label={t('Continue')}
-          onClick={canSubmit ? () => submit() : null}
-        />
-      </div>
+      <button
+        className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
+        onClick={canSubmit ? () => submit() : null}
+      >
+        {t('Create account')}
+      </button>
 
-      <p className={classes.or}>{t('Or sign in with an existing account')}: </p>
-
-      <div className={classes.authButtons}>
+      <div className='flex justify-center'>
         <GoogleButton onClick={() => handleSignupWithService('google')} />
       </div>
     </div>
