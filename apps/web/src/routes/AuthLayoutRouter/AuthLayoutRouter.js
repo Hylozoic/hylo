@@ -348,7 +348,7 @@ export default function AuthLayoutRouter (props) {
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full'>
             <ViewHeader />
-            <div className={cn(classes.center, { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+            <div className={cn('p-0 sm:p-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
