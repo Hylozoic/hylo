@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.1] - 2025-06-11
+
+### Added
+- Attempt to prevent auto responder email replies from being posted as comments
+
+### Fixed
+- Removing a comment from a post as a steward
+- Detection of quoted text in email replies
+
 ## [6.1.0] - 2025-06-10
 
 ### Added

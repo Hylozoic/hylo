@@ -1,7 +1,7 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.1.0",
+  "version": "6.1.1",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
