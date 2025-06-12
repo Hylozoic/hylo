@@ -47,25 +47,28 @@ import GroupWelcomePage from 'routes/GroupWelcomePage'
 import Groups from 'routes/Groups'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
-import Stream from 'routes/Stream'
-import MapExplorer from 'routes/MapExplorer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
 import Loading from 'components/Loading'
+import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Messages from 'routes/Messages'
+import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
+import MyTracks from 'routes/MyTracks'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
-import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
-import ThreadList from 'routes/Messages/ThreadList'
-
+import Stream from 'routes/Stream'
+import TrackHome from 'routes/TrackHome'
+import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
+import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import classes from './AuthLayoutRouter.module.scss'
 import { localeLocalStorageSync } from 'util/locale'
 import isWebView from 'util/webView'
+
+import classes from './AuthLayoutRouter.module.scss'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -245,24 +248,6 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
-      {!isWebView() && new Date(currentUser.createdAt) < new Date('2025-03-15') && !window.localStorage.getItem('new-hylo-alert-seen') && (
-        <GlobalAlert
-          title={t('Welcome to the new Hylo!')}
-          onOpenChange={(open) => {
-            if (!open) {
-              window.localStorage.setItem('new-hylo-alert-seen', true)
-            }
-          }}
-          closeButton={<Button variant='secondary'>{t('Jump in!')}</Button>}
-        >
-          <div>
-            <Trans i18nKey='newHyloMessage'>
-              We just launched a major redesign of Hylo! To learn more about what's new, <a href='https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates' target='_blank' rel='noreferrer'>click here</a>.
-            </Trans>
-          </div>
-        </GlobalAlert>
-      )}
-
       <Routes>
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
@@ -278,45 +263,6 @@ export default function AuthLayoutRouter (props) {
             <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
           </>
         )}
-      </Routes>
-
-      <Routes>
-        <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-        <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-        <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-        <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-        <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
-        <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-        <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-        <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-        <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-        <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-        <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
-        <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
-        <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
-        <Route path='public/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
-        <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-        <Route path='all/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-        <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
       </Routes>
 
       <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
@@ -346,8 +292,52 @@ export default function AuthLayoutRouter (props) {
               </Routes>}
           </div> {/* END NavContainer */}
 
-          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full'>
+          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative'>
             <ViewHeader />
+
+            <Routes>
+              <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
+              <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+              <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+              <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
+              <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
+              <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
+              <Route path='public/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
+              <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+              <Route path='all/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+            </Routes>
+
             <div className={cn('p-0 sm:p-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
@@ -406,6 +396,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/*' element={<Members context='groups' />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
+                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
+                            <Route path='tracks/*' element={<Tracks />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
@@ -421,6 +413,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
                 <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
+                <Route path='my/tracks/*' element={<MyTracks />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Other Routes **** */}

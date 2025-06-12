@@ -51,7 +51,7 @@ const ViewHeader = () => {
                   : null}
           </div>
         </>)}
-      {!centered && icon && <Icon name={icon} className='mr-3 text-lg' />}
+      {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (

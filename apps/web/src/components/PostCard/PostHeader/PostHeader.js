@@ -1,8 +1,9 @@
-import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
+import { Check, Play, CircleDashed } from 'lucide-react'
+import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
-import { withTranslation } from 'react-i18next'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
@@ -14,6 +15,7 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 class PostHeader extends PureComponent {
@@ -49,6 +51,7 @@ class PostHeader extends PureComponent {
       post,
       canEdit,
       expanded,
+      isCurrentAction,
       isFlagged,
       group,
       close,
@@ -81,6 +84,10 @@ class PostHeader extends PureComponent {
       fulfilledAt
     } = post
 
+    if (type === 'action') {
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+    }
+
     if (!creator) return null
 
     const copyLink = () => {
@@ -105,7 +112,7 @@ class PostHeader extends PureComponent {
       { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
-    const typesWithTimes = ['offer', 'request', 'resource', 'project', 'proposal']
+    const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
     const canHaveTimes = typesWithTimes.includes(type)
 
     const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
@@ -271,6 +278,24 @@ export function TopicsLine ({ topics, slug, newLine }) {
         >
           #{t.name}
         </Link>)}
+    </div>
+  )
+}
+
+function ActionHeader ({ post, isCurrentAction }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex p-2 mb-2 items-center'>
+      <div className='flex-1'>
+        {post.completedAt
+          ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
+          : isCurrentAction
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
+      </div>
+
+      {post.completedAt && <span className='text-xs text-selected/70'>{t('Completed {{date}}', { date: DateTime.fromISO(post.completedAt).toFormat('DD') })}</span>}
     </div>
   )
 }

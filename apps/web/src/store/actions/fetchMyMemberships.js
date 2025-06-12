@@ -38,8 +38,8 @@ export default function fetchMyMemberships () {
                         id
                         name
                       }
-                     }
-                     topicFollow {
+                    }
+                    topicFollow {
                       id
                       lastReadPostId
                       newPostCount

@@ -1,3 +1,5 @@
+import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { get } from 'lodash/fp'
 import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
@@ -6,25 +8,7 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector } from 'reselect'
-import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
-import GroupMenuHeader from 'components/GroupMenuHeader'
-import Icon from 'components/Icon'
-import WidgetIconResolver from 'components/WidgetIconResolver'
-import MenuLink from './MenuLink'
-import useRouteParams from 'hooks/useRouteParams'
-import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
-import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
-import getMe from 'store/selectors/getMe'
-import { removeWidgetFromMenu, updateContextWidget, setHomeWidget } from 'store/actions/contextWidgets'
-import useGatherItems from 'hooks/useGatherItems'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
-import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
-import { bgImageStyle, cn } from 'util/index'
-import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
 import ContextWidgetPresenter, {
   isValidDropZone,
   getStaticMenuWidgets,
@@ -33,13 +17,32 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+
+import GroupMenuHeader from 'components/GroupMenuHeader'
+import HyloHTML from 'components/HyloHTML'
+import Icon from 'components/Icon'
+import WidgetIconResolver from 'components/WidgetIconResolver'
+import MenuLink from './MenuLink'
+import useGatherItems from 'hooks/useGatherItems'
+import useRouteParams from 'hooks/useRouteParams'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
+import { removeWidgetFromMenu, updateContextWidget, setHomeWidget } from 'store/actions/contextWidgets'
 import logout from 'store/actions/logout'
-import classes from './ContextMenu.module.scss'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
+import getMe from 'store/selectors/getMe'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { bgImageStyle, cn } from 'util/index'
+import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
+
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
-import HyloHTML from 'components/HyloHTML'
+
+import classes from './ContextMenu.module.scss'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -277,7 +280,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
         </li>}
       {contextWidgets.map((widget, index) => (
         <li
-          className={`items-start animate-slide-up invisible ${
+          className={`ContextMenuContextWidgetListItem items-start animate-slide-up invisible ${
             widget.childWidgets?.length > 0 ||
             ['container', 'home', 'chats', 'members'].includes(widget.type)
               ? 'mb-6 mt-6'
@@ -389,7 +392,9 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               >
                 <div className='flex-1 flex items-center'>
                   <WidgetIconResolver widget={widget} />
-                  <span className='text-base font-normal ml-2'>{title}</span>
+                  <span className='text-base font-normal ml-2 flex-1'>{title}</span>
+                  {!widget.viewTrack?.didComplete && widget.viewTrack?.isEnrolled ? <span className='text-sm ml-2'>{t('Enrolled')}</span> : null}
+                  {widget.viewTrack?.didComplete ? <span className='text-sm ml-2'>{t('Completed')}</span> : null}
                 </div>
                 {canDnd && isDroppable && <div className='hidden group-hover:block'><ActionMenu widget={widget} className={cn('ml-2')} /></div>}
                 {canDnd && isDroppable && <div className=''><GrabMe {...listeners} {...attributes} /></div>}
@@ -738,27 +743,16 @@ function SpecialTopElementRenderer ({ widget }) {
   return null
 }
 
-const SETTINGS_MENU_ITEMS = [
-  { title: 'Group Details', url: 'settings' },
-  { title: 'Agreements', url: 'settings/agreements' },
-  { title: 'Welcome Page', url: 'settings/welcome' },
-  { title: 'Responsibilities', url: 'settings/responsibilities' },
-  { title: 'Roles & Badges', url: 'settings/roles' },
-  { title: 'Privacy & Access', url: 'settings/privacy' },
-  { title: 'Invitations', url: 'settings/invite' },
-  { title: 'Join Requests', url: 'settings/requests' },
-  { title: 'Related Groups', url: 'settings/relationships' },
-  { title: 'Custom Views', url: 'settings/views' },
-  { title: 'Export Data', url: 'settings/export' },
-  { title: 'Delete', url: 'settings/delete' }
-]
-
-function GroupSettingsMenu () {
+function GroupSettingsMenu ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
   const { groupSlug } = useContextMenuContext()
+
+  const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+  const canManageTracks = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: group?.id }))
 
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))
@@ -772,6 +766,22 @@ function GroupSettingsMenu () {
     }
   }, [confirm, previousLocation, groupSlug])
 
+  const settingsMenuItems = useMemo(() => [
+    canAdminister && { title: 'Group Details', url: 'settings' },
+    canAdminister && { title: 'Agreements', url: 'settings/agreements' },
+    canAdminister && { title: 'Welcome Page', url: 'settings/welcome' },
+    canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
+    canAdminister && { title: 'Roles & Badges', url: 'settings/roles' },
+    canAdminister && { title: 'Privacy & Access', url: 'settings/privacy' },
+    canAddMembers && { title: 'Invitations', url: 'settings/invite' },
+    canAddMembers && { title: 'Join Requests', url: 'settings/requests' },
+    canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
+    canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
+    canAdminister && { title: 'Custom Views', url: 'settings/views' },
+    canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Delete', url: 'settings/delete' }
+  ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
+
   return (
     <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[88px] w-[300px] bg-background/60 z-10'>
       <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
@@ -780,7 +790,7 @@ function GroupSettingsMenu () {
           {t('Group Settings')}
         </h3>
         <ul className='flex flex-col gap-2 p-0'>
-          {SETTINGS_MENU_ITEMS.map(item => (
+          {settingsMenuItems.map(item => (
             <li key={item.url}>
               <MenuLink
                 to={groupUrl(groupSlug, item.url)}

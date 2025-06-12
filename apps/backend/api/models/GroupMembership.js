@@ -17,7 +17,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   commonRoles () {
-    return this.belongsToMany(CommonRole, 'group_memberships_common_roles', 'group_id', 'common_role_id', 'group_id' )
+    return this.belongsToMany(CommonRole, 'group_memberships_common_roles', 'group_id', 'common_role_id', 'group_id')
       .through(MemberCommonRole, 'group_id', 'common_role_id')
       .where({ user_id: this.get('user_id'), group_id: this.get('group_id') })
       .withPivot(['group_id'])
@@ -89,7 +89,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       await MemberCommonRole.updateCoordinatorRole({ userId: this.get('user_id'), groupId: this.get('group_id'), role: attrs.role, transacting })
     }
 
-    if (!isEmpty(this.changed)) return this.save(null, {transacting})
+    if (!isEmpty(this.changed)) return this.save(null, { transacting })
     return this
   }
 

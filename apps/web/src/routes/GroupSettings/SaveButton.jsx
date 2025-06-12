@@ -17,7 +17,7 @@ export default function SaveButton ({ changed, error, save }) {
 
   return (
     <div className={cn(
-      'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
+      'sticky bottom-2 left-[50%] w-full bg-background rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
       {
         'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100': changed
       })}

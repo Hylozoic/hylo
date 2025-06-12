@@ -59,7 +59,6 @@ export const routingConfig = {
 
   // /public context routes
   // TODO:  Routing - some of these need to be available when not auth'd
-  // This route isn't correct; no such screen exists. And its not to be confused with the Group Explore screen.
   '/:context(public)/groups':                                             `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Web View`,
   '/:context(public)/map':                                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(public)/topics/:topicName':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
@@ -95,6 +94,8 @@ export const routingConfig = {
   '/:context(my)/:streamType(resources)':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   // TODO routing: As of 21 Feb 2025, these two routes only exists on mobile but it is an example of how we could shift the web routes.
   '/:context(my)/stream':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(my)/tracks':                                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/My Tracks`,
+  '/:context(my)/tracks/:trackId':                                        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Track Detail`,
   '/:context(my)/map':                                                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(my)':                                                         redirectTo('/my/posts'),
 
@@ -130,6 +131,8 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics/:topicName':                       `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/topics/:topicName/post/:id':              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   '/:context(groups)/:groupSlug/topics':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Web View`,
+  '/:context(groups)/:groupSlug/tracks/:trackId':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Track Detail`,
+  '/:context(groups)/:groupSlug/tracks':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Tracks`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/settings/:settingsArea?':                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these
@@ -158,6 +161,7 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/group/:groupSlug':                              `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   ':unmatchedBasePath(.*)/group/:groupSlug/explore':                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   ':unmatchedBasePath(.*)/members/:id':                                   `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
+  ':unmatchedBasePath(.*)/upload-action/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Upload Action`,
   ':unmatchedBasePath(.*)/post/:id':                                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,

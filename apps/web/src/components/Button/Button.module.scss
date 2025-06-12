@@ -23,9 +23,9 @@
 
 .disabled {
   cursor: not-allowed !important;
-  background-color: white !important;
-  color: $color-alto !important;
-  border-color: $color-alto !important;
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
 }
 
 .green {

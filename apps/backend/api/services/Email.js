@@ -17,9 +17,13 @@ const sendEmail = async opts => {
 const defaultOptions = {
   sender: {
     address: process.env.EMAIL_SENDER,
-    name: 'Hylo'
+    name: 'The Team at Hylo'
   },
-  locale: 'en-US'
+  locale: 'en-US',
+  headers: {
+    Precedence: 'bulk',
+    'X-Auto-Response-Suppress': 'All'
+  }
 }
 
 const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
@@ -98,6 +102,8 @@ module.exports = {
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
   sendGroupParentGroupJoinRequestAcceptedNotification: sendEmailWithOptions('tem_KcSfYRQCh4pgTGF7pcPjStqP'),
   sendExportMembersList: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
+  sendTrackCompletedEmail: sendEmailWithOptions('tem_cbYqGkw78DtXwF88v64MY4v3'),
+  sendTrackEnrollmentEmail: sendEmailWithOptions('tem_HQ8KG3pwPbDJkJjhbvhrbcxQ'),
   sendWelcomeEmail: sendEmailWithOptions('tem_7TwDyk3dR67C8WrWg3h7ycvd'),
 
   sendMessageDigest: opts =>

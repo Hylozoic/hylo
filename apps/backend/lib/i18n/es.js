@@ -49,5 +49,8 @@ exports.es = {
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
   textForPostMention: ({ groupName, person, postName }) => `${person} te mencionó en "${postName}" en ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicó "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
+  textForTrackCompleted: ({ actor, track }) => `Pista completada: "${track.get('name')}" fue completada por ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, track }) => `Inscripción en pista: "${track.get('name')}" fue inscrita por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} cambió las opciones de propuesta: "${postName}" en ${groupName}. Esto ha reiniciado los votos`,
+  theTeamAtHylo: 'El equipo de Hylo'
 }

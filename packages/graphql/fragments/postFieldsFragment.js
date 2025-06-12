@@ -1,7 +1,8 @@
 import { gql } from 'urql'
+import commentFieldsFragment from './commentFieldsFragment'
 
-// Note the first set of comments are always loaded with this
-export default gql`
+// Original fragment that contains all the common fields
+export const postFieldsFragment = gql`
   fragment PostFieldsFragment on Post {
     id
     announcement
@@ -22,10 +23,12 @@ export default gql`
     fulfilledAt
     startTime
     endTime
+    timezone
     donationsLink
+    editedAt
     projectManagementLink
     myEventResponse
-    commenters(first: 8) {
+    commenters(first: 3) {
       id
       name
       avatarUrl
@@ -75,17 +78,17 @@ export default gql`
       }
     }
     proposalVotes {
-        total
-        hasMore
-        items {
+      total
+      hasMore
+      items {
+        id
+        optionId
+        user {
           id
-          optionId
-          user {
-            id
-            name
-            avatarUrl
-          }
+          name
+          avatarUrl
         }
+      }
     }
     myReactions {
       emojiFull
@@ -146,3 +149,88 @@ export default gql`
     }
   }
 `
+
+// Fragment for posts with comments
+export const postWithCommentsFragment = gql`
+  fragment PostWithCommentsFragment on Post {
+    ...PostFieldsFragment
+    comments(first: 10, order: "desc") {
+      items {
+        ...CommentFieldsFragment
+        childComments(first: 3, order: "desc") {
+          items {
+            ...CommentFieldsFragment
+            post {
+              id
+            }
+          }
+          total
+          hasMore
+        }
+      }
+      total
+      hasMore
+    }
+  }
+  ${postFieldsFragment}
+  ${commentFieldsFragment}
+`
+
+// Fragment for posts with completion data
+export const postWithCompletionFragment = gql`
+  fragment PostWithCompletionFragment on Post {
+    ...PostFieldsFragment
+    completedAt
+    completionAction
+    completionActionSettings
+    completionResponse
+  }
+  ${postFieldsFragment}
+`
+
+// Fragment combining both comments and completion responses
+export const postWithCommentsAndCompletionResponsesFragment = gql`
+  fragment PostWithCommentsAndCompletionResponsesFragment on Post {
+    ...PostFieldsFragment
+    completedAt
+    completionAction
+    completionActionSettings
+    completionResponse
+    comments(first: 10, order: "desc") {
+      items {
+        ...CommentFieldsFragment
+        childComments(first: 3, order: "desc") {
+          items {
+            ...CommentFieldsFragment
+            post {
+              id
+            }
+          }
+          total
+          hasMore
+        }
+      }
+      total
+      hasMore
+    }
+    completionResponses {
+      items {
+        id
+        completedAt
+        completionResponse
+        user {
+          id
+          name
+          avatarUrl
+        }
+      }
+      total
+      hasMore
+    }
+  }
+  ${postFieldsFragment}
+  ${commentFieldsFragment}
+`
+
+// Default export is the base fragment for backward compatibility
+export default postFieldsFragment
