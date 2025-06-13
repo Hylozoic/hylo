@@ -62,22 +62,10 @@ export default function NonAuthLayoutRouter (props) {
     }
   }, [dispatch, setReturnToPath, returnToPath])
 
-  const getPageTitle = () => {
-    const path = location.pathname
-    if (path.includes('/signup')) return t('Sign Up for Hylo')
-    if (path.includes('/login')) return t('Sign in to Hylo')
-    if (path.includes('/reset-password')) return t('Reset Password')
-    if (path.includes('/notifications')) return t('Manage Notifications')
-    if (path.includes('/oauth/login')) return t('OAuth Login')
-    if (path.includes('/oauth/consent')) return t('OAuth Consent')
-    if (path.includes('/groups/') || path.includes('/h/use-invitation')) return t('Join Group')
-    return 'Hylo'
-  }
-
   return (
     <Div100vh className='w-full h-full'>
       <Helmet>
-        <title>{getPageTitle()}</title>
+        <title>Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
       </Helmet>
       <div className='relative w-full h-full flex flex-col justify-center items-center p-2'>
