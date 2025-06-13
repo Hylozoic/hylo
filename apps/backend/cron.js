@@ -1,4 +1,3 @@
-/* globals Nexudus */
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')
@@ -11,7 +10,7 @@ const savedSearches = require('./lib/group/digest2/savedSearches')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
-    .then(results => { sails.log.debug(`Sent digests to: ${results}`); return results })
+    .then(results => { sails.log.debug(`Sent digests for: ${results}`); return results })
 
 const sendSavedSearchDigests = userId =>
   savedSearches.sendAllDigests(userId)
@@ -62,13 +61,14 @@ const every10minutes = now => {
   return [
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
+    TagFollow.sendDigests().then(count => sails.log.debug(`Sent ${count} chat room digests`)),
     Group.updateAllMemberCounts(),
     Post.updateProposalStatuses()
   ]
 }
 
 const runJob = Promise.method(name => {
-  const job = {hourly, daily, every10minutes}[name]
+  const job = { hourly, daily, every10minutes }[name]
   if (typeof job !== 'function') {
     throw new Error(`Unknown job name: "${name}"`)
   }

@@ -24,20 +24,6 @@ export function createMockStore (state = {}) {
 
 const emptyState = getEmptyState()
 
-export function createInitialStateWithCurrentUser () {
-  const session = orm.session(orm.getEmptyState())
-  const { Me } = session
-
-  Me.create({
-    id: 'current-user-id',
-    name: 'Current User'
-  })
-
-  return getEmptyState({
-    orm: session.state
-  })
-}
-
 export function TestRoot ({
   store: providedStore,
   state: providedState,

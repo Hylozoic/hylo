@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import styles from './SettingControl.styles.js'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
 import FormattedError from 'components/FormattedError'
 
-const SettingControl = ({
+const SettingControl = React.forwardRef(({
   label,
   value,
   onChange,
@@ -15,16 +15,15 @@ const SettingControl = ({
   returnKeyType,
   autoCapitalize,
   autoCorrect,
+  onPress,
   style,
   error,
   theme = {},
   onSubmitEditing
-}) => {
+}, ref) => {
   const [securePassword, setSecurePassword] = useState(true)
   const [editable, setEditable] = useState(!toggleEditable)
   const [highlight, setHighlight] = useState(false)
-
-  const inputRef = useRef(null)
 
   useEffect(() => {
     if (toggleEditable) {
@@ -51,10 +50,10 @@ const SettingControl = ({
   }
 
   return (
-    <View style={[styles.control, style, theme.control]}>
+    <TouchableOpacity onPress={onPress} style={[styles.control, style, theme.control]}>
       <Text style={[styles.label, theme.label]}>{label}</Text>
       <TextInput
-        ref={inputRef}
+        ref={ref}
         style={[styles.textInput, theme.textInput]}
         onChangeText={onChange}
         onFocus={onFocus}
@@ -73,7 +72,8 @@ const SettingControl = ({
           {toggleSecureTextEntry && (
             <TouchableOpacity
               onPress={handleTogglePassword}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <EntypoIcon
                 name={securePassword ? 'eye' : 'eye-with-line'}
                 style={[styles.eyeIcon, theme.eyeIcon]}
@@ -84,7 +84,8 @@ const SettingControl = ({
             <View style={highlight && styles.highlight}>
               <TouchableOpacity
                 onPress={handleToggleEditable}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <EntypoIcon name={editable ? 'check' : 'edit'} style={styles.editIcon} />
               </TouchableOpacity>
             </View>
@@ -92,8 +93,8 @@ const SettingControl = ({
         </View>
       )}
       <FormattedError error={error} styles={styles} theme={theme} />
-    </View>
+    </TouchableOpacity>
   )
-}
+})
 
 export default SettingControl

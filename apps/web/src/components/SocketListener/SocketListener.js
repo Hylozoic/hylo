@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation } from 'react-router-dom'
 import { getSocket, socketUrl } from 'client/websockets.js'
@@ -21,15 +21,21 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 const SocketListener = (props) => {
   const dispatch = useDispatch()
   const location = useLocation()
+  const locationRef = useRef(location)
   const routeParams = useRouteParams()
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
 
+  // Need to keep the location up to date without causing handlers to rerender and us to reconnect to the sockets on every location change
+  useEffect(() => {
+    locationRef.current = location
+  }, [location])
+
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
-    messageAdded: data => {
+    messageAdded: (data) => {
       const message = convertToMessage(data)
       dispatch(receiveMessage(message, {
-        bumpUnreadCount: !isActiveThread(location, data)
+        bumpUnreadCount: !isActiveThread(locationRef.current, data)
       }))
     },
     newNotification: data => dispatch(receiveNotification(data)),
@@ -38,7 +44,7 @@ const SocketListener = (props) => {
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
     }
-  }), [location, group?.id])
+  }), [group?.id])
 
   useEffect(() => {
     const socket = getSocket()
@@ -48,7 +54,7 @@ const SocketListener = (props) => {
       socket.on(socketEvent, handlers[socketEvent]))
 
     return () => {
-      socket.post(socketUrl('/noo/threads/unsubscribe'))
+      socket.post(socketUrl('/noo/user/unsubscribe'))
       Object.keys(handlers).forEach(socketEvent =>
         socket.off(socketEvent, handlers[socketEvent]))
     }
@@ -59,7 +65,7 @@ const SocketListener = (props) => {
       console.log('connecting SocketListener...')
     }
 
-    socket.post(socketUrl('/noo/threads/subscribe'), (body, jwr) => {
+    socket.post(socketUrl('/noo/user/subscribe'), (body, jwr) => {
       if (!isEqual(body, {})) {
         rollbar.error(`Failed to connect SocketListener: ${body}`)
       }
@@ -120,5 +126,5 @@ function convertToMessage (data) {
 
 function isActiveThread (location, data) {
   const [namespace, id] = location.pathname.split('/').slice(1, 3)
-  return namespace === 't' && data.postId === id
+  return namespace === 'messages' && data.messageThread === id
 }

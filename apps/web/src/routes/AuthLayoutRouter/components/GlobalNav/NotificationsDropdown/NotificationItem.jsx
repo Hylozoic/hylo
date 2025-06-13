@@ -12,7 +12,10 @@ export default function NotificationItem ({ notification, onClick }) {
   return (
     <li
       className={cn('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3', { 'bg-primary/20 text-foreground': unread })}
-      onClick={() => onClick(notification)}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick(event, notification)
+      }}
     >
       <div className='my-1 pl-3'>
         <RoundImage url={imageForNotification(notification)} />

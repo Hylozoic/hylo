@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import Icon from 'components/Icon'
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker'
+import uploadAction from 'store/actions/upload'
+import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 
 /*
@@ -22,8 +24,10 @@ import PopupMenuButton from 'components/PopupMenuButton'
 */
 
 export default function ImagePicker (props) {
-  const { onPendingChange, style, iconStyle, iconStyleLoading, disabled } = props
   const { t } = useTranslation()
+  const { onPendingChange, style, iconStyle, iconStyleLoading, disabled } = props
+  const dispatch = useDispatch()
+  const upload = (type, id, file) => dispatch(uploadAction(type, id, file))
   const [pending, providedSetPending] = useState(false)
 
   const setPending = newPending => {
@@ -37,6 +41,7 @@ export default function ImagePicker (props) {
     setPending(true)
     await showImagePicker({
       ...props,
+      upload,
       includeExif: true,
       onCancel: () => setPending(false),
       onComplete: () => setPending(false)
@@ -49,6 +54,7 @@ export default function ImagePicker (props) {
     setPending(true)
     await showImagePickerCamera({
       ...props,
+      upload,
       includeExif: true,
       compressImageQuality: 0.99,
       onCancel: () => setPending(false),
@@ -117,7 +123,8 @@ export async function showImagePicker ({
 
             onChoice && onChoice({ local: asset.uri, remote: null })
 
-            const { payload, error } = await upload(type, id, file)
+            const response = await upload(type, id, file)
+            const { payload, error } = response
 
             if (error) {
               onError && onError(payload.message, { local: asset.uri, remote: null })

@@ -1,52 +1,64 @@
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import ContextWidgetPresenter, { getStaticMenuWidgets } from './ContextWidgetPresenter'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import ContextWidgetPresenter, {
+  findHomeWidget,
+  MY_CONTEXT_WIDGETS,
+  PUBLIC_CONTEXT_WIDGETS
+} from './ContextWidgetPresenter'
 
-export default function GroupPresenter (group, { currentUser }) {
+export default function GroupPresenter (group) {
   if (!group || group?._presented) return group
 
   return {
     ...group,
-    isContextGroup: isContextGroupSlug(group?.slug),
-    // Note: Currently this flattens to the QuerySet attribute of ".items"
-    // Until more is clear we are not flattening items so that non-presented results (most)
-    // from queries work largely the same as presented results (e.g. group?.posts?.items, etc)
-    contextWidgets: contextWidgetsResolver(group),
-    isPublicContext: group?.slug === PUBLIC_CONTEXT_SLUG,
-    isMyContext: group?.slug === MY_CONTEXT_SLUG,
-    isAllContext: group?.slug === ALL_GROUPS_CONTEXT_SLUG,
-    shouldWelcome: shouldWelcomeResolver(group, currentUser),
+
+    // TODO: A patch for now. Sort-out why default banner URLS diverge and fix.
+    avatarUrl: !group?.avatarUrl
+      ? DEFAULT_AVATAR
+      : group.avatarUrl === '/default-group-avatar.svg'
+        ? DEFAULT_AVATAR
+        : group?.avatarUrl,
+    bannerUrl: !group?.bannerUrl
+      ? DEFAULT_BANNER
+      : group.bannerUrl === '/default-group-banner.svg'
+        ? DEFAULT_BANNER
+        : group.bannerUrl,
+
+    getContextWidgets: getContextWidgetsResolver(group),
+    getShouldWelcome: getShouldWelcomeResolver(group),
+    homeWidget: group?.contextWidgets && findHomeWidget(group),
+    isStaticContext: isStaticContext(group),
+
     _presented: true
   }
 }
 
-function shouldWelcomeResolver (group, currentUser) {
-  if (!group || !currentUser) return false
-  if (isContextGroupSlug(group.slug)) return false
-  const currentMembership = currentUser?.memberships &&
-    currentUser.memberships.find(m => m.group.id === group?.id)
+const getShouldWelcomeResolver = group => {
+  return currentUser => {
+    if (!group || !currentUser || isStaticContext(group?.slug)) return false
 
-  const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
+    const currentMembership = currentUser?.memberships &&
+      currentUser.memberships.find(m => m.group.id === group?.id)
 
-  const numAgreements = group?.agreements?.total || 0
+    const { agreementsAcceptedAt, joinQuestionsAnsweredAt, showJoinForm } = currentMembership?.settings || {}
 
-  const agreementsChanged = (!isContextGroupSlug(group?.slug) && numAgreements > 0) &&
-    (!agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt)
-  
-  return ((!isContextGroupSlug(group?.slug) && showJoinForm) || agreementsChanged || (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt))
- }
+    const numAgreements = group?.agreements?.total || 0
 
-function contextWidgetsResolver (group) {
-  if (isContextGroupSlug(group.slug)) {
-    return getStaticMenuWidgets({
-      isPublicContext: group.slug === PUBLIC_CONTEXT_SLUG,
-      isMyContext: group.slug === MY_CONTEXT_SLUG,
-      isAllContext: group.slug === ALL_GROUPS_CONTEXT_SLUG,
-      profileUrl: ''
-    })
+    const agreementsChanged = numAgreements > 0 && (
+      !agreementsAcceptedAt || agreementsAcceptedAt < group?.settings?.agreementsLastUpdatedAt
+    )
+
+    return (
+      showJoinForm ||
+      agreementsChanged ||
+      (group?.settings?.askJoinQuestions && !joinQuestionsAnsweredAt) ||
+      (group?.settings?.showWelcomePage && !currentMembership?.lastViewedAt)
+    )
   }
-  // TODO redesign: Presented widgets, but they need a t object (or to add global--see note in ContextWidgetPresenter)
-  return (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
 }
+
+const getContextWidgetsResolver = group => currentUser => (
+  (group?.contextWidgets?.items || []).map(ContextWidgetPresenter)
+)
 
 export const GROUP_ACCESSIBILITY = {
   Closed: 0,
@@ -126,50 +138,38 @@ export const LOCATION_PRECISION = {
 export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
 export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
 
-export const ALL_GROUP_ID = ALL_GROUPS_CONTEXT_SLUG
-export const ALL_GROUP_AVATAR_PATH = '/assets/white-merkaba.png'
-export const ALL_GROUP = {
-  id: ALL_GROUP_ID,
-  slug: ALL_GROUP_ID,
-  headerAvatarUrl: 'assets/All_Groups.png',
-  avatarUrl: 'assets/All_Groups2.png',
-  bannerUrl: 'assets/all-groups-banner.png',
-  name: 'All My Groups',
-  parentGroups: { items: [], hasMore: false, total: 0 },
-  childGroups: { items: [], hasMore: false, total: 0 }
+export const isStaticContext = contextOrSlug =>
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
+
+// NOTE: The below "static context" representations of the My and Public areas are
+// used in Mobile. In Web the same things are currently accomplished within the
+// within the related component/s.
+
+export const getMyStaticContext = currentUser => {
+  return GroupPresenter({
+    id: MY_CONTEXT_SLUG,
+    slug: MY_CONTEXT_SLUG,
+    name: 'My Home',
+    contextWidgets: { items: MY_CONTEXT_WIDGETS(`all/members/${currentUser?.id}`) },
+    avatarUrl: currentUser?.avatarUrl,
+    parentGroups: { items: [], hasMore: false, total: 0 },
+    childGroups: { items: [], hasMore: false, total: 0 }
+  })
 }
 
-export const PUBLIC_GROUP_ID = PUBLIC_CONTEXT_SLUG
-export const PUBLIC_GROUP = {
-  id: PUBLIC_GROUP_ID,
-  slug: PUBLIC_GROUP_ID,
-  headerAvatarUrl: 'assets/green-icon.jpg',
-  avatarUrl: 'assets/public.png',
-  bannerUrl: 'assets/green-hero.jpg',
-  name: 'Public Stream',
-  parentGroups: { items: [], hasMore: false, total: 0 },
-  childGroups: { items: [], hasMore: false, total: 0 }
+export const getPublicStaticContext = () => {
+  return GroupPresenter({
+    id: PUBLIC_CONTEXT_SLUG,
+    slug: PUBLIC_CONTEXT_SLUG,
+    name: 'The Commons',
+    iconName: 'Globe',
+    contextWidgets: { items: PUBLIC_CONTEXT_WIDGETS },
+    parentGroups: { items: [], hasMore: false, total: 0 },
+    childGroups: { items: [], hasMore: false, total: 0 }
+  })
 }
 
-export const MY_CONTEXT_ID = 'my'
-export const MY_CONTEXT_AVATAR_PATH = '/assets/my-home.png'
-export const MY_CONTEXT_GROUP = {
-  id: MY_CONTEXT_ID,
-  slug: MY_CONTEXT_ID,
-  headerAvatarUrl: 'assets/purple-icon.jpg',
-  avatarUrl: 'assets/my-home.png',
-  bannerUrl: 'assets/purple-hero.jpg',
-  name: 'My Home',
-  parentGroups: { items: [], hasMore: false, total: 0 },
-  childGroups: { items: [], hasMore: false, total: 0 }
-}
-
-export const isContextGroupSlug = slug =>
-  [ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(slug)
-
-export function getContextGroup (groupSlug, groupId) {
-  if (groupId === ALL_GROUP_ID || groupSlug === ALL_GROUP_ID) return ALL_GROUP
-  if (groupId === PUBLIC_GROUP_ID || groupSlug === PUBLIC_GROUP_ID) return PUBLIC_GROUP
-  if (groupId === MY_CONTEXT_ID || groupSlug === MY_CONTEXT_ID) return MY_CONTEXT_GROUP
-  return null
+export function getStaticContext (contextSlug, currentUser) {
+  if (contextSlug === MY_CONTEXT_SLUG) return getMyStaticContext(currentUser)
+  if (contextSlug === PUBLIC_CONTEXT_SLUG) return getPublicStaticContext()
 }

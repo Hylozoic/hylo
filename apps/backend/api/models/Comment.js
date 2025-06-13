@@ -101,14 +101,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return false
     })
   },
-
   childComments: function () {
-    return this.hasMany(Comment, 'comment_id').query({where: {'comments.active': true}})
+    return this.hasMany(Comment, 'comment_id').query({ where: { 'comments.active': true } })
   },
 
   media: function (type) {
     const relation = this.hasMany(Media)
-    return type ? relation.query({where: {type}}) : relation
+    return type ? relation.query({ where: { type } }) : relation
   },
 
   getTagsInComments: function (opts) {
@@ -136,13 +135,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
 
     const newCommentActivities = followers
-    .filter(u => u.id !== actorId)
-    .map(u => u.id)
-    .map(createActivity('newComment'))
+      .filter(u => u.id !== actorId)
+      .map(u => u.id)
+      .map(createActivity('newComment'))
 
     const mentionActivities = mentionedIds
-    .filter(u => u.id !== actorId)
-    .map(createActivity('commentMention'))
+      .filter(u => u.id !== actorId)
+      .map(createActivity('commentMention'))
 
     return Activity.saveForReasons(
       newCommentActivities.concat(mentionActivities), trx)
@@ -150,7 +149,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 }, EnsureLoad), {
 
   find: function (id, options) {
-    return Comment.where({id: id}).fetch(options)
+    return Comment.where({ id: id }).fetch(options)
   },
 
   createdInTimeRange: function (collection, startTime, endTime) {
@@ -168,6 +167,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   cleanEmailText: (user, text, opts = { useMarkdown: true }) => {
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
     const name = user.get('name').toLowerCase()
     const lines = text.split('\n')
 
@@ -176,7 +176,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       if (cutoff) return
       line = line.trim()
 
-      if (line.length > 0 && name.startsWith(line.toLowerCase().replace(/^[- ]*/, ''))) {
+      // Check for quoted text (lines starting with >)
+      if (line.startsWith('>')) {
+        cutoff = index
+      } else if (line.length > 0 && name.startsWith(line.toLowerCase().replace(/^[- ]*/, ''))) {
         // line contains only the user's name
         cutoff = index
         // also remove the common pattern of two dashes above the name

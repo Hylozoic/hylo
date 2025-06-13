@@ -1,4 +1,3 @@
-/* globals RedisClient */
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { has, isEmpty, merge, omit, pick, intersectionBy } from 'lodash'
@@ -7,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import validator from 'validator'
 import { GraphQLError } from 'graphql'
 import { Validators } from '@hylo/shared'
+import RedisClient from '../services/RedisClient'
 import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
@@ -251,6 +251,13 @@ module.exports = bookshelf.Model.extend(merge({
 
   thanks: function () {
     return this.hasMany(Thank)
+  },
+
+  tracksEnrolledIn: function () {
+    return this.belongsToMany(Track).through(TrackUser).query(q => {
+      q.where('tracks_users.user_id', this.id)
+      q.whereNotNull('tracks_users.enrolled_at')
+    })
   },
 
   intercomHash: function () {
@@ -531,6 +538,11 @@ module.exports = bookshelf.Model.extend(merge({
         if (!isEmpty(changedForTrigger)) {
           Queue.classMethod('User', 'afterUpdate', { userId: this.id, changes: changedForTrigger })
         }
+
+        if (changes.settings && changes.settings.signup_in_progress === false) {
+          // Send welcome email 2 minutes after signup, to make sure that group membership has been setup if they signup after getting invitation from the group
+          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000)
+        }
       }
       return this
     })
@@ -556,6 +568,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   disableAllNotifications () {
+    // TODO: turn off notifictions for all groups? or do we have a user level setting too?
     return this.addSetting({
       digest_frequency: 'never',
       comment_notifications: 'none',
@@ -651,11 +664,23 @@ module.exports = bookshelf.Model.extend(merge({
 
   clearSessionsFor: async function ({ userId, sessionId }) {
     const redisClient = RedisClient.create()
-    for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
-      if (key !== 'sess:' + sessionId) {
-        await redisClient.del(key)
+    let cursor = 0
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        `sess:${userId}:*`,
+        'COUNT',
+        '100'
+      )
+      cursor = parseInt(nextCursor)
+
+      for (const key of keys) {
+        if (key !== 'sess:' + sessionId) {
+          await redisClient.del(key)
+        }
       }
-    }
+    } while (cursor !== 0)
   },
 
   create: function (attributes) {
@@ -856,7 +881,24 @@ module.exports = bookshelf.Model.extend(merge({
         }
       })
     }
+  },
+
+  async sendWelcomeEmail ({ userId }) {
+    const user = await User.find(userId)
+    if (user) {
+      const memberships = await user.memberships().fetch({ withRelated: 'group' })
+      const initialGroup = memberships?.models[0]?.relations?.group
+      Email.sendWelcomeEmail({
+        email: user.get('email'),
+        data: {
+          member_name: user.get('name'),
+          group_name: initialGroup?.get('name'),
+          group_url: initialGroup ? Frontend.Route.group(initialGroup) : null
+        }
+      })
+    }
   }
+
 })
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {

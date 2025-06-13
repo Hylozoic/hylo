@@ -1,8 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { isIOS } from 'util/platform'
-import {
-  bigStone, rhino, rhino50, persimmon, rhino40, black10onRhino, white, rhino30, rhino10, rhino60, rhino80, rhino20, nevada, slateGrey80, gunsmoke
-} from 'style/colors'
+import { bigStone, persimmon, rhino60, rhino80, gunsmoke } from 'style/colors'
 
 export default {
   container: {

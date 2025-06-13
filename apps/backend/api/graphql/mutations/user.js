@@ -13,13 +13,18 @@ export const sendEmailVerification = async (_, { email }) => {
     }
 
     const { code, token } = await UserVerificationCode.create(email)
+    const verifyUrl = Frontend.Route.verifyEmail(email, token)
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`!!! Verification for ${email} -- code: ${code} link: ${verifyUrl}`)
+    }
 
     Queue.classMethod('Email', 'sendEmailVerification', {
       email,
       version: 'with link',
       templateData: {
         code,
-        verify_url: Frontend.Route.verifyEmail(email, token)
+        verify_url: verifyUrl
       }
     })
 
@@ -35,9 +40,11 @@ export const verifyEmail = (fetchOne) => async (_, { email: providedEmail, code:
     const email = decodedToken?.sub || providedEmail
     const code = decodedToken?.code || providedCode
 
-    // XXX: Don't need the code when verifying by JWT link but we still want to
-    // expire the code if it does exist when the JWT is used
-    if (code && !(await UserVerificationCode.verify({ email, code }))) {
+    if (!email || !code) throw new Error('Must provide an email and code, or a token')
+
+    const verified = await UserVerificationCode.verify({ email, code })
+
+    if (!verified) {
       return { error: token ? 'invalid-link' : 'invalid-code' }
     }
 
@@ -123,6 +130,7 @@ export const sendPasswordReset = async (_, { email }) => {
 
       Queue.classMethod('Email', 'sendPasswordReset', {
         email: user.get('email'),
+        version: 'Redesign 2025',
         templateData: {
           login_url: Frontend.Route.jwtLogin(user, token, nextUrl)
         }
@@ -152,7 +160,7 @@ export async function reactivateUser ({ userId }) {
 }
 
 export async function deleteUser ({ userId, sessionId }) {
-  const user = await User.find(userId)
+  const user = await User.find(userId, {}, false)
 
   await user.sanelyDeleteUser({ sessionId })
 

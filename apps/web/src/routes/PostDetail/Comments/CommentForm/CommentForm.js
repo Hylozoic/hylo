@@ -34,7 +34,7 @@ function CommentForm ({
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
-  const sendIsTypingAction = useCallback(() => sendIsTyping(postId), [postId])
+  const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
 
@@ -60,14 +60,12 @@ function CommentForm ({
   const placeholderText = placeholder || t('Add a comment...')
 
   return (
-    <div className={cn(classes.commentForm, className)}>
-      {currentUser && (
-        <AttachmentManager type='comment' id='new' attachmentType='image' />
-      )}
+    <div className={cn('flex flex-col items-center justify-between bg-input rounded-lg p-2', className)}>
       <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
         {currentUser
           ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
           : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
+
         <HyloEditor
           contentHTML={editorContent}
           onEnter={handleOnEnter}
@@ -119,6 +117,9 @@ function CommentForm ({
             </>
             )}
       </div>
+      {currentUser && (
+        <AttachmentManager type='comment' id='new' attachmentType='image' />
+      )}
     </div>
   )
 }

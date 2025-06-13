@@ -8,7 +8,6 @@ const esModules = [
   '@react-navigation',
   'react-native-render-html',
   '@invertase/react-native-apple-authentication',
-  '@flyerhq/react-native-keyboard-accessory-view',
   '@react-native-picker',
   'react-native-css-interop',
   // Our own packages are ESM modules only so need to be
@@ -38,7 +37,7 @@ module.exports = {
     `node_modules/(?!<rootDir>${esModules.join('|')})`
   ],
   moduleNameMapper: {
-    '\\.(png|jpg|jpeg|gif|webp|svg)$': 'jest-transform-stub',
+    '\\.(png|jpg|jpeg|gif|webp|svg)$': 'jest-transform-stub'
     // 2025-02-12 -- Doesn't seem needed at this time, remove it it continues to not be
     // '^@hylo/(.*)$': '<rootDir>/../../packages/$1', // Ensure Jest resolves @hylo correctly
   },

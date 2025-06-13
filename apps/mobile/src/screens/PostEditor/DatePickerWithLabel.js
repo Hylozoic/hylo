@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import DatePicker from 'react-native-date-picker'
 import Icon from 'components/Icon'
-import styles, { typeSelectorStyles } from './PostEditor.styles'
+import styles from './PostEditor.styles'
 
 export default function DatePickerWithLabel ({
   date,
@@ -13,6 +13,7 @@ export default function DatePickerWithLabel ({
   label,
   onSelect,
   disabled,
+  className,
   style,
   styleTemplate = {
     disabled: styles.pressDisabled,
@@ -40,7 +41,7 @@ export default function DatePickerWithLabel ({
 
   return (
     <>
-      <TouchableOpacity style={style} onPress={handleOnPress}>
+      <TouchableOpacity className={className} style={style} onPress={handleOnPress}>
         <View style={styleTemplate.labelWrapper}>
           <Text style={[styleTemplate.labelText, disabled && styleTemplate.disabled]}>
             {label}

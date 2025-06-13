@@ -1,55 +1,22 @@
-import React, { useEffect } from 'react'
-import { useNavigation, useRoute } from '@react-navigation/native'
-import { modalScreenName } from 'hooks/useIsModalScreen'
+import React from 'react'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 
-export default function ChatRoom () {
-  const navigation = useNavigation()
-  const route = useRoute()
-  const [{ currentGroup }] = useCurrentGroup()
-  const { topicName } = useRouteParams()
-  const path = `/groups/${currentGroup.slug}/chats/${topicName}`
-  const handledWebRoutes = [
-    `/groups/${currentGroup.slug}/chats/:topicName`
-  ]
-  const nativeRouteHandler = () => ({
-    '(.*)/:type(post|members)/:id': ({ routeParams }) => {
-      const { type, id } = routeParams
+export const DEFAULT_CHAT_TOPIC = 'general'
 
-      switch (type) {
-        case 'post': {
-          navigation.navigate('Post Details', { id })
-          break
-        }
-        case 'members': {
-          navigation.navigate('Member', { id })
-          break
-        }
-      }
-    },
-    '(.*)/post/:postId/edit': ({ routeParams }) => {
-      navigation.navigate('Edit Post', { id: routeParams.postId })
-    },
-    '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
-    }
-  })
+export default function ChatRoomWebView () {
+  const [{ currentGroup, fetching }] = useCurrentGroup()
+  const { topicName: routeTopicName } = useRouteParams()
+  const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
+  const path = `/groups/${currentGroup?.slug}/chat/${topicName}`
 
-  useEffect(() => {
-    navigation.setOptions({ title: currentGroup?.name })
-  }, [currentGroup?.name])
+  if (!currentGroup?.slug || fetching) return null
 
   return (
     <KeyboardFriendlyView style={{ flex: 1 }}>
-      <HyloWebView
-        handledWebRoutes={handledWebRoutes}
-        nativeRouteHandler={nativeRouteHandler}
-        path={path}
-        route={route}
-      />
+      <HyloWebView path={path} />
     </KeyboardFriendlyView>
   )
 }

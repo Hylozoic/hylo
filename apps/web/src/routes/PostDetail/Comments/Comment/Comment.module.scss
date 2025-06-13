@@ -35,7 +35,7 @@ $comment-row-padding: 25px;
 .commentActions {
   width: auto;
   height: 100%;
-  align-content: center;
+  align-items: center;
   position: absolute;
   top: -16px;
   right: 0;
@@ -44,6 +44,7 @@ $comment-row-padding: 25px;
   border-radius: 30px;
   box-shadow: 0 5px 10px rgb(0 0 0 / 20%);
   display: none;
+  font-size: 20px;
 
   &.showActions {
     display: flex;
@@ -136,11 +137,21 @@ $comment-row-padding: 25px;
 }
 
 .text {
-  composes: bdy-lt-sm from 'css/typography.scss';
-  margin-left: $comment-left-margin;
+
+  p {
+    margin-top: 0;
+  }
 
   strong {
-    color: rgba(66, 94, 114, 1.0);
+    @include font-bold;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  ul {
+    list-style-type: disc;
   }
 }
 
@@ -175,6 +186,7 @@ $comment-row-padding: 25px;
 
 .emojis.hiddenReactions {
   margin-left: 0;
+  margin-right: 0;
 
   &:hover {
     background: $color-picton-blue;
@@ -193,7 +205,7 @@ $comment-row-padding: 25px;
   padding-bottom: 0;
 }
 
-.hiddenReactions > div > div:last-child {
+.hiddenReactions > div > div:first-child {
   display: block;
   width: auto;
 }

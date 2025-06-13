@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect } from 'react'
 import { withTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
@@ -6,43 +6,42 @@ import { Helmet } from 'react-helmet'
 import SettingsControl from 'components/SettingsControl'
 import SkillsSection from 'components/SkillsSection'
 import SkillsToLearnSection from 'components/SkillsToLearnSection'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import Loading from 'components/Loading'
-import { bgImageStyle, cn } from 'util/index'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import classes from './EditProfileTab.module.scss'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import SocialControl from './SocialControl'
-
-const { object, func } = PropTypes
+import { bgImageStyle, cn } from 'util/index'
 
 export const validateName = name => name && name.match(/\S/gm)
 
-class EditProfileTab extends Component {
-  static propTypes = {
-    currentUser: object,
-    updateUserSettings: func
-  }
+function EditProfileTab ({
+  currentUser,
+  updateUserSettings,
+  fetchPending,
+  fetchLocation,
+  unlinkAccount,
+  setConfirm,
+  t
+}) {
+  const [edits, setEdits] = useState({})
+  const [changed, setChanged] = useState(false)
 
-  constructor (props) {
-    super(props)
-    this.state = { edits: {}, changed: false }
-  }
+  useEffect(() => {
+    setEditState()
+  }, [])
 
-  componentDidMount () {
-    this.setEditState()
-  }
-
-  componentDidUpdate (prevProps, prevState) {
-    if (prevProps.fetchPending && !this.props.fetchPending) {
-      this.setEditState()
+  useEffect(() => {
+    if (fetchPending === false) {
+      setEditState()
     }
-  }
+  }, [fetchPending])
 
-  setEditState () {
-    const { currentUser } = this.props
+  const setEditState = () => {
     if (!currentUser) return
 
     const {
@@ -51,146 +50,163 @@ class EditProfileTab extends Component {
       url, facebookUrl, twitterName, linkedinUrl
     } = currentUser
 
-    this.setState({
-      edits: {
-        name: name || '',
-        avatarUrl: avatarUrl || '',
-        bannerUrl: bannerUrl || DEFAULT_BANNER,
-        tagline: tagline || '',
-        bio: bio || '',
-        contactPhone: contactPhone || '',
-        contactEmail: contactEmail || '',
-        location: location || '',
-        locationId: get('id', locationObject) || null,
-        url: url || '',
-        facebookUrl,
-        twitterName,
-        linkedinUrl
-      }
+    setEdits({
+      name: name || '',
+      avatarUrl: avatarUrl || '',
+      bannerUrl: bannerUrl || DEFAULT_BANNER,
+      tagline: tagline || '',
+      bio: bio || '',
+      contactPhone: contactPhone || '',
+      contactEmail: contactEmail || '',
+      location: location || '',
+      locationId: get('id', locationObject) || null,
+      url: url || '',
+      facebookUrl,
+      twitterName,
+      linkedinUrl
     })
   }
 
-  updateSetting = (key, setChanged = true) => async event => {
-    const { fetchLocation, t } = this.props
-    const { edits, changed } = this.state
-    setChanged && this.props.setConfirm(t('You have unsaved changes, are you sure you want to leave?'))
+  const updateSetting = (key, shouldSetChanged = true) => async event => {
+    const newEdits = { ...edits }
+    shouldSetChanged && setConfirm(t('You have unsaved changes, are you sure you want to leave?'))
 
     if (key === 'location') {
-      edits.location = event.target.value.fullText
-      edits.locationId = await ensureLocationIdIfCoordinate({ fetchLocation, location: edits.location, locationId: event.target.value.id })
+      newEdits.location = event.target.value.fullText
+      newEdits.locationId = await ensureLocationIdIfCoordinate({
+        fetchLocation,
+        location: newEdits.location,
+        locationId: event.target.value.id
+      })
     } else {
-      edits[key] = event.target.value
+      newEdits[key] = event.target.value
     }
 
-    this.setState({
-      changed: setChanged ? true : changed,
-      edits
+    setEdits(newEdits)
+    if (shouldSetChanged) {
+      setChanged(true)
+    }
+  }
+
+  const updateSettingDirectly = (key, shouldSetChanged = true) => value =>
+    updateSetting(key, shouldSetChanged)({ target: { value } })
+
+  const save = () => {
+    setChanged(false)
+    setConfirm(false)
+    updateUserSettings(edits)
+  }
+
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({
+      title: t('Edit Your Profile'),
+      icon: '',
+      info: '',
+      search: false
     })
-  }
+  }, [])
 
-  updateSettingDirectly = (key, changed) => value =>
-    this.updateSetting(key, changed)({ target: { value } })
+  if (fetchPending || !currentUser) return <Loading />
 
-  save = () => {
-    this.setState({ changed: false })
-    this.props.setConfirm(false)
-    this.props.updateUserSettings(this.state.edits)
-  }
+  const {
+    name, avatarUrl, bannerUrl, tagline, bio,
+    contactEmail, contactPhone, location, url,
+    facebookUrl, twitterName, linkedinUrl
+  } = edits
 
-  render () {
-    const {
-      fetchPending,
-      currentUser,
-      unlinkAccount,
-      t
-    } = this.props
-    if (fetchPending || !currentUser) return <Loading />
+  const locationObject = currentUser.locationObject
 
-    const { edits, changed } = this.state
-    const {
-      name, avatarUrl, bannerUrl, tagline, bio,
-      contactEmail, contactPhone, location, url,
-      facebookUrl, twitterName, linkedinUrl
-    } = edits
-
-    const locationObject = currentUser.locationObject
-
-    return (
-      <div>
-        <Helmet>
-          <title>{t('Your Settings')} | Hylo</title>
-        </Helmet>
-        <label className={classes.label} htmlFor='nameField'>{t('Your Name')}</label>
-        {!validateName(name) && <div className={classes.nameValidation}>{t('Name must not be blank')}</div>}
-        <input type='text' className={classes.name} onChange={this.updateSetting('name')} value={name || ''} id='nameField' />
-        <label className={classes.label}>{t('Banner and Avatar Images')}</label>
-        <UploadAttachmentButton
-          type='userBanner'
-          id={currentUser.id}
-          onSuccess={({ url }) => this.updateSettingDirectly('bannerUrl')(url)}
-          className={classes.changeBanner}
+  return (
+    <div>
+      <Helmet>
+        <title>{t('Edit Your Profile')} | Hylo</title>
+      </Helmet>
+      <label className={classes.label}>{t('Banner and Avatar Images')}</label>
+      <UploadAttachmentButton
+        type='userBanner'
+        id={currentUser.id}
+        onSuccess={({ url }) => updateSettingDirectly('bannerUrl')(url)}
+        className={classes.changeBanner}
+      >
+        <div style={bgImageStyle(bannerUrl)} className={classes.bannerImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
+      </UploadAttachmentButton>
+      <UploadAttachmentButton
+        type='userAvatar'
+        id={currentUser.id}
+        onSuccess={({ url }) => updateSettingDirectly('avatarUrl')(url)}
+        className={classes.changeAvatar}
+      >
+        <div style={bgImageStyle(avatarUrl)} className={classes.avatarImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
+      </UploadAttachmentButton>
+      <SettingsControl id='nameField' label={t('Name')} onChange={updateSetting('name')} value={name || ''} maxLength={60} />
+      {!validateName(name) && <div className={classes.nameValidation}>{t('Name must not be blank')}</div>}
+      <SettingsControl id='taglineField' label={t('Tagline')} onChange={updateSetting('tagline')} value={tagline} maxLength={60} />
+      <SettingsControl id='bioField' label={t('About Me')} onChange={updateSetting('bio')} value={bio} type='textarea' />
+      <SettingsControl
+        id='locationField'
+        label={t('Location')}
+        onChange={updateSettingDirectly('location', true)}
+        location={location}
+        locationObject={locationObject}
+        type='location'
+      />
+      <SettingsControl id='urlField' label={t('Website')} onChange={updateSetting('url')} value={url} />
+      <SettingsControl
+        label={t('My Skills & Interests')} renderControl={() =>
+          <SkillsSection personId={currentUser.id} />}
+      />
+      <SettingsControl
+        label={t('What I\'m learning')} renderControl={() =>
+          <SkillsToLearnSection personId={currentUser.id} />}
+      />
+      <SettingsControl id='contactEmailField' label={t('Contact Email')} onChange={updateSetting('contactEmail')} value={contactEmail} />
+      <SettingsControl id='contactPhoneField' label={t('Contact Phone')} onChange={updateSetting('contactPhone')} value={contactPhone} />
+      <label className={classes.socialLabel}>{t('Social Accounts')}</label>
+      <SocialControl
+        label='Facebook'
+        provider='facebook'
+        value={facebookUrl}
+        updateSettingDirectly={() => updateSettingDirectly('facebookUrl')}
+        handleUnlinkAccount={() => unlinkAccount('facebook')}
+      />
+      <SocialControl
+        label='Twitter'
+        provider='twitter'
+        value={twitterName}
+        updateSettingDirectly={() => updateSettingDirectly('twitterName')}
+        handleUnlinkAccount={() => unlinkAccount('twitter')}
+      />
+      <SocialControl
+        label='LinkedIn'
+        provider='linkedin'
+        value={linkedinUrl}
+        updateSettingDirectly={() => updateSettingDirectly('linkedinUrl')}
+        handleUnlinkAccount={() => unlinkAccount('linkedin')}
+      />
+      <div style={{ height: '80px' }} />
+      <div className={classes.saveChanges}>
+        <span className={cn({ [classes.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
+        <Button
+          variant={changed && validateName(name) ? 'secondary' : 'primary'}
+          onClick={changed && validateName(name) ? save : null}
+          className={classes.saveButton}
         >
-          <div style={bgImageStyle(bannerUrl)} className={classes.bannerImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
-        </UploadAttachmentButton>
-        <UploadAttachmentButton
-          type='userAvatar'
-          id={currentUser.id}
-          onSuccess={({ url }) => this.updateSettingDirectly('avatarUrl')(url)}
-          className={classes.changeAvatar}
-        >
-          <div style={bgImageStyle(avatarUrl)} className={classes.avatarImage}><Icon name='AddImage' className={classes.uploadIcon} /></div>
-        </UploadAttachmentButton>
-        <SettingsControl id='taglineField' label={t('Tagline')} onChange={this.updateSetting('tagline')} value={tagline} maxLength={60} />
-        <SettingsControl id='bioField' label={t('About Me')} onChange={this.updateSetting('bio')} value={bio} type='textarea' />
-        <SettingsControl
-          id='locationField'
-          label={t('Location')}
-          onChange={this.updateSettingDirectly('location', true)}
-          location={location}
-          locationObject={locationObject}
-          type='location'
-        />
-        <SettingsControl id='urlField' label={t('Website')} onChange={this.updateSetting('url')} value={url} />
-        <SettingsControl
-          label={t('My Skills & Interests')} renderControl={() =>
-            <SkillsSection personId={currentUser.id} />}
-        />
-        <SettingsControl
-          label={t('What I\'m learning')} renderControl={() =>
-            <SkillsToLearnSection personId={currentUser.id} />}
-        />
-        <SettingsControl id='contactEmailField' label={t('Contact Email')} onChange={this.updateSetting('contactEmail')} value={contactEmail} />
-        <SettingsControl id='contactPhoneField' label={t('Contact Phone')} onChange={this.updateSetting('contactPhone')} value={contactPhone} />
-        <label className={classes.socialLabel}>{t('Social Accounts')}</label>
-        <SocialControl
-          label='Facebook'
-          provider='facebook'
-          value={facebookUrl}
-          updateSettingDirectly={() => this.updateSettingDirectly('facebookUrl')}
-          handleUnlinkAccount={() => unlinkAccount('facebook')}
-        />
-        <SocialControl
-          label='Twitter'
-          provider='twitter'
-          value={twitterName}
-          updateSettingDirectly={() => this.updateSettingDirectly('twitterName')}
-          handleUnlinkAccount={() => unlinkAccount('twitter')}
-        />
-        <SocialControl
-          label='LinkedIn'
-          provider='linkedin'
-          value={linkedinUrl}
-          updateSettingDirectly={() => this.updateSettingDirectly('linkedinUrl')}
-          handleUnlinkAccount={() => unlinkAccount('linkedin')}
-        />
-        <div style={{ height: '80px' }} />
-        <div className={classes.saveChanges}>
-          <span className={cn({ [classes.settingChanged]: changed })}>{changed ? t('Changes not saved') : t('Current settings up to date')}</span>
-          <Button label={t('Save Changes')} color={changed && validateName(name) ? 'green' : 'gray'} onClick={changed && validateName(name) ? this.save : null} className={classes.saveButton} />
-        </div>
+          {t('Save Changes')}
+        </Button>
       </div>
-    )
-  }
+    </div>
+  )
+}
+
+EditProfileTab.propTypes = {
+  currentUser: PropTypes.object,
+  updateUserSettings: PropTypes.func,
+  fetchPending: PropTypes.bool,
+  fetchLocation: PropTypes.func,
+  unlinkAccount: PropTypes.func,
+  setConfirm: PropTypes.func,
+  t: PropTypes.func
 }
 
 export default withTranslation()(EditProfileTab)

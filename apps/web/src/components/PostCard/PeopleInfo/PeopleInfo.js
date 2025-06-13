@@ -54,13 +54,13 @@ export default function PeopleInfo ({
     } else if (sortedPeople.length === 2) {
       names = t('{{personOne}} and {{personTwo}}', { personOne: firstName(sortedPeople[0]), personTwo: firstName(sortedPeople[1]) })
     } else {
-      names = `${firstName(sortedPeople[0])}, ${firstName(sortedPeople[1])} and ${peopleTotal - 2} other${peopleTotal - 2 > 1 ? 's' : ''}`// TODO: Handle this translation i18n
+      names = t(`{{personOne}}, {{personTwo}} and {{othersTotal}} other${peopleTotal - 2 > 1 ? '_plural' : ''}`, { personOne: firstName(sortedPeople[0]), personTwo: firstName(sortedPeople[1]), othersTotal: peopleTotal - 2 })
     }
     caption = `${names} ${phrase}`
     avatarUrls = people.map(p => p.avatarUrl)
   }
   return (
-    <div className={cn('flex items-center bg-black/20 px-4 rounded-lg hover:bg-black/30 transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
+    <div className={cn('flex items-center gap-2 rounded-lg transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
       <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className={classes.people} onClick={onClick} small={small} tiny={tiny} />
       <span className={cn('px-2text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
         {caption}

@@ -59,7 +59,9 @@ export function fetchGroupSettings (slug) {
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory
+            publishMurmurationsProfile
             showSuggestedSkills
+            showWelcomePage
           }
           type
           slug
@@ -109,7 +111,6 @@ export function fetchGroupSettings (slug) {
               active
               id
               emoji
-              color
               name
               description
             }

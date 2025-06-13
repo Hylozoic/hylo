@@ -1,12 +1,5 @@
 .container {
-  /* empty */
-  padding-left: 55px;
-  position: relative;
 
-  &.hovered {
-    background: #d5d5d5;
-    cursor: pointer;
-  }
 
   .action-bar {
     display: none;
@@ -85,11 +78,6 @@
     }
   }
 
-  p:last-child {
-    margin-bottom: 0;
-    padding-bottom: 5px;
-  }
-
   .badgeRow {
     display: flex;
     margin-left: 4px;
@@ -129,7 +117,7 @@
 }
 
 .cardPadding {
-  padding: 0px 10px;
+  padding: 1px 10px;
 }
 
 .avatar {
@@ -138,13 +126,9 @@
 }
 
 .postContentContainer {
-  margin-left: 13px;
-
-  &.editing {
-    // border-radius: 0.5rem;
-    border: 1px solid $color-cape-cod-10;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(35, 65, 91, .2);
+  margin-left: 42px;
+  p {
+    margin: 3px 0;
   }
 }
 
@@ -154,46 +138,12 @@
   // BDY-LT-LG and BDY-LT-SM
   @include font-regular;
   color: hsl(var(--text-foreground));
-  font-size: 16px;
-  line-height: 24px;
-  padding-bottom: 1px;
-
-  h1, h2, h3 {
-    font-family: 'Circular Bold';
-    color: rgba(35, 65, 91, 1.0);
-  }
-
-  h1 {
-    font-size: 24px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  h3, h4, h5 {
-    font-size: 16px;
-  }
-
-  ul {
-    list-style-type: disc;
-  }
-
-  ol {
-    list-style-type: decimal;
-  }
-
-  ul p, ol p {
-    margin: 0;
-  }
 
   &.editing {
     padding: 10px;
     overflow-y: auto;
     max-height: 200px;
     cursor: text;
-    background: white;
-    border-radius: 5px;
 
     &:after {
       content: " ";
@@ -242,10 +192,13 @@
   composes: caption-lt-lg from 'css/typography.scss';
 }
 
+.isFlagged {
+  filter: blur(4px);
+}
 
 @media screen and (max-width: 600px) {
   .container {
-    padding-left: 33px;
+    padding-left: 15px;
 
     .header {
       .author {
@@ -263,18 +216,14 @@
     }
   }
 
-  .postContentContainer {
-    margin-left: 0;
-  }
-
   .comments-container {
     margin-left: 0;
   }
 
-  .postContent {
-    font-size: 14px;
-    line-height: 20px;
-  }
+  // .postContent {
+  //   font-size: 14px;
+  //   line-height: 20px;
+  // }
 
   .avatar div {
     width: 30px;
@@ -284,15 +233,15 @@
   .postContent.cardPadding {
     padding: 0 5px;
     margin: 0;
-
-    p:last-child {
-      margin-bottom: 0;
-    }
   }
 }
 
 
 @media screen and (max-width: 425px) {
+  .postContentContainer {
+    margin-left: 39px;
+  }
+
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
     user-select: none;
@@ -301,6 +250,7 @@
 }
 
 @media screen and (max-width: 375px) {
+
   .postContent {
     font-size: 12px;
     line-height: 16px;

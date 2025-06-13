@@ -1,65 +1,43 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
-import mixpanel from 'services/mixpanel'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-// ⚠️⚠️⚠️ Deprecated - see https://github.com/facebook/react-native/pull/31402 for native `InputAccessoryView` component (React Native 0.68+) ⚠️⚠️⚠️
-import { KeyboardAccessoryView } from '@flyerhq/react-native-keyboard-accessory-view'
-import MaterialIcon from 'react-native-vector-icons/MaterialIcons'
+import { SendHorizonal } from 'lucide-react-native'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
+import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import mixpanel from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
-import styles from './CommentEditor.styles'
-
-export const KeyboardAccessoryCommentEditor = React.forwardRef(({
-  renderScrollable,
-  isModal,
-  ...commentFormProps
-}, ref) => {
-  const safeAreaInsets = useSafeAreaInsets()
-
-  return (
-    <BottomTabBarHeightContext.Consumer>
-      {actualTabBarHeight => {
-        const tabBarHeight = (isModal || !actualTabBarHeight) ? 0 : actualTabBarHeight
-
-        return (
-          <KeyboardAccessoryView
-            contentContainerStyle={{
-              ...styles.keyboardAccessoryContainerStyle,
-              paddingBottom: isModal ? safeAreaInsets.bottom : 0
-            }}
-            // These offsets are needed for iOS as it seems the tabbar may
-            // be included in the calculations before it is hidden.
-            spaceBetweenKeyboardAndAccessoryView={isIOS ? -tabBarHeight : 0}
-            contentOffsetKeyboardOpened={isIOS ? -tabBarHeight : 0}
-            renderScrollable={renderScrollable}
-          >
-            <CommentEditor {...commentFormProps} ref={ref} />
-          </KeyboardAccessoryView>
-        )
-      }}
-    </BottomTabBarHeightContext.Consumer>
-  )
-})
+import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
+import useTrack from '@hylo/hooks/useTrack'
+import { useToast } from 'components/Toast'
+import { getTrackIdFromPath } from '@hylo/navigation'
+import useRouteParams from 'hooks/useRouteParams'
 
 export const CommentEditor = React.forwardRef(({
+  isModal,
   post,
   replyingTo,
   scrollToReplyingTo,
   clearReplyingTo
 }, ref) => {
+  const safeAreaInsets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [, createComment] = useMutation(createCommentMutation)
+  const [, completePost] = useMutation(completePostMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
+  const showToast = useToast()
+  const { originalLinkingPath } = useRouteParams()
+  const trackId = getTrackIdFromPath(originalLinkingPath)
+  const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
 
   const handleDone = useCallback(() => {
     clearReplyingTo()
@@ -67,27 +45,57 @@ export const CommentEditor = React.forwardRef(({
     editorRef?.current.blur()
   }, [clearReplyingTo])
 
-  const handleCancel = useCallback(() => {
-    if (replyingTo?.creator?.name) {
-      clearReplyingTo()
-    } else {
-      handleDone()
-    }
-  }, [replyingTo?.creator?.name, handleDone, clearReplyingTo])
-
   const handleCreateComment = useCallback(async () => {
     const commentHTML = editorRef?.current.getHTML()
 
     if (!isEmpty(commentHTML)) {
       setSubmitting(true)
-
       const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
       const postId = post.id
-      const { error } = await createComment({
-        text: commentHTML,
-        parentCommentId,
-        postId
-      })
+      const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
+      
+      // Required check for action posts
+      if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
+        const { error: completionError, data } = await completePost({ 
+          postId: post.id,
+          completionResponse: ['comment']
+        })
+        if (completionError) {
+          console.error('Failed to complete post:', completionError)
+          showToast({
+            type: 'error',
+            text1: t('Error completing action'),
+            text2: completionError.message
+          })
+        } else {
+          // Check if this completion also completes the track
+          if (currentTrack && data.completePost) {
+            const allActionsCompleted = currentTrack.posts.every(
+              action => action.id === post.id || action.completedAt
+            )
+
+            if (allActionsCompleted) {
+              refetchTrack()
+              showToast({
+                type: 'success',
+                text1: t('You have completed the track: {{trackName}}', { trackName: '' }),
+                text2: currentTrack.name,
+                visibilityTime: 3000
+              })
+            } else {
+              showToast({
+                type: 'success',
+                text1: t('Action completed')
+              })
+            }
+          } else {
+            showToast({
+              type: 'success',
+              text1: t('Action completed')
+            })
+          }
+        }
+      }
 
       mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
         commentLength: TextHelpers.textLengthHTML(commentHTML),
@@ -98,14 +106,14 @@ export const CommentEditor = React.forwardRef(({
       })
 
       setSubmitting(false)
-
       if (error) {
-        Alert.alert(t('Your comment couldnt be saved please try again'))
-      } else {
-        handleDone()
-      }
+        showToast({
+          type: 'error',
+          text1: t('Your comment couldnt be saved please try again')
+        })
+      } else handleDone()
     }
-  }, [handleDone, post, replyingTo?.id, replyingTo?.parentComment])
+  }, [handleDone, post, replyingTo, completePost, currentTrack, showToast])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
@@ -130,58 +138,98 @@ export const CommentEditor = React.forwardRef(({
   }))
 
   return (
-    <View>
+    <KeyboardFriendlyView style={styles.container}>
       {replyingTo?.creator?.name && (
         <View style={styles.prompt}>
-          <TouchableOpacity onPress={handleCancel}>
+          <TouchableOpacity onPress={handleDone}>
             <Icon name='Ex' style={styles.promptClearIcon} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { scrollToReplyingTo() }}>
+          <TouchableOpacity onPress={scrollToReplyingTo}>
             <Text style={styles.promptText}>
               {t('Replying to')} <Text style={styles.promptTextName}>{firstName(replyingTo?.creator)}'s</Text> {t('comment')}
             </Text>
           </TouchableOpacity>
         </View>
       )}
-      <View style={styles.editor}>
+      <ScrollView contentContainerStyle={[styles.editor, isModal && { paddingBottom: safeAreaInsets.bottom }]}>
         <HyloEditorWebView
           placeholder={t('Write a comment')}
-          // groupIds={[groupId]}
           readOnly={submitting}
           ref={setEditorRef}
           widthOffset={isIOS ? 34 : 38}
           containerStyle={styles.htmlEditor}
-          customEditorCSS={`
-            padding: 8px;
-            max-height: 150px;
-          `}
+          customEditorCSS='max-height: 200px; overflow-y: auto;'
         />
-        <CommentSubmitButton
-          style={styles.submitButton}
-          disabled={!hasContent}
-          submitting={submitting}
-          onPress={handleCreateComment}
-        />
-      </View>
-    </View>
+        <TouchableOpacity onPress={handleCreateComment} disabled={!hasContent}>
+          {submitting
+            ? (
+              <ActivityIndicator />
+              )
+            : (
+              <SendHorizonal size={32} style={[styles.submitButton, hasContent && styles.activeButton]} />
+              )}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardFriendlyView>
   )
 })
 
-export function CommentSubmitButton ({ style, submitting, disabled, onPress }) {
-  if (submitting) {
-    return <View style={style}><ActivityIndicator /></View>
-  } else {
-    return (
-      <TouchableOpacity
-        hitSlop={{ top: 5, bottom: 10, left: 10, right: 10 }}
-        disabled={disabled}
-        onPress={onPress}
-        testID='submitButton'
-      >
-        <MaterialIcon name='send' size={26} style={[style, !disabled && styles.activeButton]} />
-      </TouchableOpacity>
-    )
-  }
-}
-
 export default CommentEditor
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: twBackground
+  },
+
+  editor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 8
+  },
+
+  htmlEditor: {
+    minHeight: 44,
+    backgroundColor: twBackground,
+    borderWidth: 1,
+    borderColor: '#CCC',
+    borderRadius: 10
+  },
+
+  prompt: {
+    borderTopWidth: 1,
+    borderColor: rhino10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start'
+  },
+
+  promptText: {
+    color: rhino80,
+    lineHeight: 22
+  },
+
+  promptTextName: {
+    fontWeight: 'bold'
+  },
+
+  promptClearIcon: {
+    marginRight: 5,
+    fontSize: 22,
+    lineHeight: 20,
+    color: amaranth
+  },
+
+  submitButton: {
+    marginLeft: 8,
+    marginRight: 4,
+    color: gunsmoke
+  },
+
+  activeButton: {
+    color: caribbeanGreen
+  }
+})

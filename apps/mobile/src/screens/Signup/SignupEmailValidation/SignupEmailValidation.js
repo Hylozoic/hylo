@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation } from 'urql'
 import { CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell } from 'react-native-confirmation-code-field'
@@ -8,9 +8,10 @@ import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import { AnalyticsEvents } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
 import errorMessages from 'util/errorMessages'
-import { sendEmailVerificationMutation } from '../Signup'
+import useRouteParams from 'hooks/useRouteParams'
+import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import Loading from 'components/Loading'
+import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
 import FormattedError from 'components/FormattedError'
 import controlStyles from 'components/SettingControl/SettingControl.styles'
 import styles from './SignupEmailValidation.styles'
@@ -21,38 +22,23 @@ export const verifyEmailMutation = gql`
   mutation VerifyEmailMutation($email: String!, $code: String, $token: String) {
     verifyEmail(email: $email, code: $code, token: $token) {
       me {
-        id
-        avatarUrl
-        email
-        emailValidated
-        hasRegistered
-        name
-        settings {
-          alreadySeenTour
-          dmNotifications
-          commentNotifications
-          signupInProgress
-          streamViewMode
-          streamSortBy
-          streamPostType
-        }
+        ...MeAuthFieldsFragment
       }
       error
     }
   }
+  ${meAuthFieldsFragment}
 `
 
-export default function SignupEmailValidation ({ navigation, route }) {
+export default function SignupEmailValidation () {
   const { t } = useTranslation()
+  const navigation = useNavigation()
+  const { email, token } = useRouteParams()
   const [, verifyEmail] = useMutation(verifyEmailMutation)
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const [loading, setLoading] = useState()
   const [verificationCode, setVerificationCode] = useState()
   const [error, setError] = useState()
-
-  const email = route.params?.email
-  const token = route.params?.token
-
   const verificationCodeRef = useBlurOnFulfill({
     value: verificationCode,
     cellCount: CODE_LENGTH
@@ -65,7 +51,6 @@ export default function SignupEmailValidation ({ navigation, route }) {
   const resendCode = async () => {
     try {
       setLoading(true)
-
       await sendEmailVerification({ email })
     } catch (err) {
       setError(err.message)
@@ -78,17 +63,18 @@ export default function SignupEmailValidation ({ navigation, route }) {
     try {
       setLoading(true)
 
-      const response = await verifyEmail({ email, verificationCode, token })
-      const { error: responseError = null } = response.payload.getData()
+      const response = await verifyEmail({ email, code: verificationCode, token })
+      const { error: responseError = null } = response?.data?.verifyEmail
 
       if (responseError) {
         if (responseError === 'invalid-link') {
-          navigation.navigate('Signup Intro', { bannerError: errorMessages(responseError) })
+          navigation.replace('Signup Intro', { bannerError: errorMessages(responseError) })
           return
         }
         setError(responseError)
       } else {
         mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
+        navigation.navigate('SignupRegistration')
       }
     } catch (e) {
       setError(t('Expired or invalid code'))
@@ -99,24 +85,25 @@ export default function SignupEmailValidation ({ navigation, route }) {
 
   useFocusEffect(
     useCallback(() => {
-      if (!email) navigation.navigate('Signup')
+      if (!email) navigation.replace('Signup')
+      if (token) submit()
 
       navigation.setOptions({
         headerLeftOnPress: () => {
-          navigation.navigate('Signup Intro', { email })
+          navigation.replace('Signup Intro', { email })
         }
       })
-    }, [email])
+    }, [token, email])
   )
-
-  useEffect(() => {
-    if (token) submit()
-  }, [token])
 
   useEffect(() => {
     setError()
     if (verificationCode?.length === CODE_LENGTH) submit()
   }, [verificationCode])
+
+  // {loading && (
+  //   <Loading />
+  // )}
 
   return (
     <KeyboardFriendlyView style={styles.container}>
@@ -132,30 +119,26 @@ export default function SignupEmailValidation ({ navigation, route }) {
           </View>
         </View>
         <View style={styles.content}>
-          {loading && (
-            <Loading />
-          )}
-          {!loading && (
-            <CodeField
-              ref={verificationCodeRef}
-              {...props}
-              value={verificationCode}
-              onChangeText={setVerificationCode}
-              cellCount={CODE_LENGTH}
-              rootStyle={styles.codeFieldRoot}
-              keyboardType='number-pad'
-              textContentType='oneTimeCode'
-              renderCell={({ index, symbol, isFocused }) => (
-                <Text
-                  key={index}
-                  style={[styles.codeFieldCell, isFocused && styles.codeFieldCellFocused]}
-                  onLayout={getCellOnLayoutHandler(index)}
-                >
-                  {symbol || (isFocused ? <Cursor /> : <Text> </Text>)}
-                </Text>
-              )}
-            />
-          )}
+          <CodeField
+            ref={verificationCodeRef}
+            {...props}
+            value={verificationCode}
+            onChangeText={setVerificationCode}
+            cellCount={CODE_LENGTH}
+            rootStyle={styles.codeFieldRoot}
+            keyboardType='number-pad'
+            editable={!loading}
+            textContentType='oneTimeCode'
+            renderCell={({ index, symbol, isFocused }) => (
+              <Text
+                key={index}
+                style={[styles.codeFieldCell, isFocused && styles.codeFieldCellFocused]}
+                onLayout={getCellOnLayoutHandler(index)}
+              >
+                {symbol || (isFocused ? <Cursor /> : <Text> </Text>)}
+              </Text>
+            )}
+          />
           <TouchableOpacity onPress={resendCode} style={styles.resendCodeLink}>
             <Text style={styles.resendCodeLinkText}><FontAwesome5Icon name='redo-alt' /> {t('Resend code')}</Text>
           </TouchableOpacity>

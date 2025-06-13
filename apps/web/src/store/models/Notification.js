@@ -5,13 +5,14 @@ import { TextHelpers } from '@hylo/shared'
 import presentPost from 'store/presenters/presentPost'
 import {
   primaryPostUrl,
-  postUrl,
   groupUrl,
-  personUrl
+  personUrl,
+  trackUrl
 } from 'util/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'
+export const ACTION_CHAT = 'chat'
 export const ACTION_COMMENT_MENTION = 'commentMention'
 export const ACTION_DONATION_TO = 'donation to'
 export const ACTION_DONATION_FROM = 'donation from'
@@ -24,10 +25,12 @@ export const ACTION_JOIN_REQUEST = 'joinRequest'
 export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
-export const ACTION_TAG = 'tag'
 export const ACTION_NEW_POST = 'newPost'
+export const ACTION_TAG = 'tag'
+export const ACTION_TRACK_COMPLETED = 'trackCompleted'
+export const ACTION_TRACK_ENROLLMENT = 'trackEnrollment'
 
-export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -35,7 +38,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     // so pulling from the post object for those cases.
     // Once all legacy notifications are purged, or migrated,
     // this line can be removed.
-    get('0.slug', post.groups.toRefArray())
+    get('0.slug', post?.groups?.toRefArray())
 
   const otherGroupSlug = get('slug', otherGroup)
   post = presentPost(post)
@@ -60,6 +63,7 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
       return primaryPostUrl(post, { commentId: comment.id, groupSlug })
+    case ACTION_CHAT:
     case ACTION_NEW_POST:
     case ACTION_MENTION: {
       return primaryPostUrl(post, { groupSlug })
@@ -69,6 +73,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_TAG: {
       return primaryPostUrl(post, { groupSlug })
     }
+    case ACTION_TRACK_COMPLETED:
+    case ACTION_TRACK_ENROLLMENT:
+      return trackUrl(track.id, { groupSlug })
   }
 }
 
@@ -90,18 +97,23 @@ export function titleForNotification (notification, trans) {
   // TODO: perhaps notification text and translations should happen on the server, or in the electron app itself. should move notification transltions to @hylo/shared?
   const t = trans || translate
 
-  const { activity: { action, actor, post, group, meta: { reasons } } } = notification
+  const { activity: { action, actor, post, group, track, meta: { reasons } } } = notification
 
   const postSummary = post ? (post.title && post.title.length > 0 ? post.title : truncateHTML(post.details)) : null
   const name = actor.name
 
   switch (action) {
     case ACTION_NEW_COMMENT:
-      return t('New comment on "<strong>{{postSummary}}</strong>"', { postSummary })
+      return t('New comment on "<strong>{{postSummary}}</strong>" in {{groupName}}', { postSummary, groupName: group?.name })
+    case ACTION_CHAT: {
+      const topicReason = find(r => r.startsWith('chat: '), reasons)
+      const topic = topicReason.split(': ')[1]
+      return t('New chat in {{groupName}} <strong>#{{name}}</strong>', { groupName: group?.name, name: topic })
+    }
     case ACTION_TAG: {
       const tagReason = find(r => r.startsWith('tag: '), reasons)
       const tag = tagReason.split(': ')[1]
-      return t('New post in <strong>{{name}}</strong>', { name: '#' + tag })
+      return t('New post in {{groupName}} <strong>{{name}}</strong>', { groupName: group?.name, name: '#' + tag })
     }
     case ACTION_NEW_POST:
       return t('New post in <strong>{{name}}</strong>', { name: group.name })
@@ -131,6 +143,10 @@ export function titleForNotification (notification, trans) {
       return t('New Group Joined')
     case ACTION_MEMBER_JOINED_GROUP:
       return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
+    case ACTION_TRACK_COMPLETED:
+      return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track.name })
+    case ACTION_TRACK_ENROLLMENT:
+      return t('New Enrollment in Track <strong>{{trackName}}</strong>', { trackName: track.name })
     default:
       return null
   }
@@ -152,6 +168,7 @@ export function bodyForNotification (notification, trans) {
       const text = truncateHTML(comment.text)
       return t('<strong>{{name}}</strong> wrote: "{{text}}"', { name, text })
     }
+    case ACTION_CHAT:
     case ACTION_TAG:
     case ACTION_NEW_POST:
     case ACTION_ANNOUNCEMENT:
@@ -177,6 +194,10 @@ export function bodyForNotification (notification, trans) {
       return t('<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_MEMBER_JOINED_GROUP:
       return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
+    case ACTION_TRACK_COMPLETED:
+      return t('<strong>{{name}}</strong> completed the track', { name })
+    case ACTION_TRACK_ENROLLMENT:
+      return t('<strong>{{name}}</strong> enrolled in the track', { name })
     default:
       return null
   }

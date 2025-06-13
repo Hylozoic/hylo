@@ -35,7 +35,7 @@ export default function LinkPreview ({ loading, featured: providedFeatured, ...p
     }
   }, [url, providedFeatured])
 
-  if (loading) return <Loading />
+  if (loading && !linkPreview) return <Loading />
 
   const { title, description, imageUrl } = linkPreview
   const imageStyle = bgImageStyle(imageUrl)

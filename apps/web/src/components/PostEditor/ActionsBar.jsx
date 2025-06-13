@@ -16,6 +16,7 @@ export default function ActionsBar ({
   addAttachment,
   announcementSelected,
   canMakeAnnouncement,
+  isEditing,
   groupCount,
   groups,
   invalidMessage,
@@ -25,6 +26,7 @@ export default function ActionsBar ({
   setShowLocation,
   doSave, // Pops up announcement modal first if announcement is selected
   save, // Does actual save
+  setIsDirty,
   showAnnouncementModal,
   showLocation,
   showFiles,
@@ -44,7 +46,10 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='image'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
+          onSuccess={(attachment) => {
+            dispatch(addAttachment('post', id, attachment))
+            setIsDirty(true)
+          }}
           allowMultiple
           disable={showImages}
         >
@@ -58,7 +63,10 @@ export default function ActionsBar ({
           type='post'
           id={id}
           attachmentType='file'
-          onSuccess={(attachment) => dispatch(addAttachment('post', id, attachment))}
+          onSuccess={(attachment) => {
+            dispatch(addAttachment('post', id, attachment))
+            setIsDirty(true)
+          }}
           allowMultiple
           disable={showFiles}
         >
@@ -78,7 +86,10 @@ export default function ActionsBar ({
             <Icon
               dataTestId='announcement-icon'
               name='Announcement'
-              onClick={() => setAnnouncementSelected(!announcementSelected)}
+              onClick={() => {
+                setAnnouncementSelected(!announcementSelected)
+                setIsDirty(true)
+              }}
               className={cn(styles.actionIcon, {
                 [styles.highlightIcon]: announcementSelected
               })}
@@ -103,7 +114,9 @@ export default function ActionsBar ({
 
       <div className='flex items-center gap-2'>
         <label className='text-xs italic text-foreground/50'>
-          {t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
+          {isEditing
+            ? t(navigator.platform.includes('Mac') ? 'Option-Enter to save' : 'Alt-Enter to save')
+            : t(navigator.platform.includes('Mac') ? 'Option-Enter to post' : 'Alt-Enter to post')}
         </label>
         <Button
           disabled={!valid || loading}
@@ -112,7 +125,7 @@ export default function ActionsBar ({
           dataTipHtml={!valid ? invalidMessage : ''}
           dataFor='submit-tt'
         >
-          <SendHorizontal className={!valid || loading ? 'text-foreground/30' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
+          <SendHorizontal className={!valid || loading ? 'text-muted-foreground' : 'text-highlight'} size={18} style={{ display: 'inline' }} />
         </Button>
 
         <Tooltip

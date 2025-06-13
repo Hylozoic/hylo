@@ -11,6 +11,7 @@ export default function RoundImage ({
   medium,
   large,
   xlarge,
+  xxlarge,
   overlaps,
   overlapsVertical,
   className,
@@ -29,6 +30,7 @@ export default function RoundImage ({
       [classes.medium]: medium,
       [classes.large]: large,
       [classes.xlarge]: xlarge,
+      [classes.xxlarge]: xxlarge,
       [classes.overlapsVertical]: overlapsVertical
     }
   )

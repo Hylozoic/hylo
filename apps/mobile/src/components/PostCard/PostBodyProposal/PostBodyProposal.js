@@ -283,7 +283,7 @@ const styles = {
   },
   completed: {
     borderColor: '#C0C5CD',
-    color: '#C0C5CD',
+    color: '#C0C5CD'
   },
   selected: {
     backgroundColor: '#0DC39F',
@@ -291,7 +291,7 @@ const styles = {
   },
   highestVote: {
     backgroundColor: '#0074D8',
-    color: 'white',
+    color: 'white'
   },
   people: {
     whiteSpace: 'nowrap'

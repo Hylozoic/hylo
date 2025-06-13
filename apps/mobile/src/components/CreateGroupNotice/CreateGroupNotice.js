@@ -12,7 +12,7 @@ export default function CreateGroupNotice () {
   const navigation = useNavigation()
 
   const handleOnPress = () => navigation.navigate('Create Group')
-  const text = t('no_posts_here_try_creating_your_own_group')
+  const text = t('noPostsExplanierNewUser')
 
   return (
     <View style={styles.container}>

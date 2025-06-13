@@ -1,7 +1,7 @@
 import React, { Component, createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import { bool, func, node, string } from 'prop-types'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import { bgImageStyle, cn } from 'util/index'
 
@@ -130,8 +130,8 @@ class ModalDialog extends Component {
     const showControls = showCancelButton || showSubmitButton
 
     return (
-      <div className={classes.popup} tabIndex='-1'>
-        <div className={classes.popupInner} style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
+      <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-black/50' tabIndex='-1'>
+        <div className='w-full max-w-[750px] bg-midground rounded-xl p-4' style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
           <span onClick={this.cancel} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
           </span>
@@ -140,13 +140,13 @@ class ModalDialog extends Component {
             {useNotificationFormat &&
               <Icon green name={notificationIconName} className={classes.notificationIcon} dataTestId={'icon-' + notificationIconName} />}
             {showModalTitle && (
-              <h1 className={cn({ [classes.notificationTitle]: useNotificationFormat })}>
+              <h1 className={cn('text-lg font-bold flex flex-row gap-2 items-center justify-center', { [classes.notificationTitle]: useNotificationFormat })}>
                 {modalTitle}
               </h1>
             )}
           </div>
 
-          <div className={classes.content}>
+          <div className='flex flex-col gap-4'>
             {children}
           </div>
 
@@ -154,7 +154,7 @@ class ModalDialog extends Component {
             <div className={classes.controls}>
               {showCancelButton &&
                 <Button
-                  color='green-white-green-border'
+                  variant='primary'
                   className={classes.cancelBtn}
                   onClick={this.cancel}
                 >
@@ -162,6 +162,7 @@ class ModalDialog extends Component {
                 </Button>}
               {showSubmitButton &&
                 <Button
+                  variant='secondary'
                   className={classes.submitBtn}
                   onClick={this.submit}
                   disabled={submitButtonIsDisabled()}

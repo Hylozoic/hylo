@@ -1,71 +1,23 @@
-import { useMemo, useEffect } from 'react'
-import { useQuery } from 'urql'
-import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
-import mixpanel from 'services/mixpanel'
-import useCurrentUser from './useCurrentUser'
-import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
-import GroupPresenter, { getContextGroup, isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { flow, orderBy, first, getOr } from 'lodash/fp'
+import { MY_CONTEXT_SLUG } from '@hylo/shared'
+import useGroup from './useGroup'
 
-// Zustand store for managing currentGroupSlug
-const useCurrentGroupStore = create((set) => ({
+export const useCurrentGroupStore = create((set) => ({
   currentGroupSlug: null,
-  setCurrentGroupSlug: (slug) => set({ currentGroupSlug: slug })
+  navigateHome: true,
+  setCurrentGroupSlug: currentGroupSlug => set({ currentGroupSlug }),
+  setNavigateHome: navigateHome => set({ navigateHome })
 }))
 
-export function useGroup ({
-  groupSlug,
-  groupId,
-  groupQueryScope = {
-    withJoinQuestions: true,
-    withPrerequisiteGroups: true
-  },
-  useQueryArgs = {}
-} = {}) {
-  const [{ currentUser, fetching: userFetching, error: userError }] = useCurrentUser({ pause: useQueryArgs?.pause || !groupSlug })
-  const contextGroup = useMemo(() => getContextGroup(groupSlug, groupId), [groupSlug, groupId])
-  const pause = !!contextGroup || useQueryArgs?.pause || (!groupSlug && !groupId)
-  const [{ data, fetching: groupFetching, error: groupError }, reQuery] = useQuery({
-    ...useQueryArgs,
-    query: groupDetailsQueryMaker(groupQueryScope),
-    variables: { id: groupId, slug: groupSlug },
-    pause
-  })
-  const rawGroup = contextGroup || data?.group
-  const group = useMemo(() => rawGroup && GroupPresenter(rawGroup, { currentUser }), [rawGroup, currentUser])
-
-  return [{ group, isContextGroupSlug: !!isContextGroupSlug(groupSlug), fetching: userFetching || groupFetching, error: groupError || userError }, contextGroup ? () => {} : reQuery]
-}
-
-export function useCurrentGroupSlug (setToGroupSlug, useQueryArgs = {}) {
-  const { currentGroupSlug, setCurrentGroupSlug } = useCurrentGroupStore()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ pause: useQueryArgs?.pause || setToGroupSlug || currentGroupSlug })
-
-  // Derive the last viewed group from the user's memberships
-  const lastViewedGroup = useMemo(() => {
-    if (fetching || !currentUser?.memberships) return null
-    const memberships = [...currentUser.memberships]
-    memberships.sort((a, b) => new Date(b.lastViewedAt) - new Date(a.lastViewedAt))
-    return memberships[0]?.group || null
-  }, [currentUser, fetching])
-
-  // Determine the current group slug
-  const groupSlug = useMemo(() => {
-    if (setToGroupSlug) {
-      setCurrentGroupSlug(setToGroupSlug)
-      return setToGroupSlug
-    }
-    if (currentGroupSlug) return currentGroupSlug
-    if (lastViewedGroup?.slug) return lastViewedGroup.slug
-
-    return null
-  }, [setToGroupSlug, currentGroupSlug, lastViewedGroup])
-
-  return [{ currentGroupSlug: groupSlug, setCurrentGroupSlug, fetching, error }]
-}
+export const getLastViewedGroupSlug = currentUser => flow(
+  getOr([], 'memberships'),
+  orderBy('lastViewedAt', 'desc'),
+  first,
+  getOr(MY_CONTEXT_SLUG, 'group.slug')
+)(currentUser)
 
 export default function useCurrentGroup ({
-  setToGroupSlug,
   groupQueryScope = {
     withJoinQuestions: true,
     withPrerequisiteGroups: true,
@@ -73,23 +25,12 @@ export default function useCurrentGroup ({
   },
   useQueryArgs = {}
 } = {}) {
-  const [{ currentGroupSlug: groupSlug, fetching: slugFetching, error: slugError }] = useCurrentGroupSlug(setToGroupSlug, useQueryArgs)
-  const [{ group, fetching: groupFetching, isContextGroupSlug, error }, reQuery] = useGroup({
-    groupSlug,
+  const { currentGroupSlug } = useCurrentGroupStore()
+  const [{ group: currentGroup, ...rest }] = useGroup({
+    groupSlug: currentGroupSlug,
     groupQueryScope,
     useQueryArgs
   })
-  const fetching = slugFetching || groupFetching
 
-  useEffect(() => {
-    if (!fetching && group && setToGroupSlug) {
-      mixpanel.getGroup('groupId', group.id).set({
-        $location: group.location,
-        $name: group.name,
-        type: group.type
-      })
-    }
-  }, [fetching, group])
-
-  return [{ currentGroup: group, isContextGroupSlug, fetching, error: slugError || error }, reQuery]
+  return [{ currentGroupSlug, currentGroup, ...rest }]
 }

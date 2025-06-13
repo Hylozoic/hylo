@@ -9,6 +9,7 @@
     "web:dev": "yarn workspace web run dev",
     "cron": "yarn workspace backend cron",
     "migrate": "yarn workspace backend migrate",
+    "migrate-up": "yarn workspace backend migrate-up",
     "worker": "yarn workspace backend worker",
     "mobile:dev": "yarn workspace mobile start",
     "mobile:pod-install": "yarn workspace mobile pod-install",
@@ -39,5 +40,6 @@
     "@emotion/sheet": "^1.1.0",
     "htmlparser2": "9.1.0",
     "entities": "4.5.0"
-  }
+  },
+  "version": "1.0.0"
 }

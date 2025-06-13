@@ -6,6 +6,7 @@ import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
+import JoinGroup from 'routes/JoinGroup'
 import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
 import OAuthLogin from 'routes/OAuth/Login'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
@@ -69,18 +70,17 @@ export default function RootRouter () {
         <Route path='/public/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/public/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/my/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/my/groups/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/custom/:customViewId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/topics/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/:view/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
+        <Route path='/groups/:groupSlug/chat/:topicName/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
         <Route path='/groups/:groupSlug/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
-        <Route path='/members/:personId/post/:postId' element={<NavigateWithParams to={params => `/post/${params.postId}`} replace />} />
 
-        <Route
-          path='/groups/:groupSlug/*'
-          element={<PublicGroupDetail />}
-        />
+        {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
+        <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
+        <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />
       </Routes>

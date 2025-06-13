@@ -1,100 +1,64 @@
-import React, { useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { useTranslation } from 'react-i18next'
+import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
-import useOpenInitialURL from 'hooks/useOpenInitialURL'
-import useReturnToOnAuthPath from 'hooks/useReturnToOnAuthPath'
-import getReturnToOnAuthPath from 'store/selectors/getReturnToOnAuthPath'
+import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
-import AllTopicsWebView from 'screens/AllTopicsWebView'
-import ChatRoom from 'screens/ChatRoomWebView'
+import UserSettingsWebView from 'screens/UserSettingsWebView'
+import GroupSettingsWebView from 'screens/GroupSettingsWebView'
+import ChatRoomWebView from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
+import Moderation from 'screens/Moderation'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
-import GroupExploreWebView from 'screens/GroupExploreWebView'
-import GroupSettingsWebView from 'screens/GroupSettingsWebView'
-import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
+import Tracks from 'screens/Tracks'
+import MyTracks from 'screens/MyTracks'
+import TrackDetail from 'screens/TrackDetail'
+import GroupWelcome from 'screens/GroupWelcome'
+import GroupWelcomePage from 'screens/GroupWelcome/GroupWelcomePage'
+import HyloWebView from 'components/HyloWebView'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
 import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
-import UserSettingsWebView from 'screens/UserSettingsWebView'
 
 const HomeTab = createStackNavigator()
-export default function HomeNavigator ({ navigation }) {
-  const [{ currentGroup }] = useCurrentGroup()
-  const initialURL = useSelector(state => state.initialURL)
-  const returnToOnAuthPath = useSelector(getReturnToOnAuthPath)
-  const { t } = useTranslation()
-
-  useEffect(() => {
-    if (!initialURL && !returnToOnAuthPath) {
-      setTimeout(() => navigation.navigate('Stream'), 400)
-    }
-  }, [])
-
-  useOpenInitialURL()
-  useReturnToOnAuthPath()
+export default function HomeNavigator () {
+  useHandleCurrentGroupSlug()
+  useHandleCurrentGroup()
 
   const navigatorProps = {
-    initialRouteName: 'Group Navigation',
     screenOptions: {
-      animationEnabled: !initialURL,
-      title: currentGroup?.name || 'Home',
-      transitionSpec: {
-        open: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        },
-        close: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        }
-      },
-      headerMode: 'float',
-      header: headerProps => <TabStackHeader {...headerProps} />
+      header: props => <TabStackHeader {...props} />,
+      headerMode: 'float'
     }
   }
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
+      {/* WebView screens (may link/route internally) */}
+      <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
+      <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
+      <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
+      <HomeTab.Screen name='Web View' component={HyloWebView} />
+      {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
-      <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
-      <HomeTab.Screen name='Projects' component={Stream} initialParams={{ streamType: 'project' }} />
-      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
-      <HomeTab.Screen name='Events' component={Stream} initialParams={{ streamType: 'event' }} />
-      <HomeTab.Screen name='Decisions' component={Stream} initialParams={{ streamType: 'proposal' }} options={{ title: t('Decisions') }} />
-      <HomeTab.Screen name='Members' component={MembersComponent} />
-      <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
-      <HomeTab.Screen name='Member Details' component={MemberDetails} />
-      <HomeTab.Screen name='Group Explore' component={GroupExploreWebView} />
+      <HomeTab.Screen name='Tracks' component={Tracks} />
+      <HomeTab.Screen name='My Tracks' component={MyTracks} />
+      <HomeTab.Screen name='Track Detail' component={TrackDetail} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
-      <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
-      <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
+      <HomeTab.Screen name='Group Welcome' component={GroupWelcome} />
+      <HomeTab.Screen name='Group Welcome Page' component={GroupWelcomePage} />
       <HomeTab.Screen name='Map' component={MapWebView} />
-      <HomeTab.Screen name='Chat' component={ChatRoom} />
-      <HomeTab.Screen name='My Posts' component={Stream} initialParams={{ myHome: 'My Posts' }} />
-      <HomeTab.Screen name='Announcements' component={Stream} initialParams={{ myHome: 'Announcements' }} />
-      <HomeTab.Screen name='Mentions' component={Stream} initialParams={{ myHome: 'Mentions' }} />
-      <HomeTab.Screen name='Interactions' component={Stream} initialParams={{ myHome: 'Interactions' }} />
-      <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
-      <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
+      <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
+      <HomeTab.Screen name='Members' component={MembersComponent} />
+      <HomeTab.Screen name='Member Details' component={MemberDetails} />
+      <HomeTab.Screen name='Moderation' component={Moderation} />
+      <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
+      <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
     </HomeTab.Navigator>
   )
 }

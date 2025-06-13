@@ -1,18 +1,21 @@
-import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
+import { Check, Play, CircleDashed } from 'lucide-react'
+import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
-import { withTranslation } from 'react-i18next'
+import ReactDOM from 'react-dom'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
 import FlagContent from 'components/FlagContent'
-import FlagGroupContent from 'components/FlagGroupContent/FlagGroupContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 class PostHeader extends PureComponent {
@@ -27,17 +30,30 @@ class PostHeader extends PureComponent {
   flagPostFunc = () =>
     this.props.canFlag ? () => { this.setState({ flaggingVisible: true }) } : undefined
 
+  getTypeIcon = (type) => {
+    const typeIconMap = {
+      chat: 'Messages',
+      offer: 'Offer',
+      request: 'HandRaised',
+      resource: 'Resource',
+      project: 'Project',
+      proposal: 'Proposal',
+      event: 'Calendar',
+      post: 'Post',
+      discussion: 'Chat'
+    }
+    return typeIconMap[type] || 'Post' // Default Post icon if type not found
+  }
+
   render () {
     const {
       routeParams,
       post,
       canEdit,
       expanded,
+      isCurrentAction,
       isFlagged,
-      hasImage,
-      proposalOutcome,
-      proposalStatus,
-      pinned,
+      group,
       close,
       className,
       constrained,
@@ -45,7 +61,6 @@ class PostHeader extends PureComponent {
       deletePost,
       duplicatePost,
       removePost,
-      pinPost,
       highlightProps,
       moderationActionsGroupUrl = '',
       fulfillPost,
@@ -60,14 +75,18 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
-      group,
+      proposalOutcome,
+      proposalStatus,
       type,
       id,
       endTime,
       startTime,
-      fulfilledAt,
-      topics
+      fulfilledAt
     } = post
+
+    if (type === 'action') {
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+    }
 
     if (!creator) return null
 
@@ -85,16 +104,15 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Pin', label: pinned ? t('Unpin') : t('Pin'), onClick: pinPost },
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
       { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
-      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post?')) : undefined, red: true },
-      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost, red: true }
+      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
-    const typesWithTimes = ['offer', 'request', 'resource', 'project', 'proposal']
+    const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
     const canHaveTimes = typesWithTimes.includes(type)
 
     const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
@@ -130,7 +148,6 @@ class PostHeader extends PureComponent {
       timeWindow = startString
     }
 
-    const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
       <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
@@ -138,7 +155,7 @@ class PostHeader extends PureComponent {
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
               <Highlight {...highlightProps}>
-                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
+                <Link to={creatorUrl} className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base', { 'text-sm': constrained })} data-tooltip-content={creator.tagline} data-tooltip-id={`announcement-tt-${id}`}>
                   {creator.name}
                 </Link>
               </Highlight>
@@ -148,6 +165,10 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
+                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                  {t(type)}
+                </div>
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>
@@ -163,38 +184,25 @@ class PostHeader extends PureComponent {
             </div>
 
             <div className={cn('flex items-center justify-end ml-auto', { hidden: constrained })}>
-              {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' dataTip={t('See why this post was flagged')} data-tooltip-id='flag-tt' /></Link>}
+              {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Icon name='Flag' className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
               <Tooltip
                 delay={250}
-                id='flag-tt'
+                id='post-header-flag-tt'
               />
-              {pinned && <Icon name='Pin' className='top-1 mr-3 text-xl text-accent font-bold' />}
               {dropdownItems.length > 0 &&
-                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
+                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
                   <Icon name='Ex' className='align-middle' />
                 </a>}
             </div>
           </div>
-          {flaggingVisible && !group &&
-            <FlagContent
-              type='post'
-              linkData={flagPostData}
-              onClose={() => this.setState({ flaggingVisible: false })}
-            />}
-          {flaggingVisible && group &&
-            <FlagGroupContent
-              type='post'
-              linkData={flagPostData}
-              onClose={() => this.setState({ flaggingVisible: false })}
-            />}
         </div>
 
-        <div className={cn('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
+        <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('text-xs font-bold text-secondary w-auto text-center border border-border rounded-md bg-card p-2 m-4 xs:m-3', { hidden: constrained })}>
+            <div className={cn('ml-2 -mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}
@@ -217,12 +225,31 @@ class PostHeader extends PureComponent {
                 className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
                 placeholder='Summarize the outcome'
                 value={proposalOutcome || ''}
-                onChange={(value) => updateProposalOutcome(value.target.value)}
-                ref={this.titleInputRef}
+                onChange={e => updateProposalOutcome(e.target.value)}
               />
             </div>
           )
         }
+
+        {flaggingVisible && !group &&
+          ReactDOM.createPortal(
+            <FlagContent
+              type='post'
+              linkData={flagPostData}
+              onClose={() => this.setState({ flaggingVisible: false })}
+            />,
+            document.body
+          )}
+
+        {flaggingVisible && group &&
+          ReactDOM.createPortal(
+            <FlagGroupContent
+              type='post'
+              linkData={flagPostData}
+              onClose={() => this.setState({ flaggingVisible: false })}
+            />,
+            document.body
+          )}
 
         <Tooltip
           className='bg-background z-1000'
@@ -251,6 +278,24 @@ export function TopicsLine ({ topics, slug, newLine }) {
         >
           #{t.name}
         </Link>)}
+    </div>
+  )
+}
+
+function ActionHeader ({ post, isCurrentAction }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex p-2 mb-2 items-center'>
+      <div className='flex-1'>
+        {post.completedAt
+          ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
+          : isCurrentAction
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
+      </div>
+
+      {post.completedAt && <span className='text-xs text-selected/70'>{t('Completed {{date}}', { date: DateTime.fromISO(post.completedAt).toFormat('DD') })}</span>}
     </div>
   )
 }

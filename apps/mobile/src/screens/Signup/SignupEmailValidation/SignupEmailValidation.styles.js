@@ -21,7 +21,7 @@ const styles = {
     fontWeight: 'bold',
     borderWidth: 2,
     borderRadius: 3,
-    borderColor: white40onCaribbeanGreen,
+    borderColor: white40onCaribbeanGreen
   },
   codeFieldCellSeparator: {
     height: 2,

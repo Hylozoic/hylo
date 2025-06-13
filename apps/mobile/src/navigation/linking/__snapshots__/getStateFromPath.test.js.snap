@@ -1,11 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without expectations) 1`] = `
+exports[`getStateFromPath (isAuthorized) ❌ Snapshot test path resolutions (for paths without expectations) 1`] = `
 {
   "/all/discussions": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/discussions",
       "pathMatcher": "/:context(all)/:streamType(discussions)",
       "streamType": "discussions",
@@ -14,7 +15,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/events": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/events",
       "pathMatcher": "/:context(all)/:streamType(events)",
       "streamType": "events",
@@ -23,24 +25,25 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/map": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/map",
       "pathMatcher": "/:context(all)/map",
     },
   },
   "/all/members/123": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member Profile",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
     "routeParams": {
-      "context": "all",
+      "id": "123",
       "originalLinkingPath": "/all/members/123",
-      "pathMatcher": "/:context(all)/members/:personId",
-      "personId": "123",
+      "pathMatcher": "/all/members/:id",
     },
   },
   "/all/projects": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/projects",
       "pathMatcher": "/:context(all)/:streamType(projects)",
       "streamType": "projects",
@@ -49,7 +52,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/proposals": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/proposals",
       "pathMatcher": "/:context(all)/:streamType(proposals)",
       "streamType": "proposals",
@@ -58,7 +62,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/requests-and-offers": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/requests-and-offers",
       "pathMatcher": "/:context(all)/:streamType(requests-and-offers)",
       "streamType": "requests-and-offers",
@@ -67,7 +72,8 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/resources": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/resources",
       "pathMatcher": "/:context(all)/:streamType(resources)",
       "streamType": "resources",
@@ -76,16 +82,17 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
   "/all/stream": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/stream",
-      "pathMatcher": "/:context(all)/:streamType(stream)",
-      "streamType": "stream",
+      "pathMatcher": "/:context(all)/stream",
     },
   },
   "/all/topics/sustainability": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
-      "context": "all",
+      "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/all/topics/sustainability",
       "pathMatcher": "/:context(all)/topics/:topicName",
       "topicName": "sustainability",
@@ -103,7 +110,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/about": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Detail",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Web View",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -121,7 +128,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/chat/general": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Chat Room",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -189,23 +196,23 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/groups/example-group/members/456": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member Profile",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Member",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
+      "id": "456",
       "originalLinkingPath": "/groups/example-group/members/456",
-      "pathMatcher": "/:context(groups)/:groupSlug/members/:personId",
-      "personId": "456",
+      "pathMatcher": "/:context(groups)/:groupSlug/members/:id",
     },
   },
   "/groups/example-group/post/789": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Detail",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Post Details",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
+      "id": "789",
       "originalLinkingPath": "/groups/example-group/post/789",
-      "pathMatcher": "/:context(groups)/:groupSlug/post/:postId",
-      "postId": "789",
+      "pathMatcher": "/:context(groups)/:groupSlug/post/:id",
     },
   },
   "/groups/example-group/projects": {
@@ -383,12 +390,11 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "context": "groups",
       "groupSlug": "example-group",
       "originalLinkingPath": "/groups/example-group/stream",
-      "pathMatcher": "/:context(groups)/:groupSlug/:streamType(stream)",
-      "streamType": "stream",
+      "pathMatcher": "/:context(groups)/:groupSlug/stream",
     },
   },
   "/groups/example-group/topics/technology": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/ChatRoom",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "groups",
       "groupSlug": "example-group",
@@ -416,7 +422,13 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
       "unmatchedBasePath": "/groups/rogue-scholars/discussions",
     },
   },
-  "/h/use-invitation": null,
+  "/h/use-invitation": {
+    "path": "JoinGroup",
+    "routeParams": {
+      "originalLinkingPath": "/h/use-invitation",
+      "pathMatcher": "/h/use-invitation",
+    },
+  },
   "/login": {
     "path": "NonAuthRoot/Login",
     "routeParams": {
@@ -442,9 +454,10 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/my/account": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/account",
       "pathMatcher": "/:context(my)/:settingsArea(account)",
       "settingsArea": "account",
@@ -454,23 +467,27 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/announcements",
-      "pathMatcher": "/:context(my)/announcements",
+      "pathMatcher": "/:context(my)/:view(announcements)",
+      "view": "announcements",
     },
   },
   "/my/discussions": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/discussions",
       "pathMatcher": "/:context(my)/:streamType(discussions)",
       "streamType": "discussions",
     },
   },
   "/my/edit-profile": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/edit-profile",
       "pathMatcher": "/:context(my)/:settingsArea(edit-profile)",
       "settingsArea": "edit-profile",
@@ -480,40 +497,47 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/events",
       "pathMatcher": "/:context(my)/:streamType(events)",
       "streamType": "events",
     },
   },
   "/my/groups": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Groups",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/groups",
-      "pathMatcher": "/:context(my)/groups",
+      "pathMatcher": "/:context(my)/:settingsArea(groups)",
+      "settingsArea": "groups",
     },
   },
   "/my/interactions": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/interactions",
-      "pathMatcher": "/:context(my)/interactions",
+      "pathMatcher": "/:context(my)/:view(interactions)",
+      "view": "interactions",
     },
   },
   "/my/invitations": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/invitations",
       "pathMatcher": "/:context(my)/:settingsArea(invitations)",
       "settingsArea": "invitations",
     },
   },
   "/my/locale": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/locale",
       "pathMatcher": "/:context(my)/:settingsArea(locale)",
       "settingsArea": "locale",
@@ -523,14 +547,17 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/mentions",
-      "pathMatcher": "/:context(my)/mentions",
+      "pathMatcher": "/:context(my)/:view(mentions)",
+      "view": "mentions",
     },
   },
   "/my/notifications": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/notifications",
       "pathMatcher": "/:context(my)/:settingsArea(notifications)",
       "settingsArea": "notifications",
@@ -540,14 +567,17 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/posts",
-      "pathMatcher": "/:context(my)/posts",
+      "pathMatcher": "/:context(my)/:view(posts)",
+      "view": "posts",
     },
   },
   "/my/projects": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/projects",
       "pathMatcher": "/:context(my)/:streamType(projects)",
       "streamType": "projects",
@@ -557,6 +587,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/proposals",
       "pathMatcher": "/:context(my)/:streamType(proposals)",
       "streamType": "proposals",
@@ -566,6 +597,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/requests-and-offers",
       "pathMatcher": "/:context(my)/:streamType(requests-and-offers)",
       "streamType": "requests-and-offers",
@@ -575,22 +607,24 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/resources",
       "pathMatcher": "/:context(my)/:streamType(resources)",
       "streamType": "resources",
     },
   },
   "/my/saved-searches": {
-    "path": "AuthRoot/Drawer/Tabs/Settings Tab",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/User Settings",
     "routeParams": {
       "context": "my",
+      "groupSlug": "my",
       "originalLinkingPath": "/my/saved-searches",
       "pathMatcher": "/:context(my)/:settingsArea(saved-searches)",
       "settingsArea": "saved-searches",
     },
   },
   "/notifications": {
-    "path": "AuthRoot/Notifications - Modal",
+    "path": "AuthRoot/Notifications",
     "routeParams": {
       "originalLinkingPath": "/notifications",
       "pathMatcher": "/notifications",
@@ -625,6 +659,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public",
       "pathMatcher": "/:context(public)",
     },
@@ -633,6 +668,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/discussions",
       "pathMatcher": "/:context(public)/:streamType(discussions)",
       "streamType": "discussions",
@@ -642,15 +678,17 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/events",
       "pathMatcher": "/:context(public)/:streamType(events)",
       "streamType": "events",
     },
   },
   "/public/groups": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Explorer",
+    "path": "AuthRoot/Drawer/Tabs/Home Tab/Web View",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/groups",
       "pathMatcher": "/:context(public)/groups",
     },
@@ -659,6 +697,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Map",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/map",
       "pathMatcher": "/:context(public)/map",
     },
@@ -667,6 +706,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/projects",
       "pathMatcher": "/:context(public)/:streamType(projects)",
       "streamType": "projects",
@@ -676,6 +716,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/proposals",
       "pathMatcher": "/:context(public)/:streamType(proposals)",
       "streamType": "proposals",
@@ -685,6 +726,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/requests-and-offers",
       "pathMatcher": "/:context(public)/:streamType(requests-and-offers)",
       "streamType": "requests-and-offers",
@@ -694,6 +736,7 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/resources",
       "pathMatcher": "/:context(public)/:streamType(resources)",
       "streamType": "resources",
@@ -703,15 +746,16 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/stream",
-      "pathMatcher": "/:context(public)/:streamType(stream)",
-      "streamType": "stream",
+      "pathMatcher": "/:context(public)/stream",
     },
   },
   "/public/topics/climate-change": {
     "path": "AuthRoot/Drawer/Tabs/Home Tab/Stream",
     "routeParams": {
       "context": "public",
+      "groupSlug": "public",
       "originalLinkingPath": "/public/topics/climate-change",
       "pathMatcher": "/:context(public)/topics/:topicName",
       "topicName": "climate-change",
@@ -747,19 +791,13 @@ exports[`getStateFromPath ❌ Snapshot test path resolutions (for paths without 
     },
   },
   "/signup/verify-email": {
-    "path": "NonAuthRoot/Signup/SignupEmailValidation",
+    "path": "NonAuthRoot/Signup/Signup Intro",
     "routeParams": {
       "originalLinkingPath": "/signup/verify-email",
-      "pathMatcher": "/signup/:step(verify-email)",
+      "pathMatcher": "/signup/:step?",
       "step": "verify-email",
     },
   },
-  "/welcome": {
-    "path": "AuthRoot/Drawer/Tabs/Home Tab/Group Welcome",
-    "routeParams": {
-      "originalLinkingPath": "/welcome",
-      "pathMatcher": "/welcome",
-    },
-  },
+  "/welcome": null,
 }
 `;

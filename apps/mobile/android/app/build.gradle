@@ -90,8 +90,8 @@ android {
         applicationId "com.hylo.hyloandroid"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 295
-        versionName "6.0.0-0"
+        versionCode 300
+        versionName "6.0.400"
     }
     signingConfigs {
         debug {
@@ -131,6 +131,9 @@ dependencies {
 
     implementation "androidx.core:core-splashscreen:1.0.0"
     implementation "com.onesignal:OneSignal:[5.0.0, 5.99.99]"
+    // react-native-image-picker requirement for minSdkVersion < 30:
+    // https://github.com/react-native-image-picker/react-native-image-picker?tab=readme-ov-file#android-1
+    implementation("androidx.activity:activity:1.9.+")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

@@ -1,17 +1,17 @@
 import React from 'react'
 import { TouchableOpacity } from 'react-native'
-import { useSelector } from 'react-redux'
 import { createStackNavigator } from '@react-navigation/stack'
 import { SquarePen } from 'lucide-react-native'
+import useLinkingStore from 'navigation/linking/store'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import NewMessage from 'screens/NewMessage'
 import Thread from 'screens/Thread'
 import ThreadList from 'screens/ThreadList'
-import { alabaster, caribbeanGreen, rhino } from 'style/colors'
+import { caribbeanGreen, rhino, twBackground } from 'style/colors'
 
 const Messages = createStackNavigator()
 export default function MessagesNavigator () {
-  const initialURL = useSelector(state => state.initialURL)
+  const { initialURL } = useLinkingStore()
   const navigatorProps = {
     initialRouteName: 'Messages',
     screenOptions: {
@@ -36,7 +36,7 @@ export default function MessagesNavigator () {
           restSpeedThreshold: 0.01
         }
       },
-      headerStyle: { backgroundColor: alabaster },
+      headerStyle: { backgroundColor: twBackground },
       headerTitleStyle: { color: rhino }
     }
   }

@@ -174,20 +174,11 @@
   }
 }
 
-.editor {
-  padding: 5px;
-  min-height: 100px;
-  max-height: calc(100vh - 400px);
-  color: hsl(var(--foreground));
-  overflow: auto;
-}
-
 .section {
   display: flex;
   width: 100%;
   align-items: center;
   background: hsl(var(--input));
-  margin-bottom: 1rem;
   border-radius: 4px;
   padding: .25rem;
 
@@ -206,6 +197,10 @@
   &-label {
     composes: section-label;
   }
+}
+
+.section-groups {
+  width: 100%;
 }
 
 .accept-contributions {
@@ -304,6 +299,7 @@
   display: flex;
   justify-content: space-evenly;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .warning {
@@ -316,6 +312,8 @@
   width: 100%;
   outline: none;
   border: none;
+  background-color: transparent;
+  padding-left: 2px;
   &:disabled {
     color: $color-rhino-80;
   }

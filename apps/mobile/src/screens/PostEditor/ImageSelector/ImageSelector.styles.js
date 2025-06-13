@@ -5,9 +5,9 @@ export default imageCount => {
   const containerWidth = Dimensions.get('window').width - 25
   const imageMargin = 5
   const minImageWidth = 100
-  const minImageWithWithMargin = minImageWidth + imageMargin
-  const maxImagesPerRow = (containerWidth / minImageWithWithMargin) > 0
-    ? (containerWidth / minImageWithWithMargin)
+  const minImageWithMargin = minImageWidth + imageMargin
+  const maxImagesPerRow = (containerWidth / minImageWithMargin) > 0
+    ? (containerWidth / minImageWithMargin)
     : 1
   const imageWidth = imageCount > maxImagesPerRow
     ? containerWidth / maxImagesPerRow

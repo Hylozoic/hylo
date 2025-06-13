@@ -44,6 +44,8 @@ type Query {
 
   # Query for groups
   groups(
+    # Whether to only return groups that are allowed to be shown in public
+    allowedInPublic: Boolean,
     # Search for groups who's name starts with the autcomplete string
     autocomplete: String,
     # Find only groups in this geographic bounding box
@@ -307,6 +309,8 @@ type Query {
     # Only return topics that are set to this visibility in a group that the current logged in user is a member of: 0 = hidden in the group, 1 = visible, 2 = pinned
     visibility: [Int]
   ): TopicQuerySet
+
+  track(id: ID): Track
 }
 
 union Update = Message | MessageThread | Notification
@@ -340,7 +344,9 @@ type ActivityMeta {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
-    TODO: turn this into it's own Enum?
+      'memberJoinedGroup' = someone joined a group
+      'trackCompleted' = someone completed a track
+      'trackEnrollment' = someone enrolled in a track
   """
   reasons: [String]
 }
@@ -363,7 +369,9 @@ type Activity {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
-    TODO: turn this into it's own Enum?
+      'memberJoinedGroup' = someone joined a group
+      'trackCompleted' = someone completed a track
+      'trackEnrollment' = someone enrolled in a track
   """
   action: String
   # The Person who carried out this Activity
@@ -380,6 +388,8 @@ type Activity {
   otherGroup: Group
   # If this activity involved a post then this is the Post
   post: Post
+  # If this activity involved a track then this is the Track
+  track: Track
   # Whether the Notification associated with this Activity has been read by the "reader" of this activity
   unread: Boolean
 }
@@ -594,6 +604,8 @@ type ContextWidget {
   viewGroup: Group
   # Post this widget is pointing at
   viewPost: Post
+  # Track this widget is pointing at
+  viewTrack: Track
   # User this widget is pointing at
   viewUser: Person
 }
@@ -689,6 +701,8 @@ type Group {
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
   accessibility: Int
+  # Whether this group's posts can be shown in public feeds
+  allowInPublic: Boolean
   # URL to the image of the avatar of the group
   avatarUrl: String
   # URL to the image of the banner for the group
@@ -735,6 +749,10 @@ type Group {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 
@@ -962,6 +980,23 @@ type Group {
   # Skills suggested to new users joining this group to see if they want to add to their profile
   suggestedSkills: SkillQuerySet
 
+  tracks(
+    # Only return tracks whose name starts with the autocomplete string
+    autocomplete: String,
+    # Only return tracks that the logged in user is enrolled in
+    enrolled: Boolean,
+    # Number of tracks to return
+    first: Int,
+    # For pagination, return tracks after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # true: Only return tracks that are published, false: Only return tracks that are not published, null: return all tracks
+    published: Boolean,
+    # Sort by 'id', 'name', or 'published_at'
+    sortBy: String
+  ): TrackQuerySet
+
   # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
@@ -1088,8 +1123,12 @@ type GroupSettings {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # A relationship between two Groups
@@ -1137,17 +1176,27 @@ type GroupRelationshipInviteQuerySet {
 
 # Group role
 type GroupRole {
+  # Whether this role is active
   active: Boolean
-  color: String
+  # When this role was created
   createdAt: Date
+  # The description of the role
   description: String
+  # The emoji of the role
   emoji: String
+  # The id of the role
   id: ID
+  # The group that this role belongs to
   group: Group
+  # The id of the group that this role belongs to
   groupId: ID
+  # The name of the role
   name: String
+  # When this role was last updated
   updatedAt: Date
+  # The responsibilities that are part of this role
   responsibilities: ResponsibilityQuerySet
+  # The total number of responsibilities that are part of this role
   responsibilitiesTotal: Int
 }
 
@@ -1379,6 +1428,8 @@ type Me {
   contactEmail: String
   # Phone number made visible on the logged in user's profile to people who can see them
   contactPhone: String
+  # When the logged in user was created
+  createdAt: Date
   # The number of Groups the logged in user is a member of
   groupsTotal: Int
   # The email used to log in (not publicly shared in the app)
@@ -1517,6 +1568,20 @@ type Me {
     # Load this number of topics
     first: Int
   ): TopicFollowQuerySet
+
+  # The tracks I am enrolled in
+  tracksEnrolledIn(
+    # Search string
+    autocomplete: String,
+    # Load this number of tracks
+    first: Int,
+    # Starting at this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'.
+    order: String,
+    # 'enrolled_at', 'name'
+    sortBy: String
+  ): TrackQuerySet
 }
 
 # A user's group membership
@@ -1738,10 +1803,14 @@ type Person {
   bannerUrl: String
   # Personal bio
   bio: String
+  # When loading through a track this is when they completed the track
+  completedAt: Date
   # Email address made visible on this person's profile
   contactEmail: String
   # Phone number made visible on this person's profile
   contactPhone: String
+  # When loading through a track this is when they were enrolled in the track
+  enrolledAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -1915,7 +1984,17 @@ type Post {
   commentersTotal: Int
   # Total number of comments on this post
   commentsTotal: Int
-  # If this post has been flagged, this tracks whether the user has clicked through the flag-screen
+  # The date and time this post was completed by the current user
+  completedAt: Date
+  # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', 'uploadFile'
+  completionAction: String
+  # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
+  completionActionSettings: JSON
+  # The response the current user gave when completing this post
+  completionResponse: JSON
+  # All the responses from all users who have completed this post - only available to moderators
+  completionResponses: PostUserQuerySet
+  # If this post has been flagged, this tracks whether the currentuser has clicked through the flag-screen
   clickthrough: Boolean
   createdAt: Date
   # The body of the post
@@ -1942,6 +2021,8 @@ type Post {
   isStrictProposal: Boolean
   # Whether LinkPreview appears full size above post or smaller below
   linkPreviewFeatured: Boolean
+  # Temporary id passed in from the client to identify the post when it is created, and passed back to the client, for optimistically creating posts
+  localId: String
   # Full location string
   location: String
   # Object with geocoded location deatils
@@ -1950,6 +2031,8 @@ type Post {
   myEventResponse: String
   # The reactions of the logged-in user to this
   myReactions: [Reaction]
+  # The total number of people who have completed this post in a track
+  numPeopleCompleted: Int
   # Number of people that have one or more reactions to a post
   peopleReactedTotal: Int
   # Number of total reactions on the post
@@ -1970,6 +2053,8 @@ type Post {
   reactionsTotal: Int
   # Summary of reactions on the post
   reactionsSummary: JSON
+  # When loading posts for a Track, this is the order of the post in the track
+  sortOrder: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
   startTime: Date
   # The timezone of the post
@@ -2049,8 +2134,19 @@ type PostMembership {
 # Relationship of a user to a post, indicating "following the post". Created when a user comments on or reacts to a post
 type PostUser {
   id: ID
+  # The date and time this post was completed by the user
+  completedAt: Date
+  # The response the user gave when completing this post
+  completionResponse: JSON
   post: Post
   user: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type PostUserQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [PostUser]
 }
 
 # A geographic point by latitude + longitude
@@ -2135,6 +2231,8 @@ type Responsibility {
   # The type of responsibility: 'system' or 'group'
   type: String
 }
+
+union Role = CommonRole | GroupRole
 
 # A saved set of search/filter parameters for the map that can be reloaded later by a user
 type SavedSearch {
@@ -2265,6 +2363,80 @@ type TopicFollowQuerySet {
 type TopicFollowSettings {
   # The notifications for the topic follow: 'none', 'important', or 'all'
   notifications: String
+}
+
+type Track {
+  id: ID
+  # The word used in this track to describe an action
+  actionDescriptor: String
+  # The word used in this track to describe multiple actions
+  actionDescriptorPlural: String
+  # The URL of the banner image for this track
+  bannerUrl: String
+  # The message shown when a user completes this track
+  completionMessage: String
+  # The role/badge that is awarded when a user completes this track
+  completionRole: Role
+  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
+  completionRoleType: String
+  # When this track was created
+  createdAt: Date
+  # When this track was deactivated
+  deactivatedAt: Date
+  # The description of this track
+  description: String
+  # Whether the current user has completed this track
+  didComplete: Boolean
+  # The users enrolled in this track
+  enrolledUsers: PersonQuerySet
+  # The total number of groups this track is a part of
+  groupsTotal: Int
+  # Whether the current user is enrolled in this track
+  isEnrolled: Boolean
+  # The name of this track
+  name: String
+  # The total number of actions in this track
+  numActions: Int
+  # The total number of people enrolled in this track
+  numPeopleEnrolled: Int
+  # The total number of people who have completed this track
+  numPeopleCompleted: Int
+  # The total number of posts in this track
+  postsTotal: Int
+  # When this track was published
+  publishedAt: Date
+  # When this track was updated
+  updatedAt: Date
+  # The settings for the current user in this track
+  userSettings: JSON
+  # The total number of users in this track
+  usersTotal: Int
+  # The welcome message for this track
+  welcomeMessage: String
+  # The groups in this track
+  groups: GroupQuerySet
+  # The posts in this track
+  posts: PostQuerySet
+  # The users related to this track
+  users: PersonQuerySet
+}
+
+type TrackQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [Track]
+}
+
+type TrackUser {
+  id: ID
+  completedAt: Date
+  createdAt: Date
+  enrolledAt: Date
+  settings: JSON
+  updatedAt: Date
+  group: Group
+  track: Track
+  user: Person
 }
 
 # Current user's personal settings
@@ -2401,6 +2573,8 @@ type Mutation {
   cancelJoinRequest(joinRequestId: ID): GenericResult
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
+  # Mark a post as completed
+  completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
   # Create a new post Collection
@@ -2433,6 +2607,8 @@ type Mutation {
   createSavedSearch(data: SavedSearchInput): SavedSearch
   # Create a new topic within a Group
   createTopic(topicName: String, groupId: ID, isDefault: Boolean, isSubscribing: Boolean): Topic
+  # Create a new track
+  createTrack(data: TrackInput): Track
   # Add a new Zapier trigger (called by Zapier)
   createZapierTrigger(groupIds: [ID], targetUrl: String, type: String, params: JSON): ZapierTrigger
   # Used by current logged in user to deactivate their account
@@ -2467,6 +2643,10 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
+  # Duplicate a track
+  duplicateTrack(trackId: ID): Track
+  # Enroll in a track
+  enrollInTrack(trackId: ID): Track
   # Set an invitation to join a group as expired. Only a group host can call this.
   expireInvitation(invitationId: ID): GenericResult
   # Look for a link preview of a URL, or if not found create one
@@ -2491,6 +2671,8 @@ type Mutation {
   leaveGroup(id: ID): ID
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
+  # Leave a track
+  leaveTrack(trackId: ID): Track
   # Login to Hylo on current device using email and password. TODO: add more info about errors, sessions, etc.
   login(email: String, password: String): SignupResult
   # Logout from Hylo on the current device
@@ -2660,6 +2842,10 @@ type Mutation {
   updateStripeAccount(accountId: String): GenericResult
   # Update settings related to a Person following a Topic in a Group
   updateTopicFollow(id: ID, data: TopicFollowInput): TopicFollow
+  # Update a track
+  updateTrack(trackId: ID, data: TrackInput): Track
+  # Update the order of an action in a track
+  updateTrackActionOrder(trackId: ID, postId: ID, newOrderIndex: Int): GenericResult
   # Update settings for a GroupWidget
   updateWidget(id: ID, changes: GroupWidgetInput): GroupWidget
   # Accept an invitation to a Group
@@ -2803,8 +2989,29 @@ input CommentInput {
 
 # Input type for creating or updating a ContextWidget
 input ContextWidgetInput {
+  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
+  addToEnd: Boolean
+
+  # Custom view this widget is pointing at
+  customViewId: ID
+
+  # Create a custom view when creating a widget
+  customViewInput: CustomViewInput
+
+  # Icon for the widget
+  icon: String
+
   # The group this widget belongs to
   ownerGroupId: ID
+
+  # The display order of the widget
+  orderInFrontOfWidgetId: ID
+
+  # ID of the parent widget if this is a child widget
+  parentId: ID
+
+  # If true, remove this widget from the menu.
+  remove: Boolean
 
   # Type: null is default and valid. Only include widget type for special behaviors.
   type: String
@@ -2812,26 +3019,11 @@ input ContextWidgetInput {
   # The title of the widget
   title: String
 
-  # The display order of the widget
-  orderInFrontOfWidgetId: ID
-
-  # If true, add this widget to the end of the list. Will be ignored if orderInFrontOfWidgetId is also provided.
-  addToEnd: Boolean
-
-  # If true, remove this widget from the menu.
-  remove: Boolean
-
-  # The visibility settings of the widget. Currently null or admin
-  visibility: String
-
   # The view that this widget is pointing at
   view: String
 
-  # Icon for the widget
-  icon: String
-
-  # ID of the parent widget if this is a child widget
-  parentId: ID
+  # Chat this widget is pointing at
+  viewChatId: ID
 
   # Group this widget is pointing at
   viewGroupId: ID
@@ -2839,17 +3031,14 @@ input ContextWidgetInput {
   # Post this widget is pointing at
   viewPostId: ID
 
-  # Custom view this widget is pointing at
-  customViewId: ID
+  # Track this widget is pointing at
+  viewTrackId: ID
 
   # User this widget is pointing at
   viewUserId: ID
 
-  # Chat this widget is pointing at
-  viewChatId: ID
-
-  # Create a custom view when creating a widget
-  customViewInput: CustomViewInput
+  # The visibility settings of the widget. Currently null or admin
+  visibility: String
 }
 
 # For adding or editing an existing CustomView on a Group
@@ -2998,6 +3187,10 @@ input GroupInput {
   typeDescriptor: String
   # Word used to describe this type of groups. Defaults to Groups, or if type is set then defaults to the type (e.g. Farms)
   typeDescriptorPlural: String
+  # The primary website for the group
+  websiteUrl: String
+  # The content for the group welcome page
+  welcomePage: String
   # Either 0 = Hidden (only visible to members), 1 = Protected (visible to members of related groups), 2 = Public (anyone can find/see this group)
   visibility: Int
 }
@@ -3047,8 +3240,12 @@ input GroupSettingsInput {
   locationDisplayPrecision: LocationDisplayPrecision
   # Whether to display the members of the group to non-members
   publicMemberDirectory: Boolean
+  # Whether to publish this group to the Murmurations Directory via API
+  publishMurmurationsProfile: Boolean
   # Whether to display suggested skills to new members when they join this group
   showSuggestedSkills: Boolean
+  # Whether to display the custom Welcome Page when a member joins the group
+  showWelcomePage: Boolean
 }
 
 # Settings for a Widget in a particular Group's explore page
@@ -3133,6 +3330,8 @@ input MeInput {
 input MembershipInput {
   # Accept or reject all current agreements of the group
   acceptAgreements: Boolean
+  # update the lastViewedAt
+  lastViewedAt: Date
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group
@@ -3195,6 +3394,10 @@ input PostInput {
   acceptContributions: Boolean
   # Was this post marked an announcement by a group moderator?
   announcement: Boolean
+  # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', or 'uploadFile'
+  completionAction: String
+  # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
+  completionActionSettings: JSON
   # The body of the post
   details: String
   # Link to a donation page, only used for projects only right now
@@ -3243,7 +3446,9 @@ input PostInput {
   title: String
   # Topics to add to the post
   topicNames: [String]
-  # Post type: 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # The track this post is associated with
+  trackId: ID
+  # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
   type: String
 }
 
@@ -3310,6 +3515,33 @@ input SavedSearchInput {
   topicIds: [ID]
   # The user creating the search
   userId: ID
+}
+
+input TrackInput {
+  # The word used in this track to describe an action
+  actionDescriptor: String
+  # The word used in this track to describe multiple actions
+  actionDescriptorPlural: String
+  # The URL of the banner image for this track
+  bannerUrl: String
+  # The message shown when a user completes this track
+  completionMessage: String
+  # The role/badge that is awarded when a user completes this track
+  completionRoleId: ID
+  # The type of role/badge that is awarded when a user completes this track. Either 'common' or 'group'
+  completionRoleType: String
+  # The description of the track
+  description: String
+  # The groups this track is associated with
+  groupIds: [ID]
+  # The posts (actions) for the track
+  postIds: [ID]
+  # The name of the track
+  name: String
+  # When the track was or will be published, null if not published
+  publishedAt: Date
+  # The welcome message for the track
+  welcomeMessage: String
 }
 
 input UserSettingsInput {

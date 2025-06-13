@@ -1,31 +1,37 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Alert } from 'react-native'
+import { Alert, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery, useSubscription } from 'urql'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
+import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
+import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
+import PostPresenter from '@hylo/presenters/PostPresenter'
+import { getTrackIdFromPath } from '@hylo/navigation'
 import mixpanel from 'services/mixpanel'
 import useGoToMember from 'hooks/useGoToMember'
 import useIsModalScreen from 'hooks/useIsModalScreen'
 import useRouteParams from 'hooks/useRouteParams'
-import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
-import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
-import PostPresenter from '@hylo/presenters/PostPresenter'
-import { KeyboardAccessoryCommentEditor } from 'components/CommentEditor/CommentEditor'
+import CommentEditor from 'components/CommentEditor'
 import Comments from 'components/Comments'
 import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
-import { white } from 'style/colors'
+import ActionCompletionSection from 'components/ActionCompletionSection'
+import { isIOS } from 'util/platform'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
     post(id: $id) {
       ...PostFieldsFragment
+      ...PostWithCompletionFragment
     }
   }
   ${postFieldsFragment}
+  ${postWithCompletionFragment}
 `
 
 export const commentsSubscription = gql`
@@ -38,16 +44,17 @@ export const commentsSubscription = gql`
 `
 
 export default function PostDetails () {
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId } = useRouteParams()
+  const { id: postId, originalLinkingPath } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
-  const post = useMemo(() => PostPresenter(data?.post, currentGroup?.id), [data?.post, currentGroup?.id])
+  const post = useMemo(() => PostPresenter(data?.post, { forGroupId: currentGroup?.id }), [data?.post, currentGroup?.id])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
-
+  const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
   useSubscription({
     query: commentsSubscription,
     variables: { postId: post?.id },
@@ -57,10 +64,6 @@ export default function PostDetails () {
   const [selectedComment, setSelectedComment] = useState(null)
   const groupId = get('groups.0.id', post)
 
-  const setHeader = () => {
-    !isModalScreen && navigation.setOptions({ title: currentGroup?.name })
-  }
-
   const clearSelectedComment = () => {
     setSelectedComment(null)
     commentsRef.current && commentsRef.current.clearHighlightedComment()
@@ -69,8 +72,6 @@ export default function PostDetails () {
   const scrollToSelectedComment = () => {
     commentsRef.current && commentsRef.current.scrollToComment(selectedComment)
   }
-
-  useEffect(() => { setHeader() }, [currentGroup?.slug])
 
   useEffect(() => {
     if (!fetching && !error && post) {
@@ -95,34 +96,40 @@ export default function PostDetails () {
     return null
   }
 
-  const renderPostDetails = panHandlers => {
-    // TOOD: It is not clear why we do this vs just relying on currentGroup
-    const firstGroupSlug = get('groups.0.slug', post)
-    const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
+  const firstGroupSlug = get('groups.0.slug', post)
+  const showGroups = isModalScreen || post?.groups.find(g => g.slug !== currentGroup?.slug)
 
-    return (
+  return (
+    <View 
+      className='flex-1'
+      style={{ 
+        paddingTop: insets.top + (isIOS ? 0 : 20),
+        paddingBottom: insets.bottom + (isIOS ? 0 : 20)
+      }}
+    >
       <Comments
         ref={commentsRef}
         groupId={firstGroupSlug}
         postId={post.id}
         header={(
-          <PostCardForDetails
-            post={post}
-            showGroups={showGroups}
-            groupId={groupId}
-          />
+          <>
+            <PostCardForDetails
+              post={post}
+              showGroups={showGroups}
+              groupId={groupId}
+            />
+            {post.type === 'action' && post.completionAction && (
+              <ActionCompletionSection
+                post={post}
+                trackId={trackId}
+              />
+            )}
+          </>
         )}
         onSelect={setSelectedComment}
         showMember={goToMember}
-        panHandlers={panHandlers}
       />
-    )
-  }
-
-  return (
-    <View style={styles.container}>
-      <KeyboardAccessoryCommentEditor
-        renderScrollable={renderPostDetails}
+      <CommentEditor
         isModal={isModalScreen}
         post={post}
         groupId={groupId}
@@ -132,11 +139,4 @@ export default function PostDetails () {
       />
     </View>
   )
-}
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: white
-  }
 }

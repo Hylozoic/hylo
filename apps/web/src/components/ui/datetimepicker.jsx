@@ -1,13 +1,17 @@
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
 import { DateTime } from 'luxon'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DayPicker } from 'react-day-picker'
+import Button from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { getLocaleForDayPicker, getLocaleAsString } from '@/components/Calendar/calendar-util'
+import { cn } from '@/lib/utils'
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 // ---------- utils start ----------
 /**
  * regular expression to check for valid hour format (01-23)
@@ -207,16 +211,7 @@ function genYears (yearRange = 50) {
 // ---------- utils end ----------
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
-    let locale = DateTime.now().locale
-    const { options, localize, formatLong } = props.locale || {}
-    if (options && localize && formatLong) {
-      locale = {
-        options,
-        localize,
-        formatLong
-      }
-    }
-    return genMonths(locale)
+    return genMonths(getLocaleAsString())
   }, [])
   const YEARS = React.useMemo(() => genYears(yearRange), [])
   const disableLeftNavigation = () => {
@@ -239,7 +234,11 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
   }
   return (
     <DayPicker
-      showOutsideDays={showOutsideDays} fixedWeeks className={cn('p-3', className)} classNames={{
+      locale={getLocaleForDayPicker()}
+      showOutsideDays={showOutsideDays}
+      fixedWeeks
+      className={cn('p-3', className)}
+      classNames={{
         months: 'flex flex-col sm:flex-row space-y-4  sm:space-y-0 justify-center',
         month: 'flex flex-col items-center space-y-4',
         month_caption: 'flex justify-center pt-1 relative items-center',
@@ -255,13 +254,14 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
         range_end: 'day-range-end',
         selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md rounded-r-md',
-        today: 'bg-black text-accent-foreground rounded-full',
+        today: 'bg-gray-400 text-accent-foreground rounded-full',
         outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-selected/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
         disabled: 'text-muted-foreground opacity-50',
         range_middle: 'aria-selected:bg-selected aria-selected:text-accent-foreground',
         hidden: 'invisible',
         ...classNames
-      }} components={{
+      }}
+      components={{
         Chevron: ({ ...props }) => props.orientation === 'left' ? (<ChevronLeft className='h-4 w-4' />) : (<ChevronRight className='h-4 w-4' />),
         MonthCaption: ({ calendarMonth }) => {
           return (
@@ -303,7 +303,8 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
             </div>
           )
         }
-      }} {...props}
+      }}
+      {...props}
     />
   )
 }
@@ -465,7 +466,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
   )
 })
 TimePicker.displayName = 'TimePicker'
-const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
+const DateTimePicker = React.forwardRef(({ locale = getLocaleAsString(), defaultPopupValue = new Date(new Date().setMinutes(0, 0, 0)), value, onChange, onMonthChange, hourCycle = 24, yearRange = 50, disabled = false, displayFormat, granularity = 'second', placeholder = 'Pick a date', className, ...props }, ref) => {
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
@@ -513,36 +514,26 @@ const DateTimePicker = React.forwardRef(({ locale = DateTime.now().locale, defau
     hour12: displayFormat?.hour12 ??
       `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
-  let loc = { code: DateTime.now().locale }
-  const { options, localize, formatLong } = locale
-  if (options && localize && formatLong) {
-    loc = {
-      ...loc,
-      options,
-      localize,
-      formatLong
-    }
-  }
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('w-full justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTime.fromJSDate(displayDate).toFormat(hourCycle === 24 ? initHourFormat.hour24 : initHourFormat.hour12, {
-                locale: loc.code
+                locale: getLocaleAsString()
               }))
             : (<span>{placeholder}</span>)}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-auto p-0 z-40'>
+      <PopoverContent className='w-auto p-0 z-[51]'>
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {
               newDate.setHours(month?.getHours() ?? 0, month?.getMinutes() ?? 0, month?.getSeconds() ?? 0)
               onSelect(newDate)
             }
-          }} onMonthChange={handleMonthChange} yearRange={yearRange} locale={locale} {...props}
+          }} onMonthChange={handleMonthChange} yearRange={yearRange} {...props}
         />
         {granularity !== 'day' && (
           <div className='border-t border-border p-3'>

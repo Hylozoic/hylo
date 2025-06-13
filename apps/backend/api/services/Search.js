@@ -4,7 +4,7 @@ import forModerationActions from './Search/forModerationActions'
 import { countTotal } from '../../lib/util/knex'
 import { filterAndSortGroups } from './Search/util'
 import { transform } from 'lodash'
-import { get } from 'lodash/fp'
+import { get, isNil } from 'lodash/fp'
 
 module.exports = {
   forPosts,
@@ -19,7 +19,7 @@ module.exports = {
     return Group.query(qb => {
       if (opts.nearCoord) {
         qb.with('nearest_groups', bookshelf.knex.raw(`
-        SELECT groups.id, ST_Distance(t.x, locations.center) AS nearest 
+        SELECT groups.id, ST_Distance(t.x, locations.center) AS nearest
          FROM (SELECT ST_GeographyFromText('SRID=4326;POINT(${opts.nearCoord.lng} ${opts.nearCoord.lat})')) AS t(x), groups
          INNER JOIN locations
          ON groups.location_id = locations.id
@@ -56,6 +56,10 @@ module.exports = {
         qb.join('group_relationships', 'groups.id', '=', 'group_relationships.child_group_id')
         qb.join('groups as parent_groups', 'parent_groups.id', '=', 'group_relationships.parent_group_id')
         qb.whereIn('parent_groups.slug', opts.parentSlugs)
+      }
+
+      if (typeof opts.allowedInPublic === 'boolean') {
+        qb.where('groups.allow_in_public', opts.allowedInPublic)
       }
 
       if (opts.farmQuery && (opts.farmQuery.productCategories !== '' || opts.farmQuery.farmType !== '' || opts.farmQuery.certOrManagementPlan !== '')) {
@@ -139,19 +143,49 @@ module.exports = {
     })
   },
 
+  forTracks: function (opts) {
+    return Track.query(qb => {
+      qb.where('tracks.deactivated_at', null)
+
+      if (opts.autocomplete) {
+        qb.whereRaw('tracks.name ilike ?', opts.autocomplete + '%')
+      }
+
+      // if (opts.enrolled) {
+      //   qb.whereIn('tracks.id', TracksUser.pluckIdsForMember(opts.userId))
+      // }
+
+      if (opts.limit || opts.first) {
+        qb.limit(opts.limit || opts.first)
+      }
+      if (opts.offset) {
+        qb.offset(opts.offset)
+      }
+
+      if (!isNil(opts.published)) {
+        if (opts.published) {
+          qb.where('tracks.published_at', 'is not', null)
+        } else {
+          qb.where('tracks.published_at', null)
+        }
+      }
+
+      qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
+    })
+  },
+
   fullTextSearch: function (userId, args) {
     let items, total
     args.limit = args.first
     return fetchAllGroupIds(userId, args)
-    .then(groupIds =>
-      FullTextSearch.searchInGroups(groupIds, args))
+      .then(groupIds =>
+        FullTextSearch.searchInGroups(groupIds, args))
       .then(items_ => {
         items = items_
         total = get('0.total', items)
 
         const ids = transform(items, (ids, item) => {
-          const type = item.post_id ? 'posts'
-            : item.comment_id ? 'comments' : 'people'
+          const type = item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
 
           if (!ids[type]) ids[type] = []
           const id = item.post_id || item.comment_id || item.user_id
@@ -166,7 +200,7 @@ module.exports = {
             items.map(presentResult(posts, comments, people))
         )
       })
-      .then(models => ({models, total}))
+      .then(models => ({ models, total }))
   }
 }
 

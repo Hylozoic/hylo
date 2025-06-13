@@ -1,5 +1,8 @@
 import { once } from 'lodash'
 
+// add polyfill due to Firefox off-by-one bug https://github.com/moment/luxon/issues/1563
+import('@formatjs/intl-locale/polyfill-force')
+
 export const environment = import.meta.env.NODE_ENV || 'development'
 export const isTest = environment === 'test'
 export const isDev = environment === 'development'

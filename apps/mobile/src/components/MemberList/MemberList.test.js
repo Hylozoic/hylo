@@ -9,7 +9,7 @@ import { MemberList } from './MemberList'
 import MockedScreen from 'util/testing/MockedScreen'
 import { render } from '@testing-library/react-native'
 
-let state, requiredProps
+let state
 beforeAll(() => {
   const session = orm.session(orm.getEmptyState())
   const group = session.Group.create({ id: '99', slug: 'foo', name: 'foo' })
@@ -57,12 +57,6 @@ beforeAll(() => {
       FETCH_LINK_PREVIEW: false
     }
   }
-  requiredProps = {
-    match: {},
-    location: {
-      search: ''
-    }
-  }
 })
 
 const lodash = jest.requireActual('lodash/fp')
@@ -73,10 +67,10 @@ describe('MemberList', () => {
     const renderer = new ReactShallowRenderer()
     const testProps = {
       navigation: {},
-      group: {id: 2},
+      group: { id: 2 },
       members: [
-        { id: '1', groupRoles: {items: []}, membershipCommonRoles: {items: []}, name: 'Loren' },
-        { id: '2', groupRoles: {items: []}, membershipCommonRoles: {items: []}, name: 'Robbie' }
+        { id: '1', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Loren' },
+        { id: '2', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Robbie' }
       ]
     }
 
@@ -84,7 +78,7 @@ describe('MemberList', () => {
       <TestRoot state={state}>
         <MemberList {...testProps} t={str => str} />
       </TestRoot>
-      
+
     )
     const actual = renderer.getRenderOutput()
     expect(actual).toMatchSnapshot()
@@ -155,12 +149,12 @@ describe('MemberList', () => {
         isFocused: true
       }
 
-      const { toJSON, debug } = render(
+      const { toJSON } = render(
         <TestRoot state={state}>
           <MockedScreen>
-              {screenProps => {
-                return <MemberList {...screenProps} {...testProps} t={str => str} />
-              }}
+            {screenProps => {
+              return <MemberList {...screenProps} {...testProps} t={str => str} />
+            }}
           </MockedScreen>
         </TestRoot>
       )
@@ -189,11 +183,11 @@ describe('MemberList', () => {
   it('runs call for new results if server search', () => {
     const renderer = new ReactShallowRenderer()
     const testProps = {
-      group: {id: 2},
+      group: { id: 2 },
       isServerSearch: true,
       members: [
-        { id: '1', groupRoles: {items: []}, membershipCommonRoles: {items: []}, name: 'Loren' },
-        { id: '2', groupRoles: {items: []}, membershipCommonRoles: {items: []}, name: 'Robbie' }
+        { id: '1', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Loren' },
+        { id: '2', groupRoles: { items: [] }, membershipCommonRoles: { items: [] }, name: 'Robbie' }
       ]
     }
 

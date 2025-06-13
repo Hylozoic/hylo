@@ -7,5 +7,5 @@ export default function useEventCallback (fn) {
   useLayoutEffect(() => {
     ref.current = fn
   })
-  return useCallback(() => (0, ref.current)(), [])
+  return useCallback((...args) => (0, ref.current)(...args), [])
 }

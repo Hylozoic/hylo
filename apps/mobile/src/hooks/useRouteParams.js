@@ -1,9 +1,20 @@
 import { useRoute } from '@react-navigation/native'
 
-const useRouteParams = () => {
-  const route = useRoute()
+const getLastParams = (state) => {
+  let current = state
 
-  return route.params || {}
-};
+  while (current?.params?.params) {
+    current = current.params
+  }
+
+  return current?.params || null
+}
+
+const useRouteParams = ({ reset = false } = {}) => {
+  const route = useRoute()
+  const params = getLastParams(route) || {}
+
+  return params
+}
 
 export default useRouteParams

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { gql, useClient, useMutation, useQuery } from 'urql'
 import { useNavigation } from '@react-navigation/native'
@@ -8,7 +8,7 @@ import peopleAutocompleteQuery from '@hylo/graphql/queries/peopleAutocompleteQue
 import findOrCreateThreadMutation from '@hylo/graphql/mutations/findOrCreateThreadMutation'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import { isIOS } from 'util/platform'
-import confirmDiscardChanges from 'util/confirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, alabaster, amaranth, rhino80, caribbeanGreen } from 'style/colors'
+import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost, twBackground } from 'style/colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -87,6 +87,7 @@ const useParticipantsQuery = (participantIds = []) => {
 export default function NewMessage () {
   const navigation = useNavigation()
   const { t } = useTranslation()
+  const confirmAlert = useConfirmAlert()
   const messageInputRef = useRef()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState()
@@ -121,31 +122,34 @@ export default function NewMessage () {
 
   useEffect(() => {
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+      if (loading) return null
       e.preventDefault()
-      confirmDiscardChanges({
+      confirmAlert({
         hasChanges: participants.length > 0 ||
           (messageInputRef.current && messageInputRef.current.getMessageText().length > 0),
-        onDiscard: () => navigation.dispatch(e.data.action),
-        title: t('Are you sure?'),
-        confirmationMessage: t('Your new unsent message will not be saved'),
-        t
+        onConfirm: () => navigation.dispatch(e.data.action),
+        title: 'Are you sure?',
+        confirmMessage: 'Your new unsent message will not be saved'
       })
     })
 
     return () => {
       removeBeforeRemove()
     }
-  }, [participants, navigation, t])
+  }, [loading, participants, navigation, t])
 
   const handleCreateMessage = async text => {
+    setLoading(true)
     const { data: messageThreadData, error: messageThreadError } = await findOrCreateThread({ participantIds: participants.map(p => p.id) })
     if (messageThreadError) {
+      setLoading(false)
       console.error('Error creating thread:', messageThreadError)
       return
     }
     const messageThreadId = messageThreadData?.findOrCreateThread?.id
     const { error: createMessageError } = await createMessage({ messageThreadId, text })
     if (createMessageError) {
+      setLoading(false)
       console.error('Error creating message:', createMessageError)
       return
     }
@@ -162,12 +166,9 @@ export default function NewMessage () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
+        <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
-          <Participant
-            participant={participant}
-            onPress={handleRemoveParticipant}
-            key={index}
-          />
+          <Participant participant={participant} onPress={handleRemoveParticipant} key={index} />
         ))}
       </ScrollView>
       <ItemSelector
@@ -183,7 +184,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: alabaster }}
+        colors={{ text: rhino80, border: ghost }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -216,7 +217,7 @@ export function Participant ({ participant, onPress }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     position: 'relative',
     flex: 1
   },
@@ -241,12 +242,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flexWrap: 'wrap',
     padding: 12,
-    paddingBottom: 0
+    paddingBottom: 10
   },
   participant: {
     borderWidth: 1,
     borderColor: capeCod20,
-    borderRadius: 4,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     height: 38,

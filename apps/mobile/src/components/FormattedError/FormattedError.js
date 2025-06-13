@@ -34,6 +34,7 @@ export default function FormattedError ({
   theme = {}
 }) {
   const { t } = useTranslation()
+
   if (!error) return null
 
   const styles = merge(defaultStyles, providedStyles, theme)
@@ -68,7 +69,7 @@ export default function FormattedError ({
   return (
     <Error styles={styles}>
       {errorMessageText && (
-        <Text style={styles.errorText}>{errorMessageText}</Text>
+        <Text style={styles.errorText}>{t(errorMessageText)}</Text>
       )}
     </Error>
   )

@@ -1,15 +1,14 @@
 import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { cn } from 'util/index'
 import PropTypes from 'prop-types'
 import { get, throttle, find } from 'lodash/fp'
 import { Helmet } from 'react-helmet'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import { removePostFromUrl } from 'util/navigation'
+import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
 import {
   PostBody,
@@ -21,26 +20,32 @@ import {
 import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPost from 'store/actions/fetchPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
 import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
-import { FETCH_POST } from 'store/constants'
+import { FETCH_POST, RESP_MANAGE_TRACKS } from 'store/constants'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { cn } from 'util/index'
+import { removePostFromUrl } from 'util/navigation'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
+
+import ActionCompletionSection from './ActionCompletionSection'
 
 import classes from './PostDetail.module.scss'
 
@@ -52,12 +57,12 @@ function PostDetail () {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const postId = routeParams.postId || getQuerystringParam('fromPostId', location)
   const { groupSlug, view } = routeParams
   const commentId = getQuerystringParam('commentId', location) || routeParams.commentId
-
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
+  const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
   const postSelector = useSelector(state => getPost(state, postId))
   const post = useMemo(() => {
     return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
@@ -110,7 +115,7 @@ function PostDetail () {
 
   const onPostIdChange = useCallback(() => {
     if (!pending) {
-      dispatch(fetchPost(postId))
+      dispatch(fetchPost(postId, hasTracksResponsibility))
     }
 
     if (post) {
@@ -198,116 +203,132 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} className={cn(classes.post, { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
         </title>
         <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
       </Helmet>
-      <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
-      <PostHeader
-        className={classes.header}
-        post={post}
-        routeParams={{ groupSlug, postId, commentId, view }}
-        close={onClose}
-        expanded
-        isFlagged={isFlagged}
-        hasImage={hasImage}
-      />
-      {state.atHeader && (
-        <div className={cn(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
-          <PostHeader
-            className={classes.header}
-            currentUser={currentUser}
-            post={post}
-            routeParams={{ groupSlug, postId, commentId, view }}
-            close={onClose}
-            isFlagged={isFlagged}
-          />
-        </div>
-      )}
-      <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
-      {isEvent && (
-        <EventBody
-          className={classes.body}
+      <div className='flex flex-col bg-card rounded-lg shadow-sm'>
+        <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
+        <PostHeader
+          className={classes.header}
+          post={post}
+          routeParams={routeParams}
+          close={onClose}
           expanded
-          currentUser={currentUser}
-          slug={groupSlug}
-          event={post}
-          respondToEvent={(response) => dispatch(respondToEvent(post, response))}
-          togglePeopleDialog={handleTogglePeopleDialog}
           isFlagged={isFlagged}
+          hasImage={hasImage}
         />
-      )}
-      {!isEvent && (
-        <PostBody
-          currentUser={currentUser}
-          className={classes.body}
-          expanded
-          routeParams={{ groupSlug, postId, commentId }}
+        <PostGroups
+          isPublic={post.isPublic}
+          groups={post.groups}
           slug={groupSlug}
-          isFlagged={isFlagged}
-          {...post}
+          showBottomBorder
         />
-      )}
-      {isProject && currentUser && (
-        <div className={classes.projectActionsWrapper}>
-          <div className={classes.joinProjectButtonContainer}>
-            <JoinProjectSection
+        {state.atHeader && (
+          <div className={cn(classes.headerSticky, { [classes.atActivity]: state.atActivity })} style={headerStyle}>
+            <PostHeader
+              className={classes.header}
               currentUser={currentUser}
-              joinProject={() => dispatch(joinProject(postId))}
-              leaveProject={() => dispatch(leaveProject(postId))}
-              leaving={isProjectMember}
-              members={post.members}
-              togglePeopleDialog={handleTogglePeopleDialog}
+              post={post}
+              routeParams={routeParams}
+              close={onClose}
+              isFlagged={isFlagged}
             />
           </div>
-          {post.projectManagementLink && projectManagementTool && (
-            <div className={classes.projectManagementTool}>
-              <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+        )}
+        {post.attachments && post.attachments.length > 0 && (
+          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+        )}
+        {isEvent && (
+          <EventBody
+            className={classes.body}
+            expanded
+            currentUser={currentUser}
+            slug={groupSlug}
+            event={post}
+            respondToEvent={(response) => dispatch(respondToEvent(post, response))}
+            togglePeopleDialog={handleTogglePeopleDialog}
+            isFlagged={isFlagged}
+          />
+        )}
+        {!isEvent && (
+          <PostBody
+            currentUser={currentUser}
+            className={classes.body}
+            expanded
+            routeParams={routeParams}
+            slug={groupSlug}
+            isFlagged={isFlagged}
+            {...post}
+          />
+        )}
+        {isProject && currentUser && (
+          <div className={classes.projectActionsWrapper}>
+            <div className={classes.joinProjectButtonContainer}>
+              <JoinProjectSection
+                currentUser={currentUser}
+                joinProject={() => dispatch(joinProject(postId))}
+                leaveProject={() => dispatch(leaveProject(postId))}
+                leaving={isProjectMember}
+                members={post.members}
+                togglePeopleDialog={handleTogglePeopleDialog}
+              />
             </div>
-          )}
-          {post.projectManagementLink && !projectManagementTool && (
-            <div className={classes.projectManagementTool}>
-              <div>{t('View project management tool')}</div>
-              <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
-            </div>
-          )}
-          {post.donationsLink && donationService && (
-            <div className={classes.donate}>
-              <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-            </div>
-          )}
-          {post.donationsLink && !donationService && (
-            <div className={classes.donate}>
-              <div>{t('Support this project')}</div>
-              <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-            </div>
-          )}
-        </div>
-      )}
-      {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-        <ProjectContributions
-          postId={post.id}
-          totalContributions={totalContributions}
-          processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
+            {post.projectManagementLink && projectManagementTool && (
+              <div className={classes.projectManagementTool}>
+                <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
+                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+              </div>
+            )}
+            {post.projectManagementLink && !projectManagementTool && (
+              <div className={classes.projectManagementTool}>
+                <div>{t('View project management tool')}</div>
+                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+              </div>
+            )}
+            {post.donationsLink && donationService && (
+              <div className={classes.donate}>
+                <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
+                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+              </div>
+            )}
+            {post.donationsLink && !donationService && (
+              <div className={classes.donate}>
+                <div>{t('Support this project')}</div>
+                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+              </div>
+            )}
+          </div>
+        )}
+        {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+          <ProjectContributions
+            postId={post.id}
+            totalContributions={totalContributions}
+            processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
+          />
+        )}
+        {post.type === 'action' && post.completionAction && (
+          <ActionCompletionSection
+            post={post}
+            currentUser={currentUser}
+          />
+        )}
+        <PostFooter {...post} currentUser={currentUser} />
+        <div ref={activityHeader} />
+        {state.atActivity && (
+          <div className={classes.activitySticky} style={activityStyle}>
+            <PostFooter {...post} currentUser={currentUser} />
+          </div>
+        )}
+      </div>
+      {post.type === 'action' && hasTracksResponsibility && (
+        <ActionCompletionsSection
+          post={post}
+          currentUser={currentUser}
         />
-      )}
-      <PostGroups
-        isPublic={post.isPublic}
-        groups={post.groups}
-        slug={groupSlug}
-        showBottomBorder
-      />
-      <PostFooter {...post} currentUser={currentUser} />
-      <div ref={activityHeader} />
-      {state.atActivity && (
-        <div className={classes.activitySticky} style={activityStyle}>
-          <PostFooter {...post} currentUser={currentUser} />
-        </div>
       )}
       <Comments
         post={post}
@@ -358,10 +379,51 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
       <Button
         key='join-project-button'
         onClick={onClick}
-        className={classes.joinProjectButton}
+        variant='secondary'
       >
         {buttonText}
       </Button>
+    </div>
+  )
+}
+
+export function ActionCompletionsSection ({ currentUser, post }) {
+  const { t } = useTranslation()
+
+  const [showCompletionResponsesDialog, setShowCompletionResponsesDialog] = useState(false)
+  const toggleCompletionResponsesDialog = () => setShowCompletionResponsesDialog(!showCompletionResponsesDialog)
+
+  const completers = post.completionResponses.map(response => response.user)
+
+  return (
+    <div className='border-border border-2 rounded-lg p-4 flex flex-row gap-2 mt-4 w-full justify-between'>
+      <PeopleInfo
+        people={completers}
+        peopleTotal={completers.length}
+        onClick={toggleCompletionResponsesDialog}
+        excludePersonId={currentUser.id}
+        phrases={{
+          emptyMessage: t('No one has completed this action yet'),
+          phraseSingular: t('has completed this action'),
+          mePhraseSingular: t('have completed this action'),
+          pluralPhrase: t('have completed this action')
+        }}
+      />
+      {post.completionResponses.length > 0 && (
+        <Button
+          onClick={toggleCompletionResponsesDialog}
+          className='border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md bg-transparent'
+        >
+          {t('View All Responses')}
+        </Button>
+      )}
+      {showCompletionResponsesDialog && (
+        <ActionCompletionResponsesDialog
+          portalTarget={`post-detail-container-${post.id}`}
+          post={post}
+          onClose={toggleCompletionResponsesDialog}
+        />
+      )}
     </div>
   )
 }

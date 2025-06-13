@@ -15,6 +15,7 @@ import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 import classes from './PostListRow.module.scss'
+import { sameDay } from 'components/Calendar/calendar-util'
 
 // :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
 const stopEvent = (e) => e.stopPropagation()
@@ -52,11 +53,17 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, routeParams.slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = DateTime.fromJSDate(post.startTime)
+  const start = typeof post.startTime === 'string'
+    ? DateTime.fromISO(post.startTime)
+    : DateTime.fromJSDate(post.startTime)
+  const end = typeof post.endTime === 'string'
+    ? DateTime.fromISO(post.endTime)
+    : DateTime.fromJSDate(post.endTime)
+  const isSameDay = sameDay(start.toJSDate(), end.toJSDate())
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
-    <div className={cn(classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
+    <div className={cn('bg-card/50 hover:bg-card/100 transition-all p-3 border-b-2 border-midground text-foreground', classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         <div className={classes.typeAuthor}>
           {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
@@ -67,13 +74,12 @@ const PostListRow = (props) => {
             {post.type === 'event'
               ? (
                 <div className={classes.date}>
-                  <span>{start.toFormat('MMM')}</span>
-                  <span>{start.toFormat('d')}</span>
+                  <span>{isSameDay ? start.toFormat('MMM d') : `${start.toFormat('MMM d')} - ${end.toFormat('MMM d')}`}</span>
                 </div>
                 )
               : (
                 <div>
-                  <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
+                  <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} small />
                   {creator.name}
                   {numOtherCommentors > 1
                     ? (<span> {t('and')} <strong>{numOtherCommentors} {t('others')}</strong></span>)
@@ -109,8 +115,8 @@ const PostListRow = (props) => {
           </div>
         )}
         <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <h3 className={cn(classes.title)}>{title}</h3>
-          <HyloHTML className={classes.details} html={details} />
+          <h3 className={cn('font-bold text-foreground mb-0')}>{title}</h3>
+          <HyloHTML className='text-foreground/60 text-sm line-clamp-1 -mt-[10px]' html={details} />
         </div>
         <div className={classes.reactions}>
           <EmojiRow

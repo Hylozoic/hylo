@@ -39,8 +39,15 @@
 }
 
 .large {
-  width: $space-16x;
-  height: $space-16x;
+  width: 40px;
+  height: 40px;
+}
+
+.xxlarge {
+  width: 100%;
+  height: 100%;
+  max-width: 20vh;
+  max-height: 20vh;
 }
 
 .medium {

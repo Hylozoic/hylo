@@ -22,7 +22,6 @@ export default function PostHeader ({
   date,
   isFlagged,
   hideMenu,
-  pinned,
   postId,
   showMember,
   smallAvatar,
@@ -36,22 +35,20 @@ export default function PostHeader ({
     postId,
     creator,
     title,
-    pinned,
     closeOnDelete,
     setFlaggingVisible
   })
   const [{ currentGroup }] = useCurrentGroup()
   const handleShowMember = () => showMember && showMember(creator.id)
 
-  const creatorHasResponsibility = useHasResponsibility({ person: creator, forCurrentGroup: true })
-  // // TODO: URQL - Steward case? -- https://terrans.slack.com/archives/G01HM5VHD8X/p1732263229830789
-  // if (responsibility === null) {
-  //   // TODO: Shouldn't the '1', etc values be taken from constants?
-  //   return responsibilities.some(r => ['1', '3', '4'].includes(r.id))
-  // }
-  const creatorIsSteward = creatorHasResponsibility(null)
-  const badges = useRolesForGroup(currentGroup?.id, creator)
   const { avatarUrl, name } = creator
+  const handleFlagOnPress = () => navigation.navigate('Moderation', {
+    streamType: 'moderation',
+    initial: false,
+    options: {
+      title: 'Moderation'
+    }
+  })
 
   return (
     <View style={[styles.container, style]}>
@@ -66,17 +63,13 @@ export default function PostHeader ({
             <Text style={styles.name}>{name}</Text>
           )}
         </TouchableOpacity>
-        <CondensingBadgeRow badges={badges || []} creatorIsSteward={creatorIsSteward} currentGroup={currentGroup} postId={postId} />
         <Text style={styles.date}>{TextHelpers.humanDate(date)}</Text>
       </View>
       <View style={styles.upperRight}>
         {isFlagged && (
-          <TouchableOpacity hitSlop={5} onPress={() => navigation.navigate('Decisions', { streamType: 'moderation', initial: false, options: { title: 'Moderation' } })}>
+          <TouchableOpacity hitSlop={5} onPress={handleFlagOnPress}>
             <Icon name='Flag' style={styles.flagIcon} />
           </TouchableOpacity>
-        )}
-        {pinned && (
-          <Icon name='Pin' style={styles.pinIcon} />
         )}
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />
@@ -124,15 +117,6 @@ export function PostLabel ({ type, condensed }) {
   const labelTypeStyle = get(type, labelStyles) || labelStyles.discussion
   const boxStyle = [labelStyles.box, labelTypeStyle.box]
   const textStyle = [labelStyles.text, labelTypeStyle.text]
-
-  // explicit invocations of dynamic content
-  t('discussion')
-  t('event')
-  t('project')
-  t('proposal')
-  t('offer')
-  t('request')
-  t('resource')
 
   return (
     <View style={boxStyle}>

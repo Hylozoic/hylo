@@ -1,22 +1,24 @@
+import { useCallback } from 'react'
 import { useNavigation } from '@react-navigation/native'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
-import { useCurrentGroupSlug } from '@hylo/hooks/useCurrentGroup'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useIsModalScreen from './useIsModalScreen'
 
 export default function useGoToTopic () {
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const [{ currentGroupSlug }] = useCurrentGroupSlug()
+  const [{ currentGroup }] = useCurrentGroup()
 
-  return topicName => {
+  const goToTopic = useCallback(topicName => {
     if (isModalScreen) {
       return null
     } else {
-      if (isContextGroupSlug(currentGroupSlug)) {
+      if (currentGroup?.isStaticContext) {
         return navigation.navigate('Stream', { topicName })
       } else {
-        return navigation.navigate('Chat', { topicName })
+        return navigation.navigate('Chat Room', { topicName })
       }
     }
-  }
+  }, [currentGroup])
+
+  return goToTopic
 }

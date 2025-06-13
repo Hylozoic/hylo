@@ -13,7 +13,8 @@ export default function (opts) {
       autocomplete: opts.autocomplete,
       boundingBox: opts.boundingBox,
       search: opts.term,
-      sortBy: opts.sort
+      sortBy: opts.sort,
+      order: opts.order
     }, qb)
 
     if (opts.sort === 'join') {

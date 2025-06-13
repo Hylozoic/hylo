@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { createSelector } from 'reselect'
 import { debounce, get, groupBy, isEqual, isEmpty } from 'lodash'
 import { pick, pickBy } from 'lodash/fp'
+import { Heart } from 'lucide-react'
 import bbox from '@turf/bbox'
 import bboxPolygon from '@turf/bbox-polygon'
 import booleanWithin from '@turf/boolean-within'
@@ -100,48 +101,50 @@ function MapExplorer (props) {
 
   const mapRef = useRef(null)
 
-  const context = routeParams.context || props.context
-  const groupSlug = routeParams.groupSlug
+  const context = useMemo(() => routeParams.context || props.context, [routeParams.context, props.context])
+  const groupSlug = useMemo(() => routeParams.groupSlug, [routeParams.groupSlug])
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id
   const queryGroupSlugs = getQuerystringParam('group', location)
-  const groupSlugs = group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs
+  const groupSlugs = useMemo(() => group ? (queryGroupSlugs || []).concat(groupSlug) : queryGroupSlugs, [groupSlug, queryGroupSlugs])
 
   const currentUser = useSelector(state => getMe(state, { location }))
   const defaultChildPostInclusion = currentUser?.settings?.streamChildPosts || 'yes'
-  const childPostInclusion = getQuerystringParam('c', location) || defaultChildPostInclusion
+  const childPostInclusion = useMemo(() => getQuerystringParam('c', location) || defaultChildPostInclusion, [location])
 
   const [hideDrawer, setHideDrawer] = useState(getQuerystringParam('hideDrawer', location) === 'true')
-  const queryParams = getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location)
+  const queryParams = useMemo(() => getQuerystringParam(['search', 'sortBy', 'hide', 'topics', 'group'], location), [location])
 
   const reduxState = useSelector(state => state.MapExplorer)
 
-  const totalBoundingBoxLoaded = reduxState.totalBoundingBoxLoaded
+  const totalBoundingBoxLoaded = useMemo(() => reduxState.totalBoundingBoxLoaded, [reduxState.totalBoundingBoxLoaded])
 
-  const fetchPostsParams = {
+  const fetchPostsParams = useMemo(() => ({
     childPostInclusion,
     boundingBox: totalBoundingBoxLoaded,
     context,
     slug: groupSlug,
     groupSlugs
-  }
+  }), [childPostInclusion, context, groupSlug, groupSlugs, totalBoundingBoxLoaded])
 
   const topicsFromPosts = useSelector(state => getCurrentTopics(state, fetchPostsParams))
 
-  const filters = useMemo(() => ({
-    ...reduxState.clientFilterParams,
-    ...pick(['search', 'sortBy'], queryParams)
-  }), [reduxState.clientFilterParams, queryParams])
+  const filters = useMemo(() => {
+    const filters = {
+      ...reduxState.clientFilterParams,
+      ...pick(['search', 'sortBy'], queryParams)
+    }
+    if (queryParams.hide) {
+      // TODO: track groups and members separately from post types so we dont reload posts when we toggle groups or members
+      filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
+    }
+    if (queryParams.topics) {
+      filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
+    }
+    return filters
+  }, [reduxState.clientFilterParams, queryParams.search, queryParams.sortBy, queryParams.hide, queryParams.topics])
 
-  if (queryParams.hide) {
-    filters.featureTypes = Object.keys(filters.featureTypes).reduce((types, type) => { types[type] = !queryParams.hide.includes(type); return types }, {})
-  }
-
-  if (queryParams.topics) {
-    filters.topics = topicsFromPosts.filter(t => queryParams.topics.includes(t.id))
-  }
-
-  const fetchPostsForDrawerParams = {
+  const fetchPostsForDrawerParams = useMemo(() => ({
     childPostInclusion,
     context,
     slug: groupSlug,
@@ -149,20 +152,20 @@ function MapExplorer (props) {
     ...filters,
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
-  }
+  }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
 
-  const fetchGroupParams = {
+  const fetchGroupParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
     context,
     parentSlugs: groupSlugs
-  }
+  }), [totalBoundingBoxLoaded, context, groupSlugs])
 
-  const fetchMemberParams = {
+  const fetchMemberParams = useMemo(() => ({
     boundingBox: totalBoundingBoxLoaded,
     context,
     slug: groupSlug,
     sortBy: 'name'
-  }
+  }), [totalBoundingBoxLoaded, context, groupSlug])
 
   const members = useSelector(
     createSelector(
@@ -212,7 +215,7 @@ function MapExplorer (props) {
   }, [])
 
   const centerParam = getQuerystringParam('center', location)
-  let centerLocation = useMemo(() => {
+  const centerLocation = useMemo(() => {
     if (centerParam) {
       const decodedCenter = decodeURIComponent(centerParam).split(',')
       return { lat: parseFloat(decodedCenter[0]), lng: parseFloat(decodedCenter[1]) }
@@ -223,7 +226,7 @@ function MapExplorer (props) {
       group?.locationObject?.center ||
       currentUser?.locationObject?.center ||
       browserLocation ||
-      null
+      { lat: 35.442845, lng: 7.916598 }
   }, [centerParam, reduxState.centerLocation, group?.locationObject?.center, currentUser?.locationObject?.center, browserLocation])
 
   const { setHeaderDetails } = useViewHeader()
@@ -235,13 +238,7 @@ function MapExplorer (props) {
     })
   }, [])
 
-  let defaultZoom
-  if (centerLocation) {
-    defaultZoom = 10
-  } else {
-    defaultZoom = 2
-    centerLocation = { lat: 35.442845, lng: 7.916598 }
-  }
+  const defaultZoom = useMemo(() => (centerLocation ? 10 : 2), [centerLocation])
 
   const zoomParam = getQuerystringParam('zoom', location)
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
@@ -252,9 +249,9 @@ function MapExplorer (props) {
     setBaseLayerStyle('light-v11')
   }
 
-  const possibleFeatureTypes = context === 'public'
+  const possibleFeatureTypes = useMemo(() => context === 'public'
     ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group']
-    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group']
+    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group'], [context])
 
   const groupPending = useSelector(state => state.pending[FETCH_FOR_GROUP])
   const pendingPostsMap = useSelector(state => state.pending[FETCH_POSTS_MAP])
@@ -440,6 +437,10 @@ function MapExplorer (props) {
   const creatingPostRef = useRef(false)
 
   const onMapMouseDown = useCallback((e) => {
+    // close all open menus or popups whenever the map is clicked
+    setShowFeatureFilters(false)
+    setShowLayersSelector(false)
+    setShowSavedSearches(false)
     const oneSecondInMs = 1000
     setCreatePopupVisible(false)
     creatingPostRef.current = true
@@ -523,8 +524,12 @@ function MapExplorer (props) {
     setTotalPostsInView(viewPosts.length)
   }, [members, postsForMap, groups, group, onMapHover, onMapClick, context])
 
-  const updateViewportWithBbox = useCallback((bbox) => {
-    setViewport(locationObjectToViewport(viewport, { bbox }))
+  const updateViewportWithBbox = useCallback((bbox, zoom = false) => {
+    if (zoom) {
+      setViewport({ ...locationObjectToViewport(viewport, { bbox }), zoom })
+    } else {
+      setViewport(locationObjectToViewport(viewport, { bbox }))
+    }
   }, [viewport])
 
   useEffect(() => {
@@ -567,12 +572,27 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      doFetchPostsForDrawer()
-      dispatch(fetchMembers({ ...fetchMemberParams }))
       dispatch(fetchPostsForMap({ ...fetchPostsParams }))
+    }
+  }, [fetchPostsParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
+      doFetchPostsForDrawer()
+    }
+  }, [fetchPostsForDrawerParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
       dispatch(fetchGroups({ ...fetchGroupParams }))
     }
-  }, [totalBoundingBoxLoaded])
+  }, [fetchGroupParams])
+
+  useEffect(() => {
+    if (totalBoundingBoxLoaded) {
+      dispatch(fetchMembers({ ...fetchMemberParams }))
+    }
+  }, [fetchMemberParams])
 
   useEffect(() => {
     if (currentBoundingBox) {
@@ -592,9 +612,24 @@ function MapExplorer (props) {
 
   const handleLocationInputSelection = useCallback((value) => {
     if (value.mapboxId) {
-      value.bbox
-        ? updateViewportWithBbox(value.bbox)
-        : setViewport({ ...viewport, latitude: value.center.lat, longitude: value.center.lng, zoom: 12 })
+      if (value.bbox) {
+        // Calculate zoom based on bounding box size
+        const westLng = value.bbox[0].lng
+        const southLat = value.bbox[0].lat
+        const eastLng = value.bbox[1].lng
+        const northLat = value.bbox[1].lat
+        const longitudeDelta = Math.abs(eastLng - westLng)
+        const latitudeDelta = Math.abs(northLat - southLat)
+
+        // Use the larger of the two deltas to determine zoom
+        const maxDelta = Math.max(longitudeDelta, latitudeDelta)
+        // log2(360 / delta) gives us a rough zoom level where 360 is the total longitude span
+        const zoom = Math.min(Math.log2(360 / maxDelta), 20)
+
+        updateViewportWithBbox(value.bbox, zoom)
+      } else {
+        setViewport({ ...viewport, latitude: value.center.lat, longitude: value.center.lng, zoom: 13 })
+      }
     }
   }, [viewport])
 
@@ -621,7 +656,7 @@ function MapExplorer (props) {
     updatedMapFeatures(newBoundingBox)
   }
 
-  const afterViewportUpdate = useRef(debounce((update) => {
+  const afterViewportUpdate = debounce((update) => {
     let bounds = mapRef.current.getBounds()
     bounds = [bounds._sw.lng, bounds._sw.lat, bounds._ne.lng, bounds._ne.lat]
     updateBoundingBoxQuery(bounds)
@@ -632,7 +667,7 @@ function MapExplorer (props) {
     }
     setCreatePopupVisible(false)
     creatingPostRef.current = false
-  }, 300)).current
+  }, 300)
 
   const toggleFeatureType = useCallback((type, checked) => {
     const newFeatureTypes = { ...filters.featureTypes }
@@ -701,7 +736,7 @@ function MapExplorer (props) {
         <title>Map | {group ? `${group.name} | ` : context === 'public' ? 'Public | ' : ' All My Groups | '}Hylo</title>
       </Helmet>
 
-      <div className={classes.mapContainer} data-testid='map-container'>
+      <div className='flex-1 h-full relative' data-testid='map-container'>
         <Map
           baseLayerStyle={baseLayerStyle}
           hyloLayers={[polygonLayer, groupIconLayer, clusterLayer]}
@@ -721,12 +756,12 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn(classes.toggleDrawerButton, classes.drawerAdjacentButton, { [classes.drawerOpen]: !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs ', { 'right-5': hideDrawer, 'right-[520px]': !hideDrawer })}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
         <Icon name='Hamburger' className={classes.openDrawer} />
-        <Icon name='Ex' className={classes.closeDrawer} />
+        <Icon name='Ex' className={cn({ hidden: hideDrawer, block: !hideDrawer })} />
       </button>
       {!hideDrawer && (
         <MapDrawer
@@ -749,20 +784,21 @@ function MapExplorer (props) {
           topics={filters.topics}
         />
       )}
-      <div className={classes.searchAutocomplete}>
-        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='focus:outline-none' />
+      <div className='absolute top-5 left-[74px]'>
+        <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn(classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
       {currentUser && (
         <>
-          <Icon
-            name='Heart'
+          <button
             onClick={toggleSavedSearches}
-            className={cn(classes.savedSearchesButton, { [classes.open]: showSavedSearches })}
-          />
+            className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs left-5', { 'border-selected/50 text-selected': showSavedSearches })}
+          >
+            <Heart />
+          </button>
           {showSavedSearches && (
             <SavedSearches
               deleteSearch={handleDeleteSearch}
@@ -776,8 +812,8 @@ function MapExplorer (props) {
         </>
       )}
 
-      <div className={cn(classes.featureTypeFilters, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
-        <h3>{t('What do you want to see on the map?')}</h3>
+      <div className={cn('absolute bottom-[80px] left-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showFeatureFilters, [classes.withoutNav]: withoutNav })}>
+        <h3 className='text-sm font-medium mb-2 text-foreground/80'>{t('What do you want to see on the map?')}</h3>
         {possibleFeatureTypes.map(featureType => {
           const color = FEATURE_TYPES[featureType].primaryColor
           return (
@@ -795,20 +831,20 @@ function MapExplorer (props) {
             </div>
           )
         })}
-        <div className={classes.pointer} />
       </div>
 
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
-        className={cn(classes.toggleLayersSelectorButton, classes.drawerAdjacentButton, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs', { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}
         data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>
-      <div className={cn(classes.layersSelectorContainer, { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, [classes.drawerOpen]: !hideDrawer })}>
-        <h3>{t('Base Layer:')}
+      <div className={cn('absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}>
+        <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
+          <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
             className={classes.layersDropdown}
             menuAbove
@@ -823,32 +859,32 @@ function MapExplorer (props) {
               onClick: () => updateBaseLayerStyle(id)
             }))}
           />
-        </h3>
+        </div>
 
-        <h3 className={classes.layersHeader}>{t('Other Layers')}</h3>
-        <div className={classes.layersList}>
-          <SwitchStyled
-            backgroundColor='rgb(0, 163, 227)'
-            name={t('Native Territories')}
-            checked={!!otherLayers.native_territories}
-            onChange={(checked, name) => toggleMapLayer('native_territories')}
-          />
-          <span className={classes.layerLabel}>
-            {t('Native Territories')}
+        <div>
+          <span className='text-sm gap-1 font-medium mb-2 text-foreground/60'>{t('Other Layers')}</span>
+          <div className='flex flex-row gap-1'>
+            <SwitchStyled
+              backgroundColor='rgb(0, 163, 227)'
+              name={t('Native Territories')}
+              checked={!!otherLayers.native_territories}
+              onChange={(checked, name) => toggleMapLayer('native_territories')}
+            />
+            <span className={classes.layerLabel}>
+              {t('Native Territories')}
+            </span>
             <a href='https://native-land.ca' target='__blank'>
               <Icon name='Info' tooltipContent='Credit to native-land.ca' tooltipId='helpTipTwo' />
             </a>
-          </span>
+          </div>
         </div>
-
-        <div className={classes.pointer} />
       </div>
 
       {currentUser && (
         <button
           data-tooltip-id='helpTip'
           data-tooltip-content='Add item to map'
-          className={cn(classes.addItemToMapButton, classes.drawerAdjacentButton, { [classes.active]: isAddingItemToMap, [classes.drawerOpen]: !hideDrawer })}
+          className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs', { [classes.active]: isAddingItemToMap, 'right-[520px]': !hideDrawer })}
           onClick={handleAddItemToMap}
         >
           <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />

@@ -6,6 +6,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.2] - 2025-06-12
+
+### Changed
+- Faster closing of post modal after creating a non chat post
+
+### Fixed
+- Immediate editing of a new chat post no longer removes that post
+- Fix location of post dialog in stream when scrolled down.
+- Add missing translations for proposal posts
+
+## [6.1.1] - 2025-06-11
+
+### Added
+- Missing translation for unpublished tracks
+
+### Changed
+- Remove the new Hylo alert that was shown to users who signed up before the redesign
+
+### Fixed
+- Display of send announcement modal
+- Display of disabled post button in post editor
+
+## [6.1.0] - 2025-06-10
+
+### Added
+- __Tracks!__ Tracks are a way to offer a series of actions/modules/lessons to a group. They can be used for courses, workshops, or any other kind of learning experience, as well as for certain kinds of projects or any other kind of sequential group activity offered to members. Tracks are made of actions, which can have different types of completion requirements, like a text response, an uploaded file, or choosing from a list of options.
+
+## [6.0.8] - 2025-06-05
+
+### Added
+- Information about and a link to the form for applying for a group to join The Commons, in the Privacy & Access group settings page.
+- Tweaked language when toggling a post to Public in the post editor that says whether the post will display in The Commons or not based on whether any of the selected groups have been allow in The Commons.
+
+### Changed
+- More quickly clear the chat box for the next post after creating a post
+- Improvements to spacing of post editor fields
+
+### Fixed
+- Make sure link preview clears from chat box after creating a post
+
+## [6.0.7] - 2025-05-25
+
+### Fixed
+- Blank screen when some users sign up and join a group
+- Extraneous borders around some dropdowns
+- Invisible text in custom views and roles settings in dark mode
+
+## [6.0.6] - 2025-05-05
+
+### Changed
+- Switch back from "home" as the name of the default chat room for groups to "general". To reduce confusion between home chat and the hpme view for your group
+- Use the # icon for chat rooms instead of a message bubble icon
+
+### Fixed
+- Ensure that chat rooms for groups are always displaying in the To field in the post editor so you can easily send a post to a specific chat room / topic.
+
+## [6.0.5] - 2025-04-30
+
+### Changed
+- Better UX on groups page when a group has no related groups
+
+### Fixed
+- Issue preventing clicking on links in post details and comments
+- Emoji reactions are now displayed correctly in the post list
+- Display of pending invite timing
+- Issue where clicking stream view child post toggle would go to last view you were on
+- Fix display of lists in comments
+- Fix bold text color in comments
+- Fix dropdowns in custom views settings and everywhere. And remove the unecessary x that appears when they are open
+- Editing posts from custom views
+
+## [6.0.4] - 2025-04-21
+
+### Fixed
+- New posts immediately appear at the top of the Stream and Events views after being created again.
+- Display of flagging post dialog in dark mode
+- Display of quoted text in posts in dark mode
+- Setting proposal summary once voting is completed
+
+## [6.0.3] - 2025-04-08
+
+### Fixed
+- Duplicate votes on proposals
+- Votes now appear immediately when cast on a proposal in a chat room
+
+## [6.0.2] - 2025-04-02
+
+### Added
+- Allow in-app notifications to be cmd/ctrl clicked
+
+### Changed
+- Many tweaks and improvements to the post editor
+- Improved the UI of the Roles and Responsibilites group settings page
+- Fixed and simplified styling of heading tags in global styles
+- Improved padding of chat room and chat posts
+
+### Fixed
+- Added the correct color to the heading tags in hyloeditor
+- Flagging of public content
+- Remove file attachments from post editor after creating a post
+- Fix display of badge names and resonsibilities in member directory
+- If there is already a valid linkPreview, dont flicker the loading spinner for previews
+- Fix display of posts in map drawer
+- Once again reload them after map filters change (like post types)
+- Fix zoom level when jumping to a location on the map
+
+## [6.0.0] - 2025-03-14
+
+Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
+There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+
 ## [5.11.4] - 2024-01-14
 
 ### Fixed

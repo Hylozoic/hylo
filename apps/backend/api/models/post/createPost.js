@@ -9,10 +9,11 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'announcement', 'location', 'location_id', 'proposalOptions'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
+        inserts.setLocalId(params.localId)
         return inserts
       }).catch(function (error) {
         throw error
@@ -74,6 +75,8 @@ export function afterCreatingPost (post, opts) {
       url: opts.videoUrl
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
+
+    opts.trackId && Track.addPost(post, opts.trackId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
     .then(() => post.isEvent() && post.updateEventInvitees(opts.eventInviteeIds || [], userId, trxOpts))
@@ -134,7 +137,7 @@ async function updateTagsAndGroups (post, localId, trx) {
   return Promise.all([
     notifySockets,
     groupTagsQuery.update({ updated_at: new Date() }),
-    tagFollowQuery.increment('new_post_count'),
-    groupMembershipQuery.increment('new_post_count')
+    tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }

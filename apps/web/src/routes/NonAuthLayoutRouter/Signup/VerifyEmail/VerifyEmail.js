@@ -17,6 +17,7 @@ export default function VerifyEmail (props) {
   const email = currentUser?.email || getQuerystringParam('email', location)
   const token = getQuerystringParam('token', location)
   const [error, setError] = useState()
+  const [notice, setNotice] = useState()
   const [code, setCode] = useState('')
   const [redirectTo, setRedirectTo] = useState()
   const [loading, setLoading] = useState(false)
@@ -27,8 +28,12 @@ export default function VerifyEmail (props) {
     const { success, error } = payload.getData()
 
     if (error) setError(error)
-
-    if (success) setRedirectTo(`/signup/verify-email?email=${encodeURIComponent(email)}`)
+    if (success) {
+      setNotice(t('Email verification re-sent'))
+      setTimeout(() => {
+        setNotice()
+      }, 10000)
+    }
   }
 
   useEffect(() => {
@@ -70,6 +75,7 @@ export default function VerifyEmail (props) {
       <Link to='/signup' className={classes.backButton}>&#8592; {t('back')}</Link>
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('Check your email')}</h1>
+        {notice && <p className='text-accent text-center text-sm'>{notice}</p>}
         <p className={classes.subHeader}>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
         {error && formatError(error, 'Signup', t)}
         <div className={classes.codeWrapper}>

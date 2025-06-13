@@ -1,4 +1,15 @@
+import { useAuthStore } from '@hylo/contexts/AuthContext'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
+
+jest.mock('@hylo/contexts/AuthContext', () => {
+  const actual = jest.requireActual('@hylo/contexts/AuthContext')
+  return {
+    ...actual,
+    useAuthStore: {
+      getState: jest.fn()
+    }
+  }
+})
 
 // // Transcription of "notifications paths" from Web
 // '/my/account',
@@ -39,14 +50,15 @@ const notificationsSamplePaths = [
   ['/login', 'NonAuthRoot/Login'],
   ['/reset-password', 'NonAuthRoot/ForgotPassword'],
   ['/signup', 'NonAuthRoot/Signup/Signup Intro'],
-  ['/signup/verify-email', 'NonAuthRoot/Signup/SignupEmailValidation', { step: 'verify-email' }],
+  ['/signup/verify-email', 'NonAuthRoot/Signup/Signup Intro', { step: 'verify-email' }],
   [
     '/groups/sample-group/join/xyz789', 'JoinGroup', {
       groupSlug: 'sample-group', accessCode: 'xyz789', context: 'groups', originalLinkingPath: '/groups/sample-group/join/xyz789'
     }
   ],
   ['/messages/123', 'AuthRoot/Drawer/Tabs/Messages Tab/Thread', { id: '123' }],
-  ['/my/account', 'AuthRoot/Drawer/Tabs/Settings Tab', { context: 'my', settingsArea: 'account' }],
+  ['/my/account', 'AuthRoot/Drawer/Tabs/Home Tab/User Settings', { groupSlug: 'my', context: 'my', settingsArea: 'account' }],
+  ['/all/stream', 'AuthRoot/Drawer/Tabs/Home Tab/Stream', { context: 'my', groupSlug: 'my' }],
   ['/create/post', 'AuthRoot/Edit Post', { unmatchedBasePath: '' }],
 
   // When no Screen Path target yet defined, creates pending test cases
@@ -163,7 +175,12 @@ const getDeepestRoute = (route) => {
   return route
 }
 
-describe('getStateFromPath', () => {
+describe('getStateFromPath (isAuthorized)', () => {
+  useAuthStore.getState.mockReturnValue({
+    isAuthorized: true,
+    isAuthenticated: true
+  })
+
   const pendingCases = {}
 
   notificationsSamplePaths.forEach((testCase) => {

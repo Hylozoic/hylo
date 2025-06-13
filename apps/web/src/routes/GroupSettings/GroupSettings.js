@@ -15,12 +15,13 @@ import RolesSettingsTab from './RolesSettingsTab'
 import PrivacySettingsTab from './PrivacySettingsTab'
 import RelatedGroupsTab from './RelatedGroupsTab'
 import ResponsibilitiesTab from './ResponsibilitiesTab'
-import TopicsSettingsTab from './TopicsSettingsTab'
 import ExportDataTab from './ExportDataTab'
+import TracksTab from './TracksTab'
+import WelcomePageTab from './WelcomePageTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
-import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { myHomeUrl, groupUrl } from 'util/navigation'
 import presentGroup from 'store/presenters/presentGroup'
@@ -29,15 +30,9 @@ import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import getMe from 'store/selectors/getMe'
 import {
-  FETCH_COLLECTION_POSTS,
   FETCH_GROUP_SETTINGS,
-  addPostToCollection,
-  createCollection,
   deleteGroup,
-  fetchCollectionPosts,
   fetchGroupSettings,
-  removePostFromCollection,
-  reorderPostInCollection,
   updateGroupSettings
 } from './GroupSettings.store'
 
@@ -54,16 +49,10 @@ export default function GroupSettings () {
   const parentGroups = useSelector(state => getParentGroups(state, group))
   const commonRoles = useSelector(getCommonRoles)
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
-  const fetchCollectionPostsPending = useSelector(state => state.pending[FETCH_COLLECTION_POSTS])
 
   // Action creators
-  const addPostToCollectionAction = (collectionId, postId) => dispatch(addPostToCollection(collectionId, postId))
-  const createCollectionAction = (data) => dispatch(createCollection(data))
-  const fetchCollectionPostsAction = id => dispatch(fetchCollectionPosts(id))
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))
   const fetchLocationAction = (location) => dispatch(fetchLocation(location))
-  const removePostFromCollectionAction = (collectionId, postId) => dispatch(removePostFromCollection(collectionId, postId))
-  const reorderPostInCollectionAction = (collectionId, postId, newOrderIndex) => dispatch(reorderPostInCollection(collectionId, postId, newOrderIndex))
   const updateGroupSettingsAction = changes => group && dispatch(updateGroupSettings(group.id, changes))
   const deleteGroupAction = () => {
     if (group) {
@@ -82,6 +71,7 @@ export default function GroupSettings () {
   const responsibilities = useSelector(state => getResponsibilitiesForGroup(state, { person: currentUser, groupId: group?.id })).map(r => r.title)
   const canAdminister = responsibilities.includes(RESP_ADMINISTRATION)
   const canAddMembers = responsibilities.includes(RESP_ADD_MEMBERS)
+  const canManageTracks = responsibilities.includes(RESP_MANAGE_TRACKS)
 
   if (!group) return <Loading />
 
@@ -109,6 +99,12 @@ export default function GroupSettings () {
     component: <AgreementsTab group={group} />
   }
 
+  const welcomePageSettings = {
+    name: t('Welcome Page'),
+    path: 'welcome',
+    component: <WelcomePageTab group={group} updateGroupSettings={updateGroupSettingsAction} />
+  }
+
   const responsibilitiesSettings = {
     name: t('Responsibilities'),
     path: 'responsibilities',
@@ -131,25 +127,15 @@ export default function GroupSettings () {
     name: t('Custom Views'),
     path: 'views',
     component: (
-      <CustomViewsTab
-        group={group}
-        addPostToCollection={addPostToCollectionAction}
-        createCollection={createCollectionAction}
-        fetchCollectionPosts={fetchCollectionPostsAction}
-        fetchCollectionPostsPending={fetchCollectionPostsPending}
-        fetchPending={fetchPending}
-        removePostFromCollection={removePostFromCollectionAction}
-        reorderPostInCollection={reorderPostInCollectionAction}
-        updateGroupSettings={updateGroupSettingsAction}
-      />
+      <CustomViewsTab group={group} />
     )
   }
 
-  const topicsSettings = {
-    name: t('Topics'),
-    path: 'topics',
-    component: <TopicsSettingsTab group={group} />
-  }
+  // const topicsSettings = {
+  //   name: t('Topics'),
+  //   path: 'topics',
+  //   component: <TopicsSettingsTab group={group} />
+  // }
 
   const inviteSettings = {
     name: t('Invite'),
@@ -167,6 +153,12 @@ export default function GroupSettings () {
     name: t('Related Groups'),
     path: 'relationships',
     component: <RelatedGroupsTab group={group} currentUser={currentUser} />
+  }
+
+  const tracksSettings = {
+    name: t('Tracks'),
+    path: 'tracks',
+    component: <TracksTab group={group} currentUser={currentUser} />
   }
 
   const importSettings = {
@@ -193,14 +185,16 @@ export default function GroupSettings () {
       content={compact([
         canAdminister ? overallSettings : null,
         canAdminister ? agreementSettings : null,
+        canAdminister ? welcomePageSettings : null,
         canAdminister ? responsibilitiesSettings : null,
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
         canAdminister ? customViewsSettings : null,
-        canAdminister ? topicsSettings : null,
+        // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
         canAdminister ? relatedGroupsSettings : null,
+        canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
         canAdminister ? deleteSettings : null

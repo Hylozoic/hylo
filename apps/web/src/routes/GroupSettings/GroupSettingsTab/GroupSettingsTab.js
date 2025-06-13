@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { TextHelpers } from '@hylo/shared'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
@@ -22,6 +23,7 @@ import {
   LOCATION_PRECISION
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
+import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
 
 import general from '../GroupSettings.module.scss'
@@ -43,7 +45,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (!group) return { edits: {}, changed: false, valid: false }
 
     const {
-      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings
+      aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, locationObject, name, settings, websiteUrl
     } = group
 
     return {
@@ -59,7 +61,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         stewardDescriptorPlural: group.stewardDescriptorPlural || t('Moderators'),
         name: name || '',
         purpose: group.purpose || '',
-        settings: typeof settings !== 'undefined' ? settings : { }
+        settings: typeof settings !== 'undefined' ? settings : { },
+        websiteUrl
       },
       error: null,
       changed: false,
@@ -74,6 +77,8 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     if (key === 'location') {
       edits.location = event.target.value.fullText
       edits.locationId = event.target.value.id
+    } else if (key === 'websiteUrl') {
+      edits.websiteUrl = TextHelpers.sanitizeURL(event.target.value)
     } else {
       set(edits, key, event.target.value)
     }
@@ -114,15 +119,6 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     dispatch(setConfirmBeforeClose(false))
   }
 
-  function saveButtonContent () {
-    const { changed, error } = state
-    if (!changed) return { color: 'gray', style: '', text: t('Current settings up to date') }
-    if (error) {
-      return { color: 'purple', style: 'general.settingIncorrect', text: error }
-    }
-    return { color: 'green', style: 'general.settingChanged', text: t('Changes not saved') }
-  }
-
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -136,13 +132,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
 
   const { changed, edits, error } = state
   const {
-    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings
+    aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
   const { locationDisplayPrecision, showSuggestedSkills } = settings
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
-  t('Show my groups exact location')
+  t('Display exact location')
   t('Display only nearest city and show nearby location on the map')
   t('Display only nearest city and dont show on the map')
 
@@ -176,8 +172,13 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </UploadAttachmentButton>
       </div>
-      <div className='w-full flex justify-center items-center mt-2'>
-        <input type='text' onChange={updateSetting('name')} value={name || ''} id='nameField' className='bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed' />
+      <div className='w-full flex justify-center items-center mt-2 mb-1'>
+        <input
+          type='text'
+          onChange={updateSetting('name')}
+          value={name || ''} id='nameField'
+          className='w-full bg-transparent text-foreground text-center text-2xl font-bold outline-none focus:border-2 focus:border-dashed focus:border-foreground/80 rounded-lg hover:scale-105 transition-all hover:border-2 hover:border-foreground/50 border-dashed border-2 border-transparent hover:border-dashed'
+        />
       </div>
 
       <SettingsControl
@@ -189,6 +190,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         value={purpose}
       />
       <SettingsControl label={t('Description')} onChange={updateSetting('description')} value={description} type='textarea' id='descriptionField' />
+      <SettingsControl label={t('Website URL')} onChange={updateSetting('websiteUrl')} value={websiteUrl} />
       <SettingsControl label={t('About Video URL')} onChange={updateSetting('aboutVideoUri')} value={aboutVideoUri} />
       <SettingsSection>
         <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Location Settings')}</h3>
@@ -199,7 +201,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           locationObject={group.locationObject}
           type='location'
         />
-        <div className='mb-10'>
+        <div className='mb-5'>
           <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
             className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
@@ -226,7 +228,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           type='text'
           value={geoShape || ''}
         />
-        <div className='w-full h-[275px] mt-[-2rem] rounded-lg overflow-hidden'>
+        <div className='w-full h-[275px] rounded-lg overflow-hidden'>
           {state.isModal
             ? (
               <EditableMapModal group={group} toggleModal={toggleModal}>
@@ -291,17 +293,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </div>
       </SettingsSection>
-      <div className={cn(
-        'sticky bottom-4 left-[50%] translate-x-[-50%] w-[60%] bg-background/80 rounded-xl p-4 flex justify-between items-center translate-y-[200px] transition-all opacity-0 scale-0',
-        {
-          'border-2 border-accent border-dashed text-accent translate-y-[0px] opacity-100 scale-100': changed
-        })}
-      >
-        <span className={saveButtonContent().style}>{saveButtonContent().text}</span>
-        <button onClick={changed && !error ? save : null} className='bg-foreground rounded text-background py-1 px-2 text-bold'>
-          {t('Save Changes')}
-        </button>
-      </div>
+      <SaveButton save={save} changed={changed} error={error} />
     </div>
   )
 }

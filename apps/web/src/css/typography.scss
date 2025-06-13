@@ -1,8 +1,8 @@
 // Global Typography
 
 blockquote {
-  border-left: solid 2px $color-rhino-30;
-  color: $color-rhino-30;
+  border-left: solid 2px hsl(var(--foreground) / 0.6);
+  color: hsl(var(--foreground) / 0.7);
   margin-left: 0.25em;
   padding: 0.5em;
   padding-bottom: 0.25em;
@@ -42,7 +42,6 @@ ul, ol {
 
 strong {
   @include font-bold;
-  font-weight: 300;
 }
 
 p {
@@ -50,13 +49,15 @@ p {
 }
 
 a {
-  color: #0275d8
+  color: hsl(var(--focus)/100);
+  transition: all 0.2s ease-in-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
   a:focus,
   a:hover {
-    color: #014c8c
+    color: hsl(var(--selected)/100);
+    cursor: pointer;
   }
 }
 
@@ -84,12 +85,14 @@ a.hylo-link,
 .mention,
 .topic
 {
-  color: $color-caribbean-green;
+  color: hsl(var(--focus)/100);
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
   @media (hover: hover) and (pointer: fine) {
     &:hover {
       text-decoration: none;
-      color: $color-gossamer;
+      color: hsl(var(--selected)/100);
     }
   }
 }

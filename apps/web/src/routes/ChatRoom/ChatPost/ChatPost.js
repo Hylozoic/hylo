@@ -1,19 +1,18 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import ReactPlayer from 'react-player'
 import { useLongPress } from 'use-long-press'
 import Avatar from 'components/Avatar'
-import Button from 'components/Button'
 import ClickCatcher from 'components/ClickCatcher'
 import CardFileAttachments from 'components/CardFileAttachments'
 import CardImageAttachments from 'components/CardImageAttachments'
 import EmojiRow from 'components/EmojiRow'
 import EmojiPicker from 'components/EmojiPicker'
-import FlagContent from 'components/FlagContent'
+import FlagGroupContent from 'components/FlagGroupContent'
 import Highlight from 'components/Highlight'
 import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
@@ -21,6 +20,7 @@ import Icon from 'components/Icon'
 import Feature from 'components/PostCard/Feature'
 import LinkPreview from 'components/LinkPreview'
 import RoundImageRow from 'components/RoundImageRow'
+import Tooltip from 'components/Tooltip'
 import useReactionActions from 'hooks/useReactionActions'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
@@ -30,7 +30,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
@@ -39,10 +39,13 @@ export default function ChatPost ({
   className,
   group,
   highlightProps,
+  highlighted,
   post,
   showHeader = true,
   onAddReaction = () => {},
-  onRemoveReaction = () => {}
+  onFlagPost = () => {},
+  onRemoveReaction = () => {},
+  onRemovePost = () => {}
 }) {
   const {
     commenters,
@@ -77,6 +80,7 @@ export default function ChatPost ({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false)
 
   const isCreator = currentUser.id === creator.id
+  const isFlagged = useMemo(() => group && post.flaggedGroups && post.flaggedGroups.includes(group.id), [group, post.flaggedGroups])
 
   const groupIds = groups.map(g => g.id)
 
@@ -165,23 +169,24 @@ export default function ChatPost ({
   }
 
   const deletePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to delete this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to delete this post? You cannot undo this.'))) {
       dispatch(deletePost(id, group.id))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
   })
 
   const removePostWithConfirm = useCallback((event) => {
-    if (window.confirm('Are you sure you want to remove this post? You cannot undo this.')) {
+    if (window.confirm(t('Are you sure you want to remove this post? You cannot undo this.'))) {
       dispatch(removePost(id, group.slug))
+      onRemovePost(post.id)
     }
     event.stopPropagation()
     return true
   })
 
   const actionItems = filter(item => isFunction(item.onClick), [
-    // { icon: 'Pin', label: pinned ? 'Unpin' : 'Pin', onClick: pinPost },
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
     { icon: 'Replies', label: 'Reply', onClick: showPost },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
@@ -191,9 +196,11 @@ export default function ChatPost ({
     { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
   ])
 
-  const myEmojis = myReactions ? myReactions.map((reaction) => reaction.emojiFull) : []
+  const myEmojis = useMemo(() => myReactions ? myReactions.map((reaction) => reaction.emojiFull) : [], [myReactions])
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
+
+  const moderationActionsGroupUrl = group && groupUrl(group.slug, 'moderation')
 
   const handleMouseEnter = () => {
     setIsHovered(true)
@@ -218,50 +225,55 @@ export default function ChatPost ({
   return (
     <Highlight {...highlightProps}>
       <div
-        className={cn('rounded-lg', className, styles.container, {
-          [styles.longPressed]: isLongPress,
-          [styles.hovered]: isHovered
-        })}
+        className={cn(
+          'ChatPost_container rounded-lg pr-[15px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          className,
+          styles.container,
+          {
+            [styles.longPressed]: isLongPress,
+            [styles.hovered]: isHovered,
+            'bg-accent/30': highlighted
+          }
+        )}
         ref={ref}
         {...bindLongPress()}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className={styles.actionBar}>
+        <div className='flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 group-hover:opacity-100 delay-300 scale-0 group-hover:scale-100'>
           {actionItems.map(item => (
-            <Button
+            <button
               key={item.label}
-              noDefaultStyles
-              borderRadius='0'
               onClick={item.onClick}
-              className={styles.actionItem}
+              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             >
               <Icon name={item.icon} />
-            </Button>
+            </button>
           ))}
           <EmojiPicker
-            className={styles.actionItem}
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
             onOpenChange={handleEmojiPickerOpen}
           />
           {flaggingVisible && (
-            <FlagContent
+            <FlagGroupContent
               type='post'
               linkData={{ id, slug: group.slug, type: 'post' }}
               onClose={() => setFlaggingVisible(false)}
+              onFlag={() => onFlagPost({ post })}
             />
           )}
         </div>
 
         {showHeader && (
-          <div className={styles.header} onClick={handleClick}>
-            <div onClick={showCreator} className={styles.author}>
-              <Avatar avatarUrl={creator.avatarUrl} className={styles.avatar} />
-              <div className={styles.name}>{creator.name}</div>
+          <div className='flex justify-between items-center relative z-0' onClick={handleClick}>
+            <div onClick={showCreator} className='flex items-center gap-2 relative -left-[8px] sm:-left-0'>
+              <Avatar avatarUrl={creator.avatarUrl} large />
+              <div className='w-full font-bold'>{creator.name}</div>
             </div>
-            <div className={styles.date}>
+            <div className='text-xs text-foreground/50'>
               {DateTime.fromISO(createdAt).toFormat('t')}
               {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
             </div>
@@ -269,6 +281,7 @@ export default function ChatPost ({
         )}
         {details && editing && (
           <HyloEditor
+            containerClassName={styles.postContentContainer}
             contentHTML={details}
             groupIds={groupIds}
             onEscape={handleEditCancel}
@@ -276,23 +289,28 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cn(styles.postContentContainer, styles.editing, styles.postContent)}
+            className={cn(styles.editing, styles.postContent)}
           />
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={styles.postContentContainer}>
-              <HyloHTML className={styles.postContent} html={details} />
+            <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
+              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
             </div>
           </ClickCatcher>
         )}
+        {isFlagged && <Link to={moderationActionsGroupUrl} className='absolute top-[calc(50%-14px)] ml-[50%] text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='flag-tt'><Icon name='Flag' className='text-xl text-accent font-bold' /></Link>}
+        <Tooltip
+          delay={250}
+          id='flag-tt'
+        />
         {linkPreview?.url && linkPreviewFeatured && isVideo && (
           <Feature url={linkPreview.url} />
         )}
         {linkPreview && !linkPreviewFeatured && (
           <LinkPreview {...pick(['title', 'description', 'imageUrl', 'url'], linkPreview)} className={styles.linkPreview} />
         )}
-        <CardImageAttachments attachments={post.attachments} isFlagged={false} forChatPost />
+        <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} forChatPost />
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
@@ -304,9 +322,9 @@ export default function ChatPost ({
           onRemoveReaction={onRemoveReaction}
         />
         {commentsTotal > 0 && (
-          <span className={styles.commentsContainer}>
+          <span className='bg-black/10 rounded-lg py-2 px-2 h-[40px] items-center justify-center flex w-[120px]'>
             <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className={styles.commentsCaption} onClick={handleClick}>
+            <span className='text-sm text-foreground' onClick={handleClick}>
               {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
             </span>
           </span>

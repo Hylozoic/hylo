@@ -75,17 +75,17 @@ export const filterAndSortPosts = curry((opts, q) => {
     })
   }
 
+  // NB: ongoing posts are returned in both cases
+  // NB: calendarView needs WHERE post.start_time < beforeTime AND post.end_time >= afterTime
   if (afterTime) {
     q.where(q2 =>
-      q2.where('posts.start_time', '>=', afterTime)
-      .orWhere('posts.end_time', '>=', afterTime)
+      q2.where('posts.end_time', '>=', afterTime)
     )
   }
 
   if (beforeTime) {
     q.where(q2 =>
       q2.where('posts.start_time', '<', beforeTime)
-      .andWhere('posts.end_time', '<', beforeTime)
     )
   }
 
@@ -198,7 +198,7 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
   } else if (!sortBy || sortBy === 'name') {
     q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
   } else {
-    q.orderBy(sortBy, order || 'asc')
+    q.orderByRaw(`${sortBy} ${order || 'asc'} NULLS LAST`)
   }
 
   if (boundingBox) {
@@ -209,7 +209,6 @@ export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, g
 })
 
 export const filterAndSortGroups = curry((opts, q) => {
-
   const { search, sortBy = 'name', boundingBox, order } = opts
 
   if (search) {

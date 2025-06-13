@@ -13,7 +13,6 @@ exports[`CommentCard matches the last snapshot 1`] = `
         }
       }
       date={123}
-      goToGroup={[Function]}
       hideMenu={true}
       pinned={false}
       postId={2}
@@ -80,7 +79,6 @@ exports[`PostCard matches the last snapshot 1`] = `
         "id": 2,
       }
     }
-    goToGroup={[Function]}
     hideDetails={true}
     hideMenu={true}
     onPress={[Function]}

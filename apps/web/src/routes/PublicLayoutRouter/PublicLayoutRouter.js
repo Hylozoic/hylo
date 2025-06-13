@@ -53,7 +53,7 @@ function MapExplorerLayoutRouter (props) {
           path={GROUP_DETAIL_MATCH}
           element={
             <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-              <GroupDetail />
+              <GroupDetail context='public' />
             </div>
           }
         />
@@ -75,7 +75,7 @@ function GroupExplorerLayoutRouter () {
           path={GROUP_DETAIL_MATCH}
           element={
             <div className={classes.detail} id={DETAIL_COLUMN_ID}>
-              <GroupDetail />
+              <GroupDetail context='public' />
             </div>
           }
         />

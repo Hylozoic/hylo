@@ -26,11 +26,9 @@ const TextInput = forwardRef(({
   loading,
   label,
   internalLabel,
-  name,
-  placeholder,
   ...props
 }, ref) => {
-  const onKeyDown = onEnter ? onEnter(props.onEnter) : () => {}
+  const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
   const onBlur = () => { props.onBlur && props.onBlur(); setActive(false) }
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
 
@@ -47,13 +45,13 @@ const TextInput = forwardRef(({
     <div className={cn(theme.wrapperStyle || styles.wrapper, theme.wrapper || className)}>
       <input
         ref={ref}
+        value={value}
         type='text'
         className={cn(
-          styles[theme.inputStyle] || styles.input,
+          inputClassName ? '' : (styles[theme.inputStyle] || styles.input),
           theme.input,
           inputClassName
         )}
-        placeholder={placeholder}
         onAnimationStart={handleAnimation}
         onKeyDown={onKeyDown}
         onBlur={onBlur}

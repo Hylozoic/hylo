@@ -1,9 +1,9 @@
 import { gql } from 'urql'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import postsQuerySetFragment from '@hylo/graphql/fragments/postsQuerySetFragment'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 
-export const STREAM_PAGE_SIZE = 10
+export const STREAM_PAGE_SIZE = 7
 
 export const makeStreamQuery = ({
   activePostsOnly,
@@ -20,7 +20,6 @@ export const makeStreamQuery = ({
   forCollection,
   interactedWithBy,
   mentionsOf,
-  myHome,
   offset,
   order,
   search,
@@ -30,19 +29,10 @@ export const makeStreamQuery = ({
   topics,
   types
 }) => {
-  let query
-
-  if (context === 'groups') {
-    query = makeGroupPostsQuery(childPostInclusion === 'yes')
-  // TODO: URQL - Amend to make 'my' a ContextGroup as well
-  } else if (isContextGroupSlug(context)) {
-    query = postsQuery
-  } else {
-    throw new Error(`makeQuery with context=${context} is not implemented`)
-  }
-
   return {
-    query,
+    query: isStaticContext(context)
+      ? postsQuery
+      : makeGroupPostsQuery(childPostInclusion === 'yes'),
     variables: {
       activePostsOnly,
       afterTime,
@@ -58,7 +48,6 @@ export const makeStreamQuery = ({
       forCollection,
       interactedWithBy,
       mentionsOf,
-      myHome,
       offset,
       order,
       search,
@@ -104,8 +93,8 @@ const postsQuery = gql`
 
 // TODO: URQL - eliminate Group.viewPosts and add "includeChildPost" filter (or similar)
 // viewPosts shows all the aggregate posts from current group and any
-// children the current user is a member of. We alias as posts so
-// redux-orm sets up the relationship between group and posts correctly
+// children the current user is a member of. We aliased as posts so
+// redux-orm would setup the relationship between group and posts correctly
 const makeGroupPostsQuery = withChildPosts => gql`
   query StreamGroupPostsQuery (
     $slug: String,

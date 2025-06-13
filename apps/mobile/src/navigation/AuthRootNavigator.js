@@ -14,21 +14,26 @@ import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutati
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
+import useHandleLinking from 'navigation/linking/useHandleLinking'
 import { isDev } from 'config'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
+import useRouteParams from 'hooks/useRouteParams'
 import ModalHeader from 'navigation/headers/ModalHeader'
-import CreateGroupTabsNavigator from 'navigation/CreateGroupTabsNavigator'
+import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
+import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
+import HyloWebView from 'components/HyloWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
 import PostDetails from 'screens/PostDetails'
 import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
-import { white } from 'style/colors'
+import UploadAction from 'screens/UploadAction'
+import { twBackground } from 'style/colors'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
@@ -68,15 +73,24 @@ export default function AuthRootNavigator () {
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
 
+  const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
+  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
+  
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
+  useHandleLinking()
+
+  useEffect(() => {
+    setLoading(!initialized || !currentUser || currentUserFetching)
+  }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {
     resetNotificationsCount()
@@ -99,7 +113,7 @@ export default function AuthRootNavigator () {
 
   useEffect(() => {
     (async function () {
-      if (currentUser && !fetching && !error) {
+      if (!initialized && currentUser && !currentUserFetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
         // Locale setup
@@ -129,14 +143,14 @@ export default function AuthRootNavigator () {
           $location: currentUser?.location
         })
 
-        setLoading(false)
+        setInitialize(true)
       }
     })()
 
     return () => {
       OneSignal.User.removeEventListener('change', oneSignalChangeListener)
     }
-  }, [currentUser, fetching, error])
+  }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
@@ -144,7 +158,7 @@ export default function AuthRootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white }
+      cardStyle: { backgroundColor: twBackground }
     }
   }
 
@@ -152,28 +166,35 @@ export default function AuthRootNavigator () {
     <HyloHTMLConfigProvider>
       <AuthRoot.Navigator {...navigatorProps}>
         <AuthRoot.Screen name='Drawer' component={DrawerNavigator} options={{ headerShown: false }} />
-        <AuthRoot.Screen
-          name='Create Group' component={CreateGroupTabsNavigator}
-          options={{ headerShown: false }}
-        />
+        <AuthRoot.Screen name='Create Group' component={CreateGroup} options={{ headerShown: false }} />
+        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
+        {/*
+          == Modals ==
+          modelScreenName is used to differentiate screen names from ones that have a non-model counterpart,
+          it is used to simply consistently appends '- Modal` to then be used by const isModalScreen = useIsModalScreen()
+          in views which have different behavior when opened as a modal. Don't use it if there is no non-modal
+          counterpart to a modal screen.
+        */}
         <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
           <AuthRoot.Screen
-            name={modalScreenName('Post Details')} component={PostDetails}
-            options={{ title: 'Post Details' }}
-          />
-          <AuthRoot.Screen
-            name={modalScreenName('Member')} component={MemberProfile}
-            options={{ title: 'Member' }}
-          />
-          <AuthRoot.Screen
-            name={modalScreenName('Group Explore')} component={GroupExploreWebView}
-            options={{ title: 'Explore' }}
+            name='Creation'
+            component={CreationOptions}
+            options={{
+              title: 'Create',
+              presentation: 'transparentModal',
+              headerShown: false,
+              cardStyle: { backgroundColor: 'transparent' }
+            }}
           />
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
+          <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
+          <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
+          <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+          <AuthRoot.Screen name='Upload Action' component={UploadAction} />
+          <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
-          <AuthRoot.Screen name={modalScreenName('Notifications')} component={NotificationsList} />
+          <AuthRoot.Screen name={modalScreenName('Web View')} component={HyloWebView} />
         </AuthRoot.Group>
-        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
   )

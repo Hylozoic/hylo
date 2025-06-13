@@ -10,41 +10,58 @@ import queryString from 'query-string'
 export default function useRouteParams () {
   const params = useParams()
   const location = useLocation()
-  const pathParts = location.pathname.split('/')
-
-  // if context is not set, then look for the first part of the url to set as the context
-  if (!params.context) {
-    const firstPart = pathParts[1]
-    if (['groups', 'public', 'my', 'welcome'].includes(firstPart)) {
-      params.context = firstPart
-    } else {
-      params.context = 'my'
-    }
-  }
-
-  // if view is not set, then set it
-  if (!params.view) {
-    const pathParts = location.pathname.split('/')
-    // Correctly track the view
-    if (params.context === 'groups') {
-      params.view = !['post', 'group', 'create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
-    } else {
-      params.view = !['post', 'group', 'create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
-    }
-  }
-
-  // Set groupSlug
-  if (params.context === 'groups') {
-    params.groupSlug = pathParts[2]
-  }
-
-  // Set memberId
-  if (params.view === 'members') {
-    params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
-  }
 
   // Mix query params and path params into one object, query params take precedence
   return useMemo(() => {
+    const pathParts = location.pathname.split('/')
+
+    // if context is not set, then look for the first part of the url to set as the context
+    if (!params.context) {
+      const firstPart = pathParts[1]
+      if (['groups', 'public', 'my', 'welcome', 'messages'].includes(firstPart)) {
+        params.context = firstPart
+      } else {
+        params.context = 'all' // TODO: ??
+      }
+    }
+
+    // if view is not set, then set it
+    if (!params.view) {
+      const pathParts = location.pathname.split('/')
+      // Correctly track the view
+      if (params.context === 'groups') {
+        params.view = !['create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
+      } else {
+        params.view = !['create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
+      }
+    }
+
+    // Set groupSlug
+    if (params.context === 'groups') {
+      params.groupSlug = pathParts[2]
+    }
+
+    // Set memberId
+    if (params.view === 'members') {
+      params.memberId = params.context === 'groups' ? pathParts[4] : pathParts[3]
+    }
+
+    // Set chat topicName
+    if (params.view === 'chat' || params.view === 'topic') {
+      // XXX: this should only ever be in a group
+      params.topicName = pathParts[4]
+    }
+
+    // Set trackId
+    if (params.view === 'tracks') {
+      params.trackId = pathParts[4]
+    }
+
+    // If I'm in the group settings then I want the view to include the specific settings tab
+    if (params.view === 'settings') {
+      params.view = `${params.view}/${pathParts[4]}`
+    }
+
     return {
       ...queryString.parse(location.search), // Convert string to object
       ...params

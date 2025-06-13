@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Modal, Text, TouchableOpacity, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
-import { useTranslation, withTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import prompt from 'react-native-prompt-android'
 import { toUpper, isEmpty, trim } from 'lodash'
 import { gql, useMutation } from 'urql'
@@ -30,7 +30,7 @@ const FlagContent = ({ onClose, submitFlagContent, linkData, type = 'content' })
     }
   }
 
-  const isOptionalExplanation = (category) => 
+  const isOptionalExplanation = (category) =>
     (category || selectedCategory) !== 'other'
 
   const submit = (value) => {

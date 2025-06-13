@@ -1,81 +1,78 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 
 export default function useStreamQueryVariables ({
+  childPostInclusion,
+  context,
   currentUser,
   customView,
   filter,
-  forGroup,
-  myHome,
+  slug,
+  view,
   sortBy,
   streamType,
   timeframe,
-  topicName
+  topic
 }) {
-  const fetchPostParam = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
+  const filterFromStreamType = COMMON_VIEWS[streamType] ? COMMON_VIEWS[streamType].postTypes[0] : null
+
+  const streamQueryVariables = useMemo(() => omitBy(x => isNull(x) || isUndefined(x), {
     activePostsOnly: customView?.activePostsOnly || null,
     afterTime: streamType === 'event'
       ? (timeframe === 'future' ? new Date().toISOString() : null)
       : null,
-    announcementsOnly: (myHome === 'Announcements') || null,
+    announcementsOnly: (view === 'announcements') || null,
     beforeTime: streamType === 'event'
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
-    childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
-    collectionToFilterOut: null,
-    context: isContextGroupSlug(forGroup?.slug)
-      ? forGroup.slug
-      : myHome
-        ? 'my'
-        : 'groups',
-    createdBy: myHome === 'My Posts'
+    childPostInclusion,
+    context,
+    createdBy: view === 'posts'
       ? [currentUser.id]
       : null,
-    cursor: null,
-    filter: streamType ||
-      filter ||
-      currentUser?.settings?.streamPostType ||
-      undefined,
+    filter: filterFromStreamType || filter || null,
     forCollection: customView?.collectionId,
-    interactedWithBy: myHome === 'Interactions'
+    interactedWithBy: view === 'interactions'
       ? [currentUser.id]
       : null,
-    mentionsOf: myHome === 'Mentions'
+    mentionsOf: view === 'mentions'
       ? [currentUser.id]
       : null,
-    myHome,
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
-    search: null,
-    slug: myHome
-      ? null
-      : forGroup?.slug,
+    slug,
     sortBy,
-    topic: topicName,
-    topics: customView?.type === 'stream' && customView?.topics
-      ? customView.topics.toModelArray().map(t => t.id)
+    topic,
+    topics: (customView?.type === 'stream' && customView?.topics)
+      ? customView.topics.map(t => t.id)
       : null,
     types: customView?.type === 'stream'
       ? customView?.postTypes
-      : null
+      : null,
+
+    // Unused or not implemented
+
+    collectionToFilterOut: null,
+    cursor: null,
+    search: null
   }), [
+    childPostInclusion,
+    context,
+    currentUser?.id,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,
     customView?.type,
     filter,
-    forGroup,
-    forGroup?.slug,
-    myHome,
+    view,
+    slug,
     sortBy,
     streamType,
     timeframe,
-    topicName,
-    currentUser?.settings?.streamChildPosts,
-    currentUser?.id
+    topic
   ])
 
-  return fetchPostParam
+  return streamQueryVariables
 }

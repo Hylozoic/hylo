@@ -15,7 +15,19 @@ export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets 
   })
 
   if (newWidgetPosition.remove) {
-    updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
+    // Update all child widgets to have null order and parentId
+    updatedWidgets = updatedWidgets.map(widget => {
+      if (widget.parentId === widgetToBeMovedId) {
+        return { ...widget, order: null, parentId: null }
+      }
+      return widget
+    })
+
+    // Add back the moved widget with null order and parentId
+    // Posts, groups and tracks widgets just get deleted, we don't add them back to the all views
+    if (!oldWidgetDetails.viewTrack && !oldWidgetDetails.viewPost && !oldWidgetDetails.viewGroup) {
+      updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
+    }
     return updatedWidgets
   }
 
@@ -46,25 +58,24 @@ export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets 
     return settledPeer || widget
   })
 }
-// TODO CONTEXT: add this to /shared
+
 function getPeers (widgets, widget) {
   if (widget.parentId) return widgets.filter(w => w.parentId === widget.parentId)
   return widgets.filter(w => !w.parentId && !!w.order)
 }
-// TODO CONTEXT: add this to /shared
+
 function settle (items) {
   return items.sort((a, b) => a.order - b.order).map((item, index) => ({
     ...item,
     order: item.order !== index + 1 ? item.order - 1 : item.order
   }))
 }
-// TODO CONTEXT: add this to /shared
+
 function findHomeChild (widgets) {
   const homeParentId = widgets.find(widget => widget.type === 'home')?.id
   return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId }
 }
 
-// TODO CONTEXT: add this to /shared
 export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const widgetToBeMoved = widgets.find(widget => widget.id === newHomeWidgetId)

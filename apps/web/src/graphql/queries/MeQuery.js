@@ -12,6 +12,7 @@ export default gql`
     isAdmin
     name
     avatarUrl
+    createdAt
     hasRegistered
     newNotificationCount
     unseenThreadCount
@@ -115,6 +116,7 @@ export default gql`
         stewardDescriptorPlural
         settings {
           showSuggestedSkills
+          showWelcomePage
         }
         slug
       }

@@ -1,4 +1,3 @@
-import { Image } from 'react-native'
 import 'react-native-gesture-handler/jestSetup'
 import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock'
 import mockClipboard from '@react-native-clipboard/clipboard/jest/clipboard-mock.js'
@@ -35,6 +34,8 @@ jest.mock('react-native-reanimated', () => {
   Reanimated.default.call = () => {}
   return Reanimated
 })
+
+jest.mock('react-native-keyboard-manager', () => require('react-native-keyboard-manager/jest/mock'))
 
 // https://github.com/mixpanel/mixpanel-react-native/issues/88
 jest.mock('mixpanel-react-native', () => ({

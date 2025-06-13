@@ -1,7 +1,7 @@
 import { keyBy } from 'lodash'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { Helmet } from 'react-helmet'
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Tooltip } from 'react-tooltip'
 // import PropTypes from 'prop-types'
@@ -35,6 +35,7 @@ import {
 import presentGroup from 'store/presenters/presentGroup'
 import getMe from 'store/selectors/getMe'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
+import useRouteParams from 'hooks/useRouteParams'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -54,18 +55,18 @@ import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable
 
 const MAX_DETAILS_LENGTH = 144
 
-function GroupDetail ({ popup = false }) {
+function GroupDetail ({ forCurrentGroup = false }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
   const groupSelector = useSelector(state => getGroupForSlug(state, routeParams.detailGroupSlug || routeParams.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
   const slug = routeParams.detailGroupSlug || routeParams.groupSlug
-  const isAboutCurrentGroup = popup || routeParams.groupSlug === routeParams.detailGroupSlug
+  const isAboutCurrentGroup = forCurrentGroup || routeParams.groupSlug === routeParams.detailGroupSlug
   const myMemberships = useSelector(state => getMyMemberships(state))
   const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
   const joinRequests = useGetJoinRequests()
@@ -103,12 +104,12 @@ function GroupDetail ({ popup = false }) {
     navigate(newUrl)
   }
 
-  const fullPage = !routeParams.detailGroupSlug && !popup
+  const fullPage = !routeParams.detailGroupSlug || forCurrentGroup
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     if (group) {
-      setHeaderDetails({ title: t('About ') + ' ' + group.name, icon: 'Info', info: '', search: true })
+      setHeaderDetails({ title: t('About {{name}}', { name: group.name }), icon: 'Info', info: '', search: true })
     }
   }, [group?.name])
 
@@ -118,23 +119,24 @@ function GroupDetail ({ popup = false }) {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cn('bg-background relative', { [g.fullPage]: fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn('bg-midground relative mx-auto', { 'w-full max-w-[750px]': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
       {!isAboutCurrentGroup && (
-        <div className={g.groupDetailHeader} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        <div className='w-full py-8 px-2 bg-cover bg-center mt-8 overflow-hidden relative rounded-xl shadow-xl' style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
           {!fullPage && (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
-          <div className={g.groupTitleContainer}>
-            <img src={group.avatarUrl || DEFAULT_AVATAR} className={g.groupAvatar} />
+          <div className='bottom-0 right-0 bg-black/50 absolute top-0 left-0 z-0' />
+          <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
+            <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
             <div>
-              <div className='text-background text-lg ml-4'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
-              <div className={g.groupContextInfo}>
-                <div>
+              <div className='text-white font-bold text-2xl text-center'>{isAboutCurrentGroup && <span>{t('About')}</span>} {group.name}</div>
+              <div className='text-center'>
+                <div className='flex flex-row justify-center gap-1 text-sm text-white/70'>
                   <span className={g.groupPrivacy}>
                     <Icon name={visibilityIcon(group.visibility)} className={g.privacyIcon} />
                     <div className={g.privacyTooltip}>
@@ -149,27 +151,26 @@ function GroupDetail ({ popup = false }) {
                   </span>
                   <span className={g.memberCount}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</span>
                 </div>
-                <span className={g.groupLocation}>{group.location}</span>
+                <span className='text-white/70 text-sm'>{group.location}</span>
               </div>
             </div>
           </div>
-          <div className={g.headerBackground} />
         </div>
       )}
 
-      <div className={g.groupDetailBody}>
+      <div className='p-4'>
         {group.type === GROUP_TYPES.default && defaultGroupBody({ group, isAboutCurrentGroup, t, responsibilityTitles })}
         {group.type === GROUP_TYPES.farm && (
           <FarmGroupDetailBody isMember={isMember} group={group} currentUser={currentUser} routeParams={routeParams} />
         )}
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
-            <div className={g.aboutCurrentGroup}>
+            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
               <h3>{group.stewardDescriptorPlural || t('Stewards')}</h3>
               <div className={g.stewards}>
                 {stewards.map(p => (
                   <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium />
+                    <Avatar avatarUrl={p.avatarUrl} medium className='mx-1' />
                     <span>{p.name}</span>
                   </Link>
                 ))}
@@ -177,20 +178,20 @@ function GroupDetail ({ popup = false }) {
             </div>
             )
           : ''}
-        <div className={g.detailSection}>
+        <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
           <h3>{t('Privacy settings')}</h3>
-          <div className={g.privacySetting}>
+          <div className='flex flex-row gap-2 items-center'>
             <Icon name={visibilityIcon(group.visibility)} className={g.settingIcon} />
             <p>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</p>
           </div>
-          <div className={g.privacySetting}>
+          <div className='flex flex-row gap-2 items-center'>
             <Icon name={accessibilityIcon(group.accessibility)} className={g.settingIcon} />
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
         {group.agreements?.length > 0
           ? (
-            <div className={cn(g.agreements, g.detailSection)}>
+            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
               <h2>{t('Agreements')}</h2>
               {group.agreements.map((agreement, i) => {
                 return (
@@ -267,15 +268,15 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a description')}</h4>
-              <p>{t('Add a description, location, suggested topics and more in your group settings')}</p>
+              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
           </div>
           )
-        : group.purpose || group.description
+        : group.purpose || group.description || group.websiteUrl
           ? (
-            <div className={cn(g.groupDescription, g.detailSection)}>
+            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
               {group.purpose
                 ? (
                   <>
@@ -293,6 +294,14 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
                     </ClickCatcher>
+                  </>
+                  )
+                : ''}
+              {group.websiteUrl
+                ? (
+                  <>
+                    <h3>{t('Website')}</h3>
+                    <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
                   </>
                   )
                 : ''}

@@ -26,7 +26,7 @@ module.exports = bookshelf.Model.extend({
       !process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED || !device.get('tester')
     )
 
-    await this.save({sent_at: new Date().toISOString(), disabled}, options)
+    await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     if (!disabled) {
       await OneSignal.notify({
         platform, deviceToken, playerId, alert, path, badgeNo
@@ -62,8 +62,8 @@ module.exports = bookshelf.Model.extend({
     const postName = comment.relations.post.summary()
 
     return version === 'mention'
-      ? locales[locale].textForCommentMention({person, blurb, postName})
-      : locales[locale].textForComment({person, blurb, postName})
+      ? locales[locale].textForCommentMention({ person, blurb, postName })
+      : locales[locale].textForComment({ person, blurb, postName })
   },
 
   textForPost: function (post, group, firstTag, version, locale) {
@@ -72,6 +72,8 @@ module.exports = bookshelf.Model.extend({
     const groupName = group.get('name')
 
     switch (version) {
+      case 'chat':
+        return locales[locale].textForChatPost({ groupName, person, postName })
       case 'mention':
         return locales[locale].textForPostMention({ groupName, person, postName })
       case 'voteReset':
@@ -92,75 +94,83 @@ module.exports = bookshelf.Model.extend({
   textForEventInvitation: function (post, actor, locale) {
     const postName = decode(post.summary())
 
-    return locales[locale].textForEventInvitation({actor, postName})
+    return locales[locale].textForEventInvitation({ actor, postName })
   },
 
   textForJoinRequest: function (group, actor, locale) {
-    return locales[locale].textForJoinRequest({actor, groupName: group.get('name')})
+    return locales[locale].textForJoinRequest({ actor, groupName: group.get('name') })
   },
 
   textForApprovedJoinRequest: function (group, actor, locale) {
-    return locales[locale].textForApprovedJoinRequest({actor, groupName: group.get('name')})
+    return locales[locale].textForApprovedJoinRequest({ actor, groupName: group.get('name') })
   },
 
   textForGroupChildGroupInvite: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInvite({actor, parentGroup, childGroup})
+    return locales[locale].textForGroupChildGroupInvite({ actor, parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedParentModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedParentModerator({actor, parentGroup, childGroup})
+    return locales[locale].textForGroupChildGroupInviteAcceptedParentModerator({ actor, parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedParentMember: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedParentMember({parentGroup, childGroup})
+    return locales[locale].textForGroupChildGroupInviteAcceptedParentMember({ parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedChildModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedChildModerator({parentGroup, childGroup})
+    return locales[locale].textForGroupChildGroupInviteAcceptedChildModerator({ parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedChildMember: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedChildMember({parentGroup, childGroup})
+    return locales[locale].textForGroupChildGroupInviteAcceptedChildMember({ parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequest: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequest({actor, parentGroup, childGroup})
+    return locales[locale].textForGroupParentGroupJoinRequest({ actor, parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequestAcceptedParentModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentModerator({parentGroup, childGroup, actor})
+    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentModerator({ parentGroup, childGroup, actor })
   },
 
   textForGroupParentGroupJoinRequestAcceptedParentMember: function (parentGroup, childGroup, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentMember({parentGroup, childGroup})
+    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentMember({ parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequestAcceptedChildModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildModerator({parentGroup, childGroup, actor})
+    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildModerator({ parentGroup, childGroup, actor })
   },
 
   textForGroupParentGroupJoinRequestAcceptedChildMember: function (parentGroup, childGroup, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildMember({parentGroup, childGroup})
+    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildMember({ parentGroup, childGroup })
   },
 
-  textForDonationTo: function (contribution) {
+  textForDonationTo: function (contribution, locale) {
     const project = contribution.relations.project
     const postName = decode(project.summary())
     const amount = contribution.get('amount') / 100
 
-    return locales[locale].textForDonationTo({postName, amount})
+    return locales[locale].textForDonationTo({ postName, amount })
   },
 
-  textForDonationFrom: function (contribution) {
+  textForDonationFrom: function (contribution, locale) {
     const actor = contribution.relations.user
     const project = contribution.relations.project
     const postName = decode(project.summary())
 
     const amount = contribution.get('amount') / 100
-    return locales[locale].textForDonationFrom({actor, postName, amount})
+    return locales[locale].textForDonationFrom({ actor, postName, amount })
   },
 
   textForMemberJoinedGroup: function (group, actor, locale) {
-    return locales[locale].textForMemberJoinedGroup({group, actor})
+    return locales[locale].textForMemberJoinedGroup({ group, actor })
+  },
+
+  textForTrackCompleted: function (track, actor, locale) {
+    return locales[locale].textForTrackCompleted({ actor, track })
+  },
+
+  textForTrackEnrollment: function (track, actor, locale) {
+    return locales[locale].textForTrackEnrollment({ actor, track })
   }
 })

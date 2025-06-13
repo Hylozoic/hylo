@@ -5,6 +5,7 @@ export default gql`
     id
     aboutVideoUri
     accessibility
+    allowInPublic
     avatarUrl
     bannerUrl
     description
@@ -24,12 +25,15 @@ export default gql`
       locationDisplayPrecision
       publicMemberDirectory
       showSuggestedSkills
+      showWelcomePage
     }
     slug
     type
     typeDescriptor
     typeDescriptorPlural
     visibility
+    websiteUrl
+    welcomePage
     agreements {
       items {
         id
@@ -91,7 +95,7 @@ export default gql`
       neighborhood
       region
     }
-    members(first: 8, sortBy: "name", order: "desc") {
+    members(first: 4, sortBy: "last_active_at", order: "desc") {
       items {
         id
         name

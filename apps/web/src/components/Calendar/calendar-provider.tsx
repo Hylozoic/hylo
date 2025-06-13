@@ -1,9 +1,13 @@
 import React from 'react'
 import { CalendarContext } from './calendar-context'
-import { CalendarEvent, Mode } from './calendar-types'
+import { CalendarEvent, HyloGroup, Mode } from './calendar-types'
 
 export default function CalendarProvider ({
   events,
+  group,
+  routeParams,
+  locationParams,
+  querystringParams,
   mode,
   setMode,
   date,
@@ -12,7 +16,17 @@ export default function CalendarProvider ({
   children
 }: {
   events: CalendarEvent[]
-  mode: string
+  group: HyloGroup
+  routeParams: {
+    [x: string]: string | string[];
+  }
+  locationParams: {
+    [x: string]: string | string[];
+  }
+  querystringParams: {
+    [x: string]: string | string[];
+  }
+  mode: Mode
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void
@@ -23,6 +37,10 @@ export default function CalendarProvider ({
     <CalendarContext.Provider
       value={{
         events,
+        group,
+        routeParams,
+        locationParams,
+        querystringParams,
         mode,
         setMode,
         date,

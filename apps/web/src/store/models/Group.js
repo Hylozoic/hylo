@@ -198,6 +198,7 @@ Group.fields = {
   settings: attr(),
   slug: attr(),
   suggestedSkills: many('Skill'),
+  tracks: many('Track'),
   upcomingEvents: many({
     to: 'Post',
     as: 'upcomingEvents',
@@ -207,8 +208,8 @@ Group.fields = {
   widgets: many('Widget')
 }
 
-export const DEFAULT_BANNER = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg'
-export const DEFAULT_AVATAR = 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png'
+export const DEFAULT_BANNER = '/default-group-banner.svg'
+export const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
 export const ALL_GROUPS_ID = 'all-groups'
 export const ALL_GROUPS_AVATAR_PATH = '/assets/white-merkaba.svg'

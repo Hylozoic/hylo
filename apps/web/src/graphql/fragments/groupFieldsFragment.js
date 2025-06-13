@@ -2,6 +2,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   id
   aboutVideoUri
   accessibility
+  allowInPublic
   avatarUrl
   bannerUrl
   description
@@ -22,12 +23,15 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     locationDisplayPrecision
     publicMemberDirectory
     showSuggestedSkills
+    showWelcomePage
   }
   slug
   type
   typeDescriptor
   typeDescriptorPlural
   visibility
+  websiteUrl
+  welcomePage
   agreements {
     items {
       id
@@ -185,6 +189,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         slug
       }
@@ -275,6 +280,14 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           viewChat {
             id
             name
+          }
+          viewTrack {
+            id
+            name
+            didComplete
+            isEnrolled
+            numActions
+            publishedAt
           }
         }
       }`

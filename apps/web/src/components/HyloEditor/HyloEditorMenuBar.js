@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, SquareCode, Strikethrough,
-  // RiH1, RiH2, RiH3,
   List, ListOrdered, Link, Unlink,
-  IndentIncrease, Code,
-  Undo2, Redo2, RemoveFormatting
+  IndentIncrease, Code, ImagePlus,
+  Undo2, Redo2, RemoveFormatting,
+  Heading1, Heading2, Heading3
 } from 'lucide-react'
-import { Button } from 'components/ui/button'
+import Button from 'components/ui/button'
+import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
 
 // export function addIframe (editor) {
@@ -17,74 +19,114 @@ import { cn } from 'util/index'
 //   }
 // }
 
-export default function HyloEditorMenuBar ({ editor }) {
-  const [modal, setModal] = useState(false)
+export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
+  const [linkModalOpen, setLinkModalOpen] = useState(false)
 
   if (!editor) return null
 
   return (
-    <div className='flex items-center w-full opacity-70 hover:opacity-100 transition-all'>
+    <div className={cn('flex items-center w-full opacity-70 hover:opacity-100 transition-all flex-wrap', className)}>
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading1}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          active={editor.isActive('heading', { level: 1 })}
+        />
+      )}
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading2}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          active={editor.isActive('heading', { lebel: 2 })}
+        />
+      )}
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Heading3}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          active={editor.isActive('heading', { level: 3 })}
+        />
+      )}
       <HyloEditorMenuBarButton
         Icon={Bold}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive('bold')}
       />
       <HyloEditorMenuBarButton
         Icon={Italic}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleItalic().run()}
         active={editor.isActive('italic')}
       />
 
       <HyloEditorMenuBarButton
         Icon={Strikethrough}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive('strike')}
+        hideOnMobile
       />
 
       <HyloEditorMenuBarButton
         Icon={Code}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleCode().run()}
         active={editor.isActive('code')}
+        hideOnMobile
       />
 
-      <div className='relative inline-block'>
+      <div className='relative inline-block hidden xs:block'>
         {editor.isActive('link')
           ? (
             <button
               className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
               title='Remove link'
               onClick={() => editor.chain().focus().unsetLink().run()}
+              tabIndex='-1'
             >
               <Unlink size={14} />
             </button>)
           : (
-            <button
-              tabIndex='-1'
-              title='Add a link'
-              onClick={() => setModal(!modal)}
-              className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
-            >
-              <Link size={14} />
-            </button>)}
-        <AddLinkBox editor={editor} setModal={setModal} isOpen={modal} />
+            <Popover onOpenChange={(v) => setLinkModalOpen(v)} open={linkModalOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  tabIndex='-1'
+                  title='Add a link'
+                  onClick={() => setLinkModalOpen(!linkModalOpen)}
+                  className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
+                >
+                  <Link size={14} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+                <AddLinkBox editor={editor} setLinkModalOpen={setLinkModalOpen} isOpen={linkModalOpen} />
+              </PopoverContent>
+            </Popover>)}
       </div>
+
+      {extendedMenu && (
+        <UploadAttachmentButton
+          type={type}
+          id={id}
+          attachmentType='image'
+          onSuccess={(attachment) => editor.commands.setImage({
+            src: attachment.url,
+            alt: attachment.filename,
+            title: attachment.filename
+          })}
+          allowMultiple
+        >
+          <HyloEditorMenuBarButton Icon={ImagePlus} />
+        </UploadAttachmentButton>
+      )}
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
       <HyloEditorMenuBarButton
         Icon={List}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         active={editor.isActive('bulletList')}
       />
 
       <HyloEditorMenuBarButton
         Icon={ListOrdered}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         active={editor.isActive('orderedList')}
       />
@@ -93,52 +135,48 @@ export default function HyloEditorMenuBar ({ editor }) {
 
       <HyloEditorMenuBarButton
         Icon={IndentIncrease}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         active={editor.isActive('blockquote')}
       />
 
       <HyloEditorMenuBarButton
         Icon={SquareCode}
-        setModal={setModal}
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         active={editor.isActive('codeBlock')}
+        hideOnMobile
       />
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
 
       <HyloEditorMenuBarButton
         Icon={Undo2}
-        setModal={setModal}
         onClick={() => editor.chain().focus().undo().run()}
       />
 
       <HyloEditorMenuBarButton
         Icon={Redo2}
-        setModal={setModal}
         onClick={() => editor.chain().focus().redo().run()}
       />
 
       <HyloEditorMenuBarButton
         Icon={RemoveFormatting}
-        setModal={setModal}
         onClick={() => {
-          editor.chain().focus().clearNodes().run()
-          editor.chain().focus().unsetAllMarks().unsetBold().unsetItalic().unsetStrike().unsetCode().unsetBulletList().unsetOrderedList().unsetBlockquote().unsetCodeBlock().run()
+          editor.chain().focus().clearNodes().unsetAllMarks().run()
         }}
       />
     </div>
   )
 }
 
-function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
+function HyloEditorMenuBarButton ({ active, Icon, onClick, hideOnMobile = false }) {
   return (
     <button
       tabIndex='-1'
-      onClick={() => { setModal(false); onClick() }}
+      onClick={onClick}
       className={cn(
         'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',
-        { 'bg-foreground/10': active }
+        { 'bg-foreground/10': active },
+        { 'hidden xs:block': hideOnMobile }
       )}
     >
       <Icon className='text-foreground w-4 h-4' />
@@ -146,10 +184,15 @@ function HyloEditorMenuBarButton ({ active, Icon, onClick, setModal }) {
   )
 }
 
-export const AddLinkBox = ({ editor, setModal, isOpen }) => {
+export const AddLinkBox = ({ editor, setLinkModalOpen, isOpen }) => {
   const [linkInput, setLinkInput] = useState('')
+  const linkFieldRef = useRef()
 
-  if (!isOpen) return null
+  useEffect(() => {
+    if (isOpen && linkFieldRef.current) {
+      linkFieldRef.current.focus()
+    }
+  }, [isOpen])
 
   const handleLinkChange = (e) => {
     setLinkInput(e.target.value)
@@ -167,14 +210,14 @@ export const AddLinkBox = ({ editor, setModal, isOpen }) => {
   const handleSubmit = (e, link) => {
     e.preventDefault()
     setLink(linkInput)
-    setModal(false)
+    setLinkModalOpen(false)
     setLinkInput('')
   }
 
   return (
-    <div className='absolute z-50 bg-popover rounded-md p-4 shadow-md'>
+    <div className={cn('bg-popover rounded-md p-4 shadow-md')}>
       <div className='modal'>
-        <button onClick={() => setModal(false)} className='absolute top-1 right-1'>
+        <button onClick={() => setLinkModalOpen(false)} className='absolute top-2 right-2'>
           x
         </button>
         <form
@@ -182,7 +225,7 @@ export const AddLinkBox = ({ editor, setModal, isOpen }) => {
           className='flex flex-col gap-1 items-center'
         >
           <label className='text-popover-foreground'>Add link</label>
-          <input className='bg-input' autoFocus onChange={(e) => handleLinkChange(e)} />
+          <input className='w-full bg-input p-2' onChange={(e) => handleLinkChange(e)} ref={linkFieldRef} />
           <Button onClick={() => handleSubmit}>
             Add
           </Button>
