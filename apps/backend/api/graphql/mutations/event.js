@@ -40,7 +40,7 @@ export async function respondToEvent (userId, eventId, response) {
         event_name: event.title(),
         event_description: event.details(),
         event_url: event.get('location'),
-        response: response
+        response
       },
       files: [
         {
