@@ -1,12 +1,14 @@
 import { get } from 'lodash/fp'
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Badge from 'components/Badge'
 import RoundImage from 'components/RoundImage'
 import { participantAttributes } from 'store/models/MessageThread'
 import { cn } from 'util/index'
+import { useDispatch } from 'react-redux'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 
 import classes from './ThreadList.module.scss'
 
@@ -17,16 +19,18 @@ export default function ThreadListItem ({
 }) {
   const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
   const { names, avatarUrls } = participantAttributes(thread, currentUser, 2)
+  const dispatch = useDispatch()
+  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
   return (
     <li>
-      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50 max-h-[80px]', { [classes.unreadListItem]: isUnread, 'bg-selected': active })}>
+      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50 max-h-[80px] transition-all', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })} onClick={toggleNavMenuAction}>
         <div className='mr-2 flex flex-col justify-center'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
         <div className='w-full flex flex-col justify-center'>
           <div className='flex items-center justify-between w-full'>
-            <div className={cn('max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active} /></div>
+            <div className={cn('max-w-[130px] xs:max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active} /></div>
             <div className='text-xs text-foreground opacity-70'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
           </div>
           <div className='flex items-center w-full justify-between'>

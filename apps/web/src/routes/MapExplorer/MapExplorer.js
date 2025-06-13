@@ -287,6 +287,38 @@ function MapExplorer (props) {
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
 
+  const [drawerWidth, setDrawerWidth] = useState(0)
+  const resizeObserverRef = useRef(null)
+
+  function observeDrawerWidth() {
+    const drawer = document.getElementById('map-drawer')
+    if (!drawer) return
+
+    // Set initial width
+    setDrawerWidth(drawer.offsetWidth)
+
+    // Clean up any previous observer
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect()
+    }
+
+    // Listen for width changes
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setDrawerWidth(entry.contentRect.width)
+      }
+    })
+    resizeObserver.observe(drawer)
+    resizeObserverRef.current = resizeObserver
+  }
+
+  function stopObservingDrawerWidth() {
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect()
+      resizeObserverRef.current = null
+    }
+  }
+
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
     setCreatePopupVisible(true)
@@ -351,6 +383,13 @@ function MapExplorer (props) {
     setHideDrawer(!hideDrawer)
     setTimeout(() => {
       mapRef.current.resize()
+      if (hideDrawer) {
+        // Drawer is being opened
+        observeDrawerWidth()
+      } else {
+        // Drawer is being closed
+        stopObservingDrawerWidth()
+      }
     }, 100)
   }, [dispatch, hideDrawer, location])
 
@@ -756,7 +795,8 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs ', { 'right-5': hideDrawer, 'right-[520px]': !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-[1000] ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
+        style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
@@ -787,7 +827,7 @@ function MapExplorer (props) {
       <div className='absolute top-5 left-[74px]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 

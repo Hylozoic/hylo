@@ -107,7 +107,7 @@ const StreamViewControls = ({
   }, [childPostInclusion, location]) // Location is needed to get the updated passed in changeChildPostInclusion callback
 
   return (
-    <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
+    <div className={cn('flex flex-col gap-1 sm:gap-2 p-2 sm:p-4 items-center', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between flex-wrap gap-y-1'>
         <div className={cn('bg-background border-foreground/20 border-2 shadow-xl px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
