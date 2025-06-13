@@ -29,6 +29,6 @@ describe('TopicSupportComingSoon', () => {
     )
 
     const link = screen.getByRole('link', { name: /Return to All Groups/i })
-    expect(link).toHaveAttribute('href', '/all')
+    expect(link).toHaveAttribute('href', '/my/groups/stream')
   })
 })

@@ -338,7 +338,7 @@ export default function Stream (props) {
                   currentGroupId={group && group.id}
                   currentUser={currentUser}
                   querystringParams={querystringParams}
-                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                  childPost={![CONTEXT_MY, 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
                 />
               )
             })}

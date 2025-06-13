@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PathHelpers, HYLO_URL_REGEX } from '@hylo/shared'
 
-export default function ClickCatcher ({ handleMouseOver, groupSlug = 'all', onClick, ...props }) {
+export default function ClickCatcher ({ handleMouseOver, groupSlug = 'my/groups/stream', onClick, ...props }) {
   const navigate = useNavigate()
 
   return React.createElement('span', { ...props, onClick: handleClick(navigate, groupSlug, onClick) })

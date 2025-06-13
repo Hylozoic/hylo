@@ -33,7 +33,7 @@ export default function fetchPosts ({
     query = groupQuery(childPostInclusion === 'yes')
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
-  } else if (context === 'all' || context === 'public' || context === CONTEXT_MY) {
+  } else if (context === 'public' || context === CONTEXT_MY) {
     query = postsQuery
     extractModel = 'Post'
     getItems = get('payload.data.posts')

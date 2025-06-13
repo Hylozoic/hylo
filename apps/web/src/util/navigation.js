@@ -3,7 +3,7 @@ import qs from 'query-string'
 import { host } from 'config/index'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { MESSAGES_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -20,10 +20,6 @@ export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
 
 // Fundamental URL paths
 
-export function allGroupsUrl () {
-  return '/all'
-}
-
 export function publicGroupsUrl () {
   return '/public'
 }
@@ -35,7 +31,7 @@ export function myHomeUrl () {
 export function baseUrl ({
   context,
   customViewId,
-  defaultUrl = allGroupsUrl(),
+  defaultUrl = myHomeUrl(),
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
@@ -56,8 +52,6 @@ export function baseUrl ({
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
     return groupUrl(groupSlug)
-  } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
-    return allGroupsUrl()
   } else if (context === PUBLIC_CONTEXT_SLUG) {
     return publicGroupsUrl()
   } else if (context === MY_CONTEXT_SLUG) {
@@ -93,7 +87,7 @@ export function viewUrl (view, { context, groupSlug, defaultUrl, customViewId })
 }
 
 // Group URLS
-export function groupUrl (slug, view = '', defaultUrl = allGroupsUrl()) {
+export function groupUrl (slug, view = '', defaultUrl = myHomeUrl()) {
   if (slug === 'public') { // TODO: remove this?
     return publicGroupsUrl()
   } else if (slug) {
@@ -201,7 +195,7 @@ export function personUrl (id, groupSlug) {
 }
 
 // Topics URLs
-export function topicsUrl (opts, defaultUrl = allGroupsUrl()) {
+export function topicsUrl (opts, defaultUrl = myHomeUrl()) {
   return baseUrl({ ...opts, view: 'topics' }, defaultUrl)
 }
 

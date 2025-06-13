@@ -144,7 +144,7 @@ function MapDrawer ({
         ? (
           <div id='mapDrawerWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
             <div className={styles.postsHeader}>
-              {![CONTEXT_MY, 'all', 'public'].includes(context) && (
+              {![CONTEXT_MY, 'public'].includes(context) && (
                 <>
                   <span
                     onClick={handleChildPostInclusion}

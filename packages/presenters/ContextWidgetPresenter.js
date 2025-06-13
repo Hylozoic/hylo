@@ -289,9 +289,6 @@ export const PUBLIC_CONTEXT_WIDGETS = [
 export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { type: 'home', url: '/my/posts' },
   { title: 'widget-my-groups-content', id: 'widget-my-groups-content', order: 2, parentId: null },
-  { context: 'all', view: 'stream', title: 'widget-my-groups-stream', id: 'widget-my-groups-stream', order: 1, parentId: 'widget-my-groups-content' },
-  { context: 'all', view: 'map', title: 'widget-my-groups-map', id: 'widget-my-groups-map', type: 'map', order: 2, parentId: 'widget-my-groups-content' },
-  { context: 'all', view: 'events', title: 'widget-my-groups-events', id: 'widget-my-groups-events', order: 3, parentId: 'widget-my-groups-content' },
   { title: 'widget-my-content', id: 'widget-my-content', order: 1, parentId: null },
   { context: 'my', view: 'posts', iconName: 'Posticon', title: 'widget-my-posts', id: 'widget-my-posts', order: 1, parentId: 'widget-my-content' },
   { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 2, parentId: 'widget-my-content' },

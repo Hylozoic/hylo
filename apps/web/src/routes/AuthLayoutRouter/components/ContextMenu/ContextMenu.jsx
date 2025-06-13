@@ -17,7 +17,7 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -77,14 +77,13 @@ export default function ContextMenu (props) {
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
-  const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
   const profileUrl = personUrl(get('id', currentUser), groupSlug)
 
   const rawContextWidgets = useSelector(state => {
-    if (isMyContext || isPublicContext || isAllContext) {
+    if (isMyContext || isPublicContext) {
       return getStaticMenuWidgetsMemoized(state, {
         isPublicContext,
-        isMyContext: isMyContext || isAllContext,
+        isMyContext,
         profileUrl
       })
     }
@@ -96,11 +95,11 @@ export default function ContextMenu (props) {
   }, [rawContextWidgets, t])
 
   const hasContextWidgets = useMemo(() => {
-    if (group || isMyContext || isPublicContext || isAllContext) {
+    if (group || isMyContext || isPublicContext) {
       return contextWidgets.length > 0
     }
     return false
-  }, [group, isMyContext, isPublicContext, isAllContext])
+  }, [group, isMyContext, isPublicContext])
 
   const orderedWidgets = useMemo(() => {
     return orderContextWidgetsForContextMenu(contextWidgets)
@@ -248,7 +247,7 @@ export default function ContextMenu (props) {
                 )}
               </DragOverlay>
             </DndContext>
-            {(!isMyContext && !isPublicContext && !isAllContext) && (
+            {(!isMyContext && !isPublicContext) && (
               <div className='px-2 w-full mb-[0.05em] mt-6'>
                 <ContextMenuItem widget={allViewsWidget} />
               </div>
@@ -588,7 +587,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
               </MenuLink>
             )
-          } else if ((rootPath !== '/my' && rootPath !== '/all' && !item.title) || (item.type === 'viewUser')) {
+          } else if ((rootPath !== '/my' && !item.title) || (item.type === 'viewUser')) {
             return (
               <MenuLink
                 to={itemUrl}
@@ -606,7 +605,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 {isItemDraggable && <div className='hidden group-hover:block'><GrabMe {...itemListeners} {...itemAttributes} /></div>}
               </MenuLink>
             )
-          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
+          } else if (rootPath === '/my' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
             return (
               <MenuLink
                 to={itemUrl}

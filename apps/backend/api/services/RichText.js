@@ -109,7 +109,7 @@ Prepares content for HTML Email delivery
 - Always make sure `processHTML` was ran first, this is done
   in `Post#details()` and `Comment#text()`
 
-- Links will be generated with `/all` if a `groupSlug` is not passed
+- Links will be generated with `/my/groups` if a `groupSlug` is not passed
 
 - This same logic is handled dynamically on Web in `ClickCatcher`,
   and on Mobile in the `HyloHTML` component.

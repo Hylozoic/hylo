@@ -121,7 +121,7 @@ const StreamViewControls = ({
           >
             <Icon name='Checkmark' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': activePostsOnly })} />
           </div>
-          {![CONTEXT_MY, 'all', 'public'].includes(context) &&
+          {![CONTEXT_MY, 'public'].includes(context) &&
             <div
               className={cn('bg-midground shadow-sm rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
               onClick={handleChildPostInclusion}

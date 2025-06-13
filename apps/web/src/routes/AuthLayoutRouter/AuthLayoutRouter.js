@@ -4,19 +4,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import Div100vh from 'react-div-100vh'
-import { useTranslation, Trans } from 'react-i18next'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
-import GlobalAlert from 'components/GlobalAlert'
 import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
-import Button from 'components/ui/button'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
@@ -75,7 +72,6 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
-  const { t } = useTranslation()
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -85,9 +81,7 @@ export default function AuthLayoutRouter (props) {
       { path: 'groups/:joinGroupSlug/join/:accessCode', context: 'groups' },
       { path: 'groups/:groupSlug/:view/*', context: 'groups' },
       { path: 'groups/:groupSlug/*', context: 'groups' },
-      { path: 'all/:view/*', context: 'all' },
       { path: 'public/:view/*', context: 'public' },
-      { path: 'all/*', context: 'all' },
       { path: 'public/*', context: 'public' },
       { path: 'welcome/*', context: 'welcome' },
       { path: 'my/*', context: 'my' }
@@ -98,7 +92,7 @@ export default function AuthLayoutRouter (props) {
       matchResult.params.context = match.context // XXX: kinda hacky, there's probably a better way to track "context"
       return matchResult.params
     }
-    return { context: 'all' }
+    return { context: 'my' }
   }, [location.pathname])
 
   const hasDetail = useMemo(() => {
@@ -216,9 +210,10 @@ export default function AuthLayoutRouter (props) {
 
   if (!currentGroupMembership && hasDetail && paramPostId && currentGroupSlug) {
     /* There are times when users will be send to a path where they have access to the POST on that path but not to the GROUP on that path
-      This redirect replaces the non-accessible groupSlug from the path with '/all', for a better UI experience
+      This redirect replaces the non-accessible groupSlug from the path with '/my/groups/stream', for a better UI experience
     */
-    return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
+    // TODO: how to get to
+    return <Navigate to={postUrl(paramPostId, { context: 'my', view: 'groups/stream', groupSlug: null })} />
   }
 
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
@@ -252,8 +247,6 @@ export default function AuthLayoutRouter (props) {
         {/* Redirects for switching into global contexts, since these pages don't exist yet */}
         <Route path='public/members' element={<Navigate to='/public' replace />} />
         <Route path='public/settings' element={<Navigate to='/public' replace />} />
-        <Route path='all/members' element={<Navigate to='/all' replace />} />
-        <Route path='all/settings' element={<Navigate to='/all' replace />} />
 
         {/* Redirect manage notifications page to settings page when logged in */}
         <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
@@ -284,7 +277,6 @@ export default function AuthLayoutRouter (props) {
               <Routes>
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
@@ -318,12 +310,6 @@ export default function AuthLayoutRouter (props) {
               <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
               <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
               <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
@@ -333,9 +319,6 @@ export default function AuthLayoutRouter (props) {
               <Route path='public/create/*' element={<CreateModal context='public' />} />
               <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
             <div className={cn(classes.center, { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
@@ -343,23 +326,14 @@ export default function AuthLayoutRouter (props) {
               <Routes>
                 {/* **** Member Routes **** */}
                 <Route path='members/:personId/*' element={<MemberProfile />} />
-                <Route path='all/members/:personId/*' element={<MemberProfile />} />
                 {/* **** All and Public Routes **** */}
-                <Route path='all/stream/*' element={<Stream context='all' />} />
                 <Route path='public/stream/*' element={<Stream context='public' />} />
-                <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
                 <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-                <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
                 <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
-                <Route path='all/events/*' element={<Stream context='all' />} />
                 <Route path='public/events/*' element={<Stream context='public' />} />
-                <Route path='all/map/*' element={<MapExplorer context='all' />} />
                 <Route path='public/map/*' element={<MapExplorer context='public' />} />
                 <Route path='public/groups/*' element={<GroupExplorer />} />
-                <Route path='all/topics/:topicName' element={<Stream context='all' />} />
                 <Route path='public/topics/:topicName' element={<Stream context='public' />} />
-                <Route path='all/topics' element={<AllTopics />} />
-                <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
@@ -417,6 +391,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Other Routes **** */}
+                <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
@@ -424,35 +399,32 @@ export default function AuthLayoutRouter (props) {
                 <Route path='settings/*' element={<UserSettings />} />
                 <Route path='search' element={<Search />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
+
                 {/* **** Default Route (404) **** */}
-                <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
+                <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/my/groups/stream'} replace />} />
               </Routes>
             </div>
 
             <div className={cn(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
-                {/* All context routes */}
-                <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
-
                 {/* Public context routes */}
                 <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
                 <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
                 <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
-                <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
 
                 {/* My context routes */}
-                {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
+                <Route path={`/my/groups/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                <Route path={`/my/groups/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='my' />} />
 
                 {/* Groups context routes */}
                 <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                <Route path={`/groups/:groupSlug/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
                 <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
                 {/* Other routes */}

@@ -125,10 +125,10 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
   const queriesToMatch = []
 
   // All Groups stream w/ topics
-  queriesToMatch.push({ context: 'all' })
+  queriesToMatch.push({ context: 'my' })
   for (const topic of topics) {
     queriesToMatch.push(
-      { context: 'all', topic: topic.id }
+      { context: 'my', topic: topic.id }
     )
   }
 
