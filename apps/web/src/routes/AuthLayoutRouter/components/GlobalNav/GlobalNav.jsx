@@ -122,7 +122,7 @@ export default function GlobalNav (props) {
   }
 
   return (
-    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         ref={navContainerRef}
         className={cn(
