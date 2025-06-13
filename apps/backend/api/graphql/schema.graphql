@@ -1872,7 +1872,8 @@ type Person {
   groupRoles: GroupRoleQuerySet
   # Answers to join questions for the current group context (when queried through a group's members)
   groupJoinQuestionAnswers(
-    groupId: ID
+    groupId: ID,
+    slug: String
   ): GroupJoinQuestionAnswerQuerySet
   # The set of Memberships to groups this person moderates (that are visible to logged in user
   moderatedGroupMemberships(first: Int, cursor: ID, order: String): [Membership]
