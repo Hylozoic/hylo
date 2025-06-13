@@ -10,7 +10,7 @@ import Icon from 'components/Icon'
 import Member from 'components/Member'
 import ScrollListener from 'components/ScrollListener'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { RESP_ADD_MEMBERS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from 'util/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
@@ -42,7 +42,9 @@ function Members (props) {
   const pending = useSelector(state => state.pending[FETCH_MEMBERS])
   const myResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { groupId: group.id }))
   const myResponsibilityTitles = useMemo(() => myResponsibilities.map(r => r.title), [myResponsibilities])
-
+  const canManageMembers = useMemo(() =>
+    myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
+  [myResponsibilityTitles])
   // Action creators
   const changeSearch = useCallback(term =>
     dispatch(changeQuerystringParam(location, 'q', term)), [location])

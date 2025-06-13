@@ -303,6 +303,18 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
+        {
+          groupJoinQuestionAnswers: {
+            querySet: true,
+            filter: (relation, { groupId }) => {
+              return relation.query(q => {
+                if (groupId) {
+                  q.where('group_id', groupId)
+                }
+              })
+            }
+          }
+        },
         'moderatedGroupMemberships', // TODO: still need this?
         'locationObject',
         { groupRoles: { querySet: true } },
