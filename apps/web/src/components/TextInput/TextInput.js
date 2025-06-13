@@ -19,6 +19,7 @@ const TextInput = forwardRef(({
   theme = {},
   onChange,
   value,
+  doCheckAutofill = false,
   inputRef,
   className,
   inputClassName,
@@ -51,6 +52,7 @@ const TextInput = forwardRef(({
 
   // Check for autofill after mount
   useEffect(() => {
+    if (!doCheckAutofill) return
     const checkAutofill = () => {
       if (inputEl.current && inputEl.current.value) {
         setActive(true)
