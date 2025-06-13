@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
+import ical from 'ical-generator'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -17,11 +18,39 @@ export async function respondToEvent (userId, eventId, response) {
   } else {
     await EventInvitation.create({
       userId,
-      inviterId: userId,
+      inviterId: userId, // why is the user who is responding also the inviter? Is this a workaround?
       eventId,
       response
     })
   }
+
+  if (response === EventInvitation.RESPONSE.YES ||
+    response === EventInvitation.RESPONSE.INTERESTED
+  ) {
+    const calendar = ical()
+    const iCalData = await event.getCalData(userId)
+    const iCalEvent = calendar.createEvent(iCalData)
+    const user = await eventInvitation.user().fetch()
+
+    Queue.classMethod('Email', 'sendEventRsvpEmail', {
+      email: user.get('email'),
+      version: 'with link',
+      templateData: {
+        user_name: user.get('name'),
+        event_name: event.title(),
+        event_description: event.details(),
+        event_url: event.get('location'),
+        response: response
+      },
+      files: [
+        {
+          filename: 'invite.ics',
+          content: btoa(iCalEvent.toString())
+        }
+      ]
+    })
+  }
+
   return { success: true }
 }
 

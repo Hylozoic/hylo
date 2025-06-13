@@ -318,6 +318,23 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
+  async getCalData (userId) {
+    const user = await this.user().fetch()
+    return {
+      summary: this.title(),
+      description: TextHelpers.presentHTMLToText(this.details(userId)),
+      location: this.get('location'),
+      start: this.get('start_time'),
+      end: this.get('end_time'),
+      timezone: this.get('timezone'),
+      organizer: {
+        name: user.get('name'),
+        email: user.get('email')
+      },
+      uid: this.id
+    }
+  },
+
   async lastReadAtForUser (userId) {
     const pu = await this.postUsers()
       .query(q => q.where('user_id', userId)).fetchOne()

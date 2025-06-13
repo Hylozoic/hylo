@@ -6,7 +6,9 @@ const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
 const sendEmail = async opts => {
   try {
+    console.log('***********sending email***********', opts)
     await api.send(opts)
+    console.log('***********sending email***********')
     return true
   } catch (err) {
     console.error('Error sending email:', err, ' email opts = ', opts)
@@ -31,8 +33,9 @@ const sendSimpleEmail = function (address, templateId, data, extraOptions, local
   }, extraOptions))
 }
 
-const sendEmailWithOptions = curry((templateId, opts) =>
-  sendEmail(merge({}, defaultOptions, {
+const sendEmailWithOptions = curry((templateId, opts) => {
+console.log('*******opts = ', opts)
+  return sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
     email_data: opts.data,
@@ -40,7 +43,8 @@ const sendEmailWithOptions = curry((templateId, opts) =>
     locale: mapLocaleToSendWithUS(opts.locale),
     sender: opts.sender, // expects {name, reply_to}
     files: opts.files
-  })))
+  }))
+})
 
 module.exports = {
   sendSimpleEmail,
@@ -93,6 +97,7 @@ module.exports = {
   sendDonationToEmail: sendEmailWithOptions('tem_bhptVWGW6k67tpFtqRDWKTHQ'),
   sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
   sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
+  sendEventRsvpEmail: sendEmailWithOptions('tem_36CYP4XjSmSjPtqqdBJBRcjF'),
   sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_vwd7DKxrGrXPX8Wq63VkTvMd'),
   sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
