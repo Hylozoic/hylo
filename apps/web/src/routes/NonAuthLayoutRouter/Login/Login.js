@@ -21,6 +21,7 @@ export default function Login (props) {
   const DEFAULT_LOGIN_ERROR = t('Sorry, that Email and Password combination didn\'t work.')
 
   useEffect(() => {
+    // Because chrome autofill is a pain, we need to check for it and set the email and password if it's there
     const checkAutofill = () => {
       const emailInput = document.getElementById('email')
       const passwordInput = document.getElementById('password')
@@ -103,6 +104,7 @@ export default function Login (props) {
           autoFocus
           internalLabel={t('Email')}
           onChange={handleEmailChange}
+          doCheckAutofill
           className='bg-input rounded-md mb-3'
           inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
           type='email'
@@ -113,6 +115,7 @@ export default function Login (props) {
           aria-label='password' label='password' name='password' id='password'
           internalLabel={t('Password')}
           onChange={handlePasswordChange}
+          doCheckAutofill
           onEnter={handleLogin}
           className='bg-input rounded-md mb-3'
           inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
