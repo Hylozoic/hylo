@@ -17,7 +17,7 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -83,7 +83,7 @@ export default function ContextMenu (props) {
     if (isMyContext || isPublicContext) {
       return getStaticMenuWidgetsMemoized(state, {
         isPublicContext,
-        isMyContext: isMyContext,
+        isMyContext,
         profileUrl
       })
     }
