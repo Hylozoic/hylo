@@ -34,8 +34,8 @@ export async function respondToEvent (userId, eventId, response) {
 
     Queue.classMethod('Email', 'sendEventRsvpEmail', {
       email: user.get('email'),
-      version: 'with link',
-      templateData: {
+      version: 'default',
+      data: {
         user_name: user.get('name'),
         event_name: event.title(),
         event_description: event.details(),
