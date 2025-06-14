@@ -22,14 +22,13 @@ const defaultOptions = {
   locale: 'en-US'
 }
 
-const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
-  return sendEmail(merge({}, defaultOptions, {
+const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') =>
+  sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
     locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
-}
 
 const sendEmailWithOptions = curry((templateId, opts) => {
   return sendEmail(merge({}, defaultOptions, {
