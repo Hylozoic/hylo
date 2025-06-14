@@ -26,6 +26,15 @@ module.exports = bookshelf.Model.extend({
     INTERESTED: 'interested'
   },
 
+  getHumanResponse: function (response) {
+    const responseMap = {
+      [this.RESPONSE.YES]: 'Going',
+      [this.RESPONSE.NO]: 'Not Going',
+      [this.RESPONSE.INTERESTED]: 'Interested'
+    }
+    return responseMap[response]
+  },
+
   create: function ({ userId, inviterId, eventId, response }, trxOpts) {
     if (!userId) {
       throw new GraphQLError('must provide a user_id')
