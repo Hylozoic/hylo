@@ -7,7 +7,7 @@ export async function respondToEvent (userId, eventId, response) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
-  const event = await Post.find(eventId)
+  const event = await Post.find(eventId, { withRelated: ['groups'] })
   if (!event) {
     throw new GraphQLError('Event not found')
   }
@@ -27,10 +27,12 @@ export async function respondToEvent (userId, eventId, response) {
   if (response === EventInvitation.RESPONSE.YES ||
     response === EventInvitation.RESPONSE.INTERESTED
   ) {
-    const calendar = ical()
+    const iCalendar = ical()
     const iCalData = await event.getCalData(userId)
-    const iCalEvent = calendar.createEvent(iCalData)
-    const user = await eventInvitation.user().fetch()
+    iCalendar.createEvent(iCalData)
+ 
+    const user = await User.find(userId)
+    const group_names = event.relations.groups.map(g => g.get('name')).join(', ')
 
     Queue.classMethod('Email', 'sendEventRsvpEmail', {
       email: user.get('email'),
@@ -40,14 +42,15 @@ export async function respondToEvent (userId, eventId, response) {
         event_name: event.title(),
         event_description: event.details(),
         event_url: event.get('location'),
-        response: response
-      },
-      files: [
-        {
-          filename: 'invite.ics',
-          content: btoa(iCalEvent.toString())
-        }
-      ]
+        response: EventInvitation.getHumanResponse(response),
+        group_name: group_names,
+        files: [
+          {
+            id: 'invite.ics',
+            data: btoa(iCalendar.toString())
+          }
+        ]
+      }
     })
   }
 
