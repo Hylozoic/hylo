@@ -30,8 +30,8 @@ const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-U
     locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
 
-const sendEmailWithOptions = curry((templateId, opts) => {
-  return sendEmail(merge({}, defaultOptions, {
+const sendEmailWithOptions = curry((templateId, opts) =>
+  sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
     email_data: opts.data,
@@ -40,7 +40,7 @@ const sendEmailWithOptions = curry((templateId, opts) => {
     sender: opts.sender, // expects {name, reply_to}
     files: opts.data.files
   }))
-})
+)
 
 module.exports = {
   sendSimpleEmail,
