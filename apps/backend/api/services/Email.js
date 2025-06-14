@@ -39,8 +39,7 @@ const sendEmailWithOptions = curry((templateId, opts) =>
     locale: mapLocaleToSendWithUS(opts.locale),
     sender: opts.sender, // expects {name, reply_to}
     files: opts.data.files
-  }))
-)
+  })))
 
 module.exports = {
   sendSimpleEmail,
