@@ -28,9 +28,9 @@ module.exports = bookshelf.Model.extend({
 
   getHumanResponse: function (response) {
     const responseMap = {
-      [this.RESPONSE.YES]: 'Going',
-      [this.RESPONSE.NO]: 'Not Going',
-      [this.RESPONSE.INTERESTED]: 'Interested'
+      [this.RESPONSE.YES]: 'Going to',
+      [this.RESPONSE.NO]: 'Not Going to',
+      [this.RESPONSE.INTERESTED]: 'Interested in'
     }
     return responseMap[response]
   },
