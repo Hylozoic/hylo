@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X } from 'lucide-react'
+import { TriangleAlert, X, Star } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -18,6 +18,7 @@ import PostTypeSelect from 'components/PostTypeSelect'
 import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import PublicToggle from 'components/PublicToggle'
@@ -25,6 +26,7 @@ import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
+import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchMyMemberships from 'store/actions/fetchMyMemberships'
 import {
@@ -35,10 +37,11 @@ import {
   PROPOSAL_MULTIPLE_CHOICE,
   PROPOSAL_POLL_SINGLE,
   PROPOSAL_TEMPLATES,
+  PROPOSAL_YESNO,
+  POST_COMPLETION_ACTIONS,
   POST_TYPES_SHOW_LOCATION_BY_DEFAULT,
   VOTING_METHOD_MULTI_UNRESTRICTED,
-  VOTING_METHOD_SINGLE,
-  PROPOSAL_YESNO
+  VOTING_METHOD_SINGLE
 } from 'store/models/Post'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
@@ -48,6 +51,7 @@ import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import getTrack from 'store/selectors/getTrack'
 import { fetchLocation, ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import {
   CREATE_POST,
@@ -75,7 +79,6 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from 'util/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from 'components/ui/select'
 
 import styles from './PostEditor.module.scss'
 
@@ -128,6 +131,7 @@ function PostEditor ({
 
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
@@ -174,21 +178,23 @@ function PostEditor ({
   const endTimeRef = useRef()
 
   const initialPost = useMemo(() => ({
-    title: '',
-    details: '',
-    type: postType || (modal ? 'discussion' : 'chat'),
-    groups: currentGroup ? [currentGroup] : [],
-    topics: topic ? [topic] : [],
     acceptContributions: false,
-    isPublic: context === 'public',
-    locationId: null,
-    location: '',
-    timezone: DateTime.now().zoneName,
-    proposalOptions: [],
+    completionAction: 'button',
+    completionActionSettings: currentTrack?.actionDescriptor ? { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } : null,
+    details: '',
+    groups: currentGroup ? [currentGroup] : [],
     isAnonymousVote: false,
+    isPublic: context === 'public',
     isStrictProposal: false,
-    votingMethod: VOTING_METHOD_SINGLE,
+    location: '',
+    locationId: null,
+    proposalOptions: [],
     quorum: 0,
+    timezone: DateTime.now().zoneName,
+    title: '',
+    topics: topic ? [topic] : [],
+    type: postType || (modal ? 'discussion' : 'chat'),
+    votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
@@ -281,6 +287,12 @@ function PostEditor ({
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
   useEffect(() => {
+    if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
+      setCurrentPost({ ...currentPost, completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } })
+    }
+  }, [currentTrack?.actionDescriptor, currentPost.completionActionSettings])
+
+  useEffect(() => {
     if (isChat) {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
@@ -328,7 +340,7 @@ function PostEditor ({
     if (isChat) {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
-      toFieldRef.current.reset()
+      toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
   }, [initialPost])
@@ -564,6 +576,8 @@ function PostEditor ({
   const save = useCallback(async () => {
     const {
       acceptContributions,
+      completionAction,
+      completionActionSettings,
       donationsLink,
       endTime,
       eventInvitations,
@@ -612,6 +626,8 @@ function PostEditor ({
       commenters: [], // For optimistic display of the new post
       createdAt: DateTime.now().toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
+      completionAction,
+      completionActionSettings,
       details,
       donationsLink: sanitizeURL(donationsLink),
       endTime,
@@ -642,13 +658,14 @@ function PostEditor ({
       timezone,
       title,
       topicNames,
+      trackId: currentTrack?.id,
       type
     }
 
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
-    reset()
+    if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
   }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
@@ -714,6 +731,7 @@ function PostEditor ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
+    if (currentPost.type === 'action') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -722,11 +740,12 @@ function PostEditor ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat'
+  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat' && currentPost.type !== 'action'
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
+  const isAction = currentPost.type === 'action'
 
   /**
    * Handles the To field container click, focusing the actual ToField
@@ -746,15 +765,21 @@ function PostEditor ({
         }}
       />
       <div className={cn('PostEditorHeader relative')}>
-        <PostTypeSelect
-          disabled={loading}
-          includeChat={!modal}
-          postType={currentPost.type}
-          setPostType={handlePostTypeSelection}
-          className={cn({ 'absolute top-3 right-1 z-10': isChat })}
-        />
+        {!isAction
+          ? (
+            <PostTypeSelect
+              disabled={loading}
+              includeChat={!modal}
+              postType={currentPost.type}
+              setPostType={handlePostTypeSelection}
+              className={cn({ 'absolute top-3 right-1 z-10': isChat })}
+            />
+            )
+          : (
+            <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
+            )}
       </div>
-      {!isChat && (
+      {!isChat && !isAction && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
@@ -801,9 +826,7 @@ function PostEditor ({
       <div className={cn(
         'PostEditorContent',
         styles.section,
-        'flex flex-col !items-start border-2 border-transparent shadow-md',
-        'transition-all duration-200 overflow-x-hidden',
-        'focus-within:border-2 focus-within:border-focus',
+        'flex flex-col !items-start border-2 border-transparent shadow-md transition-all duration-200 overflow-x-hidden focus-within:border-2 focus-within:border-focus',
         { 'max-h-[300px]': !modal }
       )}
       >
@@ -874,7 +897,7 @@ function PostEditor ({
           />
         </div>
       </div> */}
-      {!isChat && (
+      {!isChat && !isAction && (
         <div className={cn('PostEditorPublic', styles.section)}>
           <PublicToggle
             togglePublic={togglePublic}
@@ -955,9 +978,11 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-
+                <div className='flex flex-row gap-2 items-center'>
+                  <Star className='w-4 h-4 text-foreground' />
+                </div>
                 <div
-                  className='absolute right-0 top-[50%] -translate-y-[50%] p-2 hover:cursor-pointer hover:scale-125 transition-all'
+                  className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
                     const newOptions = currentPost.proposalOptions.filter(element => {
                       if (option.id) return element.id !== option.id
@@ -973,7 +998,7 @@ function PostEditor ({
             ))}
             <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className={styles.optionText}>{t('Add an option to vote on...')}</span>
+              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
             </div>
             {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
@@ -1067,6 +1092,13 @@ function PostEditor ({
         <span className={styles.datepickerError}>
           {t('End Time must be after Start Time')}
         </span>
+      )}
+      {isAction && (
+        <CompletionActionSection
+          currentPost={currentPost}
+          loading={loading}
+          setCurrentPost={setCurrentPost}
+        />
       )}
       {showLocation && (
         <div className={cn('flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2')}>
@@ -1186,6 +1218,95 @@ function PostEditor ({
         type={currentPost.type}
         valid={isValid}
       />
+    </div>
+  )
+}
+
+function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
+  const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+
+  const { completionAction, completionActionSettings } = currentPost
+
+  const handleCompletionActionChange = useCallback((value) => {
+    const completionActionSettings = {
+      instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
+    }
+    if (value === 'selectMultiple' || value === 'selectOne') {
+      completionActionSettings.options = []
+    }
+    setCurrentPost({ ...currentPost, completionAction: value, completionActionSettings })
+  }, [currentPost, setCurrentPost, currentTrack?.actionDescriptor, t])
+
+  const handleAddOption = useCallback(() => {
+    const newOptions = [...completionActionSettings.options, '']
+    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
+  }, [completionActionSettings, currentPost, setCurrentPost])
+
+  const handleInstructionsChange = useCallback((evt) => {
+    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, instructions: evt.target.value } })
+  }, [completionActionSettings, currentPost, setCurrentPost])
+
+  return (
+    <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-3 mt-4 mb-2 gap-2'>
+      <div>{t('How can people complete this {{actionDescriptor}}?', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
+      <div className='w-full mb-2'>
+        <Select value={completionAction} onValueChange={handleCompletionActionChange}>
+          <SelectTrigger className={cn('w-fit py-1 h-8 border-2')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {POST_COMPLETION_ACTIONS.map((type) => (
+              <SelectItem key={type} value={type}>{t('postCompletionActions.' + type)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className='w-full p-2 bg-black/20 rounded-md'>
+        <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
+        <textarea
+          className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'
+          placeholder={t('Add instructions for completing this {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}
+          value={completionActionSettings?.instructions}
+          onChange={handleInstructionsChange}
+        />
+        {(completionAction === 'selectMultiple' || completionAction === 'selectOne') && (
+          <div className='w-full flex flex-col gap-2'>
+            {completionActionSettings?.options?.map((option, index) => (
+              <div className='flex flex-row gap-2 items-center bg-input rounded-md p-2' key={index}>
+                <label className='whitespace-nowrap font-normal'>{t('Option {{index}}', { index: index + 1 })}</label>
+                <input
+                  type='text'
+                  className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+                  placeholder={t('Add description')}
+                  value={option}
+                  onChange={(evt) => {
+                    const newOptions = [...completionActionSettings.options]
+                    newOptions[index] = evt.target.value
+                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
+                  }}
+                  disabled={loading}
+                />
+                <Icon
+                  name='Ex'
+                  onClick={() => {
+                    const newOptions = completionActionSettings?.options?.filter(element => {
+                      return element !== option
+                    })
+
+                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
+                  }}
+                />
+              </div>
+            ))}
+            <div className='w-full flex flex-row gap-2 items-center border-2 border-foreground/30 rounded-md p-2' onClick={() => handleAddOption()}>
+              <Icon name='Plus' className='text-foreground' />
+              <span>{t('Add an option')}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

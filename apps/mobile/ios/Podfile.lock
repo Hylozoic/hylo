@@ -10,6 +10,28 @@ PODS:
   - BVLinearGradient (2.8.3):
     - React-Core
   - DoubleConversion (1.1.6)
+  - EmojiPopup (0.3.1):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - MCEmojiPicker
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - FBLazyVector (0.76.6)
   - fmt (9.1.0)
   - glog (0.3.5)
@@ -41,6 +63,7 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - MCEmojiPicker (1.2.3)
   - Mixpanel-swift (4.3.0):
     - Mixpanel-swift/Complete (= 4.3.0)
   - Mixpanel-swift/Complete (4.3.0)
@@ -1408,7 +1431,7 @@ PODS:
     - React-Core
   - react-native-restart (0.0.27):
     - React-Core
-  - react-native-safe-area-context (5.2.0):
+  - react-native-safe-area-context (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1421,8 +1444,8 @@ PODS:
     - React-featureflags
     - React-graphics
     - React-ImageManager
-    - react-native-safe-area-context/common (= 5.2.0)
-    - react-native-safe-area-context/fabric (= 5.2.0)
+    - react-native-safe-area-context/common (= 5.4.0)
+    - react-native-safe-area-context/fabric (= 5.4.0)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-rendererdebug
@@ -1431,7 +1454,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/common (5.2.0):
+  - react-native-safe-area-context/common (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1452,7 +1475,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/fabric (5.2.0):
+  - react-native-safe-area-context/fabric (5.4.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2162,6 +2185,7 @@ DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - EmojiPopup (from `../node_modules/react-native-emoji-popup`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
@@ -2270,6 +2294,7 @@ SPEC REPOS:
     - GTMSessionFetcher
     - Intercom
     - libwebp
+    - MCEmojiPicker
     - Mixpanel-swift
     - OneSignalXCFramework
     - SDWebImage
@@ -2284,6 +2309,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-linear-gradient"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  EmojiPopup:
+    :path: "../node_modules/react-native-emoji-popup"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   fmt:
@@ -2488,6 +2515,7 @@ SPEC CHECKSUMS:
   boost: 1dca942403ed9342f98334bf4c3621f011aa7946
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: f16ae600a246532c4020132d54af21d0ddb2a385
+  EmojiPopup: 4d4fa5c5cd3228709235be351369eb786f035c59
   FBLazyVector: be509404b5de73a64a74284edcaf73a5d1e128b1
   fmt: 10c6e61f4be25dc963c36bd73fc7b1705fe975be
   glog: 08b301085f15bcbb6ff8632a8ebaf239aae04e6a
@@ -2499,6 +2527,7 @@ SPEC CHECKSUMS:
   intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: f5b2a3c4f130e4c910ead7bb25bed7455e976fbf
@@ -2541,7 +2570,7 @@ SPEC CHECKSUMS:
   react-native-pager-view: 4ad4883a8288c5207bd432dd3c98bf648b7bc7d7
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
   react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863
-  react-native-safe-area-context: 5e53e2b0fc3a2994ad0c89a2486e545b6566d8c4
+  react-native-safe-area-context: cd38c1fc5fbaff96bf0999b471d0dcb8610e124d
   react-native-webview: dd55f7d3b8c0dcdf8835a44ffc5bd03303dffb30
   React-nativeconfig: 539ff4de6ce3b694e8e751080568c281c84903ce
   React-NativeModulesApple: 702246817c286d057e23fe4b1302019796e62521

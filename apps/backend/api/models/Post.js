@@ -2,7 +2,7 @@
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
-import { difference, filter, get, isNull, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
+import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndefined, pick } from 'lodash/fp'
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
@@ -53,6 +53,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
   _localId: null, // Used to store the localId of the post coming from the client and passed back to the client, for optimistic updates
 
   // Instance Methods
+
+  initialize: function () {
+    this._cachedPostUsers = {}
+  },
 
   // Simple attribute getters
 
@@ -130,6 +134,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(CollectionsPost, 'post_id')
   },
 
+  completionResponses: function () {
+    return this.hasMany(PostUser, 'post_id').query(q => {
+      q.where({ active: true })
+      q.whereNotNull('completed_at')
+    })
+  },
+
   contributions: function () {
     return this.hasMany(Contribution, 'post_id')
   },
@@ -185,6 +196,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.hasMany(PostUser, 'post_id')
   },
 
+  loadPostInfoForUser: async function (userId, opts = {}) {
+    if (userId && this._cachedPostUsers[userId]) {
+      return this._cachedPostUsers[userId]
+    }
+    const pu = await this.postUsers().query(q => q.where('user_id', userId)).fetchOne(opts)
+    this._cachedPostUsers[userId] = pu
+    return pu
+  },
+
   projectContributions: function () {
     return this.hasMany(ProjectContribution)
   },
@@ -217,6 +237,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   tags: function () {
     return this.belongsToMany(Tag).through(PostTag).withPivot('selected')
+  },
+
+  tracks: function () {
+    return this.belongsToMany(Track, 'tracks_posts')
   },
 
   user: function () {
@@ -257,6 +281,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   getCommentersTotal: function (currentUserId) {
+    // TODO: store number of commenters in the post_users table for performance
     return countTotal(User.query(commentersQuery(null, this, currentUserId)).query(), 'users')
       .then(result => {
         if (isEmpty(result)) {
@@ -337,18 +362,28 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
+  async clickthroughForUser (userId) {
+    if (!userId) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('clickthrough')) || null
+  },
+
   async lastReadAtForUser (userId) {
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
+    if (!userId) return new Date(0)
+    const pu = await this.loadPostInfoForUser(userId)
     return new Date((pu && pu.get('last_read_at')) || 0)
   },
 
-  async checkClickthrough (userId) {
-    if (!userId) return null
+  async completedAtForUser (userId) {
+    if (!userId || this.get('type') !== Post.Type.ACTION) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('completed_at')) || null
+  },
 
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
-    return (pu && pu.get('clickthrough')) || null
+  async completionResponseForUser (userId) {
+    if (!userId || this.get('type') !== Post.Type.ACTION) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('completion_response')) || null
   },
 
   presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
@@ -512,10 +547,34 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Promise.resolve()
   },
 
+  complete (userId, completionResponse, trx) {
+    const runInTransaction = async (transaction) => {
+      let pu = await this.loadPostInfoForUser(userId, { transacting: transaction })
+      let completedBefore = false
+      if (pu) {
+        if (pu.get('completed_at')) {
+          completedBefore = true
+        }
+        await pu.save({ completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
+      } else {
+        pu = await this.postUsers().create({ user_id: userId, created_at: new Date(), completed_at: new Date(), completion_response: completionResponse }, { transacting: transaction })
+      }
+
+      if (!completedBefore) {
+        await this.save({ num_people_completed: this.get('num_people_completed') + 1 }, { transacting: transaction })
+        Queue.classMethod('Post', 'checkCompletedTracks', { userId, postId: this.id })
+      }
+
+      return pu
+    }
+
+    return trx ? runInTransaction(trx) : bookshelf.transaction(runInTransaction)
+  },
+
   async markAsRead (userId) {
-    const pu = await this.postUsers()
-      .query(q => q.where('user_id', userId)).fetchOne()
-    return pu.save({ last_read_at: new Date() })
+    const pu = await this.loadPostInfoForUser(userId)
+    // XXX: don't know why we need to save the completion_response here but it errors without
+    return pu.save({ last_read_at: new Date(), completion_response: JSON.stringify(pu.get('completion_response')) })
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
@@ -566,8 +625,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-    } else {
+    } else if (this.get('type') !== Post.Type.ACTION) {
       // Non-chat posts are sent to all members of the groups the post is in
+      // XXX: no notifications sent for Actions right now
       const members = await Promise.all(groups.map(async group => {
         const userIds = await group.members().fetch().then(u => u.pluck('id'))
         const newPosts = userIds.map(userId => ({
@@ -664,10 +724,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
         emoji_label: emojiObject.shortcodes
       }).save({}, { transacting: trx })
 
+      await this.addFollowers([userId])
+
       await this.save({
         num_people_reacts: this.get('num_people_reacts') + deltaPeople,
         reactions_summary: { ...reactionsSummary, [emojiFull]: reactionCount + 1 }
       }, { transacting: trx })
+
+      if (this.get('type') === 'action' && this.get('completion_action') === 'reaction' && !this.get('completed_at')) {
+        await this.complete(userId, JSON.stringify([emojiFull]), trx)
+      }
 
       return this
     })
@@ -715,6 +781,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   // Class Methods
 
   Type: {
+    ACTION: 'action',
     CHAT: 'chat',
     DISCUSSION: 'discussion',
     EVENT: 'event',
@@ -894,40 +961,102 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const where = { post_id: postId, 'comments.active': true }
     const now = new Date()
 
-    return Promise.all([
-      Comment.query().where(where).orderBy('created_at', 'desc').limit(2)
-        .pluck('id').then(ids => Promise.all([
-          Comment.query().whereIn('id', ids).update('recent', true),
-          Comment.query().whereNotIn('id', ids)
-            .where({ recent: true, post_id: postId })
-            .update('recent', false)
-        ])),
+    await Comment.query().where(where).orderBy('created_at', 'desc').limit(2)
+      .pluck('id').then(ids => Promise.all([
+        Comment.query().whereIn('id', ids).update('recent', true),
+        Comment.query().whereNotIn('id', ids)
+          .where({ recent: true, post_id: postId })
+          .update('recent', false)
+      ]))
 
-      // update num_comments and updated_at (only update the latter when
-      // creating a comment, not deleting one)
-      Aggregate.count(Comment.where(where)).then(count =>
-        Post.query().where('id', postId).update(omitBy(isNull, {
-          num_comments: count,
-          updated_at: commentId ? now : null
-        }))),
+    // update num_comments and updated_at (only update the latter when
+    // creating a comment, not deleting one)
+    const numComments = await Aggregate.count(Comment.where(where))
+    const post = await Post.find(postId)
+    await post.save({
+      num_comments: numComments,
+      updated_at: commentId ? now : null
+    })
 
-      // when creating a comment, mark post as read for the commenter
-      commentId && Comment.where('id', commentId).query().pluck('user_id')
-        .then(([userId]) => Post.find(postId)
-          .then(post => post.markAsRead(userId)))
-    ])
+    // when creating a comment, mark post as read for the commenter
+    if (commentId) {
+      const comment = await Comment.find(commentId)
+      const userId = comment.get('user_id')
+      if (userId) {
+        await post.markAsRead(userId)
+        // If the post is an action and the completion action is to comment,
+        // set the completed_at date to now
+        if (post.get('type') === 'action' && post.get('completion_action') === 'comment' && !post.get('completed_at')) {
+          await post.complete(userId, JSON.stringify([comment.get('text')]))
+        }
+      }
+    }
   },
 
   deactivate: postId =>
     bookshelf.transaction(trx =>
       Promise.join(
         Activity.removeForPost(postId, trx),
-        Post.where('id', postId).query().update({ active: false }).transacting(trx)
+        Track.removePost(postId, trx),
+        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx)
       )),
 
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&
       bookshelf.transaction(trx => post.createActivities(trx))),
+
+  // Check if completing this post completed any tracks for the user
+  checkCompletedTracks: async function ({ userId, postId }) {
+    return bookshelf.transaction(async trx => {
+      const post = await Post.find(postId, { transacting: trx })
+      if (!post || post.get('type') !== 'action') return
+
+      const trackPosts = await TrackPost.where({ post_id: postId }).fetchAll({ transacting: trx })
+      const trackIds = trackPosts.pluck('track_id')
+      const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
+      for (const track of tracks) {
+        const trackActions = await TrackPost.where({ track_id: track.id }).fetchAll({ transacting: trx })
+        const group = await track.groups().fetchOne()
+        const completedActionsCount = await PostUser.query(q => {
+          q.where('user_id', userId)
+          q.whereIn('post_id', trackActions.pluck('post_id'))
+          q.whereNotNull('completed_at')
+        }).count({ transacting: trx })
+
+        // If completed the track
+        if (parseInt(completedActionsCount) === trackActions.length) {
+          const trackUser = await TrackUser.where({ track_id: track.id, user_id: userId }).fetch({ transacting: trx })
+          if (trackUser.get('completed_at')) {
+            // Don't complete the track again if it's already completed
+            continue
+          }
+          await trackUser.save({ completed_at: new Date() }, { transacting: trx })
+          await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
+          // See if there is a role/badge for completing the track
+          if (track.get('completion_role_id')) {
+            if (track.get('completion_role_type') === 'common') {
+              await MemberCommonRole.forge({ common_role_id: track.get('completion_role_id'), user_id: userId, group_id: group.id }).save(null, { transacting: trx })
+            } else if (track.get('completion_role_type') === 'group') {
+              await MemberGroupRole.forge({ group_role_id: track.get('completion_role_id'), user_id: userId, active: true, group_id: group.id }).save(null, { transacting: trx })
+            }
+          }
+
+          // Create notification activities for the track's group's track managers
+          const manageTracksResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch({ transacting: trx })
+          const stewards = await group.membersWithResponsibilities([manageTracksResponsibility.id]).fetch({ transacting: trx })
+          const stewardsIds = stewards.pluck('id')
+          const activities = stewardsIds.map(stewardId => ({
+            reason: 'trackCompleted',
+            actor_id: userId,
+            group_id: group.id,
+            reader_id: stewardId,
+            track_id: track.id
+          }))
+          await Activity.saveForReasons(activities, { transacting: trx })
+        }
+      }
+    })
+  },
 
   // TODO: remove, unused (??)
   fixTypedPosts: () =>

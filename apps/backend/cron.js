@@ -1,4 +1,3 @@
-/* globals Nexudus */
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')

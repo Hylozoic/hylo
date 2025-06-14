@@ -66,6 +66,14 @@ export default function fetchContextWidgets (groupId) {
                 id
                 name
               }
+              viewTrack {
+                id
+                name
+                didComplete
+                isEnrolled
+                numActions
+                publishedAt
+              }
             }
           }
         }

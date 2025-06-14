@@ -63,20 +63,22 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
 
   return (
     <View style={styles.detailsContainer}>
-      <PostHeader
-        announcement={post.announcement}
-        isFlagged={isFlagged}
-        closeOnDelete
-        creator={post.creator}
-        date={post.createdAt}
-        editPost={editPost}
-        groups={post.groups}
-        postId={post.id}
-        showMember={goToMember}
-        style={{ paddingVertical: 14 }}
-        title={post.title}
-        type={post.type}
-      />
+      {post.type !== 'action' && (
+        <PostHeader
+          announcement={post.announcement}
+          isFlagged={isFlagged}
+          closeOnDelete
+          creator={post.creator}
+          date={post.createdAt}
+          editPost={editPost}
+          groups={post.groups}
+          postId={post.id}
+          showMember={goToMember}
+          style={{ paddingVertical: 14 }}
+          title={post.title}
+          type={post.type}
+        />
+      )}
       {(post.getImages().length === 0) && (
         <Topics
           topics={post.topics}
@@ -192,7 +194,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           style={styles.projectJoinButton}
         />
       )}
-      {showGroups && (
+      {showGroups && post.type !== 'action' && (
         <PostGroups
           groups={post.groups}
           includePublic={post.isPublic}

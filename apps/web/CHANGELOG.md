@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.2] - 2025-06-12
+
+### Changed
+- Faster closing of post modal after creating a non chat post
+
+### Fixed
+- Immediate editing of a new chat post no longer removes that post
+- Fix location of post dialog in stream when scrolled down.
+- Add missing translations for proposal posts
+
+## [6.1.1] - 2025-06-11
+
+### Added
+- Missing translation for unpublished tracks
+
+### Changed
+- Remove the new Hylo alert that was shown to users who signed up before the redesign
+
+### Fixed
+- Display of send announcement modal
+- Display of disabled post button in post editor
+
+## [6.1.0] - 2025-06-10
+
+### Added
+- __Tracks!__ Tracks are a way to offer a series of actions/modules/lessons to a group. They can be used for courses, workshops, or any other kind of learning experience, as well as for certain kinds of projects or any other kind of sequential group activity offered to members. Tracks are made of actions, which can have different types of completion requirements, like a text response, an uploaded file, or choosing from a list of options.
+
 ## [6.0.8] - 2025-06-05
 
 ### Added

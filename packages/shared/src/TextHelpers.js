@@ -154,10 +154,13 @@ export function humanDate (date, short) {
     .replace(/ month(s?)/, ' mo$1')
 }
 
-export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
+export const formatDatePair = (startTime, endTime, returnAsObj, timezone, skipTime = false) => {
   const parseFunction = typeof startTime === 'object' ? DateTime.fromJSDate : DateTime.fromISO
   const start = parseFunction(startTime, { zone: timezone || DateTime.now().zoneName || 'UTC' })
   const end = endTime ? parseFunction(endTime, { zone: timezone || DateTime.now().zoneName || 'UTC' }) : null
+
+  const formatWithYear = skipTime ? "ccc MMM d, yyyy" : "ccc MMM d, yyyy '•' t"
+  const formatWithoutYear = skipTime ? "ccc MMM d" : "ccc MMM d '•' t"
 
   const now = DateTime.now()
 
@@ -170,9 +173,9 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
 
   // Format the start date - only include year if it's not this year
   if (start.get('year') !== now.get('year')) {
-    from = start.toFormat("ccc MMM d, yyyy '•' t")
+    from = start.toFormat(formatWithYear)
   } else {
-    from = start.toFormat("ccc MMM d '•' t")
+    from = start.toFormat(formatWithoutYear)
   }
 
   // Format the end date/time if provided
@@ -182,10 +185,10 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone) => {
       to = end.toFormat('t')
     } else if (end.get('year') < now.get('year')) {
       // If end date is in a past year, include the year
-      to = end.toFormat("MMM d, yyyy '•' t")
+      to = end.toFormat(formatWithYear)
     } else {
       // Otherwise just month, day and time
-      to = end.toFormat("MMM d '•' t")
+      to = end.toFormat(formatWithoutYear)
     }
 
     to = returnAsObj ? to : ' - ' + to

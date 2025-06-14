@@ -228,41 +228,33 @@ module.exports = bookshelf.Model.extend(merge({
     return this.get('num_members')
   },
 
-  // This returns all members with the manage_content responsbility
-  moderators () {
+  // This returns all members with the given responsibilities
+  membersWithResponsibilities (responsibilityIds) {
     return this.members().query(q => {
       q.whereRaw(`(exists (
         select * from group_memberships_common_roles
         inner join common_roles_responsibilities on common_roles_responsibilities.common_role_id = group_memberships_common_roles.common_role_id
-        where common_roles_responsibilities.responsibility_id = 3
+        where common_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
           and group_memberships_common_roles.user_id = users.id
           and group_memberships_common_roles.group_id = group_memberships.group_id
       ) or exists (
         select * from group_memberships_group_roles
         inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
-        where group_roles_responsibilities.responsibility_id = 3
+        where group_roles_responsibilities.responsibility_id IN (${responsibilityIds.join(',')})
           and group_memberships_group_roles.user_id = users.id
           and group_memberships_group_roles.group_id = group_memberships.group_id
       ))`)
     })
   },
 
+  // This returns all members with the manage_content responsibility
+  moderators () {
+    return this.membersWithResponsibilities([3])
+  },
+
+  // This returns all members with the administration, manage_content and manage_members responsibilities
   stewards () {
-    return this.members().query(q => {
-      q.whereRaw(`(exists (
-        select * from group_memberships_common_roles
-        inner join common_roles_responsibilities on common_roles_responsibilities.common_role_id = group_memberships_common_roles.common_role_id
-        where common_roles_responsibilities.responsibility_id IN (1, 3, 4)
-          and group_memberships_common_roles.user_id = users.id
-          and group_memberships_common_roles.group_id = group_memberships.group_id
-      ) or exists (
-        select * from group_memberships_group_roles
-        inner join group_roles_responsibilities on group_roles_responsibilities.group_role_id = group_memberships_group_roles.group_role_id
-        where group_roles_responsibilities.responsibility_id IN (1, 3, 4)
-          and group_memberships_group_roles.user_id = users.id
-          and group_memberships_group_roles.group_id = group_memberships.group_id
-      ))`)
-    })
+    return this.membersWithResponsibilities([1, 3, 4])
   },
 
   // Return # of prereq groups userId is not a member of yet
@@ -324,6 +316,10 @@ module.exports = bookshelf.Model.extend(merge({
     return this.belongsToMany(Tag).through(GroupTag).withPivot(['is_default'])
   },
 
+  tracks () {
+    return this.belongsToMany(Track, 'groups_tracks')
+  },
+
   // The posts to show for a particular user viewing a group's stream or map
   // includes the direct posts to this group + posts to child groups the user is a member of
   viewPosts (userId) {
@@ -345,6 +341,11 @@ module.exports = bookshelf.Model.extend(merge({
         })
       })
     })
+  },
+
+  // Getter to override access to the welcome_page attribute and sanitize the HTML
+  welcomePage () {
+    return RichText.processHTML(this.get('welcome_page'))
   },
 
   widgets: function () {
@@ -497,6 +498,7 @@ module.exports = bookshelf.Model.extend(merge({
       linked_schemas: [
         'organizations_schema-v1.0.0'
       ],
+      unique_id: 'hylo-group-' + this.id,
       name: this.get('name'),
       primary_url: this.get('website_url') || Frontend.Route.group(this),
       mission: this.get('purpose') || '',
@@ -583,18 +585,19 @@ module.exports = bookshelf.Model.extend(merge({
 
     // These are accessible in the all view
     const unorderedWidgets = [
-      { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
-      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
-      { title: 'widget-stream', view: 'stream' },
-      { title: 'widget-events', type: 'events', view: 'events' },
-      { title: 'widget-resources', type: 'resources', view: 'resources' },
-      { title: 'widget-projects', type: 'projects', view: 'projects' },
-      { title: 'widget-groups', type: 'groups', view: 'groups' },
-      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
       { title: 'widget-about', type: 'about', view: 'about' },
+      { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
+      { title: 'widget-events', type: 'events', view: 'events' },
+      { title: 'widget-groups', type: 'groups', view: 'groups' },
       { title: 'widget-map', type: 'map', view: 'map' },
       { title: 'widget-moderation', type: 'moderation', view: 'moderation' },
+      { title: 'widget-projects', type: 'projects', view: 'projects' },
+      { title: 'widget-proposals', type: 'proposals', view: 'proposals' },
+      { title: 'widget-requests-and-offers', view: 'requests-and-offers' },
+      { title: 'widget-resources', type: 'resources', view: 'resources' },
+      { title: 'widget-stream', view: 'stream' },
+      { title: 'widget-topics', type: 'topics', view: 'topics' },
+      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' }
     ]
 
     await Promise.all([
@@ -967,11 +970,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async doesMenuUpdate ({ groupIds, post, customView, groupRelation = false }) {
-    if (!post && !customView && !groupRelation) return
+  async doesMenuUpdate ({ groupIds, post, customView, track, groupRelation = false }) {
+    if (!post && !customView && !groupRelation && !track) return
     const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
-    if (postType === 'chat' && !customView && !groupRelation) return
+    if (postType === 'chat' && !customView && !groupRelation && !track) return
     await bookshelf.transaction(async trx => {
       for (const groupId of groupIds) {
         const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
@@ -1000,6 +1003,24 @@ module.exports = bookshelf.Model.extend(merge({
               addToEnd: true,
               trx
             })
+          }
+        }
+
+        // Handle track case
+        if (track && track.published_at) {
+          // Only add tracks widget if it is published
+          const tracksWidget = widgets.find(w => w.get('view') === 'tracks')
+          if (tracksWidget && !tracksWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: tracksWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+          if (tracksWidget && tracksWidget.get('visibility') === 'admin') {
+            // Make tracks widget visible to all, not just admins
+            await tracksWidget.save({ visibility: null }, { transacting: trx })
           }
         }
 
@@ -1087,7 +1108,7 @@ module.exports = bookshelf.Model.extend(merge({
           }
 
           // Check resources
-          if (postType === 'resources') {
+          if (postType === 'resource') {
             const resourcesWidget = widgets.find(w => w.get('view') === 'resources')
             if (resourcesWidget && !resourcesWidget.get('auto_added')) {
               await ContextWidget.reorder({

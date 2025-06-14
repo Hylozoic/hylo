@@ -211,6 +211,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         text: meta.text,
         creator: Me.first().id
       })
+      // Mark post as complete if the completion action is to comment
+      const post = Post.withId(meta.postId)
+      if (post.completionAction === 'comment') {
+        post.update({ completedAt: new Date().toISOString(), completionResponse: [meta.text] })
+      }
       break
     }
 
@@ -870,6 +875,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
+
+      // Mark post as complete if the completion action is to add a reaction
+      if (post.completionAction === 'reaction') {
+        post.update({ completedAt: new Date().toISOString(), completionResponse: [emojiFull] })
+      }
 
       break
     }

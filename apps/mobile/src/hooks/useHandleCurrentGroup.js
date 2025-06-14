@@ -15,12 +15,13 @@ import getActiveRoute from 'navigation/getActiveRoute'
 
 export function useHandleCurrentGroupSlug () {
   const { currentGroupSlug } = useCurrentGroupStore()
-  const { context, groupSlug } = useRouteParams()
+  const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
+  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
 
   useEffect(() => {
-    if (currentUser && !currentGroupSlug) {
+    if (currentUser && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser))
     }
   }, [currentUser, currentGroupSlug])
@@ -29,8 +30,8 @@ export function useHandleCurrentGroupSlug () {
     if (context) {
       let newGroupSlug
 
-      if (context === 'groups' && groupSlug) {
-        newGroupSlug = groupSlug
+      if (context === 'groups' && (groupSlugFromPath || groupSlug)) {
+        newGroupSlug = groupSlugFromPath || groupSlug
       } else if (isStaticContext(context)) {
         newGroupSlug = context
       }
@@ -39,7 +40,7 @@ export function useHandleCurrentGroupSlug () {
         changeToGroup(newGroupSlug, { navigateHome: false })
       }
     }
-  }, [context, groupSlug])
+  }, [context, groupSlugFromPath])
 }
 
 export function useHandleCurrentGroup () {
@@ -50,6 +51,9 @@ export function useHandleCurrentGroup () {
   const [{ currentUser, fetching: fetchingCurrentUser }] = useCurrentUser()
   const [{ currentGroup, fetching: fetchingCurrentGroup }] = useCurrentGroup()
   const loading = fetchingCurrentUser && fetchingCurrentGroup
+
+  const { context, groupSlug, originalLinkingPath } = useRouteParams()
+  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
 
   useEffect(() => {
     if (!loading && currentUser && currentGroup) {
@@ -62,7 +66,7 @@ export function useHandleCurrentGroup () {
       if (currentGroup?.getShouldWelcome(currentUser)) {
         setNavigateHome(false)
         navigation.replace('Group Welcome')
-      } else if (currentGroup?.homeWidget && navigateHome) {
+      } else if (currentGroup?.homeWidget && navigateHome && !groupSlugFromPath) {
         setNavigateHome(false)
         // Only "replace" current HomeNavigator stack if there are mounted screens,
         // otherwise begins loading the default HomeNavigator screen then replaces

@@ -290,6 +290,14 @@ export default function groupQueryFragment () {
           id
           name
         }
+        viewTrack {
+          id
+          name
+          didComplete
+          isEnrolled
+          numActions
+          publishedAt
+        }
       }
     }
     ${groupTopicsQueryFragment}

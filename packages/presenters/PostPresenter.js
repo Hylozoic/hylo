@@ -5,9 +5,10 @@ import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue
 // Mobile PostEditor.store, etc
 export default function PostPresenter (post, { forGroupId } = {}) {
   if (!post) return post
-
   return {
     ...post,
+    completionResponses: post.completionResponses?.items || [],
+    completionResponse: Object.keys(post.completionResponse || {}).length === 0 ? [] : post.completionResponse,
     getAttachments: () => attachmentsResolver(post),
     getImages: () => imagesResolver(post),
     getFiles: () => filesResolver(post),
@@ -47,6 +48,12 @@ export const filesResolver = post => {
 export const DEFAULT_POST_TYPE = 'discussion'
 
 export const POST_TYPES = {
+  action: {
+    primaryColor: pictonBlue,
+    iconName: 'Chat',
+    backgroundColor: fakeAlpha(pictonBlue, 0.2),
+    map: false
+  },
   discussion: {
     primaryColor: pictonBlue,
     iconName: 'Chat',
