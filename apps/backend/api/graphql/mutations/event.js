@@ -27,10 +27,8 @@ export async function respondToEvent (userId, eventId, response) {
   if (response === EventInvitation.RESPONSE.YES ||
     response === EventInvitation.RESPONSE.INTERESTED
   ) {
-    const iCalendar = ical()
-    const iCalData = event.getCalData(userId)
-    iCalendar.createEvent(iCalData)
- 
+    const cal = ical()
+    cal.createEvent(event.getCalEventData(userId))
     const user = await User.find(userId)
     const group_names = event.relations.groups.map(g => g.get('name')).join(', ')
 
@@ -48,7 +46,7 @@ export async function respondToEvent (userId, eventId, response) {
       files: [
         {
           id: 'invite.ics',
-          data: btoa(iCalendar.toString())
+          data: btoa(cal.toString())
         }
       ]
     })
