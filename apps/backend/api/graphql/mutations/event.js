@@ -1,12 +1,13 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
+import ical from 'ical-generator'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
-  const event = await Post.find(eventId)
+  const event = await Post.find(eventId, { withRelated: ['user', 'groups'] })
   if (!event) {
     throw new GraphQLError('Event not found')
   }
@@ -17,11 +18,40 @@ export async function respondToEvent (userId, eventId, response) {
   } else {
     await EventInvitation.create({
       userId,
-      inviterId: userId,
+      inviterId: userId, // why is the user who is responding also the inviter? Is this a workaround?
       eventId,
       response
     })
   }
+
+  if (response === EventInvitation.RESPONSE.YES ||
+    response === EventInvitation.RESPONSE.INTERESTED
+  ) {
+    const cal = ical()
+    cal.createEvent(event.getCalEventData(userId))
+    const user = await User.find(userId)
+    const group_names = event.relations.groups.map(g => g.get('name')).join(', ')
+
+    Queue.classMethod('Email', 'sendEventRsvpEmail', {
+      email: user.get('email'),
+      version: 'default',
+      data: {
+        user_name: user.get('name'),
+        event_name: event.title(),
+        event_description: event.details(),
+        event_url: event.get('location'),
+        response: EventInvitation.getHumanResponse(response),
+        group_name: group_names
+      },
+      files: [
+        {
+          id: 'invite.ics',
+          data: btoa(cal.toString())
+        }
+      ]
+    })
+  }
+
   return { success: true }
 }
 

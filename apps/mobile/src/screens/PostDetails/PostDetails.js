@@ -103,8 +103,8 @@ export default function PostDetails () {
     <View 
       className='flex-1'
       style={{ 
-        paddingTop: insets.top + (isIOS ? 0 : 20),
-        paddingBottom: insets.bottom + (isIOS ? 0 : 20)
+        paddingTop: 10,
+        paddingBottom: 10
       }}
     >
       <Comments

@@ -4,7 +4,7 @@ import { Shapes, Settings, DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
-import { groupUrl } from 'util/navigation'
+import { groupUrl, personUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useTrack from '@hylo/hooks/useTrack'
@@ -96,8 +96,9 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
   )
 }
 
-const PeopleTab = ({ trackDetail }) => {
+const PeopleTab = ({ trackDetail, group }) => {
   const { t } = useTranslation()
+  const openURL = useOpenURL()
   const { enrolledUsers } = trackDetail
 
   return (
@@ -116,20 +117,22 @@ const PeopleTab = ({ trackDetail }) => {
         <View className='gap-y-4'>
           {enrolledUsers?.map(user => (
             <View key={user.id} className='flex-row items-center justify-between p-2 bg-foreground/10 rounded-md'>
-              <View className='flex-row items-center gap-x-2'>
-                <Image 
-                  source={{ uri: user.avatarUrl }} 
-                  className='w-10 h-10 rounded-full'
-                />
-                <Text>{user.name}</Text>
-              </View>
+              <TouchableOpacity onPress={() => openURL(personUrl(user.id, group.slug))}>
+                <View className='flex-row items-center gap-x-2'>
+                  <Image 
+                    source={{ uri: user.avatarUrl }} 
+                    className='w-10 h-10 rounded-full'
+                  />
+                  <Text>{user.name}</Text>
+                </View>
+              </TouchableOpacity>
               <View>
                 <Text className='text-sm text-foreground/60'>
-                  {t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}
+                  {t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt, null, null, null, true) })}
                 </Text>
                 {user.completedAt && (
                   <Text className='text-sm text-foreground/60'>
-                    {t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) })}
+                    {t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt, null, null, null, true) })}
                   </Text>
                 )}
               </View>
@@ -179,7 +182,7 @@ function TrackDetail() {
   const [tracks, { fetching: fetchingTracks }] = useTracks({ 
     groupId: currentGroup?.id
   })
-  const [trackDetail, { fetching, error }] = useTrack({ 
+  const [trackDetail, { fetching, error }, requeryTrack] = useTrack({ 
     trackId: routeParams.trackId
   })
 
@@ -244,13 +247,14 @@ function TrackDetail() {
     }
   }, [trackDetail?.isEnrolled, enrolledAt])
 
-  if (fetching) return <Loading />
+  if (fetching && trackDetail?.posts?.length === 0) return <Loading />
+  if (fetching && !trackDetail) return <Loading />
   if (error || enrollmentError) return (
     <Text className='text-error text-center py-4'>
       {t('Error loading track')}
     </Text>
   )
-  if (!trackDetail) return (
+  if (!trackDetail && !fetching) return (
     <Text className='text-error text-center py-4'>
       {t('Track not found')}
     </Text>
@@ -300,7 +304,7 @@ function TrackDetail() {
 
   return (
     <View className='flex-1 bg-background'>
-      <View className='flex-1 px-4'>
+      <View className='flex-1 px-4 mt-2'>
         <View className='max-w-[750px] mx-auto flex-1 w-full'>
           {trackDetail?.isEnrolled && (
             <Animated.View 
@@ -317,7 +321,10 @@ function TrackDetail() {
 
                 <TabButton
                   isSelected={currentTab === 'actions'}
-                  onPress={() => setCurrentTab('actions')}
+                  onPress={() => {
+                    setCurrentTab('actions')
+                    requeryTrack({ requestPolicy: 'network-only' })
+                  }}
                 >
                   {trackDetail.actionDescriptorPlural}
                 </TabButton>
@@ -349,6 +356,7 @@ function TrackDetail() {
           {currentTab === 'people' && (
             <PeopleTab 
               trackDetail={trackDetail}
+              group={currentGroup}
             />
           )}
         </View>

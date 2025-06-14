@@ -43,7 +43,6 @@ export default function TabStackHeader ({
     },
     headerLeft: headerLeft || options.headerLeft || (() => {
       let onPress = options.headerLeftOnPress
-
       if (!onPress) {
         onPress = canGoBack
           ? navigation.goBack

@@ -26,14 +26,13 @@ const defaultOptions = {
   }
 }
 
-const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
-  return sendEmail(merge({}, defaultOptions, {
+const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') =>
+  sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
     locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
-}
 
 const sendEmailWithOptions = curry((templateId, opts) =>
   sendEmail(merge({}, defaultOptions, {
@@ -97,6 +96,7 @@ module.exports = {
   sendDonationToEmail: sendEmailWithOptions('tem_bhptVWGW6k67tpFtqRDWKTHQ'),
   sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
   sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
+  sendEventRsvpEmail: sendEmailWithOptions('tem_36CYP4XjSmSjPtqqdBJBRcjF'),
   sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_vwd7DKxrGrXPX8Wq63VkTvMd'),
   sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),

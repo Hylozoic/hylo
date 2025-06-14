@@ -53,22 +53,23 @@ export default function PostCard ({
         {isAction && (
           <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
             {post.completedAt ? (
-              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
-                <Check className='w-4 h-4 text-selected' />
-                <Text className='text-selected'>{t('Completed')}</Text>
+              <View className='flex-row items-center gap-2 border-2 border-secondary rounded-md px-2 py-1'>
+                <Check className='w-4 h-4 text-secondary' />
+                <Text className='text-secondary'>{t('Completed')}</Text>
               </View>
             ) : isCurrentAction ? (
-              <View className='flex-row items-center gap-2 bg-selected/10 px-3 py-1 rounded-full'>
-                <Play className='w-4 h-4 text-selected' />
-                <Text className='text-selected'>{t('Current Action')}</Text>
+              <View className='flex-row items-center gap-2 border-2 border-accent rounded-md px-2 py-1'>
+                <Play className='w-4 h-4 text-accent' />
+                <Text className='text-accent'>{t('Next Action')}</Text>
               </View>
             ) : (
-              <View className='flex-row items-center gap-2 bg-foreground/5 px-3 py-1 rounded-full'>
-                <Circle className='w-4 h-4 text-foreground/50' />
-                <Text className='text-foreground/50'>{t('Not Complete')}</Text>
+              <View className='flex-row items-center gap-2 border-2 border-foreground/20 rounded-md px-2 py-1'>
+                <Circle className='w-4 h-4 text-foreground/70' />
+                <Text className='text-foreground/70'>{t('Not Complete')}</Text>
               </View>
             )}
-        </View>)}
+          </View>
+        )}
         {!isAction && (
           <PostHeader
             announcement={post.announcement}

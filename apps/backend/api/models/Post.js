@@ -343,6 +343,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
+  // for event objects, for use in icalendar
+  // must eager load the user relation
+  getCalEventData: function (forUserId) {
+    const user = this.relations.user
+    return {
+      summary: this.title(),
+      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
+      location: this.get('location'),
+      start: this.get('start_time'),
+      end: this.get('end_time'),
+      timezone: this.get('timezone'),
+      organizer: {
+        name: user.get('name'),
+        email: user.get('email')
+      },
+      uid: this.id
+    }
+  },
+
   async clickthroughForUser (userId) {
     if (!userId) return null
     const pu = await this.loadPostInfoForUser(userId)

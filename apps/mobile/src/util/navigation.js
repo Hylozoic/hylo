@@ -188,11 +188,17 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
     url = postUrl(widget.viewPost.id, { groupSlug, context })
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+  } else if (widget.viewTrack) {
+    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, groupUrl(groupSlug))
   }
 
   return url
+}
+
+export function trackUrl (trackId, opts) {
+  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
 }
 
 // URL utility functions

@@ -1,6 +1,5 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util/index'
 import classes from './SendAnnouncementModal.module.scss'
 import Button from 'components/ui/button'
 

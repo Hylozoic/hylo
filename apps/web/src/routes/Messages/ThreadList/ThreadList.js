@@ -59,9 +59,9 @@ function ThreadList () {
   }
 
   useEffect(() => {
-    dispatch(fetchThreads(20, 0)).then(() => {
+    dispatch(fetchThreads(20, 0)).then((response) => {
       if (!messageThreadId) {
-        const firstThread = threads[0]
+        const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
           navigate(`/messages/${firstThread.id}`, { replace: true })
         }

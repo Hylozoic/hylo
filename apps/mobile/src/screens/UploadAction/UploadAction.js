@@ -216,6 +216,13 @@ export default function UploadAction () {
   return (
     <SafeAreaView className='flex-1 bg-background'>
       <ScrollView className='flex-1 p-4'>
+        {post && post.creator && (
+          <PostBody
+            {...post}
+            currentUser={currentUser}
+            shouldTruncate={false}
+          />
+        )}
         <View className='p-4 bg-background-plus rounded-lg mb-4'>
           <Text className='text-foreground font-medium mb-4'>{t('Upload Files')}</Text>
           {post.completionActionSettings?.instructions && (

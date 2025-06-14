@@ -89,7 +89,7 @@ export default class DropdownButton extends Component {
           {choices.map(({ label, value }) => (
             <span
               className={cn(
-                'flex rounded-lg relative transition-all border-2 rounded-md bg-background text-foreground text-foreground hover:text-foreground p-1 px-2',
+                'flex rounded-lg relative transition-all border-2 rounded-md bg-background text-foreground text-foreground hover:text-foreground p-1 px-2 cursor-pointer',
                 {
                   'border-selected/100 text-selected': label === 'Going',
                   'border-accent/20 text-accent': label === 'Not Going',
