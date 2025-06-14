@@ -319,11 +319,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   // for event objects, for use in icalendar
-  async getCalData (userId) {
+  async getCalData (forUserId) {
     const user = await this.user().fetch()
     return {
       summary: this.title(),
-      description: TextHelpers.presentHTMLToText(this.details(userId)),
+      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
       location: this.get('location'),
       start: this.get('start_time'),
       end: this.get('end_time'),
