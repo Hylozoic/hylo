@@ -6,9 +6,7 @@ const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
 const sendEmail = async opts => {
   try {
-    console.log('***********sending email***********', opts)
     await api.send(opts)
-    console.log('***********sending email***********')
     return true
   } catch (err) {
     console.error('Error sending email:', err, ' email opts = ', opts)
@@ -34,7 +32,6 @@ const sendSimpleEmail = function (address, templateId, data, extraOptions, local
 }
 
 const sendEmailWithOptions = curry((templateId, opts) => {
-console.log('*******opts = ', opts)
   return sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
@@ -42,7 +39,7 @@ console.log('*******opts = ', opts)
     version_name: opts.version,
     locale: mapLocaleToSendWithUS(opts.locale),
     sender: opts.sender, // expects {name, reply_to}
-    files: opts.files
+    files: opts.data.files
   }))
 })
 
