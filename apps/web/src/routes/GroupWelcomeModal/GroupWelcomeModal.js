@@ -78,6 +78,11 @@ export default function GroupWelcomeModal (props) {
     }
   }, [group?.joinQuestions?.length])
 
+  useEffect(() => {
+    // After the member joins the group, make sure we know whether they have already answered the questions or not
+    setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+  }, [currentMembership?.settings.joinQuestionsAnsweredAt])
+
   if (!showWelcomeModal || !group || !currentMembership) return null
 
   const handleCheckAgreement = e => {
