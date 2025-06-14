@@ -318,6 +318,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
+  // for event objects, for use in icalendar
   async getCalData (userId) {
     const user = await this.user().fetch()
     return {
