@@ -109,7 +109,8 @@ export default function GroupWelcomeModal (props) {
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
       true, // acceptAgreements
-      questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
+      // If join quesions were previously answered, don't overwrite them with empty answers here
+      questionAnswers && !joinQuestionsAnsweredAt ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
     return null
   }
