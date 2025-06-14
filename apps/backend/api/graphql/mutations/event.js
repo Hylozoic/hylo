@@ -43,14 +43,14 @@ export async function respondToEvent (userId, eventId, response) {
         event_description: event.details(),
         event_url: event.get('location'),
         response: EventInvitation.getHumanResponse(response),
-        group_name: group_names,
-        files: [
-          {
-            id: 'invite.ics',
-            data: btoa(iCalendar.toString())
-          }
-        ]
-      }
+        group_name: group_names
+      },
+      files: [
+        {
+          id: 'invite.ics',
+          data: btoa(iCalendar.toString())
+        }
+      ]
     })
   }
 
