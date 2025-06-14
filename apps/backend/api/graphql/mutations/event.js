@@ -7,7 +7,7 @@ export async function respondToEvent (userId, eventId, response) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
-  const event = await Post.find(eventId, { withRelated: ['groups'] })
+  const event = await Post.find(eventId, { withRelated: ['user', 'groups'] })
   if (!event) {
     throw new GraphQLError('Event not found')
   }
@@ -28,7 +28,7 @@ export async function respondToEvent (userId, eventId, response) {
     response === EventInvitation.RESPONSE.INTERESTED
   ) {
     const iCalendar = ical()
-    const iCalData = await event.getCalData(userId)
+    const iCalData = event.getCalData(userId)
     iCalendar.createEvent(iCalData)
  
     const user = await User.find(userId)

@@ -319,8 +319,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   // for event objects, for use in icalendar
+  // must eager load the user relation
   async getCalData (forUserId) {
-    const user = await this.user().fetch()
+    const user = this.relations.user.fetch()
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
