@@ -56,14 +56,28 @@ export default function MembershipRequestsTab ({
 
   if (!joinRequests) return <Loading />
 
-  return joinRequests.length
-    ? <NewRequests
-        accept={submitAccept}
-        decline={submitDecline}
-        group={group}
-        joinRequests={joinRequests}
-      />
-    : <NoRequests group={group} handleViewMembers={handleViewMembers} />
+  return (
+    <>
+      {joinRequests.length > 0 &&
+        <NewRequests
+          accept={submitAccept}
+          decline={submitDecline}
+          group={group}
+          joinRequests={joinRequests}
+        />}
+      {!joinRequests.length && 
+        <NoRequests group={group} handleViewMembers={handleViewMembers} />}
+      {!isWebView() && (
+        <>
+          <p className='text-center'>{t('To see the join answers for approved members click on the link to the members directory below')}</p>
+          <Button
+            label={t('View Current Members')}
+            onClick={handleViewMembers}
+            className={[classes.viewMembers, 'text-center']}
+          />
+        </>)}
+    </>
+  )
 }
 
 export function NoRequests ({ group, handleViewMembers }) {
@@ -77,13 +91,6 @@ export function NoRequests ({ group, handleViewMembers }) {
           <h2>{t('No new join requests')}</h2>
           {t('We\'ll notify you by email when someone wants to join')}{' '}<strong>{group.name}</strong>
         </div>
-        {!isWebView() && (
-          <Button
-            label={t('View Current Members')}
-            onClick={handleViewMembers}
-            className={classes.viewMembers}
-          />
-        )}
       </div>
     </>
   )
