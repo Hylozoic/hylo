@@ -17,6 +17,11 @@ export const AnalyticsEvents = {
   SIGNUP_REGISTERED: 'Registered',
   SIGNUP_COMPLETE: 'Signup Complete',
   TOPIC_CREATED: 'Topic Created',
+  TRACK_CREATED: 'Track Created',
+  TRACK_COMPLETED: 'Track Completed',
+  TRACK_ENROLLED: 'Track Enrolled',
+  TRACK_LEFT: 'Track Left',
+  TRACK_PUBLISHED: 'Track Published',
   VOTED_ON_POST: 'Voted on Post', // Remove once mobile has switched to POST_REACTION
   UNBLOCK_USER: 'User Un-Blocked'
 }
@@ -45,3 +50,4 @@ export const HYLO_URL_REGEX = /^(https?:\/?\/?)?(www\.|staging\.)?(hylo\.com|loc
 export const ALL_GROUPS_CONTEXT_SLUG = 'all'
 export const PUBLIC_CONTEXT_SLUG = 'public'
 export const MY_CONTEXT_SLUG = 'my'
+export const MESSAGES_CONTEXT_SLUG = 'messages'

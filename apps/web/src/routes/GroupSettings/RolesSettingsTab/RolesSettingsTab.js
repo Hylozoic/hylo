@@ -150,7 +150,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
     <>
       <SettingsSection>
         <h2 className='text-foreground'>{t('Common Roles')}</h2>
-        <div className='text-foreground text-sm'>{t('adminRolesHelpText')}</div>
+        <div className='text-foreground/70 text-xs'>{t('adminRolesHelpText')}</div>
         {commonRoles.map((role, i) => (
           <RoleRow
             group={group}
@@ -164,7 +164,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
       </SettingsSection>
       <SettingsSection>
         <h3>{t('Custom Roles & Badges')}</h3>
-        <div className={styles.helpText}>{t('Create additional roles or badges for your group')}</div>
+        <div className='text-foreground/70 text-xs mb-2'>{t('Create additional roles or badges for your group')}</div>
         {roles.map((role, i) => (
           <RoleRow
             group={group}
@@ -181,7 +181,7 @@ function RolesSettingsTab ({ group, commonRoles }) {
           />
         ))}
         {!unsavedRolePresent && (
-          <div className={styles.addRole} onClick={handleAddRole}>
+          <div className='border-2 border-foreground/30 rounded-lg p-2 text-foreground cursor-pointer m-2' onClick={handleAddRole}>
             <h4>{t('Create new role/badge')}</h4>
             <Icon name='Circle-Plus' className={styles.newRole} />
           </div>
@@ -227,7 +227,7 @@ function RoleRow ({
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
 
   return (
-    <div className={cn('bg-foreground/5 rounded-lg my-4', inactiveStyle)}>
+    <div className={cn('bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
       {!isCommonRole &&
         <div className={styles.actionContainer}>
           {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
@@ -315,20 +315,19 @@ export function AddMemberToRole ({
 
   if (adding) {
     return (
-      <div className={styles.adding}>
-        <div className={styles.helpText}>{t('Search here for members to grant this role too')}</div>
-        <div className={styles.inputRow}>
+      <div className='p-2'>
+        <div className='flex gap-2'>
           <input
-            className={styles.input}
-            placeholder='Type...'
+            className='rounded-lg p-2 w-full text-foreground bg-input focus:outline-none focus:border-focus border-2 border-transparent transition-all placeholder:text-foreground/50'
+            placeholder={t('Search here for a member to add to this role')}
             type='text'
             onChange={onInputChange}
             onKeyDown={handleKeys}
             ref={inputRef}
             data-testid='add-member-input'
           />
-          <span className={styles.cancelButton} onClick={toggle}>{t('Cancel')}</span>
-          <span className={styles.addButton} onClick={chooseCurrentItem}>{t('Add')}</span>
+          <span className='border-2 border-foreground/30 rounded-lg p-2 text-foreground cursor-pointer' onClick={toggle}>{t('Cancel')}</span>
+          <span className='border-2 border-selected/30 rounded-lg p-2 text-foreground cursor-pointer' onClick={chooseCurrentItem}>{t('Add')}</span>
         </div>
         {!isEmpty(memberSuggestions) && (
           <div style={listWidth}>
@@ -344,7 +343,7 @@ export function AddMemberToRole ({
     )
   } else {
     return (
-      <div className={styles.addNew} onClick={toggle} data-testid='add-new'>
+      <div className='border-2 border-foreground/30 rounded-lg p-2 text-foreground cursor-pointer m-2' onClick={toggle} data-testid='add-new'>
         + {t('Add Member to Role')}
       </div>
     )
@@ -417,7 +416,7 @@ function AddResponsibilityToRoleSection ({
     )
   } else {
     return (
-      <div className={cn(styles.addNew)} onClick={toggle}>
+      <div className='border-2 border-foreground/30 rounded-lg p-2 text-foreground cursor-pointer m-2' onClick={toggle}>
         + {t('Add Responsibility to Role')}
       </div>
     )
@@ -500,17 +499,19 @@ export function RoleList ({
 
   return (
     <div>
-      <div>
-        <h4>Responsibilities</h4>
+      <div className='p-2'>
+        <h4 className='mb-0'>Responsibilities</h4>
         {isCommonRole && (
-          <div className={styles.helpText}>{t('Common roles cannot have their responsibilities edited')}</div>
+          <div className='text-foreground/70 text-xs mb-2'>{t('Common roles cannot have their responsibilities edited')}</div>
         )}
-        {responsibilitiesForRole.map(r =>
-          <RemovableListItem
-            item={r}
-            removeItem={isCommonRole ? null : handleRemoveResponsibilityFromRole}
-            key={r.id}
-          />)}
+        <div className='flex flex-col gap-2'>
+          {responsibilitiesForRole.map(r =>
+            <RemovableListItem
+              item={r}
+              removeItem={isCommonRole ? null : handleRemoveResponsibilityFromRole}
+              key={r.id}
+            />)}
+        </div>
       </div>
       {!isCommonRole && (
         <AddResponsibilityToRoleSection
@@ -521,15 +522,17 @@ export function RoleList ({
           roleId={roleId}
           group={group}
         />)}
-      <div style={{ marginTop: '20px' }}>
-        <h4>Members</h4>
-        {membersForRole.map(m =>
-          <RemovableListItem
-            item={m}
-            url={personUrl(m.id, slug)}
-            removeItem={handleRemoveRoleFromMember}
-            key={m.id}
-          />)}
+      <div className='p-2'>
+        <h4>{t('Members')}</h4>
+        <div className='flex flex-col gap-2'>
+          {membersForRole.map(m =>
+            <RemovableListItem
+              item={m}
+              url={personUrl(m.id, slug)}
+              removeItem={handleRemoveRoleFromMember}
+              key={m.id}
+            />)}
+        </div>
       </div>
       <AddMemberToRole
         fetchSuggestions={fetchStewardSuggestions}

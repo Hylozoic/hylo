@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { alabaster, caribbeanGreen } from 'style/colors'
+import { caribbeanGreen, twBackground } from 'style/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -174,6 +174,6 @@ export default function Thread () {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   }
 })

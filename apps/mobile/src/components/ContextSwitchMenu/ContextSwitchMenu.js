@@ -5,11 +5,13 @@ import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
+import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import useCurrentGroup, { useContextGroups } from '@hylo/hooks/useCurrentGroup'
-import { widgetUrl as makeWidgetUrl } from 'util/navigation'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useStaticContexts from '@hylo/hooks/useStaticContexts'
+import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
+import { isIOS } from 'util/platform'
 import useOpenURL from 'hooks/useOpenURL'
-import useChangeToGroup from 'hooks/useChangeToGroup'
 import LucideIcon from 'components/LucideIcon'
 import { black, white } from 'style/colors'
 
@@ -21,10 +23,10 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const changeToGroup = useChangeToGroup()
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
-  const { myContext, publicContext } = useContextGroups()
+  const { myContext, publicContext } = useStaticContexts()
   const myGroups = [myContext, publicContext].concat(
-    sortBy('name', map(m => m.group, currentUser.memberships))
-  )
+    sortBy('name', map(m => m.group, currentUser?.memberships))
+  ).map(GroupPresenter)
 
   const collapseTimeout = useRef(null)
 
@@ -47,18 +49,13 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug)
-    const homePath = context && makeWidgetUrl({
-      widget: context?.homeWidget,
-      groupSlug: context?.slug
-    })
-    if (homePath) openURL(homePath, { replace: true })
+    changeToGroup(context?.slug, { navigateHome: true })
   }
 
   return (
     <View
       className='h-full bg-theme-background z-50'
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      style={{ paddingTop: insets.top + (isIOS ? 0 : 20), paddingBottom: insets.bottom + (isIOS ? 0 : 20) }}
     >
       <FlatList
         data={myGroups}
@@ -108,9 +105,10 @@ function ContextRow ({
     <TouchableOpacity
       onPress={() => onPress(context)}
       className={clsx(
-        'flex-row rounded-lg p-1.5',
-        selected && 'bg-primary',
-        bottomItem && 'bg-primary m-1',
+        'flex-row rounded-lg bg-primary m-1.5',
+        !selected && !bottomItem && 'border-1 border-primary opacity-60 p-1',
+        selected && 'border-3 border-selected opacity-100 p-0.5',
+        bottomItem && 'bg-primary m-1 p-1',
         className
       )}
       style={{
@@ -133,8 +131,8 @@ function ContextRow ({
       {isExpanded && (
         <Text
           className={clsx(
-            'text-xl font-medium text-background ml-2',
-            (selected || bottomItem) && 'text-foreground'
+            'text-xl font-medium text-foreground ml-2',
+            // (selected || bottomItem) && 'text-foreground'
           )}
         >
           {context?.name}

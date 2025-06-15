@@ -8,7 +8,7 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { alabaster, black10OnCaribbeanGreen, gainsboro, gunsmoke, white } from 'style/colors'
+import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from 'style/colors'
 
 const DummyComponent = () => {}
 
@@ -29,15 +29,15 @@ export default function TabsNavigator () {
       tabBarHideOnKeyboard: !isIOS,
       tabBarShowLabel: true,
       tabBarPressColor: gainsboro,
-      tabBarIndicatorStyle: { backgroundColor: white },
+      tabBarIndicatorStyle: { backgroundColor: twBackground },
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: alabaster
+            backgroundColor: twBackground
           }
         : {
             display: 'flex',
-            backgroundColor: alabaster,
+            backgroundColor: twBackground,
             borderTopWidth: StyleSheet.hairlineWidth
           },
       tabBarIcon: ({ focused }) => (

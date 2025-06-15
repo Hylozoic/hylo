@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native'
+import { twBackground } from 'style/colors'
 import { isIOS } from 'util/platform'
 
 const typeSelectorIOSDefaults = {
@@ -26,6 +27,9 @@ export const typeSelectorStyles = postType => ({
     marginLeft: 0,
     marginRight: 5
   },
+  // Temporary fix, can be removed after pending update to react-native-picker-select, see:
+  // https://github.com/lawnstarter/react-native-picker-select/issues/636#issuecomment-2486312112
+  inputIOSContainer: { pointerEvents: 'none' },
   inputIOS: {
     ...typeSelectorIOSDefaults
   },
@@ -86,8 +90,9 @@ export const styles = StyleSheet.create({
     padding: 0
   },
   titleInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0,
-    paddingHorizontal: 10
+    paddingBottom: isIOS ? 0 : 0,
+    paddingHorizontal: 10,
+    paddingTop: 10
   },
   titleInput: {
     fontSize: 19,
@@ -98,7 +103,7 @@ export const styles = StyleSheet.create({
     fontSize: 14
   },
   detailsInputWrapper: {
-    paddingBottom: isIOS ? 10 : 0
+    // paddingBottom: isIOS ? 10 : 0
   },
   textInputPlaceholder: {
     fontSize: 16,
@@ -139,8 +144,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10
-  },
-  pressSelectionSectionPublicSelected: {
   },
   pressSelectionLeft: {
     flexDirection: 'row',

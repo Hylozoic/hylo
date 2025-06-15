@@ -253,6 +253,13 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Thank)
   },
 
+  tracksEnrolledIn: function () {
+    return this.belongsToMany(Track).through(TrackUser).query(q => {
+      q.where('tracks_users.user_id', this.id)
+      q.whereNotNull('tracks_users.enrolled_at')
+    })
+  },
+
   intercomHash: function () {
     return crypto.createHmac('sha256', process.env.INTERCOM_KEY)
       .update(this.id)
@@ -534,7 +541,7 @@ module.exports = bookshelf.Model.extend(merge({
 
         if (changes.settings && changes.settings.signup_in_progress === false) {
           // Send welcome email 2 minutes after signup, to make sure that group membership has been setup if they signup after getting invitation from the group
-          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000 )
+          Queue.classMethod('User', 'sendWelcomeEmail', { userId: this.id }, 2 * 60 * 1000)
         }
       }
       return this
@@ -657,11 +664,23 @@ module.exports = bookshelf.Model.extend(merge({
 
   clearSessionsFor: async function ({ userId, sessionId }) {
     const redisClient = RedisClient.create()
-    for await (const key of redisClient.scanIterator({ MATCH: `sess:${userId}:*` })) {
-      if (key !== 'sess:' + sessionId) {
-        await redisClient.del(key)
+    let cursor = 0
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        `sess:${userId}:*`,
+        'COUNT',
+        '100'
+      )
+      cursor = parseInt(nextCursor)
+
+      for (const key of keys) {
+        if (key !== 'sess:' + sessionId) {
+          await redisClient.del(key)
+        }
       }
-    }
+    } while (cursor !== 0)
   },
 
   create: function (attributes) {
@@ -871,9 +890,10 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
-        templateData: {
+        data: {
           member_name: user.get('name'),
-          group_name: initialGroup?.get('name')
+          group_name: initialGroup?.get('name'),
+          group_url: initialGroup ? Frontend.Route.group(initialGroup) : null
         }
       })
     }

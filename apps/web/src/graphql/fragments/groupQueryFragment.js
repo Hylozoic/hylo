@@ -7,6 +7,7 @@ export default function groupQueryFragment () {
     id
     aboutVideoUri
     accessibility
+    allowInPublic
     agreements {
       items {
         id
@@ -288,6 +289,14 @@ export default function groupQueryFragment () {
         viewChat {
           id
           name
+        }
+        viewTrack {
+          id
+          name
+          didComplete
+          isEnrolled
+          numActions
+          publishedAt
         }
       }
     }

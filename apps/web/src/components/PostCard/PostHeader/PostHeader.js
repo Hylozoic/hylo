@@ -1,8 +1,9 @@
-import { cn } from 'util/index'
 import { filter, isFunction } from 'lodash'
+import { Check, Play, CircleDashed } from 'lucide-react'
+import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
-import { withTranslation } from 'react-i18next'
+import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
@@ -14,6 +15,7 @@ import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { cn } from 'util/index'
 import { personUrl, topicUrl } from 'util/navigation'
 
 class PostHeader extends PureComponent {
@@ -30,7 +32,8 @@ class PostHeader extends PureComponent {
 
   getTypeIcon = (type) => {
     const typeIconMap = {
-      offer: 'Gift',
+      chat: 'Messages',
+      offer: 'Offer',
       request: 'HandRaised',
       resource: 'Resource',
       project: 'Project',
@@ -48,11 +51,9 @@ class PostHeader extends PureComponent {
       post,
       canEdit,
       expanded,
+      isCurrentAction,
       isFlagged,
-      hasImage,
       group,
-      proposalOutcome,
-      proposalStatus,
       close,
       className,
       constrained,
@@ -74,13 +75,18 @@ class PostHeader extends PureComponent {
       creator,
       createdTimestamp,
       exactCreatedTimestamp,
+      proposalOutcome,
+      proposalStatus,
       type,
       id,
       endTime,
       startTime,
-      fulfilledAt,
-      topics
+      fulfilledAt
     } = post
+
+    if (type === 'action') {
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+    }
 
     if (!creator) return null
 
@@ -106,7 +112,7 @@ class PostHeader extends PureComponent {
       { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
-    const typesWithTimes = ['offer', 'request', 'resource', 'project', 'proposal']
+    const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
     const canHaveTimes = typesWithTimes.includes(type)
 
     const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
@@ -142,7 +148,6 @@ class PostHeader extends PureComponent {
       timeWindow = startString
     }
 
-    const showNormal = ((canBeCompleted && canEdit && expanded) && (topics?.length > 0 || (canHaveTimes && timeWindow.length > 0))) || false
     return (
       <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
@@ -185,7 +190,7 @@ class PostHeader extends PureComponent {
                 id='post-header-flag-tt'
               />
               {dropdownItems.length > 0 &&
-                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' />} items={dropdownItems} alignRight />}
+                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
                   <Icon name='Ex' className='align-middle' dataTestId='close' />
@@ -194,10 +199,10 @@ class PostHeader extends PureComponent {
           </div>
         </div>
 
-        <div className={cn('flex flex-col xs:flex-row justify-between', { 'absolute z-11 w-full': hasImage, relative: showNormal })}>
+        <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('text-xs font-bold text-secondary w-auto text-center border border-border rounded-md bg-card p-2 m-4 xs:m-3', { hidden: constrained })}>
+            <div className={cn('ml-2 -mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}
@@ -220,8 +225,7 @@ class PostHeader extends PureComponent {
                 className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
                 placeholder='Summarize the outcome'
                 value={proposalOutcome || ''}
-                onChange={(value) => updateProposalOutcome(value.target.value)}
-                ref={this.titleInputRef}
+                onChange={e => updateProposalOutcome(e.target.value)}
               />
             </div>
           )
@@ -279,6 +283,24 @@ export function TopicsLine ({ topics, slug, newLine }) {
         >
           #{t.name}
         </Link>)}
+    </div>
+  )
+}
+
+function ActionHeader ({ post, isCurrentAction }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex p-2 mb-2 items-center'>
+      <div className='flex-1'>
+        {post.completedAt
+          ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
+          : isCurrentAction
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
+      </div>
+
+      {post.completedAt && <span className='text-xs text-selected/70'>{t('Completed {{date}}', { date: DateTime.fromISO(post.completedAt).toFormat('DD') })}</span>}
     </div>
   )
 }

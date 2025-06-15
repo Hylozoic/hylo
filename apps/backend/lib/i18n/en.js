@@ -47,5 +47,8 @@ exports.en = {
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
   textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} posted "${postName}" in ${groupName}${firstTag ? ` #${firstTag}` : ''}`,
-  textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`
+  textForTrackCompleted: ({ actor, track }) => `Track completed: "${track.get('name')}" was completed by ${actor.get('name')}`,
+  textForTrackEnrollment: ({ actor, track }) => `Track enrollment: "${track.get('name')}" was enrolled in by ${actor.get('name')}`,
+  textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`,
+  theTeamAtHylo: 'The Team at Hylo'
 }

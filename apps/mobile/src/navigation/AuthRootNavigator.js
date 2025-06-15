@@ -19,18 +19,21 @@ import { isDev } from 'config'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import { modalScreenName } from 'hooks/useIsModalScreen'
+import useRouteParams from 'hooks/useRouteParams'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import CreateGroup from 'screens/CreateGroup'
 import DrawerNavigator from 'navigation/DrawerNavigator'
 import CreationOptions from 'screens/CreationOptions'
 import GroupExploreWebView from 'screens/GroupExploreWebView'
+import HyloWebView from 'components/HyloWebView'
 import LoadingScreen from 'screens/LoadingScreen'
 import MemberProfile from 'screens/MemberProfile'
 import PostDetails from 'screens/PostDetails'
 import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
-import { white } from 'style/colors'
+import UploadAction from 'screens/UploadAction'
+import { twBackground } from 'style/colors'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
@@ -70,16 +73,21 @@ export default function AuthRootNavigator () {
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
+  const [initialized, setInitialize] = useState(true)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
-
+  
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
   useHandleLinking()
+
+  useEffect(() => {
+    setLoading(!initialized || !currentUser || currentUserFetching)
+  }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {
     resetNotificationsCount()
@@ -102,7 +110,7 @@ export default function AuthRootNavigator () {
 
   useEffect(() => {
     (async function () {
-      if (currentUser && !fetching && !error) {
+      if (!initialized && currentUser && !currentUserFetching && !error) {
         const locale = currentUser?.settings?.locale || 'en'
 
         // Locale setup
@@ -132,14 +140,14 @@ export default function AuthRootNavigator () {
           $location: currentUser?.location
         })
 
-        setLoading(false)
+        setInitialize(true)
       }
     })()
 
     return () => {
       OneSignal.User.removeEventListener('change', oneSignalChangeListener)
     }
-  }, [currentUser, fetching, error])
+  }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
@@ -147,7 +155,7 @@ export default function AuthRootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white }
+      cardStyle: { backgroundColor: twBackground }
     }
   }
 
@@ -179,8 +187,10 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
           <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
           <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+          <AuthRoot.Screen name='Upload Action' component={UploadAction} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
+          <AuthRoot.Screen name={modalScreenName('Web View')} component={HyloWebView} />
         </AuthRoot.Group>
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>

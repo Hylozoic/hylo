@@ -10,6 +10,7 @@
 @layer base {
 
   :root {
+    --black: 34 9% 15%;
     --background: 42 20% 88%;
     --midground: 45 28% 94%;
     --foreground: 240 10% 3.9%;
@@ -45,6 +46,7 @@
   }
 
   .dark {
+    --black: 0 0% 0%;
     --background: 33 8% 28%;
     --midground: 27 5% 34%;
     --foreground: 40 100% 99%;
@@ -146,7 +148,7 @@
     border-color: rgba(0, 0, 0, 0) $color-proposals-50;
   }
 
-  body {
+  body:not(.hyloEditorMobileBody) {
     @apply bg-background text-foreground;
     overflow-x: hidden;
   }
@@ -162,33 +164,18 @@
     }
 
     h1 {
-      font-size: 2rem;
+      font-size: 1.3rem;
       font-weight: 700;
     }
 
     h2 {
-      font-size: 1.5rem;
+      font-size: 1.15rem;
       font-weight: 700;
     }
 
-    h3 {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    h4 {
-      font-size: 1.125rem;
-      font-weight: 500;
-    }
-
-    h5 {
+    h3, h4, h5, h6 {
       font-size: 1rem;
-      font-weight: 500;
-    }
-
-    h6 {
-      font-size: 0.875rem;
-      font-weight: 500;
+      font-weight: 700;
     }
 
     a {

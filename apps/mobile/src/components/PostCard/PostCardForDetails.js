@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native'
 import { find } from 'lodash/fp'
 import { LocationHelpers } from '@hylo/shared'
 import { DEFAULT_APP_HOST } from 'navigation/linking'
-import { openURL } from 'hooks/useOpenURL'
+import useOpenURL from 'hooks/useOpenURL'
 import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import joinProjectMutation from '@hylo/graphql/mutations/joinProjectMutation'
@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next'
 
 export default function PostCardForDetails ({ post, showGroups = true, groupId }) {
   const { t } = useTranslation()
+  const openURL = useOpenURL()
   const [, recordClickthrough] = useMutation(recordClickthroughMutation)
   const [, respondToEvent] = useMutation(respondToEventMutation)
   const [, providedJoinProject] = useMutation(joinProjectMutation)
@@ -62,32 +63,34 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
 
   return (
     <View style={styles.detailsContainer}>
-      <PostHeader
-        announcement={post.announcement}
-        isFlagged={isFlagged}
-        closeOnDelete
-        creator={post.creator}
-        date={post.createdAt}
-        editPost={editPost}
-        groups={post.groups}
-        postId={post.id}
-        showMember={goToMember}
-        style={{ paddingVertical: 14 }}
-        title={post.title}
-        type={post.type}
-      />
-      {(post.images.length === 0) && (
+      {post.type !== 'action' && (
+        <PostHeader
+          announcement={post.announcement}
+          isFlagged={isFlagged}
+          closeOnDelete
+          creator={post.creator}
+          date={post.createdAt}
+          editPost={editPost}
+          groups={post.groups}
+          postId={post.id}
+          showMember={goToMember}
+          style={{ paddingVertical: 14 }}
+          title={post.title}
+          type={post.type}
+        />
+      )}
+      {(post.getImages().length === 0) && (
         <Topics
           topics={post.topics}
           onPress={t => goToTopic(t.name)}
           style={styles.topics}
         />
       )}
-      {(post.images.length > 0) && !(isFlagged && !post.clickthrough) && (
+      {(post.getImages().length > 0) && !(isFlagged && !post.clickthrough) && (
         <ImageAttachments
           creator={post.creator}
           isFlagged={isFlagged}
-          images={post.images}
+          images={post.getImages()}
           style={styles.images}
           title={post.title}
         >
@@ -129,7 +132,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         post={post}
         currentUser={currentUser}
       />
-      <Files urls={post.fileUrls} style={styles.files} />
+      <Files urls={post.getFileUrls()} style={styles.files} />
       {/*
         NOTE: Replaced by PeopleListModal in Footer for Project Members and Commenters...
         but this could still be better, put in the footer
@@ -191,7 +194,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           style={styles.projectJoinButton}
         />
       )}
-      {showGroups && (
+      {showGroups && post.type !== 'action' && (
         <PostGroups
           groups={post.groups}
           includePublic={post.isPublic}

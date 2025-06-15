@@ -31,6 +31,7 @@ import styles from './CreateGroup.module.scss'
 
 const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
 
+// IS THIS UI DEFUNCT?
 function CreateGroup () {
   const { t } = useTranslation()
   const dispatch = useDispatch()

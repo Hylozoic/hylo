@@ -1,3 +1,4 @@
+import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTime } from 'luxon'
@@ -31,7 +32,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
@@ -46,14 +47,13 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from 'util/navigation'
 import isWebView from 'util/webView'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 
 import styles from './ChatRoom.module.scss'
 
 // the maximum amount of time in minutes that can pass between messages to still
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
-
-const NUM_POSTS_TO_LOAD = 30
 
 const getPosts = ormCreateSelector(
   orm,
@@ -140,12 +140,14 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
+  const numPostsToLoad = isWebView() || isMobile.any ? 18 : 30
+
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'desc',
     slug: groupSlug,
     search,
@@ -158,7 +160,7 @@ export default function ChatRoom (props) {
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: NUM_POSTS_TO_LOAD,
+    first: numPostsToLoad,
     order: 'asc',
     slug: groupSlug,
     search,
@@ -363,6 +365,8 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
+  // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
+  //   so we have to wait longer befoer doing it. maybe we get the new post back with an id before its really committed to the db?
   const updateLastReadPost = debounce(200, (lastPost) => {
     // Add additional checks to ensure all required values exist
     if (topicFollow?.id && lastPost?.id &&
@@ -385,7 +389,9 @@ export default function ChatRoom (props) {
     // Only attempt to update if we have data and a valid lastPost
     if (data && data.length > 0) {
       const lastPost = data[data.length - 1]
-      updateLastReadPost(lastPost)
+      if (lastPost.id) {
+        updateLastReadPost(lastPost)
+      }
     }
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
@@ -411,6 +417,68 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
+  const onAddProposalVote = useCallback(({ post, optionId }) => {
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: [
+          ...post.proposalVotes.items,
+          {
+            postId: post.id,
+            optionId,
+            user: currentUser
+          }
+        ]
+      }
+    }
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onRemoveProposalVote = useCallback(({ post, optionId }) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote =>
+      vote?.user?.id === currentUser.id && vote.optionId === optionId)
+
+    if (voteIndex === -1) return
+
+    const newProposalVotes = [...post.proposalVotes.items]
+    newProposalVotes.splice(voteIndex, 1)
+
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: newProposalVotes
+      }
+    }
+
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
+  const onSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
+    const voteIndex = post.proposalVotes.items.findIndex(vote =>
+      vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
+
+    if (voteIndex === -1) return
+
+    const newProposalVotes = [...post.proposalVotes.items]
+    newProposalVotes[voteIndex] = {
+      postId: post.id,
+      optionId: addOptionId,
+      user: currentUser
+    }
+
+    const optimisticUpdate = {
+      proposalVotes: {
+        ...post.proposalVotes,
+        items: newProposalVotes
+      }
+    }
+
+    const newPost = { ...post, ...optimisticUpdate }
+    messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
+  }, [currentUser])
+
   // Create a new chat post
   const onCreate = useCallback((postToSave) => {
     // Optimistic add new post, which will be replaced with the real post from the server
@@ -422,12 +490,15 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
+    // Focus back on the chat box
+    editorRef.current?.focus()
     return true
   }, [])
 
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
+    // TODO: probably dont need this, backend should set last_read_post on the chat room when a chat is created
     updateLastReadPost(post)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
@@ -463,16 +534,16 @@ export default function ChatRoom (props) {
           />
         </span>
       ),
-      icon: 'Message',
+      icon: null,
       info: '',
-      search: true
+      search: !isWebView()
     })
   }, [topicName, notificationsSetting])
 
   if (initialPostToScrollTo === null || topicFollowLoading) return <Loading />
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -483,7 +554,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', paddingBottom: '10px', overflowX: 'hidden' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
                 ref={messageListRef}
                 context={{
                   currentUser,
@@ -498,6 +569,9 @@ export default function ChatRoom (props) {
                   onFlagPost,
                   onRemovePost,
                   onRemoveReaction,
+                  onAddProposalVote,
+                  onRemoveProposalVote,
+                  onSwapProposalVote,
                   postIdToStartAt,
                   selectedPostId,
                   topicName
@@ -686,6 +760,9 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onAddProposalVote={context.onAddProposalVote}
+              onRemoveProposalVote={context.onRemoveProposalVote}
+              onSwapProposalVote={context.onSwapProposalVote}
             />
           </div>
           )}
@@ -696,16 +773,22 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 const HomeChatWelcome = ({ group }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
+
   return (
     <div className='mx-auto px-4 max-w-[500px] flex flex-col items-center justify-center'>
       <img src='/home-chat-welcome.png' alt='Golden Starburst' />
       <h1 className='text-center'>{t('homeChatWelcomeTitle')}</h1>
       <p className='text-center'>{t('homeChatWelcomeDescription', { group_name: group.name })}</p>
       <div className='flex gap-2 items-center justify-center'>
-        <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
-        <CopyToClipboard text={groupInviteUrl(group)}>
-          <Button><Copy /> {t('Copy Invite Link')}</Button>
-        </CopyToClipboard>
+        {canAddMembers && (
+          <>
+            <Button onClick={() => navigate(groupUrl(group.slug, 'settings/invite'))}><Send /> {t('Send Invites')}</Button>
+            <CopyToClipboard text={groupInviteUrl(group)}>
+              <Button><Copy /> {t('Copy Invite Link')}</Button>
+            </CopyToClipboard>
+          </>
+        )}
       </div>
     </div>
   )

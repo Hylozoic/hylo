@@ -1,6 +1,6 @@
 // GroupSettingsTab
 .label {
-  composes: tag from 'css/typography.scss';
+  color: hsl(var(--foreground));
 }
 
 .new-custom-view {
@@ -76,12 +76,10 @@
   padding-bottom: 5px;
 
   label {
-    color: rgba(44, 64, 89, 0.6);
   }
 }
 
 .settings-control input {
-  border: 1px solid rgba(224, 229, 233, 1.0);
   padding: 5px 8px;
   font-size: 16px;
   line-height: 16px;
@@ -103,10 +101,11 @@
 }
 
 .dropdown-label {
-  composes: bdy-drk-sm from 'css/typography.scss';
+  color: hsl(var(--foreground));
   font-size: 15px;
   padding: 3px;
   white-space: nowrap;
+  line-height: 35px;
 
   span {
     vertical-align: middle;
@@ -129,6 +128,10 @@
     vertical-align: middle;
     display: inline-block;
     position: relative;
+
+    > span {
+      color: hsl(var(--secondary));
+    }
   }
 
   .post-type {
@@ -141,14 +144,14 @@
   margin-bottom: 0;
   padding-bottom: 5px;
   padding-right: 10px;
+  width: 60px;
 
   label {
-    color: rgba(44, 64, 89, 0.6);
   }
 }
 
 .icon-button > div {
-  border: 1px solid rgba(224, 229, 233, 1.0);
+  border: 2px solid var(--accent);
   border-radius: 5px;
   height: 40px;
   line-height: 40px;
@@ -178,7 +181,8 @@
 .post-types-selector {
   display: none;
   position: absolute;
-  background: white;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   z-index: 100;
   border: 1px solid black;
   padding: 3px;

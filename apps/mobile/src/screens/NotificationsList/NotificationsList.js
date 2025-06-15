@@ -16,12 +16,12 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { alabaster } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {
     flex: 1,
-    backgroundColor: alabaster,
+    backgroundColor: twBackground,
     position: 'relative'
   },
   center: {
@@ -41,13 +41,13 @@ export default function NotificationsList (props) {
     query: notificationsQuery,
     variables: { offset }
   })
-
+  
   const refreshNotifications = async () => {
     setOffset(0)
     fetchNotifications({ requestPolicy: 'network-only' })
   }
 
-  const notifications = refineNotifications(data?.notifications?.items, navigation)
+  const notifications = refineNotifications(data?.notifications?.items, t)
   const hasMore = data?.notifications?.hasMore
   const memberships = currentUser?.memberships
   const currentUserHasMemberships = !isEmpty(memberships)

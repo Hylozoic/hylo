@@ -7,7 +7,7 @@ import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'
 import useKeyboardVisible from 'hooks/useKeyboardVisible'
-import useConfirmDiscardChanges from 'hooks/useConfirmDiscardChanges'
+import useConfirmAlert from 'hooks/useConfirmAlert'
 import { useCreateGroupStore } from './CreateGroup.store'
 import CreateGroupName from 'screens/CreateGroup/CreateGroupName'
 import CreateGroupUrl from 'screens/CreateGroup/CreateGroupUrl'
@@ -21,7 +21,7 @@ export default function CreateGroup ({ navigation }) {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const keyboardVisible = useKeyboardVisible()
-  const confirmDiscardChanges = useConfirmDiscardChanges()
+  const confirmAlert = useConfirmAlert()
   const { currentStep, goNext, goBack, disableContinue, clearStore, setSubmit } = useCreateGroupStore()
   const [{ currentUser }] = useCurrentUser()
   const memberships = currentUser?.memberships
@@ -43,32 +43,37 @@ export default function CreateGroup ({ navigation }) {
   const totalSteps = screens.length
 
   const handleCancel = () => {
-    const onDiscard = () => {
-      clearStore()
-      navigation.goBack()
-    }
-    confirmDiscardChanges({ onDiscard })
+    confirmAlert({
+      onConfirm: () => {
+        clearStore()
+        navigation.goBack()
+      }
+    })
   }
 
   return (
-    <KeyboardAvoidingView behavior={isIOS ? 'padding' : ''} style={{ flex: 1 }} enabled>
-      <View style={[
-        styles.header,
-        {
-          paddingTop: insets.top
-        }]
-      }>
+    <KeyboardAvoidingView
+      behavior={isIOS ? 'padding' : ''}
+      className='bg-background'
+      style={{ flex: 1 }}
+      enabled
+    >
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <X onPress={handleCancel} />
         <Text>{`${currentStep + 1}/${totalSteps}`}</Text>
       </View>
-      <ScrollView contentContainerClassName='bg-background' contentContainerStyle={styles.screen} keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
+      <ScrollView
+        contentContainerStyle={styles.screen}
+        keyboardDismissMode='on-drag'
+        keyboardShouldPersistTaps='handled'
+      >
         <CurrentScreen />
       </ScrollView>
       <View
         style={[
           styles.workflowNav,
           {
-            paddingBottom: keyboardVisible ? 10 : insets.bottom,
+            paddingBottom: keyboardVisible ? 10 : insets.bottom + (isIOS ? 0 : 20),
             paddingLeft: insets.left + 10,
             paddingRight: insets.right + 10
           }
@@ -117,7 +122,6 @@ const styles = StyleSheet.create({
     paddingRight: 20
   },
   screen: {
-    flex: 1,
     padding: 20
   },
   workflowNav: {

@@ -1,17 +1,9 @@
 .post-row {
   cursor: pointer;
-  display: flex;
-  position: relative;
-  transition: all .25s ease;
-  margin-left: 0 0;
-  padding: 12px 20px;
-  background-color: white;
-  box-shadow: 0 5px 8px rgb(35 65 91 / 10%);
-  border-bottom: 1px solid rgba(35, 65, 91, .1);
-}
+ }
 
 div .post-row:nth-child(1) {
-  border-radius: 5px 5px 0 0;
+  border-radius: 12px 12px 0 0;
 }
 
 .icon-container {
@@ -35,10 +27,7 @@ div .post-row:nth-child(1) {
 
   &> div > div {
     padding-bottom: 0px;
-
-    &> div:last-child {
-      display: none;
-    }
+    margin-bottom: 0px;
   }
 }
 

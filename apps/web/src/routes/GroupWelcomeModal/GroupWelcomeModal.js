@@ -130,104 +130,114 @@ export default function GroupWelcomeModal (props) {
       timeout={{ appear: 400, enter: 400, exit: 300 }}
       nodeRef={welcomeModalRef}
     >
-      <div className={classes.welcomeModalWrapper} key='welcome-modal' ref={welcomeModalRef}>
-        <div className={cn(classes.welcomeModal, classes[`viewingPage${page}`])}>
-          <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>
-            <div className={classes.bannerContent}>
-              <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square />
-              <h2>{t('Welcome to {{group.name}}!', { group })}</h2>
-              {hasFirstPage && hasSecondPage ? <span className={classes.pageNumber}>({page}/2)</span> : ''}
-            </div>
-            <div className={classes.fade} />
-          </div>
-          <div className={cn(classes.welcomeContent, classes.page1)}>
-            {!isEmpty(group.purpose) &&
-              <div>
-                <h2>{t('Our Purpose')}</h2>
-                <p>{group.purpose}</p>
-              </div>}
-            {group.agreements?.length > 0 && (
-              <div className={cn(classes.agreements, classes.welcomeSection)}>
-                <h2>{t('Our Agreements')}</h2>
-                {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
-                  ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
-                  : null}
-                <ol>
-                  {group.agreements.map((agreement, i) => {
-                    return (
-                      <li className={cn(classes.agreement, { [classes.borderBottom]: group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
-                        <h3>{agreement.title}</h3>
-                        <div className={classes.agreementDescription}>
-                          <ClickCatcher>
-                            <HyloHTML element='p' html={TextHelpers.markdown(agreement.description)} />
-                          </ClickCatcher>
-                        </div>
-                        <input
-                          className={classes.iAgree}
-                          type='checkbox'
-                          id={'agreement' + agreement.id}
-                          data-testid={'cbAgreement' + i}
-                          value={i}
-                          onChange={handleCheckAgreement}
-                          checked={currentAgreements[i] || false}
-                        />
-                        <label htmlFor={'agreement' + agreement.id} className={cn(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
-                          {t('I agree to the above')}
-                        </label>
-                      </li>
-                    )
-                  })}
-                </ol>
-                {numAgreements > 3 &&
-                  <div>
-                    <input
-                      type='checkbox'
-                      id='checkAllAgreements'
-                      onChange={handleCheckAllAgreements}
-                      checked={checkedAllAgreements}
-                    />
-                    <label htmlFor='checkAllAgreements' className={cn({ [classes.accepted]: checkedAllAgreements })}>
-                      {t('I agree to all of the above')}
-                    </label>
-                  </div>}
+      <div className='fixed top-0 left-0 flex items-center justify-center w-full h-full z-[1000] overflow-y-auto bg-black/50 backdrop-blur-sm' key='welcome-modal' ref={welcomeModalRef}>
+        <div className='w-full h-full overflow-y-auto p-4 flex flex-col items-center'>
+          <div className={cn('bg-midground w-full max-w-[750px] my-4 rounded-xl p-4', classes[`viewingPage${page}`])}>
+            <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>
+              <div className={classes.bannerContent}>
+                <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square />
+                <h2>{t('Welcome to {{group.name}}!', { group })}</h2>
+                {hasFirstPage && hasSecondPage ? <span className={classes.pageNumber}>({page}/2)</span> : ''}
               </div>
-            )}
-          </div>
-          <div className={cn(classes.welcomeContent, classes.page2)}>
-            {!isEmpty(group.purpose) &&
-              <div>
-                <h2>{t('Our Purpose')}</h2>
-                <p>{group.purpose}</p>
-              </div>}
+              <div className={classes.fade} />
+            </div>
+            <div className={cn(classes.welcomeContent, classes.page1)}>
+              {!isEmpty(group.purpose) &&
+                <div>
+                  <h2>{t('Our Purpose')}</h2>
+                  <p>{group.purpose}</p>
+                </div>}
+              {group.agreements?.length > 0 && (
+                <div className='mt-4 border-2 border-dashed border-foreground/20 rounded-xl p-4'>
+                  <h2 className='text-center'>{t('Our Agreements')}</h2>
+                  {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
+                    ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
+                    : null}
+                  <ol className='p-0'>
+                    {group.agreements.map((agreement, i) => {
+                      return (
+                        <li className={cn('border-b-2 border-b-dashed border-foreground/20 p-4', { 'border-b-2': group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
+                          <h3>{agreement.title}</h3>
+                          <div className={classes.agreementDescription}>
+                            <ClickCatcher>
+                              <HyloHTML element='p' html={TextHelpers.markdown(agreement.description)} />
+                            </ClickCatcher>
+                          </div>
+                          <div
+                            className={cn(
+                              'inline-flex p-2 rounded-md items-center gap-2 cursor-pointer mt-4',
+                              currentAgreements[i] ? 'bg-selected' : 'bg-input'
+                            )}
+                          >
+                            <input
+                              className={classes.iAgree}
+                              type='checkbox'
+                              id={'agreement' + agreement.id}
+                              data-testid={'cbAgreement' + i}
+                              value={i}
+                              onChange={handleCheckAgreement}
+                              checked={currentAgreements[i] || false}
+                            />
+                            <label htmlFor={'agreement' + agreement.id} className={cn(classes.iAgree, { [classes.accepted]: currentAgreements[i] })}>
+                              {t('I agree to the above')}
+                            </label>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                  {numAgreements > 3 &&
+                    <div className={cn('flex items-center gap-2 bg-input p-2 rounded-md mt-4', { 'bg-selected': checkedAllAgreements })}>
+                      <input
+                        type='checkbox'
+                        id='checkAllAgreements'
+                        onChange={handleCheckAllAgreements}
+                        checked={checkedAllAgreements}
+                      />
+                      <label htmlFor='checkAllAgreements' className={cn({ [classes.accepted]: checkedAllAgreements })}>
+                        {t('I agree to all of the above')}
+                      </label>
+                    </div>}
+                </div>
+              )}
+            </div>
+            <div className={cn(classes.welcomeContent, classes.page2)}>
+              {!isEmpty(group.purpose) &&
+                <div>
+                  <h2>{t('Our Purpose')}</h2>
+                  <p>{group.purpose}</p>
+                </div>}
 
-            {group?.settings?.showSuggestedSkills && group.suggestedSkills?.length > 0 &&
-              <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
+              {group?.settings?.showSuggestedSkills && group.suggestedSkills?.length > 0 &&
+                <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
 
-            {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers?.length > 0 && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
-            {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers && questionAnswers.map((q, index) => (
-              <div className={classes.joinQuestion} key={index}>
-                <h3>{q.text}</h3>
-                <textarea name={`question_${q.questionId}`} onChange={handleAnswerQuestion(index)} value={q.answer} placeholder={t('Type your answer here...')} />
-              </div>)
-            )}
-          </div>
-          <div className={classes.callToAction}>
-            {page === 2 && hasFirstPage && (
+              {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers?.length > 0 && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
+              {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers && questionAnswers.map((q, index) => (
+                <div className={classes.joinQuestion} key={index}>
+                  <h3>{q.text}</h3>
+                  <textarea name={`question_${q.questionId}`} onChange={handleAnswerQuestion(index)} value={q.answer} placeholder={t('Type your answer here...')} />
+                </div>)
+              )}
+            </div>
+            <div className='w-full p-4'>
+              {page === 2 && hasFirstPage && (
+                <Button
+                  className={classes.previousButton}
+                  onClick={() => setPage(1)}
+                >
+                  {t('Previous')}
+                </Button>
+              )}
               <Button
-                className={classes.previousButton}
-                onClick={() => setPage(1)}
+                variant='secondary'
+                className='w-full bg-accent rounded-md mt-4 border-highlight'
+                dataTestId='jump-in'
+                disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
+                onClick={handleAccept}
               >
-                {t('Previous')}
+                {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
               </Button>
-            )}
-            <Button
-              variant='secondary'
-              data-testid='jump-in'
-              disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
-              onClick={handleAccept}
-            >
-              {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
-            </Button>
+            </div>
           </div>
         </div>
       </div>

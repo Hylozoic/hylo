@@ -7,13 +7,18 @@ import { isIOS } from 'util/platform'
 import { SendHorizonal } from 'lucide-react-native'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
+import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import mixpanel from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { white, rhino80, gunsmoke, rhino10, amaranth, alabaster, caribbeanGreen } from 'style/colors'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
+import useTrack from '@hylo/hooks/useTrack'
+import { useToast } from 'components/Toast'
+import { getTrackIdFromPath } from '@hylo/navigation'
+import useRouteParams from 'hooks/useRouteParams'
 
 export const CommentEditor = React.forwardRef(({
   isModal,
@@ -25,9 +30,14 @@ export const CommentEditor = React.forwardRef(({
   const safeAreaInsets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [, createComment] = useMutation(createCommentMutation)
+  const [, completePost] = useMutation(completePostMutation)
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
+  const showToast = useToast()
+  const { originalLinkingPath } = useRouteParams()
+  const trackId = getTrackIdFromPath(originalLinkingPath)
+  const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
 
   const handleDone = useCallback(() => {
     clearReplyingTo()
@@ -43,6 +53,50 @@ export const CommentEditor = React.forwardRef(({
       const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
       const postId = post.id
       const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
+      
+      // Required check for action posts
+      if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
+        const { error: completionError, data } = await completePost({ 
+          postId: post.id,
+          completionResponse: ['comment']
+        })
+        if (completionError) {
+          console.error('Failed to complete post:', completionError)
+          showToast({
+            type: 'error',
+            text1: t('Error completing action'),
+            text2: completionError.message
+          })
+        } else {
+          // Check if this completion also completes the track
+          if (currentTrack && data.completePost) {
+            const allActionsCompleted = currentTrack.posts.every(
+              action => action.id === post.id || action.completedAt
+            )
+
+            if (allActionsCompleted) {
+              refetchTrack()
+              showToast({
+                type: 'success',
+                text1: t('You have completed the track: {{trackName}}', { trackName: '' }),
+                text2: currentTrack.name,
+                visibilityTime: 3000
+              })
+            } else {
+              showToast({
+                type: 'success',
+                text1: t('Action completed')
+              })
+            }
+          } else {
+            showToast({
+              type: 'success',
+              text1: t('Action completed')
+            })
+          }
+        }
+      }
+
       mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
         commentLength: TextHelpers.textLengthHTML(commentHTML),
         groupId: post.groups.map(g => g.id),
@@ -52,10 +106,14 @@ export const CommentEditor = React.forwardRef(({
       })
 
       setSubmitting(false)
-      if (error) Alert.alert(t('Your comment couldnt be saved please try again'))
-      else handleDone()
+      if (error) {
+        showToast({
+          type: 'error',
+          text1: t('Your comment couldnt be saved please try again')
+        })
+      } else handleDone()
     }
-  }, [handleDone, post, replyingTo])
+  }, [handleDone, post, replyingTo, completePost, currentTrack, showToast])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
@@ -120,7 +178,7 @@ export default CommentEditor
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
 
   editor: {
@@ -132,7 +190,7 @@ const styles = StyleSheet.create({
 
   htmlEditor: {
     minHeight: 44,
-    backgroundColor: white,
+    backgroundColor: twBackground,
     borderWidth: 1,
     borderColor: '#CCC',
     borderRadius: 10

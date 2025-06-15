@@ -8,7 +8,7 @@ import { navigationRef } from 'navigation/linking/helpers'
 import { isDev } from 'config'
 
 // DEBUG is always false in production
-const DEBUG = isDev && true
+const DEBUG = isDev && false
 
 export default function useOpenURL () {
   const navigation = useNavigation()
@@ -29,7 +29,6 @@ export async function openURL (
     !staticPages.includes(linkingURL.pathname)
   ) {
     const linkingPath = linkingURL.pathname + linkingURL.search
-
     const stateForPath = getStateFromPath(linkingPath)
 
     if (stateForPath) {

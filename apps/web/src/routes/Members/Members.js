@@ -1,4 +1,4 @@
-import { debounce, get, isEmpty, some, times } from 'lodash/fp'
+import { debounce, get, isEmpty, some } from 'lodash/fp'
 import React, { useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -8,13 +8,11 @@ import Button from 'components/Button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Member from 'components/Member'
-import TextInput from 'components/TextInput'
 import ScrollListener from 'components/ScrollListener'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { RESP_ADD_MEMBERS } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
 import { groupUrl } from 'util/navigation'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -50,8 +48,11 @@ function Members (props) {
     dispatch(changeQuerystringParam(location, 'q', term)), [location])
   const changeSort = useCallback(sort =>
     dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location])
-  const removeMemberAction = useCallback((id) =>
-    dispatch(removeMember(id, group.id)), [dispatch, group.id])
+  const removeMemberAction = useCallback((id) => {
+    // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
+    // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
+    dispatch(removeMember(id, group.id, slug))
+  }, [group.id, slug])
   const fetchMembersAction = useCallback((offset = 0) =>
     dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
 
@@ -85,19 +86,12 @@ function Members (props) {
   const sortKeys = sortKeysFactory(context) // You might need to adjust this based on your needs
 
   return (
-    <div>
+    <div className='h-auto max-w-[750px] mx-auto' id='members-page'>
       <Helmet>
         <title>{t('Members')} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
-
-      <div className={classes.header}>
-        <div>
-          <div className={classes.title}>{t('Members')}</div>
-          <div className={classes.totalMembers}>
-            {t('{{memberCount}} Total Members', { memberCount })}
-          </div>
-        </div>
-        {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
+      {myResponsibilityTitles.includes(RESP_ADD_MEMBERS) && (
+        <div className='flex items-center justify-between p-2'>
           <Link to={groupUrl(slug, 'settings/invite')}>
             <Button
               className={classes.invite}
@@ -107,18 +101,18 @@ function Members (props) {
               <Icon name='Invite' className={classes.inviteIcon} /> {t('Invite People')}
             </Button>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
       <div className={classes.content}>
-        <div className={classes.controls}>
-          <TextInput
-            placeholder={t('Search by name or skills & interests')}
-            className={classes.search}
+        <div className='flex items-center gap-2 py-4'>
+          <input
+            placeholder={t('Search {{memberCount}} members by name or skills & interests', { memberCount })}
+            className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2'
             defaultValue={search}
             onChange={e => debouncedSearch(e.target.value)}
           />
           <Dropdown
-            className={classes.sortDropdown}
+            className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
             toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
             alignRight
             items={Object.keys(sortKeys).map(k => ({
@@ -127,25 +121,21 @@ function Members (props) {
             }))}
           />
         </div>
-        <div className={classes.members}>
-          {twoByTwo(members).map(pair => (
-            <div className={classes.memberRow} key={pair[0].id}>
-              {pair.map(m => (
-                <Member
-                  group={group}
-                  removeMember={removeMemberAction}
-                  member={m} key={m.id}
-                  context={context}
-                />
-              ))}
-              {pair.length === 1 && <div />}
-            </div>
+        <div className='flex flex-col gap-2'>
+          {members.map(member => (
+            <Member
+              group={group}
+              removeMember={removeMemberAction}
+              member={member}
+              key={member.id}
+              context={context}
+            />
           ))}
         </div>
       </div>
       <ScrollListener
         onBottom={fetchMore}
-        elementId={CENTER_COLUMN_ID}
+        elementId='center-column'
       />
     </div>
   )
@@ -154,9 +144,9 @@ function Members (props) {
 function SortLabel ({ text }) {
   const { t } = useTranslation()
   return (
-    <div className={classes.sortLabel}>
-      <span>{t('Sort by')} <strong>{text}</strong></span>
-      <Icon name='ArrowDown' className={classes.sortIcon} />
+    <div className='flex items-center w-fit gap-1 text-foreground/70 text-sm'>
+      <span className='whitespace-nowrap'>{t('Sort by')} <strong>{text}</strong></span>
+      <Icon name='ArrowDown' />
     </div>
   )
 }
@@ -168,10 +158,6 @@ function sortKeysFactory (context) {
     location: 'Location'
   }
   return sortKeys
-}
-
-export function twoByTwo (list) {
-  return times(i => list.slice(i * 2, i * 2 + 2), (list.length + 1) / 2)
 }
 
 export default Members

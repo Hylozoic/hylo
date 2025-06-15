@@ -69,6 +69,14 @@ export function createContextWidget ({ groupId, data }) {
             id
             name
           }
+          viewTrack {
+            id
+            name
+            didComplete
+            isEnrolled
+            numActions
+            publishedAt
+          }
         }
       }`,
       variables: { groupId, data }
@@ -91,6 +99,7 @@ export function updateContextWidget ({ contextWidgetId, data, groupId }) {
           title
           order
           parentId
+          visibility
         }
       }`,
       variables: { contextWidgetId, data }

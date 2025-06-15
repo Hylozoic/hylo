@@ -1,4 +1,4 @@
-import { alabaster } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 export default {
   center: {
@@ -6,7 +6,7 @@ export default {
     paddingTop: 10
   },
   threadList: {
-    backgroundColor: alabaster, // flag-messages-background-color
+    backgroundColor: twBackground, // flag-messages-background-color
     flex: 1
   }
 }

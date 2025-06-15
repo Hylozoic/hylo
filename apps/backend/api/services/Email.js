@@ -3,28 +3,36 @@ import { format } from 'util'
 import { mapLocaleToSendWithUS } from '../../lib/util'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
-const Promise = require('bluebird')
 
-const sendEmail = opts =>
-  new Promise((resolve, reject) =>
-    api.send(opts, (err, resp) => err ? reject(err) : resolve(resp)))
+const sendEmail = async opts => {
+  try {
+    await api.send(opts)
+    return true
+  } catch (err) {
+    console.error('Error sending email:', err, ' email opts = ', opts)
+    return false
+  }
+}
 
 const defaultOptions = {
   sender: {
     address: process.env.EMAIL_SENDER,
-    name: 'Hylo'
+    name: 'The Team at Hylo'
   },
-  locale: 'en-US'
+  locale: 'en-US',
+  headers: {
+    Precedence: 'bulk',
+    'X-Auto-Response-Suppress': 'All'
+  }
 }
 
-const sendSimpleEmail = function (address, templateId, data, extraOptions, locale = 'en-US') {
-  return sendEmail(merge({}, defaultOptions, {
+const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-US') =>
+  sendEmail(merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address },
     email_data: data,
     locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
-}
 
 const sendEmailWithOptions = curry((templateId, opts) =>
   sendEmail(merge({}, defaultOptions, {
@@ -88,11 +96,14 @@ module.exports = {
   sendDonationToEmail: sendEmailWithOptions('tem_bhptVWGW6k67tpFtqRDWKTHQ'),
   sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
   sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
+  sendEventRsvpEmail: sendEmailWithOptions('tem_36CYP4XjSmSjPtqqdBJBRcjF'),
   sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_vwd7DKxrGrXPX8Wq63VkTvMd'),
   sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
   sendGroupParentGroupJoinRequestAcceptedNotification: sendEmailWithOptions('tem_KcSfYRQCh4pgTGF7pcPjStqP'),
   sendExportMembersList: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
+  sendTrackCompletedEmail: sendEmailWithOptions('tem_cbYqGkw78DtXwF88v64MY4v3'),
+  sendTrackEnrollmentEmail: sendEmailWithOptions('tem_HQ8KG3pwPbDJkJjhbvhrbcxQ'),
   sendWelcomeEmail: sendEmailWithOptions('tem_7TwDyk3dR67C8WrWg3h7ycvd'),
 
   sendMessageDigest: opts =>

@@ -24,9 +24,10 @@ import PopupMenuButton from 'components/PopupMenuButton'
 */
 
 export default function ImagePicker (props) {
+  const { t } = useTranslation()
   const { onPendingChange, style, iconStyle, iconStyleLoading, disabled } = props
   const dispatch = useDispatch()
-  const { t } = useTranslation()
+  const upload = (type, id, file) => dispatch(uploadAction(type, id, file))
   const [pending, providedSetPending] = useState(false)
 
   const setPending = newPending => {
@@ -40,7 +41,7 @@ export default function ImagePicker (props) {
     setPending(true)
     await showImagePicker({
       ...props,
-      upload: (type, id, file) => dispatch(uploadAction(type, id, file)),
+      upload,
       includeExif: true,
       onCancel: () => setPending(false),
       onComplete: () => setPending(false)
@@ -53,6 +54,7 @@ export default function ImagePicker (props) {
     setPending(true)
     await showImagePickerCamera({
       ...props,
+      upload,
       includeExif: true,
       compressImageQuality: 0.99,
       onCancel: () => setPending(false),

@@ -20,6 +20,7 @@ import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-h
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
+import { ToastProvider } from 'components/Toast'
 import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
@@ -83,7 +84,7 @@ AppRegistry.registerComponent(appName, () => App)
 
 enableScreens()
 
-// TODO: Enable and test/fix all keyboard + ScrollView usages currently only used by GroupWelcomeFlow
+// TODO: Enable and test/fix all keyboard + ScrollView usages currently only used by GroupWelcome
 // ref. https://github.com/douglasjunior/react-native-keyboard-manager/tree/main
 if (Platform.OS === 'ios') {
   KeyboardManager.setEnable(false)
@@ -159,8 +160,10 @@ export default function App () {
                 systemFonts={[...defaultSystemFonts, 'Circular-Book']}
               >
                 <Provider store={store}>
-                  <VersionCheck />
-                  <RootNavigator />
+                  <ToastProvider>
+                    <VersionCheck />
+                    <RootNavigator />
+                  </ToastProvider>
                 </Provider>
               </TRenderEngineProvider>
             </ActionSheetProvider>

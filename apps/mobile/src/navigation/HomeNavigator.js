@@ -1,6 +1,6 @@
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
 // Screens
@@ -9,10 +9,14 @@ import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import ChatRoomWebView from 'screens/ChatRoomWebView'
 import Stream from 'screens/Stream'
 import Moderation from 'screens/Moderation'
-import AllTopicsWebView from 'screens/AllTopicsWebView'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
-import GroupWelcomeLanding from 'screens/GroupWelcomeFlow/GroupWelcomeLanding'
+import Tracks from 'screens/Tracks'
+import MyTracks from 'screens/MyTracks'
+import TrackDetail from 'screens/TrackDetail'
+import GroupWelcome from 'screens/GroupWelcome'
+import GroupWelcomePage from 'screens/GroupWelcome/GroupWelcomePage'
+import HyloWebView from 'components/HyloWebView'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
@@ -21,33 +25,14 @@ import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
 
 const HomeTab = createStackNavigator()
-export default function HomeNavigator ({ navigation }) {
-  const [{ currentGroup }] = useCurrentGroup()
+export default function HomeNavigator () {
+  useHandleCurrentGroupSlug()
+  useHandleCurrentGroup()
+
   const navigatorProps = {
     screenOptions: {
-      title: currentGroup?.name || '',
-      transitionSpec: {
-        open: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        },
-        close: {
-          animation: 'spring',
-          stiffness: 1000,
-          damping: 500,
-          mass: 3,
-          overshootClamping: true,
-          restDisplacementThreshold: 0.01,
-          restSpeedThreshold: 0.01
-        }
-      },
-      headerMode: 'float',
-      header: headerProps => <TabStackHeader {...headerProps} />
+      header: props => <TabStackHeader {...props} />,
+      headerMode: 'float'
     }
   }
 
@@ -57,11 +42,16 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
+      <HomeTab.Screen name='Web View' component={HyloWebView} />
       {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
+      <HomeTab.Screen name='Tracks' component={Tracks} />
+      <HomeTab.Screen name='My Tracks' component={MyTracks} />
+      <HomeTab.Screen name='Track Detail' component={TrackDetail} />
       <HomeTab.Screen name='Group Relationships' component={Groups} />
-      <HomeTab.Screen name='Group Welcome' component={GroupWelcomeLanding} />
+      <HomeTab.Screen name='Group Welcome' component={GroupWelcome} />
+      <HomeTab.Screen name='Group Welcome Page' component={GroupWelcomePage} />
       <HomeTab.Screen name='Map' component={MapWebView} />
       <HomeTab.Screen name='Member' key='Member' component={MemberProfile} />
       <HomeTab.Screen name='Members' component={MembersComponent} />
@@ -69,7 +59,6 @@ export default function HomeNavigator ({ navigation }) {
       <HomeTab.Screen name='Moderation' component={Moderation} />
       <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
-      <HomeTab.Screen name='Topics' component={AllTopicsWebView} />
     </HomeTab.Navigator>
   )
 }

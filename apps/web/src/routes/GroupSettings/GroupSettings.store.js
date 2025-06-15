@@ -111,7 +111,6 @@ export function fetchGroupSettings (slug) {
               active
               id
               emoji
-              color
               name
               description
             }

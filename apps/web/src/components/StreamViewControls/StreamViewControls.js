@@ -1,6 +1,7 @@
 import { ArrowDownWideNarrow } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation } from 'react-router-dom'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
@@ -33,7 +34,7 @@ const makeFilterDropdown = (selected, options, onChange, t, IconComponent) => {
 
   return (
     <Dropdown
-      className='bg-primary rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
+      className='bg-background border-foreground/20 border-2 shadow-xl rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
       toggleChildren={
         <span className={classes.dropdownLabel}>
           {IconComponent && <IconComponent size={14} className='text-muted-foreground mr-1' />}
@@ -70,7 +71,7 @@ const StreamViewControls = ({
   viewMode
 }) => {
   const { t } = useTranslation()
-
+  const location = useLocation()
   const [searchActive, setSearchActive] = useState(!!searchValue)
   const [searchState, setSearchState] = useState('')
 
@@ -98,22 +99,22 @@ const StreamViewControls = ({
 
   const handleClickActivePostsOnly = useCallback(() => {
     changeActivePostsOnly(!activePostsOnly)
-  }, [activePostsOnly])
+  }, [activePostsOnly, location])
 
   const handleChildPostInclusion = useCallback(() => {
     const updatedValue = childPostInclusion === 'yes' ? 'no' : 'yes'
     changeChildPostInclusion(updatedValue)
-  }, [childPostInclusion])
+  }, [childPostInclusion, location]) // Location is needed to get the updated passed in changeChildPostInclusion callback
 
   return (
     <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between flex-wrap gap-y-1'>
-        <div className={cn('bg-primary px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
+        <div className={cn('bg-background border-foreground/20 border-2 shadow-xl px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />
         </div>
-        <div className='bg-primary rounded px-1 flex gap-2 items-center'>
+        <div className='bg-background border-foreground/20 border-2 shadow-xl rounded px-1 flex gap-2 items-center'>
           <div
-            className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
+            className={cn('bg-midground shadow-sm rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
             onClick={handleClickActivePostsOnly}
             data-tooltip-content={activePostsOnly ? t('Show both active and completed posts') : t('Hide complete posts, show only active ones')}
             data-tooltip-id='stream-controls-tip'
@@ -122,7 +123,7 @@ const StreamViewControls = ({
           </div>
           {![CONTEXT_MY, 'all', 'public'].includes(context) &&
             <div
-              className={cn('bg-primary rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
+              className={cn('bg-midground shadow-sm rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
               onClick={handleChildPostInclusion}
               data-tooltip-content={childPostInclusion === 'yes' ? t('Hide posts from child groups you are a member of') : t('Show posts from child groups you are a member of')}
               data-tooltip-id='stream-controls-tip'
@@ -130,9 +131,9 @@ const StreamViewControls = ({
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
             </div>}
         </div>
-        <div className='bg-primary rounded p-1 flex gap-2 items-center'>
+        <div className='bg-background border-foreground/20 border-2 shadow-xl rounded p-1 flex gap-2 items-center'>
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'cards' })}
+            className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'cards' })}
             onClick={() => changeView('cards')}
             data-tooltip-content={t('Card view')}
             data-tooltip-id='stream-controls-tip'
@@ -141,7 +142,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'list' })}
+            className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'list' })}
             onClick={() => changeView('list')}
             data-tooltip-content={t('List view')}
             data-tooltip-id='stream-controls-tip'
@@ -150,7 +151,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'bigGrid' })}
+            className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'bigGrid' })}
             onClick={() => changeView('bigGrid')}
             data-tooltip-content={t('Large Grid')}
             data-tooltip-id='stream-controls-tip'
@@ -159,7 +160,7 @@ const StreamViewControls = ({
           </div>
 
           <div
-            className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
+            className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'grid' }, classes.smallGrid)}
             onClick={() => changeView('grid')}
             data-tooltip-content={t('Small Grid')}
             data-tooltip-id='stream-controls-tip'
@@ -169,7 +170,7 @@ const StreamViewControls = ({
 
           {postHasDates && (
             <div
-              className={cn('rounded px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
+              className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
               onClick={() => changeView('calendar')}
               data-tooltip-content={t('Calendar')}
               data-tooltip-id='stream-controls-tip'
@@ -185,7 +186,7 @@ const StreamViewControls = ({
         <div>
           <input
             autoFocus
-            className='bg-black/20 px-4 py-2 rounded flex items-center text-foreground w-full mt-2'
+            className='bg-input text-foreground px-4 py-2 rounded flex items-center text-foreground w-full mt-2'
             type='text'
             onChange={e => setSearchState(e.target.value)}
             onKeyUp={e => {

@@ -3,7 +3,7 @@ import { host } from 'config'
 import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
 import qs from 'query-string'
 import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
+import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -173,7 +173,7 @@ export function customViewUrl (customViewId, rootPath, opts) {
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
 
-  const groupSlug = isContextGroupSlug(providedSlug) ? null : providedSlug
+  const groupSlug = isStaticContext(providedSlug) ? null : providedSlug
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
@@ -188,11 +188,17 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
     url = postUrl(widget.viewPost.id, { groupSlug, context })
   } else if (widget.viewChat) {
     url = chatUrl(widget.viewChat.name, { rootPath, groupSlug, context })
+  } else if (widget.viewTrack) {
+    url = trackUrl(widget.viewTrack.id, { context, groupSlug })
   } else if (widget.customView) {
     url = customViewUrl(widget.customView.id, groupUrl(groupSlug))
   }
 
   return url
+}
+
+export function trackUrl (trackId, opts) {
+  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
 }
 
 // URL utility functions

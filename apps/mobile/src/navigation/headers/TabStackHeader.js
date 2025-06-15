@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
 import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { Header, HeaderBackButton } from '@react-navigation/elements'
@@ -8,7 +9,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
-import { white } from 'style/colors'
+import { twBackground } from 'style/colors'
 
 export default function TabStackHeader ({
   options,
@@ -17,6 +18,7 @@ export default function TabStackHeader ({
   headerRight,
   ...otherProps
 }) {
+  const { t } = useTranslation()
   const navigation = useNavigation()
   const stackScreenIndex = useNavigationState(state => state.index)
   const canGoBack = stackScreenIndex !== 0
@@ -24,24 +26,23 @@ export default function TabStackHeader ({
 
   const props = useMemo(() => ({
     headerBackTitleVisible: false,
-    title: currentGroup?.name,
+    title: currentGroup?.name || t('Loading...'),
     headerTitle: options.headerTitle,
     headerTitleContainerStyle: {
       // Follow: https://github.com/react-navigation/react-navigation/issues/7057#issuecomment-593086348
       alignItems: 'left',
-      marginLeft: isIOS ? 10 : 20
+      marginLeft: isIOS ? 10 : 0
     },
     headerTitleStyle: {
       fontFamily: 'Circular-Bold',
-      fontSize: 16
+      fontSize: 18
     },
     headerTitleAlign: 'left',
     headerStyle: {
-      backgroundColor: white
+      backgroundColor: twBackground
     },
     headerLeft: headerLeft || options.headerLeft || (() => {
       let onPress = options.headerLeftOnPress
-
       if (!onPress) {
         onPress = canGoBack
           ? navigation.goBack
@@ -77,6 +78,8 @@ export default function TabStackHeader ({
     options?.headerTitle
   ])
 
+  if (!currentGroup) return null
+
   return <Header {...props} {...otherProps} />
 }
 
@@ -86,7 +89,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center'
   },
   backIcon: {
-    marginHorizontal: 5
+    marginLeft: isIOS ? 5 : -8,
+    marginRight: isIOS ? 5 : 5
   },
   avatar: {
     width: 30,

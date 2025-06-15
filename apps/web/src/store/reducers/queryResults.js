@@ -34,7 +34,7 @@ import {
   FETCH_POSTS_MAP,
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
-
+import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
 // reducer
 
 export default function (state = {}, action) {
@@ -78,6 +78,16 @@ export default function (state = {}, action) {
 
     case RECEIVE_THREAD:
       return matchNewThreadIntoQueryResults(state, payload.data.thread)
+
+    case REMOVE_MEMBER_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        if (keyObject.type !== FETCH_MEMBERS || get('params.slug', keyObject) !== meta.slug) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.personId)
+        }
+      })
 
     case REMOVE_POST_PENDING:
       return mapValues(state, (results, key) => {
@@ -134,34 +144,34 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
       queriesToMatch.push(
         // TODO: add types here
         { context: 'groups', slug: group.slug },
-        { context: 'groups', slug: group.slug, activePostsOnly: false, childPostInclusion: 'no' },
-        { context: 'groups', slug: group.slug, activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, activePostsOnly: true, childPostInclusion: 'no' }, // For custom views
-        { context: 'groups', slug: group.slug, activePostsOnly: true, childPostInclusion: 'yes' }, // For custom views
+        { context: 'groups', slug: group.slug, activePostsOnly: false, childPostInclusion: 'no', topics },
+        { context: 'groups', slug: group.slug, activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, activePostsOnly: true, childPostInclusion: 'no', topics }, // For custom views
+        { context: 'groups', slug: group.slug, activePostsOnly: true, childPostInclusion: 'yes', topics }, // For custom views
         { context: 'groups', slug: group.slug, groupSlugs: [group.slug], childPostInclusion: 'yes' }, // For FETCH_POSTS_MAP
         { context: 'groups', slug: group.slug, groupSlugs: [group.slug], childPostInclusion: 'no' }, // For FETCH_POSTS_MAP
-        { context: 'groups', slug: group.slug, filter: type },
-        { context: 'groups', slug: group.slug, filter: type, activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, filter: type, activePostsOnly: false, childPostInclusion: 'no' },
-        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: false, childPostInclusion: 'no' },
-        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: true, childPostInclusion: 'yes' }, // For custom views
-        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: true, childPostInclusion: 'no' }, // For custom views
-        { context: 'groups', slug: group.slug, sortBy: 'updated', search: '', groupSlugs: [group.slug], childPostInclusion: 'yes' }, // For FETCH_POSTS_MAP_DRAWER
-        { context: 'groups', slug: group.slug, sortBy: 'updated', search: '', groupSlugs: [group.slug], childPostInclusion: 'no' }, // For FETCH_POSTS_MAP_DRAWER
-        { context: 'groups', slug: group.slug, sortBy: 'updated', filter: type, activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, sortBy: 'updated', filter: type, activePostsOnly: false, childPostInclusion: 'no' },
-        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: false, childPostInclusion: 'no' },
-        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: true, childPostInclusion: 'yes' }, // For custom views
-        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: true, childPostInclusion: 'no' }, // For custom views
-        { context: 'groups', slug: group.slug, sortBy: 'created', search: '', groupSlugs: [group.slug], childPostInclusion: 'yes' }, // For FETCH_POSTS_MAP_DRAWER
-        { context: 'groups', slug: group.slug, sortBy: 'created', search: '', groupSlugs: [group.slug], childPostInclusion: 'no' }, // For FETCH_POSTS_MAP_DRAWER
-        { context: 'groups', slug: group.slug, sortBy: 'created', filter: type, activePostsOnly: false, childPostInclusion: 'yes' },
-        { context: 'groups', slug: group.slug, sortBy: 'created', filter: type, activePostsOnly: false, childPostInclusion: 'no' },
+        { context: 'groups', slug: group.slug, filter: type, topics },
+        { context: 'groups', slug: group.slug, filter: type, activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, filter: type, activePostsOnly: false, childPostInclusion: 'no', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: false, childPostInclusion: 'no', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: true, childPostInclusion: 'yes', topics }, // For custom views
+        { context: 'groups', slug: group.slug, sortBy: 'updated', activePostsOnly: true, childPostInclusion: 'no', topics }, // For custom views
+        { context: 'groups', slug: group.slug, sortBy: 'updated', search: '', groupSlugs: [group.slug], childPostInclusion: 'yes', topics }, // For FETCH_POSTS_MAP_DRAWER
+        { context: 'groups', slug: group.slug, sortBy: 'updated', search: '', groupSlugs: [group.slug], childPostInclusion: 'no', topics }, // For FETCH_POSTS_MAP_DRAWER
+        { context: 'groups', slug: group.slug, sortBy: 'updated', filter: type, activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'updated', filter: type, activePostsOnly: false, childPostInclusion: 'no', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: false, childPostInclusion: 'no', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: true, childPostInclusion: 'yes', topics }, // For custom views
+        { context: 'groups', slug: group.slug, sortBy: 'created', activePostsOnly: true, childPostInclusion: 'no', topics }, // For custom views
+        { context: 'groups', slug: group.slug, sortBy: 'created', search: '', groupSlugs: [group.slug], childPostInclusion: 'yes', topics }, // For FETCH_POSTS_MAP_DRAWER
+        { context: 'groups', slug: group.slug, sortBy: 'created', search: '', groupSlugs: [group.slug], childPostInclusion: 'no', topics }, // For FETCH_POSTS_MAP_DRAWER
+        { context: 'groups', slug: group.slug, sortBy: 'created', filter: type, activePostsOnly: false, childPostInclusion: 'yes', topics },
+        { context: 'groups', slug: group.slug, sortBy: 'created', filter: type, activePostsOnly: false, childPostInclusion: 'no', topics },
         // For events stream upcoming events
-        { context: 'groups', slug: group.slug, sortBy: 'start_time', filter: type, order: 'asc', childPostInclusion: 'yes', activePostsOnly: false },
-        { context: 'groups', slug: group.slug, sortBy: 'start_time', filter: type, order: 'asc', childPostInclusion: 'no', activePostsOnly: false }
+        { context: 'groups', slug: group.slug, sortBy: 'start_time', types: ['event'], order: 'asc', childPostInclusion: 'yes', activePostsOnly: false, topics },
+        { context: 'groups', slug: group.slug, sortBy: 'start_time', types: ['event'], order: 'asc', childPostInclusion: 'no', activePostsOnly: false, topics }
       )
     }
 
@@ -328,8 +338,9 @@ export const queryParamWhitelist = [
   'slug',
   'sortBy',
   'topic',
+  'topics',
   'type', // TODO: why do we have type & filter? should only need one
-  // 'types', TODO: add types?
+  'types',
   'page',
   'nearCoord'
 ]

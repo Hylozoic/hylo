@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { isNull, isUndefined, omitBy } from 'lodash/fp'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
-import { isContextGroupSlug } from '@hylo/presenters/GroupPresenter'
 
 export default function useStreamQueryVariables ({
+  childPostInclusion,
   context,
   currentUser,
   customView,
@@ -26,14 +26,12 @@ export default function useStreamQueryVariables ({
     beforeTime: streamType === 'event'
       ? (timeframe === 'past' ? new Date().toISOString() : null)
       : null,
-    childPostInclusion: currentUser?.settings?.streamChildPosts || 'yes',
+    childPostInclusion,
     context,
     createdBy: view === 'posts'
       ? [currentUser.id]
       : null,
-    filter: filterFromStreamType ||
-      filter ||
-      currentUser?.settings?.streamPostType,
+    filter: filterFromStreamType || filter || null,
     forCollection: customView?.collectionId,
     interactedWithBy: view === 'interactions'
       ? [currentUser.id]
@@ -44,7 +42,7 @@ export default function useStreamQueryVariables ({
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
-    slug: !isContextGroupSlug(slug) ? slug : null,
+    slug,
     sortBy,
     topic,
     topics: (customView?.type === 'stream' && customView?.topics)
@@ -60,9 +58,9 @@ export default function useStreamQueryVariables ({
     cursor: null,
     search: null
   }), [
+    childPostInclusion,
     context,
     currentUser?.id,
-    currentUser?.settings?.streamChildPosts,
     customView,
     customView?.activePostsOnly,
     customView?.collectionId,

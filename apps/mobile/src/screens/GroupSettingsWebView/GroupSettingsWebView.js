@@ -1,27 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { useGroup } from '@hylo/hooks/useCurrentGroup'
+import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { alabaster, amaranth, capeCod, rhino40, rhino80 } from 'style/colors'
+import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
 
 export default function GroupSettingsWebView () {
   const navigation = useNavigation()
-  const webViewRef = useRef()
-  const { groupSlug, originalLinkingPath, settingsArea: routeSettingsArea } = useRouteParams()
+  const { groupSlug, settingsArea: routeSettingsArea, originalLinkingPath, } = useRouteParams()
   const [, queryGroup] = useGroup({ groupSlug, useQueryArgs: { requestPolicy: 'network-only', pause: true } })
-  const [selectedSettingsArea, setSelectedSettingsArea] = useState(routeSettingsArea)
-
-  useEffect(() => {
-    setSelectedSettingsArea(routeSettingsArea)
-  }, [routeSettingsArea])
-
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeftOnPress: (!routeSettingsArea && selectedSettingsArea) && (() => setSelectedSettingsArea())
-    })
-  }, [selectedSettingsArea])
+  const goToSettingsArea = useCallback(settingsArea => {
+    navigation.push('Group Settings', { originalLinkingPath: `/groups/${groupSlug}/settings/${settingsArea}` })
+  }, [groupSlug])
 
   // Always re-queries group onBlur
   useFocusEffect(
@@ -32,29 +23,10 @@ export default function GroupSettingsWebView () {
     }, [])
   )
 
-  const handleNavigationStateChange = useCallback(({ url }) => {
-    // // Temporary sorta fix for Group delete which reloads the page
-    // if (url.match(/\/all/)) {
-    //   // TODO: After deleting a group on Web the user used to be forwarded to /all. Needs to be confirm that this is still
-    //   // the case, and tested if this re-query of currentUser adequately updates the list of groups for the user. It should.
-    //   // queryCurrentUser is provisional and replacing what as a RNRestart() call, which we should basically never do.
-    //   queryCurrentUser()
-    //   return false
-    // }
-    if (!url.match(/\/groups\/([^/]+)settings/)) {
-      webViewRef.current?.goBack()
-      return false
-    }
-  })
-
-  const path = useMemo(() => selectedSettingsArea
-    ? `/groups/${groupSlug}/settings/${selectedSettingsArea === 'details' ? '' : selectedSettingsArea}`
-    : originalLinkingPath
-  , [selectedSettingsArea, originalLinkingPath])
-
   const settingsOptions = [
-    { settingsArea: 'details', label: 'Group Details' },
+    { settingsArea: '', label: 'Group Details' },
     { settingsArea: 'agreements', label: 'Agreements' },
+    { settingsArea: 'welcome', label: 'Welcome Page' },
     { settingsArea: 'responsibilities', label: 'Responsibilities' },
     { settingsArea: 'roles', label: 'Roles & Badges' },
     { settingsArea: 'privacy', label: 'Privacy & Access' },
@@ -64,34 +36,27 @@ export default function GroupSettingsWebView () {
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
     { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
-    // TODO: Routing - Doesn't seem to currently appear on Web so leaving it out here?
-    // { settingsArea: 'views', label: 'Custom Views' }
   ]
+
+  if (routeSettingsArea !== 'index') {
+    return (
+      <HyloWebView path={originalLinkingPath} />
+    )
+  }
 
   return (
     <View style={[styles.container]}>
-      {selectedSettingsArea
-        ? (
-          <HyloWebView
-            ref={webViewRef}
-            key={path}
-            path={path}
-            onNavigationStateChange={handleNavigationStateChange}
-          />
-          )
-        : (
-          <ScrollView contentContainerStyle={styles.menu}>
-            {settingsOptions.map(({ settingsArea, label, style }) => (
-              <TouchableOpacity
-                key={settingsArea}
-                style={styles.menuItem}
-                onPress={() => setSelectedSettingsArea(settingsArea)}
-              >
-                <Text style={[styles.menuText, style]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          )}
+      <ScrollView contentContainerStyle={styles.menu}>
+        {settingsOptions.map(({ settingsArea, label, style }) => (
+          <TouchableOpacity
+            key={settingsArea}
+            style={styles.menuItem}
+            onPress={() => goToSettingsArea(settingsArea)}
+          >
+            <Text style={[styles.menuText, style]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   )
 }
@@ -99,7 +64,7 @@ export default function GroupSettingsWebView () {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   header: {
     flexDirection: 'row',
@@ -114,7 +79,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
-    color: alabaster
+    color: twBackground
   },
   backButton: {
     position: 'absolute',
@@ -135,7 +100,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: rhino40,
-    backgroundColor: alabaster
+    backgroundColor: twBackground
   },
   menuText: {
     fontSize: 16,

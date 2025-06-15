@@ -161,7 +161,7 @@
   color: white;
   @include font-regular;
   font-size: 12px;
-  opacity: .7;
+  opacity: .9;
   transition: opacity .25s ease;
 
   &:hover {
@@ -188,13 +188,13 @@
         display: none;
         position: absolute;
         width: 240px;
-        top: 0;
+        top: 30px;
         right: 0;
-        background-color: $color-black-80;
+        background-color: $color-black;
         font-size: 12px;
         padding: 5px 8px;
         border-radius: 5px;
-        top: 20px;
+        z-index: 1000;
       }
 
       &:hover {

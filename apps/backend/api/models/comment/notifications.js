@@ -72,7 +72,7 @@ export const sendDigests = async () => {
       // read time.
       let lastReadAt = user.pivot.get('last_read_at')
       if (lastReadAt) lastReadAt = new Date(lastReadAt)
-      const locale = mapLocaleToSendWithUS(user.get('settings').locale || 'en-US')
+      const locale = mapLocaleToSendWithUS(user.get('settings')?.locale || 'en-US')
 
       const filtered = comments.filter(c =>
         c.get('created_at') > (lastReadAt || 0) &&
@@ -105,16 +105,22 @@ export const sendDigests = async () => {
           ? otherNames[0]
           : otherNames.slice(0, otherNames.length - 1).join(', ') + ' & ' + otherNames[otherNames.length - 1]
 
+        const clickthroughParams = '?' + new URLSearchParams({
+          ctt: 'message_digest_email',
+          cti: user.id
+        }).toString()
+
         return Email.sendMessageDigest({
           email: user.get('email'),
           locale,
           data: {
             count: filtered.length,
             date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false),
+            email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             participant_avatars: otherAvatarUrls[0],
             participant_names: participantNames,
             other_names: otherNames,
-            thread_url: Frontend.Route.thread(post),
+            thread_url: Frontend.Route.thread(post) + clickthroughParams,
             messages: filtered.map(presentComment)
           },
           sender: {
@@ -128,15 +134,22 @@ export const sendDigests = async () => {
         const hasMention = ({ text }) =>
           RichText.getUserMentions(text).includes(user.id)
 
+        const clickthroughParams = '?' + new URLSearchParams({
+          ctt: 'comment_digest_email',
+          cti: user.id,
+          ctcn: firstGroup?.get('name')
+        }).toString()
+
         return Email.sendCommentDigest({
           email: user.get('email'),
           locale,
           data: {
             count: commentData.length,
             date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false, post.get('timezone')),
+            email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
-            post_creator_avatar_url: post.relations.user.get('avatar_url'),
-            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }),
+            post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,
+            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }) + clickthroughParams,
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'

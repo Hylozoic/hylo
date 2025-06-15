@@ -192,7 +192,8 @@
 }
 
 .action {
-  background: #FFFFFF;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   box-shadow: 0px 8px 15px rgba(128, 140, 155, 0.28);
   font-family: 'Circular Std';
   font-style: normal;
@@ -200,6 +201,7 @@
   border-radius: 5px;
   margin: 6px;
   display: flex;
+  align-items: center;
   height: 32px;
   gap: 4px;
   padding: 4px;
@@ -253,7 +255,8 @@
   width: 104px;
   height: 39.43px;
   cursor: pointer;
-  background: #FFFFFF;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
   box-shadow: 0px 8px 15px rgba(128, 140, 155, 0.28);
   border-radius: 5px;
   font-family: 'Circular Std';

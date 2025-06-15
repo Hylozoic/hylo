@@ -13,6 +13,7 @@ import Loading from 'components/Loading'
 import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
+import { GROUP_VISIBILITY } from 'store/models/Group'
 
 import classes from './InviteSettingsTab.module.scss'
 
@@ -130,31 +131,58 @@ I'm inviting you to join {{name}} on Hylo.
 
   return (
     <div className={classes.container}>
-      <div className={classes.header}>
-        <div className={classes.title}>{t('Invite People')}</div>
-      </div>
+      <div className='text-foreground text-center'>{t('Grow your group')}</div>
 
       {pending && <Loading />}
 
       {!pending && (
         <>
-          <div className={classes.inviteLinkSection}>
-            <div className={classes.subtitle}>
-              {t('Share a Join Link')}
+          {group.visibility === GROUP_VISIBILITY.Public && (
+            <div className='border-2 mt-6 p-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+              <div className='text-foreground'>
+                <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Public Group Link')}</h2>
+                <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground/50'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
+              </div>
+              <div>
+                <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopy}>
+                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
+                    <span className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</span>
+                    <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                      <Icon name='Copy' /> Copy
+                    </div>
+                  </button>
+                </CopyToClipboard>
+                {!isMobile.any && (
+                  <Tooltip
+                    place='top'
+                    type='dark'
+                    id='public-link-tooltip'
+                    effect='solid'
+                    delayShow={500}
+                  />
+                )}
+                {copied && <span className={classes.copiedText}>{t('Copied!')}</span>}
+              </div>
             </div>
-            <div className={classes.help}>
-              {t('Anyone can join')}<span style={{ fontWeight: 'bold' }}> {group.name}</span> {t('with this link')}.{' '}{inviteLink && t('Click or press on it to copy it')}:
+          )}
+
+          <div className='border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+            <div className='text-foreground'>
+              <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>{t('Share a Join Link')}</h2>
+              <div className='text-sm'><strong>{t('Use this link to invite people you know and trust.')}</strong> <span className='text-foreground/50'>{t('They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.')}</span></div>
             </div>
-            <div className={classes.inviteLinkSettings}>
+            <div className='flex items-center gap-2'>
               {inviteLink && (
-                <div className={classes.inviteLink}>
+                <div className='flex items-center gap-2'>
                   {!copied && (
                     <>
                       <CopyToClipboard text={inviteLink} onCopy={onCopy}>
-                        <span data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
-                          {inviteLink}
-                          <Icon name='Copy' className={classes.copyIcon} />
-                        </span>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
+                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                            <Icon name='Copy' /> Copy
+                          </div>
+                        </button>
                       </CopyToClipboard>
                       {!isMobile.any && (
                         <Tooltip
@@ -170,31 +198,32 @@ I'm inviting you to join {{name}} on Hylo.
                   {copied && t('Copied!')}
                 </div>
               )}
-              <Button onClick={onReset} className={classes.inviteLinkButton} color={buttonColor(reset)}>
+              <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/100 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
                 {inviteLink ? t('Reset Link') : t('Generate a Link')}
-              </Button>
+              </button>
             </div>
           </div>
         </>
       )}
 
-      <div className={classes.emailSection}>
-        <div className={classes.subtitle}>
+      <div className='border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+        <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
           {t('Send Invites via email')}
-        </div>
-        <div className={classes.help}>{t('Email addresses of those you\'d like to invite:')}</div>
+        </h2>
+        <span className='text-sm text-foreground/50'>{t('An email invitation link will be sent to each email address, which allows them to bypass the group approval process. They will still be shown any required questions or agreements you may have set.')}</span>
+        <p>{t('Enter email addresses separated by commas or new lines')}</p>
         <TextareaAutosize
           minRows={1}
-          className={classes.inviteMsgInput}
-          placeholder={t('Type email addresses (multiples should be separated by either a comma or new line)')}
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+          placeholder={t('example@domain.com, secondexample@domain2.us, etc@example.com')}
           value={emails}
           disabled={pendingCreate}
           onChange={(event) => setEmails(event.target.value)}
         />
-        <div className={classes.help}>{t('Customize the invite email message (optional):')}</div>
+        <div className='mt-4 mb-2'>{t('Customize the invite email message (optional):')}</div>
         <TextareaAutosize
           minRows={5}
-          className={classes.inviteMsgInput}
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
           value={message}
           disabled={pendingCreate}
           onChange={(event) => setMessage(event.target.value)}
@@ -211,18 +240,16 @@ I'm inviting you to join {{name}} on Hylo.
       </div>
 
       {hasPendingInvites && (
-        <div className={classes.pendingInvitesSection}>
-          <div className={classes.pendingInvitesHeader}>
-            <div className={classes.subtitle}>{t('Pending Invites')}</div>
+        <div className='border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex flex-col gap-2'>
+          <div className='w-full flex justify-between items-center'>
+            <h2 className='text-lg font-bold mt-0 mb-1 text-foreground w-full'>{t('Pending Invites')}</h2>
             {hasPendingInvites && (
-              <Button
-                className={classes.resendAllButton}
-                color='green-white-green-border'
-                narrow small
+              <button
+                className='focus:text-foreground w-[120px] relative text-base border-2 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background block transition-all scale-100 hover:scale-105 hover:opacity-100 text-foreground opacity-100 border-foreground/20'
                 onClick={resendAllOnClick}
               >
                 {t('Resend All')}
-              </Button>
+              </button>
             )}
           </div>
           <div className={classes.pendingInvitesList}>
@@ -239,14 +266,14 @@ I'm inviting you to join {{name}} on Hylo.
                   key={index}
                   nodeRef={pendingInvitesTransitionRef}
                 >
-                  <div className={classes.row} key={invite.id} ref={pendingInvitesTransitionRef}>
+                  <div className='w-full flex justify-between items-center bg-card rounded-lg p-2' key={invite.id} ref={pendingInvitesTransitionRef}>
                     <div style={{ flex: 1 }}>
                       <span>{invite.email}</span>
-                      <span className={classes.inviteDate}>{TextHelpers.humanDate(invite.lastSentAt)}</span>
+                      <span className='pl-2 text-foreground/50'>{TextHelpers.humanDate(invite.lastSentAt)}</span>
                     </div>
-                    <div className={classes.inviteActions}>
-                      <span className={cn(classes.actionBtn, classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>
-                      <span className={cn(classes.actionBtn, classes.resendBtn)} onClick={() => !invite.resent && resendOnClick(invite.id)}>{invite.resent ? t('Sent') : t('Resend')}</span>
+                    <div className='flex items-center gap-2'>
+                      <span className={cn('flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all', classes.expireBtn)} onClick={() => expireOnClick(invite.id)}>{t('Expire')}</span>
+                      <span className={cn('flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all', classes.actionBtn, classes.resendBtn)} onClick={() => !invite.resent && resendOnClick(invite.id)}>{invite.resent ? t('Sent') : t('Resend')}</span>
                     </div>
                   </div>
                 </CSSTransition>

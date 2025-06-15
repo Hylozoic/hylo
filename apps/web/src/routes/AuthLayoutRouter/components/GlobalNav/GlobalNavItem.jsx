@@ -5,10 +5,11 @@ import {
   TooltipContent,
   TooltipTrigger
 } from 'components/ui/tooltip'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-
+import { baseUrl } from 'util/navigation'
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
@@ -31,7 +32,8 @@ export default function GlobalNavItem ({
   index = 0
 }) {
   const navigate = useNavigate()
-  const selected = useLocation().pathname.startsWith(url)
+  const routeParams = useRouteParams()
+  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
@@ -139,7 +141,7 @@ export default function GlobalNavItem ({
             role='button'
           >
             {children}
-            {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-foreground text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
+            {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
             {badgeCount === '!' && <Badge number='!' className='absolute -top-2 -left-2' expanded />}
           </div>

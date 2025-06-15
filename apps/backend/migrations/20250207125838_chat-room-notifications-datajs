@@ -1,3 +1,5 @@
+/* XXXXX: this file was accidentally created without the .js and so never ran on prod! It was manually run by Tibet. keeping here for documentation purposes */
+
 exports.up = async function (knex) {
   console.log('Chat room notifications data migration')
   const homeTag = await knex.select('id').from('tags').where('name', 'home').first()

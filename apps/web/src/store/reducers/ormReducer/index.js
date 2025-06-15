@@ -19,6 +19,7 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
+  FETCH_MY_MEMBERSHIPS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -210,6 +211,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         text: meta.text,
         creator: Me.first().id
       })
+      // Mark post as complete if the completion action is to comment
+      const post = Post.withId(meta.postId)
+      if (post.completionAction === 'comment') {
+        post.update({ completedAt: new Date().toISOString(), completionResponse: [meta.text] })
+      }
       break
     }
 
@@ -277,7 +283,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const group = Group.withId(groupId)
         if (!group) return
 
-        const allWidgets = group.contextWidgets.items
+        const allWidgets = group.contextWidgets?.items
+        if (!allWidgets) return
+
         const autoViewWidget = allWidgets.find(w => w.type === 'auto-view')
         if (!autoViewWidget) return
 
@@ -408,6 +416,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // of messages works as expected
         Message.filter({ messageThread: meta.id }).delete()
       }
+      break
+    }
+
+    case FETCH_MY_MEMBERSHIPS: {
+      const me = Me.first()
+      clearCacheFor(Me, me.id)
       break
     }
 
@@ -638,17 +652,33 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case UPDATE_CONTEXT_WIDGET_PENDING: {
       const group = Group.withId(meta.groupId)
-      const allWidgets = group.contextWidgets.items
+      let allWidgets = group.contextWidgets.items
+      let resultingWidgets = []
 
       const widgetToBeMoved = allWidgets.find(widget => widget.id === meta.contextWidgetId)
-      const newWidgetPosition = {
-        id: meta.contextWidgetId,
-        addToEnd: meta.data.addToEnd,
-        orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
-        parentId: meta.data.parentId || null
+
+      if (meta.data.title || meta.data.visibility) {
+        widgetToBeMoved.title = meta.data.title
+        widgetToBeMoved.visibility = meta.data.visibility
+        allWidgets = allWidgets.map(widget => {
+          if (widget.id === widgetToBeMoved.id) {
+            return widgetToBeMoved
+          }
+          return widget
+        })
       }
-      const reorderedWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
-      Group.update({ contextWidgets: { items: structuredClone(reorderedWidgets) } })
+      if (meta.data.addToEnd || meta.data.orderInFrontOfWidgetId) {
+        const newWidgetPosition = {
+          id: meta.contextWidgetId,
+          addToEnd: meta.data.addToEnd,
+          orderInFrontOfWidgetId: meta.data.orderInFrontOfWidgetId,
+          parentId: meta.data.parentId || null
+        }
+        resultingWidgets = reorderTree({ widgetToBeMovedId: widgetToBeMoved.id, newWidgetPosition, allWidgets })
+      } else {
+        resultingWidgets = allWidgets
+      }
+      Group.update({ contextWidgets: { items: structuredClone(resultingWidgets) } })
       break
     }
 
@@ -845,6 +875,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
+
+      // Mark post as complete if the completion action is to add a reaction
+      if (post.completionAction === 'reaction') {
+        post.update({ completedAt: new Date().toISOString(), completionResponse: [emojiFull] })
+      }
 
       break
     }

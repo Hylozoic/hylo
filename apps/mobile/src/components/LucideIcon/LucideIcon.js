@@ -1,7 +1,12 @@
 import {
   CircleHelp,
   Globe,
+  Grid3x3,
+  LogOut,
+  MapPin,
   Plus,
+  Shapes,
+  UserPlus
 } from 'lucide-react-native'
 import { black } from 'style/colors'
 
@@ -9,7 +14,12 @@ import { black } from 'style/colors'
 export const CustomIcons = {
   CircleHelp,
   Globe,
-  Plus
+  Grid3x3,
+  LogOut,
+  MapPin,
+  Plus,
+  UserPlus,
+  Shapes
 }
 
 export default function LucideIcon ({ name, color, size, ...forwardedProps }) {
@@ -20,5 +30,5 @@ export default function LucideIcon ({ name, color, size, ...forwardedProps }) {
     return null
   }
 
-  return <CustomIcon color={color || black} size={size || 30} {...forwardedProps} />
+  return <CustomIcon color={color || black} size={size} {...forwardedProps} />
 }

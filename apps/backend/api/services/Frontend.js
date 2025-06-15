@@ -61,7 +61,7 @@ module.exports = {
   Route: {
     evo: {
       passwordSetting: function () {
-        return url('/settings/account')
+        return url('/my/account')
       },
 
       paymentSettings: function (opts = {}) {
@@ -176,6 +176,10 @@ module.exports = {
 
     topic: function (group, topic) {
       return url(`/groups/${getSlug(group)}/topics/${getTopicName(topic)}`)
+    },
+
+    track: function (track) {
+      return url(`/tracks/${getModelId(track)}`)
     },
 
     unfollow: function (post, group) {

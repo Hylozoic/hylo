@@ -1,4 +1,3 @@
-/* globals Nexudus */
 require('@babel/register')
 const skiff = require('./lib/skiff') // this must be required first
 const { DateTime } = require('luxon')
@@ -11,7 +10,7 @@ const savedSearches = require('./lib/group/digest2/savedSearches')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
-    .then(results => { sails.log.debug(`Sent digests to: ${results}`); return results })
+    .then(results => { sails.log.debug(`Sent digests for: ${results}`); return results })
 
 const sendSavedSearchDigests = userId =>
   savedSearches.sendAllDigests(userId)

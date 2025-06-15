@@ -16,6 +16,7 @@ export default gql`
           locationDisplayPrecision
           publicMemberDirectory
           showSuggestedSkills
+          showWelcomePage
         }
         slug
       }

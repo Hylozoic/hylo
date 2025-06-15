@@ -323,6 +323,25 @@ function CreateGroup () {
           </Select>
         </div>
 
+        {visibility === GROUP_VISIBILITY.Public && (
+          <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+            <h3 className='font-semibold mb-2'>{t('Optional') + ': ' + t('Add my group into the commons')}</h3>
+            <p className='text-sm opacity-70 mb-2'>{t('commonsExplainerText1')}</p>
+            <p className='text-sm opacity-70 mb-3'>{t('commonsExplainerText2')}</p>
+            <p className='text-sm'>
+              {t('Apply here') + ': '}
+              <a
+                href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-focus hover:underline'
+              >
+                {t('Allow-in-Commons form')}
+              </a>
+            </p>
+          </div>
+        )}
+
         {/* {parentGroupOptions && parentGroupOptions.length > 0 && (
           <div className=''>
             <div className=''>
@@ -349,7 +368,7 @@ function CreateGroup () {
             variant='outline'
             className='border-2 border-foreground/50 hover:border-foreground/100 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50'
           >
-            {t('Jump In ')}
+            {t('Jump In')}
             <ArrowRight className={cn('w-4 h-4 ml-2', edited && isValid() ? 'text-foreground' : 'text-foreground/50')} />
           </Button>
         </div>

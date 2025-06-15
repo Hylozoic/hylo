@@ -323,7 +323,8 @@ $drawer-z-index: 51;
 }
 
 .center {
-  padding-left: 3px;
+  padding-left: 6px;
+  padding-right: 6px;
   position: relative;
   min-height: 1px; // Prevent collapsing
   height: 100%;
@@ -525,9 +526,6 @@ $drawer-z-index: 51;
   }
 
   .center {
-    overflow-y: scroll;
-  }
-  .center.full-width {
     overflow-y: auto;
   }
 

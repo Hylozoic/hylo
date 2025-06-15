@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { View, Animated, LayoutAnimation } from 'react-native'
+import { useDrawerStatus } from '@react-navigation/drawer'
 import ContextMenu from 'components/ContextMenu'
-import ContextSwitchMenu from 'components/ContextSwitchMenu/ContextSwitchMenu'
+import ContextSwitchMenu from 'components/ContextSwitchMenu'
+import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 
 const COLLAPSED_SWITCH_WIDTH = 0.15
 const EXPANDED_SWITCH_WIDTH = 1
@@ -12,6 +14,7 @@ const OPENING_DURATION = 150
 const CLOSING_DURATION = 0
 
 export default function DrawerMenu (props) {
+  const isDrawerOpen = useDrawerStatus() === 'open'
   const [isContextSwitchExpanded, setIsContextSwitchExpanded] = useState(false)
   const contextSwitchWidth = useRef(new Animated.Value(COLLAPSED_SWITCH_WIDTH)).current
   const contextMenuWidth = useRef(new Animated.Value(COLLAPSED_MENU_WIDTH)).current
@@ -36,6 +39,7 @@ export default function DrawerMenu (props) {
 
   return (
     <View style={{ flexDirection: 'row', flex: 1 }}>
+      <FocusAwareStatusBar hidden={isDrawerOpen} />
       <Animated.View
         style={[
           {

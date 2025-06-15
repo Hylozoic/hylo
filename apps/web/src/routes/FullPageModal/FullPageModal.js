@@ -20,8 +20,8 @@ export default function FullPageModal ({
               key={tab.path}
             />
           ))}
-          {!multipleTabs && (content || children)}
         </Routes>
+        {!multipleTabs && (content || children)}
       </div>
     )
   } else {

@@ -6,6 +6,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.1] - 2025-06-11
+
+### Added
+- Attempt to prevent auto responder email replies from being posted as comments
+
+### Fixed
+- Removing a comment from a post as a steward
+- Detection of quoted text in email replies
+
+## [6.1.0] - 2025-06-10
+
+### Added
+- __Tracks!__ Tracks are a way to offer a series of actions/modules/lessons to a group. They can be used for courses, workshops, or any other kind of learning experience, as well as for certain kinds of projects or any other kind of sequential group activity offered to members. Tracks are made of actions, which can have different types of completion requirements, like a text response, an uploaded file, or choosing from a list of options.
+
+## [6.0.5] - 2025-05-05
+
+### Changed
+- Switch back from "home" as the name of the default chat room for groups to "general". To reduce confusion between home chat and the hpme view for your group
+
+## [6.0.4] - 2025-04-17
+
+### Fixed
+- Issue where posts that hadn't yet started were showing up as ending soon in digests
+
+## [6.0.3] - 2025-04-09
+
+### Fixed
+- Duplicate votes on proposals
+
+## [6.0.2] - 2025-04-03
+
+### Added
+- Email settings URL to chat digest and comment digest notification emails
+
+## [6.0.0] - 2025-03-14
+
+Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
+There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+
 ## [5.11.2] - 2025-01-12
 
 ### Fixed

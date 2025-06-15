@@ -7,9 +7,9 @@ import { getKeyCode, keyMap } from 'util/textInput'
 
 import classes from './KeyControlledList.module.scss'
 
-const { array, func, object, bool, number } = PropTypes
+const { array, func, object, bool, number, string } = PropTypes
 
-const propsToOmit = ['onChange', 'tabChooses', 'spaceChooses', 'selectedIndex', 'items', 'theme', 'tagType', 'renderListItem']
+const propsToOmit = ['onChange', 'tabChooses', 'spaceChooses', 'selectedIndex', 'items', 'theme', 'tagType', 'renderListItem', 'backgroundClassName']
 
 const KeyControlledList = forwardRef(({
   onChange,
@@ -23,6 +23,7 @@ const KeyControlledList = forwardRef(({
     itemActive: null
   },
   tagType,
+  backgroundClassName = 'bg-primary',
   ...props
 }, ref) => {
   const { t } = useTranslation()
@@ -109,9 +110,9 @@ const KeyControlledList = forwardRef(({
     })
 
   return (
-    <div className='KeyControlledList bg-primary w-full' ref={ref}>
+    <div className={cn('KeyControlledList w-full')} ref={ref}>
       {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
-      <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list bg-primary w-full max-h-[200px] overflow-scroll')}>
+      <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list w-full max-h-[200px] overflow-scroll', backgroundClassName)}>
         {childrenWithRefs}
       </ul>
     </div>
@@ -124,7 +125,8 @@ KeyControlledList.propTypes = {
   selectedIndex: number,
   tabChooses: bool,
   spaceChooses: bool,
-  theme: object
+  theme: object,
+  backgroundClassName: string
 }
 
 export default KeyControlledList

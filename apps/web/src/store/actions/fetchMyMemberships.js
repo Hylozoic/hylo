@@ -26,6 +26,7 @@ export default function fetchMyMemberships () {
               }
               group {
                 id
+                allowInPublic
                 avatarUrl
                 bannerUrl
                 chatRooms {
@@ -37,8 +38,8 @@ export default function fetchMyMemberships () {
                         id
                         name
                       }
-                     }
-                     topicFollow {
+                    }
+                    topicFollow {
                       id
                       lastReadPostId
                       newPostCount

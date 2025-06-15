@@ -51,7 +51,7 @@ const ViewHeader = () => {
                   : null}
           </div>
         </>)}
-      {!centered && icon && <Icon name={icon} className='mr-3 text-lg' />}
+      {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
@@ -62,7 +62,7 @@ const ViewHeader = () => {
               type='text'
               placeholder={t('Search')}
               className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[200px] transition-all outline-none focus:outline-focus focus:outline-2'
-              onKeyDown={onEnter((e) => navigate(`/search?t=${e.target.value}`))}
+              onKeyDown={onEnter((e) => navigate(`/search?t=${encodeURIComponent(e.target.value)}`))}
             />
           </div>
         </div>

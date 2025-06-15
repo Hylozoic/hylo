@@ -1,4 +1,4 @@
-import { cn } from 'util/index'
+import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
@@ -41,7 +41,9 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
+import { cn } from 'util/index'
 import { createPostUrl } from 'util/navigation'
+import isWebView from 'util/webView'
 
 import styles from './Stream.module.scss'
 
@@ -121,11 +123,14 @@ export default function Stream (props) {
   const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
+    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
+
     const params = {
       activePostsOnly,
       childPostInclusion,
       context,
       filter: postTypeFilter,
+      first: numPostsToLoad,
       forCollection: customView?.type === 'collection' ? customView?.collectionId : null,
       search,
       slug: groupSlug,
@@ -205,7 +210,7 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
-    if ((!customViewId || customView?.type === 'stream') && (!topicName || topic)) {
+    if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
@@ -248,24 +253,28 @@ export default function Stream (props) {
   const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
 
-  const info = customView?.type === 'stream'
-    ? (
-      <div className='flex flex-row gap-2 items-center'>
-        <span className='text-sm'>
-          {t('Displaying')}:&nbsp;
-          {customView?.activePostsOnly ? t('Only active') : ''}
-        </span>
+  const info = useMemo(() => {
+    if (customView?.type === 'stream') {
+      const topics = customView?.topics?.toModelArray()
+      return (
+        <div className='flex flex-row gap-2 items-center'>
+          <span className='text-sm'>
+            {t('Displaying')}:&nbsp;
+            {customView?.activePostsOnly ? t('Only active') : ''}
+          </span>
 
-        {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-1' />{p}s&nbsp;</span>)}
-        {customView?.topics.length > 0 && <div>{t('filtered by topics:')}</div>}
-        {customView?.topics.length > 0 && customView?.topics.map(t => <span key={t.id}>#{t.name}</span>)}
-      </div>
+          {customView?.postTypes.length === 0 ? t('None') : customView?.postTypes.map((p, i) => <span key={i}><PostLabel key={p} type={p} className='align-middle mr-2' />{p}s&nbsp;</span>)}
+          {topics.length > 0 && <div>{t('filtered by topics:')}</div>}
+          {topics.length > 0 && topics.map(t => <span key={t.id}>#{t.name}</span>)}
+        </div>
       )
-    : customView?.type === 'collection'
-      ? t('Curated Post Collection')
-      : topicName
-        ? t('Filtered by topic #{{topicName}}', { topicName })
-        : null
+    } else if (customView?.type === 'collection') {
+      return t('Curated Post Collection')
+    } else if (topicName) {
+      return t('Filtered by topic #{{topicName}}', { topicName })
+    }
+    return null
+  }, [customView, topicName])
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
 

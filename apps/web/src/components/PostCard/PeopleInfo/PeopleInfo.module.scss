@@ -1,4 +1,6 @@
-
+.people {
+  text-wrap: nowrap;
+}
 
 .caption {
   composes: caption-lt-lg from 'css/typography.scss';
