@@ -47,7 +47,7 @@ function Members (props) {
     myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
   [myResponsibilityTitles])
 
-  const [showAnswers, setShowAnswers] = useState(true)
+  const [showAnswers, setShowAnswers] = useState(false)
 
   // Action creators
   const changeSearch = useCallback(term =>
