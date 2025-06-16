@@ -101,106 +101,108 @@ function TrackHome () {
   }
 
   return (
-    <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col' ref={setContainer}>
-      <div className='w-full max-w-[750px] mx-auto flex-1'>
-        {(isEnrolled || canEdit) && (
-          <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
-            <button
-              className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-              onClick={() => changeTab('about')}
-            >
-              {t('About')}
-            </button>
-            <button
-              className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-              onClick={() => changeTab('actions')}
-            >
-              {currentTrack.actionDescriptorPlural}
-              <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                {currentTrack.numActions}
-              </span>
-            </button>
-            <button
-              className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-              onClick={() => changeTab('people')}
-            >
-              {t('People')}
-              {currentTrack.enrolledUsers?.length > 0 && (
-                <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                  {currentTrack.enrolledUsers.length}
-                </span>
-              )}
-            </button>
-            {canEdit && (
+    <div className='w-full h-full' ref={setContainer}>
+      <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
+        <div className='w-full max-w-[750px] mx-auto flex-1'>
+          {(isEnrolled || canEdit) && (
+            <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
               <button
-                className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                onClick={() => changeTab('edit')}
+                className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                onClick={() => changeTab('about')}
               >
-                {t('Edit')}
+                {t('About')}
               </button>
-            )}
-          </div>
-        )}
-
-        {currentTab === 'about' && (
-          <AboutTab currentTrack={currentTrack} />
-        )}
-
-        {currentTab === 'actions' && (
-          <ActionsTab currentTrack={currentTrack} />
-        )}
-
-        {currentTab === 'people' && (
-          <PeopleTab currentTrack={currentTrack} />
-        )}
-
-        {canEdit && currentTab === 'edit' && (
-          <EditTab currentTrack={currentTrack} />
-        )}
-      </div>
-
-      <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
-        {!publishedAt
-          ? (
-            <>
-              <span className='flex-1'>{t('This track is not yet published')}</span>
-              <Button
-                variant='secondary'
-                onClick={(e) => handlePublishTrack(new Date().toISOString())}
+              <button
+                className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                onClick={() => changeTab('actions')}
               >
-                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-              </Button>
-            </>
-            )
-          : didComplete
+                {currentTrack.actionDescriptorPlural}
+                <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  {currentTrack.numActions}
+                </span>
+              </button>
+              <button
+                className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                onClick={() => changeTab('people')}
+              >
+                {t('People')}
+                {currentTrack.enrolledUsers?.length > 0 && (
+                  <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                    {currentTrack.enrolledUsers.length}
+                  </span>
+                )}
+              </button>
+              {canEdit && (
+                <button
+                  className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                  onClick={() => changeTab('edit')}
+                >
+                  {t('Edit')}
+                </button>
+              )}
+            </div>
+          )}
+
+          {currentTab === 'about' && (
+            <AboutTab currentTrack={currentTrack} />
+          )}
+
+          {currentTab === 'actions' && (
+            <ActionsTab currentTrack={currentTrack} />
+          )}
+
+          {currentTab === 'people' && (
+            <PeopleTab currentTrack={currentTrack} />
+          )}
+
+          {canEdit && currentTab === 'edit' && (
+            <EditTab currentTrack={currentTrack} />
+          )}
+        </div>
+
+        <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+          {!publishedAt
             ? (
               <>
-                <Check className='w-4 h-4 text-selected' />
-                <span>{t('You completed this track')}</span>
+                <span className='flex-1'>{t('This track is not yet published')}</span>
+                <Button
+                  variant='secondary'
+                  onClick={(e) => handlePublishTrack(new Date().toISOString())}
+                >
+                  <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+                </Button>
               </>
               )
-            : isEnrolled
+            : didComplete
               ? (
                 <>
-                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                    <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-                    <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-                  </div>
+                  <Check className='w-4 h-4 text-selected' />
+                  <span>{t('You completed this track')}</span>
                 </>
                 )
-              : (
-                <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                  <span>{t('Ready to jump in?')}</span>
-                  <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
-                </div>
-                )}
+              : isEnrolled
+                ? (
+                  <>
+                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                    </div>
+                  </>
+                  )
+                : (
+                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                    <span>{t('Ready to jump in?')}</span>
+                    <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                  </div>
+                  )}
+        </div>
+
+        <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
+
+        <Routes>
+          <Route path='post/:postId' element={<PostDialog container={container} />} />
+        </Routes>
       </div>
-
-      <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
-
-      <Routes>
-        <Route path='post/:postId' element={<PostDialog container={container} />} />
-      </Routes>
     </div>
   )
 }

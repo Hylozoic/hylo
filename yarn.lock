@@ -1806,7 +1806,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.0, @babel/runtime@npm:^7.12.1, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.13.10, @babel/runtime@npm:^7.13.9, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.16.7, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.13, @babel/runtime@npm:^7.21.0, @babel/runtime@npm:^7.22.5, @babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.25.0, @babel/runtime@npm:^7.26.7, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.4, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
+"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.11.2, @babel/runtime@npm:^7.12.0, @babel/runtime@npm:^7.12.1, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.13.10, @babel/runtime@npm:^7.13.9, @babel/runtime@npm:^7.16.3, @babel/runtime@npm:^7.18.3, @babel/runtime@npm:^7.20.13, @babel/runtime@npm:^7.21.0, @babel/runtime@npm:^7.22.5, @babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.25.0, @babel/runtime@npm:^7.26.7, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.7.6, @babel/runtime@npm:^7.8.4, @babel/runtime@npm:^7.8.7, @babel/runtime@npm:^7.9.2":
   version: 7.26.7
   resolution: "@babel/runtime@npm:7.26.7"
   dependencies:
@@ -2709,7 +2709,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emoji-mart/data@npm:^1.0.6, @emoji-mart/data@npm:^1.2.1":
+"@emoji-mart/data@npm:^1.0.6":
   version: 1.2.1
   resolution: "@emoji-mart/data@npm:1.2.1"
   checksum: 10/a9f50edaf354aadfede604fb26d80055a085e9160db2c924fd5e6afc27033cd5beb0006a9ee48240ce9c543e58e1bf1cf9ed83baba5db83a395154984b30bd91
@@ -6940,13 +6940,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-native/normalize-colors@npm:<0.73.0":
-  version: 0.72.0
-  resolution: "@react-native/normalize-colors@npm:0.72.0"
-  checksum: 10/d9b219191a5191a8b3528d8abfac339adfbe0738c46f0a34ba25b6f076d55e888fb9e07e844d205c201099a5f9d5c5bfd8bc6635f9fa04f9a92a80e9836daf99
-  languageName: node
-  linkType: hard
-
 "@react-native/typescript-config@npm:0.76.6":
   version: 0.76.6
   resolution: "@react-native/typescript-config@npm:0.76.6"
@@ -9935,25 +9928,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/gurx@npm:1.0.0":
-  version: 1.0.0
-  resolution: "@virtuoso.dev/gurx@npm:1.0.0"
+"@virtuoso.dev/gurx@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@virtuoso.dev/gurx@npm:1.1.0"
   peerDependencies:
-    react: ">= 18 || >= 19"
-    react-dom: ">= 18 || >= 19"
-  checksum: 10/1a25db556a8c3dcf6a562fca85a81964596c682a2ca122a85d74011ba1f613c66d6680075c3ca101fa1a73df14a69aa8232c2b94080bc9472a64ade700943866
+    react: ">= 16 || >= 17 || >= 18 || >= 19"
+    react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
+  checksum: 10/44641c3d85964f90019cff0dfff6dc12cec180828c9b3a0efc4ea2de1df9e1bde0370a63dfb51dc3a9cb8cd5b1e12867b2df0b0c46419932f406ef8e187b7701
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/message-list@npm:^1.9.13":
-  version: 1.9.13
-  resolution: "@virtuoso.dev/message-list@npm:1.9.13"
+"@virtuoso.dev/message-list@npm:^1.12.2":
+  version: 1.12.2
+  resolution: "@virtuoso.dev/message-list@npm:1.12.2"
   dependencies:
-    "@virtuoso.dev/gurx": "npm:1.0.0"
+    "@virtuoso.dev/gurx": "npm:1.1.0"
   peerDependencies:
-    react: ">= 18 || >= 19"
-    react-dom: ">= 18 || >= 19"
-  checksum: 10/c4e71eed5c79c0cf51a1a2a12e68174b26127002b4ada3516e9c0e577188f92786cfcfff4922b0c3d9f6cce1db9eda63fda5404dabb7bfe4d7b5d52be08f2889
+    react: ">= 16 || >= 17 || >= 18 || >= 19"
+    react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
+  checksum: 10/927ec3d791e2ae8a8b449cfa67fa4c264c4d9ca70bccc9d037b36e3b8026c17e0e7ab521c2d47aba516bfb4b4a596579c141785a259baed6f73cd0c5ed26de1b
   languageName: node
   linkType: hard
 
@@ -11700,6 +11693,7 @@ __metadata:
     graphql-yoga: "npm:^5.10.10"
     grunt: "npm:1.3.0"
     i18n: "npm:^0.8.3"
+    ical-generator: "npm:^9.0.0"
     image-size: "npm:^0.3.5"
     insane: "npm:^2.6.2"
     ioredis: "npm:^5.4.2"
@@ -15611,17 +15605,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deprecated-react-native-prop-types@npm:^4.0.0":
-  version: 4.2.3
-  resolution: "deprecated-react-native-prop-types@npm:4.2.3"
-  dependencies:
-    "@react-native/normalize-colors": "npm:<0.73.0"
-    invariant: "npm:^2.2.4"
-    prop-types: "npm:^15.8.1"
-  checksum: 10/dc670391357ef2f2ff586db771eaec1be84c57c5d0082820bbec313704b16cc4aa0273257f43119b87398565cd623793f88ab3c4f8085aac68a34ecd7750837f
-  languageName: node
-  linkType: hard
-
 "dequal@npm:^2.0.3":
   version: 2.0.3
   resolution: "dequal@npm:2.0.3"
@@ -16172,21 +16155,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emoji-mart-native@npm:^0.6.5-beta":
-  version: 0.6.5-beta
-  resolution: "emoji-mart-native@npm:0.6.5-beta"
-  dependencies:
-    "@babel/runtime": "npm:^7.16.7"
-    deprecated-react-native-prop-types: "npm:^4.0.0"
-    prop-types: "npm:^15.6.0"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-  checksum: 10/b92138e5d462008482946c2387d10216a3a69fbf6745337f28cfea45b09162601dfe25ec18efdd90cd5b640167a1fabb71eaf6c55bf65dbf0484be0d5055727c
-  languageName: node
-  linkType: hard
-
-"emoji-mart@npm:5.6.0, emoji-mart@npm:^5.2.2, emoji-mart@npm:^5.6.0":
+"emoji-mart@npm:5.6.0, emoji-mart@npm:^5.2.2":
   version: 5.6.0
   resolution: "emoji-mart@npm:5.6.0"
   checksum: 10/fbbd6ce6fe6bc30020a7de4bfd6375f3c00da9880a147fdbee37303d985856e5463a48a61177166ad056a355e0bd589df9c0866bd54f9c065d60a9efa80639dd
@@ -20298,6 +20267,41 @@ __metadata:
   dependencies:
     "@babel/runtime": "npm:^7.23.2"
   checksum: 10/d5c38011de4d3b4aa466fac6773520eb28007b9d6138e03432bfbfc0d041c04df45e15c67d96f22cd660088cc9b24d3eda32cddc9fb4c6508c5afada6c2e6290
+  languageName: node
+  linkType: hard
+
+"ical-generator@npm:^9.0.0":
+  version: 9.0.0
+  resolution: "ical-generator@npm:9.0.0"
+  peerDependencies:
+    "@touch4it/ical-timezones": ">=1.6.0"
+    "@types/luxon": ">= 1.26.0"
+    "@types/mocha": ">= 8.2.1"
+    dayjs: ">= 1.10.0"
+    luxon: ">= 1.26.0"
+    moment: ">= 2.29.0"
+    moment-timezone: ">= 0.5.33"
+    rrule: ">= 2.6.8"
+  peerDependenciesMeta:
+    "@touch4it/ical-timezones":
+      optional: true
+    "@types/luxon":
+      optional: true
+    "@types/mocha":
+      optional: true
+    "@types/node":
+      optional: true
+    dayjs:
+      optional: true
+    luxon:
+      optional: true
+    moment:
+      optional: true
+    moment-timezone:
+      optional: true
+    rrule:
+      optional: true
+  checksum: 10/382249cca062b887c607b3abcfa6c869e94270def437f47a7b3f5d69d1864d6ebb1d900a158a0d2c5cf1e6d266d0950ab75a8b9f7bac5d98a335d9ae5e544f9a
   languageName: node
   linkType: hard
 
@@ -25535,8 +25539,6 @@ __metadata:
     "@babel/plugin-syntax-decorators": "npm:^7.25.9"
     "@babel/preset-env": "npm:^7.26.8"
     "@babel/runtime": "npm:^7.26.7"
-    "@emoji-mart/data": "npm:^1.2.1"
-    "@emoji-mart/react": "npm:^1.1.1"
     "@expo/react-native-action-sheet": "npm:^4.1.0"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
@@ -25592,8 +25594,6 @@ __metadata:
     clsx: "npm:^2.1.1"
     cross-fetch: "npm:^4.1.0"
     emoji-datasource-apple: "npm:^15.1.2"
-    emoji-mart: "npm:^5.6.0"
-    emoji-mart-native: "npm:^0.6.5-beta"
     eslint: "npm:8.19.0"
     eslint-config-prettier: "npm:^9.1.0"
     eslint-config-standard: "npm:^17.1.0"
@@ -25640,6 +25640,7 @@ __metadata:
     react-native-date-picker: "npm:^5.0.8"
     react-native-device-info: "npm:^14.0.2"
     react-native-document-picker: "npm:^8.1.2"
+    react-native-emoji-popup: "npm:0.3.1"
     react-native-fast-image: "npm:^8.6.3"
     react-native-geolocation-service: "npm:^5.3.1"
     react-native-gesture-handler: "npm:^2.22.0"
@@ -30210,6 +30211,16 @@ __metadata:
     react-native-windows:
       optional: true
   checksum: 10/02248002b6172095c045484344d14c87db6c82d2dd5877ae2c68c0288d9fe95746761bb580f303a992f8d3cb28709a5b46a98bdc0f480145e55eb1844f2b41b1
+  languageName: node
+  linkType: hard
+
+"react-native-emoji-popup@npm:0.3.1":
+  version: 0.3.1
+  resolution: "react-native-emoji-popup@npm:0.3.1"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/2e8d5c47db77993b06e1817da63aeebd4a9db4636be0cf54eb468dcda08a02a58d0f303f7fedcdd36ef9ba59952f861ac1a01867a62c2ff35639a6c22d32745e
   languageName: node
   linkType: hard
 
@@ -36653,7 +36664,7 @@ __metadata:
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
     "@typescript-eslint/parser": "npm:^8.18.2"
-    "@virtuoso.dev/message-list": "npm:^1.9.13"
+    "@virtuoso.dev/message-list": "npm:^1.12.2"
     "@vitejs/plugin-react": "npm:^4.3.3"
     autoprefixer: "npm:10.4.20"
     babel-jest: "npm:^29.7.0"

@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.2] - 2025-06-12
+
+### Changed
+- Faster closing of post modal after creating a non chat post
+
+### Fixed
+- Immediate editing of a new chat post no longer removes that post
+- Fix location of post dialog in stream when scrolled down.
+- Add missing translations for proposal posts
+
 ## [6.1.1] - 2025-06-11
 
 ### Added
