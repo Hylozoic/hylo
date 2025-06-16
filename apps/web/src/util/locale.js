@@ -24,7 +24,7 @@ export function localeToWord (locale = 'en') {
   }
 }
 
-export function localeLocalStorageSync (locale) {
+export function getLocaleFromLocalStorage (locale) {
   if (locale) window.localStorage.setItem('hylo-i18n-lng', locale)
   return window.localStorage.getItem('hylo-i18n-lng') || 'en'
 }

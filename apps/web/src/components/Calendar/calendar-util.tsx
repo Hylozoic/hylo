@@ -1,10 +1,11 @@
 import { DateTime, Interval, DateTimeUnit } from 'luxon'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
+import { DateTimeHelpers } from '@hylo/shared'
 import { enUS, es } from 'react-day-picker/locale'
 import { HyloPost } from './calendar-types'
 
 export const getLocaleAsString = () => {
-  switch (localeLocalStorageSync()) {
+  switch (getLocaleFromLocalStorage()) {
     case 'en':
       return 'en-US'
     case 'es':
@@ -15,7 +16,7 @@ export const getLocaleAsString = () => {
 }
 
 export const getLocaleForDayPicker = () => {
-  switch (localeLocalStorageSync()) {
+  switch (getLocaleFromLocalStorage()) {
     case 'en':
       return enUS
     case 'es':
@@ -26,7 +27,7 @@ export const getLocaleForDayPicker = () => {
 }
 
 export const getHourCycle = () => {
-  switch (localeLocalStorageSync()) {
+  switch (getLocaleFromLocalStorage()) {
     case 'en':
       return 12
     case 'es':
@@ -41,8 +42,8 @@ export const same = (
   dt2 : Date,
   unit: DateTimeUnit
 ): boolean => {
-  const _dt1 = DateTime.fromJSDate(dt1).setLocale(getLocaleAsString())
-  const _dt2 = DateTime.fromJSDate(dt2).setLocale(getLocaleAsString())
+  const _dt1 = DateTime.fromJSDate(dt1).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
+  const _dt2 = DateTime.fromJSDate(dt2).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
   return _dt1.hasSame(_dt2, unit)
 }
 
@@ -51,9 +52,9 @@ export const includes = (
   dt2 : Date,
   dt3 : Date
 ) : boolean => {
-  const _dt1 = DateTime.fromJSDate(dt1).setLocale(getLocaleAsString())
-  const _dt2 = DateTime.fromJSDate(dt2).setLocale(getLocaleAsString())
-  const _dt3 = DateTime.fromJSDate(dt3).setLocale(getLocaleAsString())
+  const _dt1 = DateTime.fromJSDate(dt1).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
+  const _dt2 = DateTime.fromJSDate(dt2).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
+  const _dt3 = DateTime.fromJSDate(dt3).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
   return _dt2.hasSame(_dt1, 'day') ||
     _dt2.hasSame(_dt3, 'day') ||
     (_dt1 <= _dt2 && _dt2 < _dt3)
@@ -64,9 +65,9 @@ export const inWeek = (
   dt2 : Date,
   dt3 : Date
 ) : boolean => {
-  const _dt1 = DateTime.fromJSDate(dt1).setLocale(getLocaleAsString())
-  const _dt2 = DateTime.fromJSDate(dt2).setLocale(getLocaleAsString())
-  const _dt3 = DateTime.fromJSDate(dt3).setLocale(getLocaleAsString())
+  const _dt1 = DateTime.fromJSDate(dt1).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
+  const _dt2 = DateTime.fromJSDate(dt2).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
+  const _dt3 = DateTime.fromJSDate(dt3).setLocale(DateTimeHelpers.getLocaleAsString(getLocaleFromLocalStorage()))
   const weekStart = _dt2.startOf('week', { useLocaleWeeks: true })
   const weekEnd = _dt2.endOf('week', { useLocaleWeeks: true })
   return _dt1 < weekEnd && weekStart <= _dt3

@@ -1,5 +1,5 @@
 import React from 'react'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Dropdown from 'components/Dropdown'
@@ -13,9 +13,9 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
 
   const handleLocaleChange = (locale) => {
     i18n.changeLanguage(locale)
-    if (!currentUser) return localeLocalStorageSync(locale)
+    if (!currentUser) return getLocaleFromLocalStorage(locale)
     dispatch(updateUserSettings({ settings: { locale } }))
-      .then(() => localeLocalStorageSync(locale))
+      .then(() => getLocaleFromLocalStorage(locale))
   }
 
   return (
