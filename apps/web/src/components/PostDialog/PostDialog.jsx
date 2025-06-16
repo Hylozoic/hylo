@@ -12,9 +12,6 @@ const PostDialog = ({
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Add state to track the container's scroll position
-  const [containerScrollTop, setContainerScrollTop] = React.useState(0)
-
   const handleOpenChange = useCallback((open) => {
     if (!open) {
       // remove post/:postId from the url
