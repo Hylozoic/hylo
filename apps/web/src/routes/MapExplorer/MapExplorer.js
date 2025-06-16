@@ -290,7 +290,7 @@ function MapExplorer (props) {
   const [drawerWidth, setDrawerWidth] = useState(0)
   const resizeObserverRef = useRef(null)
 
-  function observeDrawerWidth() {
+  function observeDrawerWidth () {
     const drawer = document.getElementById('map-drawer')
     if (!drawer) return
 
@@ -312,7 +312,7 @@ function MapExplorer (props) {
     resizeObserverRef.current = resizeObserver
   }
 
-  function stopObservingDrawerWidth() {
+  function stopObservingDrawerWidth () {
     if (resizeObserverRef.current) {
       resizeObserverRef.current.disconnect()
       resizeObserverRef.current = null

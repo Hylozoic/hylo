@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { cn } from 'util/index'
-import classes from './HyloCookieConsent.module.scss'
 
 export default function HyloCookieConsent () {
   const { t } = useTranslation()

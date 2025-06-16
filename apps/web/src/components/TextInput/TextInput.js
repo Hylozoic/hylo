@@ -112,7 +112,7 @@ const TextInput = forwardRef(({
           onClick={clear}
           role='button'
         >
-          <Icon name="Ex" />
+          <Icon name='Ex' />
         </div>}
       {loading && <Loading type='inline' className={styles.loading} />}
     </div>
