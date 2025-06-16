@@ -10,6 +10,7 @@ import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
 import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
+import Button from 'components/ui/Button'
 import classes from './Login.module.scss'
 
 export default function Login (props) {
@@ -132,13 +133,14 @@ export default function Login (props) {
               <span className='text-focus'>{t('Forgot password?')}</span>
             </Link>
           </div>
-          <button
-            className={`rounded-md text-white text-center p-2 ${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`}
+          <Button
+            variant='highVisibility'
+            className={`${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`}
             onClick={handleLogin}
             disabled={!email || !password}
           >
             {t('Sign in')}
-          </button>
+          </Button>
         </div>
         <div className='flex justify-center px-4 pb-4'>
           <GoogleButton onClick={() => handleLoginWithService('google')} />

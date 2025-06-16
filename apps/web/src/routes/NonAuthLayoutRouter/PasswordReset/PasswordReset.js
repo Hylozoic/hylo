@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import validator from 'validator'
+import Button from 'components/ui/Button'
 import TextInput from 'components/TextInput'
 import { cn } from 'util/index'
 
@@ -42,11 +43,11 @@ function PasswordReset ({ className, sendPasswordReset }) {
   return (
     <>
       <Helmet>
-        <title>{t('Reset Your Hylo Password')}</title>
+        <title>{t('Reset your Hylo password')}</title>
       </Helmet>
       <div className={className}>
         <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
-          <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Reset Your Password')}</h1>
+          <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Reset your password')}</h1>
           <div className='mb-4 text-foreground/80 text-center'>
             {t("Enter your email address and we'll send you an email that lets you reset your password.")}
           </div>
@@ -67,12 +68,12 @@ function PasswordReset ({ className, sendPasswordReset }) {
             value={email}
           />
 
-          <button
+          <Button
             className={cn('w-full mt-2 rounded-md p-2', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
             onClick={canSubmit ? submit : null}
           >
-            {t('Send Reset Email')}
-          </button>
+            {t('Send reset email')}
+          </Button>
         </div>
       </div>
     </>

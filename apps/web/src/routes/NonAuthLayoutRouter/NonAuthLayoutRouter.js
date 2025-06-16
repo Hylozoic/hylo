@@ -10,7 +10,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
-import Button from 'components/Button'
+import Button from 'components/ui/Button'
 import HyloCookieConsent from 'components/HyloCookieConsent'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
@@ -126,9 +126,9 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='signup/*'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
                 <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
-                  {t('Already have an account?')} <button className='rounded-md border-2 border-foreground/20 p-2'>{t('Sign in')}</button>
+                  {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
                 </Link>
               </div>
             }
@@ -139,11 +139,11 @@ export default function NonAuthLayoutRouter (props) {
               <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
                 <div className='flex items-center justify-center gap-2'>
                   <Link tabIndex={-1} to='/signup' className='text-foreground'>
-                    <button className='rounded-md border-2 border-foreground/20 p-2'>{t('Sign Up')}</button>
+                    <Button variant='outline'>{t('Sign up')}</Button>
                   </Link>
                   or
                   <Link to='/login' className='text-foreground'>
-                    <button className='rounded-md border-2 border-foreground/20 p-2'>{t('Log In')}</button>
+                    <Button variant='outline'>{t('Sign in')}</Button>
                   </Link>
                 </div>
               </div>
@@ -152,9 +152,9 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='/login'
             element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4'>
+              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
                 <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
-                  {t('Not a member of Hylo?')} <button className='p-2 rounded-md border-2 border-foreground/20'>{t('Sign Up')}</button>
+                  {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
                 </Link>
               </div>
             }

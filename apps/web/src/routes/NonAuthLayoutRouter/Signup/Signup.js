@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
+import Button from 'components/ui/Button'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -11,7 +12,6 @@ import loginWithService from 'store/actions/loginWithService'
 import GoogleButton from 'components/GoogleButton'
 import TextInput from 'components/TextInput'
 import { cn, validateEmail } from 'util/index'
-
 export default function Signup (props) {
   const dispatch = useDispatch()
   const [email, setEmail] = useState()
@@ -108,12 +108,13 @@ export default function Signup (props) {
           value={email || ''}
         />
 
-        <button
+        <Button
+          variant='highVisibility'
           className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
           onClick={canSubmit ? () => submit() : null}
         >
           {t('Create account')}
-        </button>
+        </Button>
 
         <div className='flex justify-center'>
           <GoogleButton onClick={() => handleSignupWithService('google')} />

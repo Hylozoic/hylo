@@ -48,12 +48,19 @@ export default function HyloCookieConsent () {
 
   return (
     <div className={cn('HyloCookieConsent fixed bottom-0 h-16 left-0 w-full flex justify-between items-center text-foreground bg-input/80 px-2 sm:px-4 z-[1000]', { block: showCookieInfo })}>
-      <span className='font-bold flex-1 text-xs sm:text-base'>
+      <span className='flex-1 text-xs sm:text-base'>
         {t('Hylo uses cookies to enhance the experience.')}
-        <button className={cn(classes.viewDetails, 'ml-4')} onClick={toggleShowCookieInfo}>{t('View details')}</button>
+        <button className={cn('underline font-bold', 'ml-4')} onClick={toggleShowCookieInfo}>{t('View details')}</button>
       </span>
-      <button className='p-2 rounded-md bg-selected text-foreground text-xs sm:text-base' onClick={acceptCookies}>{t('I Understand')}</button>
-      <div className={cn('fixed bottom-0 left-0 w-full h-full bg-background/80 z-[1000] flex items-center justify-center hidden overflow-y-auto pt-16', { block: showCookieInfo })}>
+      <Button
+        variant='highVisibility'
+        size='default'
+        onClick={acceptCookies}
+        className='font-bold'
+      >
+        {t('I Understand')}
+      </Button>
+      <div className={cn('fixed bottom-0 left-0 w-full h-full bg-black/70 z-[1000] flex items-center justify-center hidden overflow-y-auto pt-16', { block: showCookieInfo })}>
         <div className='max-w-screen-md mx-auto z-[10] relative max-w-[750px] p-4 bg-midground rounded-md'>
           <div className='p-0 sm:p-4 text-xs sm:text-base'>
             <h3 className='text-2xl font-bold mb-4'>{t('How do we use cookies?')}</h3>
@@ -65,7 +72,7 @@ export default function HyloCookieConsent () {
             <p>{t('When people on Hylo need help or want to report a bug, they are interacting with a service called intercom. Intercom stores cookies in your browser to keep track of conversations with us, the development team.')}</p>
             <h4 className='text-lg font-bold mb-2'>{t('Local storage & cache')}</h4>
             <p>{t('We store images, icons and application data in your browser to improve performance and load times.')}</p>
-            <button className='text-base border-2 border-foreground/20 flex items-center justify-center hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center' onClick={toggleShowCookieInfo}>{t('Close')}</button>
+            <Button variant='outline' className='w-full justify-center' onClick={toggleShowCookieInfo}>{t('Close')}</Button>
           </div>
         </div>
         <div className='fixed bottom-0 left-0 w-full h-full bg-background/80 z-[0] flex items-center justify-center' onClick={toggleShowCookieInfo} />
