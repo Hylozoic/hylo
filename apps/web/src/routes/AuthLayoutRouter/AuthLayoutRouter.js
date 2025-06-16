@@ -62,7 +62,7 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -145,7 +145,7 @@ export default function AuthLayoutRouter (props) {
         $location: currentUser.location
       })
 
-      if (currentUser?.settings?.locale) localeLocalStorageSync(currentUser?.settings?.locale)
+      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 

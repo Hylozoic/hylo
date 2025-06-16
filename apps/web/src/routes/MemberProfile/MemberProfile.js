@@ -7,7 +7,8 @@ import { Helmet } from 'react-helmet'
 import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 import Affiliation from 'components/Affiliation'
 import Button from 'components/Button'
@@ -415,7 +416,7 @@ function Project ({ memberCap, project }) {
     <div className={styles.project} onClick={() => viewPostDetails(project)}>
       <div>
         <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {DateTime.fromISO(createdAt).toRelative()} </div>
+        <div className={styles.meta}>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -428,8 +429,8 @@ function Event ({ memberCap, event }) {
   return (
     <div className={styles.event} onClick={() => viewPostDetails(event)}>
       <div className={styles.date}>
-        <div className={styles.month}>{DateTime.fromISO(startTime).toFormat('MMM')}</div>
-        <div className={styles.day}>{DateTime.fromISO(startTime).toFormat('dd')}</div>
+        <div className={styles.month}>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM')}</div>
+        <div className={styles.day}>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('dd')}</div>
       </div>
       <div className={styles.details}>
         <div className={styles.title}>{title}</div>

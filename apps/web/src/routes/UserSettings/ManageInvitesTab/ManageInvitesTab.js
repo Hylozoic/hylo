@@ -1,9 +1,10 @@
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -129,7 +130,7 @@ function GroupInvite ({ acceptInvite, declineInvite, invite }) {
           </div>
         </div>
         <div className={classes.invitationResponse}>
-          <span className={classes.createdDate}>{t('Sent')} {DateTime.fromISO(createdAt).toFormat('MM-dd-yyyy')}</span>
+          <span className={classes.createdDate}>{t('Sent')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('MM-dd-yyyy')}</span>
           <span onClick={decline} className={classes.cancelButton}>{t('Decline')}</span>
           <span onClick={() => acceptInvite(token, group.slug)} className={classes.joinButton}>{t('Join')}</span>
         </div>
@@ -154,7 +155,7 @@ function JoinRequest ({ joinRequest, cancelJoinRequest }) {
         <GroupButton group={group} />
       </div>
       <div className={classes.requestDetail}>
-        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTime.fromISO(createdAt).toFormat('yyyy-MM-dd')}</span>
+        <span className={`${classes.createdDate} ${classes.joinRequestDate}`}>{t('Requested')} {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('yyyy-MM-dd')}</span>
         {joinRequest.status === JOIN_REQUEST_STATUS.Pending && (
           <span onClick={cancel} className={classes.cancelButton}>{t('Cancel')}</span>
         )}
