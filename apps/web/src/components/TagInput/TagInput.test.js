@@ -1,9 +1,12 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { useTranslation } from 'react-i18next'
 import TagInput from './TagInput'
 
+const { t } = useTranslation()
 const defaultMinProps = {
-  handleInputChange: jest.fn()
+  handleInputChange: jest.fn(),
+  t: t
 }
 
 function renderComponent (props = {}) {

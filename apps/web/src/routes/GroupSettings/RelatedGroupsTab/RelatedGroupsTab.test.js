@@ -60,20 +60,20 @@ describe('RelatedGroupsTab', () => {
     // Check for parent groups
     await waitFor(() => {
       expect(screen.getByText('Parent Groups')).toBeInTheDocument()
-      expect(screen.getByText('These are the 3 groups that {{group.name}} is a member of')).toBeInTheDocument()
+      expect(screen.getByText('These are the 3 groups that Best Group is a member of')).toBeInTheDocument()
       parentGroups.forEach(parent => {
         expect(screen.getByText(parent.name)).toBeInTheDocument()
       })
 
       // Check for child groups
       expect(screen.getByText('Child Groups')).toBeInTheDocument()
-      expect(screen.getByText('These {{childGroups.length}} groups are members of {{group.name}}')).toBeInTheDocument()
+      expect(screen.getByText('These 3 groups are members of Best Group')).toBeInTheDocument()
       childGroups.forEach(child => {
         expect(screen.getByText(child.name)).toBeInTheDocument()
       })
 
       // Check for buttons
-      expect(screen.getByText('Join {{group.name}} to another group')).toBeInTheDocument()
+      expect(screen.getByText('Join Best Group to another group')).toBeInTheDocument()
       expect(screen.getByText('Invite a group to join')).toBeInTheDocument()
     })
   })

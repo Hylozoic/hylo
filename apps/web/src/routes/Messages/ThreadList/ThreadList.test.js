@@ -1,29 +1,86 @@
 import React from 'react'
-import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import mockGraphqlServer from 'util/testing/mockGraphqlServer'
+import { graphql, HttpResponse } from 'msw'
 import ThreadList from './ThreadList'
 import ThreadListItem from './ThreadListItem'
 import orm from 'store/models'
 
 describe('ThreadList', () => {
-  it('renders empty state correctly', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
+  it('renders empty state correctly', async () => {
+    mockGraphqlServer.use(
+      graphql.query('MessageThreadsQuery', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              messageThreads: {
+                items: []
+              }
+            }
+          }
+        })
+      })
     )
-    expect(screen.getByText('You have no active messages')).toBeInTheDocument()
+
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn().mockResolvedValue({})} match={{ params: {} }} />
+    )
+    
+    await waitFor(() => {
+      expect(screen.getByRole('list')).toBeInTheDocument()
+    })
+    expect(screen.getByText(/You have no active messages!/)).toBeInTheDocument()
   })
 
-  it('renders search input', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
+  it('renders search input', async () => {
+    mockGraphqlServer.use(
+      graphql.query('MessageThreadsQuery', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              messageThreads: {
+                items: []
+              }
+            }
+          }
+        })
+      })
     )
-    expect(screen.getByPlaceholderText('Search for people...')).toBeInTheDocument()
+
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn().mockResolvedValue({})} match={{ params: {} }} />
+    )
+    
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search messages...')).toBeInTheDocument()
+    })
   })
 
-  it('renders new message button', () => {
-    render(
-      <ThreadList threads={[]} fetchThreads={jest.fn()} match={{ params: {} }} />
+  it('renders new message button', async () => {
+    mockGraphqlServer.use(
+      graphql.query('MessageThreadsQuery', () => {
+        return HttpResponse.json({
+          data: {
+            me: {
+              id: '1',
+              messageThreads: {
+                items: []
+              }
+            }
+          }
+        })
+      })
     )
-    expect(screen.getByText('New')).toBeInTheDocument()
+
+    render(
+      <ThreadList threads={[]} fetchThreads={jest.fn().mockResolvedValue({})} match={{ params: {} }} />
+    )
+    
+    await waitFor(() => {
+      expect(screen.getByText('Send a message')).toBeInTheDocument()
+    })
   })
 })
 

@@ -232,7 +232,7 @@ describe('Notification', () => {
   })
 
   it('renders correctly with an approved join request notification', async () => {
-    render(<Notification notification={approvedJoinRequestNotification} />)
+    render(<NotificationItem notification={approvedJoinRequestNotification} />)
     await waitFor(() => {
       expect(screen.getByText(/approved your request to join/i)).toBeInTheDocument()
       expect(screen.getByText(/Foomunity/i)).toBeInTheDocument()

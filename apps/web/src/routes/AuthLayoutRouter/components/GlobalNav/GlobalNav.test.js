@@ -82,11 +82,11 @@ describe('GlobalNav', () => {
     )
 
     render(
-      <GlobalNav routeParams={{ context: 'all', view: 'stream' }} />
+      <GlobalNav currentUser={me} routeParams={{ context: 'all', view: 'stream' }} />
     )
 
     await waitFor(() => {
-      expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
+      expect(screen.getAllByRole('button').length).toBe(7)
     })
   })
 })

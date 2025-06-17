@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
-import { Calendar } from '@/components/ui/calendar'
+import { Calendar } from 'components/ui/calendar'
 import { DateTime } from 'luxon'
 import { includes, sameDay } from '../../calendar-util'
-import { cn } from '@/lib/utils'
-import Button from '@/components/ui/button'
-import { buttonVariants } from '@/components/ui/button-variants'
+import Button from 'components/ui/button'
+import { buttonVariants } from 'components/ui/button-variants'
+import { cn } from 'util/index'
 
 export default function CalendarBodyDayCalendar () {
   const { t } = useTranslation()

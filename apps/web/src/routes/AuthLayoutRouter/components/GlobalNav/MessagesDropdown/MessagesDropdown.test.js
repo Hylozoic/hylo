@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import { graphql, HttpResponse } from 'msw'
@@ -7,14 +8,7 @@ import MessagesDropdownItem from './MessagesDropdownItem'
 import { lastMessageCreator } from './util'
 import orm from 'store/models'
 
-const mockT = jest.fn((str, params) => {
-  if (!params) return str
-  let result = str
-  Object.entries(params).forEach(([key, value]) => {
-    result = result.replace(`{{${key}}}`, value)
-  })
-  return result
-})
+const { t } = useTranslation() // mocked version
 
 const u1 = { id: '1', name: 'Charles Darwin', avatarUrl: 'foo.png' }
 const u2 = { id: '2', name: 'Marie Curie', avatarUrl: 'bar.png' }
@@ -50,7 +44,12 @@ threads.map(t => MessageThread.create(t))
 
 messages.map(m => Message.create(m))
 
-const reduxState = { orm: session.state }
+const reduxState = { 
+  orm: session.state,
+  pending: {
+    FETCH_THREADS: false
+  }
+}
 
 const testProviders = () => {
   return AllTheProviders(reduxState)
@@ -78,11 +77,18 @@ describe('MessagesDropdown', () => {
       <MessagesDropdown
         renderToggleChildren={() => <span>click me</span>}
         currentUser={u1}
-      />
+      />,
+      { wrapper: testProviders() }
     )
 
     await waitFor(() => {
       expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
+    // Click to open the dropdown
+    fireEvent.click(screen.getByText('click me'))
+
+    await waitFor(() => {
       expect(screen.getByText("You don't have any messages yet")).toBeInTheDocument()
     })
   })
@@ -110,6 +116,12 @@ describe('MessagesDropdown', () => {
 
     await waitFor(() => {
       expect(screen.getByText('click me')).toBeInTheDocument()
+    })
+
+    // Click to open the dropdown
+    fireEvent.click(screen.getByText('click me'))
+
+    await waitFor(() => {
       expect(screen.getAllByText('Marie Curie and Arthur Fonzarelli')).toHaveLength(2)
       expect(screen.getByText('Marie Curie: hi')).toBeInTheDocument()
     })
@@ -117,9 +129,10 @@ describe('MessagesDropdown', () => {
 })
 
 describe('MessagesDropdownItem', () => {
+
   it('renders correctly with an empty thread', async () => {
     const thread = { messages: { items: [] } }
-    render(<MessagesDropdownItem thread={thread} t={mockT} />)
+    render(<MessagesDropdownItem thread={thread} t />)
 
     await waitFor(() => {
       expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
@@ -132,7 +145,7 @@ describe('MessagesDropdownItem', () => {
       participants: [currentUser],
       messages: { items: [{ creator: currentUser.id }] }
     }
-    render(<MessagesDropdownItem thread={thread} currentUser={currentUser} t={mockT} />)
+    render(<MessagesDropdownItem thread={thread} currentUser={currentUser} />)
 
     await waitFor(() => {
       expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
@@ -147,7 +160,7 @@ describe('MessagesDropdownItem', () => {
         thread={session.MessageThread.withId(threads[0].id)}
         currentUser={session.Person.withId(u1.id)}
         onClick={() => goToThread(threads[0].id)}
-        t={mockT}
+        t={t}
       />
     )
 
@@ -171,7 +184,7 @@ describe('lastMessageCreator', () => {
     const message = {
       creator: { id: 1 }
     }
-    expect(lastMessageCreator(message, currentUser, [], mockT)).toBe(formattedName)
+    expect(lastMessageCreator(message, currentUser, [], t)).toBe(formattedName)
   })
   it('handles when a different user created the message', () => {
     const name = 'name'
@@ -185,7 +198,7 @@ describe('lastMessageCreator', () => {
       { id: 3, name: 'other' },
       { id: 4, name: 'another' }
     ]
-    expect(lastMessageCreator(message, currentUser, participants, mockT)).toBe(formattedName)
+    expect(lastMessageCreator(message, currentUser, participants, t)).toBe(formattedName)
   })
   it('handles when there are 2 participants and a different user created the message', () => {
     const currentUser = { id: 1 }
@@ -196,6 +209,6 @@ describe('lastMessageCreator', () => {
       { id: 2, name: 'name1' },
       { id: 2, name: 'name2' }
     ]
-    expect(lastMessageCreator(message, currentUser, participants, mockT)).toBe('')
+    expect(lastMessageCreator(message, currentUser, participants, t)).toBe('')
   })
 })

@@ -25,6 +25,17 @@ Array [
   ],
   Array [
     Object {
+      "payload": Object {
+        "args": Array [
+          "/",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+  Array [
+    Object {
       "graphql": Object {
         "query": "mutation ($postId: ID, $slug: String) {
         removePost(postId: $postId, slug: $slug) {
@@ -42,6 +53,17 @@ Array [
         "slug": undefined,
       },
       "type": "REMOVE_POST",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
+          "/",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
     },
   ],
 ]
@@ -86,6 +108,17 @@ Array [
     Object {
       "payload": Object {
         "args": Array [
+          "/",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
           "/groups/mygroup/post/10/edit",
         ],
         "method": "push",
@@ -98,6 +131,37 @@ Array [
       "payload": Object {
         "args": Array [
           "/groups/mygroup/create/post?fromPostId=10",
+        ],
+        "method": "push",
+      },
+      "type": "@@router/CALL_HISTORY_METHOD",
+    },
+  ],
+  Array [
+    Object {
+      "graphql": Object {
+        "query": "mutation ($id: ID) {
+        deletePost(id: $id) {
+          success
+        }
+      }",
+        "variables": Object {
+          "id": 1,
+        },
+      },
+      "meta": Object {
+        "groupId": undefined,
+        "id": 1,
+        "optimistic": true,
+      },
+      "type": "DELETE_POST",
+    },
+  ],
+  Array [
+    Object {
+      "payload": Object {
+        "args": Array [
+          "/",
         ],
         "method": "push",
       },

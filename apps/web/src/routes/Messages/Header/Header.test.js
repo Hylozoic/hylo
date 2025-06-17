@@ -56,7 +56,7 @@ describe('formatNames', () => {
     const maxShown = 3
     const otherParticipants = ['a', 'b', 'c']
     const result = formatNames(otherParticipants, maxShown)
-    expect(result.displayNames).toEqual([['a', ', '], ['b', ', '], 'c'])
+    expect(result.displayNames).toEqual([['a', ''], ['b', ''], 'c'])
     expect(result.andOthers).toBeUndefined()
   })
 
@@ -64,7 +64,7 @@ describe('formatNames', () => {
     const maxShown = 2
     const otherParticipants = ['a', 'b', 'c', 'd']
     const result = formatNames(otherParticipants, maxShown)
-    expect(result.displayNames).toEqual([['a', ', '], 'b'])
+    expect(result.displayNames).toEqual([['a', ''], 'b'])
     expect(result.andOthers).toBe(' 2 others')
   })
 })

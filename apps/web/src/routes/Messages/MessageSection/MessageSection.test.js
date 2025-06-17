@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
+import { FETCH_MESSAGES } from 'store/constants'
 import MessageSection from './MessageSection'
 
 const person1 = { id: '1', name: 'City Bob', avatarUrl: '' }
@@ -70,7 +71,7 @@ it('fetches more messages when scrolled to top', async () => {
     />
   )
 
-  const messageSection = screen.getByTestId('message-section')
+  const messageSection = screen.getByLabelText(/message section/i)
    // Mock properties using a loop
    const properties = {
     scrollHeight: 1200,
@@ -91,8 +92,15 @@ it('fetches more messages when scrolled to top', async () => {
 })
 
 it('shows Loading component when pending is true', () => {
+  const initialState = {
+    pending: {
+      [FETCH_MESSAGES]: true
+    }
+  }
+
   render(
-    <MessageSection messages={[]} fetchMessages={() => {}} pending />
+    <MessageSection messages={[]} fetchMessages={() => {}} pending />,
+    { wrapper: AllTheProviders(initialState) }
   )
 
   expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()

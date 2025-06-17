@@ -26,7 +26,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger
-} from '@/components/ui/select'
+} from 'components/ui/select'
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'

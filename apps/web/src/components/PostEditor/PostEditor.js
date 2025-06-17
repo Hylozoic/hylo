@@ -817,6 +817,7 @@ function PostEditor ({
                 doSave()
               }
             }}
+            aria-label='title'
           />
           {titleLengthError && (
             <span className={styles.titleError}>{t('Title limited to {{maxTitleLength}} characters', { maxTitleLength: MAX_TITLE_LENGTH })}</span>

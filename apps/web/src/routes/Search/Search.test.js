@@ -137,7 +137,7 @@ describe('Search', () => {
     render(<Search />, { wrapper: testProviders(defaultMockResults) })
 
     expect(screen.getByText('All')).toBeInTheDocument()
-    expect(screen.getByText('Discussions')).toBeInTheDocument()
+    expect(screen.getByText('Posts')).toBeInTheDocument()
     expect(screen.getByText('People')).toBeInTheDocument()
     expect(screen.getByText('Comments')).toBeInTheDocument()
     expect(screen.getByText('Test Person')).toBeInTheDocument()

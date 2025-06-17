@@ -6,14 +6,14 @@ import {
 describe('transformPathname', () => {
   it('forwards to index.html when no file extension present', () => {
     const actual = '/'
-    const expected = `${process.env.PROXY_HOST}/index.html`
+    const expected = `${process.env.VITE_PROXY_HOST}/index.html`
     const result = transformPathname(actual)
     expect(result).toEqual(expected)
   })
 
   it(`forwards /${IOS_SITE_ASSOCIATION_FILE} to ${IOS_SITE_ASSOCIATION_FILE}.json`, () => {
     const actual = `/${IOS_SITE_ASSOCIATION_FILE}`
-    const expected = `${process.env.PROXY_HOST}/${IOS_SITE_ASSOCIATION_FILE}.json`
+    const expected = `${process.env.VITE_PROXY_HOST}/${IOS_SITE_ASSOCIATION_FILE}.json`
     const result = transformPathname(actual)
     expect(result).toEqual(expected)
   })

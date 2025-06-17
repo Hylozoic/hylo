@@ -31,7 +31,7 @@ export default function Loading ({ type, className, size }) {
 
 function SvgLoader ({ size = 40 }) {
   return (
-    <div className={classes.loadingIndicator} data-testid='loading-indicator'>
+    <div className={classes.loadingIndicator} data-testid='loading-indicator' aria-label='loading'>
       <svg version='1.1' x='0px' y='0px' width={`${size}px`} height={`${size}px`} viewBox='0 0 50 50' role='img' aria-label='loading'>
         <path
           fill='#000'

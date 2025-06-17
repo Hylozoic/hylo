@@ -2,10 +2,10 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { DateTime, Interval, Info } from 'luxon'
-import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
 import { eachIntervalDay, getLocaleAsString, includes, sameDay, sameMonth } from '../../calendar-util'
+import { cn } from 'util/index'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()

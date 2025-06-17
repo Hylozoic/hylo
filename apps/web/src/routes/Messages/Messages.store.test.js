@@ -92,6 +92,11 @@ describe('filterThreadsByParticipant', () => {
   it('works as expected', () => {
     const mockThread = names => {
       return {
+        messages: {
+          toRefArray: function () {
+            return []
+          }
+        },
         participants: {
           toRefArray: function () {
             return names.map(name => ({ name }))

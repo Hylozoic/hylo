@@ -1,25 +1,30 @@
 import React from 'react'
+import orm from 'store/models'
 import { render, screen, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import CommentForm from './CommentForm'
 import Me from 'store/models/Me'
 
 const minDefaultProps = {
   postId: 'new',
-  createComment: jest.fn(),
-  currentUser: new Me({
+  createComment: jest.fn()
+}
+
+function currentUserTestProviders () {
+  const session = orm.mutableSession(orm.getEmptyState())
+  session.Me.create({
+    id: '20',
     name: 'Jen Smith',
     avatarUrl: 'foo.png'
-  }),
-  sendIsTyping: jest.fn(),
-  addAttachment: jest.fn(),
-  clearAttachments: jest.fn(),
-  attachments: []
+  })
+  const reduxState = { orm: session.state }
+  return AllTheProviders(reduxState)
 }
 
 describe('CommentForm', () => {
   it('renders correctly with current user', () => {
     render(
-      <CommentForm {...minDefaultProps} />
+      <CommentForm {...minDefaultProps} />,
+      { wrapper: currentUserTestProviders() }
     )
 
     // expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument()
@@ -30,21 +35,23 @@ describe('CommentForm', () => {
 
   it('renders correctly without current user', () => {
     render(
-      <CommentForm {...minDefaultProps} currentUser={null} />
+      <CommentForm {...minDefaultProps} />
     )
 
     // expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument()
     expect(screen.getByTestId('icon-Person')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sign up to reply' })).toBeInTheDocument()
+    expect(screen.getByText('Sign up to reply', { selector: 'a' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /send/i })).not.toBeInTheDocument()
     expect(screen.queryByTestId('upload-button')).not.toBeInTheDocument()
   })
 
-  it.skip('uses custom placeholder when provided', () => {
+  it('uses custom placeholder text when provided', () => {
+    const customPlaceholder = 'Write your thoughts...'
     render(
-      <CommentForm {...minDefaultProps} placeholder='Custom placeholder' />
+      <CommentForm {...minDefaultProps} placeholder={customPlaceholder} />,
+      { wrapper: currentUserTestProviders() }
     )
 
-    expect(screen.getByPlaceholderText('Custom placeholder')).toBeInTheDocument()
+    expect(screen.getByText('', { selector: `p[data-placeholder="${customPlaceholder}"]` })).toBeInTheDocument()
   })
 })

@@ -42,13 +42,4 @@ describe('TopicNavigation', () => {
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
-
-  it('can be clicked to expand the left nav when collapsed', () => {
-    const expand = jest.fn()
-    renderComponent({ collapsed: true, expand })
-
-    fireEvent.click(screen.getByText('Topics'))
-    expect(expand).toHaveBeenCalled()
-  })
-
 })

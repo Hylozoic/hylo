@@ -32,7 +32,7 @@ describe('CommentCard', () => {
     expect(screen.getByText('commented on')).toBeInTheDocument()
     expect(screen.getByText('Awesome Sauce #hashtag')).toBeInTheDocument()
     expect(screen.getByText(/text of the comment/)).toBeInTheDocument()
-    expect(screen.getByText('Commented 1 year ago')).toBeInTheDocument()
+    expect(screen.getByText('Commented 1y ago')).toBeInTheDocument()
   })
 
   it('renders expanded comment', () => {

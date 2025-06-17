@@ -200,7 +200,7 @@ class CreateTopic extends Component {
               : (
                 <div>
                   <TextInput
-                    aria-label='topic-name'
+                    aria-label='topic name'
                     autoFocus
                     label='topic-name'
                     name='topic-name'

@@ -46,7 +46,7 @@ describe('EditProfileTab', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
       expect(screen.getAllByRole('button')).toHaveLength(1)
       expect(screen.getByLabelText('Tagline')).toBeInTheDocument()
       expect(screen.getByLabelText('About Me')).toBeInTheDocument()
@@ -76,10 +76,10 @@ describe('EditProfileTab', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Your Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
     })
 
-    const nameInput = screen.getByLabelText('Your Name')
+    const nameInput = screen.getByLabelText('Name')
     fireEvent.change(nameInput, { target: { value: 'New Name' } })
 
     await waitFor(() => {
