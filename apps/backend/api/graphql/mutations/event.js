@@ -54,7 +54,7 @@ export async function respondToEvent (userId, eventId, response) {
       files: [
         {
           id: 'invite.ics',
-          data: btoa(cal.toString())
+          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
         }
       ]
     })
@@ -65,7 +65,7 @@ export async function respondToEvent (userId, eventId, response) {
 
 export async function invitePeopleToEvent (userId, eventId, inviteeIds) {
   inviteeIds.forEach(async inviteeId => {
-    let eventInvitation = await EventInvitation.find({ userId: inviteeId, eventId })
+    const eventInvitation = await EventInvitation.find({ userId: inviteeId, eventId })
     if (!eventInvitation) {
       await EventInvitation.create({
         userId: inviteeId,
