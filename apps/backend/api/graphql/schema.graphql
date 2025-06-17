@@ -116,7 +116,9 @@ type Query {
     # Int of GroupTopics to return
     first: Int,
     # filter by group id
-    groupId: ID
+    groupId: ID,
+    # filter by group ids
+    groupIds: [ID],
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
