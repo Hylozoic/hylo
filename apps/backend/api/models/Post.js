@@ -1019,8 +1019,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       const trackIds = trackPosts.pluck('track_id')
       const tracks = await Track.query(q => q.whereIn('id', trackIds)).fetchAll({ transacting: trx })
       for (const track of tracks) {
-        const trackActions = await TrackPost.where({ track_id: track.id }).fetchAll({ transacting: trx })
-        const group = await track.groups().fetchOne()
+        const trackActions = await track.posts().fetch({ transacting: trx })
         const completedActionsCount = await PostUser.query(q => {
           q.where('user_id', userId)
           q.whereIn('post_id', trackActions.pluck('post_id'))
@@ -1036,6 +1035,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           }
           await trackUser.save({ completed_at: new Date() }, { transacting: trx })
           await track.save({ num_people_completed: track.get('num_people_completed') + 1 }, { transacting: trx })
+          const group = await track.groups().fetchOne({ transacting: trx })
           // See if there is a role/badge for completing the track
           if (track.get('completion_role_id')) {
             if (track.get('completion_role_type') === 'common') {
