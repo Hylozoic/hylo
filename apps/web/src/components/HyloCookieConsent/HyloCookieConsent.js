@@ -66,14 +66,18 @@ export default function HyloCookieConsent () {
             <h4 className='text-lg font-bold mb-2'>{t('Hylo login & session')}</h4>
             <p>{t('We use cookies to help understand whether you are logged in and to understand your preferences and where you are in Hylo.')}</p>
             <h4 className='text-lg font-bold mb-2'>{t('Mixpanel')}</h4>
+            <h4 className='text-lg font-bold mb-2'>{t('Mixpanel')}</h4>
             <p>{t('We use a service called Mixpanel to understand how people like you use Hylo. Your identity is anonymized but your behavior is recorded so that we can make improvements to Hylo based on how people are using it.')}</p>
             <h4 className='text-lg font-bold mb-2'>{t('Intercom')}</h4>
+            <h4 className='text-lg font-bold mb-2'>{t('Intercom')}</h4>
             <p>{t('When people on Hylo need help or want to report a bug, they are interacting with a service called intercom. Intercom stores cookies in your browser to keep track of conversations with us, the development team.')}</p>
+            <h4 className='text-lg font-bold mb-2'>{t('Local storage & cache')}</h4>
             <h4 className='text-lg font-bold mb-2'>{t('Local storage & cache')}</h4>
             <p>{t('We store images, icons and application data in your browser to improve performance and load times.')}</p>
             <Button variant='outline' className='w-full justify-center' onClick={toggleShowCookieInfo}>{t('Close')}</Button>
           </div>
         </div>
+        <div className='fixed bottom-0 left-0 w-full h-full bg-background/80 z-[0] flex items-center justify-center' onClick={toggleShowCookieInfo} />
         <div className='fixed bottom-0 left-0 w-full h-full bg-background/80 z-[0] flex items-center justify-center' onClick={toggleShowCookieInfo} />
       </div>
     </div>

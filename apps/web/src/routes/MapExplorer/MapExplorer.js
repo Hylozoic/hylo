@@ -390,6 +390,13 @@ function MapExplorer (props) {
         // Drawer is being closed
         stopObservingDrawerWidth()
       }
+      if (hideDrawer) {
+        // Drawer is being opened
+        observeDrawerWidth()
+      } else {
+        // Drawer is being closed
+        stopObservingDrawerWidth()
+      }
     }, 100)
   }, [dispatch, hideDrawer, location])
 

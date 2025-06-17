@@ -28,7 +28,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import fetchMyMemberships from 'store/actions/fetchMyMemberships'
+import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -298,7 +298,7 @@ function PostEditor ({
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-    dispatch(fetchMyMemberships())
+    dispatch(fetchAllMyGroupsChatRooms())
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))

@@ -104,6 +104,7 @@ export default function Login (props) {
           <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Sign in to Hylo')}</h1>
 
           {error && formatError(error, 'Login', t)}
+          {error && formatError(error, 'Login', t)}
 
           <TextInput
             aria-label='email' label='email' name='email' id='email'

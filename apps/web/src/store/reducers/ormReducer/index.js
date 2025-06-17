@@ -19,7 +19,7 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
-  FETCH_MY_MEMBERSHIPS,
+  FETCH_GROUP_CHAT_ROOMS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -198,7 +198,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // we can assume the following because the backend returns the results pre-sorted
         // with the currentUser at the beginning
         const p = Post.withId(meta.postId)
-        p.update({ commentersTotal: p.commentersTotal + 1 })
+        p.update({ commentersTotal: p.commentersTotal + 1 }) // TODO: this should only update if we're a new commenter
         p.update({ commentsTotal: p.commentsTotal + 1 })
       }
       break
@@ -419,7 +419,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case FETCH_MY_MEMBERSHIPS: {
+    case FETCH_GROUP_CHAT_ROOMS: {
       const me = Me.first()
       clearCacheFor(Me, me.id)
       break

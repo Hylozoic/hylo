@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.3] - 2025-06-16
+
+### Added
+- Display join question answers in the member directory, when toggled on
+
+### Changed
+- Re-add timezone display to datetimes throughout the app
+
+### Fixed
+- Issue where people would be asked to answer join questions after joining even if they already had
+- Issue where the chat room wouldn't scroll down to show new posts created by the current user when created through the plus button
+- Width of multiple image attachments in safari
+- Correctly navigate to first message when going to /messages
+
 ## [6.1.2] - 2025-06-12
 
 ### Changed

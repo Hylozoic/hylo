@@ -32,12 +32,14 @@ const ViewHeader = () => {
       {centered && backButton && (
         <ChevronLeft
           className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+          className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
           onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
         />
       )}
       {!isWebView() && !centered && (
         <>
           <ChevronLeft
+            className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
             className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
             onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
           />

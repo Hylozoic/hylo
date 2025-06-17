@@ -372,6 +372,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'accept_contributions',
         'announcement',
         'anonymous_voting',
+        'commentersTotal',
         'commentsTotal',
         'completion_action_settings',
         'completion_action',
@@ -399,7 +400,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
-        commentersTotal: p => p.getCommentersTotal(userId),
         completedAt: p => p.completedAtForUser(userId),
         completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
