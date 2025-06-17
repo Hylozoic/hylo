@@ -198,7 +198,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // we can assume the following because the backend returns the results pre-sorted
         // with the currentUser at the beginning
         const p = Post.withId(meta.postId)
-        p.update({ commentersTotal: p.commentersTotal + 1 })
+        p.update({ commentersTotal: p.commentersTotal + 1 }) // TODO: this should only update if we're a new commenter
         p.update({ commentsTotal: p.commentsTotal + 1 })
       }
       break

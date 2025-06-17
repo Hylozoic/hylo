@@ -116,6 +116,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.get('num_comments')
   },
 
+  commentersTotal: function () {
+    return this.get('num_commenters')
+  },
+
   peopleReactedTotal: function () {
     return this.get('num_people_reacts')
   },
@@ -281,7 +285,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   getCommentersTotal: function (currentUserId) {
-    // TODO: store number of commenters in the post_users table for performance
     return countTotal(User.query(commentersQuery(null, this, currentUserId)).query(), 'users')
       .then(result => {
         if (isEmpty(result)) {
@@ -949,6 +952,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     updated_at: new Date(),
     active: true,
     num_comments: 0,
+    num_commenters: 0,
     num_people_reacts: 0
   }),
 
@@ -969,13 +973,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
           .update('recent', false)
       ]))
 
-    // update num_comments and updated_at (only update the latter when
-    // creating a comment, not deleting one)
+    // update num_comments and updated_at
     const numComments = await Aggregate.count(Comment.where(where))
     const post = await Post.find(postId)
     await post.save({
       num_comments: numComments,
-      updated_at: commentId ? now : null
+      num_commenters: await post.getCommentersTotal(),
+      updated_at: now
     })
 
     // when creating a comment, mark post as read for the commenter
