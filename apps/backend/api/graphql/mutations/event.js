@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
-import { values, includes } from 'lodash/fp'
 import ical from 'ical-generator'
+import { values, includes } from 'lodash/fp'
+import { TextHelpers } from '@hylo/shared'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -30,18 +31,25 @@ export async function respondToEvent (userId, eventId, response) {
     const cal = ical()
     cal.createEvent(event.getCalEventData(userId))
     const user = await User.find(userId)
-    const group_names = event.relations.groups.map(g => g.get('name')).join(', ')
+    const groupNames = event.relations.groups.map(g => g.get('name')).join(', ')
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_rsvp',
+      cti: userId
+    }).toString()
 
     Queue.classMethod('Email', 'sendEventRsvpEmail', {
       email: user.get('email'),
       version: 'default',
       data: {
+        date: TextHelpers.formatDatePair(event.get('start_time'), event.get('end_time'), false, event.get('timezone')),
         user_name: user.get('name'),
         event_name: event.title(),
         event_description: event.details(),
-        event_url: event.get('location'),
+        event_location: event.get('location'),
+        event_url: Frontend.Route.post(event, event.relations.groups.first(), clickthroughParams),
         response: EventInvitation.getHumanResponse(response),
-        group_name: group_names
+        group_names: groupNames
       },
       files: [
         {
