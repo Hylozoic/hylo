@@ -1,5 +1,11 @@
 import React from 'react'
 import Button from 'components/ui/button'
+import Checkbox from 'components/ui/checkbox'
+import { Input } from 'components/ui/input'
+import { Label } from 'components/ui/label'
+import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
+import { Switch } from 'components/ui/switch'
+import { Toggle } from 'components/ui/toggle'
 
 // Component to display a color sample with label
 function ColorSample ({ colorName, bgClass, textClass = 'text-foreground' }) {
@@ -31,6 +37,7 @@ function ThemeColumn ({ title, isDark = false }) {
     <div className={`flex-1 p-6 ${columnClass}`}>
       <div className='bg-background text-foreground min-h-screen p-4 rounded-lg border border-border'>
         <h2 className='text-xl font-bold mb-6 text-center'>{title}</h2>
+        
         {/* Basic Colors */}
         <div className='mb-6'>
           <h3 className='text-lg font-semibold mb-3'>Basic Colors</h3>
@@ -84,6 +91,50 @@ function ThemeColumn ({ title, isDark = false }) {
           <ButtonSample variantName='Tertiary' variant='tertiary' />
           <ButtonSample variantName='Ghost' variant='ghost' />
           <ButtonSample variantName='Link' variant='link' />
+        </div>
+
+        {/* Form Controls */}
+        <div className='mb-6'>
+          <h3 className='text-lg font-semibold mb-3'>Form Controls</h3>
+          
+          <div className='space-y-4'>
+            <div>
+              <Label className='mb-2 block'>Input Field</Label>
+              <Input placeholder='Type something...' />
+            </div>
+
+            <div className='flex items-center space-x-2'>
+              <Checkbox id={`checkbox-${isDark ? 'dark' : 'light'}`} defaultChecked />
+              <Label htmlFor={`checkbox-${isDark ? 'dark' : 'light'}`}>Checkbox</Label>
+            </div>
+
+            <div className='flex items-center space-x-2'>
+              <Switch id={`switch-${isDark ? 'dark' : 'light'}`} defaultChecked />
+              <Label htmlFor={`switch-${isDark ? 'dark' : 'light'}`}>Switch</Label>
+            </div>
+
+            <div>
+              <Label className='mb-2 block'>Radio Group</Label>
+              <RadioGroup defaultValue='option1'>
+                <div className='flex items-center space-x-2'>
+                  <RadioGroupItem value='option1' id={`radio1-${isDark ? 'dark' : 'light'}`} />
+                  <Label htmlFor={`radio1-${isDark ? 'dark' : 'light'}`}>Option 1</Label>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <RadioGroupItem value='option2' id={`radio2-${isDark ? 'dark' : 'light'}`} />
+                  <Label htmlFor={`radio2-${isDark ? 'dark' : 'light'}`}>Option 2</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div>
+              <Label className='mb-2 block'>Toggle Buttons</Label>
+              <div className='flex gap-2'>
+                <Toggle variant='default' defaultPressed>Default</Toggle>
+                <Toggle variant='outline'>Outline</Toggle>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
