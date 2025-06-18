@@ -31,25 +31,27 @@ const ViewHeader = () => {
     >
       {centered && backButton && (
         <ChevronLeft
-          className={cn('sm:hidden w-6 h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+          className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
           onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
         />
       )}
       {!isWebView() && !centered && (
         <>
           <ChevronLeft
-            className={cn('sm:hidden w-6 h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
+            className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
             onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
           />
-          <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
-            {context === 'groups'
-              ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
-              : context === 'my'
-                ? <div style={bgImageStyle(currentUser?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
-                : context === 'public'
-                  ? <Globe className='w-8 h-8' />
-                  : null}
-          </div>
+          {context !== 'messages' && (
+            <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
+              {context === 'groups'
+                ? <div style={bgImageStyle(group?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
+                : context === 'my'
+                  ? <div style={bgImageStyle(currentUser?.avatarUrl)} className='w-8 h-8 rounded-lg bg-cover bg-center' />
+                  : context === 'public'
+                    ? <Globe className='w-8 h-8' />
+                    : null}
+            </div>
+          )}
         </>)}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>

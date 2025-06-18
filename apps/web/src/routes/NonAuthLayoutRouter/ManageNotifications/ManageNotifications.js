@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-
+import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
 
@@ -55,115 +55,120 @@ export default function ManageNotifications (props) {
   const groupNotificationOptions = [{ id: 'keep', label: t('Existing per Group Settings') }, ...notificationOptions]
 
   return (
-    <div className={cn(props.className, styles.wrapper)}>
-      <h1>{t('Hi {{userName}}', { userName })}</h1>
-      <p>{t('You can change your Hylo notification settings here')}</p>
-      {isEmpty(settings)
-        ? t('Loading...')
-        : (
-          <div className={styles.formWrapper}>
-            <div className={styles.settingWrapper}>
-              <label className={styles.settingExplanation}>{t('Send me a digest of new posts')}</label><br />
-              <Select
-                value={unsubscribeAll ? 'never' : digestFrequency}
-                onValueChange={value => updateSetting('digestFrequency')(value)}
-                disabled={unsubscribeAll}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='daily'>{t('Daily')}</SelectItem>
-                  <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
-                  <SelectItem value='never'>{t('Never')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className={styles.settingWrapper}>
-              <label className={styles.settingExplanation}>{t('Send notifications for each new post in your group?')}</label>
-              <Select
-                value={unsubscribeAll ? 'none' : postNotifications}
-                onValueChange={value => updateSetting('postNotifications')(value)}
-                disabled={unsubscribeAll}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                  <SelectItem value='important'>{t('Announcements & Mentions only')}</SelectItem>
-                  <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className={styles.settingWrapper}>
-              <label className={styles.settingExplanation}>{t('Send notifications about comments on posts you are following via')}</label>
-              <Select
-                value={unsubscribeAll ? 'none' : commentNotifications}
-                onValueChange={value => updateSetting('commentNotifications')(value)}
-                disabled={unsubscribeAll}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {notificationOptions.map(option => (
-                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className={styles.settingWrapper}>
-              <label className={styles.settingExplanation}>{t('Send notifications for direct messages via')}</label>
-              <Select
-                value={unsubscribeAll ? 'none' : dmNotifications}
-                onValueChange={value => updateSetting('dmNotifications')(value)}
-                disabled={unsubscribeAll}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {notificationOptions.map(option => (
-                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <>
+      <Helmet>
+        <title>{t('Manage Notifications')}</title>
+      </Helmet>
+      <div className={cn(props.className, styles.wrapper)}>
+        <h1>{t('Hi {{userName}}', { userName })}</h1>
+        <p>{t('You can change your Hylo notification settings here')}</p>
+        {isEmpty(settings)
+          ? t('Loading...')
+          : (
+            <div className={styles.formWrapper}>
+              <div className={styles.settingWrapper}>
+                <label className={styles.settingExplanation}>{t('Send me a digest of new posts')}</label><br />
+                <Select
+                  value={unsubscribeAll ? 'never' : digestFrequency}
+                  onValueChange={value => updateSetting('digestFrequency')(value)}
+                  disabled={unsubscribeAll}
+                >
+                  <SelectTrigger className='inline-flex w-auto'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='daily'>{t('Daily')}</SelectItem>
+                    <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
+                    <SelectItem value='never'>{t('Never')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={styles.settingWrapper}>
+                <label className={styles.settingExplanation}>{t('Send notifications for each new post in your group?')}</label>
+                <Select
+                  value={unsubscribeAll ? 'none' : postNotifications}
+                  onValueChange={value => updateSetting('postNotifications')(value)}
+                  disabled={unsubscribeAll}
+                >
+                  <SelectTrigger className='inline-flex w-auto'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='none'>{t('No Posts')}</SelectItem>
+                    <SelectItem value='important'>{t('Announcements & Mentions only')}</SelectItem>
+                    <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={styles.settingWrapper}>
+                <label className={styles.settingExplanation}>{t('Send notifications about comments on posts you are following via')}</label>
+                <Select
+                  value={unsubscribeAll ? 'none' : commentNotifications}
+                  onValueChange={value => updateSetting('commentNotifications')(value)}
+                  disabled={unsubscribeAll}
+                >
+                  <SelectTrigger className='inline-flex w-auto'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {notificationOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={styles.settingWrapper}>
+                <label className={styles.settingExplanation}>{t('Send notifications for direct messages via')}</label>
+                <Select
+                  value={unsubscribeAll ? 'none' : dmNotifications}
+                  onValueChange={value => updateSetting('dmNotifications')(value)}
+                  disabled={unsubscribeAll}
+                >
+                  <SelectTrigger className='inline-flex w-auto'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {notificationOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className={styles.settingWrapper}>
-              <label className={styles.settingExplanation}>{t('Send notifications for announcements and topic posts for all my groups via')}</label>
-              <br />
-              <Select
-                value={unsubscribeAll ? 'none' : allGroupNotifications}
-                onValueChange={value => updateSetting('allGroupNotifications')(value)}
-                disabled={unsubscribeAll}
-              >
-                <SelectTrigger className='inline-flex w-auto'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {groupNotificationOptions.map(option => (
-                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className={styles.settingWrapper}>
+                <label className={styles.settingExplanation}>{t('Send notifications for announcements and topic posts for all my groups via')}</label>
+                <br />
+                <Select
+                  value={unsubscribeAll ? 'none' : allGroupNotifications}
+                  onValueChange={value => updateSetting('allGroupNotifications')(value)}
+                  disabled={unsubscribeAll}
+                >
+                  <SelectTrigger className='inline-flex w-auto'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groupNotificationOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <CheckBox
-              checked={unsubscribeAll}
-              label={t('Unsubscribe from all')}
-              onChange={value => setUnsubscribeAll(value)}
-              labelClass={styles.unsubscribeAllLabel}
-            />
+              <CheckBox
+                checked={unsubscribeAll}
+                label={t('Unsubscribe from all')}
+                onChange={value => setUnsubscribeAll(value)}
+                labelClass={styles.unsubscribeAllLabel}
+              />
 
-            <Button
-              className={styles.submit}
-              label={t('Save Settings')}
-              color='green'
-              onClick={submit}
-            />
-          </div>)}
-    </div>
+              <Button
+                className={styles.submit}
+                label={t('Save Settings')}
+                color='green'
+                onClick={submit}
+              />
+            </div>)}
+      </div>
+    </>
   )
 }
