@@ -83,13 +83,13 @@ export default function ActionCompletionSection ({ post, currentUser }) {
               <Checkbox
                 id={`checkbox-${option}`}
                 key={option}
-                checked={completionResponse.includes(option)}
+                checked={completionResponse?.includes(option) || false}
                 onCheckedChange={(checked) => {
                   setCompletionResponse((prev) => {
                     if (checked) {
-                      return [...prev, option]
+                      return [...(prev || []), option]
                     } else {
-                      return prev.filter(item => item !== option)
+                      return (prev || []).filter(item => item !== option)
                     }
                   })
                 }}

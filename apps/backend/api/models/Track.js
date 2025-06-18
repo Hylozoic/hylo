@@ -33,6 +33,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   posts: function () {
     return this.belongsToMany(Post, 'tracks_posts')
+      .query(q => {
+        q.where('posts.active', true)
+        q.where('posts.type', Post.Type.ACTION)
+      })
       .withPivot('sort_order')
       .orderBy('tracks_posts.sort_order', 'asc')
   },

@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.3] - 2025-06-16
+
+### Added
+- New email when RSVPing to an event that includes an event attachment to add the event to your calendar
+- Display join question answers in the member directory
+
+### Changed
+- Performance improvement to loading posts by caching the number of commenters
+
+### Fixed
+- Make sure track completion message appears even in tracks where actions have been removed
+
 ## [6.1.1] - 2025-06-11
 
 ### Added
