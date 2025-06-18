@@ -59,8 +59,10 @@ function Members (props) {
     // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
     dispatch(removeMember(id, group.id, slug))
   }, [group.id, slug])
-  const fetchMembersAction = useCallback((offset = 0) =>
-    dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
+  const fetchMembersAction = useCallback((offset = 0) => {
+    if (!slug) return
+    dispatch(fetchMembers({ slug, sortBy, offset, search }))
+  }, [dispatch, slug, sortBy, search])
 
   useEffect(() => {
     if (isEmpty(members) && hasMore !== false) fetchMembersAction()

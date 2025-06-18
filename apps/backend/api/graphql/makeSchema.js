@@ -261,6 +261,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groupTopic: (root, { topicName, groupSlug }) => GroupTag.findByTagAndGroup(topicName, groupSlug),
     groupTopics: (root, args) => fetchMany('GroupTopic', args),
     groups: (root, args) => fetchMany('Group', args),
+    groupJoinQuestionAnswers: (root, args) => fetchMany('GroupJoinQuestionAnswer', args),
     joinRequests: (root, args) => fetchMany('JoinRequest', args),
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),

@@ -303,30 +303,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        {
-          groupJoinQuestionAnswers: {
-            querySet: true,
-            filter: (relation, args, context, info) => {
-              return relation.query(async q => {
-                let groupId = args.groupId
-
-                if (!groupId && args.slug) {
-                  const group = await Group.where({ slug: args.slug }).fetch()
-                  if (group) {
-                    groupId = group.id
-                  }
-                }
-
-                if (!groupId) {
-                  return q
-                }
-
-                q.where('group_join_questions_answers.group_id', groupId)
-                return q
-              })
-            }
-          }
-        },
         'moderatedGroupMemberships', // TODO: still need this?
         'locationObject',
         { groupRoles: { querySet: true } },
@@ -808,7 +784,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'answer'
       ],
-      relations: ['group', 'question', 'user']
+      relations: ['group', 'question', 'user'],
+      fetchMany: ({ groupId, userId }) => {
+        if (!groupId || !userId) {
+          return GroupJoinQuestionAnswer.where({ id: -1 })
+        }
+        return GroupJoinQuestionAnswer.where({ group_id: groupId, user_id: userId })
+      }
     },
 
     GroupToGroupJoinQuestion: {

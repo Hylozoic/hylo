@@ -3,6 +3,7 @@ import { get } from 'lodash/fp'
 import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 
 export const FETCH_MEMBERS = 'FETCH_MEMBERS'
+export const FETCH_GROUP_JOIN_QUESTION_ANSWERS = 'FETCH_GROUP_JOIN_QUESTION_ANSWERS'
 
 export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
@@ -23,16 +24,6 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: St
         location
         tagline
         lastActiveAt
-        groupJoinQuestionAnswers (slug: $slug) {
-          items {
-            id
-            question {
-              id
-              text
-            }
-            answer
-          }
-        }
         groupRoles {
           items {
             id
@@ -137,5 +128,32 @@ export function ormSessionReducer ({ Group }, { meta, type }) {
     const members = group.members.filter(m => m.id !== meta.personId)
       .toModelArray()
     group.update({ members, memberCount: group.memberCount - 1 })
+  }
+}
+
+export const groupJoinQuestionAnswersQuery = `
+query FetchGroupJoinQuestionAnswers ($groupId: ID!, $userId: ID!) {
+  groupJoinQuestionAnswers (groupId: $groupId, userId: $userId) {
+    items {
+      answer
+      question {
+        text
+      }
+    }
+  }
+}`
+
+export function fetchGroupJoinQuestionAnswers ({ groupId, userId }) {
+  return {
+    type: FETCH_GROUP_JOIN_QUESTION_ANSWERS,
+    graphql: {
+      query: groupJoinQuestionAnswersQuery,
+      variables: { groupId, userId }
+    },
+    meta: {
+      extractQueryResults: {
+        getItems: get('payload.data.groupJoinQuestionAnswers')
+      }
+    }
   }
 }

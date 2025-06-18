@@ -90,6 +90,14 @@ type Query {
     visibility: Int
   ): GroupQuerySet
 
+  # Query for group join question answers for a specific user and group
+  groupJoinQuestionAnswers(
+    # The group ID to get answers for
+    groupId: ID!,
+    # The user ID to get answers for
+    userId: ID!
+  ): GroupJoinQuestionAnswerQuerySet
+
   # Query for group extension data by ID
   groupExtension(
     id: ID
