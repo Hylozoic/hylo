@@ -60,7 +60,7 @@ function Members (props) {
     dispatch(removeMember(id, group.id, slug))
   }, [group.id, slug])
   const fetchMembersAction = useCallback((offset = 0) =>
-    dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search })), [dispatch, slug, group.id, sortBy, search])
 
   useEffect(() => {
     if (isEmpty(members) && hasMore !== false) fetchMembersAction()
