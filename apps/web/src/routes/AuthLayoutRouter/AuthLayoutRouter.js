@@ -57,6 +57,7 @@ import MyTracks from 'routes/MyTracks'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
+import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
@@ -419,6 +420,7 @@ export default function AuthLayoutRouter (props) {
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
                 <Route path='search' element={<Search />} />
+                <Route path='themes' element={<Themes />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                 {/* **** Default Route (404) **** */}
                 <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />

@@ -55,7 +55,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.0.0] - 2025-03-14
 
 Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
-There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+There are many improvements across the board. You can see the summary of the big changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+
+### Added
+- New chat-centered focus that puts conversations at the heart of collaboration, making it easier to communicate and coordinate with your community in real-time. Every group now defaults to its home page being a #home chat room.
+- New global navigation menus always visible on the left to easily jump between groups, your personal My space, your Messages, and the public Commons. You will also find your notifications here, and buttons to create a post and to get support.
+- New customizable Group Menu that contains links to all the important views in your group. This menu can be fully edited by group stewards. The home view can be changed to any existing view. The views can be rearranged and hidden, and any existing view, member or post can be added to the menu. You can also group views into container widgets in the menu with a header. The menu also automatically updates as your group grows. Initially it starts with just the #home chat room. As posts are added new views are automatically added to the menu for the post types that are used.
+- New Requests & Offers view, Resources view, and Discussions view, for these post types.
+- New notification when a member joins your group which includes answers to any join questions that were set.
+- New welcome email for all new Hylo users
+- New Welcome Page that be setup as the landing page for new members first joining your group. This is configured in the group settings.
+- New URL field for groups to link to the group's website.
+- Support for publishing Murmurations profiles for public groups
+
+### Changed
+- We updated all notifications and email messages to improve the content and make them look much nicer
+- We have made significant backend updates to improve performance, speed, and reliability across the web and mobile apps.
+- Hylo will no longer create a chat channel for every Topic. Chat rooms are now created manually by a group steward. Chat rooms are still connected to a topic and any posts that use that topic in that group will appear in the chat room if it exists.
+- When joining a new group, by default you will get a notification for each chat in the home chat room. For chats in other topics you only get notified if mentioned in them. To control your notifications, click the bell icon at the top of the chatroom to adjust settings.
+- Hylo still has a separate user setting for each group about whether to get a notification for every non-chat post in the group. This is on by default. When turned off, then the user only gets notifications for posts in chat rooms to which they have subscribed. If a member participates in a chat for the first time, we consider that “subscribing” to the chat/topic and we turn on notifications for them for every post in that channel. Afterwards, this setting can be manually changed per chat room to mute/unsubscribe from the channel, or re-subscribe to it.
+- Redesigned & Improved Email Digest:  The email digest will be streamlined to remove top links and highlight more useful information. The number of new posts in each chat room. New comments on posts in the group. New reminders, such as: Upcoming events in the next week, proposals closing this week, requests or offers that are closing this week, and highlighting currently open requests and offers. The digest will no longer show you chats and posts you created, and will also filter out chats you have already seen.
+- Pinning posts to the stream has been removed for now. You can pin posts to the group menu instead.
+- Support longer filenames for attachments
+- Chat post email notifications are sent in a digest every 10 minutes instead of instantly for every post
+
+### Fixed
+- Fix receiving real time posts after switching chat rooms
 
 ## [5.11.2] - 2025-01-12
 
