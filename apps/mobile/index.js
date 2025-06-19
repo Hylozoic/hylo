@@ -118,9 +118,9 @@ export default function App () {
       // OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
       // Method for handling notifications received while app in foreground
-      const foregroundWillDisplayHandler = notIfReceivedEvent => {
-        // Complete with null means don't show a notification.
-        notIfReceivedEvent.complete()
+      const foregroundWillDisplayHandler = event => {
+        event.preventDefault()
+        console.log('foreground notification received:', event.notification)
       }
       OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
 
