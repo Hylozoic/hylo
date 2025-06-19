@@ -34,7 +34,7 @@ const makeFilterDropdown = (selected, options, onChange, t, IconComponent) => {
 
   return (
     <Dropdown
-      className='bg-background border-foreground/20 border-2 shadow-xl rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
+      className='bg-background border-foreground/20 border-2 shadow-xl rounded text-xs px-2 mr-2 hover:scale-125 transition-all z-[100]'
       toggleChildren={
         <span className={classes.dropdownLabel}>
           {IconComponent && <IconComponent size={14} className='text-muted-foreground mr-1' />}
