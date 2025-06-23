@@ -57,7 +57,7 @@ export default function ManageNotifications (props) {
   return (
     <>
       <Helmet>
-        <title>{t('Manage Notifications')}</title>
+        <title>{t('Manage Notifications | Hylo')}</title>
       </Helmet>
       <div className={cn(props.className, styles.wrapper)}>
         <h1>{t('Hi {{userName}}', { userName })}</h1>

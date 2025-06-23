@@ -159,7 +159,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
           <div className='relative'>
             <div>
               <input
-                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full py-1 px-2 transition-all outline-none focus:outline-focus focus:outline-2'
+                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full py-2 px-2 transition-all outline-none focus:outline-focus focus:outline-2'
                 ref={searchBoxRef}
                 type='text'
                 placeholder={t('Search for posts')}
@@ -167,10 +167,16 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
                 onChange={event => handleInputChange(event.target.value)}
                 onFocus={() => setSuggestionsOpen(true)}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    e.target.blur()
+                    setSuggestionsOpen(false)
+                  }
+                }}
               />
             </div>
             {suggestionsOpen && (pending || !isEmpty(displaySuggestions)) &&
-              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2'>
+              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2 z-[10000]'>
                 {pending && <Loading />}
                 <ul className='flex flex-col gap-1 max-h-[300px] overflow-y-auto m-0 p-0'>
                   {displaySuggestions.map((s, idx) => (
@@ -239,11 +245,15 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
   const { attributes, draggable, index, handleDelete, listeners, post, style } = props
 
   return (
-    <div className={classes.selectedPost} ref={ref} style={style} {...attributes} {...listeners}>
-      <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
-      <span className={classes.postTitle}>{post.title}</span>
-      <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
-      {draggable && <Icon name='Draggable' className={cn(classes.selectedPostIcon, classes.dragHandle)} />}
+    <div className={cn('rounded-xl cursor-pointer p-1 flex flex-row gap-2 items-center justify-between transition-all bg-midground/50 hover:bg-midground/100 border-2 border-card/30 shadow-xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-105 duration-400 cursor-pointer', { 'bg-selected cursor-grab': draggable })} ref={ref} style={style} {...attributes} {...listeners}>
+      <div className='flex flex-row gap-2 items-center'>
+        <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
+        <span className={classes.postTitle}>{post.title}</span>
+      </div>
+      <div className='flex flex-row gap-2 items-center'>
+        <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
+        {draggable && <Icon name='Draggable' className='w-6 h-6 text-foreground/100 hover:text-foreground' />}
+      </div>
     </div>
   )
 })
