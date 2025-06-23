@@ -3,8 +3,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { get } from 'lodash/fp'
-import { bgImageStyle, cn } from 'util/index'
-import Button from 'components/Button'
+import { bgImageStyle } from 'util/index'
+import Button from 'components/ui/button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import RoundImage from 'components/RoundImage'
@@ -35,8 +35,6 @@ import {
   getPossibleRelatedGroups,
   fetchGroupToGroupJoinQuestions
 } from './RelatedGroupsTab.store'
-
-import classes from './RelatedGroupsTab.module.scss'
 
 function RelatedGroupsTab () {
   const dispatch = useDispatch()
@@ -109,45 +107,48 @@ function RelatedGroupsTab () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: `${t('Group Settings')} > ${t('Related Groups')}`,
+      title: {
+        mobile: `${t('Group Settings')} > ${t('Related Groups')}`,
+        desktop: `${t('Related Groups')}`
+      },
       icon: 'Settings',
       info: ''
     })
   }, [])
 
   return (
-    <div className={classes.container}>
-      <div className={classes.title}>{t('Parent Groups')}</div>
+    <div className='pb-[200px]'>
+      <div className='text-2xl font-bold text-foreground mb-4'>{t('Parent Groups')}</div>
       {parentGroups.length > 0
         ? (
           <div>
-            <div className={classes.subtitle}>{parentGroups.length === 1 ? t('This is the one group') : t('These are the {{length}} groups that {{group.name}} is a member of', { group, length: parentGroups.length })}</div>
-            <div className={classes.groupList}>
+            <div className='text-foreground/70 text-sm mb-4'>{parentGroups.length === 1 ? t('{{group.name}} is a member of {{length}} group', { group, length: parentGroups.length }) : t('{{group.name}} is a member of {{length}} groups', { group, length: parentGroups.length })}</div>
+            <div className='flex flex-col gap-4'>
               {parentGroups.map(p => (
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
+                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
           </div>
           )
-        : <div className={classes.subtitle}>{t('{{group.name}} is not a member of any groups yet', { group })}</div>}
+        : <div className='text-foreground/70 text-sm'>{t('{{group.name}} is not a member of any groups yet', { group })}</div>}
 
       {groupInvitesToJoinThem.length > 0 && (
         <div>
-          <div className={classes.subtitle}>{t('Open Invitations to Join Other Groups')}</div>
-          <div className={classes.groupList}>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Open Invitations to Join Other Groups')}</div>
+          <div className='flex flex-col gap-4'>
             {groupInvitesToJoinThem.map(invite => {
               return (
                 <GroupCard
                   group={invite.fromGroup}
                   key={invite.id}
                   actionMenu={(
-                    <div>
-                      <span className={classes.rejectButton} onClick={() => dispatch(rejectGroupRelationshipInvite(invite.id))}><Icon name='Ex' className={classes.rejectIcon} /></span>
-                      <span className={classes.acceptButton} onClick={() => dispatch(acceptGroupRelationshipInvite(invite.id))}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Join')}</span></span>
+                    <div className='flex items-center gap-2'>
+                      <button onClick={() => dispatch(rejectGroupRelationshipInvite(invite.id))} className='text-red-500 hover:text-red-600'><Icon name='Ex' /></button>
+                      <button onClick={() => dispatch(acceptGroupRelationshipInvite(invite.id))} className='flex items-center gap-1 text-green-500 hover:text-green-600'><Icon name='Heart' /> <span>{t('Join')}</span></button>
                     </div>
                   )}
                 />
@@ -158,18 +159,16 @@ function RelatedGroupsTab () {
       )}
 
       {groupRequestsToJoinThem.length > 0 && (
-        <div>
-          <div className={classes.subtitle}>{t('Pending requests to join other groups')}</div>
-          <div className={classes.groupList}>
+        <div className='mt-8'>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Pending requests to join other groups')}</div>
+          <div className='flex flex-col gap-4'>
             {groupRequestsToJoinThem.map(invite => {
               return (
                 <GroupCard
                   group={invite.toGroup}
                   key={invite.id}
                   actionMenu={(
-                    <div>
-                      <span className={classes.cancelButton} onClick={() => dispatch(cancelGroupRelationshipInvite(invite.id))}>{t('Cancel Request')}</span>
-                    </div>
+                    <Button variant='outline' onClick={() => dispatch(cancelGroupRelationshipInvite(invite.id))} className='text-accent border-accent/20 hover:border-accent/100'>{t('Cancel Request')}</Button>
                   )}
                 />
               )
@@ -178,23 +177,22 @@ function RelatedGroupsTab () {
         </div>
       )}
 
-      <div className={classes.groupPickerContainer}>
-        <Button className={classes.connectButton} onClick={toggleRequestToJoinPicker}>
-          <div>
-            <Icon name='Handshake' className={classes.connectIcon} />
-            {t('Join {{group.name}} to another group', { group })}
+      <div className='relative mt-8 mb-12'>
+        <Button onClick={toggleRequestToJoinPicker} variant='outline' className='w-full h-12 justify-between'>
+          <div className='flex items-center'>
+            <Icon name='Handshake' className='mr-2 text-xl relative top-[1px]' />
+            <span className='truncate'>{t('Show joinable groups')}</span>
           </div>
-          <span className={classes.connectLabel}>{t('REQUEST')}</span>
         </Button>
         {showRequestToJoinPicker && (
-          <div className={classes.groupPicker}>
-            <div className={classes.groupPickerList}>
+          <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+            <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
               {possibleRelatedGroups.map(membership => (
                 <div key={membership.id}>
-                  <span className={classes.inviteButton} onClick={handleRequestToAddGroupToParent(membership.group, group)}>
-                    <b>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</b>
-                    {membership.group.name}
-                  </span>
+                  <button onClick={handleRequestToAddGroupToParent(membership.group, group)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
+                    <span className='truncate'>{membership.group.name}</span>
+                    <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -202,28 +200,28 @@ function RelatedGroupsTab () {
         )}
       </div>
 
-      <div className={classes.title}>{t('Child Groups')}</div>
+      <div className='text-2xl font-bold text-foreground mb-4'>{t('Child Groups')}</div>
       {childGroups.length > 0
         ? (
           <div>
-            <div className={classes.subtitle}>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
-            <div className={classes.groupList}>
+            <div className='text-foreground/70 text-sm mb-4'>{childGroups.length === 1 ? t('This group is a member') : t('These {{childGroups.length}} groups are members of {{group.name}}', { childGroups, group })}</div>
+            <div className='flex flex-col gap-4'>
               {childGroups.map(c => (
                 <GroupCard
                   group={c}
                   key={c.id}
-                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
+                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
           </div>
           )
-        : <div className={classes.subtitle}>{t('No groups are members of {{group.name}} yet', { group })}</div>}
+        : <div className='text-foreground/70 text-sm'>{t('No groups are members of {{group.name}} yet', { group })}</div>}
 
       {groupRequestsToJoinUs.length > 0 && (
         <div>
-          <div className={classes.subtitle}>{t('Requests to join {{group.name}}', { group })}</div>
-          <div className={classes.groupList}>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Requests to join {{group.name}}', { group })}</div>
+          <div className='flex flex-col gap-4'>
             {groupRequestsToJoinUs.map(invite => {
               return (
                 <GroupCard
@@ -232,9 +230,9 @@ function RelatedGroupsTab () {
                   questionAnswers={invite.questionAnswers}
                   key={invite.id}
                   actionMenu={(
-                    <div>
-                      <span className={classes.rejectButton} onClick={() => dispatch(rejectGroupRelationshipInvite(invite.id))}><Icon name='Ex' className={classes.rejectIcon} /></span>
-                      <span className={classes.acceptButton} onClick={() => dispatch(acceptGroupRelationshipInvite(invite.id))}><Icon name='Heart' className={classes.acceptIcon} /> <span>{t('Approve')}</span></span>
+                    <div className='flex items-center gap-2'>
+                      <button onClick={() => dispatch(rejectGroupRelationshipInvite(invite.id))} className='text-red-500 hover:text-red-600'><Icon name='Ex' /></button>
+                      <button onClick={() => dispatch(acceptGroupRelationshipInvite(invite.id))} className='flex items-center gap-1 text-green-500 hover:text-green-600'><Icon name='Heart' /> <span>{t('Approve')}</span></button>
                     </div>
                   )}
                   type={GROUP_RELATIONSHIP_TYPE.ChildToParent}
@@ -246,18 +244,16 @@ function RelatedGroupsTab () {
       )}
 
       {groupInvitesToJoinUs.length > 0 && (
-        <div>
-          <div className={classes.subtitle}>{t('Pending invites to join {{group.name}}', { group })}</div>
-          <div className={classes.groupList}>
+        <div className='mt-8'>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Pending invites to join {{group.name}}', { group })}</div>
+          <div className='flex flex-col gap-4'>
             {groupInvitesToJoinUs.map(invite => {
               return (
                 <GroupCard
                   group={invite.toGroup}
                   key={invite.id}
                   actionMenu={(
-                    <div>
-                      <span className={classes.cancelButton} onClick={() => dispatch(cancelGroupRelationshipInvite(invite.id))}>{t('Cancel Invite')}</span>
-                    </div>
+                    <Button variant='outline' onClick={() => dispatch(cancelGroupRelationshipInvite(invite.id))} className='text-accent border-accent/20 hover:border-accent/100'>{t('Cancel Invite')}</Button>
                   )}
                 />
               )
@@ -266,23 +262,22 @@ function RelatedGroupsTab () {
         </div>
       )}
 
-      <div className={classes.groupPickerContainer}>
-        <Button className={classes.connectButton} onClick={toggleInviteAsChildPicker}>
-          <div>
-            <Icon name='Handshake' className={classes.connectIcon} />
-            {t('Invite a group to join')}{' '}<strong>{group.name}</strong>
+      <div className='relative mt-8 mb-12'>
+        <Button onClick={toggleInviteAsChildPicker} variant='outline' className='w-full justify-center h-12'>
+          <div className='flex items-center'>
+            <Icon name='Handshake' className='mr-2 text-xl relative top-[1px]' />
+            <span className='truncate'>{t('Show groups to add')}</span>
           </div>
-          <span className={classes.connectLabel}>{t('INVITE')}</span>
         </Button>
         {showInviteAsChildPicker && (
-          <div className={classes.groupPicker}>
-            <div className={classes.groupPickerList}>
+          <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+            <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
               {possibleRelatedGroups.map(membership => (
                 <div key={membership.id}>
-                  <span className={classes.inviteButton} onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)}>
-                    <b>{membership.hasAdministrationAbility ? t('Add') : t('Invite')}</b>
-                    {membership.group.name}
-                  </span>
+                  <button onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
+                    <span>{membership.group.name}</span>
+                    <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Add') : t('Invite')}</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -302,51 +297,33 @@ function RelatedGroupsTab () {
   )
 }
 
-// export function SearchBar ({ search, setSearch }) {
-//   var selected = find(o => o.id === sortBy, sortOptions)
-
-//   if (!selected) selected = sortOptions[0]
-
-//   return <div className={classes.searchBar}>
-//     <TextInput className={classes.searchInput}
-//       value={search}
-//       placeholder={this.props.t('Search groups by name')}
-//       onChange={event => setSearch(event.target.value)} />
-//   </div>
-// }
-
 export function GroupCard ({ actionMenu, thisGroup, group, questionAnswers, type }) {
-  // Answers to questions no longer being asked by the group
-  const otherAnswers = questionAnswers ? questionAnswers.filter(qa => !thisGroup.groupToGroupJoinQuestions.find(jq => jq.questionId === qa.question.id)) : []
+  const otherAnswers = questionAnswers ? questionAnswers.filter(qa => !thisGroup?.groupToGroupJoinQuestions?.find(jq => jq.questionId === qa.question.id)) : []
   const { t } = useTranslation()
 
   return (
-    <div className={classes.groupCardWrapper}>
-      <div className={classes.groupCard}>
-        <div className={classes.groupDetails}>
-          <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage, classes.square)} size='30px' />
-          <Link to={groupUrl(group.slug)}><span className={classes.groupName}>{group.name}</span></Link>
+    <div className='flex flex-col'>
+      <div className='flex items-center justify-between p-4 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors'>
+        <div className='flex items-center gap-2'>
+          <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className='w-[30px] h-[30px] rounded-lg' size='30px' square />
+          <Link to={groupUrl(group.slug)} className='text-foreground hover:text-selected'>{group.name}</Link>
         </div>
         {actionMenu}
       </div>
       {type === GROUP_RELATIONSHIP_TYPE.ChildToParent &&
-      thisGroup.settings.askGroupToGroupJoinQuestions &&
-      thisGroup.groupToGroupJoinQuestions &&
-      thisGroup.groupToGroupJoinQuestions && (
-        <div className={classes.answerWrapper}>
-          {type === GROUP_RELATIONSHIP_TYPE.ChildToParent &&
-          thisGroup.settings.askGroupToGroupJoinQuestions &&
-          thisGroup.groupToGroupJoinQuestions &&
-          thisGroup.groupToGroupJoinQuestions.toModelArray().map(q =>
-            <div className={classes.answer} key={q.id}>
-              <div className={classes.subtitle}>{q.text}</div>
-              <p>{get('answer', questionAnswers && questionAnswers.find(qa => qa.question.id === q.questionId)) || <i>{t('Not answered')}</i>}</p>
+      thisGroup?.settings?.askGroupToGroupJoinQuestions &&
+      thisGroup?.groupToGroupJoinQuestions && (
+        <div className='p-4 bg-foreground/5 rounded-lg mt-2'>
+          {thisGroup.groupToGroupJoinQuestions.toModelArray().map(q =>
+            <div className='mb-4' key={q.id}>
+              <div className='text-foreground/70 text-sm'>{q.text}</div>
+              <p className='text-foreground'>{get('answer', questionAnswers && questionAnswers.find(qa => qa.question.id === q.questionId)) || <i>{t('Not answered')}</i>}</p>
             </div>
           )}
           {otherAnswers.map(qa =>
-            <div className={classes.answer} key={qa.id}>
-              <div className={classes.subtitle}>{qa.question.text}</div>
-              <p>{qa.answer}</p>
+            <div className='mb-4' key={qa.id}>
+              <div className='text-foreground/70 text-sm'>{qa.question.text}</div>
+              <p className='text-foreground'>{qa.answer}</p>
             </div>
           )}
         </div>
@@ -369,43 +346,49 @@ function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup, reque
   }
 
   return (
-    <>
-      <div className={classes.requestModalBg}>
-        <div className={classes.requestModal}>
-          <div className={classes.requestTop}>
-            <span className={cn(classes.modalCloseButton)} onClick={hideRequestToJoinModal}><Icon name='Ex' /></span>
-            <span className={classes.requestMessage}>{t('You are requesting that')}{' '}<strong>{group.name}</strong>{' '}{t('become a member of')}{' '}<strong>{parentGroup.name}</strong></span>
-            <div className={classes.joinExample}>
-              <div className={cn(classes.requestingGroup)} style={bgImageStyle(group.bannerUrl)}>
-                <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage)} size='30px' square />
-                <h4>{group.name}</h4>
-              </div>
-              <div className={classes.requestingIcon}>
-                <Icon name='Handshake' />
-              </div>
-              <div className={cn(classes.requestedParentGroup)} style={bgImageStyle(parentGroup.bannerUrl)}>
-                <RoundImage url={parentGroup.avatarUrl || DEFAULT_AVATAR} className={cn(classes.groupImage)} size='30px' square />
-                <h4>{parentGroup.name}</h4>
-              </div>
+    <div className='fixed inset-0 bg-black/70 z-[100000] flex items-center justify-center overflow-y-auto py-[70px]'>
+      <div className='bg-background rounded-xl w-full max-w-[480px] border border-foreground/20 relative'>
+        <div className='bg-foreground/5 p-6 rounded-t-xl'>
+          <button onClick={hideRequestToJoinModal} className='absolute top-2 right-2 w-6 h-6 bg-background rounded-full shadow hover:shadow-md transition-shadow flex items-center justify-center'>
+            <Icon name='Ex' />
+          </button>
+          <div className='text-center mb-4 text-foreground'>{t('You are requesting that')}{' '}<strong>{group.name}</strong>{' '}{t('become a member of')}{' '}<strong>{parentGroup.name}</strong></div>
+          <div className='flex items-center justify-center gap-4'>
+            <div className='w-[120px] h-[100px] flex flex-col items-center justify-center p-2 text-center bg-selected/10 rounded-lg' style={bgImageStyle(group.bannerUrl)}>
+              <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className='w-[50px] h-[50px] mb-2' size='50px' square />
+              <h4 className='text-sm font-bold m-0'>{group.name}</h4>
             </div>
-          </div>
-          {questionAnswers && (
-            <div className={classes.joinQuestions}>
-              <div className={classes.requestMessageTitle}>{t('{{parentGroup.name}} requires groups to answer the following questions before joining', { parentGroup })}</div>
-              {questionAnswers.map((q, index) => (
-                <div className={classes.joinQuestion} key={index}>
-                  <div className={classes.subtitle}>{q.text}</div>
-                  <textarea name={`question_${q.questionId}`} onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
-                </div>
-              ))}
+            <div className='flex items-center justify-center'>
+              <Icon name='Handshake' />
             </div>
-          )}
-          <div className={classes.requestBottom}>
-            <Button onClick={() => { requestToAddGroupToParent(parentGroup.id, group.id, questionAnswers); hideRequestToJoinModal() }}>{t('Request to Join')}</Button>
+            <div className='w-[120px] h-[100px] flex flex-col items-center justify-center p-2 text-center bg-selected/10 rounded-lg' style={bgImageStyle(parentGroup.bannerUrl)}>
+              <RoundImage url={parentGroup.avatarUrl || DEFAULT_AVATAR} className='w-[50px] h-[50px] mb-2' size='50px' square />
+              <h4 className='text-sm font-bold m-0'>{parentGroup.name}</h4>
+            </div>
           </div>
         </div>
+        {questionAnswers && (
+          <div className='p-6'>
+            <div className='text-foreground mb-4'>{t('{{parentGroup.name}} requires groups to answer the following questions before joining', { parentGroup })}</div>
+            {questionAnswers.map((q, index) => (
+              <div className='mb-4' key={index}>
+                <div className='text-foreground/70 text-sm mb-2'>{q.text}</div>
+                <textarea
+                  name={`question_${q.questionId}`}
+                  onChange={setAnswer(index)}
+                  value={q.answer}
+                  placeholder={t('Type your answer here...')}
+                  className='w-full p-2 border-2 border-foreground/20 rounded-lg bg-background text-foreground placeholder:text-foreground/40 focus:border-selected outline-none'
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className='p-6 flex justify-end'>
+          <Button onClick={() => { requestToAddGroupToParent(parentGroup.id, group.id, questionAnswers); hideRequestToJoinModal() }}>{t('Request to Join')}</Button>
+        </div>
       </div>
-    </>
+    </div>
   )
 }
 
