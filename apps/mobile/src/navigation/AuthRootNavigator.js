@@ -75,7 +75,7 @@ export default function AuthRootNavigator () {
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialize] = useState(true)
+  const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
   const [, registerDevice] = useMutation(registerDeviceMutation)
   
@@ -119,6 +119,7 @@ export default function AuthRootNavigator () {
         // OneSignal setup
         if (isDev) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
         OneSignal.User.addEventListener('change', oneSignalChangeListener)
+        // TOOD push: Add soft prompt setup for push notifs
         const permissionGranted = await OneSignal.Notifications.canRequestPermission()
         if (permissionGranted) OneSignal.Notifications.requestPermission(true)
         OneSignal.login(currentUser?.id)
@@ -133,7 +134,7 @@ export default function AuthRootNavigator () {
         })
 
         // MixPanel setup
-        mixpanel.identify(currentUser?.id)
+        mixpanel.identify(currentUser?.id)  
         mixpanel.getPeople().set({
           $name: currentUser?.name,
           $email: currentUser?.email,
