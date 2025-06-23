@@ -54,7 +54,16 @@ const ViewHeader = () => {
           )}
         </>)}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2 className='text-foreground m-0 whitespace-nowrap'>{title}</h2>
+      <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
+        {typeof title === 'string'
+          ? title
+          : (
+            <>
+              <span className='inline sm:hidden text-sm truncate'>{title.mobile}</span>
+              <span className='hidden sm:inline'>{title.desktop}</span>
+            </>
+            )}
+      </h2>
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
         <div className='flex-1 flex justify-end relative'>
