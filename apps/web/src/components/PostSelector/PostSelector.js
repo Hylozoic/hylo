@@ -239,11 +239,15 @@ const SelectedPost = forwardRef(({ children, ...props }, ref) => {
   const { attributes, draggable, index, handleDelete, listeners, post, style } = props
 
   return (
-    <div className={classes.selectedPost} ref={ref} style={style} {...attributes} {...listeners}>
-      <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
-      <span className={classes.postTitle}>{post.title}</span>
-      <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
-      {draggable && <Icon name='Draggable' className={cn(classes.selectedPostIcon, classes.dragHandle)} />}
+    <div className={cn('rounded-xl cursor-pointer p-1 flex flex-row gap-2 items-center justify-between transition-all bg-midground/50 hover:bg-midground/100 border-2 border-card/30 shadow-xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-105 duration-400 cursor-pointer', { 'bg-selected cursor-grab': draggable })} ref={ref} style={style} {...attributes} {...listeners}>
+      <div className='flex flex-row gap-2 items-center'>
+        <RoundImage url={post?.creator?.avatarUrl} className={classes.selectedPostAvatar} small />
+        <span className={classes.postTitle}>{post.title}</span>
+      </div>
+      <div className='flex flex-row gap-2 items-center'>
+        <Icon name='Trash' onClick={handleDelete(post, index)} className={cn(classes.removePost, classes.selectedPostIcon)} dataTip={t('Remove Post')} />
+        {draggable && <Icon name='Draggable' className='w-6 h-6 text-foreground/100 hover:text-foreground' />}
+      </div>
     </div>
   )
 })
