@@ -159,7 +159,7 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
           <div className='relative'>
             <div>
               <input
-                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full py-1 px-2 transition-all outline-none focus:outline-focus focus:outline-2'
+                className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-full py-2 px-2 transition-all outline-none focus:outline-focus focus:outline-2'
                 ref={searchBoxRef}
                 type='text'
                 placeholder={t('Search for posts')}
@@ -167,10 +167,16 @@ export default function PostSelector ({ collection, draggable, group, onRemovePo
                 onChange={event => handleInputChange(event.target.value)}
                 onFocus={() => setSuggestionsOpen(true)}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    e.target.blur()
+                    setSuggestionsOpen(false)
+                  }
+                }}
               />
             </div>
             {suggestionsOpen && (pending || !isEmpty(displaySuggestions)) &&
-              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2'>
+              <div className='absolute top-full left-0 w-full bg-card rounded-lg shadow-lg p-2 z-[10000]'>
                 {pending && <Loading />}
                 <ul className='flex flex-col gap-1 max-h-[300px] overflow-y-auto m-0 p-0'>
                   {displaySuggestions.map((s, idx) => (
