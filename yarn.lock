@@ -25650,7 +25650,7 @@ __metadata:
     react-native-linear-gradient: "npm:^2.8.3"
     react-native-localization: "npm:^2.3.2"
     react-native-modal: "npm:^13.0.1"
-    react-native-onesignal: "npm:^5.2.8"
+    react-native-onesignal: "npm:^5.2.12"
     react-native-pager-view: "npm:^6.6.1"
     react-native-picker-select: "npm:^9.3.1"
     react-native-prompt-android: "npm:^1.1.0"
@@ -30333,12 +30333,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-onesignal@npm:^5.2.8":
-  version: 5.2.8
-  resolution: "react-native-onesignal@npm:5.2.8"
+"react-native-onesignal@npm:^5.2.12":
+  version: 5.2.12
+  resolution: "react-native-onesignal@npm:5.2.12"
   dependencies:
     invariant: "npm:^2.2.2"
-  checksum: 10/c9c94d285b829658b0881f1709b23103e3b95e9f71f0255769e21f8beae53a231aa10fb46394ea9f2c236c1c7b027f146ecca69b60245e4b6634773875e0fe99
+  checksum: 10/b70ab56fb42c6b4a9483e3b8303d0ba2a20744f7b2a5e46bffa3a43c98f8ec5763ff5692a60b1a4be08b3e6dfffbcbc11d9aef8a55730c96d04483a852171ebe
   languageName: node
   linkType: hard
 
