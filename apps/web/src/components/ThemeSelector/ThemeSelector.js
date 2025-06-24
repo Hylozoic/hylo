@@ -65,7 +65,7 @@ export default function ThemeSelector ({ className }) {
                 key={theme}
                 onClick={() => setCurrentTheme(theme)}
                 className={cn(
-                  'flex items-center justify-center gap-2 rounded-lg border p-2 transition-colors',
+                  'flex items-center justify-center gap-2 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 scale-100 bg-transparent hover:scale-105 p-2 transition-colors transition-all',
                   currentTheme === theme
                     ? 'bg-selected text-selected-foreground'
                     : 'hover:bg-muted'
