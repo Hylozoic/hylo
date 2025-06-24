@@ -304,7 +304,7 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'groups', title: 'widget-my-groups', id: 'widget-my-groups', order: 3, parentId: 'widget-myself' },
   { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
   { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
-  { context: 'my', view: 'theme-settings', title: 'widget-my-theme-settings', id: 'widget-my-theme-settings', order: 6, parentId: 'widget-myself' },
+  { context: 'my', view: 'theme-settings', title: 'Appearance & Themes', id: 'widget-my-theme-settings', order: 6, parentId: 'widget-myself' },
   { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 7, parentId: 'widget-myself' },
   { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 8, parentId: 'widget-myself' },
   { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 9, parentId: 'widget-myself' },
