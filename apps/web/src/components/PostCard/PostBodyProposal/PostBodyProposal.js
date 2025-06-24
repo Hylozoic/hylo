@@ -112,19 +112,29 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one') : t('select one or more options')
 
   return (
-    <div className={cn('group border-2 mt-6 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
-      'border-t-foreground/30 border-x-focus/20 border-b-focus/10  hover:border-t-focus/100 hover:border-x-focus/90 hover:border-b-focus/80 text-focus': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
-      'border-t-selected/30 border-x-selected/20 border-b-selected/10 hover:border-t-selected/100 hover:border-x-selected/90 hover:border-b-selected/80 text-selected': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
+    <div className={cn('group border-2 mt-6 mx-2 p-2 sm:p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
+      'border-t-focus/30 border-x-focus/20 border-b-focus/10  hover:border-t-focus/100 hover:border-x-focus/90 hover:border-b-focus/80': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
+      'border-t-selected/30 border-x-selected/20 border-b-selected/10 hover:border-t-selected/100 hover:border-x-selected/90 hover:border-b-selected/80': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
       'border-t-foreground/30 border-x-foreground/20 border-b-foreground/10': votingComplete,
       'blur-sm pointer-events-none': isFlagged
     })}
     >
-      <div className='group-hover/post-card:bg-card/60 group-hover/post-card:bg-card/40 group-hover:bg-card/90 text-shadow-lg rounded-lg px-2 absolute -top-3'>
+      <div className={cn('text-shadow-lg rounded-lg px-2 absolute -top-3 text-sm font-bold text-foreground left-1/2 -translate-x-1/2', {
+        'bg-focus/90': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
+        'bg-selected/90': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
+        'bg-foreground/30': votingComplete
+      })}
+      >
         {isAnonymousVote && <Icon name='Hidden' className={classes.anonymousVoting} tooltipContent={t('Anonymous voting')} tooltipId={`anon-tt-${id}`} />}
         {proposalStatus === PROPOSAL_STATUS_DISCUSSION && t('Discussion in progress')}
         {proposalStatus === PROPOSAL_STATUS_VOTING && t('Voting open') + ', ' + votePrompt}
-        {votingComplete && t('Voting has ended')}
+        {votingComplete && t('Voting ended')}
         {proposalStatus === PROPOSAL_STATUS_CASUAL && !votingComplete && t('Voting open') + ', ' + votePrompt}
+
+        <div className='inline-flex items-center gap-1 text-xs pl-1 font-normal text-foreground/70'>
+          {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `• ${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
+          {startTime && votingComplete && `${new Date(endTime).toLocaleDateString()}`}
+        </div>
       </div>
       <Tooltip
         backgroundColor='rgba(35, 65, 91, 1.0)'
@@ -132,10 +142,6 @@ export default function PostBodyProposal ({
         delayShow={0}
         id={`anon-tt-${id}`}
       />
-      <div className='absolute -top-2 right-2 text-xs bg-card/50 text-shadow-lg px-2'>
-        {startTime && proposalStatus !== PROPOSAL_STATUS_COMPLETED && `${new Date(startTime).toLocaleDateString()} - ${new Date(endTime).toLocaleDateString()}`}
-        {startTime && votingComplete && `${new Date(endTime).toLocaleDateString()}`}
-      </div>
       {proposalOptionsArray && proposalOptionsArray.map((option, i) => {
         const optionVotes = proposalVotesArray.filter(vote => vote.optionId === option.id)
         const voterNames = isAnonymousVote ? [] : optionVotes.map(vote => vote.user.name)
