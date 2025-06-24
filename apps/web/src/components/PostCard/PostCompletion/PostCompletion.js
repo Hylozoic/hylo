@@ -42,7 +42,7 @@ export default function PostCompletion ({ type, startTime, endTime, isFulfilled,
   const choices = messages[type]
 
   return (
-    <div className={classes.postCompletion}>
+    <div className='bg-background/100 border-2 border-foreground/20 border-dashed mx-2 p-2 sm:p-4 rounded-md text-foreground mb-2 shadow-xl flex justify-between items-center'>
       <div>{prompt}</div>
       <DropdownButton
         label={label}
