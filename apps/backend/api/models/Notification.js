@@ -423,7 +423,7 @@ module.exports = bookshelf.Model.extend({
         announcement: true,
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id })
       }
     })
@@ -459,7 +459,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
       }
     })
@@ -494,7 +494,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
       }
     })
@@ -802,7 +802,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Event Invitation', { userId: reader.id })
       }
     })
