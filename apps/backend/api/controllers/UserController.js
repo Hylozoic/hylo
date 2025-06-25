@@ -102,7 +102,7 @@ module.exports = {
       postNotifications: user.get('settings')?.post_notifications || 'important',
       sendEmail: !isEmpty(emailable),
       sendPushNotifications: !isEmpty(pushable),
-      hasDevice: await user.hasDevice()
+      hasDevice: false // DEPRECATED, remove after 2025-08-15
     })
   },
 

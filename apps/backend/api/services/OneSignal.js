@@ -1,105 +1,51 @@
-import request from 'request'
-import Promise from 'bluebird'
-import { isNull, merge, omit } from 'lodash'
-import { omitBy } from 'lodash/fp'
+import * as OneSignal from '@onesignal/node-onesignal'
 import rollbar from '../../lib/rollbar'
 
-const HOST = 'https://onesignal.com'
-
-function iosBadgeUpdateParams ({ deviceToken, playerId, badgeNo }) {
-  return omitBy(isNull, {
-    include_ios_tokens: deviceToken ? [deviceToken] : null,
-    include_player_ids: playerId ? [playerId] : null,
-    ios_badgeType: 'SetTo',
-    ios_badgeCount: badgeNo,
-    content_available: true
-  })
+const authConfig = {}
+if (process.env.ONESIGNAL_REST_API_KEY && process.env.ONESIGNAL_APP_ID) {
+  authConfig.restApiKey = process.env.ONESIGNAL_REST_API_KEY
+  authConfig.appId = process.env.ONESIGNAL_APP_ID
+} else {
+  if (!process.env.NODE_ENV === 'development') {
+    throw new Error('ONESIGNAL_APP_ID and ONESIGNAL_REST_API_KEY environment variables are required')
+  }
 }
 
-function iosNotificationParams ({ deviceToken, playerId, alert, path, badgeNo }) {
-  const coreParams = iosBadgeUpdateParams({deviceToken, playerId, badgeNo})
-  return merge(
-    omit(coreParams, 'content_available'),
-    {
-      contents: {en: alert},
-      data: {path}
-    }
-  )
-}
+const configuration = OneSignal.createConfiguration(authConfig)
+const client = new OneSignal.DefaultApi(configuration)
 
-function androidNotificationParams ({ deviceToken, playerId, alert, path }) {
-  return omitBy(isNull, {
-    include_android_reg_ids: deviceToken ? [deviceToken] : null,
-    include_player_ids: playerId ? [playerId] : null,
-    contents: {en: alert},
-    data: {alert, path}
-  })
-}
-
-function notificationParams ({ platform, deviceToken, playerId, alert, path, badgeNo, appId }) {
-  if (deviceToken && playerId) {
-    throw new Error("Can't pass both a device token and a player ID")
+// Helper function to create notification object for SDK
+function createNotificationObject ({ readerId, alert, path, badgeNo, appId }) {
+  if (!readerId) {
+    throw new Error('Need a readerId to send a push notification')
   }
 
-  let params
+  const notification = new OneSignal.Notification()
+  notification.app_id = appId || process.env.ONESIGNAL_APP_ID
 
-  if (platform.startsWith('ios')) {
-    if (path === '') {
-      params = iosBadgeUpdateParams({deviceToken, playerId, badgeNo})
-    } else {
-      params = iosNotificationParams({deviceToken, playerId, alert, path, badgeNo})
-    }
-  } else {
-    params = androidNotificationParams({deviceToken, playerId, alert, path})
+  notification.include_aliases = {
+    external_id: [readerId]
   }
 
-  params['app_id'] = appId || process.env.ONESIGNAL_APP_ID
-  return params
+  notification.target_channel = 'push'
+
+  if (alert) notification.contents = { en: alert }
+  // if (path) notification.url = 'https://www.hylo.com/groups/heart-orchard/stream/post/78041' || path // IF WE DO THIS, DEEP LINKING FAILS TO PICK UP THE URL
+  if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' || path // This works for iOS, but not Android... Android doesn't even open the app
+
+  return notification
 }
-
-const postToAPI = (name, path, params) =>
-  new Promise((resolve, reject) => {
-    const opts = Object.assign({
-      url: HOST + '/api/v1/' + path,
-      method: 'POST',
-      json: params
-    })
-
-    request(opts, (error, resp, body) => {
-      if (error) return reject(error)
-
-      if (resp.statusCode !== 200) {
-        const error = new Error(`OneSignal.${name} failed`)
-        error.response = resp
-        return reject(error)
-      }
-
-      resolve(resp)
-    })
-  })
 
 module.exports = {
-  // DEPRECATED
-  register: (platform, deviceToken) =>
-    postToAPI('register', 'players', {
-      app_id: process.env.ONESIGNAL_APP_ID,
-      device_type: platform === 'ios_macos' ? 0 : 1,
-      identifier: deviceToken,
-      test_type: process.env.NODE_ENV === 'development' ? 1 : null
-    }),
-
   notify: async (opts) => {
-    const { platform, deviceToken, playerId } = opts
-    const params = notificationParams(opts)
-
+    const { readerId } = opts
     try {
-      return await postToAPI('notify', 'notifications', params)
+      const notification = createNotificationObject(opts)
+      return await client.createNotification(notification)
     } catch (e) {
       const err = e instanceof Error ? e : new Error(e)
       rollbar.error(err, null, {
-        deviceToken,
-        devicePlatform: platform, // 'platform' is a Rollbar reserved word
-        playerId,
+        readerId,
         response: err.response
       })
     }
