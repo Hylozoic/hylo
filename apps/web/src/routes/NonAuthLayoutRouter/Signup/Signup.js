@@ -110,7 +110,7 @@ export default function Signup (props) {
 
         <Button
           variant='highVisibility'
-          className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
+          className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4 text-sm sm:text-base', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
           onClick={canSubmit ? () => submit() : null}
         >
           {t('Create account')}

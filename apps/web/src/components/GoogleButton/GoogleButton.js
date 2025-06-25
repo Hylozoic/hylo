@@ -15,7 +15,7 @@ export default function GoogleButton ({
       aria-label={label}
       tabIndex={0}
       className={cn(
-        'flex items-center justify-center scale-100 hover:scale-105 transition-all cursor-pointer no-underline bg-[rgba(62,130,247,1)] text-white h-10 rounded-md whitespace-nowrap px-[15px] pl-[10px] transition-all duration-250 ease-in-out w-full hover:bg-[rgba(62,130,247,0.8)] hover:text-white focus:text-white',
+        'flex items-center justify-center scale-100 hover:scale-105 text-sm sm:text-base transition-all cursor-pointer no-underline bg-[rgba(62,130,247,1)] text-white h-10 rounded-md whitespace-nowrap px-[15px] pl-[10px] transition-all duration-250 ease-in-out w-full hover:bg-[rgba(62,130,247,0.8)] hover:text-white focus:text-white',
         className
       )}
       onClick={onClick}
