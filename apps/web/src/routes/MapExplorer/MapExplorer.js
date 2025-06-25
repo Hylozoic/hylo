@@ -593,6 +593,9 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
+    } else if (!hideDrawer) {
+      // Start observing drawer width on load unless its already hidden
+      observeDrawerWidth()
     }
 
     if (currentUser) {
