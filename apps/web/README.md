@@ -75,7 +75,10 @@ They have a 8 minute setup and feature [demo video](https://www.youtube.com/watc
 
 ### Sockets
 
-Chat, in-app notifications and comments use sockets to update users in real-time. In the future, new posts will also use sockets to show up in real-time.
+Chat, in-app notifications, comments and posts use sockets to update users in real-time.
+
+### Themeing
+We are using Tailwind to organize our styling. We have a light and a dark theme for web. You can see some pieces of the UI and the color descriptors we use at /themes
 
 ### Data access via Redux
 
