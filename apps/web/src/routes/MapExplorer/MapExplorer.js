@@ -593,6 +593,9 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
+    } else if (!hideDrawer) {
+      // Start observing drawer width on load unless its already hidden
+      observeDrawerWidth()
     }
 
     if (currentUser) {
@@ -802,7 +805,7 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-[1000] ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
         style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
