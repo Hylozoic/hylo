@@ -10,7 +10,7 @@ import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
 import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
-import Button from 'components/ui/Button'
+import Button from 'components/ui/button'
 import classes from './Login.module.scss'
 
 export default function Login (props) {
