@@ -62,7 +62,7 @@ export default function PeopleInfo ({
   return (
     <div className={cn('flex items-center gap-2 rounded-lg transition-all', classes.peopleContainer, { [classes.constrained]: constrained }, className)}>
       <RoundImageRow imageUrls={avatarUrls.slice(0, 3)} className={classes.people} onClick={onClick} small={small} tiny={tiny} />
-      <span className={cn('px-2text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
+      <span className={cn('text-foreground text-sm')} onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'inherit' }}>
         {caption}
       </span>
     </div>
