@@ -16,7 +16,6 @@ import {
   cancelJoinRequest,
   declineInvite,
   fetchMyInvitesAndRequests,
-  getCanceledJoinRequests,
   getPendingGroupInvites,
   getPendingJoinRequests,
   getRejectedJoinRequests
@@ -26,7 +25,7 @@ function ManageInvitesTab () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
 
-  const canceledJoinRequests = useSelector(getCanceledJoinRequests)
+  // const canceledJoinRequests = useSelector(getCanceledJoinRequests)
   const pendingGroupInvites = useSelector(getPendingGroupInvites)
   const pendingJoinRequests = useSelector(getPendingJoinRequests)
   const rejectedJoinRequests = useSelector(getRejectedJoinRequests)

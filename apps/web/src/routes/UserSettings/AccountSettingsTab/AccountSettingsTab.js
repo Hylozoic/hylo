@@ -177,7 +177,8 @@ function AccountSettingsTab ({
         <span className={cn(
           'text-sm',
           canSaveValue ? 'text-accent' : 'text-foreground/50'
-        )}>
+        )}
+        >
           {canSaveValue ? 'Changes not saved' : 'Current settings up to date'}
         </span>
         <Button

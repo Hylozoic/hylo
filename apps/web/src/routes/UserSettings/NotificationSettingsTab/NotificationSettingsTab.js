@@ -203,7 +203,7 @@ function NotificationSettingsTab ({
                   membership={membership}
                   open={membership.group.id === jumpToGroupId}
                   updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
-                  />
+                />
               </div>
             ))}
           </div>
