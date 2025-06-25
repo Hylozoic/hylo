@@ -554,7 +554,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', paddingBottom: '20px' }}
                 ref={messageListRef}
                 context={{
                   currentUser,
