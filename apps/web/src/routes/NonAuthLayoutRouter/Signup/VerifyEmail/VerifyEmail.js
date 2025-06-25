@@ -8,7 +8,6 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { sendEmailVerification as sendEmailVerificationAction, verifyEmail } from '../Signup.store'
 import Loading from 'components/Loading'
-import classes from '../Signup.module.scss'
 
 export default function VerifyEmail (props) {
   const dispatch = useDispatch()
@@ -50,9 +49,6 @@ export default function VerifyEmail (props) {
 
       if (error) setError(error)
     } catch (requestError) {
-      // Resolver errors are caught and sent-on as `payload.verifyEmail.error`
-      // so this `catch` is for the the case of a network availability or a server
-      // implementation issue. It probably can and maybe should be removed.
       setRedirectTo(`/signup?error=${requestError.message}`)
     } finally {
       setLoading(false)
@@ -71,29 +67,27 @@ export default function VerifyEmail (props) {
   if (loading) return <Loading />
 
   return (
-    <div className={classes.form}>
-      <Link to='/signup' className={classes.backButton}>&#8592; {t('back')}</Link>
-      <div className={classes.formWrapper}>
-        <h1 className={classes.title}>{t('Check your email')}</h1>
-        {notice && <p className='text-accent text-center text-sm'>{notice}</p>}
-        <p className={classes.subHeader}>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
-        {error && formatError(error, 'Signup', t)}
-        <div className={classes.codeWrapper}>
-          <VerificationInput
-            autoFocus
-            length={6}
-            onChange={handleChange}
-            classNames={{
-              container: classes.codeContainer,
-              character: classes.codeCharacter,
-              characterInactive: classes.codeCharacterInactive,
-              characterSelected: classes.codeCharacterSelected,
-              characterFilled: classes.codeCharacterFilled
-            }}
-          />
-        </div>
+    <div className='bg-background/100 rounded-md p-4 w-full max-w-[320px] mx-auto'>
+      <Link to='/signup' className='text-foreground/80 text-sm mb-2 inline-block'>&#8592; {t('back')}</Link>
+      <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('Check your email')}</h1>
+      {notice && <p className='text-accent text-center text-sm'>{notice}</p>}
+      <p className='mb-4 text-foreground/80 text-center'>{t("We've sent a 6 digit code to {{email}}. The code will expire shortly, so please enter it here soon.", { email })}</p>
+      {error && formatError(error, 'Signup', t)}
+      <div className='flex justify-center mb-4'>
+        <VerificationInput
+          autoFocus
+          length={6}
+          onChange={handleChange}
+          classNames={{
+            container: 'flex gap-2',
+            character: 'w-10 h-12 rounded-md border border-foreground/20 text-2xl text-center bg-input text-foreground transition-all duration-200',
+            characterInactive: 'bg-background/60',
+            characterSelected: 'border-selected',
+            characterFilled: 'bg-selected/20'
+          }}
+        />
       </div>
-      <div onClick={() => sendEmailVerification(email)} className={classes.resend}>{t('Resend code')}</div>
+      <div onClick={() => sendEmailVerification(email)} className='text-sm text-foreground/80 text-center underline cursor-pointer hover:text-selected transition-colors duration-200'>{t('Resend code')}</div>
     </div>
   )
 }

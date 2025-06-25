@@ -6,15 +6,15 @@ cd ../
 
 echo "Root Directory $PWD"
 
-set -a            
+set -a
 source .env
 set +a
 
 if [ -z ${FACEBOOK_APP_ID_DEBUG+x} ]; then echo "ERROR: Missing appropriate config in .env. eg: FACEBOOK_APP_ID_DEBUG"; exit 1; else echo "Configuring Project:"; fi
 
 mytmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
-git clone -b android git@github.com:/Hylozoic/code-signing.git "$mytmpdir"/android
-git clone -b ios git@github.com:/Hylozoic/code-signing.git "$mytmpdir"/ios
+git clone -b android https://github.com/Hylozoic/code-signing.git "$mytmpdir"/android
+git clone -b ios https://github.com/Hylozoic/code-signing.git "$mytmpdir"/ios
 
 echo "Applying android/app/google-services.json"
 cp "$mytmpdir"/android/google-services.json android/app/

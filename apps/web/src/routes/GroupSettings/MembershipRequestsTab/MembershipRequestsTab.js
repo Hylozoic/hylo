@@ -65,7 +65,7 @@ export default function MembershipRequestsTab ({
           group={group}
           joinRequests={joinRequests}
         />}
-      {!joinRequests.length && 
+      {!joinRequests.length &&
         <NoRequests group={group} handleViewMembers={handleViewMembers} />}
       {!isWebView() && (
         <>
