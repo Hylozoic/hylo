@@ -9,7 +9,7 @@ import Button from 'components/Button'
 import Icon from 'components/Icon'
 import TextInput from 'components/TextInput'
 import { formatError } from '../../util'
-import classes from '../Signup.module.scss'
+import { cn } from 'util/index'
 
 export default function FinishRegistration () {
   const { t } = useTranslation()
@@ -60,55 +60,71 @@ export default function FinishRegistration () {
   }
 
   return (
-    <div className={classes.form}>
-      <Icon name='Ex' className={classes.closeIcon} onClick={handleCancel} />
-      <div className={classes.formWrapper}>
-        <h1 className={classes.title}>{t('One more step!')}</h1>
-        <p className={classes.blurb}>{t('Hi {{email}} we just need to know your name and password and you\'re in.', { email })}</p>
-        {error && formatError(error, 'Signup', t)}
-        <TextInput
-          aria-label='name'
-          autoFocus
-          id='name'
-          internalLabel={t('Name')}
-          label='name'
-          name='name'
-          onChange={handleChange}
-          className={classes.field}
-          type='text'
-          value={formValues.name}
+    <div className='bg-background shadow-lg rounded-lg w-[320px]'>
+      <div className='relative'>
+        <Icon
+          name='Ex'
+          className='absolute top-2 right-2 text-sm cursor-pointer text-muted-foreground hover:text-foreground transition-colors'
+          onClick={handleCancel}
         />
-        <TextInput
-          aria-label='password'
-          autoComplete='off'
-          id='password'
-          internalLabel={t('Password (at least 9 characters)')}
-          label='password'
-          name='password'
-          onChange={handleChange}
-          className={classes.field}
-          type='password'
-          value={formValues.password}
-        />
-        <TextInput
-          aria-label='passwordConfirmation'
-          autoComplete='off'
-          id='passwordConfirmation'
-          internalLabel={t('Confirm Password')}
-          label='passwordConfirmation'
-          name='passwordConfirmation'
-          onChange={handleChange}
-          onEnter={handleSubmit}
-          className={classes.field}
-          type='password'
-          value={formValues.passwordConfirmation}
-        />
-        <Button
-          className={classes.submit}
-          label={t('Jump in to Hylo!')}
-          color={canSubmit ? 'green' : 'gray'}
-          onClick={canSubmit ? () => handleSubmit() : null}
-        />
+        <div className='p-6'>
+          <h1 className='text-2xl font-bold text-foreground text-center mb-2'>{t('One more step!')}</h1>
+          <p className='text-sm text-muted-foreground text-center mb-5'>
+            {t('{{email}} was successfully added to your profile.', { email })}
+          </p>
+          <p className='text-sm text-muted-foreground text-center mb-5'>{t('Please enter a name and password to secure your account.')}</p>
+
+          {error && formatError(error, 'Signup', t)}
+
+          <TextInput
+            aria-label='name'
+            autoFocus
+            id='name'
+            internalLabel={t('Name')}
+            label='name'
+            name='name'
+            onChange={handleChange}
+            className='mb-5'
+            type='text'
+            value={formValues.name}
+          />
+
+          <TextInput
+            aria-label='password'
+            autoComplete='off'
+            id='password'
+            internalLabel={t('Password (at least 9 characters)')}
+            label='password'
+            name='password'
+            onChange={handleChange}
+            className='mb-5'
+            type='password'
+            value={formValues.password}
+          />
+
+          <TextInput
+            aria-label='passwordConfirmation'
+            autoComplete='off'
+            id='passwordConfirmation'
+            internalLabel={t('Confirm Password')}
+            label='passwordConfirmation'
+            name='passwordConfirmation'
+            onChange={handleChange}
+            onEnter={handleSubmit}
+            className='mb-5'
+            type='password'
+            value={formValues.passwordConfirmation}
+          />
+
+          <Button
+            className={cn(
+              'w-full text-center rounded-2xl flex items-center justify-center px-5 py-2 transition-colors',
+              canSubmit ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted text-muted-foreground cursor-not-allowed'
+            )}
+            label={t('Jump in to Hylo!')}
+            onClick={canSubmit ? () => handleSubmit() : null}
+          />
+        </div>
       </div>
     </div>
   )
