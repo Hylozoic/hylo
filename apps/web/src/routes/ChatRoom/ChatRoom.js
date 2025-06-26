@@ -554,7 +554,7 @@ export default function ChatRoom (props) {
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
-                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', paddingBottom: '20px' }}
+                style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden'}}
                 ref={messageListRef}
                 context={{
                   currentUser,
@@ -732,7 +732,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px]', animationClass)}
+            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost
