@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.4] - 2025-06-25
+
+### Fixed
+- Editing posts that have link previews
+- Once again can close map drawer on mobile browser
+- Many other issues when using Hylo in mobile browser
+- Missing translations
+
 ## [6.1.3] - 2025-06-16
 
 ### Added

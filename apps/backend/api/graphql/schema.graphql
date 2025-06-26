@@ -115,8 +115,10 @@ type Query {
     autocomplete: String,
     # Int of GroupTopics to return
     first: Int,
-    # filter by group id
-    groupId: ID
+    # filter by group id XXX: DEPRECATED use groupIds instead
+    groupId: ID,
+    # filter by group ids
+    groupIds: [ID],
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
@@ -298,6 +300,8 @@ type Query {
     autocomplete: String,
     # Number of topics to return
     first: Int,
+    # Only return topics used in these groups by group ID
+    groupIds: [ID],
     # Only return topics used in this Group by URL slug
     groupSlug: String,
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
