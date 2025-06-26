@@ -61,6 +61,7 @@ export const groupFilter = userId => relation => {
 export function groupTopicFilter (userId, {
   autocomplete,
   groupId,
+  groupIds,
   isDefault,
   subscribed,
   visibility
@@ -69,6 +70,9 @@ export function groupTopicFilter (userId, {
     q.distinct('groups_tags.tag_id')
     if (groupId) {
       q.where('groups_tags.group_id', groupId)
+    }
+    if (groupIds) {
+      q.whereIn('groups_tags.group_id', groupIds)
     }
 
     if (autocomplete) {
