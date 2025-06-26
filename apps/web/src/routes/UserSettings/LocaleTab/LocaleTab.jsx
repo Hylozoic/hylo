@@ -21,8 +21,8 @@ export default function LocaleTab ({ currentUser }) {
   }, [setHeaderDetails, locale])
 
   return (
-    <div className='p-3'>
-      <p className='my-5 text-gray-600 text-base'>
+    <div className='p-4'>
+      <p className='my-5 text-foreground/100 text-base'>
         {t('Select your preferred language for the Hylo interface')}
       </p>
       <LocaleDropdown renderToggleChildren={<span>{localeFlag} {t(localeWord)}</span>} />

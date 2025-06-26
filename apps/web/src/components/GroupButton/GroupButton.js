@@ -1,15 +1,21 @@
 import React from 'react'
 import { groupUrl } from 'util/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
-import { Link } from 'react-router-dom'
-import Button from 'components/Button'
+import { useNavigate } from 'react-router-dom'
+import Button from 'components/ui/button'
 import RoundImage from 'components/RoundImage'
-import classes from './GroupButton.module.scss'
 
-export default ({ group }) => (
-  <Button className={classes.button} small color='green-white'>
-    <Link to={groupUrl(group.slug)}>
-      <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} small /> {group.name}
-    </Link>
-  </Button>
-)
+export default ({ group }) => {
+  const navigate = useNavigate()
+
+  return (
+    <Button
+      variant='outline'
+      onClick={() => navigate(groupUrl(group.slug))}
+      className='flex items-center gap-2'
+    >
+      <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} small />
+      <span>{group.name}</span>
+    </Button>
+  )
+}
