@@ -15,7 +15,7 @@ const configuration = OneSignal.createConfiguration(authConfig)
 const client = new OneSignal.DefaultApi(configuration)
 
 // Helper function to create notification object for SDK
-function createNotificationObject ({ readerId, alert, path, badgeNo, appId }) {
+function createNotificationObject ({ readerId, alert, path, appId }) {
   if (!readerId) {
     throw new Error('Need a readerId to send a push notification')
   }
@@ -30,8 +30,8 @@ function createNotificationObject ({ readerId, alert, path, badgeNo, appId }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // if (path) notification.url = 'https://www.hylo.com/groups/heart-orchard/stream/post/78041' || path // IF WE DO THIS, DEEP LINKING FAILS TO PICK UP THE URL
-  if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' || path // This works for iOS, but not Android... Android doesn't even open the app
+  // if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' // IN LOCAL DEV: YOU CAN PUT ANY PRODUCTION LINK HERE, SET THE CORRECT ENV VARIABLES AND IT WILL GENERATE A REAL PUSH NOTIF IF THE USER EXISTS IN PROD AND THE LOCAL DB
+  if (path) notification.app_url = 'hyloapp:/' + path
 
   return notification
 }
