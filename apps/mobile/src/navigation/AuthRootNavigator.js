@@ -77,7 +77,7 @@ export default function AuthRootNavigator () {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
-  const [, registerDevice] = useMutation(registerDeviceMutation)
+  const [, registerDevice] = useMutation(registerDeviceMutation) // TODO push can this be removed?
   
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
