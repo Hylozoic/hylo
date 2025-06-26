@@ -15,7 +15,7 @@ const configuration = OneSignal.createConfiguration(authConfig)
 const client = new OneSignal.DefaultApi(configuration)
 
 // Helper function to create notification object for SDK
-function createNotificationObject ({ readerId, alert, path, appId }) {
+function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   if (!readerId) {
     throw new Error('Need a readerId to send a push notification')
   }
@@ -32,6 +32,11 @@ function createNotificationObject ({ readerId, alert, path, appId }) {
   if (alert) notification.contents = { en: alert }
   // if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' // IN LOCAL DEV: YOU CAN PUT ANY PRODUCTION LINK HERE, SET THE CORRECT ENV VARIABLES AND IT WILL GENERATE A REAL PUSH NOTIF IF THE USER EXISTS IN PROD AND THE LOCAL DB
   if (path) notification.app_url = 'hyloapp:/' + path
+
+  if (badgeNo) {
+    notification.ios_badgeType = 'SetTo'
+    notification.ios_badgeCount = badgeNo
+  }
 
   return notification
 }
