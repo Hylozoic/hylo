@@ -81,7 +81,7 @@ const TextInput = forwardRef(({
         value={value}
         type={props.type || 'text'}
         className={cn(
-          inputClassName || (styles[theme.inputStyle] || styles.input),
+          inputClassName || (styles[theme.inputStyle] || 'bg-input p-3 rounded-md w-full text-foreground text-sm sm:text-base'),
           theme.input
         )}
         onAnimationStart={handleAnimation}
