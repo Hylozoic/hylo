@@ -464,7 +464,8 @@ export function makeMutations ({ fetchOne }) {
 
     regenerateAccessCode: (root, { groupId }, context) => regenerateAccessCode(context.currentUserId, groupId),
 
-    registerDevice: (root, { playerId, platform, version }, context) => registerDevice(context.currentUserId, { playerId, platform, version }),
+    // DEPRECATED: This is no longer used, remove after 2025-08-26
+    registerDevice: () => registerDevice(),
 
     registerStripeAccount: (root, { authorizationCode }, context) => registerStripeAccount(context.currentUserId, authorizationCode),
 

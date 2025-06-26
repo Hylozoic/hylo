@@ -470,13 +470,6 @@ module.exports = bookshelf.Model.extend(merge({
     return push.send()
   },
 
-  // TODO push_notif: figure out is this needs to be updated
-  resetNotificationCount: function () {
-    return this.devices().fetch()
-      .then(devices => Promise.map(devices.models, device =>
-        device.resetNotificationCount()))
-  },
-
   followDefaultTags: function (groupId, trx) {
     return this.constructor.followDefaultTags(this.id, groupId, trx)
   },
