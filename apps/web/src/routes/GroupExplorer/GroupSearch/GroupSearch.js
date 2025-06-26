@@ -142,6 +142,7 @@ const makeDropdown = ({ selected, options, onChange, filterLabel = '', isFilter 
   const selectedLabel = selected ? options.find(o => o.id === selected).label : t('All')
   return (
     <Dropdown
+      id='group-search-sort-dropdown'
       alignRight={!isFilter}
       className={cn(classes.dropdown, { [classes.filterDropdown]: isFilter })}
       toggleChildren={

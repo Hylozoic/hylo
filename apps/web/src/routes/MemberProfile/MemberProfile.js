@@ -324,6 +324,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <div className='flex flex-row items-center justify-between w-full'>
             <h2 className='text-sm sm:text-base'>{currentContentTitle}</h2>
             <Dropdown
+              id='member-profile-content-dropdown'
               items={contentDropDownItems}
               toggleChildren={
                 <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
@@ -404,6 +405,7 @@ function ActionDropdown ({ items }) {
 
   return activeItems.length > 0 &&
     <Dropdown
+      id='member-profile-action-dropdown'
       alignRight
       items={activeItems}
       toggleChildren={

@@ -297,6 +297,7 @@ export function CustomViewRow ({
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (
               <Dropdown
+                id='custom-view-type-dropdown'
                 className='text-foreground bg-background p-2 rounded-md'
                 toggleChildren={
                   <span className='flex flex-row gap-1 items-center'>
@@ -326,6 +327,7 @@ export function CustomViewRow ({
                 label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-style-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -347,6 +349,7 @@ export function CustomViewRow ({
                 renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-sort-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>

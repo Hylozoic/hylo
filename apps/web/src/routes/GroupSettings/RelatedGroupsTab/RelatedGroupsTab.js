@@ -127,7 +127,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
+                  actionMenu={<Dropdown id='related-groups-parent-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className={classes.relatedGroupDropdown} />}
                 />
               ))}
             </div>
@@ -212,7 +212,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={c}
                   key={c.id}
-                  actionMenu={<Dropdown toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
+                  actionMenu={<Dropdown id='related-groups-child-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className={classes.relatedGroupDropdown} />}
                 />
               ))}
             </div>
