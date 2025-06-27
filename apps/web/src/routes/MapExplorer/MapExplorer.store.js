@@ -63,7 +63,6 @@ const groupPostsQuery = (postsFragment) => `query (
     name
     avatarUrl
     bannerUrl
-    postCount
     ${postsFragment}
   }
 }`
@@ -156,7 +155,6 @@ const groupMembersQuery = `query (
     name
     avatarUrl
     bannerUrl
-    postCount
     ${membersFragment}
   }
 }`
