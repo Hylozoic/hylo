@@ -27,19 +27,20 @@ export default function RootNavigator () {
   const { isAuthorized, fetching } = useAuth()
 
   // Handle Push Notifications opened
-  useEffect(() => {
-    const notificationClickHandler = ({ notification }) => {
-      const path = notification?.additionalData?.path
-      if (path) {
-        openURL(path)
-      }
-    }
-    OneSignal.Notifications.addEventListener('click', notificationClickHandler)
+  // DEPRECATED: links from notifications should open without this
+  // useEffect(() => {
+  //   const notificationClickHandler = ({ notification }) => {
+  //     const path = notification?.additionalData?.path
+  //     if (path) {
+  //       openURL(path)
+  //     }
+  //   }
+  //   OneSignal.Notifications.addEventListener('click', notificationClickHandler)
 
-    return () => {
-      OneSignal.Notifications.removeEventListener('click', notificationClickHandler)
-    }
-  }, [])
+  //   return () => {
+  //     OneSignal.Notifications.removeEventListener('click', notificationClickHandler)
+  //   }
+  // }, [])
 
   if (fetching) return null
 
