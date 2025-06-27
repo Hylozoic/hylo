@@ -71,7 +71,7 @@ describe('PushNotification', () => {
 
       before(() => {
         tmpEnvVar2 = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED
-        process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = true
+        process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = 'true'
       })
 
       after(() => {
@@ -99,7 +99,7 @@ describe('PushNotification', () => {
 
   describe('with PUSH_NOTIFICATIONS_ENABLED', () => {
     before(() => {
-      process.env.PUSH_NOTIFICATIONS_ENABLED = true
+      process.env.PUSH_NOTIFICATIONS_ENABLED = 'true'
     })
 
     it('sends for a non-test device with token', async () => {

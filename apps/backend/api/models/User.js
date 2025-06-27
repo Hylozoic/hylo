@@ -561,9 +561,12 @@ module.exports = bookshelf.Model.extend(merge({
         throw new Error(`unknown notification type: ${type}`)
     }
 
-    return setting === 'both' ||
-      (setting === 'email' && medium === Notification.MEDIUM.Email) ||
-      (setting === 'push' && medium === Notification.MEDIUM.Push)
+    return (medium === Notification.MEDIUM.Email &&
+             (setting === 'both' || setting === 'email') &&
+             (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id))) ||
+           (medium === Notification.MEDIUM.Push &&
+            (setting === 'both' || setting === 'push') &&
+            (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id)))
   },
 
   disableAllNotifications () {

@@ -25,8 +25,8 @@ module.exports = bookshelf.Model.extend({
     }
 
     const readerId = user.id
-    const disabled = !process.env.PUSH_NOTIFICATIONS_ENABLED && (
-      !process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED || !User.isTester(user.id)
+    const disabled = process.env.PUSH_NOTIFICATIONS_ENABLED !== 'true' && (
+      process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !User.isTester(user.id)
     )
 
     await this.save({ sent_at: new Date().toISOString(), disabled }, options)
