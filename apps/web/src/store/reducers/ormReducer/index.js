@@ -495,7 +495,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         post.groups.toModelArray().forEach(g => {
           const group = Group.withId(g.id)
           if (!group) return
-          group.update({ postCount: group.postCount + 1 })
           post.topics.toModelArray().forEach(t => {
             const topic = Topic.withId(t.id)
             if (!topic) return

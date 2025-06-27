@@ -112,7 +112,6 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
     }
     avatarUrl
     bannerUrl
-    postCount
     ${groupViewPostsQueryFragment(childPostInclusion)}
   }
 }`

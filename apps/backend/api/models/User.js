@@ -121,10 +121,6 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Contribution)
   },
 
-  devices: function () {
-    return this.hasMany(Device, 'user_id')
-  },
-
   eventsAttending: function () {
     return this.belongsToMany(Post, 'event_invitations', 'user_id', 'event_id')
       .where('posts.end_time', '>', new Date())
@@ -225,6 +221,10 @@ module.exports = bookshelf.Model.extend(merge({
     )
   },
 
+  pushNotifications: function () {
+    return this.hasMany(PushNotification)
+  },
+
   reactions: function () {
     return this.hasMany(Reaction)
   },
@@ -312,7 +312,7 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM group_memberships_group_roles WHERE user_id = ${this.id};
     DELETE FROM notifications WHERE activity_id in (select id from activities WHERE reader_id = ${this.id});
     DELETE FROM notifications WHERE activity_id in (select id from activities WHERE actor_id = ${this.id});
-    DELETE FROM push_notifications WHERE device_id in (select id from devices WHERE user_id = ${this.id});
+    DELETE FROM push_notifications WHERE user_id = ${this.id};
     DELETE FROM activities WHERE actor_id = ${this.id};
     DELETE FROM activities WHERE reader_id = ${this.id};
 
@@ -454,16 +454,20 @@ module.exports = bookshelf.Model.extend(merge({
     return compare(this.generateTokenContents(), token)
   },
 
-  sendPushNotification: function (alert, url) {
-    return this.devices().fetch()
-      .then(devices => Promise.map(devices.models, device =>
-        device.sendPushNotification(alert, url)))
-  },
+  sendPushNotification: async function (alert, path) {
+    // With the new OneSignal data model (2025), we can send directly to a user by their readerId
+    // instead of needing to iterate through individual devices
 
-  resetNotificationCount: function () {
-    return this.devices().fetch()
-      .then(devices => Promise.map(devices.models, device =>
-        device.resetNotificationCount()))
+    const count = await User.unseenThreadCount(this.id)
+    const push = await PushNotification.forge({
+      alert: alert.substring(0, 255),
+      path,
+      badge_no: this.get('new_notification_count') + count,
+      queued_at: new Date().toISOString(),
+      user_id: this.id
+    }).save()
+
+    return push.send()
   },
 
   followDefaultTags: function (groupId, trx) {
@@ -494,11 +498,6 @@ module.exports = bookshelf.Model.extend(merge({
   hasRegistered: async function () {
     await this.load('linkedAccounts')
     return this.relations.linkedAccounts.length > 0
-  },
-
-  hasDevice: function () {
-    return this.load('devices')
-      .then(() => this.relations.devices.length > 0)
   },
 
   validateAndSave: function (sessionId, changes) {

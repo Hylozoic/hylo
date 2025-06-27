@@ -71,8 +71,8 @@ function TopicSelector (props) {
 
     if (selected.length >= MAX_TOPICS || isEmpty(input)) return []
 
-    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug }))
-    const topicResults = response.payload.getData().items.map(get('topic'))
+    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug, includeCounts: true }))
+    const topicResults = response.payload.getData().items
     const sortedTopicResults = orderBy(
       [t => t.name === input ? -1 : 1, 'followersTotal', 'postsTotal'],
       ['asc', 'desc', 'desc'],
