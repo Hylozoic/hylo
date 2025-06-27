@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.4] - 2025-06-26
+
+### Fixed
+- Push notifications should be working again with mobile app v6.1.3
+- Don't send chat digest email notifications if they are disabled (for staging)
+
 ## [6.1.3] - 2025-06-16
 
 ### Added
