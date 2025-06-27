@@ -35,7 +35,7 @@ describe('getMyMemberships', () => {
 describe('getGroupTopicForCurrentRoute', () => {
   it('returns GroupTopic', () => {
     const session = orm.session(orm.getEmptyState())
-    session.Group.create({ id: '1', slug: 'goteam', postCount: 10 })
+    session.Group.create({ id: '1', slug: 'goteam' })
     session.Topic.create({
       id: '2',
       name: 'petitions',
