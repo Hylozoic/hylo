@@ -1442,9 +1442,8 @@ type Me {
   emailValidated: Boolean
   # The URL to the logged in user Facebook profile
   facebookUrl: String
-  # Whether the logged in user is using the Hylo app on any mobile devices
-  hasDevice: Boolean
-  # False for new users who have not completed the registration process
+ # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
+  hasDevice: Boolean  # False for new users who have not completed the registration process
   hasRegistered: Boolean
   # NOT CURRENTLY USED
   hasStripeAccount: Boolean
@@ -2708,7 +2707,7 @@ type Mutation {
   recordClickthrough(postId: ID): GenericResult
   # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
   regenerateAccessCode(groupId: ID): Group
-  # Register a new mobile device to the current logged in user account
+  # DEPRECATED: register a new mobile device to the current logged in user account
   registerDevice(playerId: String, platform: String, version: String): GenericResult
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult

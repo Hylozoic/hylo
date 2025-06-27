@@ -1,14 +1,6 @@
-import ioClient from 'socket.io-client'
-import io from 'socket.io'
-import redis from '@sailshq/socket.io-redis'
-import express from 'express';
-import http from 'http';
-import { Server as SocketServer } from 'socket.io';
-
 import '../../setup'
 import factories from '../../setup/factories'
 import { spyify, unspyify, mockify } from '../../setup/helpers'
-import { userRoom } from '../../../api/services/Websockets'
 
 const { model } = factories.mock
 
@@ -43,7 +35,7 @@ const preloadNotification = (activity, medium) =>
     .then(n => n.load(relations))
 
 describe('Notification', function () {
-  let activities, activity, actor, comment, group, device, post, reader
+  let activities, activity, actor, comment, group, post, reader
 
   before(() => {
     return factories.user({ avatar_url: 'http://joe.com/headshot.jpg', name: 'Joe' }).save()
@@ -57,13 +49,6 @@ describe('Notification', function () {
       .then(() => group.posts().attach(post))
       .then(() => factories.user({ email: 'readersemail@hylo.com' }).save())
       .then(u => { reader = u })
-      .then(() => new Device({
-        user_id: reader.id,
-        token: 'eieio',
-        version: 20,
-        enabled: true
-      }).save())
-      .then(d => { device = d })
       .then(() => new Activity({
         post_id: post.id
       }).save())
@@ -120,7 +105,7 @@ describe('Notification', function () {
     it('sends a push for a new post', () => {
       return preloadNotification(activities.newPost, Notification.MEDIUM.Push)
         .then(notification => notification.send())
-        .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
@@ -131,7 +116,7 @@ describe('Notification', function () {
     it('sends a push for a mention in a post', () => {
       return preloadNotification(activities.mention, Notification.MEDIUM.Push)
         .then(notification => notification.send())
-        .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
@@ -143,7 +128,7 @@ describe('Notification', function () {
       it('sends no push for a comment', () => {
         return preloadNotification(activities.newComment, Notification.MEDIUM.Push)
           .then(notification => notification.send())
-          .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
           .then(pns => expect(pns.length).to.equal(0))
       })
     })
@@ -155,10 +140,10 @@ describe('Notification', function () {
       it('sends a push for a comment', () => {
         return preloadNotification(activities.newComment, Notification.MEDIUM.Push)
           .then(notification => notification.send())
-          .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
           .then(pns => {
             expect(pns.length).to.equal(1)
-            let pn = pns.first()
+            const pn = pns.first()
             expect(pn.get('alert')).to.equal(`Joe: "${comment.text()}" (in "My Post")`)
           })
       })
@@ -166,10 +151,10 @@ describe('Notification', function () {
       it('sends a push for a mention in a comment', () => {
         return preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
           .then(notification => notification.send())
-          .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
           .then(pns => {
             expect(pns.length).to.equal(1)
-            let pn = pns.first()
+            const pn = pns.first()
             expect(pn.get('alert')).to.equal('Joe mentioned you: "hi" (in "My Post")')
           })
       })
@@ -178,7 +163,7 @@ describe('Notification', function () {
     it('sends a push for a join request', () => {
       return preloadNotification(activities.joinRequest, Notification.MEDIUM.Push)
         .then(notification => notification.send())
-        .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
@@ -189,7 +174,7 @@ describe('Notification', function () {
     it('sends a push for an approved join request', () => {
       return preloadNotification(activities.approvedJoinRequest, Notification.MEDIUM.Push)
         .then(notification => notification.send())
-        .then(() => PushNotification.where({ device_id: device.id }).fetchAll())
+        .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
         .then(pns => {
           expect(pns.length).to.equal(1)
           const pn = pns.first()
@@ -404,13 +389,12 @@ describe('Notification', function () {
   // describe('updateUserSocketRoom', () => {
   //   let notification, socketActivity, socketClient, socketServer, ioServer
 
-
   //   before(() => {
   //     const app = express();
   //     const server = http.createServer(app);
   //     const io = new SocketServer(server);
   //     ioServer = io.listen(3333)
-      
+
   //     socketServer = ioServer.adapter(redis(process.env.REDIS_URL))
   //     socketServer.on('connection', s => {
   //       s.join(userRoom(reader.id))
