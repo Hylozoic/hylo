@@ -14,6 +14,8 @@ export const buttonVariants = cva(
           'p-2 rounded-md bg-selected text-foreground text-xs sm:text-base hover:bg-selected/90 border-2 border-transparent hover:border-foreground/20 transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center hover:shadow-xl',
         outline:
           'focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center justify-between group opacity-100',
+        selectedOutline:
+          'focus:text-foreground text-base border-2 border-selected/100 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center justify-between group opacity-100',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         tertiary:

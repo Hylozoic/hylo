@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { FileDown } from 'lucide-react'
 import Loading from 'components/Loading'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetch from 'isomorphic-fetch'
 import { getHost } from 'store/middleware/apiMiddleware'
-import classes from './ExportDataTab.module.scss'
 
 export default function ExportDataTab (props) {
   const [clicked, setClicked] = useState(false)
@@ -27,9 +27,11 @@ export default function ExportDataTab (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: `${t('Group Settings')} > ${t('Export Data')}`,
-      icon: 'Settings',
-      info: ''
+      title: {
+        desktop: `${t('Group Settings')} > ${t('Export Data')}`,
+        mobile: t('Export Data')
+      },
+      icon: 'Settings'
     })
   }, [])
 
@@ -37,10 +39,18 @@ export default function ExportDataTab (props) {
 
   return (
     <div>
-      <div className={classes.title}>{t('Export Data')}</div>
-      <p className={classes.help}>{t('This function exports all member data for this group as a CSV file for import into other software.')}</p>
-      {status && <p>{status}</p>}
-      <Button disabled={clicked} label={t('Export Members')} color='green' onClick={handleClick} />
+      <h2 className='text-foreground font-bold mb-2'>{t('Export Data')}</h2>
+      <p className='text-foreground/70 mb-4'>{t('This function exports all member data for this group as a CSV file for import into other software.')}</p>
+      {status && <p className='text-foreground mb-4'>{status}</p>}
+      <Button
+        variant='outline'
+        disabled={clicked}
+        onClick={handleClick}
+        className='w-fit'
+      >
+        <FileDown className='w-4 h-4 mr-2' />
+        {t('Export Members')}
+      </Button>
     </div>
   )
 }

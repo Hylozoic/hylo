@@ -119,14 +119,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cn('bg-midground relative mx-auto', { 'w-full max-w-[750px]': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn('relative mx-auto', { 'w-full max-w-[750px]': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
       </Helmet>
 
       {!isAboutCurrentGroup && (
-        <div className='w-full py-8 px-2 bg-cover bg-center mt-8 overflow-hidden relative rounded-xl shadow-xl' style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
+        <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
           {!fullPage && (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
