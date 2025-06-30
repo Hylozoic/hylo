@@ -48,7 +48,7 @@ export default function PostDetails () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId, originalLinkingPath } = useRouteParams()
+  const { id: postId, originalLinkingPath, commentId } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post, { forGroupId: currentGroup?.id }), [data?.post, currentGroup?.id])
@@ -60,8 +60,8 @@ export default function PostDetails () {
     variables: { postId: post?.id },
     pause: !post?.id
   })
-
-  const [selectedComment, setSelectedComment] = useState(null)
+  console.log('commentId sdsds', commentId)
+  const [selectedComment, setSelectedComment] = useState()
   const groupId = get('groups.0.id', post)
 
   const clearSelectedComment = () => {
@@ -111,6 +111,7 @@ export default function PostDetails () {
         ref={commentsRef}
         groupId={firstGroupSlug}
         postId={post.id}
+        commentIdFromPath={commentId}
         header={(
           <>
             <PostCardForDetails
