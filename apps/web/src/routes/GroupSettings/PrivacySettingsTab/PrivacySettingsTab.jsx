@@ -26,7 +26,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const [state, setState] = useState(defaultEditState())
 
   useEffect(() => {
-    console.log('Parent Groups:', parentGroups)
     if (!fetchPending) {
       setState(defaultEditState())
     }
@@ -239,7 +238,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
             {t('Add parent groups in Related Groups settings')}
           </Link>.
         </p>
-        {console.log('Parent Groups:', parentGroups)}
         {parentGroups?.length > 0
           ? (
             <>
