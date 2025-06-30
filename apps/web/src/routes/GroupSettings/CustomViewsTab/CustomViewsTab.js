@@ -182,8 +182,8 @@ function CustomViewsTab ({ group }) {
   useEffect(() => {
     setHeaderDetails({
       title: {
-        mobile: `${t('Group Settings')} > ${t('Custom Views')}`,
-        desktop: `${t('Custom Views')}`
+        desktop: `${t('Group Settings')} > ${t('Custom Views')}`,
+        mobile: `${t('Custom Views')}`
       },
       icon: 'Eye'
     })
