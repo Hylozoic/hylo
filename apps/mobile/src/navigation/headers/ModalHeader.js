@@ -35,6 +35,9 @@ export default function ModalHeader ({
   const openURL = useOpenURL()
   const { originalLinkingPath, id, commentId } = useRouteParams()
 
+  // Based on the current linking table setup, when the app is opened from a link/notification,
+  // It will open the content in a modal but not open the containing screeen
+  // This function ensures that the user is returned to the original path when the modal is closed
   const respectOriginalPath = (() => {
     if (!id || !originalLinkingPath) return null
     
@@ -68,6 +71,8 @@ export default function ModalHeader ({
       fontFamily: 'Circular-Bold'
     },
     headerLeft: headerLeft || options.headerLeft || (props => {
+      // Based on the navigation context (the stack of screens and the path),
+      // we need to determine how to handle the closing of modals
       const headerLeftOnPress = options.headerLeftOnPress ||
         providedHeaderLeftOnPress || respectOriginalPath ||
         navigation.goBack
