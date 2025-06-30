@@ -3,16 +3,22 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { PlusCircle, Trash2 } from 'lucide-react'
+
 import { cn } from 'util/index'
+
+import Button from 'components/ui/button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import PostLabel from 'components/PostLabel'
 import PostSelector from 'components/PostSelector'
+import SaveButton from '../SaveButton'
 import SettingsControl from 'components/SettingsControl'
+import SettingsSection from '../SettingsSection'
 import SwitchStyled from 'components/SwitchStyled'
 import TopicSelector from 'components/TopicSelector'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+
 import { POST_TYPES } from 'store/models/Post'
 import {
   FETCH_COLLECTION_POSTS,
@@ -24,12 +30,12 @@ import {
   reorderPostInCollection,
   updateGroupSettings
 } from '../GroupSettings.store'
+
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
-import SettingsSection from '../SettingsSection'
-import SaveButton from '../SaveButton'
+
+
 import styles from './CustomViewsTab.module.scss'
-import Button from 'components/ui/button'
 
 const emptyCustomView = {
   activePostsOnly: false,
