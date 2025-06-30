@@ -169,15 +169,15 @@ function UserGroupsTab () {
           memberStatus: 'member'
         }
         return (
-          <div key={m.id} className='relative flex items-center mb-4 w-full'>
-            <div className='flex-1 min-w-0'>
+          <div key={m.id} className='relative flex items-center mb-4 w-full flex-col sm:flex-row'>
+            <div className='flex-1 min-w-0 w-full'>
               <GroupCard
                 group={group}
                 routeParams={routeParams}
                 className='w-full'
               />
             </div>
-            <div className='flex items-center p-2 bg-black/20 rounded-r-lg group'>
+            <div className='flex items-center p-2 bg-black/20 rounded-b-lg sm:rounded-r-lg sm:rounded-b-none group w-full sm:w-auto justify-end'>
               <Button variant='outline' onClick={() => handleLeaveGroup(m.group)} className='border-accent/20 hover:border-accent/100 text-sm text-accent/60 hover:text-accent/100'>
                 <Trash className='opacity-50 group-hover:opacity-100 cursor-pointer text-accent hover:scale-110 w-10 h-10 transition-all duration-300' /> {t('Leave Group')}
               </Button>
