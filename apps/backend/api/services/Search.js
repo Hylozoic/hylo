@@ -109,6 +109,10 @@ module.exports = {
         q.where('groups.slug', '=', opts.groupSlug)
       }
 
+      if (opts.groupIds) {
+        q.whereIn('groups.id', opts.groupIds)
+      }
+
       if (opts.name) {
         q.where('tags.name', opts.name)
       }

@@ -115,8 +115,10 @@ type Query {
     autocomplete: String,
     # Int of GroupTopics to return
     first: Int,
-    # filter by group id
-    groupId: ID
+    # filter by group id XXX: DEPRECATED use groupIds instead
+    groupId: ID,
+    # filter by group ids
+    groupIds: [ID],
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
@@ -298,6 +300,8 @@ type Query {
     autocomplete: String,
     # Number of topics to return
     first: Int,
+    # Only return topics used in these groups by group ID
+    groupIds: [ID],
     # Only return topics used in this Group by URL slug
     groupSlug: String,
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
@@ -1438,9 +1442,8 @@ type Me {
   emailValidated: Boolean
   # The URL to the logged in user Facebook profile
   facebookUrl: String
-  # Whether the logged in user is using the Hylo app on any mobile devices
-  hasDevice: Boolean
-  # False for new users who have not completed the registration process
+ # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
+  hasDevice: Boolean  # False for new users who have not completed the registration process
   hasRegistered: Boolean
   # NOT CURRENTLY USED
   hasStripeAccount: Boolean
@@ -2704,7 +2707,7 @@ type Mutation {
   recordClickthrough(postId: ID): GenericResult
   # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
   regenerateAccessCode(groupId: ID): Group
-  # Register a new mobile device to the current logged in user account
+  # DEPRECATED: register a new mobile device to the current logged in user account
   registerDevice(playerId: String, platform: String, version: String): GenericResult
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult

@@ -10,7 +10,6 @@ import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotifi
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
 import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
-import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutation'
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -77,7 +76,6 @@ export default function AuthRootNavigator () {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
-  const [, registerDevice] = useMutation(registerDeviceMutation)
   
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
@@ -93,20 +91,21 @@ export default function AuthRootNavigator () {
     resetNotificationsCount()
   }, [])
 
-  const oneSignalChangeListener = ({ externalId, onesignalId }) => {
-    if (externalId === currentUser?.id) {
-      registerDevice({
-        playerId: onesignalId,
-        platform: Platform.OS + (isDev ? '_dev' : ''),
-        version: hyloAppVersion
-      })
-    } else {
-      console.warn(
-        'Not registering to OneSignal for push notifications:\n' +
-        `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
-      )
-    }
-  }
+  // DEPRECATED: This is no longer used, all we need to do is log the user in and a subscription will be created. Remove after 2025-08-26
+  // const oneSignalChangeListener = ({ externalId, onesignalId }) => {
+  //   if (externalId === currentUser?.id) {
+  //     registerDevice({
+  //       playerId: onesignalId,
+  //       platform: Platform.OS + (isDev ? '_dev' : ''),
+  //       version: hyloAppVersion
+  //     })
+  //   } else {
+  //     console.warn(
+  //       'Not registering to OneSignal for push notifications:\n' +
+  //       `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
+  //     )
+  //   }
+  // }
 
   useEffect(() => {
     (async function () {
@@ -118,8 +117,7 @@ export default function AuthRootNavigator () {
 
         // OneSignal setup
         if (isDev) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
-        OneSignal.User.addEventListener('change', oneSignalChangeListener)
-        // TOOD push: Add soft prompt setup for push notifs
+        // TOOD push notif: Add soft prompt setup for push notifs
         const permissionGranted = await OneSignal.Notifications.canRequestPermission()
         if (permissionGranted) OneSignal.Notifications.requestPermission(true)
         OneSignal.login(currentUser?.id)
@@ -144,10 +142,6 @@ export default function AuthRootNavigator () {
         setInitialize(true)
       }
     })()
-
-    return () => {
-      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
-    }
   }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?

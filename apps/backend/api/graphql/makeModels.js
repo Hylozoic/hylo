@@ -542,11 +542,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed, groupId }) =>
+            filter: (relation, { autocomplete, subscribed, groupId, groupIds }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId || groupId
+                groupId: relation.relatedData.parentId || groupId,
+                groupIds
               }))
           }
         },
@@ -1138,10 +1139,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId, groupIds }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
               groupId,
+              groupIds,
               isDefault,
               subscribed,
               visibility
@@ -1149,8 +1151,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             )
         }
       }],
-      fetchMany: ({ groupSlug, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
-        searchQuerySet('tags', { userId, groupSlug, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
+      fetchMany: ({ groupSlug, groupIds, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
+        searchQuerySet('tags', { userId, groupSlug, groupIds, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
     },
 
     TopicFollow: {

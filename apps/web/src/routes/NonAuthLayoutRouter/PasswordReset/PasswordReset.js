@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import validator from 'validator'
-import Button from 'components/ui/Button'
+import Button from 'components/ui/button'
 import TextInput from 'components/TextInput'
 import { cn } from 'util/index'
 

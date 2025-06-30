@@ -4,7 +4,15 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [6.1.2-0] - 2025-07
+### [6.1.4] - 2025-06-29
+- Bug fix: Remove reference to listener function that has been removed
+
+### [6.1.3] - 2025-06-27
+- Update OneSignal SDK handling, for better push notifications
+
+### [6.1.2] - 2025-06-26
+- Fix for notification event crashing app
+- Fix for android deep-linking
 
 ### [6.1.1] - 2025-06-23
 - Fix boolean bug with app initialization
