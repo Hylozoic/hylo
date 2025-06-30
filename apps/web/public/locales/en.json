@@ -1443,5 +1443,10 @@
   "posts in this collection": "posts in this collection",
   "{{group.name}} is a member of {{length}} groups": "{{group.name}} is a member of {{length}} groups",
   "Show joinable groups": "Show joinable groups",
-  "Show groups to add": "Show groups to add"
+  "Show groups to add": "Show groups to add",
+  "Responses from members who have already joined are available on their member profile": "Responses from members who have already joined are available on their member profile",
+  "View Members": "View Members",
+  "Public Group Link": "Public Group Link",
+  "Use this for people you don't know": "Use this for people you don't know",
+  "who you would like ask join questions to vet before they enter the group.": "who you would like ask join questions to vet before they enter the group."
 }

@@ -1438,5 +1438,10 @@
   "posts in this collection": "publicaciones en esta colección",
   "{{group.name}} is a member of {{length}} groups": "{{group.name}} es miembro de {{length}} grupos",
   "Show joinable groups": "Mostrar grupos para unirse",
-  "Show groups to add": "Mostrar grupos para agregar"
+  "Show groups to add": "Mostrar grupos para agregar",
+  "Responses from members who have already joined are available on their member profile": "Las respuestas de los miembros que ya se han unido están disponibles en su perfil de miembro",
+  "View Members": "Ver Miembros",
+  "Public Group Link": "Enlace de Grupo Público",
+  "Use this for people you don't know": "Use esto para personas que no conoce",
+  "who you would like ask join questions to vet before they enter the group.": "a quienes le gustaría hacer preguntas de ingreso para evaluar antes de que entren al grupo."
 }
