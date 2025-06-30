@@ -1042,7 +1042,7 @@
   "Visible": "Visible",
   "Visit": "Visita",
   "Volunteer opportunities": "Oportunidades para voluntarios",
-  "Voting has ended": "La votación ha terminado",
+  "Voting ended": "La votación terminó",
   "Voting method": "Tipo de propuesta",
   "Voting open": "Votación abierta",
   "Voting will be anonymous": "",
@@ -1429,5 +1429,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other": "{{personOne}}, {{personTwo}} y {{othersTotal}} otros",
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} y {{othersTotal}} otros",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "Canceled Join Requests": "Solicitudes de unión canceladas",
+  "You have not canceled any join requests": "No has cancelado ninguna solicitud de unión"
 }
