@@ -1,59 +1,145 @@
-.card {
-  border: 1px solid $color-cape-cod-10;
-  border-radius: 4px;
-  cursor: pointer;
+.group-card {
+  display: flex;
+  border-bottom: 1px solid $color-rhino-10;
+  padding-top: 6px;
   position: relative;
-  right: 0px;
-  transition: 0.25s;
+  padding-bottom: 6px;
+  border-radius: 5px;
+  color: white;
+  padding: 15px;
+  filter: drop-shadow(0px 5px 15px rgba(41, 64, 90, .2));
+  margin-bottom: 15px;
+  min-width: 0;
+  transition: all .1s ease;
+  top: 0px;
+
+  &:hover {
+    top: -2px;
+    filter: drop-shadow(0px 5px 15px rgba(41, 64, 90, .5));
+  }
+
+  .group-description {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    color: white;
+    max-height: 36px;
+    overflow: hidden;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      text-decoration: none;
+      color: white;
+      font-size: 14px;
+      line-height: 18px;
+    }
+  }
+
+}
+
+.group-image {
+  margin-right: 15px;
+  min-width: 50px;
+  box-shadow: 0px 4px 15px rgba(41, 64, 90, .2);
+  margin-left: -25px;
+}
+
+.group-details {
   display: flex;
   flex-direction: column;
-  &:hover {
-    box-shadow: 0px 0px 6px 0px $color-black-10;
-    text-decoration: none;
-  }
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
 }
 
-.group-description {
+.group-name {
+  color: white;
+  @include font-bold;
+  font-size: 20px;
+  line-height: 20px;
+  text-decoration: none;
+  padding-right: 140px;
+}
+
+.group-stats {
+  text-decoration: none;
+  color: white;
   @include font-regular;
-  padding: 5px 10px 0 10px;
-  width: 100%;
   font-size: 12px;
-  line-height: 1.5;
-  color: $color-regent;
-  opacity: 0.8;
-  max-height: 4.5em;
-  margin-bottom: 15px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+  opacity: .9;
+  transition: opacity .25s ease;
 
-.group-tags {
-  max-height: 68px;
-  overflow: hidden;
-  padding: 0 15px 0 15px;
-  margin-bottom: 15px;
-}
+  &:hover {
+    opacity: 1;
+  }
 
-.tag-pill{
-  font-family: Circular Std;
-  text-transform: none;
-  font-style: normal;
-  font-weight: 400;
-  font-size: 11px;
-  line-height: 18px;
-}
+  .member-count {
+    margin-right: 6px;
+  }
 
-.constrained.card {
-  border-top: 5px solid $color-cape-cod-10;
-  padding-top: 10px;
-}
+  .membership-status {
 
-.expanded,
-.expanded:hover {
-  box-shadow: 0px 4px 6px 0px $color-black-10;
+    .group-privacy {
+      margin-right: 8px;
+
+      .privacy-icon {
+        color: $color-white;
+        font-size: 18px;
+        position: relative;
+        top: 3px;
+      }
+
+      .privacy-tooltip {
+        display: none;
+        position: absolute;
+        width: 240px;
+        top: 30px;
+        right: 0;
+        background-color: $color-black;
+        font-size: 12px;
+        padding: 5px 8px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
+
+      &:hover {
+        .privacy-tooltip {
+          display: block;
+        }
+      }
+    }
+
+    .member-complete {
+      color: rgba(255,255,255,1);
+      margin-left: 1px;
+    }
+
+    .join-group {
+      font-size: 18px;
+      color: rgba(255,255,255,1);
+      margin-left: 1px;
+    }
+
+    .status-tag {
+      border: 1px solid rgba(255,255,255,.3);
+      background-color: rgba(35, 64, 91, .2);
+      height: 26px;
+      line-height: 20px;
+      border-radius: 20px;
+      padding: 0 8px 0 2px;
+      display: flex;
+      align-items: center;
+      color: rgba(255,255,255,1);
+      font-size: 12px;
+
+      b {
+        margin-left: 5px;
+        color: rgba(255,255,255,1);
+      }
+    }
+  }
 }
 
 .group-link {
@@ -62,4 +148,11 @@
   &:hover {
     text-decoration: none;
   }
+}
+
+.card-wrapper {
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  align-items: center;
 }
