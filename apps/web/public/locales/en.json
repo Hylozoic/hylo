@@ -1167,7 +1167,7 @@
   "Your welcome page content here": "Your welcome page content here",
   "about": "About",
   "above this box to change the visibility settings. Only Administrators can see this message": "above this box to change the visibility settings. \nOnly Administrators can see this message",
-  "actionsTermHelp": "The default name of the activity that people complete in order to progress forward in the course, project or module. e.g. task, step, module, lesson, exercise, assignment, drill, activity, mission, practice. Anywhere the word “Action” would be used will be replaced with this term.",
+  "actionsTermHelp": "The default name of the activity that people complete in order to progress forward in the course, project or module. e.g. task, step, module, lesson, exercise, assignment, drill, activity, mission, practice. Anywhere the word "Action" would be used will be replaced with this term.",
   "active": "active",
   "addCustomViewDescription": "External links, collections of posts, and dynamic queries",
   "adminResponsibilitiesCustomHelpText": "These can be used to denote group responsibilities that members hold outside of Hylo and in real life, like managing equipment, gardens, or childcare. When you add a new responsibility, you can assign that power to specific roles which members of your community can step into.",
@@ -1317,7 +1317,7 @@
   "title: text": "title: text",
   "to": "to",
   "to set it up.": "to set it up.",
-  "topics: up to 3 topic names separated by spaces and/or commas e.g. “food organic”": "topics: up to 3 topic names separated by spaces and/or commas e.g. “food organic”",
+  "topics: up to 3 topic names separated by spaces and/or commas e.g. "food organic"": "topics: up to 3 topic names separated by spaces and/or commas e.g. "food organic"",
   "trackSearchPlaceholder": "Search for a track",
   "tracksSettingsDescription": "Tracks are lists of Actions. This flexible structure allows for everything from courses to task lists that any member can do. Everyone in the group can see a track and choose to enroll in it. Creating and modifying tracks is a responsibility of Stewards with the Manage Tracks Responsibility.",
   "tracksSettingsHeader": "Empower your group through structured learning and activities",
@@ -1448,5 +1448,13 @@
   "View Members": "View Members",
   "Public Group Link": "Public Group Link",
   "Use this for people you don't know": "Use this for people you don't know",
-  "who you would like ask join questions to vet before they enter the group.": "who you would like ask join questions to vet before they enter the group."
+  "who you would like ask join questions to vet before they enter the group.": "who you would like ask join questions to vet before they enter the group.",
+  "Ask specific questions to help you evaluate join requests": "Ask specific questions to help you evaluate join requests",
+  "When you select a prerequisite group, people must join the prerequisite group before joining this group.": "When you select a prerequisite group, people must join the prerequisite group before joining this group.",
+  "Add parent groups in Related Groups settings": "Add parent groups in Related Groups settings",
+  "{{group.name}} is not a member any groups": "{{group.name}} is not a member any groups",
+  "A parent group is necessary to add as a prerequisite group. You may add parent groups if you are a Host of the group you wish to add, or if the group you wish to add has the Open access setting which allows any group to join it": "A parent group is necessary to add as a prerequisite group. You may add parent groups if you are a Host of the group you wish to add, or if the group you wish to add has the Open access setting which allows any group to join it",
+  "Related Groups settings": "Related Groups settings",
+  "Make your group discoverable in the Murmurations network": "Make your group discoverable in the Murmurations network",
+  "Agreement": "Agreement"
 }
