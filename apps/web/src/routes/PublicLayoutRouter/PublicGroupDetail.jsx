@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
@@ -8,8 +7,6 @@ import Loading from 'components/Loading'
 import GroupDetail from 'routes/GroupDetail'
 import PublicPageHeader from './PublicPageHeader'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
-
-import classes from './PublicLayoutRouter.module.scss'
 
 export default function PublicGroupDetail (props) {
   const dispatch = useDispatch()
