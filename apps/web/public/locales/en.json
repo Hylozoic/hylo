@@ -956,7 +956,7 @@
   "There was an issue registering your stripe account. Please try again. If the problem persists, contact us.": "There was an issue registering your stripe account. Please try again. If the problem persists, contact us.",
   "These are the {{length}} groups that {{group.name}} is a member of": "These are the {{length}} groups that {{group.name}} is a member of",
   "These can be used to denote group responsibilities that people hold outside of the platform. For example, committee-member, or works-on-budget": "These can be used to denote group responsibilities that people hold outside of the platform. For example, committee-member, or works-on-budget",
-  "These settings apply to all groups you are a member of. Any group-specific settings will override these defaults for that group.": "These settings apply to all groups you are a member of. Any group-specific settings will override these defaults for that group.",
+  "These settings apply to all groups. Toggling related group settings will turn off these default settings.": "These settings apply to all groups. Toggling related group settings will turn off these default settings",
   "These {{childGroups.length}} groups are members of {{group.name}}": "These {{childGroups.length}} groups are members of {{group.name}}",
   "They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.": "They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.",
   "This URL already exists. Try another.": "This URL already exists. Try another.",

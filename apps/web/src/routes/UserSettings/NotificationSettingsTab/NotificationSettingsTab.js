@@ -148,7 +148,7 @@ function NotificationSettingsTab ({
         <div className='bg-card/100 rounded-lg p-4 shadow-lg mb-4'>
           <div>
             <div className='flex items-center text-sm text-foreground/80 mb-2'>
-              <span>{t('These settings apply to all groups you are a member of. Any group-specific settings will override these defaults for that group.')}</span>
+              <span>{t('These settings apply to all groups. Toggling related group settings will turn off these default settings.')}</span>
             </div>
             <div className='border-b-2 border-foreground/20 mb-2 py-2'>
               <SettingsToggles

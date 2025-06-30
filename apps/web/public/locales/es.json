@@ -961,7 +961,7 @@
   "There was an issue registering your stripe account. Please try again. If the problem persists, contact us.": "Hubo un problema al registrar su cuenta de Stripe. Inténtalo de nuevo. Si el problema persiste, contáctenos.",
   "These are the {{length}} groups that {{group.name}} is a member of": "Estos son los {{length}} grupos de los que {{group.name}} es miembro",
   "These can be used to denote group responsibilities that people hold outside of the platform. For example, committee-member, or works-on-budget": "Se pueden utilizar para indicar responsabilidades grupales que tienen las personas fuera de la plataforma. \nPor ejemplo, miembro del comité o trabajo dentro del presupuesto.",
-  "These settings apply to all groups you are a member of. Any group-specific settings will override these defaults for that group.": "Esta configuración se aplica a todos los grupos de los que eres miembro. Cualquier configuración específica del grupo anulará estos valores predeterminados para ese grupo.",
+  "These settings apply to all groups. Toggling related group settings will turn off these default settings.": "Esta configuración se aplica a todos los grupos. Cambiar la configuración relacionada con el grupo desactivará esta configuración predeterminada.",
   "These {{childGroups.length}} groups are members of {{group.name}}": "Estos {{childGroups.length}} grupos son miembros de {{group.name}}",
   "They will still have the opportunity to answer any join questions and agree to agreements before they enter the group.": "Tendrán la oportunidad de responder a cualquier pregunta de unión y aceptar acuerdos antes de entrar al grupo.",
   "This URL already exists. Try another.": "Esta URL ya existe. Intenta otra.",
