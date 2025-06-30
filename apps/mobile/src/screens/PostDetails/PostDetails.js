@@ -60,7 +60,7 @@ export default function PostDetails () {
     variables: { postId: post?.id },
     pause: !post?.id
   })
-  console.log('commentId sdsds', commentId)
+
   const [selectedComment, setSelectedComment] = useState()
   const groupId = get('groups.0.id', post)
 
