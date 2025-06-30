@@ -1435,5 +1435,8 @@
   "Custom views unlock new ways to navigate your group": "Las vistas personalizadas desbloquean nuevas formas de navegar por tu grupo",
   "Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!": "Crea una vista específica de tu grupo limitada por tipo de publicación, tema o orden, o enlaza a contenido externo. Una colección de recursos para guiar a tu grupo, un calendario de eventos limitado a un tema específico, o una lista de publicaciones limitada a un tipo específico - ¡las posibilidades son infinitas!",
   "action": "acción",
-  "posts in this collection": "publicaciones en esta colección"
+  "posts in this collection": "publicaciones en esta colección",
+  "{{group.name}} is a member of {{length}} groups": "{{group.name}} es miembro de {{length}} grupos",
+  "Show joinable groups": "Mostrar grupos para unirse",
+  "Show groups to add": "Mostrar grupos para agregar"
 }

@@ -1440,5 +1440,8 @@
   "Custom views unlock new ways to navigate your group": "Custom views unlock new ways to navigate your group",
   "Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!": "Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!",
   "action": "action",
-  "posts in this collection": "posts in this collection"
+  "posts in this collection": "posts in this collection",
+  "{{group.name}} is a member of {{length}} groups": "{{group.name}} is a member of {{length}} groups",
+  "Show joinable groups": "Show joinable groups",
+  "Show groups to add": "Show groups to add"
 }
