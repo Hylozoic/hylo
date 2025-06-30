@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useState, useRef, useImperativeHandle, useCallback } from 'react'
+import React, { useState, useRef, useImperativeHandle, useCallback, useEffect } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
 import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
@@ -10,6 +10,7 @@ import Loading from 'components/Loading'
 import styles from './Comments.styles'
 
 export const Comments = React.forwardRef(({
+  commentIdFromPath,
   groupId,
   postId,
   header: providedHeader = null,
@@ -25,6 +26,8 @@ export const Comments = React.forwardRef(({
 
   const [highlightedComment, setHighlightedComment] = useState()
   const commentsListRef = useRef()
+  const hasExecutedCommentFromPath = useRef(false)
+  
   const sections = comments?.map((comment, index) => {
     return ({
       comment,
@@ -62,6 +65,27 @@ export const Comments = React.forwardRef(({
     scrollToComment(comment)
     onSelect(comment)
   }, [setHighlightedComment, scrollToComment, onSelect])
+
+  // Handle comment id coming in from the path
+  useEffect(() => {
+    if (!hasExecutedCommentFromPath.current && commentIdFromPath && comments.length > 0) {
+      let foundComment = comments.find(comment => comment.id === commentIdFromPath)
+      
+      if (!foundComment) {
+        for (const parentComment of comments) {
+          if (parentComment.childComments?.items) {
+            foundComment = parentComment.childComments.items.find(childComment => childComment.id === commentIdFromPath)
+            if (foundComment) break
+          }
+        }
+      }
+      
+      if (foundComment) {
+        setHighlightedComment(foundComment)
+        hasExecutedCommentFromPath.current = true
+      }
+    }
+  }, [commentIdFromPath, comments, setHighlightedComment])
 
   useImperativeHandle(ref, () => ({
     setHighlightedComment,
