@@ -28,6 +28,7 @@ export default function SearchBar ({ search, setSearch, selectedSort, setSort, f
         onChange={event => setSearch(event.target.value)}
       />
       <Dropdown
+        id='all-topics-search-order-dropdown'
         className={classes.searchOrder}
         toggleChildren={(
           <span className={classes.searchSorterLabel}>

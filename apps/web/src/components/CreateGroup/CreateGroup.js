@@ -222,6 +222,7 @@ function CreateGroup () {
       <div className={styles.privacy}>
         <div className={styles.dropdownContainer}>
           <Dropdown
+            id='create-group-privacy-dropdown'
             className={styles.privacyDropdown}
             toggleChildren={(
               <span>
@@ -255,6 +256,7 @@ function CreateGroup () {
         </div>
         <div className={styles.dropdownContainer}>
           <Dropdown
+            id='create-group-accessibility-dropdown'
             className={styles.privacyDropdown}
             toggleChildren={(
               <span>

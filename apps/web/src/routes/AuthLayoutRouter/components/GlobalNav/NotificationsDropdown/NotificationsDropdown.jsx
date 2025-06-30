@@ -111,15 +111,15 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       <PopoverTrigger>
         {renderToggleChildren(hasUnread)}
       </PopoverTrigger>
-      <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+      <PopoverContent side='right' align='start' className='!p-0 !w-[248px] sm:!w-[300px]'>
         <div className='flex items-center w-full z-10 p-2'>
-          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': !showingUnread })}>
+          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'border-b-2 border-accent relative': !showingUnread })}>
             {t('Recent')}
           </span>
-          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2', { 'border-b-2 border-accent relative': showingUnread })}>
+          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'border-b-2 border-accent relative': showingUnread })}>
             {t('Unread')}
           </span>
-          <span onClick={() => dispatch(markAllActivitiesRead())} className='cursor-pointer text-accent ml-auto'>{t('Mark all as read')}</span>
+          <span onClick={() => dispatch(markAllActivitiesRead())} className='cursor-pointer text-accent ml-auto text-xs sm:text-sm'>{t('Mark all as read')}</span>
         </div>
         {body}
       </PopoverContent>

@@ -204,6 +204,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         <div className='mb-5'>
           <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
+            id='group-settings-location-display-precision-dropdown'
             className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
             toggleChildren={(
               <span className='text-base w-full flex justify-between'>

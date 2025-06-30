@@ -183,6 +183,7 @@ export function SearchBar ({ search, setSearch, selectedSort, setSort, fetchIsPe
         onChange={event => setSearch(event.target.value)}
       />
       <Dropdown
+        id='topics-settings-search-order-dropdown'
         className={styles.searchOrder}
         toggleChildren={(
           <span className={styles.searchSorterLabel}>
@@ -212,6 +213,7 @@ export function TopicListItem ({ topic, singleGroup, setGroupTopicVisibility, re
         <div className={styles.topicStats}>{inflectedTotal('post', postsTotal)} • {inflectedTotal('subscriber', followersTotal)}</div>}
       {singleGroup && !isSuggested && (
         <Dropdown
+          id='topics-settings-visibility-dropdown'
           alignRight
           className={styles.visibilityDropdown}
           toggleChildren={(

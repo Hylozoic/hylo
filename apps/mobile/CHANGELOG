@@ -179,7 +179,7 @@ There are many improvements across the board. A full CHANGELOG is coming soon, f
 - Public Groups
 - Event type to feed filter
 - Group subnavigation menu
-- Related Groups listing 
+- Related Groups listing
 - Related Group detail page including join options
 ### Changed
 - Upgraded ReduxORM

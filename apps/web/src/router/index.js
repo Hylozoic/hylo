@@ -6,6 +6,7 @@ import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvider'
+import { DropdownProvider } from 'contexts/DropdownContext'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
 import isWebView from 'util/webView'
@@ -41,9 +42,11 @@ export default function App () {
         <ThemeProvider>
           <TooltipProvider delayDuration={0}>
             <ViewHeaderProvider>
-              <Router history={history}>
-                <RootRouter />
-              </Router>
+              <DropdownProvider>
+                <Router history={history}>
+                  <RootRouter />
+                </Router>
+              </DropdownProvider>
             </ViewHeaderProvider>
           </TooltipProvider>
         </ThemeProvider>

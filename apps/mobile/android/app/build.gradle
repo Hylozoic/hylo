@@ -81,7 +81,7 @@ def jscFlavor = "org.webkit:android-jsc:+"
 
 android {
     ndkVersion rootProject.ext.ndkVersion
-    
+
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
@@ -114,7 +114,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // NOTE below is default from React Native. We are not yet using 
+            // NOTE below is default from React Native. We are not yet using
             // Google auto-signed releases.
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.

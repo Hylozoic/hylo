@@ -896,6 +896,7 @@ function MapExplorer (props) {
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
+            id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
             menuAbove
             toggleChildren={(

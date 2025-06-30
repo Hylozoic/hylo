@@ -165,6 +165,7 @@ function MapDrawer ({
               )}
               <span>{t('Sort posts by:')}</span>
               <Dropdown
+                id='map-drawer-sort-dropdown'
                 className={styles.sorter}
                 toggleChildren={(
                   <span className={styles.sorterLabel}>

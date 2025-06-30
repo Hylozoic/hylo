@@ -12,6 +12,7 @@ import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
 import Button from 'components/ui/button'
 import classes from './Login.module.scss'
+import { cn } from 'util'
 
 export default function Login (props) {
   const dispatch = useDispatch()
@@ -136,7 +137,7 @@ export default function Login (props) {
           </div>
           <Button
             variant='highVisibility'
-            className={`${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`}
+            className={cn('text-sm sm:text-base', `${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`)}
             onClick={handleLogin}
             disabled={!email || !password}
           >
