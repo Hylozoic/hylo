@@ -1434,5 +1434,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other": "{{personOne}}, {{personTwo}} and {{othersTotal}} other",
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} and {{othersTotal}} others",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
-  "~ Mixed ~": "~ Mixed ~"
+  "~ Mixed ~": "~ Mixed ~",
+  "Featured Groups": "Featured Groups",
+  "To recommend a group to be featured, join building Hylo": "To recommend a group to be featured, join building Hylo"
 }

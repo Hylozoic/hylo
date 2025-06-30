@@ -1429,5 +1429,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other": "{{personOne}}, {{personTwo}} y {{othersTotal}} otros",
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} y {{othersTotal}} otros",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "Featured Groups": "Grupos Destacados",
+  "To recommend a group to be featured, join building Hylo": "Para recomendar un grupo para ser destacado, únete a building Hylo"
 }
