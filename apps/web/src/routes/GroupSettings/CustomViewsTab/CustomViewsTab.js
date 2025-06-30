@@ -34,7 +34,6 @@ import {
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
 
-
 import styles from './CustomViewsTab.module.scss'
 
 const emptyCustomView = {
