@@ -118,6 +118,7 @@ function Members (props) {
             onChange={e => debouncedSearch(e.target.value)}
           />
           <Dropdown
+            id='members-sort-dropdown'
             className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
             toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
             alignRight

@@ -42,6 +42,7 @@ class Member extends React.Component {
       <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
+            id='member-dropdown'
             alignRight
             className={classes.dropdown}
             toggleChildren={<Icon name='More' />}
