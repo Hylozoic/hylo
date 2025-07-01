@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X, Star } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
