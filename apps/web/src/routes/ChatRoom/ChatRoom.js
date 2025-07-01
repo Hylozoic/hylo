@@ -732,7 +732,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px]', animationClass)}
+            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost

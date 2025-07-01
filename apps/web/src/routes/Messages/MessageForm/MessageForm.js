@@ -10,6 +10,7 @@ import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import RoundImage from 'components/RoundImage'
 import Icon from 'components/Icon'
 import styles from './MessageForm.module.scss'
+import { Loader2 } from 'lucide-react'
 
 const MessageForm = forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
@@ -49,13 +50,13 @@ const MessageForm = forwardRef((props, ref) => {
 
   return (
     <form
-      className={cn('w-full max-w-[750px] mx-auto flex gap-3 px-2 shadow-md p-2 border-2 border-foreground/15 shadow-xlg rounded-t-xl bg-card pb-4 transition-all', props.className, { 'border-focus': hasFocus })}
+      className={cn('w-full max-w-[750px] mx-auto flex gap-3 shadow-md p-4 border-2 border-foreground/15 shadow-xlg rounded-xl bg-card transition-all', props.className, { 'border-focus': hasFocus })}
       onSubmit={handleSubmit}
     >
       <RoundImage url={get('avatarUrl', props.currentUser)} medium />
       <TextareaAutosize
         value={props.messageText}
-        className='text-foreground bg-transparent w-full my-2 focus:outline-none mt-0'
+        className='text-foreground bg-transparent w-full my-2 line-height-2 focus:outline-none mt-0 mb-0'
         ref={textareaRef}
         minRows={1}
         maxRows={8}
@@ -73,8 +74,8 @@ const MessageForm = forwardRef((props, ref) => {
       />
       {props.pending
         ? (
-          <div className='flex items-center text-sm text-foreground/50'>
-            Sending...
+          <div className='flex items-center text-sm text-foreground/ 50'>
+            <Loader2 className='w-4 h-4 animate-spin' /> Sending...
           </div>
           )
         : (

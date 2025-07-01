@@ -31,7 +31,6 @@ import classes from './GroupCard.module.scss'
 
   TODO: Then is contents changed based on group type... perhaps passed in as a Content component
 */
-
 export default function GroupCard ({ group, routeParams }) {
   const { t } = useTranslation()
 

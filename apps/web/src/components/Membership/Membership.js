@@ -24,11 +24,11 @@ export default function Membership ({ membership, index, archive, rowStyle }) {
   }
 
   return (
-    <div className={cn(classes.membership, { [classes.even]: index % 2 === 0, [classes.odd]: index % 2 !== 0, [classes.rowStyle]: rowStyle })}>
-      <button className='rounded-lg flex transition-all text-foreground items-center align-center px-5 h-[40px] opacity-80 hover:opacity-100 scale-100 hover:scale-105'>
+    <div className='membership max-w-full'>
+      <button className='rounded-lg bg-background p-2 flex transition-all text-foreground items-center align-center opacity-80 hover:opacity-100 scale-100 hover:scale-105 hover:bg-selected/80'>
         <Link to={groupUrl(group.slug)} className='text-foreground flex space-x-2'>
           <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} small />
-          <div>{group.name}</div>
+          <div className='truncate whitespace-nowrap'>{group.name}</div>
         </Link>
 
         <div className={cn('ml-2 flex flex-row gap-2', classes.roles)}>

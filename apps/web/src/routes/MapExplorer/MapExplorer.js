@@ -287,7 +287,7 @@ function MapExplorer (props) {
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
 
-  const [drawerWidth, setDrawerWidth] = useState(0)
+  const [drawerWidth, setDrawerWidth] = useState(300) // minimum width of drawer
   const resizeObserverRef = useRef(null)
 
   function observeDrawerWidth () {
@@ -312,12 +312,16 @@ function MapExplorer (props) {
     resizeObserverRef.current = resizeObserver
   }
 
-  function stopObservingDrawerWidth () {
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect()
-      resizeObserverRef.current = null
+  useEffect(() => {
+    if (!hideDrawer) {
+      observeDrawerWidth()
     }
-  }
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect()
+      }
+    }
+  }, [hideDrawer])
 
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
@@ -388,14 +392,9 @@ function MapExplorer (props) {
         observeDrawerWidth()
       } else {
         // Drawer is being closed
-        stopObservingDrawerWidth()
-      }
-      if (hideDrawer) {
-        // Drawer is being opened
-        observeDrawerWidth()
-      } else {
-        // Drawer is being closed
-        stopObservingDrawerWidth()
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect()
+        }
       }
     }, 100)
   }, [dispatch, hideDrawer, location])
@@ -896,6 +895,7 @@ function MapExplorer (props) {
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
+            id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
             menuAbove
             toggleChildren={(

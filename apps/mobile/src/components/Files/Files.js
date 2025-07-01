@@ -4,8 +4,7 @@ import useOpenURL from 'hooks/useOpenURL'
 import { FileLabel } from 'screens/PostEditor/FileSelector'
 
 export default function Files ({ urls, style, itemStyle }) {
-  const openURL = useOpenURL
-
+  const openURL = useOpenURL()
   if (!urls) return null
 
   return (

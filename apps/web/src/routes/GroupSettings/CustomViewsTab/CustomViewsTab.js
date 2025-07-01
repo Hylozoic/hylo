@@ -2,16 +2,23 @@ import { omit } from 'lodash/fp'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation, withTranslation } from 'react-i18next'
+import { PlusCircle, Trash2 } from 'lucide-react'
+
 import { cn } from 'util/index'
+
+import Button from 'components/ui/button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import PostLabel from 'components/PostLabel'
 import PostSelector from 'components/PostSelector'
+import SaveButton from '../SaveButton'
 import SettingsControl from 'components/SettingsControl'
+import SettingsSection from '../SettingsSection'
 import SwitchStyled from 'components/SwitchStyled'
 import TopicSelector from 'components/TopicSelector'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+
 import { POST_TYPES } from 'store/models/Post'
 import {
   FETCH_COLLECTION_POSTS,
@@ -23,12 +30,10 @@ import {
   reorderPostInCollection,
   updateGroupSettings
 } from '../GroupSettings.store'
+
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
-import SettingsSection from '../SettingsSection'
-import SaveButton from '../SaveButton'
 
-import general from '../GroupSettings.module.scss'
 import styles from './CustomViewsTab.module.scss'
 
 const emptyCustomView = {
@@ -175,9 +180,11 @@ function CustomViewsTab ({ group }) {
 
   useEffect(() => {
     setHeaderDetails({
-      title: 'Custom Views',
-      icon: 'Eye',
-      search: true
+      title: {
+        desktop: `${t('Group Settings')} > ${t('Custom Views')}`,
+        mobile: `${t('Custom Views')}`
+      },
+      icon: 'Eye'
     })
   }, [])
 
@@ -186,8 +193,9 @@ function CustomViewsTab ({ group }) {
   const { changed, customViews } = state
 
   return (
-    <div className={general.groupSettings}>
-      <h3 className='text-foreground font-bold mb-2'>{t('Add custom links or filtered post views to your group\'s navigation')}</h3>
+    <div className='mb-[300px]'>
+      <h2 className='text-foreground font-bold mb-2'>{t('Custom views unlock new ways to navigate your group')}</h2>
+      <p className='text-foreground/70 mb-4'>{t('Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!')}</p>
       <SettingsSection>
         {customViews.map((cv, i) => (
           <CustomViewRow
@@ -202,10 +210,10 @@ function CustomViewsTab ({ group }) {
             reorderPostInCollection={reorderPostInCollectionAction}
           />
         ))}
-        <div className={styles.addCustomView} onClick={addCustomView}>
+        <Button variant='outline' className='w-full justify-center items-center h-12' onClick={addCustomView}>
           <h4>{t('Create new custom view')}</h4>
-          <Icon name='Circle-Plus' className={styles.newCustomView} />
-        </div>
+          <PlusCircle className='w-6 h-6' />
+        </Button>
       </SettingsSection>
 
       <br />
@@ -284,11 +292,11 @@ export function CustomViewRow ({
   const sortOptions = type === 'collection' ? COLLECTION_SORT_OPTIONS : STREAM_SORT_OPTIONS
   const defaultSortVal = defaultSort || (type === 'collection' ? 'order' : 'created')
   return (
-    <div className='bg-card p-2 rounded-md text-foreground mb-5'>
+    <div className='bg-card p-2 rounded-md text-foreground mb-4 shadow-xl'>
       {!menuCreate &&
         <h4 className='flex flex-row gap-1'>
           <div className='flex-1'>{name}</div>
-          <Icon name='Trash' onClick={onDelete} dataTestId='delete-custom-view' className='cursor-pointer' />
+          <Trash2 onClick={onDelete} data-testid='delete-custom-view' className='cursor-pointer w-5 h-5' />
         </h4>}
       <div className='flex flex-row gap-1'>
         <SettingsControl label={t('Icon')} controlClass={styles.iconButton} onChange={onChange('icon')} value={icon} type='icon-selector' selectedIconClass={styles.selectedIcon} />
@@ -297,6 +305,7 @@ export function CustomViewRow ({
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (
               <Dropdown
+                id='custom-view-type-dropdown'
                 className='text-foreground bg-background p-2 rounded-md'
                 toggleChildren={
                   <span className='flex flex-row gap-1 items-center'>
@@ -326,6 +335,7 @@ export function CustomViewRow ({
                 label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-style-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -347,6 +357,7 @@ export function CustomViewRow ({
                 renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-sort-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -406,15 +417,15 @@ export function CustomViewRow ({
                       backgroundColor={activePostsOnly ? '#0DC39F' : '#8B96A4'}
                     />
                   </div>
-                  <div className={styles.customViewLastRow}>
-                    <label className={styles.label}>{t('Include only posts that match any of these topics:')}</label>
+                  <div className='flex flex-col gap-2 p-4 rounded-md'>
+                    <label className='text-foreground/70 text-sm'>{t('Include only posts that match any of these topics:')}</label>
                     <TopicSelector forGroups={[group]} selectedTopics={topics} onChange={onChange('topics')} />
                   </div>
                 </>)
               : (
                 <>
-                  <div className={styles.postTypes}>
-                    <label className={styles.label}>{t('Included Posts')}<span> {collection?.posts?.length || 0}</span> </label>
+                  <div className='flex flex-col gap-2 p-4'>
+                    <label className='text-foreground/70 text-sm w-full justify-center flex'><span> {collection?.posts?.length || 0} </span> <span>{t('posts in this collection')}</span></label>
                     <PostSelector
                       collection={collection}
                       group={group}
