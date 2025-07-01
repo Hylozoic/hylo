@@ -9,6 +9,7 @@ import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager
 import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import {
@@ -202,7 +203,7 @@ function LandingBodyContent ({ description, purpose, welcomePage }) {
     <>
       {welcomePage &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
-          <HyloHTML html={welcomePage} />
+          <HyloHTML html={TextHelpers.markdown(welcomePage)} />
         </View>}
       {!isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
@@ -212,7 +213,7 @@ function LandingBodyContent ({ description, purpose, welcomePage }) {
       {!isEmpty(description) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={styles.sectionHeading}>{t('Description')}:</Text>
-          <HyloHTML html={description} />
+          <HyloHTML html={TextHelpers.markdown(description)} />
         </View>}
       {isEmpty(description) && isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>

@@ -3,6 +3,7 @@ import { View, ScrollView } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import HyloHTML from 'components/HyloHTML'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import { TextHelpers } from '@hylo/shared'
 
 export default function GroupWelcomePage() {
   const insets = useSafeAreaInsets()
@@ -12,7 +13,6 @@ export default function GroupWelcomePage() {
     <ScrollView 
       className='flex-1 bg-background'
       contentContainerStyle={{
-        paddingTop: insets.top,
         paddingBottom: insets.bottom,
         paddingLeft: insets.left,
         paddingRight: insets.right
@@ -20,7 +20,7 @@ export default function GroupWelcomePage() {
     >
       <View className='p-4'>
         <HyloHTML 
-          html={currentGroup.welcomePage}
+          html={TextHelpers.markdown(currentGroup.welcomePage)}
         />
       </View>
     </ScrollView>
