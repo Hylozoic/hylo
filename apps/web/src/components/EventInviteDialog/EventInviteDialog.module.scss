@@ -72,10 +72,11 @@ $avatar-size: 20px;
 }
 
 .input {
-  color: $color-rhino;
+  color: hsl(var(--foreground));
   font-size: 34px;
+
   &::placeholder {
-    color: $color-rhino-30;
+    color: hsl(var(--foreground) / 0.6);
   }
 }
 
