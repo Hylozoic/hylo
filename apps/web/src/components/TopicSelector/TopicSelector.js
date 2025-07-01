@@ -35,6 +35,10 @@ const inputStyles = {
       border: '1px solid hsl(var(--border))'
     }
   }),
+  input: styles => ({
+    ...styles,
+    color: 'hsl(var(--text-foreground))'
+  }),
   multiValue: styles => ({
     ...styles,
     backgroundColor: 'hsl(var(--selected))',

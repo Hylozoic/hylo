@@ -978,9 +978,6 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-                <div className='flex flex-row gap-2 items-center'>
-                  <Star className='w-4 h-4 text-foreground' />
-                </div>
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
@@ -996,9 +993,9 @@ function PostEditor ({
                 </div>
               </div>
             ))}
-            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
+            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2 cursor-pointer' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
+              <span className='rounded-md'>{t('Add an option to vote on...')}</span>
             </div>
             {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
