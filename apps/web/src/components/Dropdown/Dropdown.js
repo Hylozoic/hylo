@@ -43,7 +43,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
     let menuItems = children || items.map(item =>
       <li
-        className={cn(classes.linkItem, { [classes.redItem]: item.red })}
+        className={cn('flex items-center gap-1 p-2 m-0 cursor-pointer transition-all scale-100 hover:scale-105', { [classes.redItem]: item.red })}
         onClick={item.onClick}
         key={item.key || item.label}
       >
@@ -71,7 +71,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
       </span>
       <div className={cn(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
         <ul
-          className={cn(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
+          className={cn('bg-background m-0 p-0 rounded', { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
           onClick={toggle}
         >
           {renderMenuItems()}

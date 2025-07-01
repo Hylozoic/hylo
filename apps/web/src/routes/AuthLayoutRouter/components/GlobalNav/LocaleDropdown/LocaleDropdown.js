@@ -20,7 +20,7 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
 
   return (
     <Dropdown
-      className='bg-foreground/20 border-foreground rounded-md p-2 text-sm h-9'
+      className='bg-input/20 border-foreground/20 hover:border-foreground/100 hover:text-foreground scale-100 hover:scale-105 transition-all rounded-md p-2 text-sm h-9'
       toggleChildren={renderToggleChildren}
       alignRight
       items={[
@@ -33,6 +33,16 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
           key: 'es',
           label: '🇪🇸 ' + t('Spanish'),
           onClick: () => handleLocaleChange('es')
+        },
+        {
+          key: 'hi',
+          label: '🇮🇳 ' + t('Hindi'),
+          onClick: () => handleLocaleChange('hi')
+        },
+        {
+          key: 'fr',
+          label: '🇫🇷 ' + t('French'),
+          onClick: () => handleLocaleChange('fr')
         }
       ]}
     />
