@@ -57,7 +57,7 @@ const updatesSubscription = gql`
           unreadCount
         }
       }
-      
+
     }
   }
   ${notificationFieldsFragment}
@@ -76,7 +76,7 @@ export default function AuthRootNavigator () {
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
-  
+
   useSubscription({ query: updatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
@@ -132,7 +132,7 @@ export default function AuthRootNavigator () {
         })
 
         // MixPanel setup
-        mixpanel.identify(currentUser?.id)  
+        mixpanel.identify(currentUser?.id)
         mixpanel.getPeople().set({
           $name: currentUser?.name,
           $email: currentUser?.email,
@@ -142,10 +142,6 @@ export default function AuthRootNavigator () {
         setInitialize(true)
       }
     })()
-
-    return () => {
-      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
-    }
   }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?

@@ -28,11 +28,6 @@ import {
   updateUserSettings
 } from '../UserSettings.store'
 
-import { bgImageStyle } from 'util/index'
-import classes from './NotificationSettingsTab.module.scss'
-
-const allGroupsLogo = '/hylo-merkaba.png'
-
 const iOSAppURL = 'https://itunes.apple.com/app/appName/id1002185140'
 const androidAppURL = 'https://play.google.com/store/apps/details?id=com.hylo.hyloandroid'
 
@@ -132,88 +127,95 @@ function NotificationSettingsTab ({
   return (
     <div>
       <div>
-        <div>{t('GLOBAL NOTIFICATIONS')}</div>
-
-        <div className='border-b border-gray-200 mb-2 py-2'>
-          <SettingsToggles
-            label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Messages')}</span>}
-            settings={getCurrentSettings(me, 'dmNotifications')}
-            update={updateUserSetting('dmNotifications')}
-          />
-        </div>
-
-        <div className='border-b border-gray-200 mb-2 py-2'>
-          <SettingsToggles
-            label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
-            settings={getCurrentSettings(me, 'commentNotifications')}
-            update={updateUserSetting('commentNotifications')}
-          />
-        </div>
-
-        <div className='mt-6'>{t('GROUP NOTIFICATIONS')}</div>
-
-        <div className='border border-gray-200 mb-2 py-2'>
-          <div className='flex items-center'>
-            <div style={bgImageStyle(allGroupsLogo)} className='w-6 h-6 inline-block mr-2 bg-cover' />
-            <span className='text-xl'>{t('All Groups')}</span>
+        <div className='text-sm text-foreground/50 mb-2'>{t('Global notifications')}</div>
+        <div className='bg-card/100 rounded-lg p-4 shadow-lg'>
+          <div className='border-b-2 border-foreground/20 mb-2 py-2'>
+            <SettingsToggles
+              label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Messages')}</span>}
+              settings={getCurrentSettings(me, 'dmNotifications')}
+              update={updateUserSetting('dmNotifications')}
+            />
           </div>
-          <SettingsToggles
-            label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
-            settings={allGroupsSettings}
-            update={updateAllGroupsAlert}
-          />
-
-          <div className='flex items-center justify-between mt-2'>
-            <span>{t('Send new post notifications in this group for')}</span>
-            <Select
-              value={allGroupsSettings.postNotifications}
-              onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
-            >
-              <SelectTrigger className='inline-flex w-auto'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='none'>{t('No Posts')}</SelectItem>
-                <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
-                <SelectItem value='all'>{t('Every Post')}</SelectItem>
-                <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className='flex items-center justify-between mt-2'>
-            <span className=''>{t('Send me an email digest for this group')}</span>
-            <Select
-              value={allGroupsSettings.digestFrequency}
-              onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
-            >
-              <SelectTrigger className='inline-flex w-auto'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='daily'>{t('Daily')}</SelectItem>
-                <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
-                <SelectItem value='never'>{t('Never')}</SelectItem>
-                <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className='py-2'>
+            <SettingsToggles
+              label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
+              settings={getCurrentSettings(me, 'commentNotifications')}
+              update={updateUserSetting('commentNotifications')}
+            />
           </div>
         </div>
+        <div className='text-sm text-foreground/50 mb-2 mt-4'>{t('Default group notifications')}</div>
+        <div className='bg-card/100 rounded-lg p-4 shadow-lg mb-4'>
+          <div>
+            <div className='flex items-center text-sm text-foreground/80 mb-2'>
+              <span>{t('These settings apply to all groups. Toggling related group settings will turn off these default settings.')}</span>
+            </div>
+            <div className='border-b-2 border-foreground/20 mb-2 py-2'>
+              <SettingsToggles
+                label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
+                settings={allGroupsSettings}
+                update={updateAllGroupsAlert}
+              />
+            </div>
 
-        {memberships.map(membership => (
-          <MembershipSettingsRow
-            key={membership.id}
-            membership={membership}
-            open={membership.group.id === jumpToGroupId}
-            updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
-          />
-        ))}
+            <div className='flex items-center justify-between mt-2 border-b-2 border-foreground/20 pb-2'>
+              <span>{t('Send new post notifications in this group for')}</span>
+              <Select
+                value={allGroupsSettings.postNotifications}
+                onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
+              >
+                <SelectTrigger className='inline-flex w-auto'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='none'>{t('No Posts')}</SelectItem>
+                  <SelectItem value='important'>{t('Important Posts (Announcements & Mentions)')}</SelectItem>
+                  <SelectItem value='all'>{t('Every Post')}</SelectItem>
+                  <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='flex items-center justify-between mt-2'>
+              <span className=''>{t('Send me an email digest for this group')}</span>
+              <Select
+                value={allGroupsSettings.digestFrequency}
+                onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
+              >
+                <SelectTrigger className='inline-flex w-auto'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='daily'>{t('Daily')}</SelectItem>
+                  <SelectItem value='weekly'>{t('Weekly')}</SelectItem>
+                  <SelectItem value='never'>{t('Never')}</SelectItem>
+                  <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        {memberships.length > 0 && (
+          <div>
+            <div className='text-sm text-foreground/50 mb-2'>{t('Group-specific notifications')}</div>
+            {memberships.map(membership => (
+              <div key={membership.id}>
+                <MembershipSettingsRow
+                  membership={membership}
+                  open={membership.group.id === jumpToGroupId}
+                  updateMembershipSettings={changes => dispatch(updateMembershipSettings(membership.group.id, changes))}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
 
-      <div className={classes.help}>
-        <p className={classes.helpParagraph}>
-          {t('Download our')}{' '}<a href={iOSAppURL} rel='noreferrer' target='_blank'>iOS</a>
+      <div className='my-8'>
+        <p className='text-sm text-foreground/100'>
+          {t('Download our')}{' '}<a href={iOSAppURL} rel='noreferrer' target='_blank' className='text-focus hover:text-selected/100 visited:text-focus/80'>iOS</a>
           {' '}{t('or')}{' '}
-          <a href={androidAppURL} rel='noreferrer' target='_blank'>Android</a>
+          <a href={androidAppURL} rel='noreferrer' target='_blank' className='text-focus hover:text-selected/100 visited:text-focus/80'>Android</a>
           {t(' app to receive push notifications.')}
         </p>
       </div>

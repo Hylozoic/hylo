@@ -217,8 +217,12 @@ export default function ContextMenu (props) {
                 )
               : isMyContext
                 ? (
-                  <div className='flex flex-col p-2'>
-                    <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
+                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                    </div>
                   </div>
                   )
                 : null}
