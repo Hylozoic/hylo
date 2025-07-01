@@ -142,10 +142,6 @@ export default function AuthRootNavigator () {
         setInitialize(true)
       }
     })()
-
-    return () => {
-      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
-    }
   }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?
