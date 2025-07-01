@@ -81,7 +81,7 @@ const TextInput = forwardRef(({
         value={value}
         type={props.type || 'text'}
         className={cn(
-          inputClassName || (styles[theme.inputStyle] || 'bg-input p-3 rounded-md w-full text-foreground text-sm sm:text-base'),
+          inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base'),
           theme.input
         )}
         onAnimationStart={handleAnimation}
@@ -98,7 +98,7 @@ const TextInput = forwardRef(({
           htmlFor={id}
           className={cn(
             'block absolute left-[18px] top-3 text-foreground/60 text-base transition-all duration-200',
-            (active || (value && value.length > 0)) && 'text-[10px] top-[3px] left-[10px]'
+            (active || (value && value.length > 0)) && 'text-[10px] top-[3px] left-[14px]'
           )}
         >
           {internalLabel}
