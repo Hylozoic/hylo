@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.5] - 2025-07-01
+
+### Changed
+- Many improvements to UI/UX of the Group Explorer. Added featured groups to the top of it.
+- Many improvements to styling of the My Home pages, including My Groups, My Invites, Account and more
+- Many improvements to UI/UX when using Hylo in a mobile browser
+- Many improvements to styling of welcome modals
+- Topics load much faster when typing a # in the post editor
+
+### Fixed
+- Display of login/signup flow in dark mode
+- Display of dropdowns at the top of the stream
+
 ## [6.1.4] - 2025-06-25
 
 ### Fixed
