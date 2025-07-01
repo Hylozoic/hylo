@@ -45,7 +45,7 @@ import {
   FETCH_MEMBER_REACTIONS,
   getPresentedPerson
 } from './MemberProfile.store'
-import { bgImageStyle, cn } from 'util/index'
+import { cn } from 'util/index'
 import {
   currentUserSettingsUrl,
   messagePersonUrl,
