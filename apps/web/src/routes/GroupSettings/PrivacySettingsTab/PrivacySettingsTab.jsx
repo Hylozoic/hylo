@@ -2,26 +2,24 @@ import { cn } from 'util/index'
 import { set, startCase, trim } from 'lodash'
 import React, { useState, useEffect } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
+import { EyeOff, Shield, X, Globe, Lock, TriangleAlert } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import GroupsSelector from 'components/GroupsSelector'
-import Icon from 'components/Icon'
+import Button from 'components/ui/button'
+import { Switch } from 'components/ui/switch'
 import Loading from 'components/Loading'
-import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { groupUrl } from 'util/navigation'
 import {
   accessibilityDescription,
-  accessibilityIcon,
   accessibilityString,
   GROUP_ACCESSIBILITY,
   GROUP_VISIBILITY,
   visibilityDescription,
-  visibilityIcon,
   visibilityString
 } from 'store/models/Group'
 import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
-
-import general from '../GroupSettings.module.scss'
-import styles from './PrivacySettingsTab.module.scss'
 
 function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
   const { t } = useTranslation()
@@ -79,9 +77,11 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: `${t('Group Settings')} > ${t('Privacy')}`,
-      icon: 'Settings',
-      info: ''
+      title: {
+        desktop: `${t('Group Settings')} > ${t('Privacy')}`,
+        mobile: t('Privacy')
+      },
+      icon: 'Settings'
     })
   }, [])
 
@@ -99,184 +99,246 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const { askJoinQuestions, askGroupToGroupJoinQuestions, hideExtensionData } = settings
   const { name, slug, type } = group
 
+  const visibilityIcons = {
+    [GROUP_VISIBILITY.Public]: Globe,
+    [GROUP_VISIBILITY.Protected]: Shield,
+    [GROUP_VISIBILITY.Hidden]: EyeOff
+  }
+
+  const accessibilityIcons = {
+    [GROUP_ACCESSIBILITY.Open]: Globe,
+    [GROUP_ACCESSIBILITY.Restricted]: Lock,
+    [GROUP_ACCESSIBILITY.Closed]: EyeOff
+  }
+
   return (
-    <div className={general.groupSettings}>
+    <div className='space-y-8'>
       <SettingsSection>
-        <h3>{t('Visibility')}</h3>
-        <p className={general.detailText}>{t('Who is able to see')} <strong>{name}</strong>?</p>
-        {Object.values(GROUP_VISIBILITY).map(visibilitySetting =>
-          <VisibilitySettingRow
-            key={visibilitySetting}
-            forSetting={visibilitySetting}
-            currentSetting={visibility}
-            updateSetting={updateSetting}
-            t={t}
-          />
-        )}
-      </SettingsSection>
-
-      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic &&
-        <SettingsSection>
-          <h3>{t('Add my group into the commons')}</h3>
-          <p className={general.detailText}>{t('commonsExplainerText1')}</p>
-          <p className={cn(general.detailText, 'mt-2')}>{t('commonsExplainerText2')}</p>
-          <p className={cn(general.detailText, 'mt-3')}>{t('Apply here') + ': '} <a href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform' target='_blank' rel='noopener noreferrer'>{t('Allow-in-Commons form')}</a></p>
-        </SettingsSection>}
-
-      <SettingsSection>
-        <h3>{t('Access')}</h3>
-        <p className={general.detailText}>{t('How can people become members of')} <strong>{name}</strong></p>
-        {Object.values(GROUP_ACCESSIBILITY).map(accessSetting =>
-          <AccessibilitySettingRow
-            key={accessSetting}
-            forSetting={accessSetting}
-            currentSetting={accessibility}
-            askJoinQuestions={askJoinQuestions}
-            joinQuestions={joinQuestions}
-            updateSetting={updateSetting}
-            updateSettingDirectly={updateSettingDirectly}
-          />
-        )}
-      </SettingsSection>
-
-      <SettingsSection>
-        <h3>{t('Join Questions')}</h3>
-        <div className={cn(styles.groupQuestions, { [styles.on]: settings?.askJoinQuestions })}>
-          <div className={cn(general.switchContainer, { [general.on]: askJoinQuestions })}>
-            <SwitchStyled
-              checked={askJoinQuestions}
-              onChange={() => updateSettingDirectly('settings.askJoinQuestions')(!askJoinQuestions)}
-              backgroundColor={askJoinQuestions ? '#0DC39F' : '#8B96A4'}
-            />
-            <span className={general.toggleDescription}>{t('Require people to answer questions when requesting to join this group')}</span>
-            <div className={general.onOff}>
-              <div className={general.off}>{t('OFF')}</div>
-              <div className={general.on}>{t('ON')}</div>
-            </div>
-          </div>
-          <QuestionsForm questions={joinQuestions} save={updateSettingDirectly('joinQuestions', true)} disabled={!askJoinQuestions} />
-        </div>
-      </SettingsSection>
-
-      <SettingsSection>
-        <h3 className='mb-2'>{t('Prerequisite Groups')}</h3>
-        <p className={general.detailText}>{t('When you select a prerequisite group, people must join the selected groups before joining')} <strong>{name}</strong>. {t('Only parent groups can be added as prerequisite groups.')}</p>
-        <p className={styles.prerequisiteWarning}>
-          <strong className={styles.warning}>{t('Warning:')}</strong> {t('If you select a prerequisite group that has a visibility setting of')}
-          <strong><Icon name='Hidden' className={styles.prerequisiteIcon} /> {t('Hidden')}</strong> {t('or')}
-          <strong><Icon name='Shield' className={styles.prerequisiteIcon} /> {t('Protected')}</strong>,
-          {t('only members of those groups will be able to join this group. Because of these settings, people who find your group will not be able to see the prerequisite group.')}
-        </p>
-        <GroupsSelector
-          options={parentGroups}
-          selected={prerequisiteGroups}
-          onChange={updateSettingDirectly('prerequisiteGroups')}
-          groupSettings
-        />
-      </SettingsSection>
-
-      <SettingsSection>
-        <h3>{t('Group Access Questions')}</h3>
-        <p className={general.detailText}>{t('What questions are asked when a group requests to join this group?')}</p>
-
-        <div className={cn(styles.groupQuestions, { [styles.on]: askGroupToGroupJoinQuestions })}>
-          <div className={cn(general.switchContainer, { [general.on]: askGroupToGroupJoinQuestions })}>
-            <SwitchStyled
-              checked={askGroupToGroupJoinQuestions}
-              onChange={() => updateSettingDirectly('settings.askGroupToGroupJoinQuestions')(!askGroupToGroupJoinQuestions)}
-              backgroundColor={askGroupToGroupJoinQuestions ? '#0DC39F' : '#8B96A4'}
-            />
-            <span className={general.toggleDescription}>{t('Require groups to answer questions when requesting to join this group')}</span>
-            <div className={general.onOff}>
-              <div className={general.off}>{t('OFF')}</div>
-              <div className={general.on}>{t('ON')}</div>
-            </div>
-          </div>
-          <QuestionsForm questions={groupToGroupJoinQuestions} save={updateSettingDirectly('groupToGroupJoinQuestions')} disabled={!askGroupToGroupJoinQuestions} />
-        </div>
-      </SettingsSection>
-
-      {type
-        ? (
-          <SettingsSection>
-            <h3>{t('Hide {{postType}} Data', { postType: startCase(type) })}</h3>
-            <p className={styles.dataDetail}>{t('If you don\'t want to display the detailed {{postType}} specific data on your group\'s profile', { postType: type })}</p>
-            <div className={cn(general.switchContainer, { [general.on]: hideExtensionData })}>
-              <SwitchStyled
-                checked={hideExtensionData}
-                onChange={() => updateSettingDirectly('settings.hideExtensionData')(hideExtensionData === undefined || hideExtensionData === null || !hideExtensionData)}
-                backgroundColor={hideExtensionData ? '#0DC39F' : '#8B96A4'}
-              />
-              <span className={general.toggleDescription}>{t('Hide {{postType}} data for this group', { postType: type })}</span>
-              <div className={general.onOff}>
-                <div className={general.off}>{t('OFF')}</div>
-                <div className={general.on}>{t('ON')}</div>
+        <h3 className='text-foreground font-bold mb-2'>{t('Visibility')}</h3>
+        <p className='text-foreground/70 mb-4'>{t('Who is able to see')} <strong>{name}</strong>?</p>
+        <div className='flex flex-col gap-0'>
+          {Object.values(GROUP_VISIBILITY).map(visibilitySetting => {
+            const Icon = visibilityIcons[visibilitySetting]
+            return (
+              <div
+                key={visibilitySetting}
+                className={cn(
+                  'flex items-start gap-4 p-4 rounded-lg transition-all scale-100 hover:scale-105 cursor-pointer',
+                  visibility === visibilitySetting ? 'bg-selected/20' : 'hover:bg-selected/5'
+                )}
+                onClick={() => updateSetting('visibility')({ target: { value: visibilitySetting } })}
+              >
+                <div className='flex items-center h-5'>
+                  <input
+                    type='radio'
+                    name='Visibility'
+                    value={visibilitySetting}
+                    onChange={updateSetting('visibility')}
+                    checked={visibility === visibilitySetting}
+                    className='form-radio text-accent border-accent/20 relative top-0.5'
+                  />
+                </div>
+                <div className='flex-1 flex gap-3'>
+                  <Icon className='w-5 h-5 text-foreground/100 mt-0.5' />
+                  <div>
+                    <h4 className='text-foreground font-medium m-0'>{t(visibilityString(visibilitySetting))}</h4>
+                    <p className='text-foreground/70 text-sm m-0 p-0'>{t(visibilityDescription(visibilitySetting))}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </SettingsSection>
-          )
-        : ''}
+            )
+          })}
+        </div>
+      </SettingsSection>
+
+      {visibility === GROUP_VISIBILITY.Public && !group.allowInPublic && (
+        <SettingsSection>
+          <h3 className='text-foreground font-bold mb-2'>{t('Add my group into the commons')}</h3>
+          <p className='text-foreground/70 mb-2'>{t('commonsExplainerText1')}</p>
+          <p className='text-foreground/70 mb-4'>{t('commonsExplainerText2')}</p>
+          <p className='text-foreground/70'>
+            {t('Apply here') + ': '}
+            <a
+              href='https://docs.google.com/forms/d/e/1FAIpQLScuxRGl65OMCVkjjsFllWwK4TQjddkufMu9rukIocgmhyHL7w/viewform'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-accent hover:underline'
+            >
+              {t('Allow-in-Commons form')}
+            </a>
+          </p>
+        </SettingsSection>
+      )}
 
       <SettingsSection>
-        <h3>{t('Publish Murmurations Profile')}</h3>
-        <p className={styles.dataDetail}>
+        <h3 className='text-foreground font-bold mb-2'>{t('Access')}</h3>
+        <p className='text-foreground/70 mb-4'>{t('How can people become members of')} <strong>{name}</strong></p>
+        <div className='flex flex-col gap-0'>
+          {Object.values(GROUP_ACCESSIBILITY).map(accessSetting => {
+            const Icon = accessibilityIcons[accessSetting]
+            return (
+              <div
+                key={accessSetting}
+                className={cn(
+                  'flex items-start gap-4 p-4 rounded-lg transition-all scale-100 hover:scale-105 cursor-pointer',
+                  accessibility === accessSetting ? 'bg-selected/20' : 'hover:bg-selected/5'
+                )}
+                onClick={() => updateSetting('accessibility')({ target: { value: accessSetting } })}
+              >
+                <div className='flex items-center h-5'>
+                  <input
+                    type='radio'
+                    name='accessibility'
+                    value={accessSetting}
+                    onChange={updateSetting('accessibility')}
+                    checked={accessibility === accessSetting}
+                    className='form-radio text-accent border-accent/20 relative top-0.5'
+                  />
+                </div>
+                <div className='flex-1 flex gap-3'>
+                  <Icon className='w-5 h-5 text-foreground/100 mt-0.5' />
+                  <div>
+                    <h4 className='text-foreground font-medium m-0'>{t(accessibilityString(accessSetting))}</h4>
+                    <p className='text-foreground/70 text-sm m-0 p-0'>{t(accessibilityDescription(accessSetting))}</p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Join Questions')}</h3>
+        <div className={cn('space-y-4', { 'opacity-50': !settings?.askJoinQuestions })}>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <h4 className='text-foreground font-medium'>{t('Require people to answer questions when requesting to join this group')}</h4>
+              <p className='text-foreground/70 text-sm'>{t('Ask specific questions to help you evaluate join requests')}</p>
+            </div>
+            <Switch
+              checked={askJoinQuestions}
+              onCheckedChange={() => updateSettingDirectly('settings.askJoinQuestions')(!askJoinQuestions)}
+            />
+          </div>
+          <QuestionsForm
+            questions={joinQuestions}
+            save={updateSettingDirectly('joinQuestions', true)}
+            disabled={!askJoinQuestions}
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Prerequisite Groups')}</h3>
+        <p className='text-foreground/70 mb-4'>
+          {t('When you select a prerequisite group, people must join the prerequisite group before joining this group.')} <strong>{name}</strong>.{' '}
+          {t('Only parent groups can be added as prerequisite groups.')}{' '}
+          <Link to={groupUrl(group.slug, 'settings/relationships')} className='text-accent hover:underline'>
+            {t('Add parent groups in Related Groups settings')}
+          </Link>.
+        </p>
+        {parentGroups?.length > 0
+          ? (
+            <>
+              <div className='bg-accent/5 text-destructive p-4 rounded-lg mb-4'>
+                <p className='text-accent/100 m-0 p-0'>
+                  <strong><TriangleAlert className='w-4 h-4 inline' /> {t('Warning:')} </strong>
+                  <span>{t('If you select a prerequisite group that has a visibility setting of')}</span>
+                  <span className='inline-flex mx-1.5 relative top-[3px] items-center gap-1 font-bold'><EyeOff className='w-4 h-4' /> {t('Hidden')}</span>
+                  <span>{t('or')}</span>
+                  <span className='inline-flex mx-1.5 relative top-[3px] items-center gap-1 font-bold'><Shield className='w-4 h-4' /> {t('Protected')}</span>
+                  <span>{t('only members of those groups will be able to join this group. Because of these settings, people who find your group will not be able to see the prerequisite group.')}</span>
+                </p>
+              </div>
+              <GroupsSelector
+                options={parentGroups}
+                selected={prerequisiteGroups}
+                onChange={updateSettingDirectly('prerequisiteGroups')}
+                groupSettings
+              />
+            </>)
+          : (
+            <div className='bg-muted p-8 rounded-lg text-center'>
+              <p className='text-foreground/70 mb-2'>{t('{{group.name}} is not a member any groups', { group })}</p>
+              <p className='text-sm text-foreground/50'>
+                {t('A parent group is necessary to add as a prerequisite group. You may add parent groups if you are a Host of the group you wish to add, or if the group you wish to add has the Open access setting which allows any group to join it')}{' '}
+                <Link to={groupUrl(group.slug, 'settings/relationships')} className='text-accent hover:underline'>
+                  {t('Related Groups settings')}
+                </Link>
+              </p>
+            </div>)}
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Group Access Questions')}</h3>
+        <div className={cn('space-y-4', { 'opacity-50': !askGroupToGroupJoinQuestions })}>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <h4 className='text-foreground font-medium'>{t('Require groups to answer questions when requesting to join this group')}</h4>
+              <p className='text-foreground/70 text-sm'>{t('What questions are asked when a group requests to join this group?')}</p>
+            </div>
+            <Switch
+              checked={askGroupToGroupJoinQuestions}
+              onCheckedChange={() => updateSettingDirectly('settings.askGroupToGroupJoinQuestions')(!askGroupToGroupJoinQuestions)}
+            />
+          </div>
+          <QuestionsForm
+            questions={groupToGroupJoinQuestions}
+            save={updateSettingDirectly('groupToGroupJoinQuestions')}
+            disabled={!askGroupToGroupJoinQuestions}
+          />
+        </div>
+      </SettingsSection>
+
+      {type && (
+        <SettingsSection>
+          <h3 className='text-foreground font-bold mb-2'>{t('Hide {{postType}} Data', { postType: startCase(type) })}</h3>
+          <div className='space-y-4'>
+            <div className='flex items-center justify-between'>
+              <div className='space-y-1'>
+                <h4 className='text-foreground font-medium'>{t('Hide {{postType}} data for this group', { postType: type })}</h4>
+                <p className='text-foreground/70 text-sm'>{t('If you don\'t want to display the detailed {{postType}} specific data on your group\'s profile', { postType: type })}</p>
+              </div>
+              <Switch
+                checked={hideExtensionData}
+                onCheckedChange={() => updateSettingDirectly('settings.hideExtensionData')(hideExtensionData === undefined || hideExtensionData === null || !hideExtensionData)}
+              />
+            </div>
+          </div>
+        </SettingsSection>
+      )}
+
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Publish Murmurations Profile')}</h3>
+        <p className='text-foreground/70 mb-4'>
           <Trans i18nKey='murmurationsHeader'>
-            Add your group to the <a href='https://murmurations.network' target='_blank' rel='noopener noreferrer'>Murmurations</a> directory so it can be found and easily added to third-party public maps. You must first set visibility to Public.
+            Add your group to the <a href='https://murmurations.network' target='_blank' rel='noopener noreferrer' className='text-accent hover:underline'>Murmurations</a> directory so it can be found and easily added to third-party public maps. You must first set visibility to Public.
           </Trans>
         </p>
-        <div className={cn(general.switchContainer, 'mt-2 gap-1', { [general.on]: visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile })}>
-          <SwitchStyled
-            checked={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile}
-            onChange={() => updateSettingDirectly('settings.publishMurmurationsProfile')(!settings.publishMurmurationsProfile)}
-            backgroundColor={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile ? '#0DC39F' : '#8B96A4'}
-            disabled={visibility !== GROUP_VISIBILITY.Public}
-          />
-          <span className={general.toggleDescription}>{t('Publish to Murmurations')}</span>
-          <div className={general.onOff}>
-            <div className={general.off}>{t('OFF')}</div>
-            <div className={general.on}>{t('ON')}</div>
+        <div className='space-y-4'>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <h4 className='text-foreground font-medium'>{t('Publish to Murmurations')}</h4>
+              <p className='text-foreground/70 text-sm'>{t('Make your group discoverable in the Murmurations network')}</p>
+            </div>
+            <Switch
+              checked={visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile}
+              onCheckedChange={() => updateSettingDirectly('settings.publishMurmurationsProfile')(!settings.publishMurmurationsProfile)}
+              disabled={visibility !== GROUP_VISIBILITY.Public}
+            />
           </div>
         </div>
         {visibility === GROUP_VISIBILITY.Public && settings.publishMurmurationsProfile && (
-          <p className={cn(general.detailText, 'mt-2')}>
+          <p className='text-foreground/70 mt-4'>
             <Trans i18nKey='murmurationsDescription'>
-              Your group is now published to the Murmurations directory. You can find your profile <a href={`/noo/group/${slug}/murmurations`} target='_blank' rel='noopener noreferrer'>here</a>.
+              Your group is now published to the Murmurations directory. You can find your profile <a href={`/noo/group/${slug}/murmurations`} target='_blank' rel='noopener noreferrer' className='text-accent hover:underline'>here</a>.
             </Trans>
           </p>
         )}
       </SettingsSection>
+
       <SaveButton save={save} changed={changed} />
-    </div>
-  )
-}
-
-function VisibilitySettingRow ({ currentSetting, forSetting, updateSetting, t }) {
-  return (
-    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
-      <label>
-        <input type='radio' name='Visibility' value={forSetting} onChange={updateSetting('visibility')} checked={currentSetting === forSetting} />
-        <Icon name={visibilityIcon(forSetting)} className={styles.settingIcon} />
-        <div className={styles.settingDescription}>
-          <h4>{t(visibilityString(forSetting))}</h4>
-          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(visibilityDescription(forSetting))}</span>
-        </div>
-      </label>
-    </div>
-  )
-}
-
-function AccessibilitySettingRow ({ currentSetting, forSetting, updateSetting }) {
-  const { t } = useTranslation()
-  return (
-    <div className={cn(styles.privacySetting, { [styles.on]: currentSetting === forSetting })}>
-      <label>
-        <input type='radio' name='accessibility' value={forSetting} onChange={updateSetting('accessibility')} checked={currentSetting === forSetting} />
-        <Icon name={accessibilityIcon(forSetting)} className={styles.settingIcon} />
-        <div className={styles.settingDescription}>
-          <h4>{t(accessibilityString(forSetting))}</h4>
-          <span className={cn(styles.privacyOption, { [styles.disabled]: currentSetting !== forSetting })}>{t(accessibilityDescription(forSetting))}</span>
-        </div>
-      </label>
     </div>
   )
 }
@@ -297,17 +359,33 @@ function QuestionsForm ({ disabled, questions, save }) {
     save(newQuestions)
   }
 
-  const clearField = (index) => event => {
-    event.target.value = ''
-    updateJoinQuestion(index)(event)
-  }
-
   return (
-    <div className={styles.questionList}>
+    <div className='space-y-2'>
       {questions.map((q, i) => (
-        <div key={i} className={styles.question}>
-          {q.text ? <div className={styles.deleteInput}><Icon name='CircleEx' className={styles.close} onClick={clearField(i)} /></div> : <span className={styles.createInput}>+</span>}
-          <input name='questions[]' disabled={disabled} value={q.text} placeholder={t('Add a new question')} onChange={updateJoinQuestion(i)} />
+        <div key={i} className='relative'>
+          <input
+            name='questions[]'
+            disabled={disabled}
+            value={q.text}
+            placeholder={t('Add a new question')}
+            onChange={updateJoinQuestion(i)}
+            className={cn(
+              'w-full px-4 py-2 rounded-md bg-background',
+              'border border-input focus:border-accent',
+              'text-foreground placeholder:text-foreground/50',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          />
+          {q.text && (
+            <Button
+              variant='ghost'
+              size='icon'
+              className='absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6'
+              onClick={() => updateJoinQuestion(i)({ target: { value: '' } })}
+            >
+              <X className='w-4 h-4' />
+            </Button>
+          )}
         </div>
       ))}
     </div>

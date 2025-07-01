@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
 import Loading from 'components/Loading'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import SettingsControl from 'components/SettingsControl'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -188,18 +189,11 @@ function ResponsibilityRow ({
   if (showType !== type) return null
   return (
     <div className={cn('bg-foreground/5 mb-2 rounded-lg p-2')}>
-      <div className='flex'>
-        {draft && (<span onClick={onDelete}><Icon name='CircleEx' /> {t('Cancel')}</span>)}
-        {!draft && type !== 'system' && !changed && (<span onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</span>)}
-        {draft && <span className={styles.action} onClick={onSave}><Icon name='Plus' /> {t('Create')}</span>}
-        {!draft && changed && (<span onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
-        {!draft && changed && (<span onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
-      </div>
       {type === 'group' &&
         <div className={styles.responsibilityRow}>
           <div className={styles.responsibilityStack}>
-            <SettingsControl label='Title' onChange={onChange('title')} value={title} />
-            <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' />
+            <SettingsControl label='Title' onChange={onChange('title')} value={title} className='bg-input p-2 rounded-lg' />
+            <SettingsControl label='Description' onChange={onChange('description')} value={description} type='textarea' className='bg-input p-2 rounded-lg w-full' />
           </div>
         </div>}
       {type === 'system' &&
@@ -209,6 +203,13 @@ function ResponsibilityRow ({
             <span className='text-foreground text-sm opacity-50'>{description}</span>
           </div>
         </div>}
+      <div className='flex gap-2 justify-end'>
+        {draft && (<Button variant='outline' className='border-accent/20 text-accent' onClick={onDelete}><Icon name='CircleEx' /> {t('Cancel')}</Button>)}
+        {!draft && type !== 'system' && !changed && (<Button variant='outline' className='border-accent/20 text-accent' onClick={onServerDelete}><Icon name='Trash' /> {t('Delete')}</Button>)}
+        {draft && <Button variant='outline' className='border-selected/20 text-selected' onClick={onSave}><Icon name='Plus' /> {t('Create')}</Button>}
+        {!draft && changed && (<Button variant='outline' className='border-selected/20 text-selected' onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</Button>)}
+        {!draft && changed && (<Button variant='outline' className='border-accent/20 text-accent' onClick={onReset}><Icon name='Back' /> {t('Revert')}</Button>)}
+      </div>
     </div>
   )
 }

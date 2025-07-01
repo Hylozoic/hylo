@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
@@ -8,8 +7,6 @@ import PostDetail from 'routes/PostDetail'
 import checkIsPostPublic from 'store/actions/checkIsPostPublic'
 import PublicPageHeader from './PublicPageHeader'
 import { DETAIL_COLUMN_ID } from 'util/scrolling'
-
-import classes from './PublicLayoutRouter.module.scss'
 
 export default function PublicPostDetail (props) {
   const dispatch = useDispatch()
@@ -38,10 +35,10 @@ export default function PublicPostDetail (props) {
   }
 
   return (
-    <Div100vh className={classes.publicContainer}>
+    <Div100vh className='bg-background'>
       <PublicPageHeader />
-      <div className={cn(classes.centerColumn, classes.nonMapView)} id={DETAIL_COLUMN_ID}>
-        <div>
+      <div className='bg-midground w-full max-w-[750px] mx-auto mt-4' id={DETAIL_COLUMN_ID}>
+        <div className='w-full h-full overflow-y-auto'>
           <PostDetail {...props} />
         </div>
       </div>

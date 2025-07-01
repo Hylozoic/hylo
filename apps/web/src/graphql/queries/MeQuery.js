@@ -47,7 +47,6 @@ export default gql`
     linkedinUrl
     facebookUrl
     url
-    hasDevice
     intercomHash
     hasStripeAccount
     settings {
