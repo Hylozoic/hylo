@@ -2,12 +2,13 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.2 (Debian 15.2-1.pgdg110+1)
--- Dumped by pg_dump version 15.2 (Debian 15.2-1.pgdg110+1)
+-- Dumped from database version 17.4 (Postgres.app)
+-- Dumped by pg_dump version 17.5 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', 'public', false);
@@ -56,12 +57,6 @@ CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 --
 
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
-
-
---
--- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
---
-
 
 
 SET default_tablespace = '';
@@ -510,6 +505,7 @@ CREATE TABLE public.context_widgets (
     parent_id bigint,
     view character varying(255),
     icon character varying(255),
+    auto_added boolean DEFAULT false,
     view_group_id bigint,
     view_post_id bigint,
     custom_view_id bigint,
@@ -517,7 +513,6 @@ CREATE TABLE public.context_widgets (
     view_chat_id bigint,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    auto_added boolean DEFAULT false,
     CONSTRAINT single_view_reference CHECK (((((((
 CASE
     WHEN (view_group_id IS NOT NULL) THEN 1
@@ -1347,7 +1342,9 @@ CREATE TABLE public.groups (
     steward_descriptor_plural character varying(255) DEFAULT NULL::character varying,
     about_video_uri character varying(255),
     allow_in_public boolean DEFAULT false,
-    purpose text
+    purpose text,
+    welcome_page text,
+    website_url text
 );
 
 
@@ -1758,11 +1755,11 @@ CREATE TABLE public.moderation_actions (
     text text,
     reporter_id bigint NOT NULL,
     post_id bigint NOT NULL,
+    group_id bigint,
     status text,
     anonymous text,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    group_id bigint
+    updated_at timestamp with time zone
 );
 
 
@@ -2039,8 +2036,7 @@ CREATE SEQUENCE public.org_seq
 
 CREATE TABLE public.platform_agreements (
     id integer NOT NULL,
-    text text,
-    type text
+    text text
 );
 
 
@@ -2153,7 +2149,8 @@ CREATE TABLE public.posts (
     proposal_strict boolean DEFAULT false,
     anonymous_voting text,
     flagged_groups bigint[],
-    edited_at timestamp with time zone
+    edited_at timestamp with time zone,
+    num_commenters integer DEFAULT 0
 );
 
 
@@ -2449,7 +2446,8 @@ CREATE TABLE public.push_notifications (
     platform character varying(255),
     path character varying(255),
     disabled boolean,
-    device_id bigint
+    device_id bigint,
+    user_id bigint
 );
 
 
@@ -5475,14 +5473,6 @@ ALTER TABLE ONLY public.groups_posts
 
 
 --
--- Name: groups_posts fk_post_community_post_01; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_posts
-    ADD CONSTRAINT fk_post_community_post_01 FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: posts fk_post_creator_11; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6224,6 +6214,14 @@ ALTER TABLE ONLY public.proposal_votes
 
 ALTER TABLE ONLY public.push_notifications
     ADD CONSTRAINT push_notifications_device_id_foreign FOREIGN KEY (device_id) REFERENCES public.devices(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: push_notifications push_notifications_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_notifications
+    ADD CONSTRAINT push_notifications_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
