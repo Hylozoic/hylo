@@ -152,7 +152,7 @@ function JoinRequest ({ accept, decline, group, request }) {
           <div key={q.id} className='space-y-1'>
             <h3 className='text-foreground font-medium'>{q.text}</h3>
             <p className='text-foreground/70'>
-              {get('answer', questionAnswers.find(qa => qa.question.id === q.questionId)) || 
+              {get('answer', questionAnswers.find(qa => qa.question.id === q.questionId)) ||
                 <i className='text-foreground/50'>{t('Not answered')}</i>}
             </p>
           </div>

@@ -4,15 +4,20 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { PlusCircle, Trash2 } from 'lucide-react'
 import { cn } from 'util/index'
+
+import Button from 'components/ui/button'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import PostLabel from 'components/PostLabel'
 import PostSelector from 'components/PostSelector'
+import SaveButton from '../SaveButton'
 import SettingsControl from 'components/SettingsControl'
+import SettingsSection from '../SettingsSection'
 import SwitchStyled from 'components/SwitchStyled'
 import TopicSelector from 'components/TopicSelector'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+
 import { POST_TYPES } from 'store/models/Post'
 import {
   FETCH_COLLECTION_POSTS,
@@ -24,13 +29,12 @@ import {
   reorderPostInCollection,
   updateGroupSettings
 } from '../GroupSettings.store'
+
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
-import SettingsSection from '../SettingsSection'
-import SaveButton from '../SaveButton'
 import styles from './CustomViewsTab.module.scss'
-import Button from 'components/ui/button'
 
+const POST_TYPE_OPTIONS = Object.keys(POST_TYPES).filter(type => type !== 'chat' && type !== 'action')
 const emptyCustomView = {
   activePostsOnly: false,
   collectionId: null,
@@ -176,8 +180,8 @@ function CustomViewsTab ({ group }) {
   useEffect(() => {
     setHeaderDetails({
       title: {
-        mobile: `${t('Group Settings')} > ${t('Custom Views')}`,
-        desktop: `${t('Custom Views')}`
+        desktop: `${t('Group Settings')} > ${t('Custom Views')}`,
+        mobile: `${t('Custom Views')}`
       },
       icon: 'Eye'
     })
@@ -300,6 +304,7 @@ export function CustomViewRow ({
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (
               <Dropdown
+                id='custom-view-type-dropdown'
                 className='text-foreground bg-background p-2 rounded-md'
                 toggleChildren={
                   <span className='flex flex-row gap-1 items-center'>
@@ -329,6 +334,7 @@ export function CustomViewRow ({
                 label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-style-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -350,6 +356,7 @@ export function CustomViewRow ({
                 renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-sort-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -377,10 +384,7 @@ export function CustomViewRow ({
                       </span>
                       <div className={cn(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
                         <Icon name='Ex' className={styles.closeButton} onClick={() => setPostTypesModalOpen(!postTypesModalOpen)} />
-                        {Object.keys(POST_TYPES).map(postType => {
-                          if (postType === 'chat') {
-                            return null
-                          }
+                        {POST_TYPE_OPTIONS.map(postType => {
                           const color = POST_TYPES[postType].primaryColor
                           return (
                             <div

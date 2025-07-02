@@ -3,7 +3,7 @@ import { createSelector } from 'reselect'
 import { FETCH_GROUPS } from 'store/constants'
 import { makeGetQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 
-export function fetchGroups ({ allowedInPublic, farmQuery, groupType, nearCoord, offset, order, pageSize = 20, search, slug, sortBy }) {
+export function fetchGroups ({ allowedInPublic, farmQuery, groupType, nearCoord, offset, order, pageSize = 20, search, slug, sortBy, groupIds }) {
   const query = groupQuery
   const extractModel = 'Group'
   const getItems = get('payload.data.groups')
@@ -21,7 +21,8 @@ export function fetchGroups ({ allowedInPublic, farmQuery, groupType, nearCoord,
         offset,
         order,
         search,
-        sortBy
+        sortBy,
+        groupIds
       }
     },
     meta: {
@@ -45,7 +46,8 @@ query FetchGroups (
   $offset: Int,
   $order: String,
   $search: String,
-  $sortBy: String
+  $sortBy: String,
+  $groupIds: [ID]
 ) {
   groups(
     allowedInPublic: $allowedInPublic,
@@ -58,6 +60,7 @@ query FetchGroups (
     order: $order,
     search: $search,
     sortBy: $sortBy,
+    groupIds: $groupIds
   ) {
     hasMore
     total

@@ -7,13 +7,14 @@
 3. Run the backend *and* web apps; mobile depends on both of these running to work correctly
 4. Ask a teammate for a copy of the `.env` file, copy that into the root of this project (also available in Hylo 1Password)
 5. Then run `scripts/configure.sh`
-6. `cd ios` (do the next commands inside the apps/mobile/ios folder)
-7. `bundle install` (** assuming you have a functioning version of Ruby)
-8. `pod install`
-9. `cd ..` (leave the ios folder)
-10. `yarn start` (must be within apps/mobile) launches `metro`, the heart of the mobile dev experience
-11. You will see the metro options for launching the different environments and the devtools, and reload
-12. You will also need to run `yarn run android` to open the correct ports for the android emulator to be able to access the backend. Once it opens the ports, you can just cancel the rest of its actions
+6. Install the correct version of Java (currently v17). On a mac https://sdkman.io is the easiest way to do this.
+7. `cd ios` (do the next commands inside the apps/mobile/ios folder)
+8. `bundle install` (** assuming you have a functioning version of Ruby)
+9. `pod install`
+10. `cd ..` (leave the ios folder)
+11. `yarn start` (must be within apps/mobile) launches `metro`, the heart of the mobile dev experience
+12. You will see the metro options for launching the different environments and the devtools, and reload
+13. You will also need to run `yarn run android` to open the correct ports for the android emulator to be able to access the backend. Once it opens the ports, you can just cancel the rest of its actions
 
 ## Quick debug
 1. Most code changes will hot-reload into the devices; sometimes you need to hit 'r' in the metro terminal instance to reload (what you see afer hitting `yarn start`)
@@ -44,7 +45,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
 ```
 ### Versioning
 
-We use the conventional commits standard for for our versioning, so please brush-up on that here: https://www.conventionalcommits.org/en/v1.0.0. Run `yarn bump-version patch|minor|major|prerelease` to manage the version, which manages setting the version in `package.json` as well as the appropriately places in each of the native app's code. 
+We use the conventional commits standard for for our versioning, so please brush-up on that here: https://www.conventionalcommits.org/en/v1.0.0. Run `yarn bump-version patch|minor|major|prerelease` to manage the version, which manages setting the version in `package.json` as well as the appropriately places in each of the native app's code.
 
 ⚠️ Note `yarn bump-version` is not `yarn version` which is a yarn 4 version command which we do not use.
 
@@ -73,7 +74,7 @@ Here are the common scenarios in which we should run the `bump-version` command:
   - Add release notes
   - Submit for review
 - Submit to Google Play Store:
-  - Login to Google Play Store Console 
+  - Login to Google Play Store Console
   - Upload the APK file downloaded from Bitrise and tested above
   - Add release notes
   - Submit for review/release
@@ -115,3 +116,8 @@ We use urql for most of our graphQL and data fetching/handling needs. Its good t
 
 #### Subscriptions
 Real-time updates are handled in urql by subscriptions. These are integrated into our app in the [`AuthRootNavigator`](https://github.com/Hylozoic/hylo/blob/dev/apps/mobile/src/navigation/AuthRootNavigator.js)
+
+### Push Notification test
+This requires tweaks to your local backend env; PUSH_NOTIFICATIONS_TESTING_ENABLED needs to be set to TRUE or sometimes you can get away with just adding specific hylo user ids to the HYLO_TESTER_IDS
+
+After you have done this, the quick-n-dirty way to test is to go to the OneSignal model in the backend, insert a url you want to test, and then trigger a notification on a user that you have control of, and that exists in both in your local db and the prod db. 

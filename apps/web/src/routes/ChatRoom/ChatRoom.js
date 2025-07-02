@@ -78,7 +78,7 @@ EditorView.prototype.updateState = function updateState (state) {
 }
 
 // Define icon components as functions that accept props
-const NotificationsIcon = ({ type, ...props }) => {
+const NotificationsIcon = React.forwardRef(({ type, ...props }, ref) => {
   const { t } = useTranslation()
 
   switch (type) {
@@ -91,7 +91,7 @@ const NotificationsIcon = ({ type, ...props }) => {
     default:
       return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
   }
-}
+})
 
 const getDisplayDay = (date) => {
   return date.hasSame(DateTime.now(), 'day')
@@ -732,7 +732,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px]', animationClass)}
+            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost

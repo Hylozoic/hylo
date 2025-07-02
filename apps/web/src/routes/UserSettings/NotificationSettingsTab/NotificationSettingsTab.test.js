@@ -8,7 +8,6 @@ import SettingsIcon from './SettingIcon'
 
 describe('NotificationSettingsTab', () => {
   const currentUser = {
-    hasDevice: true,
     settings: {
       dmNotifications: 'none',
       commentNotifications: 'email',
@@ -47,7 +46,6 @@ describe('NotificationSettingsTab', () => {
         }}
         currentUser={{
           ...currentUser,
-          hasDevice: false
         }}
       />
     )
@@ -71,7 +69,6 @@ describe('NotificationSettingsTab', () => {
             ...currentUser.settings,
             commentNotifications: 'both'
           },
-          hasDevice: false
         }}
       />
     )

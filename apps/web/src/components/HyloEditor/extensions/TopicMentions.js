@@ -51,12 +51,11 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
             maxItems: maxSuggestions
           }).graphql
           const matchedTopics = await queryHyloAPI(findTopicsGraphql)
-
-          const results = matchedTopics?.data.groupTopics.items
+          const results = matchedTopics?.data.topics.items
             .map(t => ({
-              id: t.topic.name,
-              label: `#${t.topic.name}`,
-              suggestionLabel: t.topic.name
+              id: t.name,
+              label: `#${t.name}`,
+              suggestionLabel: t.name
             }))
 
           if (query?.trim().length > 2 && results) {

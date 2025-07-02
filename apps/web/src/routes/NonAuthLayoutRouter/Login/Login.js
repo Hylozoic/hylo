@@ -10,8 +10,9 @@ import login from 'store/actions/login'
 import loginWithService from 'store/actions/loginWithService'
 import TextInput from 'components/TextInput'
 import GoogleButton from 'components/GoogleButton'
-import Button from 'components/ui/Button'
+import Button from 'components/ui/button'
 import classes from './Login.module.scss'
+import { cn } from 'util'
 
 export default function Login (props) {
   const dispatch = useDispatch()
@@ -113,7 +114,7 @@ export default function Login (props) {
             onChange={handleEmailChange}
             doCheckAutofill
             className='bg-input rounded-md mb-3'
-            inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
+            inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='email'
             value={email || ''}
           />
@@ -125,7 +126,7 @@ export default function Login (props) {
             doCheckAutofill
             onEnter={handleLogin}
             className='bg-input rounded-md mb-3'
-            inputClassName='p-3 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
+            inputClassName='p-4 autofill:text-foreground text-foreground autofill:bg-transparent w-full bg-transparent rounded-md'
             type='password'
             value={password || ''}
           />
@@ -136,7 +137,7 @@ export default function Login (props) {
           </div>
           <Button
             variant='highVisibility'
-            className={`${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`}
+            className={cn('text-base', `${email && password ? 'bg-selected' : 'bg-gray-400 cursor-not-allowed'}`)}
             onClick={handleLogin}
             disabled={!email || !password}
           >

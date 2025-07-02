@@ -57,12 +57,16 @@ const ViewHeader = () => {
       <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
         {typeof title === 'string'
           ? title
-          : (
-            <>
-              <span className='inline sm:hidden text-sm truncate'>{title.mobile}</span>
-              <span className='hidden sm:inline'>{title.desktop}</span>
-            </>
-            )}
+          : React.isValidElement(title)
+            ? title
+            : title?.mobile && title?.desktop
+              ? (
+                <>
+                  <span className='inline sm:hidden text-sm truncate'>{title.mobile}</span>
+                  <span className='hidden sm:inline'>{title.desktop}</span>
+                </>
+                )
+              : String(title)}
       </h2>
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (

@@ -239,7 +239,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
             {t('Add parent groups in Related Groups settings')}
           </Link>.
         </p>
-        {console.log('Parent Groups:', parentGroups)}
         {parentGroups?.length > 0
           ? (
             <>

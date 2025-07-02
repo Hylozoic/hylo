@@ -75,7 +75,7 @@ function MapDrawer ({
 
   return (
     <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[300px] max-w-[500px] w-full relative z-20 bg-background', { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer' id='map-drawer'>
-      <div className='relative w-full p-4 pb-0 w-[calc(100%-55px)] ml-[55px]'>
+      <div className='relative p-4 pb-0 ml-[55px]'>
         <input
           className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2 mb-0'
           type='text'
@@ -165,6 +165,7 @@ function MapDrawer ({
               )}
               <span>{t('Sort posts by:')}</span>
               <Dropdown
+                id='map-drawer-sort-dropdown'
                 className={styles.sorter}
                 toggleChildren={(
                   <span className={styles.sorterLabel}>

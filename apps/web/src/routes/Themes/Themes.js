@@ -37,6 +37,7 @@ function ThemeColumn ({ title, isDark = false }) {
     <div className={`flex-1 p-6 ${columnClass}`}>
       <div className='bg-background text-foreground min-h-screen p-4 rounded-lg border border-border'>
         <h2 className='text-xl font-bold mb-6 text-center'>{title}</h2>
+
         {/* Basic Colors */}
         <div className='mb-6'>
           <h3 className='text-lg font-semibold mb-3'>Basic Colors</h3>

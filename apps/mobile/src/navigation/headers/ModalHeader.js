@@ -3,6 +3,8 @@ import { Header, getHeaderTitle } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
+import useRouteParams from 'hooks/useRouteParams'
+import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from 'style/colors'
 
@@ -30,6 +32,26 @@ export default function ModalHeader ({
   ...otherProps
 }) {
   const confirmAlert = useConfirmAlert()
+  const openURL = useOpenURL()
+  const { originalLinkingPath, id, commentId } = useRouteParams()
+
+  // Based on the current linking table setup, when the app is opened from a link/notification,
+  // It will open the content in a modal but not open the containing screeen
+  // This function ensures that the user is returned to the original path when the modal is closed
+  const respectOriginalPath = (() => {
+    if (!id || !originalLinkingPath) return null
+    
+    const postPathPattern = `/post/${id}`
+    const basePathEndIndex = originalLinkingPath.indexOf(postPathPattern)
+    
+    if (basePathEndIndex === -1) return null
+    
+    return () => {
+      const basePath = originalLinkingPath.substring(0, basePathEndIndex)
+      openURL(basePath, { replace: true })
+    }
+  })()
+
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
   const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || black10onRhino
   const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || rhino
@@ -49,9 +71,10 @@ export default function ModalHeader ({
       fontFamily: 'Circular-Bold'
     },
     headerLeft: headerLeft || options.headerLeft || (props => {
-      // get go back function from navigation
+      // Based on the navigation context (the stack of screens and the path),
+      // we need to determine how to handle the closing of modals
       const headerLeftOnPress = options.headerLeftOnPress ||
-        providedHeaderLeftOnPress ||
+        providedHeaderLeftOnPress || respectOriginalPath ||
         navigation.goBack
       const onPress = headerLeftConfirm
         ? () => confirmAlert({ onConfirm: headerLeftOnPress })

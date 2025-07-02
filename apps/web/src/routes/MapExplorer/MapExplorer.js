@@ -287,7 +287,7 @@ function MapExplorer (props) {
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
 
-  const [drawerWidth, setDrawerWidth] = useState(0)
+  const [drawerWidth, setDrawerWidth] = useState(300) // minimum width of drawer
   const resizeObserverRef = useRef(null)
 
   function observeDrawerWidth () {
@@ -312,12 +312,16 @@ function MapExplorer (props) {
     resizeObserverRef.current = resizeObserver
   }
 
-  function stopObservingDrawerWidth () {
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect()
-      resizeObserverRef.current = null
+  useEffect(() => {
+    if (!hideDrawer) {
+      observeDrawerWidth()
     }
-  }
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect()
+      }
+    }
+  }, [hideDrawer])
 
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
@@ -388,14 +392,9 @@ function MapExplorer (props) {
         observeDrawerWidth()
       } else {
         // Drawer is being closed
-        stopObservingDrawerWidth()
-      }
-      if (hideDrawer) {
-        // Drawer is being opened
-        observeDrawerWidth()
-      } else {
-        // Drawer is being closed
-        stopObservingDrawerWidth()
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect()
+        }
       }
     }, 100)
   }, [dispatch, hideDrawer, location])
@@ -593,6 +592,9 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
+    } else if (!hideDrawer) {
+      // Start observing drawer width on load unless its already hidden
+      observeDrawerWidth()
     }
 
     if (currentUser) {
@@ -802,7 +804,7 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-[1000] ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
         style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
@@ -893,6 +895,7 @@ function MapExplorer (props) {
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
+            id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
             menuAbove
             toggleChildren={(

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import Button from 'components/ui/Button'
+import Button from 'components/ui/button'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
@@ -103,14 +103,14 @@ export default function Signup (props) {
           onChange={handleEmailChange}
           onEnter={submit}
           className='bg-input rounded-md mb-3'
-          inputClassName='p-3 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
+          inputClassName='p-4 text-foreground bg-input w-full rounded-md autofill:text-foreground autofill:bg-transparent selected:text-foreground'
           type='text'
           value={email || ''}
         />
 
         <Button
           variant='highVisibility'
-          className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
+          className={cn('w-full mt-2 rounded-md p-2 text-foreground mb-4 text-base', { 'bg-selected': canSubmit, 'bg-foreground/10 text-foreground/80': !canSubmit })}
           onClick={canSubmit ? () => submit() : null}
         >
           {t('Create account')}

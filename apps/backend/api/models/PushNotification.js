@@ -8,28 +8,31 @@ module.exports = bookshelf.Model.extend({
   tableName: 'push_notifications',
   requireFetch: false,
 
-  device: function () {
-    return this.belongsTo(Device)
+  user: function () {
+    return this.belongsTo(User)
   },
 
   send: async function (options) {
-    const platform = this.getPlatform()
     const alert = this.get('alert')
     const path = this.get('path')
     const badgeNo = this.get('badge_no')
+    const user = await User.find(this.get('user_id'))
 
-    await this.load('device')
-    const { device } = this.relations
-    const deviceToken = device.get('token')
-    const playerId = device.get('player_id')
-    const disabled = !process.env.PUSH_NOTIFICATIONS_ENABLED && (
-      !process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED || !device.get('tester')
+    if (!user) {
+      // If no user, mark as disabled and return
+      await this.save({ sent_at: new Date().toISOString(), disabled: true }, options)
+      return this
+    }
+
+    const readerId = user.id
+    const disabled = process.env.PUSH_NOTIFICATIONS_ENABLED !== 'true' && (
+      process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !User.isTester(user.id)
     )
 
     await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     if (!disabled) {
       await OneSignal.notify({
-        platform, deviceToken, playerId, alert, path, badgeNo
+        readerId, alert, path, badgeNo
       })
     }
     return this

@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X, Star } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -978,9 +978,6 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-                <div className='flex flex-row gap-2 items-center'>
-                  <Star className='w-4 h-4 text-foreground' />
-                </div>
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
@@ -996,9 +993,9 @@ function PostEditor ({
                 </div>
               </div>
             ))}
-            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
+            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2 cursor-pointer' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
+              <span className='rounded-md'>{t('Add an option to vote on...')}</span>
             </div>
             {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
@@ -1066,7 +1063,7 @@ function PostEditor ({
       {canHaveTimes && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1'>
+          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
