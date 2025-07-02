@@ -9,7 +9,6 @@ import KeyboardManager, { PreviousNextView } from 'react-native-keyboard-manager
 import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { TextHelpers } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import {
