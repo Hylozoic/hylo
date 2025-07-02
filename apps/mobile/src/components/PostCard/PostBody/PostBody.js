@@ -26,6 +26,7 @@ export default function PostBody ({
   post,
   linkPreview,
   // linkPreviewFeatured,
+  timezone,
   myEventResponse,
   respondToEvent,
   shouldTruncate
@@ -38,7 +39,7 @@ export default function PostBody ({
   return (
     <View style={styles.container}>
       {startTime && endTime && (
-        <Text style={styles.resourceEndsAt}>{TextHelpers.formatDatePair(startTime, endTime)}</Text>
+        <Text style={styles.resourceEndsAt}>{TextHelpers.formatDatePair(startTime, endTime, false, timezone)}</Text>
       )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <PostTitle title={isFlagged ? t('Post flagged') : title} />
