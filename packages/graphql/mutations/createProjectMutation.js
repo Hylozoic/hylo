@@ -23,6 +23,9 @@ export default gql`
     $acceptContributions: Boolean
     $donationsLink: String
     $projectManagementLink: String
+    $startTime: Date
+    $endTime: Date
+    $timezone: String
   ) {
     createProject(data: {
       title: $title
@@ -38,6 +41,9 @@ export default gql`
       acceptContributions: $acceptContributions
       donationsLink: $donationsLink
       projectManagementLink: $projectManagementLink
+      startTime: $startTime
+      endTime: $endTime
+      timezone: $timezone
     }) {
       ...PostFieldsFragment
     }
