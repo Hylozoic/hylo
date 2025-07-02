@@ -26,7 +26,6 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
   const [state, setState] = useState(defaultEditState())
 
   useEffect(() => {
-    console.log('Parent Groups:', parentGroups)
     if (!fetchPending) {
       setState(defaultEditState())
     }
