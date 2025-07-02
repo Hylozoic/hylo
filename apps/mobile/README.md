@@ -106,6 +106,9 @@ We have a `RootNavigator`, that wraps `AuthRootNavigator` and `NonAuthRootNaviga
 
 I'm still quite interested in whether we can optimize our app and all of the nested of the above navigators as suggested in here: https://github.com/react-navigation/react-navigation/discussions/11290
 
+##### Debugging navigation and links
+use `yarn open-link`. It is really handy to get around the app and to manually test how links will resolve.
+
 ### Webview
 We use webviews a lot. These allow us to point at pieces of the web app in mobile screens. It is both very cool and has quirks.
 
@@ -117,7 +120,7 @@ We use urql for most of our graphQL and data fetching/handling needs. Its good t
 #### Subscriptions
 Real-time updates are handled in urql by subscriptions. These are integrated into our app in the [`AuthRootNavigator`](https://github.com/Hylozoic/hylo/blob/dev/apps/mobile/src/navigation/AuthRootNavigator.js)
 
-### Push Notification test
-This requires tweaks to your local backend env; PUSH_NOTIFICATIONS_TESTING_ENABLED needs to be set to TRUE or sometimes you can get away with just adding specific hylo user ids to the HYLO_TESTER_IDS
+### Push Notification testing
+This requires tweaks to your local backend env; PUSH_NOTIFICATIONS_TESTING_ENABLED needs to be set to TRUE or sometimes you can get away with just adding specific hylo user ids to the HYLO_TESTER_IDS. And you'll need to add valid OneSignal ID and key to your backend env
 
 After you have done this, the quick-n-dirty way to test is to go to the OneSignal model in the backend, insert a url you want to test, and then trigger a notification on a user that you have control of, and that exists in both in your local db and the prod db. 
