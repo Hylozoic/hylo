@@ -32,27 +32,30 @@ export function ThemeProvider ({ children }) {
 
   const [colorScheme, setColorScheme] = useState(() => {
     const stored = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
-    if (stored) return stored
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
-    return 'light'
+    return stored || 'auto'
+  })
+
+  const [systemColorScheme, setSystemColorScheme] = useState(() => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e) => {
-      if (!localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)) {
-        setColorScheme(e.matches ? 'dark' : 'light')
-      }
+      setSystemColorScheme(e.matches ? 'dark' : 'light')
     }
 
     mediaQuery.addEventListener('change', handleChange)
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
+  // Get the effective color scheme based on user preference and system setting
+  const effectiveColorScheme = colorScheme === 'auto' ? systemColorScheme : colorScheme
+
   useEffect(() => {
     // Ensure we have a valid theme
-    const theme = themes[currentTheme]?.[colorScheme] || themes[defaultTheme][colorScheme]
-    
+    const theme = themes[currentTheme]?.[effectiveColorScheme] || themes[defaultTheme][effectiveColorScheme]
+
     // Apply theme CSS variables
     Object.entries(theme).forEach(([key, value]) => {
       document.documentElement.style.setProperty(`--${key}`, value)
@@ -60,18 +63,23 @@ export function ThemeProvider ({ children }) {
 
     // Update root class for dark mode
     document.documentElement.classList.remove('light', 'dark')
-    document.documentElement.classList.add(colorScheme)
+    document.documentElement.classList.add(effectiveColorScheme)
 
     // Save preferences
     localStorage.setItem(THEME_STORAGE_KEY, currentTheme)
-    localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, colorScheme)
-  }, [currentTheme, colorScheme])
+    if (colorScheme !== 'auto') {
+      localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, colorScheme)
+    } else {
+      localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
+    }
+  }, [currentTheme, colorScheme, effectiveColorScheme])
 
   const value = {
     currentTheme,
     setCurrentTheme,
     colorScheme,
     setColorScheme,
+    effectiveColorScheme,
     availableThemes: Object.keys(themes)
   }
 
@@ -88,4 +96,4 @@ export function useTheme () {
     throw new Error('useTheme must be used within a ThemeProvider')
   }
   return context
-} 
+}

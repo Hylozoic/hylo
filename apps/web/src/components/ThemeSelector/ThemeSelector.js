@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm } from 'lucide-react'
+import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { cn } from 'util/index'
 
@@ -28,6 +28,18 @@ export default function ThemeSelector ({ className }) {
       <div className='flex items-center justify-between'>
         <label className='text-sm font-medium'>{t('Color Scheme')}</label>
         <div className='flex items-center gap-2 rounded-lg border p-1'>
+          <button
+            onClick={() => setColorScheme('auto')}
+            className={cn(
+              'p-2 rounded-md transition-colors',
+              colorScheme === 'auto'
+                ? 'bg-selected text-selected-foreground'
+                : 'hover:bg-muted'
+            )}
+            aria-label={t('Auto')}
+          >
+            <Monitor className='h-4 w-4' />
+          </button>
           <button
             onClick={() => setColorScheme('light')}
             className={cn(
