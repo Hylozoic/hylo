@@ -37,7 +37,6 @@ export default function Comment ({
   const [, deleteComment] = useMutation(deleteCommentMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId })
 
@@ -78,9 +77,6 @@ export default function Comment ({
   const commentMenuActions = [
     [t('Reply'), handleReply, {
       icon: <Icon name='Replies' style={styles.actionSheetIcon} />
-    }],
-    [t('React'), () => setShowEmojiPicker(!showEmojiPicker), {
-      icon: <Icon name='Smiley' style={styles.actionSheetIcon} />
     }],
     [t('Copy'), handleCopy, {
       icon: <FontAwesome5Icon name='copy' style={styles.actionSheetIcon} />
@@ -133,13 +129,14 @@ export default function Comment ({
           </View>
           <View style={styles.headerMiddle} />
           <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.replyLink}
-              hitSlop={{ top: 15, left: 10, bottom: 20, right: 10 }}
-              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+            <EmojiPicker
+              myEmojis={myEmojis}
+              includePicker={true}
+              handleReaction={handleReaction}
+              handleRemoveReaction={handleRemoveReaction}
             >
               <Icon style={styles.replyLinkIcon} name='Smiley' />
-            </TouchableOpacity>
+            </EmojiPicker>
             {handleReply && (
               <TouchableOpacity
                 style={styles.replyLink}
@@ -172,16 +169,6 @@ export default function Comment ({
             currentUser={currentUser}
             comment={comment}
           />
-          {showEmojiPicker && (
-            <EmojiPicker
-              useModal
-              myEmojis={myEmojis}
-              modalOpened={showEmojiPicker}
-              handleReaction={handleReaction}
-              onRequestClose={() => setShowEmojiPicker(!showEmojiPicker)}
-              handleRemoveReaction={handleRemoveReaction}
-            />
-          )}
         </View>
       </View>
     </TouchableOpacity>

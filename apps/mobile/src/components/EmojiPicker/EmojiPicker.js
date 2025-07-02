@@ -10,7 +10,8 @@ export default function EmojiPicker (props) {
     myEmojis,
     handleReaction,
     onRequestClose,
-    includePicker = false
+    includePicker = false,
+    children
   } = props
 
   const handleEmojiSelected = (selectedEmoji) => {
@@ -42,7 +43,7 @@ export default function EmojiPicker (props) {
         style={{ marginLeft: 10 }}
         closeButton={CloseButton}
       >
-        <Icon style={{ fontSize: 16, color: bigStone }} name='Smiley' />
+        {children || <Icon style={{ fontSize: 16, color: bigStone }} name='Smiley' />}
       </EmojiPopup>
     </View>
   )
