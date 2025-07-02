@@ -50,7 +50,7 @@ import ActionCompletionSection from './ActionCompletionSection'
 import classes from './PostDetail.module.scss'
 
 // the height of the header plus the padding-top
-const STICKY_HEADER_SCROLL_OFFSET = 44
+const STICKY_HEADER_SCROLL_OFFSET = 60
 const MAX_DETAILS_LENGTH = 144
 
 function PostDetail () {
