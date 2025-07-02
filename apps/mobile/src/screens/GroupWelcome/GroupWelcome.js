@@ -203,7 +203,7 @@ function LandingBodyContent ({ description, purpose, welcomePage }) {
     <>
       {welcomePage &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
-          <HyloHTML html={TextHelpers.markdown(welcomePage)} />
+          <HyloHTML html={welcomePage} />
         </View>}
       {!isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
@@ -213,7 +213,7 @@ function LandingBodyContent ({ description, purpose, welcomePage }) {
       {!isEmpty(description) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
           <Text style={styles.sectionHeading}>{t('Description')}:</Text>
-          <HyloHTML html={TextHelpers.markdown(description)} />
+          <HyloHTML html={description} />
         </View>}
       {isEmpty(description) && isEmpty(purpose) &&
         <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
