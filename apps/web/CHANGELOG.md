@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.6] - 2025-07-02
+
+### Changed
+- Group Welcome Page is now centered and has a max width
+
+### Fixed
+- Filtering by topics in map drawer
+- Map drawer styling in dark mode
+- #topic links in Group Welcome Page
+- Setting up prerequisite groups that must be joined before your group can be joined
+- Fix flash of [Object] in page titles
+- Remove action as a post type option for custom views
+- Remove extra weird star on proposal options
+- Topic selector text color in dark mode
+
 ## [6.1.5] - 2025-07-01
 
 ### Changed
