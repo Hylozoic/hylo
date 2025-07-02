@@ -46,7 +46,7 @@ export default function GroupSettings () {
   const rawGroup = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => rawGroup ? presentGroup(rawGroup) : null, [rawGroup])
   const currentUser = useSelector(getMe)
-  const parentGroups = useSelector(state => getParentGroups(state, group))
+  const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
   const commonRoles = useSelector(getCommonRoles)
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
 

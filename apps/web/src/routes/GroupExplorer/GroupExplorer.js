@@ -7,7 +7,7 @@ import GroupSearch from './GroupSearch'
 import { ALL_VIEW } from 'util/constants'
 
 // Get featured group IDs from environment variable or fallback to default list
-const FEATURED_GROUP_IDS = import.meta.env.VITE_FEATURED_GROUP_IDS?.split(',') || ['20866', '36177', '20966', '20828', '39912']
+const FEATURED_GROUP_IDS = import.meta.env.VITE_FEATURED_GROUP_IDS?.split(',') || []
 
 export default function GroupExplorer ({
   currentUser,

@@ -194,7 +194,7 @@
 .postsHeader {
   width: 100%;
   text-align: right;
-  composes: caption-lt-lg from 'css/typography.scss';
+  color: hsl(var(--foreground));
 
   > span {
     margin-right: 10px;
@@ -213,7 +213,7 @@
 }
 
 .sorter-label {
-  color: gray;
+  color: hsl(var(--foreground));
 }
 
 .sorterIcon {

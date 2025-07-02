@@ -368,7 +368,7 @@ export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'ye
         sortBy,
         search,
         topic: null,
-        topics: !isEmpty(topics) ? topics.map(t => t.id) : [],
+        topics,
         types
       }
     },
