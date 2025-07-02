@@ -150,6 +150,7 @@ function MapExplorer (props) {
     slug: groupSlug,
     groupSlugs,
     ...filters,
+    topics: filters.topics.map(t => t.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
@@ -490,10 +491,8 @@ function MapExplorer (props) {
     setCreatePopupVisible(false)
     creatingPostRef.current = true
     setTimeout(() => {
-      console.log('creatingPost', creatingPostRef.current)
       if (creatingPostRef.current) {
         showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
-        console.log('showCreatePopup', e.point, e.lngLat)
       }
     }, isAddingItemToMap ? 0 : oneSecondInMs)
   }, [isAddingItemToMap, showCreatePopup])
@@ -830,7 +829,7 @@ function MapExplorer (props) {
           posts={postsForDrawer}
           queryParams={queryParams}
           routeParams={routeParams}
-          topics={filters.topics}
+          topics={topicsFromPosts}
         />
       )}
       <div className='absolute top-5 left-[74px]'>
