@@ -2,6 +2,12 @@ import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
+import {
+  publishGroupUpdate,
+  publishGroupMembershipUpdate,
+  publishGroupRelationshipUpdate,
+  publishAsync
+} from '../../../lib/groupSubscriptionPublisher'
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
@@ -20,9 +26,18 @@ async function getStewardedGroup (userId, groupId, additionalResponsibility = ''
 
 // Group Mutations
 
-export async function addModerator (userId, personId, groupId) {
+export async function addModerator (userId, personId, groupId, context) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  const person = await User.find(personId)
   await GroupMembership.setModeratorRole(personId, group)
+
+  // Publish group membership update to all group members (non-blocking)
+  publishAsync(publishGroupMembershipUpdate, context, group, {
+    group,
+    member: person,
+    action: 'moderator_added'
+  })
+
   return group
 }
 
@@ -46,7 +61,7 @@ export async function deleteGroupTopic (userId, groupTopicId) {
   return { success: true }
 }
 
-export async function deleteGroupRelationship (userId, parentId, childId) {
+export async function deleteGroupRelationship (userId, parentId, childId, context) {
   const groupRelationship = await GroupRelationship.forPair(parentId, childId).fetch()
   if (!groupRelationship) {
     return { success: true }
@@ -62,13 +77,24 @@ export async function deleteGroupRelationship (userId, parentId, childId) {
   if (childGroup || parentGroup) {
     // the logged in user is a steward of one of the groups and so can delete the relationship
     await groupRelationship.save({ active: false })
+
+    // Publish group relationship updates to all members of both groups (non-blocking)
+    const parentGroupObj = await Group.find(parentId)
+    const childGroupObj = await Group.find(childId)
+    publishAsync(publishGroupRelationshipUpdate, context, {
+      parentGroup: parentGroupObj,
+      childGroup: childGroupObj,
+      action: 'relationship_removed',
+      relationship: null
+    })
+
     return { success: true }
   }
   throw new GraphQLError("You don't have permission to do this")
 }
 
 // Called when a user joins an open group
-export async function joinGroup (groupId, userId, questionAnswers) {
+export async function joinGroup (groupId, userId, questionAnswers, context) {
   const user = await User.find(userId)
   if (!user) throw new GraphQLError(`User id ${userId} not found`)
   const group = await Group.find(groupId)
@@ -85,7 +111,12 @@ export async function joinGroup (groupId, userId, questionAnswers) {
       throw new GraphQLError(`You must be a member of group ${prereq.get('name')} first`)
     }
   })
-  return user.joinGroup(group, { questionAnswers })
+
+  const result = await user.joinGroup(group, { questionAnswers })
+
+  // Subscription publishing for group joins is handled in the background job Group.afterAddMembers
+
+  return result
 }
 
 export async function regenerateAccessCode (userId, groupId) {
@@ -97,28 +128,59 @@ export async function regenerateAccessCode (userId, groupId) {
 /**
  * As a host, removes member from a group.
  */
-export async function removeMember (loggedInUserId, userIdToRemove, groupId) {
+export async function removeMember (loggedInUserId, userIdToRemove, groupId, context) {
   const group = await getStewardedGroup(loggedInUserId, groupId, Responsibility.constants.RESP_REMOVE_MEMBERS)
+  const memberToRemove = await User.find(userIdToRemove)
+
   await GroupService.removeMember(userIdToRemove, groupId)
+
+  publishAsync(publishGroupMembershipUpdate, context, group, {
+    group,
+    member: memberToRemove,
+    action: 'left'
+  }, {
+    additionalUserIds: [userIdToRemove]
+  })
+
   return group
 }
 
-export async function removeModerator (userId, personId, groupId, isRemoveFromGroup) {
+export async function removeModerator (userId, personId, groupId, isRemoveFromGroup, context) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+  const person = await User.find(personId)
+
   if (isRemoveFromGroup) {
     await GroupMembership.removeModeratorRole(personId, group)
     await GroupService.removeMember(personId, groupId)
+
+    publishAsync(publishGroupMembershipUpdate, context, group, {
+      group,
+      member: person,
+      action: 'left'
+    }, {
+      additionalUserIds: [personId]
+    })
   } else {
     await GroupMembership.removeModeratorRole(personId, group)
+
+    publishAsync(publishGroupMembershipUpdate, context, group, {
+      group,
+      member: person,
+      action: 'moderator_removed'
+    })
   }
 
   return group
 }
 
-export async function updateGroup (userId, groupId, changes) {
+export async function updateGroup (userId, groupId, changes, context) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
 
-  return group.update(convertGraphqlData(changes), userId)
+  const updatedGroup = await group.update(convertGraphqlData(changes), userId)
+
+  publishAsync(publishGroupUpdate, context, group, updatedGroup)
+
+  return updatedGroup
 }
 
 // Group to group relationship mutations
@@ -168,14 +230,26 @@ export async function inviteGroupToGroup (userId, fromId, toId, type, questionAn
   }
 }
 
-export async function acceptGroupRelationshipInvite (userId, groupRelationshipInviteId) {
+export async function acceptGroupRelationshipInvite (userId, groupRelationshipInviteId, context) {
   const invite = await GroupRelationshipInvite.where({ id: groupRelationshipInviteId }).fetch()
   if (invite) {
     if (GroupMembership.hasResponsibility(userId, invite.get('to_group_id'), Responsibility.constants.RESP_ADMINISTRATION)) {
       const groupRelationship = await invite.accept(userId)
-      await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds: group_ids })
+      const groupIds = [invite.get('from_group_id'), invite.get('to_group_id')]
+      await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds })
+
+      if (groupRelationship) {
+        const fromGroup = await Group.find(invite.get('from_group_id'))
+        const toGroup = await Group.find(invite.get('to_group_id'))
+        publishAsync(publishGroupRelationshipUpdate, context, {
+          parentGroup: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? fromGroup : toGroup,
+          childGroup: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? toGroup : fromGroup,
+          action: 'invite_accepted',
+          relationship: groupRelationship
+        })
+      }
+
       return { success: !!groupRelationship, groupRelationship }
-      
     } else {
       throw new GraphQLError('You do not have permission to do this')
     }
