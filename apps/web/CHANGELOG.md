@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove action as a post type option for custom views
 - Remove extra weird star on proposal options
 - Topic selector text color in dark mode
+- OAuth login and consent flow
+- Ability to view posts at URL of /post/:postId when logged in
+- Bug when viewing track action of Select One type
+- Text color of featured groups in group explorer
+- Scrolling of long public posts when not logged in
 
 ## [6.1.5] - 2025-07-01
 
