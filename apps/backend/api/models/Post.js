@@ -45,6 +45,18 @@ const commentersQuery = (limit, post, currentUserId) => q => {
   if (limit) q.limit(limit)
 }
 
+// utility for mapping eventInvitation response to iCal status
+const getCalStatus = (response) => {
+  switch (response) {
+    case EventInvitation.RESPONSE.NO:
+      return 'CANCELLED'
+    case EventInvitation.RESPONSE.YES:
+      return 'ACCEPTED'
+    default:
+      return 'tentative'
+  }
+}
+
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'posts',
   requireFetch: false,
@@ -348,8 +360,15 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: function (forUserId) {
+  getCalEventData: function (forUserId, eventInvitation) {
     const user = this.relations.user
+
+    const notGoing = eventInvitation.get('response') === EventInvitation.RESPONSE.NO
+    const status = notGoing ? 'CANCELLED' : 'CONFIRMED'
+    const method = notGoing ? 'CANCEL' : 'REQUEST'
+    const ical_sequence = (eventInvitation.get('ical_sequence') || 0) + 1
+    const uid = `event-${this.id}-hylo.com`
+
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
@@ -357,11 +376,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
       start: this.get('start_time'),
       end: this.get('end_time'),
       timezone: this.get('timezone'),
+      status,
+      method,
+      sequence: ical_sequence,
+      uid,
       organizer: {
         name: user.get('name'),
         email: user.get('email')
-      },
-      uid: this.id
+      }
     }
   },
 
