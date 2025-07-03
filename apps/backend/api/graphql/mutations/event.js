@@ -23,8 +23,6 @@ export async function respondToEvent (userId, eventId, response) {
     (going(response) && !going(eventInvitation.get('response'))) ||
     (!going(response) && going(eventInvitation.get('response')))
 
-  console.log('************** sendEmail', sendEmail)
-
   if (eventInvitation) {
     await eventInvitation.save({ response })
   } else {
@@ -49,8 +47,6 @@ export async function respondToEvent (userId, eventId, response) {
       cti: userId
     }).toString()
     icalEvent.uid(calEvent.uid)
-    console.log('calEvent', calEvent)
-    console.log('ical', cal.toString())
 
     Queue.classMethod('Email', 'sendEventRsvpEmail', {
       email: user.get('email'),
