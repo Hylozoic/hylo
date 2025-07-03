@@ -1,18 +1,17 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
-import classes from './NoPosts.module.scss'
+import { CircleDashed, MessageSquareDashed } from 'lucide-react'
 
-import { jollyAxolotl } from 'util/assets'
-
-const NoPosts = ({ message, className }) => {
+const NoPosts = ({ message, className, icon }) => {
   const { t } = useTranslation()
   const tMessage = message || t('Nothing to see here')
   return (
-    <div className={cn(classes.noPosts, className)}>
-      <img src={jollyAxolotl} />
-      <br />
-      <div><h2>{tMessage}</h2></div>
+    <div className={cn('text-center flex flex-col items-center justify-center', className)}>
+      {icon === 'message-dashed'
+        ? <MessageSquareDashed className='w-12 h-12 opacity-50' />
+        : <CircleDashed className='w-12 h-12 opacity-50' />}
+      <div><h2 className='opacity-70'>{tMessage}</h2></div>
     </div>
   )
 }
