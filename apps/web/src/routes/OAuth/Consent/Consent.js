@@ -8,7 +8,6 @@ import Button from 'components/ui/button'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { cancel, confirm } from './Consent.store'
-import classes from './Consent.module.scss'
 
 export default function Consent (props) {
   const [error, setError] = useState(null)
@@ -62,9 +61,9 @@ export default function Consent (props) {
   }
 
   return (
-    <div className={props.className}>
-      <div className={classes.formWrapper}>
-        <h1 className={classes.title}>{t('{{appName}} wants access to your Hylo account', { appName })}</h1>
+    <div className='bg-card shadow-md rounded-md w-full max-w-[320px]'>
+      <div className='p-4'>
+        <h1 className='text-2xl font-bold mb-4 text-foreground text-center'>{t('{{appName}} wants access to your Hylo account', { appName })}</h1>
         {error && formatError(error, 'Login')}
 
         <div>
