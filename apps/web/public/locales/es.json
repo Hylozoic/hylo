@@ -1471,5 +1471,6 @@
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
   "~ Mixed ~": "~ Mezclado ~",
   "“{{group.name}}” is a part of the “{{parent.name}}” group.": "“{{group.name}}” es parte del grupo “{{parent.name}}”.",
-  "“{{group.name}}” is part of the “{{parent.name}}” group.": "“{{group.name}}” forma parte del grupo “{{parent.name}}”."
+  "“{{group.name}}” is part of the “{{parent.name}}” group.": "“{{group.name}}” forma parte del grupo “{{parent.name}}”.",
+  "reported this on": "reportado el"
 }

@@ -1479,5 +1479,6 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other": "{{personOne}}, {{personTwo}} and {{othersTotal}} other",
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} and {{othersTotal}} others",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
-  "~ Mixed ~": "~ Mixed ~"
+  "~ Mixed ~": "~ Mixed ~",
+  "reported this on": "reported this on"
 }

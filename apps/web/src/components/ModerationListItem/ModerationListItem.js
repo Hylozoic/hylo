@@ -1,7 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
 
 import { agreementsURL, RESP_MANAGE_CONTENT } from 'store/constants'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
@@ -11,10 +10,10 @@ import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar/Avatar'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
 import { groupUrl } from 'util/navigation'
-import Button from 'components/Button/Button'
+import Button from 'components/ui/button'
 import PostListRow from 'components/PostListRow'
-
-import classes from './ModerationListItem.module.scss'
+import { cn } from 'util/index'
+import { format } from 'date-fns'
 
 const ModerationListItem = ({
   moderationAction,
@@ -31,6 +30,7 @@ const ModerationListItem = ({
   const {
     agreements,
     anonymous,
+    createdAt,
     post,
     reporter,
     status,
@@ -40,65 +40,101 @@ const ModerationListItem = ({
   const platformAgreementsIds = moderationAction.platformAgreements.map(agreement => agreement.id)
   const allPlatformAgreements = useSelector(getPlatformAgreements)
   const platformAgreements = allPlatformAgreements.filter(agreement => platformAgreementsIds.includes(agreement.id))
-  const reporterUrl = `/user/${reporter.id}` // TODO COMOD, fix this
+  const reporterUrl = `/user/${reporter.id}`
   const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
   const currentUserIsReporter = reporter.id === currentUser.id
 
   t('status-active')
   t('status-cleared')
 
+  const statusClasses = {
+    active: 'bg-accent/10 text-accent',
+    cleared: 'bg-focus/10 text-focus'
+  }
+
   return (
-    <div className={classes.moderationActionCard}>
-      <div className={classes.cardHeader}>
-        <span className={classes.userName} style={{ marginRight: '8px' }}>{t('Reported by')}:</span>
-        {anonymous && !canModerate
-          ? (<span>{t('Anonymous')}</span>)
-          : (
-            <div className={classes.reporterInfo}>
-              <Avatar avatarUrl={reporter.avatarUrl} url={reporterUrl} className={classes.avatar} />
-              <Link to={reporterUrl} className={classes.userName}>{reporter.name}</Link>
-            </div>)}
+    <div className='rounded-xl p-4 flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 relative hover:z-50 hover:scale-[1.02] duration-400'>
+      <div className='flex items-center justify-between border-b border-foreground/10 pb-4'>
+        <div className='flex items-center gap-2'>
+          {anonymous && !canModerate
+            ? (<span className='text-foreground/50'>{t('Anonymous')}</span>)
+            : (
+              <div className='flex items-center gap-2'>
+                <Button variant='link' className='p-0' to={reporterUrl}>
+                  <Avatar avatarUrl={reporter.avatarUrl} url={reporterUrl} medium />
+                  <span className='over:text-accent/80 font-medium text-foreground'>{reporter.name}</span>
+                </Button>
+              </div>)}
+          <div className='text-foreground/50 text-sm flex flex-row gap-1 items-center'>
+            <span>{t('reported this on')}</span>
+            <span>{format(new Date(createdAt), 'MMM d, yyyy')}</span>
+          </div>
+        </div>
+        <span className={cn('px-3 py-1 rounded-full text-sm font-medium', statusClasses[status])}>
+          {t('status-' + status)}
+        </span>
       </div>
 
-      <div className={classes.cardBody}>
-        <span className={classes[status]}>{t('status-' + status)}</span>
-        <h3>{t('Complaint')}:</h3>
-        <p>{text}</p>
-        <h3>{t('Reported content')}:</h3>
-        <PostListRow
-          post={post}
-          currentGroupId={group && group.id}
-          currentUser={currentUser}
-          routeParams={routeParams}
-        />
-        <div className={classes.agreements}>
+      <div className='py-4 space-y-6'>
+        <div>
+          <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Complaint')}</h3>
+          <p className='text-foreground/100'>{text}</p>
+        </div>
+
+        <div>
+          <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Reported content')}</h3>
+          <div className='rounded-lg p-0 h-98 overflow-hidden shadow-xl border-2 border-foreground/10 border-b-0'>
+            <PostListRow
+              post={post}
+              currentGroupId={group && group.id}
+              currentUser={currentUser}
+              routeParams={routeParams}
+            />
+          </div>
+        </div>
+
+        <div className='space-y-4'>
           {agreements.length > 0 && (
-            <>
-              <h3>{t('Group Agreements broken')}:</h3>
+            <div className='space-y-2'>
+              <h3 className='text-foreground/70 font-medium'>{t('Group Agreements broken')}:</h3>
               <MultiSelect items={agreements} />
-              <a href={groupAgreementsUrl} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to group agreements')}</a>
-            </>)}
+              <a
+                href={groupAgreementsUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-accent hover:text-accent/80 text-sm'
+              >
+                {t('Link to group agreements')}
+              </a>
+            </div>
+          )}
           {platformAgreements.length > 0 && (
-            <>
-              <p>----</p>
-              <h3>{t('Platform Agreements broken')}:</h3>
+            <div className='space-y-2 pt-4 border-t border-foreground/10'>
+              <h3 className='text-foreground/70 font-medium'>{t('Platform Agreements broken')}:</h3>
               <MultiSelect items={platformAgreements} />
-              <a href={agreementsURL} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to platform agreements')}</a>
-            </>)}
+              <a
+                href={agreementsURL}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-accent hover:text-accent/80 text-sm'
+              >
+                {t('Link to platform agreements')}
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className={classes.cardFooter}>
-        {(canModerate || currentUserIsReporter) && status !== 'cleared' && (
+      {(canModerate || currentUserIsReporter) && status !== 'cleared' && (
+        <div className='pt-4 border-t border-foreground/10'>
           <Button
             onClick={handleClearModerationAction}
-            label={t('Clear')}
-            color='purple'
-            // dataTip={t('Clear this flag from the content')}
-            // dataFor='submit-tt'
-          />
-        )}
-      </div>
+            variant='outline'
+          >
+            {t('Clear')} <span className='text-xs text-foreground/50'>{t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
