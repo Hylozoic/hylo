@@ -47,7 +47,7 @@ export default function RootRouter () {
         <Route path='/oauth/login/:uid' element={<OAuthLogin authenticated />} />
         {/* If authenticated and need to ask for oAuth consent again do so */}
         <Route
-          path='/oauth/consent/:uid'
+          path='/oauth/consent/:uid/*'
           element={<NonAuthLayoutRouter skipAuthCheck />}
         />
 

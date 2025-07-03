@@ -1,16 +1,49 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
+import { useDispatch } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { formatError } from 'routes/NonAuthLayoutRouter/util'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
+import useRouteParams from 'hooks/useRouteParams'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import { cancel, confirm } from './Consent.store'
 import classes from './Consent.module.scss'
 
 export default function Consent (props) {
   const [error, setError] = useState(null)
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const location = useLocation()
+  const routeParams = useRouteParams()
+
+  // Connector logic merged in
+  let missingOIDCScopes = getQuerystringParam('missingScopes', location) || []
+
+  // XXX: ideally we would know offline_access was requested even if it's not missing, so we can tell user they already granted it
+  //      but i don't know how to get that from the back-end yet.
+  const offlineAccessRequested = missingOIDCScopes.includes('offline_access')
+
+  if (!isEmpty(missingOIDCScopes)) {
+    if (!Array.isArray(missingOIDCScopes)) {
+      missingOIDCScopes = [missingOIDCScopes]
+    }
+    // remove openid and offline_access from scopes
+    missingOIDCScopes = missingOIDCScopes.filter(s => !['openid', 'offline_access'].includes(s))
+  }
+
+  let missingOIDCClaims = getQuerystringParam('missingClaims', location) || []
+  if (Array.isArray(missingOIDCClaims) && missingOIDCClaims.length) {
+    missingOIDCClaims = missingOIDCClaims.filter(c => !['sub', 'sid', 'auth_time', 'acr', 'amr', 'iss'].includes(c))
+  }
+
+  const missingResourceScopes = getQuerystringParam('missingResourceScopes', location) || []
+  const previousAuthsOnly = isEmpty(missingOIDCScopes) && isEmpty(missingOIDCClaims) && isEmpty(missingResourceScopes)
+  const appName = getQuerystringParam('name', location) || 'The App'
+  const oauthUID = routeParams.uid
 
   const submit = () => {
-    props.confirm().then((results) => {
+    dispatch(confirm(oauthUID)).then((results) => {
       if (results.error) {
         setError(results.error)
         console.error(t('Something weird happened during consent process'), results.error)
@@ -22,16 +55,14 @@ export default function Consent (props) {
     })
   }
 
-  const cancel = () => {
-    props.cancel().then((results) => {
+  const cancelAction = () => {
+    dispatch(cancel(oauthUID)).then((results) => {
       window.location.href = results.payload.redirectTo
     })
   }
 
-  const { appName, className, missingOIDCClaims, missingOIDCScopes, missingResourceScopes, offlineAccessRequested, previousAuthsOnly } = props
-
   return (
-    <div className={className}>
+    <div className={props.className}>
       <div className={classes.formWrapper}>
         <h1 className={classes.title}>{t('{{appName}} wants access to your Hylo account', { appName })}</h1>
         {error && formatError(error, 'Login')}
@@ -43,8 +74,9 @@ export default function Consent (props) {
 
           {!isEmpty(missingOIDCScopes)
             ? (
-              <div><h3>{t('This will allow {{appName}} to:', { appName })}</h3>
-                <ul>
+              <div className='mb-4'>
+                <h3>{t('This will allow {{appName}} to:', { appName })}</h3>
+                <ul className='list-disc'>
                   {missingOIDCScopes.map((scope) =>
                     <li key={scope}>
                       {scope === 'profile'
@@ -101,9 +133,10 @@ export default function Consent (props) {
             : ''}
         </div>
 
-        <Button label={t('Cancel')} color='dark-gray' narrow onClick={cancel} />
-
-        <Button className={classes.submit} label={t('Allow')} onClick={submit} />
+        <div className='flex gap-2 justify-center'>
+          <Button variant='outline' onClick={cancelAction}>{t('Cancel')}</Button>
+          <Button variant='secondary' onClick={submit}>{t('Allow')}</Button>
+        </div>
       </div>
     </div>
   )
