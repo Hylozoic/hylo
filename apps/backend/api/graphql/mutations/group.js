@@ -32,7 +32,7 @@ export async function addModerator (userId, personId, groupId, context) {
   await GroupMembership.setModeratorRole(personId, group)
 
   // Publish group membership update to all group members (non-blocking)
-  publishAsync(publishGroupMembershipUpdate, context, group, {
+  publishAsync(publishGroupMembershipUpdate, context, groupId, {
     group,
     member: person,
     action: 'moderator_added'
@@ -79,11 +79,9 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
     await groupRelationship.save({ active: false })
 
     // Publish group relationship updates to all members of both groups (non-blocking)
-    const parentGroupObj = await Group.find(parentId)
-    const childGroupObj = await Group.find(childId)
     publishAsync(publishGroupRelationshipUpdate, context, {
-      parentGroup: parentGroupObj,
-      childGroup: childGroupObj,
+      parentGroupId: parentId,
+      childGroupId: childId,
       action: 'relationship_removed',
       relationship: null
     })
@@ -134,7 +132,7 @@ export async function removeMember (loggedInUserId, userIdToRemove, groupId, con
 
   await GroupService.removeMember(userIdToRemove, groupId)
 
-  publishAsync(publishGroupMembershipUpdate, context, group, {
+  publishAsync(publishGroupMembershipUpdate, context, groupId, {
     group,
     member: memberToRemove,
     action: 'left'
@@ -153,7 +151,7 @@ export async function removeModerator (userId, personId, groupId, isRemoveFromGr
     await GroupMembership.removeModeratorRole(personId, group)
     await GroupService.removeMember(personId, groupId)
 
-    publishAsync(publishGroupMembershipUpdate, context, group, {
+    publishAsync(publishGroupMembershipUpdate, context, groupId, {
       group,
       member: person,
       action: 'left'
@@ -163,7 +161,7 @@ export async function removeModerator (userId, personId, groupId, isRemoveFromGr
   } else {
     await GroupMembership.removeModeratorRole(personId, group)
 
-    publishAsync(publishGroupMembershipUpdate, context, group, {
+    publishAsync(publishGroupMembershipUpdate, context, groupId, {
       group,
       member: person,
       action: 'moderator_removed'
@@ -178,7 +176,7 @@ export async function updateGroup (userId, groupId, changes, context) {
 
   const updatedGroup = await group.update(convertGraphqlData(changes), userId)
 
-  publishAsync(publishGroupUpdate, context, group, updatedGroup)
+  publishAsync(publishGroupUpdate, context, groupId, updatedGroup)
 
   return updatedGroup
 }
@@ -239,11 +237,9 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
       await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds })
 
       if (groupRelationship) {
-        const fromGroup = await Group.find(invite.get('from_group_id'))
-        const toGroup = await Group.find(invite.get('to_group_id'))
         publishAsync(publishGroupRelationshipUpdate, context, {
-          parentGroup: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? fromGroup : toGroup,
-          childGroup: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? toGroup : fromGroup,
+          parentGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('from_group_id') : invite.get('to_group_id'),
+          childGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('to_group_id') : invite.get('from_group_id'),
           action: 'invite_accepted',
           relationship: groupRelationship
         })
