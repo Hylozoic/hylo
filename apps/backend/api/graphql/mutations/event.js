@@ -38,7 +38,7 @@ export async function respondToEvent (userId, eventId, response) {
     const cal = ical()
     const calEvent = event.getCalEventData(userId, eventInvitation)
     cal.method(calEvent.method)
-    const icalEvent = cal.createEvent(calEvent)
+    cal.createEvent(calEvent).uid(calEvent.uid)
     const user = await User.find(userId)
     const groupNames = event.relations.groups.map(g => g.get('name')).join(', ')
 
@@ -46,7 +46,6 @@ export async function respondToEvent (userId, eventId, response) {
       ctt: 'event_rsvp',
       cti: userId
     }).toString()
-    icalEvent.uid(calEvent.uid)
 
     Queue.classMethod('Email', 'sendEventRsvpEmail', {
       email: user.get('email'),
