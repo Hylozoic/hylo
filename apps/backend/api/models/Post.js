@@ -45,18 +45,6 @@ const commentersQuery = (limit, post, currentUserId) => q => {
   if (limit) q.limit(limit)
 }
 
-// utility for mapping eventInvitation response to iCal status
-const getCalStatus = (response) => {
-  switch (response) {
-    case EventInvitation.RESPONSE.NO:
-      return 'CANCELLED'
-    case EventInvitation.RESPONSE.YES:
-      return 'ACCEPTED'
-    default:
-      return 'tentative'
-  }
-}
-
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'posts',
   requireFetch: false,
