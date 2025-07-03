@@ -16,6 +16,14 @@ module.exports = bookshelf.Model.extend({
 
   event: function () {
     return this.belongsTo(Post, 'event_id')
+  },
+
+  getIcalSequence: function () {
+    return this.get('ical_sequence') || 0
+  },
+
+  incrementIcalSequence: function () {
+    this.save({ ical_sequence: this.getIcalSequence() + 1 })
   }
 
 }, {

@@ -69,7 +69,7 @@ export async function respondToEvent (userId, eventId, response) {
       ]
     }).then(() => {
       // update the ical sequence number, no need to await
-      eventInvitation.save({ ical_sequence: (eventInvitation.get('ical_sequence') || 0) + 1 })
+      eventInvitation.incrementIcalSequence()
     })
   }
 

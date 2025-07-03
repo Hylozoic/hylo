@@ -354,8 +354,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const notGoing = eventInvitation.get('response') === EventInvitation.RESPONSE.NO
     const status = notGoing ? 'CANCELLED' : 'CONFIRMED'
     const method = notGoing ? 'CANCEL' : 'REQUEST'
-    const ical_sequence = (eventInvitation.get('ical_sequence') || 0) + 1
-    const uid = `event-${this.id}-hylo.com`
 
     return {
       summary: this.title(),
@@ -366,8 +364,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       timezone: this.get('timezone'),
       status,
       method,
-      sequence: ical_sequence,
-      uid,
+      sequence: eventInvitation.getIcalSequence(),
+      uid: `event-${this.id}-hylo.com`,
       organizer: {
         name: user.get('name'),
         email: user.get('email')
