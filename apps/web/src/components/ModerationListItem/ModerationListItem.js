@@ -96,29 +96,29 @@ const ModerationListItem = ({
         <div className='space-y-4'>
           {agreements.length > 0 && (
             <div className='space-y-2'>
-              <h3 className='text-foreground/70 font-medium'>{t('Group Agreements broken')}:</h3>
+              <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Group Agreements broken')}</h3>
               <MultiSelect items={agreements} />
               <a
                 href={groupAgreementsUrl}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-accent hover:text-accent/80 text-sm'
+                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
               >
-                {t('Link to group agreements')}
+                {t('View group agreements')}
               </a>
             </div>
           )}
           {platformAgreements.length > 0 && (
             <div className='space-y-2 pt-4 border-t border-foreground/10'>
-              <h3 className='text-foreground/70 font-medium'>{t('Platform Agreements broken')}:</h3>
+              <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Platform Agreements broken')}</h3>
               <MultiSelect items={platformAgreements} />
               <a
                 href={agreementsURL}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-accent hover:text-accent/80 text-sm'
+                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
               >
-                {t('Link to platform agreements')}
+                {t('View platform agreements')}
               </a>
             </div>
           )}
