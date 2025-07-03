@@ -106,7 +106,7 @@ export default function NonAuthLayoutRouter (props) {
             />
             <Route path='/oauth/login/:uid' element={<OAuthLogin className={classes.form} />} />
             <Route
-              path=''
+              path='/oauth/consent/:uid/*'
               element={<OAuthConsent {...props} className={classes.form} />}
             />
             {/*
@@ -168,7 +168,7 @@ export default function NonAuthLayoutRouter (props) {
             }
           />
           <Route
-            path=''
+            path='/oauth/consent/:uid/*'
             element={
               <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4'>
                 <p>{t('Make sure you trust {{name}} with your information.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
