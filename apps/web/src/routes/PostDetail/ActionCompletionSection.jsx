@@ -163,7 +163,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           <h3>Complete this action</h3>
           <p className='font-bold'>{instructions}</p>
           {completionControls}
-          {completionButtonText && <Button onClick={handleSubmitCompletion} disabled={completionResponse?.length === 0}>{completionButtonText}</Button>}
+          {completionButtonText && <Button onClick={handleSubmitCompletion} disabled={completionResponse?.length === 0 && completionAction !== 'button'}>{completionButtonText}</Button>}
         </>
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>
