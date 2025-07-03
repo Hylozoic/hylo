@@ -27,7 +27,7 @@ export default function ThemeSelector ({ className }) {
     <div className={cn('flex flex-col gap-4', className)}>
       <div className='flex items-center justify-between'>
         <label className='text-sm font-medium'>{t('Color Scheme')}</label>
-        <div className='flex items-center gap-2 rounded-lg border p-1'>
+        <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
           <button
             onClick={() => setColorScheme('auto')}
             className={cn(
