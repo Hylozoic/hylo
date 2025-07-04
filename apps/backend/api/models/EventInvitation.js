@@ -24,8 +24,11 @@ module.exports = bookshelf.Model.extend({
 
   incrementIcalSequence: function () {
     this.save({ ical_sequence: this.getIcalSequence() + 1 })
-  }
+  },
 
+  notGoing: function () {
+    return this.get('response') === EventInvitation.RESPONSE.NO
+  }
 }, {
 
   RESPONSE: {

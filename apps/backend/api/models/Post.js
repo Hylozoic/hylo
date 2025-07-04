@@ -351,10 +351,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   getCalEventData: function (forUserId, eventInvitation) {
     const user = this.relations.user
 
-    const notGoing = eventInvitation.get('response') === EventInvitation.RESPONSE.NO
-    const status = notGoing ? 'CANCELLED' : 'CONFIRMED'
-    const method = notGoing ? 'CANCEL' : 'REQUEST'
-
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
@@ -362,8 +358,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       start: this.get('start_time'),
       end: this.get('end_time'),
       timezone: this.get('timezone'),
-      status,
-      method,
+      status: eventInvitation.notGoing() ? 'CANCELLED' : 'CONFIRMED',
+      method: eventInvitation.notGoing() ? 'CANCEL' : 'REQUEST',
       sequence: eventInvitation.getIcalSequence(),
       uid: `event-${this.id}-hylo.com`,
       organizer: {
