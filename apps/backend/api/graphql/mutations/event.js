@@ -19,9 +19,9 @@ export async function respondToEvent (userId, eventId, response) {
   }
 
   let eventInvitation = await EventInvitation.find({ userId, eventId })
-  const sendEmail = (!eventInvitation && going(response)) ||
-    (eventInvitation && going(response) && !going(eventInvitation.get('response'))) ||
-    (eventInvitation && !going(response) && going(eventInvitation.get('response')))
+  const sendEmail = (!eventInvitation && EventInvitation.going(response)) ||
+    (eventInvitation && EventInvitation.going(response) && !EventInvitation.going(eventInvitation)) ||
+    (eventInvitation && !EventInvitation.going(response) && EventInvitation.going(eventInvitation))
 
   if (eventInvitation) {
     await eventInvitation.save({ response })
