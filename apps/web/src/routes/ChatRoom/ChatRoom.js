@@ -612,13 +612,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
+  const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} />}
+          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>
   )
 }
