@@ -319,6 +319,24 @@ type Query {
 
 union Update = Message | MessageThread | Notification
 
+# Group membership update payload for subscriptions
+type GroupMembershipUpdate {
+  group: Group
+  member: Person
+  # Action type: 'joined', 'left', 'role_changed', 'moderator_added', 'moderator_removed'
+  action: String
+  role: String
+}
+
+# Group relationship update payload for subscriptions
+type GroupRelationshipUpdate {
+  parentGroup: Group
+  childGroup: Group
+  # Action type: 'relationship_created', 'relationship_removed', 'invite_sent', 'invite_accepted', 'invite_rejected', 'invite_cancelled'
+  action: String
+  relationship: GroupRelationship
+}
+
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
   comments(postId: ID, parentCommentId: ID): Comment,
@@ -329,6 +347,10 @@ type Subscription {
   # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
   # example usage of this in Mobile.
   updates: Update
+  # Group-specific subscriptions for membership and relationship updates
+  groupUpdates: Group
+  groupMembershipUpdates: GroupMembershipUpdate  
+  groupRelationshipUpdates: GroupRelationshipUpdate
 }
 
 # The meta data associated with an Activity

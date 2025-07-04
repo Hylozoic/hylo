@@ -37,6 +37,7 @@ import { twBackground } from 'style/colors'
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
     updates {
+      __typename
       ... on Notification {
         ...NotificationFieldsFragment
       }
@@ -57,11 +58,68 @@ const updatesSubscription = gql`
           unreadCount
         }
       }
-
     }
   }
   ${notificationFieldsFragment}
   ${messageThreadFieldsFragment}
+`
+
+const groupUpdatesSubscription = gql`
+  subscription GroupUpdatesSubscription {
+    groupUpdates {
+      id
+      name
+      slug
+      avatarUrl
+      memberCount
+      description
+    }
+  }
+`
+
+const groupMembershipUpdatesSubscription = gql`
+  subscription GroupMembershipUpdatesSubscription {
+    groupMembershipUpdates {
+      action
+      role
+      group {
+        id
+        name
+        slug
+        avatarUrl
+        memberCount
+      }
+      member {
+        id
+        name
+        avatarUrl
+      }
+    }
+  }
+`
+
+const groupRelationshipUpdatesSubscription = gql`
+  subscription GroupRelationshipUpdatesSubscription {
+    groupRelationshipUpdates {
+      action
+      parentGroup {
+        id
+        name
+        slug
+        avatarUrl
+      }
+      childGroup {
+        id
+        name
+        slug
+        avatarUrl
+      }
+      relationship {
+        id
+        createdAt
+      }
+    }
+  }
 `
 
 const AuthRoot = createStackNavigator()
@@ -78,6 +136,9 @@ export default function AuthRootNavigator () {
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
 
   useSubscription({ query: updatesSubscription })
+  useSubscription({ query: groupUpdatesSubscription })
+  useSubscription({ query: groupMembershipUpdatesSubscription })
+  useSubscription({ query: groupRelationshipUpdatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
