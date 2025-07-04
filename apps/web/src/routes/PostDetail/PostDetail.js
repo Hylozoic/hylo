@@ -419,7 +419,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
       )}
       {showCompletionResponsesDialog && (
         <ActionCompletionResponsesDialog
-          portalTarget={`post-detail-container-${post.id}`}
+          portalTarget='post-dialog-content'
           post={post}
           onClose={toggleCompletionResponsesDialog}
         />
