@@ -24,7 +24,7 @@ const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
           handleSelect && handleSelect(item.id)
         }}
         key={item.id}
-        className={cn(classes.item, { [classes.selected]: selected.includes(item.id) })}
+        className={cn('flex items-center hover:cursor-pointer justify-between gap-2 p-2 rounded-md border border-foreground/20 hover:border-foreground/100 transition-all scale-100 hover:scale-102', { [classes.selected]: selected.includes(item.id) })}
       >
         <span>{item.text || item.title}</span>
         {handleSelect && (
@@ -39,7 +39,7 @@ const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
   }
 
   return (
-    <ul className={classes.multiSelect}>
+    <ul className='flex flex-col gap-2 m-0 p-2'>
       {renderItems()}
       {hideAfter && items.length > hideAfter && !showAll && (
         <div className={classes.showMore} onClick={handleShowMore}>
