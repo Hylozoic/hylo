@@ -306,7 +306,7 @@ describe('User', function () {
         expect(user.id).to.exist
         expect(user.get('active')).to.be.true
         expect(user.get('facebook_url')).to.equal('http://www.facebook.com/foo')
-        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/foo/picture?type=large&access_token=186895474801147|zzzzzz')
+        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/foo/picture?type=large&access_token=186895474801147|ppppppp')
 
         return Promise.join(
           LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {

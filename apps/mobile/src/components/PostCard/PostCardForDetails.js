@@ -127,6 +127,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
         respondToEvent={handleRespondToEvent}
         isFlagged={isFlagged && !post.clickthrough}
         startTime={post.startTimeRaw}
+        timezone={post.timezone}
         title={post.title}
         type={post.type}
         post={post}

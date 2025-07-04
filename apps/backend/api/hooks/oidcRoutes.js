@@ -11,11 +11,10 @@ const adjustRedirectUrl = (url, req) => {
 }
 
 module.exports = function (app) {
-
   return {
     routes: {
       before: {
-        'GET /noo/oidc/interaction/:uid':  async (req, res, next) => {
+        'GET /noo/oidc/interaction/:uid': async (req, res, next) => {
           try {
             const details = await oidc.interactionDetails(req, res)
             const { uid, prompt, params } = details
@@ -23,29 +22,28 @@ module.exports = function (app) {
             const client = await oidc.Client.find(params.client_id)
 
             if (prompt.name === 'login') {
-              return res.redirect('/oauth/login/' + uid + '?name=' + client['name'])
+              return res.redirect('/oauth/login/' + uid + '?name=' + client.name)
             }
 
-            let redirectUrl = '/oauth/consent/' + uid + '?name=' + client['name']
-            const missingOIDCScope = get("details.missingOIDCScope", prompt) || false
+            let redirectUrl = '/oauth/consent/' + uid + '?name=' + client.name
+            const missingOIDCScope = get('details.missingOIDCScope', prompt) || false
             if (missingOIDCScope) {
               redirectUrl += '&' + missingOIDCScope.map(s => 'missingScopes=' + s).join('&')
             }
 
             return res.redirect(redirectUrl)
           } catch (err) {
-            console.error("Error with oAuth interaction", err)
+            console.error('Error with oAuth interaction', err)
             return next(err)
           }
         },
 
         'POST /noo/oidc/:uid/login': async (req, res, next) => {
           try {
-
             const details = await oidc.interactionDetails(req, res)
             const { uid, prompt, params } = details
 
-            if (prompt.name !== 'login') return res.status(403).send({ error: "Invalid request, please start over" })
+            if (prompt.name !== 'login') return res.status(403).send({ error: 'Invalid request, please start over' })
 
             const client = await oidc.Client.find(params.client_id)
 
@@ -61,17 +59,17 @@ module.exports = function (app) {
             }
 
             const result = {
-              login: { accountId: user.id },
+              login: { accountId: user.id }
             }
 
             let redirectTo = await oidc.interactionResult(req, res, result, { mergeWithLastSubmission: false })
 
             // Add name of the client so we can display locally
-            redirectTo = adjustRedirectUrl(redirectTo, req) + '?name=' + client['name']
+            redirectTo = adjustRedirectUrl(redirectTo, req) + '?name=' + client.name
 
             return res.send({ redirectTo })
           } catch (err) {
-            console.error("Error with oAuth login", err)
+            console.error('Error with oAuth login', err)
             return res.status(403).send({ error: err.message })
           }
         },
@@ -81,7 +79,7 @@ module.exports = function (app) {
             const interactionDetails = await oidc.interactionDetails(req, res)
             const { prompt: { name, details }, params, session: { accountId } } = interactionDetails
 
-            if (name !== 'consent') return res.status(500).send({ error: "Invalid Request" })
+            if (name !== 'consent') return res.status(500).send({ error: 'Invalid Request' })
 
             let { grantId } = interactionDetails
             let grant
@@ -133,7 +131,7 @@ module.exports = function (app) {
           try {
             const result = {
               error: 'access_denied',
-              error_description: 'End-User aborted interaction',
+              error_description: 'End-User aborted interaction'
             }
             const redirectTo = await oidc.interactionResult(req, res, result, { mergeWithLastSubmission: false })
             return res.send({ redirectTo: adjustRedirectUrl(redirectTo, req) })

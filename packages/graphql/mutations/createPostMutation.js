@@ -31,6 +31,7 @@ export default gql`
     $memberIds: [ID],
     $startTime: Date,
     $endTime: Date,
+    $timezone: String,
     $location: String,
     $locationId: ID,
     $isPublic: Boolean
@@ -53,6 +54,7 @@ export default gql`
       memberIds: $memberIds,
       startTime: $startTime,
       endTime: $endTime,
+      timezone: $timezone,
       location: $location,
       locationId: $locationId,
       isPublic: $isPublic

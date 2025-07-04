@@ -2,13 +2,12 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 17.4 (Postgres.app)
--- Dumped by pg_dump version 17.5 (Homebrew)
+-- Dumped from database version 14.17 (Postgres.app)
+-- Dumped by pg_dump version 17.4 (Postgres.app)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', 'public', false);
@@ -16,6 +15,13 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
 
 --
 -- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
@@ -45,6 +51,12 @@ CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 
 
+--
+-- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -69,7 +81,7 @@ CREATE TABLE public.activities (
     project_contribution_id bigint,
     group_id bigint,
     other_group_id bigint,
-    track_id bigint
+    track_id integer
 );
 
 
