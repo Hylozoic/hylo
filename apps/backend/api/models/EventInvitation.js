@@ -16,14 +16,30 @@ module.exports = bookshelf.Model.extend({
 
   event: function () {
     return this.belongsTo(Post, 'event_id')
-  }
+  },
 
+  getIcalSequence: function () {
+    return this.get('ical_sequence') || 0
+  },
+
+  incrementIcalSequence: function () {
+    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+  },
+
+  notGoing: function () {
+    return this.get('response') === EventInvitation.RESPONSE.NO
+  }
 }, {
 
   RESPONSE: {
     YES: 'yes',
     NO: 'no',
     INTERESTED: 'interested'
+  },
+
+  going: function (eventInvitationOrResponse) {
+    const response = eventInvitationOrResponse.get?.('response') || eventInvitationOrResponse
+    return response === EventInvitation.RESPONSE.YES || response === EventInvitation.RESPONSE.INTERESTED
   },
 
   getHumanResponse: function (response) {
