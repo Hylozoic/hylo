@@ -815,9 +815,34 @@ module.exports = bookshelf.Model.extend(merge({
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_member', groupId).fetchAll()
 
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
+    const group = await Group.find(groupId)
+
+    // Publish group membership updates for new and reactivated members
+    if (group && members.length > 0) {
+      const { publishGroupMembershipUpdate } = require('../../lib/groupSubscriptionPublisher')
+
+      for (const member of members.models) {
+        const action = reactivatedUserIds.includes(member.id) ? 'rejoined' : 'joined'
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📡 Background job: Publishing membership update for ${member.get('name')} (${action})`)
+        }
+
+        try {
+          await publishGroupMembershipUpdate(null, group, {
+            group,
+            member,
+            action
+          }, {
+            additionalUserIds: [member.id] // Notify the new member
+          })
+        } catch (error) {
+          console.error('❌ Error publishing membership update in afterAddMembers:', error)
+        }
+      }
+    }
 
     if (zapierTriggers && zapierTriggers.length > 0) {
-      const group = await Group.find(groupId)
       for (const trigger of zapierTriggers) {
         await fetch(trigger.get('target_url'), {
           method: 'post',
