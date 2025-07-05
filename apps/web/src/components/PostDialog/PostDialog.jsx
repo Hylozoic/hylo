@@ -25,6 +25,16 @@ const PostDialog = ({
       e.preventDefault()
       return false
     }
+
+    // Don't close the dialog if the user is interacting with elements that are not parents of the overlay
+    const overlay = document.querySelector('.PostDialog-Overlay')
+    if (overlay && !overlay.contains(e.target)) {
+      // Check if the target element contains the overlay (is a parent/ancestor)
+      if (!e.target.contains(overlay)) {
+        e.preventDefault()
+        return false
+      }
+    }
   }, [])
 
   return (
