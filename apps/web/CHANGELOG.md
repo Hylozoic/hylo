@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.7] - 2025-07-04
+
+### Changed
+- Can now interact with the nav menus while a post is open
+- Added a nicer UI when a group has no posts
+
+### Fixed
+- Viewing action completion responses for a long action that requires scrolling down
+- Stacking of event RSVP dropdown
+- Project post UI in custom views
+
 ## [6.1.6] - 2025-07-02
 
 ### Changed
