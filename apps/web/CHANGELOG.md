@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Viewing action completion responses for a long action that requires scrolling down
 - Stacking of event RSVP dropdown
-- Project post UI in custom views
+- Project post UI in dark mode
 
 ## [6.1.6] - 2025-07-02
 
