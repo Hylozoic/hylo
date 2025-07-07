@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { PlusCircle, Trash2 } from 'lucide-react'
-
 import { cn } from 'util/index'
 
 import Button from 'components/ui/button'
@@ -33,7 +32,6 @@ import {
 
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { sanitizeURL } from 'util/url'
-
 import styles from './CustomViewsTab.module.scss'
 
 const POST_TYPE_OPTIONS = Object.keys(POST_TYPES).filter(type => type !== 'chat' && type !== 'action')
