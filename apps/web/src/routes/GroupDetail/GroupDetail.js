@@ -83,6 +83,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
     await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else {
+      navigate(groupUrl(group.slug))
     }
   }, [dispatch, group])
 

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.5] - 2025-07-04
+
+### Changed
+- Only send RSVP email when switching event RSVP from not going to interested/going or visa versa. Also send a correct update or cancel ical attachement when changing RSVP.
+
 ## [6.1.4] - 2025-06-26
 
 ### Fixed

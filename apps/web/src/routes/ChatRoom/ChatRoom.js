@@ -594,7 +594,7 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
           modal={false}
@@ -612,13 +612,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
+  const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} />}
+          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>
   )
 }

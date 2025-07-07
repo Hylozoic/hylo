@@ -138,6 +138,7 @@ export default function PostCard ({
           respondToEvent={respondToEvent}
           shouldTruncate
           startTime={post.startTimeRaw}
+          timezone={post.timezone}
           title={post.title}
           type={post.type}
         />

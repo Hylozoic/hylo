@@ -15,7 +15,7 @@ export default function JoinSection ({ addSkill, currentUser, fullPage, group, g
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   return (
-    <div className={cn('requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+    <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
       {group.suggestedSkills && group.suggestedSkills.length > 0 &&
         <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0
@@ -92,7 +92,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
   }
 
   return (
-    <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
+    <div className='JoinSection-QuestionsAndButton border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
       {group.settings.askJoinQuestions && questionAnswers.length > 0 && <div className='text-foreground/60 font-medium text-base mb-2'>{t('Please answer the following to join')}:</div>}
       {group.settings.askJoinQuestions && questionAnswers.map((q, index) => (
         <div className='bg-input rounded-xl p-2 mb-4' key={index}>
@@ -103,7 +103,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       )}
       <Button
         variant='secondary'
-        className='border-2 border-selected bg-transparent w-full text-base font-bold rounded-xl p-2'
+        className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2'
         disabled={!allQuestionsAnswered}
         onClick={() => joinGroup(group.id, questionAnswers)}
         data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}

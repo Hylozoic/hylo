@@ -1,5 +1,5 @@
 import { times } from 'lodash'
-import RedisClient from '../../services/RedisClient'
+import RedisClient from '../../../api/services/RedisClient'
 import setup from '../../setup'
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'

@@ -333,9 +333,11 @@ export default function AuthLayoutRouter (props) {
               <Route path='all/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('p-0 sm:p-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -417,6 +419,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
+                <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
                 <Route path='search' element={<Search />} />

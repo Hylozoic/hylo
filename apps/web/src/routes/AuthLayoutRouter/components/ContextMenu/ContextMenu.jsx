@@ -189,6 +189,12 @@ export default function ContextMenu (props) {
     setActiveWidget(null)
   }
 
+  // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
+  useEffect(() => {
+    const menu = document.querySelector('.ContextMenu')
+    menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -200,7 +206,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
