@@ -16,17 +16,6 @@ export default function (slug) {
           getRoot: get('group'),
           modelName: 'Group',
           append: true
-        },
-        // XXX: have to do this because i cant figure out how to specify these relationships on the Group model and have them picked up by the ModelExtractor
-        {
-          getRoot: get('group.groupRelationshipInvitesFrom'),
-          modelName: 'GroupRelationshipInvite',
-          append: true
-        },
-        {
-          getRoot: get('group.groupRelationshipInvitesTo'),
-          modelName: 'GroupRelationshipInvite',
-          append: true
         }
       ],
       slug
