@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.1.6] - 2025-07-05
+## [6.1.6] - 2025-07-08
 
 ### Changed
 - New database indexes to improve performance when loading posts and other data
