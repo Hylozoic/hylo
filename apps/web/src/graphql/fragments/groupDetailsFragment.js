@@ -40,19 +40,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
       title
     }
   }
-  childGroups {
-    items {
-      id
-      accessibility
-      avatarUrl
-      bannerUrl
-      geoShape
-      memberCount
-      name
-      slug
-      visibility
-    }
-  }
   customViews {
     items {
       id
@@ -129,18 +116,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           roleId
         }
       }
-    }
-  }
-  parentGroups {
-    items {
-      id
-      accessibility
-      avatarUrl
-      bannerUrl
-      geoShape
-      name
-      slug
-      visibility
     }
   }
   ${withTopics

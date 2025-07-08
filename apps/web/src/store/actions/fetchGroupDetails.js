@@ -1,5 +1,5 @@
 import { FETCH_GROUP_DETAILS } from 'store/constants'
-import groupFieldsFragment from '@graphql/fragments/groupFieldsFragment'
+import groupDetailsFragment from '@graphql/fragments/groupDetailsFragment'
 
 export default function fetchGroupDetails ({
   slug,
@@ -15,7 +15,7 @@ export default function fetchGroupDetails ({
     graphql: {
       query: `query GroupDetailsQuery ($slug: String) {
         group(slug: $slug) {
-          ${groupFieldsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets, withContextWidgets })}
+          ${groupDetailsFragment({ withTopics, withJoinQuestions, withPrerequisites, withExtensions, withWidgets, withContextWidgets })}
         }
       }`,
       variables: { slug }
