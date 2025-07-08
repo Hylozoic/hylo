@@ -45,7 +45,7 @@ export default function makeSubscriptions () {
         context.pubSub.subscribe(
           messageThreadId
             ? `peopleTyping:messageThreadId:${messageThreadId}`
-            : postId 
+            : postId
               ? `peopleTyping:postId:${postId}`
               : `peopleTyping:commentId:${commentId}`
         ),
@@ -74,6 +74,54 @@ export default function makeSubscriptions () {
         }
         if (payload?.notification) {
           return new Notification(payload.notification)
+        }
+      }
+    },
+
+    groupUpdates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`groupUpdates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.group) {
+          return new Group(payload.group)
+        }
+      }
+    },
+
+    groupMembershipUpdates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`groupMembershipUpdates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.groupMembershipUpdate) {
+          return {
+            group: new Group(payload.groupMembershipUpdate.group),
+            member: new User(payload.groupMembershipUpdate.member),
+            action: payload.groupMembershipUpdate.action,
+            role: payload.groupMembershipUpdate.role,
+            makeModelsType: 'GroupMembershipUpdate'
+          }
+        }
+      }
+    },
+
+    groupRelationshipUpdates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`groupRelationshipUpdates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.groupRelationshipUpdate) {
+          return {
+            parentGroup: new Group(payload.groupRelationshipUpdate.parentGroup),
+            childGroup: new Group(payload.groupRelationshipUpdate.childGroup),
+            action: payload.groupRelationshipUpdate.action,
+            relationship: payload.groupRelationshipUpdate.relationship ? new GroupRelationship(payload.groupRelationshipUpdate.relationship) : null,
+            makeModelsType: 'GroupRelationshipUpdate'
+          }
         }
       }
     }

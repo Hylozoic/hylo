@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.8] - 2025-07-05
+
+### Fixed
+- Inability to scroll post editor when creating a post from the chat box when the post gets too tall for the screen.
+- Joining groups from the group card in the group explorer
+
+
+## [6.1.7] - 2025-07-04
+
+### Changed
+- Can now interact with the nav menus while a post is open
+- Added a nicer UI when a group has no posts
+
+### Fixed
+- Viewing action completion responses for a long action that requires scrolling down
+- Stacking of event RSVP dropdown
+- Project post UI in dark mode
+
 ## [6.1.6] - 2025-07-02
 
 ### Changed
@@ -20,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove action as a post type option for custom views
 - Remove extra weird star on proposal options
 - Topic selector text color in dark mode
+- OAuth login and consent flow
+- Ability to view posts at URL of /post/:postId when logged in
+- Bug when viewing track action of Select One type
+- Text color of featured groups in group explorer
+- Scrolling of long public posts when not logged in
 
 ## [6.1.5] - 2025-07-01
 

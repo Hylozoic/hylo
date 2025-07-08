@@ -3,6 +3,11 @@ import ical from 'ical-generator'
 import { values, includes } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 
+const going = (response) => {
+  return response === EventInvitation.RESPONSE.YES ||
+    response === EventInvitation.RESPONSE.INTERESTED
+}
+
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
@@ -13,11 +18,15 @@ export async function respondToEvent (userId, eventId, response) {
     throw new GraphQLError('Event not found')
   }
 
-  const eventInvitation = await EventInvitation.find({ userId, eventId })
+  let eventInvitation = await EventInvitation.find({ userId, eventId })
+  const sendEmail = (!eventInvitation && EventInvitation.going(response)) ||
+    (eventInvitation && EventInvitation.going(response) && !EventInvitation.going(eventInvitation)) ||
+    (eventInvitation && !EventInvitation.going(response) && EventInvitation.going(eventInvitation))
+
   if (eventInvitation) {
     await eventInvitation.save({ response })
   } else {
-    await EventInvitation.create({
+    eventInvitation = await EventInvitation.create({
       userId,
       inviterId: userId, // why is the user who is responding also the inviter? Is this a workaround?
       eventId,
@@ -25,11 +34,11 @@ export async function respondToEvent (userId, eventId, response) {
     })
   }
 
-  if (response === EventInvitation.RESPONSE.YES ||
-    response === EventInvitation.RESPONSE.INTERESTED
-  ) {
+  if (sendEmail) {
     const cal = ical()
-    cal.createEvent(event.getCalEventData(userId))
+    const calEvent = event.getCalEventData(userId, eventInvitation)
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
     const user = await User.find(userId)
     const groupNames = event.relations.groups.map(g => g.get('name')).join(', ')
 
@@ -57,6 +66,9 @@ export async function respondToEvent (userId, eventId, response) {
           data: Buffer.from(cal.toString(), 'utf8').toString('base64')
         }
       ]
+    }).then(() => {
+      // update the ical sequence number, no need to await
+      eventInvitation.incrementIcalSequence()
     })
   }
 

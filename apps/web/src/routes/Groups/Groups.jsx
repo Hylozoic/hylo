@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { createSelector } from 'reselect'
 import { cn } from 'util/index'
 import GroupNetworkMap from 'components/GroupNetworkMap'
@@ -13,12 +13,18 @@ import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelatio
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { mapNodesAndLinks } from 'util/networkMap'
 import GroupCard from 'components/GroupCard'
+import { fetchRelatedGroups } from './Groups.store'
 
 import classes from './Groups.module.scss'
 
 function Groups () {
+  const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
+
+  useEffect(() => {
+    dispatch(fetchRelatedGroups(routeParams.groupSlug))
+  }, [routeParams.groupSlug])
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const memberships = useSelector(getMyMemberships)

@@ -121,8 +121,14 @@ export default function GlobalNav (props) {
     setShowGradient(false)
   }
 
+  // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
+  useEffect(() => {
+    const nav = document.querySelector('.globalNavContainer')
+    nav.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
+  }, [])
+
   return (
-    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0 pointer-events-auto')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         ref={navContainerRef}
         className={cn(

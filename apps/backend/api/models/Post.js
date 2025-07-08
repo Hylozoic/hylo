@@ -6,6 +6,7 @@ import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndef
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
+import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import { TextHelpers } from '@hylo/shared'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
@@ -348,8 +349,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: function (forUserId) {
+  getCalEventData: function (forUserId, eventInvitation) {
     const user = this.relations.user
+
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
@@ -357,11 +359,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
       start: this.get('start_time'),
       end: this.get('end_time'),
       timezone: this.get('timezone'),
+      status: eventInvitation.notGoing() ? ICalEventStatus.CANCELLED : ICalEventStatus.CONFIRMED,
+      method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
+      sequence: eventInvitation.getIcalSequence(),
+      uid: `event-${this.id}-hylo.com`,
       organizer: {
         name: user.get('name'),
         email: user.get('email')
-      },
-      uid: this.id
+      }
     }
   },
 

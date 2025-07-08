@@ -720,7 +720,8 @@ CREATE TABLE public.event_invitations (
     event_id bigint,
     response character varying(255),
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    ical_sequence integer
 );
 
 
