@@ -129,7 +129,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
       {!isAboutCurrentGroup && (
         <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {!fullPage && (
+          {!fullPage && !isWebView() && (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
           <div className='bottom-0 right-0 bg-black/50 absolute top-0 left-0 z-0' />
