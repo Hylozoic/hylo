@@ -1471,6 +1471,7 @@
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
   "~ Mixed ~": "~ Mezclado ~",
-  "“{{group.name}}” is a part of the “{{parent.name}}” group.": "“{{group.name}}” es parte del grupo “{{parent.name}}”.",
-  "“{{group.name}}” is part of the “{{parent.name}}” group.": "“{{group.name}}” forma parte del grupo “{{parent.name}}”."
+  "reported this on": "reportado el",
+  "View group agreements": "Ver acuerdos del grupo",
+  "View platform agreements": "Ver acuerdos de la plataforma"
 }

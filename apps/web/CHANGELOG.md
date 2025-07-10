@@ -6,12 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.9] - 2025-07-08
+
+### Changed
+- Removed some data loading on initial group load, to improve performance
+
+### Fixed
+- Content flagging/moderation in dark mode
+
 ## [6.1.8] - 2025-07-05
 
 ### Fixed
 - Inability to scroll post editor when creating a post from the chat box when the post gets too tall for the screen.
 - Joining groups from the group card in the group explorer
-
 
 ## [6.1.7] - 2025-07-04
 
