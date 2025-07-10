@@ -8,7 +8,6 @@ export default function NoContextFallbackScreen () {
   const [{ currentGroup, fetching }] = useCurrentGroup()
 
   // If we're fetching or we have a currentGroup, show loading
-  // if (fetching || (currentGroup && currentGroup.slug)) {
     if (fetching || currentGroup?.slug) {
     return <LoadingScreen />
   }

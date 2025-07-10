@@ -74,6 +74,7 @@ export function useHandleCurrentGroup () {
         // it the homeWidget which creates two navigation animations
         const hasMountedScreens = !!navigation.getState()?.routes[0].params
         if (currentGroup?.slug === 'my') {
+          // reset replaces the existing stack with a new one. This help avoid the 'my' context having stale/buggy screens from a prior stack in its history
           navigation.reset({
             index: 0,
             routes: [{ name: 'Context Menu' }]
@@ -130,7 +131,7 @@ export function useChangeToGroup () {
       } else {
         goToGroup()
       }
-          } else {
+        } else {
         // Use URL-based navigation which is more reliable during cold boot
         // This navigates to the non-modal Group Explore screen
         openURL(`/groups/${groupSlug}/explore`)
