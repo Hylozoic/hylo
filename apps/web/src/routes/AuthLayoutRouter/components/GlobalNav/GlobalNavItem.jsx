@@ -10,6 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
 import { baseUrl } from 'util/navigation'
+import { Pin } from 'lucide-react'
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
@@ -29,7 +30,8 @@ export default function GlobalNavItem ({
   tooltip,
   url,
   showTooltip: parentShowTooltip,
-  index = 0
+  index = 0,
+  isPinned = false
 }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()
@@ -144,6 +146,7 @@ export default function GlobalNavItem ({
             {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
             {badgeCount === '!' && <Badge number='!' className='absolute -top-2 -left-2' expanded />}
+            {isPinned && <Pin className='absolute -top-1 -right-1 w-3 h-3 text-white drop-shadow-md' />}
           </div>
         </TooltipTrigger>
         {tooltip && (

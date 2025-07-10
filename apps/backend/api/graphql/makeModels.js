@@ -178,7 +178,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupMembership,
       attributes: [
         'created_at',
-        'group_id'
+        'group_id',
+        'nav_order'
       ],
       relations: [
         { agreements: { querySet: true } },
