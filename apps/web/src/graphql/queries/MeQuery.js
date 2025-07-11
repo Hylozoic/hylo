@@ -92,6 +92,7 @@ export default gql`
     memberships {
       id
       lastViewedAt
+      navOrder
       newPostCount
       person {
         id

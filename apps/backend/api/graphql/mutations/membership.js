@@ -1,9 +1,11 @@
+/* global GroupMembership, GroupJoinQuestionAnswer, Queue, bookshelf */
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
 
 export async function updateMembership (userId, { groupId, data, data: { settings } }) {
   const whitelist = mapKeys(pick(data, [
-    'newPostCount'
+    'newPostCount',
+    'navOrder'
   ]), (v, k) => snakeCase(k))
   if (data.lastViewedAt) settings.lastReadAt = data.lastViewedAt // legacy
   if (data.lastReadAt) settings.lastReadAt = data.lastReadAt // XXX: this doesn't seem to be getting used either, remove?
@@ -13,6 +15,52 @@ export async function updateMembership (userId, { groupId, data, data: { setting
     const membership = await GroupMembership.forIds(userId, groupId).fetch({ transacting })
     if (!membership) throw new GraphQLError(`Couldn't find membership for group with id ${groupId}`)
     const previouslyJoinedGroup = !membership.getSetting('showJoinForm')
+
+    // Handle navOrder updates - need to update other pinned memberships
+    if (data.navOrder !== undefined) {
+      const newNavOrder = data.navOrder
+
+      if (newNavOrder === null) {
+        // Unpinning - no need to update other groups
+      } else {
+        // Check if this is a new pin (navOrder = 0) or a reorder
+        const isNewPin = membership.get('nav_order') === null
+
+        if (isNewPin) {
+          // Pinning a new group - increment all other pinned groups in a single query
+          await bookshelf.knex('group_memberships')
+            .where({ user_id: userId })
+            .whereNotNull('nav_order')
+            .where('group_id', '!=', groupId)
+            .increment('nav_order', 1)
+            .transacting(transacting)
+        } else {
+          // Reordering - handle moving up or down
+          const currentNavOrder = membership.get('nav_order')
+
+          if (newNavOrder > currentNavOrder) {
+            // Moving down - decrement groups between current+1 and newNavOrder
+            await bookshelf.knex('group_memberships')
+              .where({ user_id: userId })
+              .where('nav_order', '>', currentNavOrder)
+              .where('nav_order', '<=', newNavOrder)
+              .where('group_id', '!=', groupId)
+              .decrement('nav_order', 1)
+              .transacting(transacting)
+          } else if (newNavOrder < currentNavOrder) {
+            // Moving up - increment groups between newNavOrder and current-1
+            await bookshelf.knex('group_memberships')
+              .where({ user_id: userId })
+              .where('nav_order', '>=', newNavOrder)
+              .where('nav_order', '<', currentNavOrder)
+              .where('group_id', '!=', groupId)
+              .increment('nav_order', 1)
+              .transacting(transacting)
+          }
+          // If newNavOrder === currentNavOrder, no changes needed
+        }
+      }
+    }
 
     if (!isEmpty(settings)) membership.addSetting(settings)
     if (!isEmpty(whitelist)) membership.set(whitelist)

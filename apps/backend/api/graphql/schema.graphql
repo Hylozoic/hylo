@@ -349,7 +349,7 @@ type Subscription {
   updates: Update
   # Group-specific subscriptions for membership and relationship updates
   groupUpdates: Group
-  groupMembershipUpdates: GroupMembershipUpdate  
+  groupMembershipUpdates: GroupMembershipUpdate
   groupRelationshipUpdates: GroupRelationshipUpdate
 }
 
@@ -1629,6 +1629,8 @@ type Membership {
   membershipCommonRoles: MembershipCommonRoleQuerySet
   # The group defined roles this members has in this group - just the join table data
   membershipGroupRoles: MembershipGroupRoleQuerySet
+  # The order of this group membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
   newPostCount: Int
   person: Person
@@ -3362,6 +3364,8 @@ input MembershipInput {
   acceptAgreements: Boolean
   # update the lastViewedAt
   lastViewedAt: Date
+  # The order of this membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group
