@@ -2,9 +2,9 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, gql } from 'urql'
+import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
-import { personPostsQuerySetFragment } from '@hylo/graphql/fragments/postsQuerySetFragment'
+import useRecentActivity, { isPost, isComment, isReaction } from '@hylo/hooks/useRecentActivity'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import PostCard from 'components/PostCard'
@@ -12,137 +12,60 @@ import Comment from 'components/Comment'
 import Loading from 'components/Loading'
 import styles from './MemberStream.styles'
 
-export const personPostsQuery = gql`
-  query PersonPostsQuery (
-    $activePostsOnly: Boolean,
-    $afterTime: Date,
-    $announcementsOnly: Boolean,
-    $beforeTime: Date,
-    $boundingBox: [PointInput],
-    $collectionToFilterOut: ID,
-    $context: String,
-    $createdBy: [ID],
-    $filter: String,
-    $first: Int,
-    $forCollection: ID,
-    $groupSlugs: [String],
-    $id: ID,
-    $interactedWithBy: [ID],
-    $isFulfilled: Boolean,
-    $mentionsOf: [ID],
-    $offset: Int,
-    $order: String,
-    $search: String,
-    $sortBy: String,
-    $topic: ID,
-    $topics: [ID],
-    $types: [String]
-  ) {
-    person (id: $id) {
-      id
-      ...PersonPostsQuerySetFragment
-    }
-  }
-  ${personPostsQuerySetFragment}
-`
-
-export const personCommentsQuery = gql`
-  query PersonCommentsQuery ($id: ID, $first: Int, $offset: Int) {
-    person (id: $id) {
-      id
-      comments (first: $first, offset: $offset, order: "desc") {
-        hasMore
-        items {
-          id
-          text
-          creator {
-            id
-          }
-          post {
-            id
-            title
-          }
-          createdAt
-        }
-      }
-    }
-  }
-`
-
-export const personUpvotesQuery = gql`
-  query PersonVotesQuery ($id: ID, $first: Int, $offset: Int) {
-    person (id: $id) {
-      id
-      votes (first: $first, offset: $offset, order: "desc") {
-        hasMore
-        items {
-          id
-          post {
-            id
-            title
-            details
-            type
-            creator {
-              id
-              name
-              avatarUrl
-            }
-            commenters {
-              id,
-              name,
-              avatarUrl
-            }
-            commentersTotal
-            groups {
-              id
-              name
-            }
-            createdAt
-          }
-          voter {
-            id
-          }
-          createdAt
-        }
-      }
-    }
-  }
-`
-
 export default function MemberStream ({ id, header }) {
   const navigation = useNavigation()
   const [choice, setChoice] = useState('Posts')
 
-  const [itemType, query] = useMemo(() => {
+  const [first, setFirst] = useState(10)
+
+  const [recentActivityItems, { fetching, error, hasMorePosts, hasMoreComments, hasMoreReactions }] = useRecentActivity({
+    id,
+    first,
+    order: 'desc'
+  })
+
+  const { items, hasMore } = useMemo(() => {
     switch (choice) {
       case 'Posts':
-        return ['posts', personPostsQuery]
+        const posts = recentActivityItems?.filter(isPost) || []
+        return {
+          items: posts,
+          hasMore: hasMorePosts
+        }
       case 'Comments':
-        return ['comments', personCommentsQuery]
-      case 'Upvotes':
-        return ['upvotes', personUpvotesQuery]
+        const comments = recentActivityItems?.filter(isComment) || []
+        return {
+          items: comments,
+          hasMore: hasMoreComments
+        }
+      case 'Reactions':
+        const reactions = recentActivityItems?.filter(isReaction) || []
+        return {
+          items: reactions,
+          hasMore: hasMoreReactions
+        }
+      default:
+        return { items: [], hasMore: false }
     }
-  }, [choice])
-
-  const [offset, setOffset] = useState(0)
-  const [{ data, fetching }] = useQuery({ query, variables: { id, offset, first: 5 } })
-  const { items, hasMore } = useMemo(() => {
-    if (!data?.person[itemType]) return { items: [], hasMore: false }
-    return {
-      items: data?.person[itemType]?.items || [],
-      hasMore: data?.person[itemType]?.hasMore || false
-    }
-  }, [itemType, data, fetching])
+  }, [choice, recentActivityItems, hasMorePosts, hasMoreComments, hasMoreReactions])
 
   const fetchMoreItems = useCallback(() => {
     if (hasMore && !fetching) {
-      setOffset(items?.length)
+      setFirst(prev => prev + 5)
     }
   }, [hasMore, fetching])
 
   const showMember = id => navigation.navigate('Member', { id })
   const showPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
   const showTopic = topicName => navigation.navigate('Stream', { topicName })
+
+  if (error) {
+    return (
+      <View style={styles.superContainer}>
+        <Text>Error loading data: {error.message}</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.superContainer}>
@@ -157,7 +80,7 @@ export default function MemberStream ({ id, header }) {
         renderItem={({ item }) => (
           <ContentRow
             item={item}
-            itemType={itemType}
+            itemType={choice.toLowerCase()}
             showPost={showPost}
             showTopic={showTopic}
             showMember={showMember}
@@ -173,12 +96,8 @@ export const HeaderComponent = ({
   header,
   setChoice
 }) => {
-  const streamOptions = ['Posts', 'Comments', 'Upvotes']
+  const streamOptions = ['Posts', 'Comments', 'Reactions']
   const { t } = useTranslation()
-  // explicit invocation of dynamic content
-  t('Posts')
-  t('Comments')
-  t('Upvotes')
 
   return (
     <View>
@@ -212,32 +131,52 @@ export function ContentRow ({
   showTopic,
   showMember
 }) {
-  const showPost = () => providedShowPost(itemType === 'posts' ? item.id : item.post.id)
-  // respondToEventMutation params: id, response
+  const getPostId = () => {
+    switch (itemType) {
+      case 'posts':
+        return item.id
+      case 'comments':
+        return item.post.id
+      case 'reactions':
+        return item.post.id
+      default:
+        return item.id
+    }
+  }
+
+  const getDisplayItem = () => {
+    if (itemType === 'reactions') {
+      return item.post
+    }
+    return item
+  }
+
+  const displayItem = getDisplayItem()
+  const showPost = () => providedShowPost(getPostId())
   const [, respondToEvent] = useMutation(respondToEventMutation)
 
   return (
     <TouchableOpacity onPress={showPost}>
       <View style={styles.contentRow}>
-        {itemType === 'posts' && (
+        {(itemType === 'posts' || itemType === 'reactions') && (
           <PostCard
-            commenters={item.commenters}
-            creator={item.creator}
-            groups={item.groups}
+            commenters={displayItem.commenters}
+            creator={displayItem.creator}
+            groups={displayItem.groups}
             onPress={showPost}
-            post={item}
-            respondToEvent={response => respondToEvent({ id: item?.id, response })}
+            post={displayItem}
+            respondToEvent={response => respondToEvent({ id: displayItem?.id, response })}
             showGroups
             showMember={showMember}
             showTopic={showTopic}
-            topics={item.topics}
+            topics={displayItem.topics}
           />
         )}
-        {itemType !== 'posts' && (
+        {itemType === 'comments' && (
           <Comment
-            comment={item}
+            comment={displayItem}
             onPress={showPost}
-            postTitle={item.post.title}
+            postTitle={displayItem.post.title}
           />
         )}
       </View>

@@ -24,6 +24,7 @@ export default {
   },
   Person: {
     posts: makePaginationResolver(),
-    comments: makePaginationResolver()
+    comments: makePaginationResolver(),
+    reactions: makePaginationResolver()
   }
 }
