@@ -351,6 +351,8 @@ type Subscription {
   groupUpdates: Group
   groupMembershipUpdates: GroupMembershipUpdate  
   groupRelationshipUpdates: GroupRelationshipUpdate
+  # Post updates subscription for real-time post changes
+  postUpdates: Post
 }
 
 # The meta data associated with an Activity

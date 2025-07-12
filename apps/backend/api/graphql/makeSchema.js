@@ -411,7 +411,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteProjectRole: (root, { id }, context) => deleteProjectRole(context.currentUserId, id),
 
-    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data),
+    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data, context),
 
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
@@ -457,7 +457,7 @@ export function makeMutations ({ fetchOne }) {
 
     processStripeToken: (root, { postId, token, amount }, context) => processStripeToken(context.currentUserId, postId, token, amount),
 
-    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data),
+    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data, context),
 
     reactivateMe: (root, context) => reactivateUser({ userId: context.currentUserId }),
 

@@ -122,6 +122,75 @@ const groupRelationshipUpdatesSubscription = gql`
   }
 `
 
+const postUpdatesSubscription = gql`
+  subscription PostUpdatesSubscription {
+    postUpdates {
+      id
+      updatedAt
+      # Comment-related fields
+      commentsTotal
+      comments {
+        total
+        items {
+          id
+          text
+          createdAt
+          creator {
+            id
+            name
+            avatarUrl
+          }
+        }
+      }
+      # Reaction-related fields
+      peopleReactedTotal
+      reactionsSummary
+      postReactions {
+        id
+        emojiFull
+        emojiBase
+        user {
+          id
+          name
+        }
+      }
+      # Post edit fields
+      title
+      details
+      type
+      location
+      startTime
+      endTime
+      # Proposal vote fields (for proposal posts only)
+      proposalStatus
+      proposalOutcome
+      proposalOptions {
+        total
+        items {
+          id
+          text
+          emoji
+          color
+        }
+      }
+      proposalVotes {
+        total
+        items {
+          id
+          optionId
+          user {
+            id
+            name
+          }
+        }
+      }
+      # Completion fields
+      fulfilledAt
+      completedAt
+    }
+  }
+`
+
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
   // TODO: URQL - network-only seems to be required only for SocialAuth,
@@ -139,6 +208,7 @@ export default function AuthRootNavigator () {
   useSubscription({ query: groupUpdatesSubscription })
   useSubscription({ query: groupMembershipUpdatesSubscription })
   useSubscription({ query: groupRelationshipUpdatesSubscription })
+  useSubscription({ query: postUpdatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()

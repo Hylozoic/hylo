@@ -310,11 +310,26 @@ export default {
   },
   Subscription: {
     comments: (result, args, cache, info) => {
-      makeAppendToPaginatedSetResolver({
-        parentType: 'Post',
-        parentId: result?.comments?.post?.id,
-        fieldName: 'comments'
-      })(result, args, cache, info)
+      const comment = result?.comments
+      const postId = comment?.post?.id
+
+      if (!comment) {
+        return
+      }
+
+      if (!postId) {
+        return
+      }
+
+      try {
+        makeAppendToPaginatedSetResolver({
+          parentType: 'Post',
+          parentId: postId,
+          fieldName: 'comments'
+        })(result, args, cache, info)
+      } catch (error) {
+        console.error('❌ Error processing comment subscription:', error)
+      }
     },
 
     updates: (result, args, cache, info) => {
@@ -497,6 +512,42 @@ export default {
         // Invalidate groups list queries to reflect relationship changes
         const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
         groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    postUpdates: (result, args, cache, info) => {
+      const update = result?.postUpdates
+
+      if (update) {
+        if (isDev) {
+          console.log(`📱 Received post update: ${update.name || 'Untitled'} (${update.id})`)
+        }
+
+        // Invalidate the specific post to trigger cache updates
+        cache.invalidate({ __typename: 'Post', id: update.id })
+
+        const allQueryFields = cache.inspectFields('Query')
+        const postDetailsQueries = allQueryFields.filter(f =>
+          f.fieldName === 'post' && f.arguments?.id === update.id
+        )
+        postDetailsQueries.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // NOTE: Comment updates (adding/editing comments, reactions on comments) are handled
+        // by the separate 'comments' subscription, not postUpdates. The postUpdates subscription
+        // only handles post-level changes like reactions on posts, votes, completion, etc.
+        // See: apps/backend/api/graphql/makeSubscriptions.js -> comments subscription
+
+        const postsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'posts')
+        postsFields.forEach(field => {
           cache.invalidate('Query', field.fieldKey)
         })
       }

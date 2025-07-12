@@ -18,6 +18,7 @@ import ProjectMixin from './project/mixin'
 import EventMixin from './event/mixin'
 import * as RichText from '../services/RichText'
 import { defaultTimezone } from '../../lib/group/digest2/util'
+import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 
 init({ data })
 
@@ -467,7 +468,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async addProposalVote ({ userId, optionId }) {
-    return ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
+    const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async removeFollowers (usersOrIds, { transacting } = {}) {
@@ -476,7 +479,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async removeProposalVote ({ userId, optionId }) {
     const vote = await ProposalVote.query({ where: { user_id: userId, option_id: optionId } }).fetch()
-    return vote.destroy()
+    const result = await vote.destroy()
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async setProposalOptions ({ options = [], userId, opts = {} }) {
@@ -500,7 +505,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     ${insertQuery};
     COMMIT;
 `
-    return bookshelf.knex.raw(fullQuery).transacting(opts.transacting)
+    const result = await bookshelf.knex.raw(fullQuery).transacting(opts.transacting)
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async swapProposalVote ({ userId, removeOptionId, addOptionId }) {
@@ -550,6 +557,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         return { ...option, post_id: this.id }
       })).transacting(opts.transacting)
     }
+
+    // Trigger post pub/sub update after proposal options change
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
 
     // Return a resolved promise
     return Promise.resolve()
@@ -743,6 +753,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await this.complete(userId, JSON.stringify([emojiFull]), trx)
       }
 
+      // Trigger post update after reaction added
+      Post.afterRelatedMutation(this.id, { changeContext: 'reaction' })
+
       return this
     })
   },
@@ -773,12 +786,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
         const reactionsSummary = this.get('reactions_summary')
         await this.save({ reactions_summary: { ...reactionsSummary, [emojiFull]: reactionCount - 1 } }, { transacting: trx })
       }
+
+      // Trigger post update after reaction removed
+      Post.afterRelatedMutation(this.id, { changeContext: 'reaction' })
+
       return this
     })
   },
 
   updateProposalOutcome: function (proposalOutcome) {
-    return Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome })
+    const result = Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome })
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   removeFromGroup: function (idOrSlug) {
@@ -1000,6 +1019,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }
       }
     }
+
+    // Publish post update after comment changes
+    Post.afterRelatedMutation(postId, { changeContext: 'comment' })
   },
 
   deactivate: postId =>
@@ -1165,6 +1187,30 @@ module.exports = bookshelf.Model.extend(Object.assign({
         // TODO: what to do with the response? check if succeeded or not?
       }
     }
+  },
+
+  // Background task to publish post updates to subscriptions
+  publishPostUpdates: async ({ postId, options = {} }) => {
+    const post = await Post.find(postId, { withRelated: ['groups'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📡 Background job: Publishing post update for post ${post.id}`)
+    }
+
+    try {
+      await publishPostUpdate(null, post, options)
+    } catch (error) {
+      console.error('❌ Error publishing post update in background job:', error)
+    }
+  },
+
+  // Non-blocking method to trigger post subscription updates
+  afterRelatedMutation: function (postId, options = {}) {
+    if (!postId) return
+
+    // Use Queue system for non-blocking post subscription publishing
+    Queue.classMethod('Post', 'publishPostUpdates', { postId, options }, 0)
   }
 
 })
