@@ -1193,9 +1193,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
-        isEnrolled: t => t && t.isEnrolled(userId),
-        didComplete: t => t && t.didComplete(userId),
-        userSettings: t => t ? t.userSettings(userId) : null
+        isEnrolled: t => t && userId && t.isEnrolled(userId),
+        didComplete: t => t && userId && t.didComplete(userId),
+        userSettings: t => t && userId ? t.userSettings(userId) : null
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {

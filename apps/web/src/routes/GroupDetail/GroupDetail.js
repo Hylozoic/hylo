@@ -76,7 +76,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
 
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({ slug, withWidgets: true, withPrerequisites: !!currentUser }))
+    dispatch(fetchGroupDetails({ slug, withContextWidgets: false, withWidgets: true, withPrerequisites: !!currentUser }))
   }, [dispatch, slug, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
@@ -121,7 +121,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cn('relative mx-auto', { 'w-full max-w-[750px]': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn('GroupDetail relative mx-auto', { 'w-full max-w-[750px] my-4': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
