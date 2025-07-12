@@ -55,7 +55,6 @@ export function useHandleCurrentGroup () {
   const loading = fetchingCurrentUser && fetchingCurrentGroup
 
   const { context, groupSlug, originalLinkingPath } = useRouteParams()
-
   useEffect(() => {
     if (!loading && currentUser && currentGroup) {
       mixpanel.getGroup('groupId', currentGroup.id).set({
@@ -116,7 +115,7 @@ export function useChangeToGroup () {
 
     if (canViewGroup) {
       const goToGroup = () => {
-        if (navigateHome) setNavigateHome(navigateHome)
+        setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
         updateUserSettings({ changes: { settings: { lastViewedAt: (new Date()).toISOString() } } })
       }
