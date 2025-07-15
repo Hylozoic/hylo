@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef } from 'react'
+import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -81,6 +81,8 @@ export default function GlobalNav (props) {
   const { show: showIntercom } = useIntercom()
   const dispatch = useDispatch()
   const sortedGroups = useSelector(getMyGroups)
+  const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
+  const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
   const [visibleCount, setVisibleCount] = useState(0)
@@ -203,7 +205,6 @@ export default function GlobalNav (props) {
     const { active, over } = event
 
     if (active && over && active.id !== over.id) {
-      const pinnedGroups = sortedGroups.filter(group => group.navOrder !== null)
       const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
       const newIndex = pinnedGroups.findIndex(group => group.id === over.id)
 
@@ -277,51 +278,59 @@ export default function GlobalNav (props) {
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
+        {/* Pinned Groups Section - Sortable */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={sortedGroups.filter(group => group.navOrder !== null).map(group => group.id)}
+            items={pinnedGroups.map(group => group.id)}
             strategy={verticalListSortingStrategy}
           >
-            {sortedGroups.map((group, index) => {
-              const isPinned = group.navOrder !== null
-              return (
-                <ContextMenu key={group.id}>
-                  <ContextMenuTrigger>
-                    {isPinned
-                      ? (
-                        <SortableGlobalNavItem
-                          group={group}
-                          index={index}
-                          isVisible={isVisible(4 + index)}
-                          showTooltip={isContainerHovered}
-                          isContainerHovered={isContainerHovered}
-                        />
-                        )
-                      : (
-                        <GlobalNavItem
-                          badgeCount={group.newPostCount || 0}
-                          img={group.avatarUrl}
-                          tooltip={group.name}
-                          url={`/groups/${group.slug}`}
-                          className={isVisible(4 + index)}
-                          showTooltip={isContainerHovered}
-                        />
-                        )}
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    {group.navOrder === null && <ContextMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</ContextMenuItem>}
-                    {group.navOrder !== null && <ContextMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</ContextMenuItem>}
-                  </ContextMenuContent>
-                </ContextMenu>
-              )
-            })}
+            {pinnedGroups.map((group, pinnedIndex) => (
+              <ContextMenu key={group.id}>
+                <ContextMenuTrigger>
+                  <SortableGlobalNavItem
+                    group={group}
+                    index={pinnedIndex}
+                    isVisible={isVisible(4 + pinnedIndex)}
+                    showTooltip={isContainerHovered}
+                    isContainerHovered={isContainerHovered}
+                  />
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            ))}
           </SortableContext>
         </DndContext>
 
+        {/* Add a divider between pinned and unpinned groups */}
+        {pinnedGroups.length > 0 && <div className='rounded-lg bg-card/50 p-1 h-4 w-full mb-4' />}
+
+        {/* Non-pinned Groups Section */}
+        {unpinnedGroups.map((group, unpinnedIndex) => {
+          const actualIndex = pinnedGroups.length + unpinnedIndex
+          return (
+            <ContextMenu key={group.id}>
+              <ContextMenuTrigger>
+                <GlobalNavItem
+                  badgeCount={group.newPostCount || 0}
+                  img={group.avatarUrl}
+                  tooltip={group.name}
+                  url={`/groups/${group.slug}`}
+                  className={isVisible(4 + actualIndex)}
+                  showTooltip={isContainerHovered}
+                />
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          )
+        })}
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>
 
       </div>
