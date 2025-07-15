@@ -4,19 +4,19 @@ import { Check, ChevronRight, Circle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-const ContextMenu = ContextMenuPrimitive.Root
+const RightClickMenu = ContextMenuPrimitive.Root
 
-const ContextMenuTrigger = ContextMenuPrimitive.Trigger
+const RightClickMenuTrigger = ContextMenuPrimitive.Trigger
 
-const ContextMenuGroup = ContextMenuPrimitive.Group
+const RightClickMenuGroup = ContextMenuPrimitive.Group
 
-const ContextMenuPortal = ContextMenuPrimitive.Portal
+const RightClickMenuPortal = ContextMenuPrimitive.Portal
 
-const ContextMenuSub = ContextMenuPrimitive.Sub
+const RightClickMenuSub = ContextMenuPrimitive.Sub
 
-const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup
+const RightClickMenuRadioGroup = ContextMenuPrimitive.RadioGroup
 
-const ContextMenuSubTrigger = React.forwardRef(({ className, inset, children, ...props }, ref) => (
+const RightClickMenuSubTrigger = React.forwardRef(({ className, inset, children, ...props }, ref) => (
   <ContextMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
@@ -30,9 +30,9 @@ const ContextMenuSubTrigger = React.forwardRef(({ className, inset, children, ..
     <ChevronRight className='ml-auto h-4 w-4' />
   </ContextMenuPrimitive.SubTrigger>
 ))
-ContextMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger.displayName
+RightClickMenuSubTrigger.displayName = ContextMenuPrimitive.SubTrigger.displayName
 
-const ContextMenuSubContent = React.forwardRef(({ className, ...props }, ref) => (
+const RightClickMenuSubContent = React.forwardRef(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.SubContent
     ref={ref}
     className={cn(
@@ -42,9 +42,9 @@ const ContextMenuSubContent = React.forwardRef(({ className, ...props }, ref) =>
     {...props}
   />
 ))
-ContextMenuSubContent.displayName = ContextMenuPrimitive.SubContent.displayName
+RightClickMenuSubContent.displayName = ContextMenuPrimitive.SubContent.displayName
 
-const ContextMenuContent = React.forwardRef(({ className, ...props }, ref) => (
+const RightClickMenuContent = React.forwardRef(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.Portal>
     <ContextMenuPrimitive.Content
       ref={ref}
@@ -56,9 +56,9 @@ const ContextMenuContent = React.forwardRef(({ className, ...props }, ref) => (
     />
   </ContextMenuPrimitive.Portal>
 ))
-ContextMenuContent.displayName = ContextMenuPrimitive.Content.displayName
+RightClickMenuContent.displayName = ContextMenuPrimitive.Content.displayName
 
-const ContextMenuItem = React.forwardRef(({ className, inset, ...props }, ref) => (
+const RightClickMenuItem = React.forwardRef(({ className, inset, ...props }, ref) => (
   <ContextMenuPrimitive.Item
     ref={ref}
     className={cn(
@@ -69,9 +69,9 @@ const ContextMenuItem = React.forwardRef(({ className, inset, ...props }, ref) =
     {...props}
   />
 ))
-ContextMenuItem.displayName = ContextMenuPrimitive.Item.displayName
+RightClickMenuItem.displayName = ContextMenuPrimitive.Item.displayName
 
-const ContextMenuCheckboxItem = React.forwardRef(({ className, children, checked, ...props }, ref) => (
+const RightClickMenuCheckboxItem = React.forwardRef(({ className, children, checked, ...props }, ref) => (
   <ContextMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
@@ -89,10 +89,10 @@ const ContextMenuCheckboxItem = React.forwardRef(({ className, children, checked
     {children}
   </ContextMenuPrimitive.CheckboxItem>
 ))
-ContextMenuCheckboxItem.displayName =
+RightClickMenuCheckboxItem.displayName =
   ContextMenuPrimitive.CheckboxItem.displayName
 
-const ContextMenuRadioItem = React.forwardRef(({ className, children, ...props }, ref) => (
+const RightClickMenuRadioItem = React.forwardRef(({ className, children, ...props }, ref) => (
   <ContextMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
@@ -109,9 +109,9 @@ const ContextMenuRadioItem = React.forwardRef(({ className, children, ...props }
     {children}
   </ContextMenuPrimitive.RadioItem>
 ))
-ContextMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem.displayName
+RightClickMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem.displayName
 
-const ContextMenuLabel = React.forwardRef(({ className, inset, ...props }, ref) => (
+const RightClickMenuLabel = React.forwardRef(({ className, inset, ...props }, ref) => (
   <ContextMenuPrimitive.Label
     ref={ref}
     className={cn(
@@ -122,18 +122,18 @@ const ContextMenuLabel = React.forwardRef(({ className, inset, ...props }, ref) 
     {...props}
   />
 ))
-ContextMenuLabel.displayName = ContextMenuPrimitive.Label.displayName
+RightClickMenuLabel.displayName = ContextMenuPrimitive.Label.displayName
 
-const ContextMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (
+const RightClickMenuSeparator = React.forwardRef(({ className, ...props }, ref) => (
   <ContextMenuPrimitive.Separator
     ref={ref}
     className={cn('-mx-1 my-1 h-px bg-border', className)}
     {...props}
   />
 ))
-ContextMenuSeparator.displayName = ContextMenuPrimitive.Separator.displayName
+RightClickMenuSeparator.displayName = ContextMenuPrimitive.Separator.displayName
 
-const ContextMenuShortcut = ({
+const RightClickMenuShortcut = ({
   className,
   ...props
 }) => {
@@ -146,22 +146,22 @@ const ContextMenuShortcut = ({
     )
   )
 }
-ContextMenuShortcut.displayName = 'ContextMenuShortcut'
+RightClickMenuShortcut.displayName = 'ContextMenuShortcut'
 
 export {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuCheckboxItem,
-  ContextMenuRadioItem,
-  ContextMenuLabel,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-  ContextMenuGroup,
-  ContextMenuPortal,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuRadioGroup
+  RightClickMenu,
+  RightClickMenuTrigger,
+  RightClickMenuContent,
+  RightClickMenuItem,
+  RightClickMenuCheckboxItem,
+  RightClickMenuRadioItem,
+  RightClickMenuLabel,
+  RightClickMenuSeparator,
+  RightClickMenuShortcut,
+  RightClickMenuGroup,
+  RightClickMenuPortal,
+  RightClickMenuSub,
+  RightClickMenuSubContent,
+  RightClickMenuSubTrigger,
+  RightClickMenuRadioGroup
 }

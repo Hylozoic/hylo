@@ -22,11 +22,11 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger
-} from 'components/ui/context-menu'
+  RightClickMenu,
+  RightClickMenuContent,
+  RightClickMenuItem,
+  RightClickMenuTrigger
+} from 'components/ui/right-click-menu'
 import {
   Popover,
   PopoverContent,
@@ -289,8 +289,8 @@ export default function GlobalNav (props) {
             strategy={verticalListSortingStrategy}
           >
             {pinnedGroups.map((group, pinnedIndex) => (
-              <ContextMenu key={group.id}>
-                <ContextMenuTrigger>
+              <RightClickMenu key={group.id}>
+                <RightClickMenuTrigger>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -298,11 +298,11 @@ export default function GlobalNav (props) {
                     showTooltip={isContainerHovered}
                     isContainerHovered={isContainerHovered}
                   />
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
+                </RightClickMenuTrigger>
+                <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</RightClickMenuItem>
+                </RightClickMenuContent>
+              </RightClickMenu>
             ))}
           </SortableContext>
         </DndContext>
@@ -314,8 +314,8 @@ export default function GlobalNav (props) {
         {unpinnedGroups.map((group, unpinnedIndex) => {
           const actualIndex = pinnedGroups.length + unpinnedIndex
           return (
-            <ContextMenu key={group.id}>
-              <ContextMenuTrigger>
+            <RightClickMenu key={group.id}>
+              <RightClickMenuTrigger>
                 <GlobalNavItem
                   badgeCount={group.newPostCount || 0}
                   img={group.avatarUrl}
@@ -324,11 +324,11 @@ export default function GlobalNav (props) {
                   className={isVisible(4 + actualIndex)}
                   showTooltip={isContainerHovered}
                 />
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
+              </RightClickMenuTrigger>
+              <RightClickMenuContent>
+                <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
+              </RightClickMenuContent>
+            </RightClickMenu>
           )
         })}
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>
