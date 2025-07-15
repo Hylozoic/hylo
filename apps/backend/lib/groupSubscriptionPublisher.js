@@ -172,23 +172,3 @@ export async function publishGroupRelationshipUpdate (context, relationshipData)
     console.error('❌ Error in publishGroupRelationshipUpdate:', error)
   }
 }
-
-/**
- * Wrapper to make publishing non-blocking using setImmediate
- */
-export function publishAsync (publishFunction, ...args) {
-  setImmediate(async () => {
-    try {
-      await publishFunction(...args)
-    } catch (error) {
-      console.error('❌ Error in background publishing:', error)
-    }
-  })
-}
-
-module.exports = {
-  publishGroupUpdate,
-  publishGroupMembershipUpdate,
-  publishGroupRelationshipUpdate,
-  publishAsync
-}

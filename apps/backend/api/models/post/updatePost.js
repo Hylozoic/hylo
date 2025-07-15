@@ -58,4 +58,5 @@ export function afterUpdatingPost (post, opts) {
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
     .then(() => post.get('type') === 'event' && eventInviteeIds && post.updateEventInvitees(eventInviteeIds, userId, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))
+    .then(() => Post.afterRelatedMutation(post.id, { changeContext: 'edit' }))
 }
