@@ -5,7 +5,7 @@ import { Input } from 'components/ui/input'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import { Switch } from 'components/ui/switch'
-import { Toggle } from 'components/ui/toggle'
+import Toggle from 'components/ui/toggle'
 
 // Component to display a color sample with label
 function ColorSample ({ colorName, bgClass, textClass = 'text-foreground' }) {
