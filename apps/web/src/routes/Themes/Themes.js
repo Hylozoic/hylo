@@ -44,7 +44,7 @@ function ThemeColumn ({ title, isDark = false }) {
           <ColorSample colorName='Background' bgClass='bg-background' />
           <ColorSample colorName='Midground' bgClass='bg-midground' />
           <ColorSample colorName='Foreground' bgClass='bg-foreground' textClass='text-background' />
-          <ColorSample colorName='Black' bgClass='bg-black' textClass='text-background' />
+          <ColorSample colorName='Black' bgClass='bg-darkening' textClass='text-background' />
         </div>
 
         {/* Interactive Colors */}

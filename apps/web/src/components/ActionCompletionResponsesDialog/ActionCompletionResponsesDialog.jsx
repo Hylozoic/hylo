@@ -39,7 +39,7 @@ export default function ActionCompletionResponsesDialog ({ portalTarget, post, o
   return (
     <Dialog.Root defaultOpen onOpenChange={onClose}>
       <Dialog.Portal container={document.getElementById(portalTarget)}>
-        <Dialog.Overlay className='bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
+        <Dialog.Overlay className='bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
           <Dialog.Content className='min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
             <Dialog.Title className='sr-only'>{title}</Dialog.Title>
             <Dialog.Description className='sr-only'>{title}</Dialog.Description>

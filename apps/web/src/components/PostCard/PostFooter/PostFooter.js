@@ -43,7 +43,7 @@ class PostFooter extends React.PureComponent {
           onRemoveReaction={onRemoveReaction}
         />
 
-        <div className='bg-black/10 rounded-lg py-2 px-3 h-[40px] items-center justify-center flex'>
+        <div className='bg-darkening/10 rounded-lg py-2 px-3 h-[40px] items-center justify-center flex'>
           <PeopleInfo constrained={constrained} people={commenters} peopleTotal={commentersTotal} excludePersonId={get('id', currentUser)} />
         </div>
         <Tooltip

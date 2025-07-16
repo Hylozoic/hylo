@@ -59,7 +59,7 @@ export default function HyloCookieConsent () {
       >
         {t('I Understand')}
       </Button>
-      <div className={cn('fixed bottom-0 left-0 w-full h-full bg-black/70 z-[1000] flex items-center justify-center hidden overflow-y-auto pt-16', { block: showCookieInfo })}>
+      <div className={cn('fixed bottom-0 left-0 w-full h-full bg-darkening/70 z-[1000] flex items-center justify-center hidden overflow-y-auto pt-16', { block: showCookieInfo })}>
         <div className='max-w-screen-md mx-auto z-[10] relative max-w-[750px] p-4 bg-midground rounded-md'>
           <div className='p-0 sm:p-4 text-xs sm:text-base'>
             <h3 className='text-2xl font-bold mb-4'>{t('How do we use cookies?')}</h3>

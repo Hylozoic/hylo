@@ -152,7 +152,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           className='relative z-0'
         >
           <div style={bgImageStyle(bannerUrl)} className='w-full group h-[30vh] hover:scale-105 rounded-xl transition-all relative z-0 hover:scale-105 shadow-xl hover:shadow-2xl'>
-            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
+            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-darkening/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
               <ImageUp className='w-[30px] h-[30px]' />
               <div>{t('Change group banner')}</div>
             </div>
@@ -165,7 +165,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           className='relative z-1 bg-background w-full'
         >
           <div style={bgImageStyle(avatarUrl)} className='w-[100px] group h-[100px] rounded-xl bg-cover absolute top-[-50px] left-[50%] translate-x-[-50%] flex justify-center items-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all'>
-            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
+            <div className='absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[100px] h-[100px] bg-darkening/60 opacity-0 group-hover:opacity-100 transition-all rounded-xl text-xs flex flex-col justify-center items-center text-center'>
               <ImageUp className='w-[30px] h-[30px]' />
               <div>{t('Change group icon')}</div>
             </div>
@@ -205,7 +205,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           <label className='w-full text-foreground/50 text-sm mb-2 block'>{t('Display location')}</label>
           <Dropdown
             id='group-settings-location-display-precision-dropdown'
-            className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
+            className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
             toggleChildren={(
               <span className='text-base w-full flex justify-between'>
                 {LOCATION_PRECISION[locationDisplayPrecision || 'precise']}

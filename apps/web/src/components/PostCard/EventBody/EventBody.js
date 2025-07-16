@@ -74,7 +74,7 @@ function EventBody (props) {
           </div>
         </div>
 
-        <div className='border-2 mt-2 justify-between flex border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative text-center'>
+        <div className='border-2 mt-2 justify-between flex border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-darkening/10 rounded-lg border-dashed relative text-center'>
           <div onClick={onClick}>
             <div className={classes.fade} />
             <PeopleInfo

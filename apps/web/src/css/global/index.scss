@@ -10,7 +10,7 @@
 @layer base {
 
   :root {
-    --black: 50 9% 15%;
+    --darkening: 50 9% 15%;
     --background: 60 12% 88%;
     --midground: 60 16% 94%;
     --foreground: 240 10% 3.9%;
@@ -46,7 +46,7 @@
   }
 
   .dark {
-    --black: 180 2% 2%;
+    --darkening: 180 2% 2%;
     --background: 180 6% 15%;
     --midground: 180 4% 20%;
     --foreground: 40 100% 99%;
