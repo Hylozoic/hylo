@@ -1,6 +1,6 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe } from 'lucide-react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
@@ -145,7 +145,7 @@ export default function GlobalNav (props) {
           showTooltip={isContainerHovered}
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><Bell className='w-7 h-7' /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
               tooltip={t('Activity')}
@@ -165,7 +165,7 @@ export default function GlobalNav (props) {
           showTooltip={isContainerHovered}
           badgeCount={currentUser.unseenThreadCount || 0}
         >
-          <BadgedIcon name='Messages' className='!text-primary-foreground cursor-pointer font-md' />
+          <MessagesSquare />
         </GlobalNavItem>
 
         <GlobalNavItem
@@ -212,8 +212,8 @@ export default function GlobalNav (props) {
       <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
         <Popover>
           <PopoverTrigger>
-            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
-              <span className='inline-block text-themeForeground p-1 w-10 line-height-1'>+</span>
+            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
+              <PlusCircle className='w-7 h-7' />
             </div>
           </PopoverTrigger>
           <PopoverContent side='right' align='center'>
@@ -223,15 +223,17 @@ export default function GlobalNav (props) {
 
         <Popover>
           <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md opacity-60 hover:opacity-100 scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/100')}>?</span>
+            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/100')}>
+              <HelpCircle className='w-7 h-7' />
+            </span>
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
-            <ul>
-              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={showIntercom}>{t('Feedback & Support')}</span></li>
-              <li><a className='text-foreground hover:text-secondary/80' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
-              <li><a className='text-foreground hover:text-secondary/80' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
-              <li><a className='text-foreground hover:text-secondary/80' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
+            <ul className='flex flex-col gap-2 m-0 p-0'>
+              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' onClick={showIntercom}>{t('Feedback & Support')}</span></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
+              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li> 
+              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
           </PopoverContent>
         </Popover>
