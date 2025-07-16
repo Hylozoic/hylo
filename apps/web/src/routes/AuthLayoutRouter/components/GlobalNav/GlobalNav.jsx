@@ -191,8 +191,7 @@ export default function GlobalNav (props) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10,
-        delay: 50
+        distance: 15
       }
     }),
 
