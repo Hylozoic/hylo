@@ -308,7 +308,7 @@ export default function GlobalNav (props) {
         </DndContext>
 
         {/* Add a divider between pinned and unpinned groups */}
-        {pinnedGroups.length > 0 && <div className='rounded-lg bg-card/50 p-1 h-4 w-full mb-4' />}
+        {pinnedGroups.length > 0 && <div className='rounded-lg bg-foreground/20 w-full mb-4 p-[2px]' />}
 
         {/* Non-pinned Groups Section */}
         {unpinnedGroups.map((group, unpinnedIndex) => {
