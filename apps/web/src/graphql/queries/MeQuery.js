@@ -134,5 +134,11 @@ export default gql`
         name
       }
     }
+    cookieConsentPreferences {
+      id
+      settings
+      version
+      updatedAt
+    }
   }
 `

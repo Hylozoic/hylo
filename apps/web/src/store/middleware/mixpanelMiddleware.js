@@ -2,6 +2,7 @@ import { get, isString, isObject, omit } from 'lodash/fp'
 import mixpanel from 'mixpanel-browser'
 import { getAuthenticated } from '../selectors/getAuthState'
 import getMe from '../selectors/getMe'
+import { getCookieConsent } from 'util/cookieConsent'
 
 export default function mixpanelMiddleware (store) {
   return next => action => {
@@ -14,6 +15,10 @@ export default function mixpanelMiddleware (store) {
       const state = store.getState()
 
       if (!import.meta.env.VITE_MIXPANEL_TOKEN || !mixpanel) return next(action)
+
+      // Cookie consent check
+      const consent = getCookieConsent()
+      if (consent && consent.analytics === false) return next(action)
 
       const isLoggedIn = getAuthenticated(state)
       const { analytics } = meta

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import createGroupMutation from '@hylo/graphql/mutations/createGroupMutation'
 import groupDetailsQueryMaker from '@hylo/graphql/queries/groupDetailsQueryMaker'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { useCreateGroupStore } from './CreateGroup.store'
 import { BASE_STRING } from './CreateGroupUrl'
@@ -42,7 +42,7 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
           ).toPromise()
 
           if (data?.group) {
-            mixpanel.track(AnalyticsEvents.GROUP_CREATED)
+            trackWithConsent(AnalyticsEvents.GROUP_CREATED)
             clearStore()
             changeToGroup(data.group.slug, { skipCanViewCheck: true })
           } else {

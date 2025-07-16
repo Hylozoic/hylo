@@ -22,6 +22,7 @@ import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import ActionCompletionSection from 'components/ActionCompletionSection'
 import { isIOS } from 'util/platform'
+import { trackWithConsent } from 'services/mixpanel'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -75,7 +76,7 @@ export default function PostDetails () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      mixpanel.track(AnalyticsEvents.POST_OPENED, {
+      trackWithConsent(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,

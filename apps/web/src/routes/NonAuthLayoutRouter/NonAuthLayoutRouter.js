@@ -11,7 +11,6 @@ import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import Button from 'components/ui/button'
-import HyloCookieConsent from 'components/HyloCookieConsent'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
@@ -155,7 +154,6 @@ export default function NonAuthLayoutRouter (props) {
           <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>
       </div>
-      <HyloCookieConsent />
     </Div100vh>
   )
 }

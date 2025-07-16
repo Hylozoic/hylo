@@ -47,6 +47,25 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
+    CookieConsent: {
+      model: CookieConsent,
+      attributes: [
+        'id',
+        'consent_id',
+        'user_id',
+        'settings',
+        'version',
+        'updated_at'
+      ],
+      relations: [
+        'user'
+      ],
+      getters: {
+        userId: c => c.get('user_id'),
+        consentId: c => c.get('consent_id')
+      }
+    },
+
     CommonRole: {
       model: CommonRole,
       attributes: [
@@ -164,7 +183,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { messageThreads: { typename: 'MessageThread', querySet: true } },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
-        { tracksEnrolledIn: { querySet: true } }
+        { tracksEnrolledIn: { querySet: true } },
+        { cookieConsent: { alias: 'cookieConsentPreferences' } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),

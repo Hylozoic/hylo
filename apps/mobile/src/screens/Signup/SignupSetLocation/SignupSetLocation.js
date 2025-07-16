@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import { X } from 'lucide-react-native'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
@@ -24,7 +24,7 @@ export default function SignupSetLocation ({ navigation }) {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
         updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+        trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })
@@ -37,7 +37,7 @@ export default function SignupSetLocation ({ navigation }) {
         settings: { signupInProgress: false }
       }
     })
-    mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+    trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE)
   }
 
   return (
