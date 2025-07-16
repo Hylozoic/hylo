@@ -134,8 +134,8 @@ export const desertTheme = {
   },
   dark: {
     ...baseTheme.dark,
-    background: '25 18% 14%',
-    midground: '25 18% 18%',
+    background: '25 14% 14%',
+    midground: '25 14% 18%',
     foreground: '25 10% 90%',
     primary: '35 10% 13%',
     secondary: '25 45% 25%',
