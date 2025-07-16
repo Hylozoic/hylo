@@ -56,6 +56,7 @@ export default function PostDetails () {
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
   const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
+
   useSubscription({
     query: commentsSubscription,
     variables: { postId: post?.id },

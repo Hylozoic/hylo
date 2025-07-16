@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.10] - 2025-07-15
+
+### Added
+- Add ability to pin groups to the top of the global nav. Pinned groups can be reordered by dragging and dropping.
+
 ## [6.1.9] - 2025-07-08
 
 ### Changed

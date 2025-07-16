@@ -124,6 +124,18 @@ export default function makeSubscriptions () {
           }
         }
       }
+    },
+
+    postUpdates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`postUpdates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.post) {
+          return new Post(payload.post)
+        }
+      }
     }
   }
 }
