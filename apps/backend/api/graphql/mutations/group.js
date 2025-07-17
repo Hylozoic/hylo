@@ -2,11 +2,12 @@ import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
-// import {
-//   publishGroupUpdate,
-//   publishGroupMembershipUpdate,
-//   publishGroupRelationshipUpdate
-// } from '../../../lib/groupSubscriptionPublisher'
+import {
+  publishGroupUpdate,
+  publishGroupMembershipUpdate,
+  publishGroupRelationshipUpdate
+} from '../../../lib/groupSubscriptionPublisher'
+import { publishAsync } from '../../../lib/subscriptionUtils'
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {
@@ -31,11 +32,11 @@ export async function addModerator (userId, personId, groupId, context) {
   await GroupMembership.setModeratorRole(personId, group)
 
   // Publish group membership update to all group members (non-blocking)
-  // publishAsync(publishGroupMembershipUpdate, context, groupId, {
-  //   group,
-  //   member: person,
-  //   action: 'moderator_added'
-  // })
+  publishAsync(publishGroupMembershipUpdate, context, groupId, {
+    group,
+    member: person,
+    action: 'moderator_added'
+  })
 
   return group
 }
@@ -78,12 +79,12 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
     await groupRelationship.save({ active: false })
 
     // Publish group relationship updates to all members of both groups (non-blocking)
-    // publishAsync(publishGroupRelationshipUpdate, context, {
-    //   parentGroupId: parentId,
-    //   childGroupId: childId,
-    //   action: 'relationship_removed',
-    //   relationship: null
-    // })
+    publishAsync(publishGroupRelationshipUpdate, context, {
+      parentGroupId: parentId,
+      childGroupId: childId,
+      action: 'relationship_removed',
+      relationship: null
+    })
 
     return { success: true }
   }
@@ -131,13 +132,13 @@ export async function removeMember (loggedInUserId, userIdToRemove, groupId, con
 
   await GroupService.removeMember(userIdToRemove, groupId)
 
-  // publishAsync(publishGroupMembershipUpdate, context, groupId, {
-  //   group,
-  //   member: memberToRemove,
-  //   action: 'left'
-  // }, {
-  //   additionalUserIds: [userIdToRemove]
-  // })
+  publishAsync(publishGroupMembershipUpdate, context, groupId, {
+    group,
+    member: memberToRemove,
+    action: 'left'
+  }, {
+    additionalUserIds: [userIdToRemove]
+  })
 
   return group
 }
@@ -150,21 +151,21 @@ export async function removeModerator (userId, personId, groupId, isRemoveFromGr
     await GroupMembership.removeModeratorRole(personId, group)
     await GroupService.removeMember(personId, groupId)
 
-    // publishAsync(publishGroupMembershipUpdate, context, groupId, {
-    //   group,
-    //   member: person,
-    //   action: 'left'
-    // }, {
-    //   additionalUserIds: [personId]
-    // })
+    publishAsync(publishGroupMembershipUpdate, context, groupId, {
+      group,
+      member: person,
+      action: 'left'
+    }, {
+      additionalUserIds: [personId]
+    })
   } else {
     await GroupMembership.removeModeratorRole(personId, group)
 
-    // publishAsync(publishGroupMembershipUpdate, context, groupId, {
-    //   group,
-    //   member: person,
-    //   action: 'moderator_removed'
-    // })
+    publishAsync(publishGroupMembershipUpdate, context, groupId, {
+      group,
+      member: person,
+      action: 'moderator_removed'
+    })
   }
 
   return group
@@ -175,7 +176,7 @@ export async function updateGroup (userId, groupId, changes, context) {
 
   const updatedGroup = await group.update(convertGraphqlData(changes), userId)
 
-  // publishAsync(publishGroupUpdate, context, groupId, updatedGroup)
+  publishAsync(publishGroupUpdate, context, groupId, updatedGroup)
 
   return updatedGroup
 }
@@ -236,12 +237,12 @@ export async function acceptGroupRelationshipInvite (userId, groupRelationshipIn
       await Queue.classMethod('Group', 'doesMenuUpdate', { groupRelationship: true, groupIds })
 
       if (groupRelationship) {
-        // publishAsync(publishGroupRelationshipUpdate, context, {
-        //   parentGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('from_group_id') : invite.get('to_group_id'),
-        //   childGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('to_group_id') : invite.get('from_group_id'),
-        //   action: 'invite_accepted',
-        //   relationship: groupRelationship
-        // })
+        publishAsync(publishGroupRelationshipUpdate, context, {
+          parentGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('from_group_id') : invite.get('to_group_id'),
+          childGroupId: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? invite.get('to_group_id') : invite.get('from_group_id'),
+          action: 'invite_accepted',
+          relationship: groupRelationship
+        })
       }
 
       return { success: !!groupRelationship, groupRelationship }
