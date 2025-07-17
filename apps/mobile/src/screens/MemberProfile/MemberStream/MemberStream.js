@@ -16,11 +16,13 @@ export default function MemberStream ({ id, header }) {
   const navigation = useNavigation()
   const [choice, setChoice] = useState('Posts')
 
-  const [first, setFirst] = useState(10)
+  const [first] = useState(10)
+  const [offset, setOffset] = useState(0)
 
   const [recentActivityItems, { fetching, error, hasMorePosts, hasMoreComments, hasMoreReactions }] = useRecentActivity({
     id,
     first,
+    offset,
     order: 'desc'
   })
 
@@ -51,9 +53,9 @@ export default function MemberStream ({ id, header }) {
 
   const fetchMoreItems = useCallback(() => {
     if (hasMore && !fetching) {
-      setFirst(prev => prev + 5)
+      setOffset(prev => prev + first)
     }
-  }, [hasMore, fetching])
+  }, [hasMore, fetching, first])
 
   const showMember = id => navigation.navigate('Member', { id })
   const showPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
