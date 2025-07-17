@@ -112,6 +112,10 @@ module.exports = bookshelf.Model.extend(merge({
       })
   },
 
+  cookieConsent: function () {
+    return this.hasOne(CookieConsent, 'user_id')
+  },
+
   commonRoles () {
     return this.belongsToMany(CommonRole)
       .through(MemberCommonRole, 'user_id', 'common_role_id')

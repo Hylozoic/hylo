@@ -11,6 +11,7 @@ import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -97,7 +98,7 @@ export const CommentEditor = React.forwardRef(({
         }
       }
 
-      mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
+      trackWithConsent(AnalyticsEvents.COMMENT_CREATED, {
         commentLength: TextHelpers.textLengthHTML(commentHTML),
         groupId: post.groups.map(g => g.id),
         hasAttachments: false,

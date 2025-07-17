@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { cn } from 'util/index'
 
+// deprecated
 export default function HyloCookieConsent () {
   const { t } = useTranslation()
   const [cookieConsent, setCookieConsent] = useState(false)

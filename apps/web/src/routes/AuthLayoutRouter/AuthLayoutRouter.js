@@ -8,6 +8,7 @@ import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
+import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
@@ -464,6 +465,7 @@ export default function AuthLayoutRouter (props) {
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
           </div>
         </div>
+        <CookieConsentLinker />
       </Div100vh>
     </IntercomProvider>
   )

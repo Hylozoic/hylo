@@ -1,6 +1,7 @@
 import { gql, useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
 import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 
 const reactOnMutation = gql` 
   mutation ReactOnMutation($entityId: ID, $data: ReactionInput) {
@@ -60,7 +61,7 @@ export default function useReactOnEntity () {
   const [, deleteCommentReaction] = useMutation(deleteCommentReactionMutation)
   const reactOnEntity = async (entityType, entityId, emojiFull) => {
     reactOn({ entityId, data: { emojiFull, entityType, entityId } })
-    mixpanel.track(
+    trackWithConsent(
       entityType === 'post' ? AnalyticsEvents.POST_REACTION : AnalyticsEvents.COMMENT_REACTION, {
         commentId: entityType === 'comment' && entityId,
         emoji: emojiFull,

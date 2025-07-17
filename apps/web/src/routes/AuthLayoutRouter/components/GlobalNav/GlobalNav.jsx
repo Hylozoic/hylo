@@ -38,6 +38,9 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import { getCookieConsent } from 'util/cookieConsent'
+import { useCookieConsent } from 'contexts/CookieConsentContext'
+import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 
 import styles from './GlobalNav.module.scss'
@@ -79,6 +82,8 @@ const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown')
 export default function GlobalNav (props) {
   const { currentUser } = props
   const { show: showIntercom } = useIntercom()
+  const { showPreferences } = useCookieConsent()
+  const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const sortedGroups = useSelector(getMyGroups)
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
@@ -179,6 +184,15 @@ export default function GlobalNav (props) {
     setShowGradient(false)
   }
 
+  const handleSupportClick = () => {
+    const consent = getCookieConsent()
+    if (consent && consent.support === false) {
+      setShowSupportModal(true)
+    } else {
+      showIntercom()
+    }
+  }
+
   const handlePinGroup = (groupId) => {
     dispatch(pinGroup(groupId))
   }
@@ -194,7 +208,6 @@ export default function GlobalNav (props) {
         distance: 15
       }
     }),
-
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates
     })
@@ -369,12 +382,33 @@ export default function GlobalNav (props) {
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
             <ul>
-              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={showIntercom}>{t('Feedback & Support')}</span></li>
+              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={handleSupportClick}>{t('Feedback & Support')}</span></li>
               <li><a className='text-foreground hover:text-secondary/80' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
               <li><a className='text-foreground hover:text-secondary/80' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
               <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
               <li><a className='text-foreground hover:text-secondary/80' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
+            {showSupportModal && (
+              <ModalDialog
+                closeModal={() => setShowSupportModal(false)}
+                showModalTitle={false}
+                submitButtonAction={() => {
+                  setShowSupportModal(false)
+                  showPreferences()
+                }}
+                submitButtonText={t('Edit Cookie Preferences')}
+              >
+                <div className='p-4'>
+                  <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                  <p className='text-foreground/70 mb-4'>
+                    {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                  </p>
+                  <p className='text-foreground/70 mb-2'>
+                    {t('Click below to edit your cookie preferences')}
+                  </p>
+                </div>
+              </ModalDialog>
+            )}
           </PopoverContent>
         </Popover>
       </div>

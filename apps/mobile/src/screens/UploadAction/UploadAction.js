@@ -27,6 +27,7 @@ import { usePostEditorStore } from '../PostEditor/PostEditor.store'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
+import { trackWithConsent } from 'services/mixpanel'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -169,7 +170,7 @@ export default function UploadAction () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      mixpanel.track(AnalyticsEvents.POST_OPENED, {
+      trackWithConsent(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,

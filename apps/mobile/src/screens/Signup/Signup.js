@@ -8,7 +8,7 @@ import validator from 'validator'
 import { AnalyticsEvents } from '@hylo/shared'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import Button from 'components/Button'
@@ -100,7 +100,7 @@ export default function Signup () {
       const { data } = await sendEmailVerification({ email })
 
       if (data?.sendEmailVerification?.success) {
-        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email })
+        trackWithConsent(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email })
         openURL(`/signup/verify-email?email=${encodeURIComponent(email)}`)
       } else {
         throw genericError
