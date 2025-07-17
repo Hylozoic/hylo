@@ -42,6 +42,7 @@ export default {
   PostUserQuerySet: () => null,
   ProposalOptionQuerySet: () => null,
   ProposalVoteQuerySet: () => null,
+  ReactionQuerySet: () => null,
   ResponsibilityQuerySet: () => null,
   SearchResultQuerySet: () => null,
   SkillQuerySet: () => null,
