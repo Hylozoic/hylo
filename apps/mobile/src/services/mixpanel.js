@@ -10,9 +10,7 @@ const useNative = false
 const mixpanel = new Mixpanel(Config.MIXPANEL_TOKEN, trackAutomaticEvents, useNative)
 mixpanel && mixpanel.init()
 
-// Proxy function for tracking with consent
 export function trackWithConsent(event, props) {
-  // This hook must be called inside a React component or hook
   const [{ currentUser }] = useCurrentUser()
   const consent = currentUser?.cookieConsentPreferences?.settings
   if (consent && consent.analytics === false) return
