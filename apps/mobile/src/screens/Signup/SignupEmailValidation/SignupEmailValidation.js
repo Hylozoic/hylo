@@ -6,7 +6,7 @@ import { gql, useMutation } from 'urql'
 import { CodeField, Cursor, useBlurOnFulfill, useClearByFocusCell } from 'react-native-confirmation-code-field'
 import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import errorMessages from 'util/errorMessages'
 import useRouteParams from 'hooks/useRouteParams'
 import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
@@ -73,7 +73,7 @@ export default function SignupEmailValidation () {
         }
         setError(responseError)
       } else {
-        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
+        trackWithConsent(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
         navigation.navigate('SignupRegistration')
       }
     } catch (e) {

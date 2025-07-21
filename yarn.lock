@@ -36442,6 +36442,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"uuid@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "uuid@npm:11.1.0"
+  bin:
+    uuid: dist/esm/bin/uuid
+  checksum: 10/d2da43b49b154d154574891ced66d0c83fc70caaad87e043400cf644423b067542d6f3eb641b7c819224a7cd3b4c2f21906acbedd6ec9c6a05887aa9115a9cf5
+  languageName: node
+  linkType: hard
+
 "uuid@npm:^2.0.1":
   version: 2.0.3
   resolution: "uuid@npm:2.0.3"
@@ -37124,6 +37133,7 @@ __metadata:
     typescript: "npm:^4.7.4"
     urql: "npm:^4.2.1"
     use-long-press: "npm:^2.0.2"
+    uuid: "npm:^11.1.0"
     validator: "npm:^13.7.0"
     vite: "npm:^5.4.11"
     vite-css-modules: "npm:^1.5.2"

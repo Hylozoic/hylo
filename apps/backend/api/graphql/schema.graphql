@@ -564,6 +564,23 @@ type Comment {
   myReactions: [Reaction]
 }
 
+# Cookie consent preferences for a user
+type CookieConsent {
+  id: ID
+  # The unique consent identifier
+  consentId: ID
+  # The user this consent belongs to (null for anonymous users)
+  userId: ID
+  # The consent settings
+  settings: JSON
+  # Version of the consent structure
+  version: String
+  # When this consent was last updated
+  updatedAt: Date
+  # The user this consent belongs to
+  user: Person
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type CommentQuerySet {
   total: Int
@@ -1609,6 +1626,9 @@ type Me {
     # 'enrolled_at', 'name'
     sortBy: String
   ): TrackQuerySet
+
+  # Cookie consent preferences for the current user
+  cookieConsentPreferences: CookieConsent
 }
 
 # A user's group membership

@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Navigate, Route, Routes } from 'react-router-
 import Div100vh from 'react-div-100vh'
 import { POST_DETAIL_MATCH, GROUP_DETAIL_MATCH } from 'util/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
-import HyloCookieConsent from 'components/HyloCookieConsent'
 import GroupDetail from 'routes/GroupDetail'
 import GroupExplorer from 'routes/GroupExplorer'
 import MapExplorer from 'routes/MapExplorer'
@@ -24,7 +23,6 @@ export default function PublicLayoutRouter (props) {
           {/* Redirect all other routes to /login */}
           <Route element={<Navigate to='/login' state={{ from: location }} replace />} />
         </Routes>
-        <HyloCookieConsent />
       </div>
     </Div100vh>
   )

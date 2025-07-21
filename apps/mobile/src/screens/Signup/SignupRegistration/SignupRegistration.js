@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { pickBy, identity } from 'lodash/fp'
 import { AnalyticsEvents, Validators } from '@hylo/shared'
 import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import useLogout from 'hooks/useLogout'
 import useForm from 'hooks/useForm'
 import useConfirmAlert from 'hooks/useConfirmAlert'
@@ -46,7 +46,7 @@ export default function SignupRegistration ({ navigation, route }) {
       if (responseError) {
         setError(responseError)
       } else {
-        mixpanel.track(AnalyticsEvents.SIGNUP_REGISTERED)
+        trackWithConsent(AnalyticsEvents.SIGNUP_REGISTERED)
         navigation.navigate('SignupUploadAvatar')
       }
     } catch (e) {
