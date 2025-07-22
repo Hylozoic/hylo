@@ -1,3 +1,3 @@
 import component from './CookieConsentLinker'
 
-export default component 
+export default component

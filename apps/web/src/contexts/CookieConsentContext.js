@@ -192,4 +192,4 @@ export const CookieConsentProvider = ({ children }) => {
       {children}
     </CookieConsentContext.Provider>
   )
-} 
+}
