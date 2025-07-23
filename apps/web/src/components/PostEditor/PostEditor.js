@@ -1,7 +1,8 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -190,7 +191,7 @@ function PostEditor ({
     locationId: null,
     proposalOptions: [],
     quorum: 0,
-    timezone: DateTime.now().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
     topics: topic ? [topic] : [],
     type: postType || (modal ? 'discussion' : 'chat'),
@@ -353,11 +354,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -624,7 +625,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       completionAction,
       completionActionSettings,

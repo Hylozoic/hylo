@@ -16,7 +16,7 @@ import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
 import PasswordReset from 'routes/NonAuthLayoutRouter/PasswordReset'
 import SignupRouter from 'routes/NonAuthLayoutRouter/Signup/SignupRouter'
-import { localeLocalStorageSync, localeToFlagEmoji } from 'util/locale'
+import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
 
 import classes from './NonAuthLayoutRouter.module.scss'
 
@@ -39,7 +39,7 @@ export default function NonAuthLayoutRouter (props) {
   const returnToPath = returnToNavigationState
     ? returnToNavigationState.pathname + returnToNavigationState.search
     : returnToPathFromQueryString
-  const locale = localeLocalStorageSync()
+  const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'

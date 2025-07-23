@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
 import RedisClient from '../../services/RedisClient'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
@@ -115,7 +115,7 @@ export const sendDigests = async () => {
           locale,
           data: {
             count: filtered.length,
-            date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false),
+            date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at') }),
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             participant_avatars: otherAvatarUrls[0],
             participant_names: participantNames,
@@ -145,7 +145,7 @@ export const sendDigests = async () => {
           locale,
           data: {
             count: commentData.length,
-            date: TextHelpers.formatDatePair(filtered[0].get('created_at'), false, false, post.get('timezone')),
+            date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,

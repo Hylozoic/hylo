@@ -4,7 +4,7 @@ import React, { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { personUrl } from 'util/navigation'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import Avatar from 'components/Avatar'
@@ -30,6 +30,7 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { INITIAL_SUBCOMMENTS_DISPLAYED } from 'util/constants'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 function Comment ({
   comment,
@@ -102,8 +103,8 @@ function Comment ({
   }, [])
 
   const { id, creator, createdAt, editedAt, text, attachments } = comment
-  const timestamp = TextHelpers.humanDate(createdAt)
-  const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + TextHelpers.humanDate(editedAt) : false
+  const timestamp = DateTimeHelpers.humanDate(createdAt)
+  const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + DateTimeHelpers.humanDate(editedAt) : false
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const profileUrl = personUrl(creator.id, slug)
   const dropdownItems = filter(item => isFunction(item.onClick), [
@@ -126,11 +127,11 @@ function Comment ({
           <Link to={profileUrl} className='text-sm font-bold ml-2 text-foreground'>{creator.name}</Link>
         </div>
         <div>
-          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(createdAt).toFormat('D t ZZZZ')}>
+          <span className='text-xs text-foreground/50 pl-2' data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ')}>
             {timestamp}
           </span>
           {(editedTimestamp) && (
-            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTime.fromISO(editedAt).toFormat('D t ZZZZ')}>
+            <span className={styles.timestamp} data-tooltip-id={`dateTip-${comment.id}`} data-tooltip-content={DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ')}>
               ({editedTimestamp})
             </span>
           )}

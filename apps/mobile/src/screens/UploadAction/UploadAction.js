@@ -9,6 +9,7 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
@@ -197,7 +198,7 @@ export default function UploadAction () {
   const files = post.getFiles()
 
   if (post?.completedAt) {
-    const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+    const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair({ start: post.completedAt }) : null
     return (
       <View className='p-4 bg-background-plus rounded-lg mb-4'>
         <View className='flex-row items-center'>

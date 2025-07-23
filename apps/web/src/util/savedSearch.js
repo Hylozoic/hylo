@@ -1,4 +1,5 @@
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import { groupUrl } from 'util/navigation'
 
 const parsegroup = group => `Group: ${group.name}`
@@ -26,7 +27,7 @@ export function currentFilters (filters) {
 export function formatParams (search) {
   const { group, context, createdAt, postTypes, searchText, topics } = search
   return [
-    `Created on ${DateTime.fromISO(createdAt).toFormat('MMMM d yyyy')}`, // this was 'do' as in ordinal, but not supported in luxon
+    `Created on ${DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('MMMM d yyyy')}`,
     ['all', 'public'].includes(context) ? `Context: ${context}` : '',
     group ? parsegroup(group) : '',
     searchText ? parseSearch(searchText) : '',

@@ -3,7 +3,7 @@ import { get, filter } from 'lodash/fp'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
@@ -50,7 +50,7 @@ function EventBody (props) {
               <div className={cn('text-xs text-foreground/50 flex flex-row gap-2 items-center')} onClick={onClick}>
                 {isHappeningNow && <div className='bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Happening now!')}</div>}
                 {!isHappeningNow && isUpcoming && <div className='bg-accent/10 p-1 rounded-lg text-accent text-xs font-bold flex items-center justify-center inline-block px-2'>{t('Upcoming')}</div>}
-                {TextHelpers.formatDatePair(startTime, endTime)}
+                {DateTimeHelpers.formatDatePair({ start: startTime, end: endTime })}
                 {isPastEvent && (
                   <span className={cn('text-sm text-foreground/50 ml-2 px-2 inline-block p-1 rounded-md bg-foreground/10 text-xs')}>{t('Event ended')}</span>
                 )}

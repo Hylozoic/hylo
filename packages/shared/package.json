@@ -5,7 +5,6 @@
   },
   "private": true,
   "description": "Code shared across Hylo applications for consistency of results",
-  "type": "module",
   "scripts": {
     "test": "jest",
     "build": "tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;"
