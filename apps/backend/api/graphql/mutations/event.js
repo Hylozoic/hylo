@@ -1,7 +1,7 @@
 import { GraphQLError } from 'graphql'
 import ical from 'ical-generator'
 import { values, includes } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 
 const going = (response) => {
   return response === EventInvitation.RESPONSE.YES ||
@@ -51,7 +51,7 @@ export async function respondToEvent (userId, eventId, response) {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: TextHelpers.formatDatePair(event.get('start_time'), event.get('end_time'), false, event.get('timezone')),
+        date: DateTimeHelpers.formatDatePair({ start: event.get('start_time'), end: event.get('end_time'), timezone: event.get('timezone') }),
         user_name: user.get('name'),
         event_name: event.title(),
         event_description: event.details(),

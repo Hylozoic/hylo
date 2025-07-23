@@ -5,7 +5,7 @@ import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -121,7 +121,7 @@ class PostHeader extends PureComponent {
     // If it was completed/fulfilled before it ended, then use that as the end datetime
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-    const { from, to } = TextHelpers.formatDatePair(startTime, actualEndTime, true)
+    const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
 
     const startString = fulfilledAt
       ? false

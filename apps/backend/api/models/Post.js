@@ -423,7 +423,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
       url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
-      when: this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
 

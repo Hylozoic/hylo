@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platf
 import { Shapes, Settings, DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl, personUrl } from 'util/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -128,11 +129,11 @@ const PeopleTab = ({ trackDetail, group }) => {
               </TouchableOpacity>
               <View>
                 <Text className='text-sm text-foreground/60'>
-                  {t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt, null, null, null, true) })}
+                  {t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.enrolledAt, skipTime: true }) })}
                 </Text>
                 {user.completedAt && (
                   <Text className='text-sm text-foreground/60'>
-                    {t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt, null, null, null, true) })}
+                    {t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.completedAt, skipTime: true }) })}
                   </Text>
                 )}
               </View>

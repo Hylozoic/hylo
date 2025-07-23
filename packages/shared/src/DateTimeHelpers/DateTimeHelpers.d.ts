@@ -49,13 +49,16 @@ export function humanDate(
   locale?: string
 ): string;
 
-export function formatDatePair(
-  start: string | Date | DateTime | Object,
-  end: string | Date | DateTime | Object | boolean,
-  returnAsObj?: boolean,
-  timezone?: string,
-  locale?: string
-): string | { from: string, to: string };
+export interface FormatDatePairOptions {
+  start: string | Date | DateTime | Object;
+  end?: string | Date | DateTime | Object | boolean;
+  returnAsObj?: boolean;
+  timezone?: string;
+  locale?: string;
+  skipTime?: boolean;
+}
+
+export function formatDatePair(options: FormatDatePairOptions): string | { from: string, to: string };
 
 export function isDateInTheFuture(
   date: string | Date | DateTime | Object,

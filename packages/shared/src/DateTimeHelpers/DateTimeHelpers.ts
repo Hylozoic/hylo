@@ -128,19 +128,35 @@ export function humanDate (
     .replace(/ month(s?)/, ' mo$1')
 }
 
-export const formatDatePair = (
+export interface FormatDatePairOptions {
   start: string | Date | DateTime | Object,
-  end: string | Date | DateTime | Object | boolean,
+  end?: string | Date | DateTime | Object | boolean,
   returnAsObj?: boolean,
   timezone?: string,
-  locale?: string
-): string | { from: string, to: string } => {
+  locale?: string,
+  skipTime?: boolean
+}
+
+export const formatDatePair = ({
+  start,
+  end,
+  returnAsObj = false,
+  timezone,
+  locale,
+  skipTime = false
+}: FormatDatePairOptions): string | { from: string, to: string } => {
   const _start = toDateTime(start, { timezone, locale })
   const _end = end ? toDateTime(end, { timezone, locale }) : null
-
   const now = dateTimeNow(locale)
 
-  const isPastYear = _start.get('year') < now.get('year')
+  // Base formats without timezone
+  const formatWithYear = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t"
+  const formatWithoutYear = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t"
+
+  // Formats with timezone
+  const formatWithYearWithTz = skipTime ? 'ccc MMM d, yyyy' : "ccc MMM d, yyyy '•' t ZZZZ"
+  const formatWithoutYearWithTz = skipTime ? 'ccc MMM d' : "ccc MMM d '•' t ZZZZ"
+
   const isSameDay = _end && _start.get('day') === _end.get('day') &&
                     _start.get('month') === _end.get('month') &&
                     _start.get('year') === _end.get('year')
@@ -148,26 +164,26 @@ export const formatDatePair = (
   let to = ''
   let from = ''
 
-  // Format the start date - only include year if it's in the past
-  if (isPastYear) {
-    from = _start.toFormat("ccc MMM d, yyyy '•' t")
+  // Format the start date - only include year if it's not this year
+  // Include the timezone if the end date is not provided
+  if (_start.get('year') !== now.get('year')) {
+    from = _start.toFormat(end ? formatWithYear : formatWithYearWithTz)
   } else {
-    from = _start.toFormat("ccc MMM d '•' t")
+    from = _start.toFormat(end ? formatWithoutYear : formatWithoutYearWithTz)
   }
 
   // Format the end date/time if provided
   if (_end) {
     if (isSameDay) {
-      // If same day, only show the end time
-      to = _end.toFormat('t')
+      // If same day, only show the end time (with timezone if not skipping time)
+      to = _end.toFormat(skipTime ? 't' : 't ZZZZ')
     } else if (_end.get('year') < now.get('year')) {
-      // If end date is in a past year, include the year
-      to = _end.toFormat("MMM d, yyyy '•' t")
+      // If end date is in a past year, include the year (with timezone)
+      to = _end.toFormat(formatWithYearWithTz)
     } else {
-      // Otherwise just month, day and time
-      to = _end.toFormat("MMM d '•' t")
+      // Otherwise just month, day and time (with timezone)
+      to = _end.toFormat(formatWithoutYearWithTz)
     }
-
     to = returnAsObj ? to : ' - ' + to
   }
 
