@@ -189,6 +189,12 @@ export default function ContextMenu (props) {
     setActiveWidget(null)
   }
 
+  // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
+  useEffect(() => {
+    const menu = document.querySelector('.ContextMenu')
+    menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -200,7 +206,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
@@ -217,8 +223,12 @@ export default function ContextMenu (props) {
                 )
               : isMyContext
                 ? (
-                  <div className='flex flex-col p-2'>
-                    <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
+                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                    </div>
                   </div>
                   )
                 : null}
@@ -783,7 +793,7 @@ function GroupSettingsMenu ({ group }) {
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 
   return (
-    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[88px] w-[300px] bg-background/60 z-10'>
+    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background/60 z-[1050]'>
       <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />

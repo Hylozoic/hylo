@@ -1,9 +1,12 @@
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
+import { Header } from '@react-navigation/elements'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
+import { twBackground } from 'style/colors'
 // Screens
+import NoContextFallbackScreen from 'screens/NoContextFallbackScreen'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
 import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import ChatRoomWebView from 'screens/ChatRoomWebView'
@@ -20,16 +23,19 @@ import HyloWebView from 'components/HyloWebView'
 import MemberDetails from 'screens/MemberProfile/MemberDetails'
 import MemberProfile from 'screens/MemberProfile'
 import MembersComponent from 'screens/Members'
-import PostDetails from 'screens/PostDetails'
 import ProjectMembers from 'screens/ProjectMembers/ProjectMembers'
 import MapWebView from 'screens/MapWebView/MapWebView'
+import PostDetails from 'screens/PostDetails'
+import ContextMenu from 'screens/ContextMenu'
 
 const HomeTab = createStackNavigator()
 export default function HomeNavigator () {
+  // THE ORDER OF THESE HOOKS MATTERS!
   useHandleCurrentGroupSlug()
   useHandleCurrentGroup()
 
   const navigatorProps = {
+    initialRouteName: 'No Context Fallback', // This is an emergency fallback to avoid rare blank screen loads. Tempting to replace with a loading UI that centralizes some redirection logic
     screenOptions: {
       header: props => <TabStackHeader {...props} />,
       headerMode: 'float'
@@ -38,6 +44,24 @@ export default function HomeNavigator () {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
+      <HomeTab.Screen 
+        name='No Context Fallback' 
+        component={NoContextFallbackScreen} 
+                  options={{
+            header: () => (
+              <Header 
+                title="Hylo"
+                headerTitleAlign="center"
+                headerLeft={() => null}
+                headerStyle={{ backgroundColor: twBackground }}
+                headerTitleStyle={{ 
+                  fontFamily: 'Circular-Bold',
+                  fontSize: 18
+                }}
+              />
+            )
+          }} 
+      />
       {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
@@ -57,8 +81,9 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='Members' component={MembersComponent} />
       <HomeTab.Screen name='Member Details' component={MemberDetails} />
       <HomeTab.Screen name='Moderation' component={Moderation} />
-      <HomeTab.Screen name='Post Details' key='Post Details' component={PostDetails} />
+      <HomeTab.Screen name='Post Details' component={PostDetails} />
       <HomeTab.Screen name='Project Members' key='Project Members' component={ProjectMembers} />
+      <HomeTab.Screen name='Context Menu' component={ContextMenu} />
     </HomeTab.Navigator>
   )
 }

@@ -2,6 +2,10 @@
 
 We have recently launched our MVP of Hylo APIs that can be used by partners to interact with Hylo from third party apps. Currently you have to contact us at hello@hylo.com if you want access to the APIs. We will send you a `client_id` and `client_secret` manually. We are using the oAuth 2.0 and OpenID Connect standards to enable our API access. We primarily support the oAuth 2.0 Authorization Code flow for full API access in most app types, including web apps and natively installed apps. This requires redirecting to Hylo to get permission from a user to access Hylo as them. We also support the Client Credentials flow/grant type for server-to-server interactions that don't require interaction with a user. This allows a web service to use its own credentials, instead of impersonating a user, to authenticate when calling our APIs. We only support limited API calls for this type of connection.
 
+## Zapier instructions
+
+One of the most powerful and flexible ways to use our APIs without doing custom coding is through Zapier. Zapier is a platform that allows you to connect many apps and services together with simple rules. Zapier instructions here are here: [https://hylozoic.gitbook.io/hylo/guides/zapier-integration-on-hylo](https://hylozoic.gitbook.io/hylo/guides/zapier-integration-on-hylo)
+
 ## Authorization Code flow instructions
 For full API access in most app types, including web apps and natively installed apps.
 
@@ -101,17 +105,12 @@ Full GraphQL schema information can be found here: https://github.com/Hylozoic/h
 
 ## Client Credentials instructions
 For direct server-server to API calls, without user interaction. Here we offer a more limited set of API calls, but with some special abilities.
+* NOTE: This is a work in progress and we are still working out the best way to do this. We currently only offer this to special partners that we have deep trust with. In the near future we will set this up to work ore flexible by connecting your client ID to a user account, giving you all the same abilities as the Authorization Code flow for that user in a server to server context. If you need this please let us know.
 
 ### Authentication
 Before making any API calls you must get an auth token
 
 `POST to https://hylo.com/noo/oauth/token`
-
-__Headers:__
-```
-'Authorization: `Bearer ${access_token}`
-'Content-Type': 'application/x-www-form-urlencoded'
-```
 
 __Parameters (all required):__
 - `grant_type` = `client_credentials`
@@ -122,7 +121,7 @@ __Parameters (all required):__
 
 This call will return an ACCESS_TOKEN for use in later API calls. This token will expire in 2 hours at which point you will need to make another API call to get a new ACCESS_TOKEN.
 
-For every subsequent API you will need to authorize by passing this token as Bearer Token in the Authorization Header:
+For every subsequent API call you will need to authorize by passing this token as Bearer Token in the Authorization Header:
 `Authorization: Bearer ACCESS_TOKEN`
 
 ### Create a User

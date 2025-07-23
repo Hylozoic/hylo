@@ -6,7 +6,7 @@ import { useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import Button from 'components/Button'
 import Icon from 'components/Icon'
 import ImagePicker from 'components/ImagePicker'
@@ -29,7 +29,7 @@ export default function SignupUploadAvatar () {
         // onCancel: This will have the effect of fully Authorizing the user
         // and they will be forwarded to `AuthRoot`
         updateUserSettings({ changes: { settings: { signupInProgress: false } } })
-        mixpanel.track(AnalyticsEvents.SIGNUP_COMPLETE)
+        trackWithConsent(AnalyticsEvents.SIGNUP_COMPLETE)
       }
     })
   })

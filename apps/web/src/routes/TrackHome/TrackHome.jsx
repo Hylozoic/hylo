@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { useNavigate, Routes, Route, Link } from 'react-router-dom'
+import { useLocation, useNavigate, Routes, Route, Link } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -51,6 +51,7 @@ function TrackHome () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
+  const location = useLocation()
   const queryParams = useMemo(() => getQuerystringParam(['tab'], location), [location])
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))

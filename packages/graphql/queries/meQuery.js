@@ -123,6 +123,14 @@ export default gql`
         name
       }
     }
+    cookieConsentPreferences {
+      id
+      consentId
+      userId
+      settings
+      version
+      updatedAt
+    }
   }
 
   ${membershipFieldsFragment}

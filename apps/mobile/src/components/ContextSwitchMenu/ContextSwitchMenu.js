@@ -17,7 +17,7 @@ import { black, white } from 'style/colors'
 
 const STAY_EXPANDED_DURATION = 1500
 
-export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
+export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView }) {
   const insets = useSafeAreaInsets()
   const openURL = useOpenURL()
   const changeToGroup = useChangeToGroup()
@@ -55,7 +55,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded }) {
   return (
     <View
       className='h-full bg-theme-background z-50'
-      style={{ paddingTop: insets.top + (isIOS ? 0 : 20), paddingBottom: insets.bottom + (isIOS ? 0 : 20) }}
+      style={{ paddingTop: fullView ? 5 : insets.top + (isIOS ? 0 : 20), paddingBottom: fullView ? 5 : insets.bottom + (isIOS ? 0 : 20) }}
     >
       <FlatList
         data={myGroups}
@@ -108,7 +108,7 @@ function ContextRow ({
         'flex-row rounded-lg bg-primary m-1.5',
         !selected && !bottomItem && 'border-1 border-primary opacity-60 p-1',
         selected && 'border-3 border-selected opacity-100 p-0.5',
-        bottomItem && 'bg-primary m-1 p-1',
+        bottomItem && 'bg-primary m-1 p-1 opacity-60',
         className
       )}
       style={{

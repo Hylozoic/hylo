@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 import detect from 'detect-port'
 import inquirer from 'inquirer'
 import paths from '../config/paths.js'
+import { networkInterfaces } from 'os'
 
 process.env.NODE_ENV = 'development'
 dotenv.config({ silent: true })
@@ -53,7 +54,8 @@ async function start () {
       configFile: path.resolve(__dirname, '../vite.config.js'),
       server: {
         port,
-        open: false
+        open: false,
+        host: '0.0.0.0'
       }
     })
 
@@ -64,14 +66,15 @@ async function start () {
     const appName = packageJson.name
     const urls = {
       localUrlForTerminal: `${protocol}://localhost:${port}`,
-      localUrlForBrowser: `${protocol}://localhost:${port}`
+      localUrlForBrowser: `${protocol}://localhost:${port}`,
+      networkUrl: `${protocol}://${getLocalIP()}:${port}`
     }
 
     // console.clear(); // Alternative to clearConsole
     console.log(chalk.cyan('Starting the development server...\n'))
     console.log(`You can now view ${chalk.bold(appName)} in the browser.\n`)
     console.log(`  ${chalk.bold('Local:')}            ${urls.localUrlForBrowser}`)
-    console.log(`  ${chalk.bold('On Your Network:')}  ${urls.localUrlForTerminal}\n`)
+    console.log(`  ${chalk.bold('On Your Network:')}  ${urls.networkUrl}\n`)
 
     // open(urls.localUrlForBrowser); // Alternative to openBrowser
   } catch (err) {
@@ -79,6 +82,19 @@ async function start () {
     console.error(err)
     process.exit(1)
   }
+}
+
+function getLocalIP () {
+  const nets = networkInterfaces()
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address
+      }
+    }
+  }
+  return 'localhost'
 }
 
 start()

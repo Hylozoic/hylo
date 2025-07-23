@@ -101,6 +101,7 @@ export function createGroup (data) {
           memberships {
             items {
               id
+              lastViewedAt
               person {
                 id
                 membershipCommonRoles {

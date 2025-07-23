@@ -10,15 +10,12 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
-import Button from 'components/Button'
-import HyloCookieConsent from 'components/HyloCookieConsent'
+import Button from 'components/ui/button'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
 import PasswordReset from 'routes/NonAuthLayoutRouter/PasswordReset'
 import SignupRouter from 'routes/NonAuthLayoutRouter/Signup/SignupRouter'
-import OAuthConsent from 'routes/OAuth/Consent'
-import OAuthLogin from 'routes/OAuth/Login'
 import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
 
 import classes from './NonAuthLayoutRouter.module.scss'
@@ -42,7 +39,6 @@ export default function NonAuthLayoutRouter (props) {
   const returnToPath = returnToNavigationState
     ? returnToNavigationState.pathname + returnToNavigationState.search
     : returnToPathFromQueryString
-  const thisApplicationText = t('this application')
   const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -55,30 +51,28 @@ export default function NonAuthLayoutRouter (props) {
       dispatch(setReturnToPath(returnToPath))
     }
 
-    // XXX: skipAuthCheck is kind of a hack for when we are doing the oAuth login flow
-    //      and we want to still show the oAuth login/consent pages even when someone is logged into Hylo
-    if (!props.skipAuthCheck && isAuthenticated) {
+    if (isAuthenticated) {
       navigate('/signup', { replace: true })
     }
   }, [dispatch, setReturnToPath, returnToPath])
 
   return (
-    <Div100vh className={classes.nonAuthContainer}>
+    <Div100vh className='w-full h-full'>
       <Helmet>
         <title>Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
       </Helmet>
-      <div className={classes.background}>
+      <div className='relative w-full h-full flex flex-col justify-center items-center p-2'>
         <div className={classes.particlesBackgroundWrapper}>
           <Particles options={particlesjsConfig} style={particlesStyle} />
         </div>
-        <div className='flex justify-between items-center w-full px-4 absolute top-0 w-full'>
+        <div className='flex justify-between items-center w-full px-4 absolute top-0'>
           <a href='/'>
             <img className='h-10' src={logoSrc} alt={t('Hylo logo')} />
           </a>
           <LocaleDropdown renderToggleChildren={<span className='text-foreground'>{t('Locale')}: {locale} {localeDisplay}</span>} />
         </div>
-        <div className={classes.signupRow}>
+        <div className='flex flex-col items-center justify-center w-full'>
           <Routes>
             <Route
               path='login'
@@ -104,11 +98,6 @@ export default function NonAuthLayoutRouter (props) {
               path='h/use-invitation'
               element={<JoinGroup />}
             />
-            <Route path='oauth/login/:uid' element={<OAuthLogin className={classes.form} />} />
-            <Route
-              path='oauth/consent/:uid'
-              element={<OAuthConsent {...props} className={classes.form} />}
-            />
             {/*
               Default route
               NOTE: This passes the unmatched location for anything unmatched except `/`
@@ -126,9 +115,9 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='signup/*'
             element={
-              <div className={classes.belowContainer}>
-                <Link to='/login'>
-                  {t('Already have an account?')} <Button className={classes.signupButton} color='green-white-green-border'>{t('Sign in')}</Button>
+              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
+                  {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
                 </Link>
               </div>
             }
@@ -136,14 +125,14 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='reset-password'
             element={
-              <div className={classes.belowContainer}>
-                <div className={classes.resetPasswordBottom}>
-                  <Link tabIndex={-1} to='/signup'>
-                    <Button className={classes.signupButton} color='green-white-green-border'>{t('Sign Up')}</Button>
+              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+                <div className='flex items-center justify-center gap-2'>
+                  <Link tabIndex={-1} to='/signup' className='text-foreground'>
+                    <Button variant='outline'>{t('Sign up')}</Button>
                   </Link>
                   or
-                  <Link to='/login'>
-                    <Button className={classes.signupButton} color='green-white-green-border'>{t('Log In')}</Button>
+                  <Link to='/login' className='text-foreground'>
+                    <Button variant='outline'>{t('Sign in')}</Button>
                   </Link>
                 </div>
               </div>
@@ -152,36 +141,19 @@ export default function NonAuthLayoutRouter (props) {
           <Route
             path='/login'
             element={
-              <div className={classes.belowContainer}>
-                <Link tabIndex={-1} to='/signup'>
-                  {t('Not a member of Hylo?')} <Button className={classes.signupButton} color='green-white-green-border'>{t('Sign Up')}</Button>
+              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
+                  {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
                 </Link>
               </div>
             }
           />
-          <Route
-            path='oauth/login'
-            element={
-              <div className={classes.belowContainer}>
-                <p>{t('Use your Hylo account to access {{name}}.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
-              </div>
-            }
-          />
-          <Route
-            path='oauth/consent'
-            element={
-              <div className={classes.belowContainer}>
-                <p>{t('Make sure you trust {{name}} with your information.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
-              </div>
-            }
-          />
         </Routes>
-        <div className={classes.belowContainer}>
-          <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms of Service')}</a> +&nbsp;
-          <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer'>{t('Privacy Policy')}</a>
+        <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+          <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
+          <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>
       </div>
-      <HyloCookieConsent />
     </Div100vh>
   )
 }

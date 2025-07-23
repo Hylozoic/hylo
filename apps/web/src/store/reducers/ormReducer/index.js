@@ -19,7 +19,7 @@ import {
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_MESSAGES_PENDING,
-  FETCH_MY_MEMBERSHIPS,
+  FETCH_GROUP_CHAT_ROOMS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
@@ -51,6 +51,7 @@ import {
   UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
@@ -198,7 +199,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         // we can assume the following because the backend returns the results pre-sorted
         // with the currentUser at the beginning
         const p = Post.withId(meta.postId)
-        p.update({ commentersTotal: p.commentersTotal + 1 })
+        p.update({ commentersTotal: p.commentersTotal + 1 }) // TODO: this should only update if we're a new commenter
         p.update({ commentsTotal: p.commentsTotal + 1 })
       }
       break
@@ -419,7 +420,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case FETCH_MY_MEMBERSHIPS: {
+    case FETCH_GROUP_CHAT_ROOMS: {
       const me = Me.first()
       clearCacheFor(Me, me.id)
       break
@@ -495,7 +496,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         post.groups.toModelArray().forEach(g => {
           const group = Group.withId(g.id)
           if (!group) return
-          group.update({ postCount: group.postCount + 1 })
           post.topics.toModelArray().forEach(t => {
             const topic = Topic.withId(t.id)
             if (!topic) return
@@ -774,6 +774,88 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       membership.update({
         settings: newSettings
       })
+      break
+    }
+
+    case UPDATE_MEMBERSHIP_NAV_ORDER_PENDING: {
+      me = Me.first()
+      membership = Membership.safeGet({ group: meta.groupId, person: me.id })
+
+      if (!membership) break
+
+      const newNavOrder = meta.navOrder
+
+      if (newNavOrder === null) {
+        // Unpinning - just update this membership
+        membership.update({
+          navOrder: null
+        })
+      } else {
+        // Check if this is a new pin or reorder
+        const currentNavOrder = membership.navOrder
+        const isNewPin = currentNavOrder === null
+
+        if (isNewPin) {
+          // Pinning a new group - increment all other pinned memberships
+          const allMemberships = session.Membership.all().toModelArray()
+          const otherPinnedMemberships = allMemberships.filter(m =>
+            m.group.id !== meta.groupId && m.navOrder !== null
+          )
+
+          // Increment navOrder of all other pinned groups
+          otherPinnedMemberships.forEach(m => {
+            m.update({
+              navOrder: m.navOrder + 1
+            })
+          })
+
+          // Set this group's navOrder to 0
+          membership.update({
+            navOrder: 0
+          })
+        } else {
+          // Reordering - handle moving up or down
+          const currentNavOrder = membership.navOrder
+
+          if (newNavOrder > currentNavOrder) {
+            // Moving down - decrement groups between current+1 and newNavOrder
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToDecrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder > currentNavOrder &&
+              m.navOrder <= newNavOrder
+            )
+
+            groupsToDecrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder - 1
+              })
+            })
+          } else if (newNavOrder < currentNavOrder) {
+            // Moving up - increment groups between newNavOrder and current-1
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToIncrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder >= newNavOrder &&
+              m.navOrder < currentNavOrder
+            )
+
+            groupsToIncrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder + 1
+              })
+            })
+          }
+          // If newNavOrder === currentNavOrder, no changes needed
+
+          // Set this group's navOrder
+          membership.update({
+            navOrder: newNavOrder
+          })
+        }
+      }
       break
     }
 

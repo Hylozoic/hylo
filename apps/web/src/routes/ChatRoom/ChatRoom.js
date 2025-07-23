@@ -79,7 +79,7 @@ EditorView.prototype.updateState = function updateState (state) {
 }
 
 // Define icon components as functions that accept props
-const NotificationsIcon = ({ type, ...props }) => {
+const NotificationsIcon = React.forwardRef(({ type, ...props }, ref) => {
   const { t } = useTranslation()
 
   switch (type) {
@@ -92,7 +92,7 @@ const NotificationsIcon = ({ type, ...props }) => {
     default:
       return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
   }
-}
+})
 
 const getDisplayDay = (date) => {
   return date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()), 'day')
@@ -595,7 +595,7 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
           modal={false}
@@ -613,13 +613,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
+  const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} />}
+          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>
   )
 }
@@ -733,7 +734,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px]', animationClass)}
+            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost

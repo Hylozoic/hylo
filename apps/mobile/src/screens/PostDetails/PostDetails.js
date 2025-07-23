@@ -22,6 +22,7 @@ import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import ActionCompletionSection from 'components/ActionCompletionSection'
 import { isIOS } from 'util/platform'
+import { trackWithConsent } from 'services/mixpanel'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -48,20 +49,21 @@ export default function PostDetails () {
   const { t } = useTranslation()
   const navigation = useNavigation()
   const isModalScreen = useIsModalScreen()
-  const { id: postId, originalLinkingPath } = useRouteParams()
+  const { id: postId, originalLinkingPath, commentId } = useRouteParams()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ data, fetching, error }] = useQuery({ query: postDetailsQuery, variables: { id: postId } })
   const post = useMemo(() => PostPresenter(data?.post, { forGroupId: currentGroup?.id }), [data?.post, currentGroup?.id])
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
   const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
+
   useSubscription({
     query: commentsSubscription,
     variables: { postId: post?.id },
     pause: !post?.id
   })
 
-  const [selectedComment, setSelectedComment] = useState(null)
+  const [selectedComment, setSelectedComment] = useState()
   const groupId = get('groups.0.id', post)
 
   const clearSelectedComment = () => {
@@ -75,7 +77,7 @@ export default function PostDetails () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      mixpanel.track(AnalyticsEvents.POST_OPENED, {
+      trackWithConsent(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,
@@ -111,6 +113,7 @@ export default function PostDetails () {
         ref={commentsRef}
         groupId={firstGroupSlug}
         postId={post.id}
+        commentIdFromPath={commentId}
         header={(
           <>
             <PostCardForDetails

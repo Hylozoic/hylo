@@ -50,7 +50,7 @@ import ActionCompletionSection from './ActionCompletionSection'
 import classes from './PostDetail.module.scss'
 
 // the height of the header plus the padding-top
-const STICKY_HEADER_SCROLL_OFFSET = 44
+const STICKY_HEADER_SCROLL_OFFSET = 60
 const MAX_DETAILS_LENGTH = 144
 
 function PostDetail () {
@@ -203,7 +203,7 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[290px] sm:min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
@@ -266,7 +266,7 @@ function PostDetail () {
           />
         )}
         {isProject && currentUser && (
-          <div className={classes.projectActionsWrapper}>
+          <div className='flex flex-col gap-2 p-2 sm:p-4'>
             <div className={classes.joinProjectButtonContainer}>
               <JoinProjectSection
                 currentUser={currentUser}
@@ -278,27 +278,27 @@ function PostDetail () {
               />
             </div>
             {post.projectManagementLink && projectManagementTool && (
-              <div className={classes.projectManagementTool}>
-                <div>{t('This project is being managed on')} <img src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
-                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
+                <div>{t('This project is being managed on')} <img className='max-h-4 m-0' src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
+                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
               </div>
             )}
             {post.projectManagementLink && !projectManagementTool && (
-              <div className={classes.projectManagementTool}>
+              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
                 <div>{t('View project management tool')}</div>
-                <div><a className={classes.joinProjectButton} href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
               </div>
             )}
             {post.donationsLink && donationService && (
-              <div className={classes.donate}>
-                <div>{t('Support this project on')} <img src={`/assets/payment-services/${donationService}.svg`} /></div>
-                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
+                <div className='flex items-center gap-2'>{t('Support this project on')} <img className='max-h-4 m-0' src={`/assets/payment-services/${donationService}.svg`} /></div>
+                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
               </div>
             )}
             {post.donationsLink && !donationService && (
-              <div className={classes.donate}>
+              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed'>
                 <div>{t('Support this project')}</div>
-                <div><a className={classes.joinProjectButton} href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
               </div>
             )}
           </div>
@@ -363,7 +363,7 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
   const onClick = () => leaving ? leaveProject() : joinProject()
 
   return (
-    <div className={classes.joinProject}>
+    <div className='flex flex-row gap-2 items-center border-2 border-foreground/20 rounded-lg p-2 w-full justify-between border-dashed'>
       <PeopleInfo
         people={members}
         peopleTotal={members.length}
@@ -379,7 +379,7 @@ export function JoinProjectSection ({ currentUser, members, leaving, joinProject
       <Button
         key='join-project-button'
         onClick={onClick}
-        variant='secondary'
+        variant='outline'
       >
         {buttonText}
       </Button>
@@ -419,7 +419,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
       )}
       {showCompletionResponsesDialog && (
         <ActionCompletionResponsesDialog
-          portalTarget={`post-detail-container-${post.id}`}
+          portalTarget='post-dialog-content'
           post={post}
           onClose={toggleCompletionResponsesDialog}
         />

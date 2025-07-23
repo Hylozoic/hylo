@@ -10,7 +10,6 @@ import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotifi
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
 import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
-import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutation'
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -38,6 +37,7 @@ import { twBackground } from 'style/colors'
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {
     updates {
+      __typename
       ... on Notification {
         ...NotificationFieldsFragment
       }
@@ -58,11 +58,137 @@ const updatesSubscription = gql`
           unreadCount
         }
       }
-      
     }
   }
   ${notificationFieldsFragment}
   ${messageThreadFieldsFragment}
+`
+
+const groupUpdatesSubscription = gql`
+  subscription GroupUpdatesSubscription {
+    groupUpdates {
+      id
+      name
+      slug
+      avatarUrl
+      memberCount
+      description
+    }
+  }
+`
+
+const groupMembershipUpdatesSubscription = gql`
+  subscription GroupMembershipUpdatesSubscription {
+    groupMembershipUpdates {
+      action
+      role
+      group {
+        id
+        name
+        slug
+        avatarUrl
+        memberCount
+      }
+      member {
+        id
+        name
+        avatarUrl
+      }
+    }
+  }
+`
+
+const groupRelationshipUpdatesSubscription = gql`
+  subscription GroupRelationshipUpdatesSubscription {
+    groupRelationshipUpdates {
+      action
+      parentGroup {
+        id
+        name
+        slug
+        avatarUrl
+      }
+      childGroup {
+        id
+        name
+        slug
+        avatarUrl
+      }
+      relationship {
+        id
+        createdAt
+      }
+    }
+  }
+`
+
+const postUpdatesSubscription = gql`
+  subscription PostUpdatesSubscription {
+    postUpdates {
+      id
+      updatedAt
+      # Comment-related fields
+      commentsTotal
+      comments {
+        total
+        items {
+          id
+          text
+          createdAt
+          creator {
+            id
+            name
+            avatarUrl
+          }
+        }
+      }
+      # Reaction-related fields
+      peopleReactedTotal
+      reactionsSummary
+      postReactions {
+        id
+        emojiFull
+        emojiBase
+        user {
+          id
+          name
+        }
+      }
+      # Post edit fields
+      title
+      details
+      type
+      location
+      startTime
+      endTime
+      # Proposal vote fields (for proposal posts only)
+      proposalStatus
+      proposalOutcome
+      proposalOptions {
+        total
+        items {
+          id
+          text
+          emoji
+          color
+        }
+      }
+      proposalVotes {
+        total
+        items {
+          id
+          optionId
+          user {
+            id
+            name
+          }
+        }
+      }
+      # Completion fields
+      fulfilledAt
+      completedAt
+    }
+  }
 `
 
 const AuthRoot = createStackNavigator()
@@ -75,11 +201,14 @@ export default function AuthRootNavigator () {
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialize] = useState(true)
+  const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
-  const [, registerDevice] = useMutation(registerDeviceMutation)
-  
+
   useSubscription({ query: updatesSubscription })
+  useSubscription({ query: groupUpdatesSubscription })
+  useSubscription({ query: groupMembershipUpdatesSubscription })
+  useSubscription({ query: groupRelationshipUpdatesSubscription })
+  useSubscription({ query: postUpdatesSubscription })
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
@@ -93,20 +222,21 @@ export default function AuthRootNavigator () {
     resetNotificationsCount()
   }, [])
 
-  const oneSignalChangeListener = ({ externalId, onesignalId }) => {
-    if (externalId === currentUser?.id) {
-      registerDevice({
-        playerId: onesignalId,
-        platform: Platform.OS + (isDev ? '_dev' : ''),
-        version: hyloAppVersion
-      })
-    } else {
-      console.warn(
-        'Not registering to OneSignal for push notifications:\n' +
-        `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
-      )
-    }
-  }
+  // DEPRECATED: This is no longer used, all we need to do is log the user in and a subscription will be created. Remove after 2025-08-26
+  // const oneSignalChangeListener = ({ externalId, onesignalId }) => {
+  //   if (externalId === currentUser?.id) {
+  //     registerDevice({
+  //       playerId: onesignalId,
+  //       platform: Platform.OS + (isDev ? '_dev' : ''),
+  //       version: hyloAppVersion
+  //     })
+  //   } else {
+  //     console.warn(
+  //       'Not registering to OneSignal for push notifications:\n' +
+  //       `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
+  //     )
+  //   }
+  // }
 
   useEffect(() => {
     (async function () {
@@ -118,7 +248,7 @@ export default function AuthRootNavigator () {
 
         // OneSignal setup
         if (isDev) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
-        OneSignal.User.addEventListener('change', oneSignalChangeListener)
+        // TOOD push notif: Add soft prompt setup for push notifs
         const permissionGranted = await OneSignal.Notifications.canRequestPermission()
         if (permissionGranted) OneSignal.Notifications.requestPermission(true)
         OneSignal.login(currentUser?.id)
@@ -143,10 +273,6 @@ export default function AuthRootNavigator () {
         setInitialize(true)
       }
     })()
-
-    return () => {
-      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
-    }
   }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?

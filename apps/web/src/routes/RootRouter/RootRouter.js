@@ -8,7 +8,7 @@ import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
 import JoinGroup from 'routes/JoinGroup'
 import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
-import OAuthLogin from 'routes/OAuth/Login'
+import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
@@ -43,14 +43,8 @@ export default function RootRouter () {
   if (isAuthorized) {
     return (
       <Routes>
-        {/* If authenticated and trying to do an oAuth login we need to still get an auth code from the server and redirect to redirect_url */}
-        <Route path='/oauth/login/:uid' element={<OAuthLogin authenticated />} />
-        {/* If authenticated and need to ask for oAuth consent again do so */}
-        <Route
-          path='/oauth/consent/:uid'
-          element={<NonAuthLayoutRouter skipAuthCheck />}
-        />
-
+        {/* If authenticated we still need to do oauth stuff when requested */}
+        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
         <Route path='*' element={<AuthLayoutRouter />} />
       </Routes>
     )
@@ -62,6 +56,8 @@ export default function RootRouter () {
           path='/public/*'
           element={<PublicLayoutRouter />}
         />
+
+        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
 
         <Route path='/post/:postId/*' element={<PublicPostDetail />} />
 

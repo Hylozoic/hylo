@@ -3,6 +3,15 @@ import { uniqBy, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import PostPresenter from '@hylo/presenters/PostPresenter'
 
+// Get timezone using Intl API (works in React Native)
+const getCurrentTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch (e) {
+    return 'UTC' // fallback
+  }
+}
+
 const initialState = {
   type: 'discussion',
   title: null,
@@ -11,6 +20,7 @@ const initialState = {
   members: { items: [] },
   startTime: null,
   endTime: null,
+  timezone: getCurrentTimezone(),
   groups: [],
   location: null,
   locationObject: null,
@@ -70,10 +80,11 @@ export const usePostEditorStore = create((set, get) => {
         imageUrls: post.getImageUrls(),
         isPublic: post.isPublic,
         title: post.title,
-        sendAnnouncement: post.announcement,
+        announcement: post.announcement,
         topicNames: post.topics.map(t => t.name),
         startTime: !canHaveTimeframe ? null : post.startTime && post.startTime.getTime().valueOf(),
         endTime: !canHaveTimeframe ? null : post.endTime && post.endTime.getTime().valueOf(),
+        timezone: post.timezone,
         location: post.location,
         projectManagementLink: TextHelpers.sanitizeURL(post.projectManagementLink),
         donationsLink: TextHelpers.sanitizeURL(post.donationsLink),

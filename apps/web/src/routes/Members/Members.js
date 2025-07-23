@@ -60,7 +60,7 @@ function Members (props) {
     dispatch(removeMember(id, group.id, slug))
   }, [group.id, slug])
   const fetchMembersAction = useCallback((offset = 0) =>
-    dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search })), [dispatch, slug, group.id, sortBy, search])
 
   useEffect(() => {
     if (isEmpty(members) && hasMore !== false) fetchMembersAction()
@@ -118,6 +118,7 @@ function Members (props) {
             onChange={e => debouncedSearch(e.target.value)}
           />
           <Dropdown
+            id='members-sort-dropdown'
             className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
             toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
             alignRight

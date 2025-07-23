@@ -159,8 +159,13 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone, skipTi
   const start = parseFunction(startTime, { zone: timezone || DateTime.now().zoneName || 'UTC' })
   const end = endTime ? parseFunction(endTime, { zone: timezone || DateTime.now().zoneName || 'UTC' }) : null
 
-  const formatWithYear = skipTime ? "ccc MMM d, yyyy" : "ccc MMM d, yyyy '•' t"
-  const formatWithoutYear = skipTime ? "ccc MMM d" : "ccc MMM d '•' t"
+  // Base formats without timezone
+  const formatWithYear = skipTime ? 'ccc MMM d, yyyy' : 'ccc MMM d, yyyy • t'
+  const formatWithoutYear = skipTime ? 'ccc MMM d' : 'ccc MMM d • t'
+
+  // Formats with timezone
+  const formatWithYearWithTz = skipTime ? 'ccc MMM d, yyyy' : 'ccc MMM d, yyyy • t ZZZZ'
+  const formatWithoutYearWithTz = skipTime ? 'ccc MMM d' : 'ccc MMM d • t ZZZZ'
 
   const now = DateTime.now()
 
@@ -172,23 +177,24 @@ export const formatDatePair = (startTime, endTime, returnAsObj, timezone, skipTi
   let from = ''
 
   // Format the start date - only include year if it's not this year
+  // Include the timezone if the end date is not provided
   if (start.get('year') !== now.get('year')) {
-    from = start.toFormat(formatWithYear)
+    from = start.toFormat(endTime ? formatWithYear : formatWithYearWithTz)
   } else {
-    from = start.toFormat(formatWithoutYear)
+    from = start.toFormat(endTime ? formatWithoutYear : formatWithoutYearWithTz)
   }
 
   // Format the end date/time if provided
   if (endTime) {
     if (isSameDay) {
-      // If same day, only show the end time
-      to = end.toFormat('t')
+      // If same day, only show the end time (with timezone if not skipping time)
+      to = end.toFormat(skipTime ? 't' : 't ZZZZ')
     } else if (end.get('year') < now.get('year')) {
-      // If end date is in a past year, include the year
-      to = end.toFormat(formatWithYear)
+      // If end date is in a past year, include the year (with timezone)
+      to = end.toFormat(formatWithYearWithTz)
     } else {
-      // Otherwise just month, day and time
-      to = end.toFormat(formatWithoutYear)
+      // Otherwise just month, day and time (with timezone)
+      to = end.toFormat(formatWithoutYearWithTz)
     }
 
     to = returnAsObj ? to : ' - ' + to

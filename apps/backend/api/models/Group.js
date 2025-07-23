@@ -21,7 +21,7 @@ import { en } from '../../lib/i18n/en'
 
 const locales = { es, en }
 
-export const GROUP_ATTR_UPDATE_WHITELIST = [
+export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
   'project_role_id',
   'following',
@@ -388,10 +388,11 @@ module.exports = bookshelf.Model.extend(merge({
           postNotifications: 'all',
           digestFrequency: 'daily',
           sendEmail: true,
-          sendPushNotifications: true
+          sendPushNotifications: true,
+          lastReadAt: attrs.lastReadAt || null
         }
       },
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
+      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     )
 
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
@@ -529,7 +530,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     const updatedAttribs = Object.assign(
       {},
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST),
+      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST),
       { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
     )
 
@@ -815,9 +816,34 @@ module.exports = bookshelf.Model.extend(merge({
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_member', groupId).fetchAll()
 
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
+    const group = await Group.find(groupId)
+
+    // Publish group membership updates for new and reactivated members
+    if (group && members.length > 0) {
+      const { publishGroupMembershipUpdate } = require('../../lib/groupSubscriptionPublisher')
+
+      for (const member of members.models) {
+        const action = reactivatedUserIds.includes(member.id) ? 'rejoined' : 'joined'
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📡 Background job: Publishing membership update for ${member.get('name')} (${action})`)
+        }
+
+        try {
+          await publishGroupMembershipUpdate(null, group, {
+            group,
+            member,
+            action
+          }, {
+            additionalUserIds: [member.id] // Notify the new member
+          })
+        } catch (error) {
+          console.error('❌ Error publishing membership update in afterAddMembers:', error)
+        }
+      }
+    }
 
     if (zapierTriggers && zapierTriggers.length > 0) {
-      const group = await Group.find(groupId)
       for (const trigger of zapierTriggers) {
         await fetch(trigger.get('target_url'), {
           method: 'post',
@@ -927,7 +953,8 @@ module.exports = bookshelf.Model.extend(merge({
 
       await group.setupContextWidgets(trx)
 
-      await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
+      // Set lastReadAt when creating a new group to mark creator as having viewed the group already
+      await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR, lastReadAt: new Date() }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {

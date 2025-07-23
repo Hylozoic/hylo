@@ -6,6 +6,9 @@ import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvider'
+import { DropdownProvider } from 'contexts/DropdownContext'
+import { CookieConsentProvider } from 'contexts/CookieConsentContext'
+import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
 import isWebView from 'util/webView'
@@ -40,11 +43,16 @@ export default function App () {
       <Provider store={store}>
         <ThemeProvider>
           <TooltipProvider delayDuration={0}>
-            <ViewHeaderProvider>
-              <Router history={history}>
-                <RootRouter />
-              </Router>
-            </ViewHeaderProvider>
+            <CookieConsentProvider>
+              <ViewHeaderProvider>
+                <DropdownProvider>
+                  <Router history={history}>
+                    <RootRouter />
+                    <CookiePreferencesPanel />
+                  </Router>
+                </DropdownProvider>
+              </ViewHeaderProvider>
+            </CookieConsentProvider>
           </TooltipProvider>
         </ThemeProvider>
       </Provider>

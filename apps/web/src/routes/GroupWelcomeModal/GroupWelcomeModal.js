@@ -78,6 +78,11 @@ export default function GroupWelcomeModal (props) {
     }
   }, [group?.joinQuestions?.length])
 
+  useEffect(() => {
+    // After the member joins the group, make sure we know whether they have already answered the questions or not
+    setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
+  }, [currentMembership?.settings.joinQuestionsAnsweredAt])
+
   if (!showWelcomeModal || !group || !currentMembership) return null
 
   const handleCheckAgreement = e => {
@@ -104,7 +109,8 @@ export default function GroupWelcomeModal (props) {
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
       true, // acceptAgreements
-      questionAnswers ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : []
+      // If join quesions were previously answered, don't overwrite them with empty answers here
+      questionAnswers && !joinQuestionsAnsweredAt ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
     return null
   }
@@ -214,7 +220,7 @@ export default function GroupWelcomeModal (props) {
               {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers?.length > 0 && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
               {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers && questionAnswers.map((q, index) => (
                 <div className={classes.joinQuestion} key={index}>
-                  <h3>{q.text}</h3>
+                  <h3 className='text-lg font-bold'>{q.text}</h3>
                   <textarea name={`question_${q.questionId}`} onChange={handleAnswerQuestion(index)} value={q.answer} placeholder={t('Type your answer here...')} />
                 </div>)
               )}

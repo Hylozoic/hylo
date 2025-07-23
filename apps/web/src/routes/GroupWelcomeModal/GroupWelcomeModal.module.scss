@@ -221,22 +221,22 @@
 }
 
 .join-question {
-  background-color: rgba(249, 250, 251, 1.000);
-  border: 1px solid rgba(224, 229, 233, 1.000);
+  background-color: hsl(var(--input));
+  border: 1px solid hsl(var(--border));
   border-radius: 5px;
   padding: 15px;
   width: 100%;
   margin: 10px 0 15px;
 
-  h4 {
-    color: rgba(140, 151, 166, 1.00);
+  h3 {
+    color: hsl(var(--foreground));
   }
 
   textarea {
     width: 100%;
     background-color: transparent;
     border: none;
-    color: rgba(35, 64, 91, 1.000);
+    color: hsl(var(--foreground));
 
     &::placeholder {
       font-style: italic;

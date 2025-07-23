@@ -2,7 +2,7 @@ $preview-image-dimension: $space-20x;
 
 .container {
   composes: container from 'components/LinkPreview/LinkPreview.module.scss';
-  margin-left: $space-14x;
+  margin-left: 0.5rem;
   margin-right: $space-5x;
   margin-top: $space-2x;
 }

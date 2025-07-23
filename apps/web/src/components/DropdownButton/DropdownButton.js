@@ -55,7 +55,7 @@ export default class DropdownButton extends Component {
     const { expanded } = this.state
 
     return (
-      <div className='relative'>
+      <div className='relative z-20'>
         {/* Main button that toggles the dropdown */}
         <div
           role='button'

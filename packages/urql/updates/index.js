@@ -5,6 +5,9 @@ import makeAppendToPaginatedSetResolver from './makeAppendToPaginatedSetResolver
 import { reactOn, deleteReaction } from './reactions'
 import { handleReactionPostCompletion } from './sideEffectPostCompletion'
 
+// Set to true to enable debug logging for group subscriptions
+const isDev = false
+
 export default {
   Mutation: {
     addProposalVote: (result, args, cache, info) => {
@@ -110,7 +113,7 @@ export default {
       }
     },
 
-    removeProposalVote: (result, args, cache, info) => { 
+    removeProposalVote: (result, args, cache, info) => {
       cache.invalidate({ __typename: 'Post', id: args.postId })
     },
 
@@ -142,8 +145,9 @@ export default {
 
       if (!updatedMembership?.id) return
 
-      cache.updateQuery({ query: meQuery }, ({ me }) => {
-        if (!me) return null
+      cache.updateQuery({ query: meQuery }, (data) => {
+        if (!data?.me) return null
+        const { me } = data
 
         return {
           me: {
@@ -158,15 +162,174 @@ export default {
 
     verifyEmail: (result, args, cache, info) => {
       cache.invalidate('Query', 'me')
+    },
+
+    acceptGroupRelationshipInvite: (result, args, cache, info) => {
+      if (result.acceptGroupRelationshipInvite.success) {
+        // Refresh group queries for both parent and child groups
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Refresh groups list queries to show updated relationships
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    addModerator: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    addPostToCollection: (result, args, cache, info) => {
+      const { collectionId } = args
+      cache.invalidate({ __typename: 'Collection', id: collectionId })
+    },
+
+    addRoleToMember: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    cancelGroupRelationshipInvite: (result, args, cache, info) => {
+      if (result.cancelGroupRelationshipInvite.success) {
+        // Refresh group queries
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Refresh groups list queries
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    createInvitation: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    createPost: (result, args, cache, info) => {
+      cache.invalidate('Query', 'posts')
+    },
+
+    deleteGroupRelationship: (result, args, cache, info) => {
+      if (result.deleteGroupRelationship.success) {
+        // Refresh group queries for both parent and child groups
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Refresh groups list queries to show updated relationships
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    joinGroup: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+      cache.invalidate('Query', 'me')
+    },
+
+    leaveGroup: (result, args, cache, info) => {
+      const { id } = args
+      cache.invalidate({ __typename: 'Group', id })
+      cache.invalidate('Query', 'me')
+    },
+
+    rejectGroupRelationshipInvite: (result, args, cache, info) => {
+      if (result.rejectGroupRelationshipInvite.success) {
+        // Refresh group queries
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Refresh groups list queries
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    removeMember: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    removeModerator: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    removeRoleFromMember: (result, args, cache, info) => {
+      const { groupId } = args
+      cache.invalidate({ __typename: 'Group', id: groupId })
+    },
+
+    requestToAddGroupToParent: (result, args, cache, info) => {
+      if (result.requestToAddGroupToParent.success) {
+        // Refresh group queries
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Refresh groups list queries
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    updateGroupSettings: (result, args, cache, info) => {
+      const { id } = args
+      cache.invalidate({ __typename: 'Group', id })
+    },
+
+    updatePost: (result, args, cache, info) => {
+      cache.invalidate('Query', 'posts')
+    },
+
+    useInvitation: (result, args, cache, info) => {
+      cache.invalidate('Query', 'me')
     }
   },
   Subscription: {
     comments: (result, args, cache, info) => {
-      makeAppendToPaginatedSetResolver({
-        parentType: 'Post',
-        parentId: result?.comments?.post?.id,
-        fieldName: 'comments'
-      })(result, args, cache, info)
+      const comment = result?.comments
+      const postId = comment?.post?.id
+
+      if (!comment) {
+        return
+      }
+
+      if (!postId) {
+        return
+      }
+
+      try {
+        makeAppendToPaginatedSetResolver({
+          parentType: 'Post',
+          parentId: postId,
+          fieldName: 'comments'
+        })(result, args, cache, info)
+      } catch (error) {
+        console.error('❌ Error processing comment subscription:', error)
+      }
     },
 
     updates: (result, args, cache, info) => {
@@ -180,8 +343,9 @@ export default {
             fieldName: 'messages'
           })(result, args, cache, info)
           cache.invalidate({ __typename: 'MessageThread', id: update?.messageThread?.id })
-          cache.updateQuery({ query: meQuery }, ({ me }) => {
-            if (!me) return null
+          cache.updateQuery({ query: meQuery }, (data) => {
+            if (!data?.me) return null
+            const { me } = data
             return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
           })
           return
@@ -192,8 +356,9 @@ export default {
             parentType: 'Me',
             fieldName: 'messageThreads'
           })(result, args, cache, info)
-          cache.updateQuery({ query: meQuery }, ({ me }) => {
-            if (!me) return null
+          cache.updateQuery({ query: meQuery }, (data) => {
+            if (!data?.me) return null
+            const { me } = data
             return { me: { ...me, unseenThreadCount: me.unseenThreadCount + 1 } }
           })
           return
@@ -204,8 +369,9 @@ export default {
             parentType: 'Query',
             fieldName: 'notifications'
           })(result, args, cache, info)
-          cache.updateQuery({ query: meQuery }, ({ me }) => {
-            if (!me) return null
+          cache.updateQuery({ query: meQuery }, (data) => {
+            if (!data?.me) return null
+            const { me } = data
             return { me: { ...me, newNotificationCount: me.newNotificationCount + 1 } }
           })
           return
@@ -214,6 +380,176 @@ export default {
         default: {
           console.log('ℹ️ Unhandled update from updates subscription', result, args)
         }
+      }
+    },
+
+    groupUpdates: (result, args, cache, info) => {
+      const update = result?.groupUpdates
+
+      if (update) {
+        if (isDev) {
+          console.log(`📱 Received group update: ${update.name} (${update.id})`)
+        }
+
+        // Invalidate the specific group to trigger a refetch with updated data
+        cache.invalidate({ __typename: 'Group', id: update.id })
+
+        // Also invalidate any group queries that might include this group
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          // Check if this field is for the updated group
+          if (field.arguments?.id === update.id || field.arguments?.slug === update.slug) {
+            cache.invalidate('Query', field.fieldKey)
+          }
+        })
+
+        // Invalidate groups list queries
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // Update Me query to reflect any group changes
+        cache.updateQuery({ query: meQuery }, (data) => {
+          if (!data?.me) return null
+          // Force refetch of user's groups by invalidating
+          return data
+        })
+      }
+    },
+
+    groupMembershipUpdates: (result, args, cache, info) => {
+      const update = result?.groupMembershipUpdates
+
+      if (update) {
+        if (isDev) {
+          console.log(`📱 Received membership update: ${update.member.name} ${update.action} ${update.group.name}`)
+        }
+
+        // Invalidate the specific group to trigger membership refetch
+        cache.invalidate({ __typename: 'Group', id: update.group.id })
+
+        // Update Me query to reflect membership changes
+        cache.updateQuery({ query: meQuery }, (data) => {
+          if (!data?.me) return null
+
+          const { me } = data
+          const existingMemberships = me.memberships || []
+          if (update.action === 'joined' || update.action === 'rejoined') {
+            // Check if membership already exists
+            const existingMembership = existingMemberships.find(m => m.group.id === update.group.id)
+            if (!existingMembership) {
+              // Add new membership
+              const newMembership = {
+                __typename: 'GroupMembership',
+                id: `temp-${update.group.id}`, // Temporary ID
+                group: update.group,
+                role: update.role || 0,
+                hasModeratorRole: update.role === 1,
+                settings: {}
+              }
+              return {
+                me: {
+                  ...me,
+                  memberships: [...existingMemberships, newMembership]
+                }
+              }
+            }
+          } else if (update.action === 'left') {
+            // Remove membership
+            const filteredMemberships = existingMemberships.filter(m => m.group.id !== update.group.id)
+            return {
+              me: {
+                ...me,
+                memberships: filteredMemberships
+              }
+            }
+          }
+
+          return data
+        })
+
+        // Invalidate related group queries
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          if (field.arguments?.id === update.group.id || field.arguments?.slug === update.group.slug) {
+            cache.invalidate('Query', field.fieldKey)
+          }
+        })
+
+        // Invalidate groups list queries
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    groupRelationshipUpdates: (result, args, cache, info) => {
+      const update = result?.groupRelationshipUpdates
+
+      if (update) {
+        if (isDev) {
+          console.log(`📱 Received relationship update: ${update.action} between ${update.parentGroup.name} and ${update.childGroup.name}`)
+        }
+
+        // Invalidate both groups involved in the relationship
+        cache.invalidate({ __typename: 'Group', id: update.parentGroup.id })
+        cache.invalidate({ __typename: 'Group', id: update.childGroup.id })
+
+        // Invalidate group queries for both groups
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          const groupId = field.arguments?.id
+          const groupSlug = field.arguments?.slug
+
+          if (groupId === update.parentGroup.id || groupId === update.childGroup.id ||
+              groupSlug === update.parentGroup.slug || groupSlug === update.childGroup.slug) {
+            cache.invalidate('Query', field.fieldKey)
+          }
+        })
+
+        // Invalidate groups list queries to reflect relationship changes
+        const groupsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'groups')
+        groupsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+      }
+    },
+
+    postUpdates: (result, args, cache, info) => {
+      const update = result?.postUpdates
+
+      if (update) {
+        if (isDev) {
+          console.log(`📱 Received post update: ${update.name || 'Untitled'} (${update.id})`)
+        }
+
+        // Invalidate the specific post to trigger cache updates
+        cache.invalidate({ __typename: 'Post', id: update.id })
+
+        const allQueryFields = cache.inspectFields('Query')
+        const postDetailsQueries = allQueryFields.filter(f =>
+          f.fieldName === 'post' && f.arguments?.id === update.id
+        )
+        postDetailsQueries.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        const groupFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'group')
+        groupFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
+
+        // NOTE: Comment updates (adding/editing comments, reactions on comments) are handled
+        // by the separate 'comments' subscription, not postUpdates. The postUpdates subscription
+        // only handles post-level changes like reactions on posts, votes, completion, etc.
+        // See: apps/backend/api/graphql/makeSubscriptions.js -> comments subscription
+
+        const postsFields = cache.inspectFields('Query').filter((field) => field.fieldName === 'posts')
+        postsFields.forEach(field => {
+          cache.invalidate('Query', field.fieldKey)
+        })
       }
     }
   }

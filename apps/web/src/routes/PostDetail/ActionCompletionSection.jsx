@@ -63,7 +63,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       break
     case 'selectOne':
       completionControls = (
-        <RadioGroup onValueChange={(value) => setCompletionResponse([value])} value={completionResponse[0]}>
+        <RadioGroup onValueChange={(value) => setCompletionResponse([value])} value={completionResponse?.[0] || ''}>
           {options.map((option) => (
             <div key={option} className='flex items-center gap-2 mb-2 cursor-pointer'>
               <RadioGroupItem value={option} id={`radio-${option}`} />
@@ -83,13 +83,13 @@ export default function ActionCompletionSection ({ post, currentUser }) {
               <Checkbox
                 id={`checkbox-${option}`}
                 key={option}
-                checked={completionResponse.includes(option)}
+                checked={completionResponse?.includes(option) || false}
                 onCheckedChange={(checked) => {
                   setCompletionResponse((prev) => {
                     if (checked) {
-                      return [...prev, option]
+                      return [...(prev || []), option]
                     } else {
-                      return prev.filter(item => item !== option)
+                      return (prev || []).filter(item => item !== option)
                     }
                   })
                 }}
@@ -131,7 +131,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           </UploadAttachmentButton>
           <Button
             className='ml-2'
-            disabled={completionResponse.length === 0}
+            disabled={completionResponse?.length === 0}
             onClick={handleSubmitCompletion}
           >
             {t('Submit Attachments and Complete')}
@@ -163,7 +163,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           <h3>Complete this action</h3>
           <p className='font-bold'>{instructions}</p>
           {completionControls}
-          {completionButtonText && <Button onClick={handleSubmitCompletion}>{completionButtonText}</Button>}
+          {completionButtonText && <Button onClick={handleSubmitCompletion} disabled={completionResponse?.length === 0 && completionAction !== 'button'}>{completionButtonText}</Button>}
         </>
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>

@@ -47,6 +47,25 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
+    CookieConsent: {
+      model: CookieConsent,
+      attributes: [
+        'id',
+        'consent_id',
+        'user_id',
+        'settings',
+        'version',
+        'updated_at'
+      ],
+      relations: [
+        'user'
+      ],
+      getters: {
+        userId: c => c.get('user_id'),
+        consentId: c => c.get('consent_id')
+      }
+    },
+
     CommonRole: {
       model: CommonRole,
       attributes: [
@@ -164,7 +183,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { messageThreads: { typename: 'MessageThread', querySet: true } },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
-        { tracksEnrolledIn: { querySet: true } }
+        { tracksEnrolledIn: { querySet: true } },
+        { cookieConsent: { alias: 'cookieConsentPreferences' } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
@@ -178,7 +198,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupMembership,
       attributes: [
         'created_at',
-        'group_id'
+        'group_id',
+        'nav_order'
       ],
       relations: [
         { agreements: { querySet: true } },
@@ -307,22 +328,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupJoinQuestionAnswers: {
             querySet: true,
             filter: (relation, args, context, info) => {
-              return relation.query(async q => {
-                let groupId = args.groupId
-
-                if (!groupId && args.slug) {
-                  const group = await Group.where({ slug: args.slug }).fetch()
-                  if (group) {
-                    groupId = group.id
-                  }
-                }
-
-                if (!groupId) {
-                  return q
-                }
-
-                q.where('group_join_questions_answers.group_id', groupId)
-                return q
+              return relation.query(q => {
+                const groupId = args.groupId
+                  ? [args.groupId]
+                  : Group.query(q => {
+                    q.select('id')
+                    q.where({ slug: args.slug })
+                  }).query()
+                return q.whereIn('group_join_questions_answers.group_id', groupId)
               })
             }
           }
@@ -333,7 +346,61 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { commonRoles: { querySet: true } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
-        { posts: { querySet: true } },
+        // This fix is required for web and mobile, to avoid action posts showing up in member profiles
+        {
+          posts: {
+            querySet: true,
+            filter: (relation, {
+              activePostsOnly = false,
+              afterTime,
+              announcementsOnly,
+              beforeTime,
+              boundingBox,
+              collectionToFilterOut,
+              context,
+              createdBy,
+              cursor,
+              filter,
+              forCollection,
+              groupSlugs,
+              interactedWithBy,
+              isFulfilled,
+              mentionsOf,
+              offset,
+              order,
+              search,
+              sortBy,
+              topic,
+              topics,
+              types
+            }) =>
+              relation.query(filterAndSortPosts({
+                activePostsOnly,
+                afterTime,
+                announcementsOnly,
+                beforeTime,
+                boundingBox,
+                collectionToFilterOut,
+                context,
+                createdBy,
+                cursor,
+                forCollection,
+                groupSlugs,
+                interactedWithBy,
+                isFulfilled,
+                mentionsOf,
+                offset,
+                order,
+                search,
+                showPinnedFirst: false,
+                sortBy,
+                topic,
+                topics,
+                type: filter,
+                types
+              }))
+          }
+        },
         { projects: { querySet: true } },
         { comments: { querySet: true } },
         { skills: { querySet: true } },
@@ -372,6 +439,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'accept_contributions',
         'announcement',
         'anonymous_voting',
+        'commentersTotal',
         'commentsTotal',
         'completion_action_settings',
         'completion_action',
@@ -399,7 +467,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
-        commentersTotal: p => p.getCommentersTotal(userId),
         completedAt: p => p.completedAtForUser(userId),
         completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
@@ -550,11 +617,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           groupTags: {
             querySet: true,
             alias: 'groupTopics',
-            filter: (relation, { autocomplete, subscribed, groupId }) =>
+            filter: (relation, { autocomplete, subscribed, groupId, groupIds }) =>
               relation.query(groupTopicFilter(userId, {
                 autocomplete,
                 subscribed,
-                groupId: relation.relatedData.parentId || groupId
+                groupId: relation.relatedData.parentId || groupId,
+                groupIds
               }))
           }
         },
@@ -1146,10 +1214,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupTags: {
           alias: 'groupTopics',
           querySet: true,
-          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId }) =>
+          filter: (relation, { autocomplete, subscribed, isDefault, visibility, groupId, groupIds }) =>
             relation.query(groupTopicFilter(userId, {
               autocomplete,
               groupId,
+              groupIds,
               isDefault,
               subscribed,
               visibility
@@ -1157,8 +1226,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             )
         }
       }],
-      fetchMany: ({ groupSlug, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
-        searchQuerySet('tags', { userId, groupSlug, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
+      fetchMany: ({ groupSlug, groupIds, name, isDefault, visibility, autocomplete, first, offset = 0, sortBy }) =>
+        searchQuerySet('tags', { userId, groupSlug, groupIds, name, autocomplete, isDefault, visibility, limit: first, offset, sort: sortBy })
     },
 
     TopicFollow: {
@@ -1199,9 +1268,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
-        isEnrolled: t => t && t.isEnrolled(userId),
-        didComplete: t => t && t.didComplete(userId),
-        userSettings: t => t ? t.userSettings(userId) : null
+        isEnrolled: t => t && userId && t.isEnrolled(userId),
+        didComplete: t => t && userId && t.didComplete(userId),
+        userSettings: t => t && userId ? t.userSettings(userId) : null
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
