@@ -1,5 +1,4 @@
 import { filter, isFunction } from 'lodash'
-import { DateTime } from 'luxon'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
