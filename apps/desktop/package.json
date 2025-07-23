@@ -1,5 +1,5 @@
 {
-  "name": "hylo-electron",
+  "name": "desktop",
   "productName": "Hylo",
   "version": "0.0.1",
   "description": "The Desktop version of Hylo",
@@ -7,8 +7,8 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "engines": {
-    "node": "16.13.2",
-    "yarn": "^1.2.0"
+    "node": "^20",
+    "yarn": "^4.5.0"
   },
   "scripts": {
     "start": "electron-forge start",
@@ -29,6 +29,11 @@
     "electron": "^35.0.3"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "@hylo/navigation": "workspace:*",
+    "@hylo/presenters": "workspace:*",
+    "@hylo/shared": "workspace:*",
+    "electron-squirrel-startup": "^1.0.1",
+    "i18next": "^23.0.0",
+    "i18next-http-backend": "^2.0.0"
   }
 }

@@ -3,7 +3,7 @@ import ContextWidgetPresenter, {
   findHomeWidget,
   MY_CONTEXT_WIDGETS,
   PUBLIC_CONTEXT_WIDGETS
-} from './ContextWidgetPresenter'
+} from './ContextWidgetPresenter.js'
 
 export default function GroupPresenter (group) {
   if (!group || group?._presented) return group

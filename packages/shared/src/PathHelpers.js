@@ -1,4 +1,5 @@
-import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from './constants'
+// TODO: This should be moved to the navigation package
+import { ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from './constants.js'
 
 export function topicPath (topicName, groupSlug) {
   if (groupSlug && ![ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(groupSlug)) {

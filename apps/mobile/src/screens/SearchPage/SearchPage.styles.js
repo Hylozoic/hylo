@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { capeCod40, rhino, rhino30, rhino60, capeCod10, caribbeanGreen, twBackground } from 'style/colors'
+import { capeCod40, rhino, rhino30, rhino60, capeCod10, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 
 const cardMargin = 15
 const cardPadding = 10

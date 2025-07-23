@@ -1,7 +1,7 @@
 import 'react'
 import { useActionSheet } from '@expo/react-native-action-sheet'
 import { isEmpty, filter } from 'lodash/fp'
-import { pictonBlue } from 'style/colors'
+import { pictonBlue } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
 import { DefaultTheme } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'

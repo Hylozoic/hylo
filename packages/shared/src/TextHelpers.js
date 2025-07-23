@@ -1,7 +1,8 @@
 import { convert as convertHtmlToText } from 'html-to-text'
-import { isURL } from 'validator'
+import validator from 'validator'
+const { isURL } = validator
 import { marked } from 'marked'
-import merge from 'lodash/fp/merge'
+import merge from 'lodash/fp/merge.js'
 import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'

@@ -17,7 +17,7 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { caribbeanGreen, twBackground } from 'style/colors'
+import { caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20

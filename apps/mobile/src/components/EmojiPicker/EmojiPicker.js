@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, TouchableOpacity, Text } from 'react-native'
 import Icon from 'components/Icon'
-import { bigStone } from 'style/colors'
+import { bigStone } from '@hylo/presenters/colors'
 import { EmojiPopup } from 'react-native-emoji-popup'
 
 export default function EmojiPicker (props) {
@@ -34,7 +34,7 @@ export default function EmojiPicker (props) {
   )
 
   return (
-    <View 
+    <View
       onStartShouldSetResponder={() => true}
       onResponderRelease={() => {}}
     >

@@ -9,7 +9,7 @@ import useHasResponsibility, { RESP_ADD_MEMBERS } from '@hylo/hooks/useHasRespon
 import useOpenURL from 'hooks/useOpenURL'
 import Button from 'components/Button'
 import MemberList from 'components/MemberList'
-import { bannerlinearGradientColors } from 'style/colors'
+import { bannerlinearGradientColors } from '@hylo/presenters/colors'
 import styles from './Members.styles'
 
 export default function Members ({ isFocused }) {

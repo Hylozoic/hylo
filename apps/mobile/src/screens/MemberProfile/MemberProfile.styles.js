@@ -1,4 +1,4 @@
-import { capeCod, caribbeanGreen, twBackground } from 'style/colors'
+import { capeCod, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 
 const screenMargin = 16
 const avatarSize = 112

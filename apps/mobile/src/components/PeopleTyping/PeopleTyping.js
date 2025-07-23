@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle } from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { usePeopleTyping } from '@hylo/hooks/usePeopleTyping'
-import { rhino30 } from 'style/colors'
+import { rhino30 } from '@hylo/presenters/colors'
 
 const PeopleTyping = forwardRef(({ messageThreadId, postId, commentId }, ref) => {
   const { sendTyping, typingMessage } = usePeopleTyping({ messageThreadId, postId, commentId })

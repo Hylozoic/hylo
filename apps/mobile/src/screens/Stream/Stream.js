@@ -21,7 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 /* === CONSTANTS === */
 

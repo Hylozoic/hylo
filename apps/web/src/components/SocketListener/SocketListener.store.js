@@ -1,4 +1,3 @@
-import { TextHelpers } from '@hylo/shared'
 import { bodyForNotification, titleForNotification } from 'store/models/Notification'
 
 const MODULE_NAME = 'SocketListener'
@@ -140,12 +139,16 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         newNotificationCount: currentUser.newNotificationCount + 1
       })
 
+      console.log('window.electron', window.electron)
       if (window.electron) {
         const notification = payload.data.notification
+        console.log('notification yooo', notification)
         window.electron.setBadgeCount(currentUser.newNotificationCount)
-        const title = TextHelpers.presentHTMLToText(titleForNotification(notification))
-        const body = TextHelpers.presentHTMLToText(bodyForNotification(notification))
-        window.electron.showNotification(title, body)
+
+        // Pass the raw translation key and parameters to electron
+        // const title = titleForNotification(notification, key => key)
+        // const body = bodyForNotification(notification, key => key)
+        window.electron.showNotification(notification)
       }
       break
     }

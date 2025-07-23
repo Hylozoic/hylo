@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { nevada, ghost, rhino50, rhino30, caribbeanGreen, rhino60 } from 'style/colors'
+import { nevada, ghost, rhino50, rhino30, caribbeanGreen, rhino60 } from '@hylo/presenters/colors'
 import headerStyles from '../MemberHeader.styles.js'
 
 const screenMargin = 16

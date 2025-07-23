@@ -1,4 +1,4 @@
-import { caribbeanGreen, white, white80onCaribbeanGreen, rhino80 } from 'style/colors'
+import { caribbeanGreen, white, white80onCaribbeanGreen, rhino80 } from '@hylo/presenters/colors'
 import { StyleSheet } from 'react-native'
 import { isIOS } from 'util/platform'
 

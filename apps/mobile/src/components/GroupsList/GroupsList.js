@@ -3,7 +3,7 @@ import { chunk } from 'lodash/fp'
 import { TouchableOpacity, Text, View } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { DEFAULT_AVATAR } from '@hylo/presenters/GroupPresenter'
-import { caribbeanGreen } from 'style/colors'
+import { caribbeanGreen } from '@hylo/presenters/colors'
 
 export default function GroupsList ({
   groups = [],

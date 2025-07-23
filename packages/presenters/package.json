@@ -5,8 +5,14 @@
     "hoistingLimits": "none"
   },
   "exports": {
+    ".": "./index.js",
     "./*": "./*.js",
     "./*/*": "./*/index.js"
+  },
+  "dependencies": {
+    "@hylo/shared": "workspace:*",
+    "lodash": "^4.17.21",
+    "tinycolor2": "^1.6.0"
   },
   "devDependencies": {
     "@babel/runtime": "^7.25.0"

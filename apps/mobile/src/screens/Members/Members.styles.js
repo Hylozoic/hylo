@@ -1,4 +1,4 @@
-import { white } from 'style/colors'
+import { white } from '@hylo/presenters/colors'
 
 const hasTextShadow = {
   textShadowColor: 'rgba(0, 0, 0, 0.25)',

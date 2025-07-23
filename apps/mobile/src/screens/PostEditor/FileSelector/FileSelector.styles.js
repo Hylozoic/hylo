@@ -1,4 +1,4 @@
-import { caribbeanGreen, rhino, treePoppy } from 'style/colors'
+import { caribbeanGreen, rhino, treePoppy } from '@hylo/presenters/colors'
 
 export default {
   addButton: {

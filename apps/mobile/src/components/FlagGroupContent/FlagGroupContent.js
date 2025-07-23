@@ -12,7 +12,7 @@ import createModerationActionMutation from '@hylo/graphql/mutations/createModera
 import { agreementsURL } from 'store/constants'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import GroupPresenter from '@hylo/presenters/GroupPresenter'
-import { mangoOrange } from 'style/colors'
+import { mangoOrange } from '@hylo/presenters/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
@@ -29,7 +29,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
               id
               description
               order
-              title        
+              title
             }
           }
         }

@@ -32,7 +32,7 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import UploadAction from 'screens/UploadAction'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 const updatesSubscription = gql`
   subscription UpdatesSubscription($firstMessages: Int = 1) {

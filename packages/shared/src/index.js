@@ -1,9 +1,9 @@
-import * as TextHelpers from './TextHelpers'
-import * as PathHelpers from './PathHelpers'
-import * as Validators from './Validators'
-import * as LocationHelpers from './LocationHelpers'
+import * as TextHelpers from './TextHelpers.js'
+import * as PathHelpers from './PathHelpers.js'
+import * as Validators from './Validators.js'
+import * as LocationHelpers from './LocationHelpers.js'
 
-export * from './constants'
+export * from './constants.js'
 
 export {
   TextHelpers,

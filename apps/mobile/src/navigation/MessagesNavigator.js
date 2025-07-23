@@ -7,7 +7,7 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import NewMessage from 'screens/NewMessage'
 import Thread from 'screens/Thread'
 import ThreadList from 'screens/ThreadList'
-import { caribbeanGreen, rhino, twBackground } from 'style/colors'
+import { caribbeanGreen, rhino, twBackground } from '@hylo/presenters/colors'
 
 const Messages = createStackNavigator()
 export default function MessagesNavigator () {

@@ -7,7 +7,7 @@ import LinearGradient from 'react-native-linear-gradient'
 import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { postCardLinearGradientColors, rhino40 } from 'style/colors'
+import { postCardLinearGradientColors, rhino40 } from '@hylo/presenters/colors'
 
 export default function PostFooter ({
   commenters,

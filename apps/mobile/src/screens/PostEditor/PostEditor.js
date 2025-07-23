@@ -44,7 +44,7 @@ import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import styles from './PostEditor.styles'
-import { caribbeanGreen, rhino30, rhino80 } from 'style/colors'
+import { caribbeanGreen, rhino30, rhino80 } from '@hylo/presenters/colors'
 
 export const MAX_TITLE_LENGTH = 50
 

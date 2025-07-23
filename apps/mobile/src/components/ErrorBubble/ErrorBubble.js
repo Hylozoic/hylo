@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 import Triangle from 'react-native-triangle'
-import { amaranth, white } from 'style/colors'
+import { amaranth, white } from '@hylo/presenters/colors'
 import { get } from 'lodash/fp'
 
 export default function ErrorBubble ({

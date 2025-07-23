@@ -8,6 +8,7 @@
     "backend:dev": "yarn workspace backend run dev",
     "web:dev": "yarn workspace web run dev",
     "cron": "yarn workspace backend cron",
+    "desktop": "yarn workspace desktop start",
     "migrate": "yarn workspace backend migrate",
     "migrate-up": "yarn workspace backend migrate-up",
     "worker": "yarn workspace backend worker",

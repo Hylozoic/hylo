@@ -1,4 +1,4 @@
-import { white, white40onCaribbeanGreen, white80 } from 'style/colors'
+import { white, white40onCaribbeanGreen, white80 } from '@hylo/presenters/colors'
 import defaultStyles from '../SignupFlow.styles'
 
 const styles = {

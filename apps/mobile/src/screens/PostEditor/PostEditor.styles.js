@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
 
 const typeSelectorIOSDefaults = {

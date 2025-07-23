@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { uniq, merge } from 'lodash/fp'
 import LinkButton from 'components/LinkButton'
 import Triangle from 'react-native-triangle'
-import { amaranth, white } from 'style/colors'
+import { amaranth, white } from '@hylo/presenters/colors'
 import errorMessages from 'util/errorMessages'
 
 export const defaultStyles = {

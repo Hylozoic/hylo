@@ -11,7 +11,7 @@ import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
 import Button from 'components/Button/Button'
 import PostListRow from 'components/PostListRow'
-import { caribbeanGreen, mediumPurple, white } from 'style/colors'
+import { caribbeanGreen, mediumPurple, white } from '@hylo/presenters/colors'
 
 const ModerationListItem = ({
   moderationAction,

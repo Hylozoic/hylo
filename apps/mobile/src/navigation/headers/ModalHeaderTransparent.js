@@ -1,6 +1,6 @@
 import { TouchableOpacity, StyleSheet } from 'react-native'
 import { X } from 'lucide-react-native'
-import { suvaGrey, white } from 'style/colors'
+import { suvaGrey, white } from '@hylo/presenters/colors'
 
 export default function ModalHeaderTransparent ({ navigation, ...params }) {
   return {

@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import Button from 'components/Button'
-import { rhino50 } from 'style/colors'
+import { rhino50 } from '@hylo/presenters/colors'
 
 const axolotlImage = require('assets/hey-axolotl.png')
 

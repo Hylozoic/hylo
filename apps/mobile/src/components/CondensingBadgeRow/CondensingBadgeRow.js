@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import BadgeEmoji from 'components/BadgeEmoji'
-import { white80onCaribbeanGreen, white40onCaribbeanGreen } from 'style/colors'
+import { white80onCaribbeanGreen, white40onCaribbeanGreen } from '@hylo/presenters/colors'
 
 export default function CondensingBadgeRow ({ postId, creatorIsSteward, badges, currentGroup, containerStyle, limit = 3 }) {
   const moderatorCount = creatorIsSteward ? 1 : 0

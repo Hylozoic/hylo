@@ -6,7 +6,7 @@ import useStaticContexts from '@hylo/hooks/useStaticContexts'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
-import { caribbeanGreen, rhino40 } from 'style/colors'
+import { caribbeanGreen, rhino40 } from '@hylo/presenters/colors'
 
 export default function PostGroups ({
   groups: providedGroups,

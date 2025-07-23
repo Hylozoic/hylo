@@ -1,4 +1,4 @@
-import PostPresenter from './PostPresenter'
+import PostPresenter from './PostPresenter.js'
 
 export default function TrackPresenter (track, options = {}) {
   if (!track) return track

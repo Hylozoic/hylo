@@ -3,7 +3,7 @@ import { TextInput, TouchableOpacity, View, Alert, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next'
 import { throttle, isEmpty } from 'lodash'
 import Icon from 'components/Icon'
-import { azureRadiance, rhino30, rhino, twBackground } from 'style/colors'
+import { azureRadiance, rhino30, rhino, twBackground } from '@hylo/presenters/colors'
 
 const IS_TYPING_THROTTLE = 3000
 const MAX_INPUT_HEIGHT = 180

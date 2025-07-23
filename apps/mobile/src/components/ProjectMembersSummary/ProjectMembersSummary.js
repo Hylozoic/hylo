@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { slice } from 'lodash/fp'
 import Avatar from 'components/Avatar'
-import { rhino30 } from 'style/colors'
+import { rhino30 } from '@hylo/presenters/colors'
 
 export default function ProjectMembersSummary ({ members, onPress, style, dimension = 43 }) {
   const membersTotal = members.length

@@ -10,7 +10,7 @@ import LinkPreview from 'components/PostCard/LinkPreview'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import PostBodyProposal from '../PostBodyProposal'
-import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from '@hylo/presenters/colors'
 import { useTranslation } from 'react-i18next'
 
 const MAX_DETAILS_LENGTH = 144

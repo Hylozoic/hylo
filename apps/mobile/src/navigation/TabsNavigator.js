@@ -8,7 +8,7 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from 'style/colors'
+import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from '@hylo/presenters/colors'
 
 const DummyComponent = () => {}
 

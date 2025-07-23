@@ -22,7 +22,7 @@ import GroupWelcomeTabBar from 'screens/GroupWelcome/GroupWelcomeTabBar'
 import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
 import styles from 'screens/GroupWelcome/GroupWelcome.styles'
-import { caribbeanGreen } from 'style/colors'
+import { caribbeanGreen } from '@hylo/presenters/colors'
 
 export const addSkillMutation = gql`
   mutation AddSkillMutation ($name: String) {

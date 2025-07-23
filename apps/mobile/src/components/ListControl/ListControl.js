@@ -4,7 +4,7 @@ import { find } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import Icon from 'components/Icon'
-import { rhino } from 'style/colors'
+import { rhino } from '@hylo/presenters/colors'
 
 export default function ListControl ({ selected, options, onChange }) {
   const { t } = useTranslation()

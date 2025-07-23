@@ -4,7 +4,7 @@ import RNPickerSelect from 'react-native-picker-select'
 import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import styles, { typeSelectorStyles } from './PostEditor.styles'
-import { white } from 'style/colors'
+import { white } from '@hylo/presenters/colors'
 
 export default function TypeSelector (props) {
   const { t } = useTranslation()

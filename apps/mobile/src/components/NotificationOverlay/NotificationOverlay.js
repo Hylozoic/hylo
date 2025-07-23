@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { StyleSheet, Text, TouchableOpacity } from 'react-native'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated'
 import { isEmpty } from 'lodash/fp'
-import { amaranth, persimmon } from 'style/colors'
+import { amaranth, persimmon } from '@hylo/presenters/colors'
 
 const fontSize = 13
 const lineHeight = 14

@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Avatar from 'components/Avatar'
-import { persimmon, rhino, rhino10, rhino30, rhino60, twBackground } from 'style/colors'
+import { persimmon, rhino, rhino10, rhino30, rhino60, twBackground } from '@hylo/presenters/colors'
 
 export default function NotificationCard ({ notification }) {
   const {

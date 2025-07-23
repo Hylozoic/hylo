@@ -1,4 +1,4 @@
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 export default {
   center: {
