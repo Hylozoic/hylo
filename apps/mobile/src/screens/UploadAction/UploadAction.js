@@ -177,7 +177,7 @@ export default function UploadAction () {
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
-      })
+      }, currentUser, !currentUser)
     }
   }, [fetching, error, post])
 

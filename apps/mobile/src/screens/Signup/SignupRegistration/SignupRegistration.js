@@ -15,6 +15,7 @@ import Button from 'components/Button'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export const registerMutation = gql`
   mutation RegisterMutation ($name: String!, $password: String!) {
@@ -37,6 +38,7 @@ export default function SignupRegistration ({ navigation, route }) {
   const [loading, setLoading] = useState()
   // TODO: Display response error somewhere on page
   const [error, setError] = useState() // eslint-disable-line no-unused-vars
+  const [{ currentUser }] = useCurrentUser()
 
   const saveAndNext = async () => {
     try {
@@ -46,7 +48,7 @@ export default function SignupRegistration ({ navigation, route }) {
       if (responseError) {
         setError(responseError)
       } else {
-        trackWithConsent(AnalyticsEvents.SIGNUP_REGISTERED)
+        trackWithConsent(AnalyticsEvents.SIGNUP_REGISTERED, {}, currentUser, !currentUser)
         navigation.navigate('SignupUploadAvatar')
       }
     } catch (e) {

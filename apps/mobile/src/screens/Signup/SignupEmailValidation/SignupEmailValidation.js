@@ -15,6 +15,7 @@ import meAuthFieldsFragment from '@hylo/graphql/fragments/meAuthFieldsFragment'
 import FormattedError from 'components/FormattedError'
 import controlStyles from 'components/SettingControl/SettingControl.styles'
 import styles from './SignupEmailValidation.styles'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const CODE_LENGTH = 6
 
@@ -47,6 +48,7 @@ export default function SignupEmailValidation () {
     value: verificationCode,
     setValue: setVerificationCode
   })
+  const [{ currentUser }] = useCurrentUser()
 
   const resendCode = async () => {
     try {
@@ -59,7 +61,7 @@ export default function SignupEmailValidation () {
     }
   }
 
-  const submit = async () => {
+  const handleVerify = async () => {
     try {
       setLoading(true)
 
@@ -73,7 +75,7 @@ export default function SignupEmailValidation () {
         }
         setError(responseError)
       } else {
-        trackWithConsent(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email })
+        trackWithConsent(AnalyticsEvents.SIGNUP_EMAIL_VERIFIED, { email }, currentUser, !currentUser)
         navigation.navigate('SignupRegistration')
       }
     } catch (e) {
@@ -86,7 +88,7 @@ export default function SignupEmailValidation () {
   useFocusEffect(
     useCallback(() => {
       if (!email) navigation.replace('Signup')
-      if (token) submit()
+      if (token) handleVerify()
 
       navigation.setOptions({
         headerLeftOnPress: () => {
@@ -98,7 +100,7 @@ export default function SignupEmailValidation () {
 
   useEffect(() => {
     setError()
-    if (verificationCode?.length === CODE_LENGTH) submit()
+    if (verificationCode?.length === CODE_LENGTH) handleVerify()
   }, [verificationCode])
 
   // {loading && (
