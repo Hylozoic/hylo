@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.11] - 2025-07-23
+
+### Added
+- Show last active at date in exported member data
+- Support tracking cookie consent for GDPR compliance
+
 ## [6.1.10] - 2025-07-15
 
 ### Added
