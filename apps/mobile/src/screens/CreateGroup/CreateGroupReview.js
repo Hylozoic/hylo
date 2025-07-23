@@ -12,6 +12,7 @@ import { BASE_STRING } from './CreateGroupUrl'
 import { GroupPrivacyOption } from './CreateGroupVisibilityAccessibility'
 import { GroupRow } from './CreateGroupParentGroups'
 import ErrorBubble from 'components/ErrorBubble'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const EditButton = ({ onPress }) => {
   const { t } = useTranslation()
@@ -29,6 +30,7 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
   const changeToGroup = useChangeToGroup()
   const [, createGroup] = useMutation(createGroupMutation)
   const [error, setError] = useState(null)
+  const [{ currentUser }] = useCurrentUser()
 
   useEffect(() => {
     if (submit) {
@@ -42,7 +44,7 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
           ).toPromise()
 
           if (data?.group) {
-            trackWithConsent(AnalyticsEvents.GROUP_CREATED)
+            trackWithConsent(AnalyticsEvents.GROUP_CREATED, {}, currentUser, !currentUser)
             clearStore()
             changeToGroup(data.group.slug, { skipCanViewCheck: true })
           } else {

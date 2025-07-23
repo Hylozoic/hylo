@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
@@ -56,6 +57,7 @@ export default function PostDetails () {
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
   const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
+  const [{ currentUser }] = useCurrentUser()
 
   useSubscription({
     query: commentsSubscription,
@@ -83,7 +85,7 @@ export default function PostDetails () {
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
-      })
+      }, currentUser, !currentUser)
     }
   }, [fetching, error, post])
 

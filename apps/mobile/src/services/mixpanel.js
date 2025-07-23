@@ -10,8 +10,7 @@ const useNative = false
 const mixpanel = new Mixpanel(Config.MIXPANEL_TOKEN, trackAutomaticEvents, useNative)
 mixpanel && mixpanel.init()
 
-export function trackWithConsent(event, props) {
-  const [{ currentUser }] = useCurrentUser()
+export function trackWithConsent(event, props, currentUser) {
   const consent = currentUser?.cookieConsentPreferences?.settings
   if (consent && consent.analytics === false) return
   mixpanel.track(event, props)
