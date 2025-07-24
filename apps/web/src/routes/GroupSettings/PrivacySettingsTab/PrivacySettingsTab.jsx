@@ -123,7 +123,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
               <div
                 key={visibilitySetting}
                 className={cn(
-                  'flex items-start gap-4 p-4 rounded-lg transition-all scale-100 hover:scale-105 cursor-pointer',
+                  'flex items-start gap-4 p-4 rounded-lg transition-all cursor-pointer',
                   visibility === visibilitySetting ? 'bg-selected/20' : 'hover:bg-selected/5'
                 )}
                 onClick={() => updateSetting('visibility')({ target: { value: visibilitySetting } })}
@@ -180,7 +180,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
               <div
                 key={accessSetting}
                 className={cn(
-                  'flex items-start gap-4 p-4 rounded-lg transition-all scale-100 hover:scale-105 cursor-pointer',
+                  'flex items-start gap-4 p-4 rounded-lg transition-all cursor-pointer',
                   accessibility === accessSetting ? 'bg-selected/20' : 'hover:bg-selected/5'
                 )}
                 onClick={() => updateSetting('accessibility')({ target: { value: accessSetting } })}
