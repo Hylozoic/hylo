@@ -299,12 +299,23 @@ function PostEditor ({
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-    dispatch(fetchAllMyGroupsChatRooms())
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))
     }
   }, [])
+
+  // Fetch chat rooms if we're not in a chat and we haven't fetched them yet
+  const hasFetchedChatRoomsRef = useRef(false)
+  useEffect(() => {
+    if (
+      currentPost.type !== 'chat' &&
+      !hasFetchedChatRoomsRef.current
+    ) {
+      dispatch(fetchAllMyGroupsChatRooms())
+      hasFetchedChatRoomsRef.current = true
+    }
+  }, [currentPost.type])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
