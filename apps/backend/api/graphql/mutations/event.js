@@ -3,11 +3,6 @@ import ical from 'ical-generator'
 import { values, includes } from 'lodash/fp'
 import { DateTimeHelpers } from '@hylo/shared'
 
-const going = (response) => {
-  return response === EventInvitation.RESPONSE.YES ||
-    response === EventInvitation.RESPONSE.INTERESTED
-}
-
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
