@@ -337,6 +337,9 @@ type GroupRelationshipUpdate {
   relationship: GroupRelationship
 }
 
+# Union type for all possible subscription updates
+union SubscriptionUpdate = Notification | Group | GroupMembershipUpdate | GroupRelationshipUpdate | Post | Comment | Person
+
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
   comments(postId: ID, parentCommentId: ID): Comment,
@@ -353,6 +356,10 @@ type Subscription {
   groupRelationshipUpdates: GroupRelationshipUpdate
   # Post updates subscription for real-time post changes
   postUpdates: Post
+  
+  # UNIFIED: Single subscription that combines all user-specific updates
+  # Reduces Android SSE connection limit issues by using only one connection
+  allUpdates: SubscriptionUpdate
 }
 
 # The meta data associated with an Activity
@@ -2053,10 +2060,10 @@ type Post {
   createdAt: Date
   # The body of the post
   details: String
+  # When the text was last edited
+  editedAt: Date
   # Link to a donation page, only used for projects only right now
   donationsLink: String
-  # When this post was last significantly edited (such as title and details)
-  editedAt: Date
   # When this post "ends". Used for events, resources, projects, requests and offers right now
   endTime: Date
   # List of group ids for groups that have flagged this post

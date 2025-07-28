@@ -54,6 +54,9 @@ export async function publishPostUpdate (context, post, options = {}) {
 
     // Publish to each follower's user channel
     for (const userId of followerIds) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`   → Publishing to user ${userId} on channel postUpdates:${userId}`)
+      }
       pubSub.publish(`postUpdates:${userId}`, { post: postUpdateData })
     }
 
