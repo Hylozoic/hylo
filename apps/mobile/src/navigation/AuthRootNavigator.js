@@ -3,13 +3,11 @@ import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
-import { gql, useMutation, useQuery, useSubscription } from 'urql'
+import { useMutation, useQuery } from 'urql'
 import mixpanel from 'services/mixpanel'
 import { useTranslation } from 'react-i18next'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
-import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
-import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -33,163 +31,9 @@ import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import UploadAction from 'screens/UploadAction'
 import { twBackground } from 'style/colors'
+import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
 
-const updatesSubscription = gql`
-  subscription UpdatesSubscription($firstMessages: Int = 1) {
-    updates {
-      __typename
-      ... on Notification {
-        ...NotificationFieldsFragment
-      }
-      ... on MessageThread {
-        ...MessageThreadFieldsFragment
-      }
-      ... on Message {
-        id
-        createdAt
-        text
-        creator {
-          id
-          name
-          avatarUrl
-        }
-        messageThread {
-          id
-          unreadCount
-        }
-      }
-    }
-  }
-  ${notificationFieldsFragment}
-  ${messageThreadFieldsFragment}
-`
 
-const groupUpdatesSubscription = gql`
-  subscription GroupUpdatesSubscription {
-    groupUpdates {
-      id
-      name
-      slug
-      avatarUrl
-      memberCount
-      description
-    }
-  }
-`
-
-const groupMembershipUpdatesSubscription = gql`
-  subscription GroupMembershipUpdatesSubscription {
-    groupMembershipUpdates {
-      action
-      role
-      group {
-        id
-        name
-        slug
-        avatarUrl
-        memberCount
-      }
-      member {
-        id
-        name
-        avatarUrl
-      }
-    }
-  }
-`
-
-const groupRelationshipUpdatesSubscription = gql`
-  subscription GroupRelationshipUpdatesSubscription {
-    groupRelationshipUpdates {
-      action
-      parentGroup {
-        id
-        name
-        slug
-        avatarUrl
-      }
-      childGroup {
-        id
-        name
-        slug
-        avatarUrl
-      }
-      relationship {
-        id
-        createdAt
-      }
-    }
-  }
-`
-
-const postUpdatesSubscription = gql`
-  subscription PostUpdatesSubscription {
-    postUpdates {
-      id
-      updatedAt
-      # Comment-related fields
-      commentsTotal
-      comments {
-        total
-        items {
-          id
-          text
-          createdAt
-          creator {
-            id
-            name
-            avatarUrl
-          }
-        }
-      }
-      # Reaction-related fields
-      peopleReactedTotal
-      reactionsSummary
-      postReactions {
-        id
-        emojiFull
-        emojiBase
-        user {
-          id
-          name
-        }
-      }
-      # Post edit fields
-      title
-      details
-      type
-      location
-      startTime
-      endTime
-      # Proposal vote fields (for proposal posts only)
-      proposalStatus
-      proposalOutcome
-      proposalOptions {
-        total
-        items {
-          id
-          text
-          emoji
-          color
-        }
-      }
-      proposalVotes {
-        total
-        items {
-          id
-          optionId
-          user {
-            id
-            name
-          }
-        }
-      }
-      # Completion fields
-      fulfilledAt
-      completedAt
-    }
-  }
-`
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
@@ -204,11 +48,10 @@ export default function AuthRootNavigator () {
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
 
-  useSubscription({ query: updatesSubscription })
-  useSubscription({ query: groupUpdatesSubscription })
-  useSubscription({ query: groupMembershipUpdatesSubscription })
-  useSubscription({ query: groupRelationshipUpdatesSubscription })
-  useSubscription({ query: postUpdatesSubscription })
+  // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
+  // This stays within Android's 4 concurrent SSE connection limit
+  useUnifiedSubscription()
+  
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()

@@ -30,10 +30,12 @@ export async function fetchGraphqlSchema (endpoint) {
 
 export default async function makeUrqlClient ({
   subscriptionExchange: providedSubscriptionExchange,
-  schemaAwareness = false
+  schemaAwareness = true // Enable by default to fix union type warnings
 } = {}) {
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
-  if (schema) console.log('URQL Schema Awareness turned on')
+  if (schema && process.env.NODE_ENV === 'development') {
+    console.log('URQL Schema Awareness turned on')
+  }
 
   const cache = cacheExchange({
     keys,
@@ -55,7 +57,9 @@ export default async function makeUrqlClient ({
       const response = await fetch(...args)
 
       if (response.headers.get('set-cookie')) {
-        console.log('!!! setting cookie in urql fetch', response.headers.get('set-cookie'))
+        if (process.env.NODE_ENV === 'development') {
+          console.log('!!! setting cookie in urql fetch', response.headers.get('set-cookie'))
+        }
         await setSessionCookie(response)
       }
 
