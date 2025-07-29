@@ -1495,5 +1495,18 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other": "{{personOne}}, {{personTwo}} and {{othersTotal}} other",
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} and {{othersTotal}} others",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
-  "~ Mixed ~": "~ Mixed ~"
+  "~ Mixed ~": "~ Mixed ~",
+  "agreementChunk1": "You are warmly invited to be a part of this community! Our invitation to you is to come to the platform and its communities as a contributor and co-creator. We know you have a unique role to play in making this place more enjoyable and more useful for everyone. We ask all Hylo participants to commit to upholding our {{codeOfConductLink}} and {{termsOfUseLink}} by consenting to the Hylo Platform Agreements. We are so happy you are with us on this journey. Welcome to Hylo!",
+  "agreementChunk2": "I pledge to behave on Hylo in ways that contribute to an open, welcoming, and healthy community, and to support other members in feeling respected and appreciated.",
+  "agreementChunk3": "I will respect differing viewpoints and experiences, and work to find common ground and shared values with other Hylo members.",
+  "agreementChunk4": "I commit to learning from every interaction. I will listen to feedback, adapt, and embrace responsibility for mistakes as opportunities for growth.",
+  "agreementChunk5": "I pledge to share my voice, ideas, and skills in service to my group(s) on Hylo, recognizing that working together leads to better outcomes.",
+  "agreementChunk6": "If I see an opportunity to improve something on the Hylo platform or within my group, I will take action to make it better.",
+  "agreementChunk7": "I commit to upholding the {{codeOfConductLink}}, and {{termsOfUseLink}}, and I agree to participate in accountability processes when necessary.",
+  "codeOfConductText": "Code of Conduct & Cultural Norms",
+  "termsOfUseText": "Terms of Use",
+  "agreementTitle": "Hylo Platform Agreements",
+  "agreementSubtitle": "Please review and accept our community agreements to continue",
+  "acceptAgreements": "I accept the agreements",
+  "viewFullAgreements": "View full agreements"
 }

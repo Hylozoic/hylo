@@ -38,7 +38,7 @@ export const getAuthState = createSelector(
     const { signupInProgress } = settings
 
     if (!emailValidated) return AuthState.EmailValidation
-    if (!hasRegistered) return AuthState.Registration
+    if (emailValidated && !hasRegistered) return AuthState.Registration
     if (signupInProgress) return AuthState.SignupInProgress
 
     return AuthState.Complete
