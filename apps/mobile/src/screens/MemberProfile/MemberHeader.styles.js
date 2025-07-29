@@ -1,4 +1,4 @@
-import { capeCod, rhino80, rhino60 } from 'style/colors'
+import { capeCod, rhino80, rhino60 } from '@hylo/presenters/colors'
 
 export default {
   header: {

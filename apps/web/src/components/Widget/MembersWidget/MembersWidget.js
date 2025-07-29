@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
 import Icon from 'components/Icon'
-import { groupUrl, messagePersonUrl, personUrl } from 'util/navigation'
+import { groupUrl, messagePersonUrl, personUrl } from '@hylo/navigation'
 
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'

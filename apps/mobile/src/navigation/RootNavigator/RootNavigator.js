@@ -18,7 +18,7 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import Unknown from 'screens/Unknown'
-import { white } from 'style/colors'
+import { white } from '@hylo/presenters/colors'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {

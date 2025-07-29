@@ -127,7 +127,7 @@ export default defineConfig({
       '@hylo/graphql': path.resolve(__dirname, '../../packages/graphql'),
       '@hylo/hooks': path.resolve(__dirname, '../../packages/hooks'),
       '@hylo/navigation': path.resolve(__dirname, '../../packages/navigation'),
-      '@hylo/presenters': path.resolve(__dirname, '../../packages/presenters'),
+      '@hylo/presenters': path.resolve(__dirname, '../../packages/presenters/src'),
       '@hylo/shared': path.resolve(__dirname, '../../packages/shared'),
       '@hylo/urql': path.resolve(__dirname, '../../packages/urql')
     }

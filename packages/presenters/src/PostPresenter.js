@@ -1,5 +1,5 @@
-import { uniq } from 'lodash/fp'
-import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue, sunsetOrange } from 'style/colors'
+import uniq from 'lodash/fp/uniq.js'
+import { butterflyBush, caribbeanGreen, fakeAlpha, flushOrange, gold, pictonBlue, sunsetOrange } from './colors.js'
 
 // TODO: Confirm that this presenter is idempotent and reconcile/merge transformations with
 // Mobile PostEditor.store, etc

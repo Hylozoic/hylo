@@ -13,7 +13,7 @@ import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { isIOS } from 'util/platform'
 import useOpenURL from 'hooks/useOpenURL'
 import LucideIcon from 'components/LucideIcon'
-import { black, white } from 'style/colors'
+import { black, white } from '@hylo/presenters/colors'
 
 const STAY_EXPANDED_DURATION = 1500
 
@@ -154,7 +154,7 @@ function ContextRow ({
       {isExpanded && (
         <Text
           className={clsx(
-            'text-xl font-medium text-foreground ml-2',
+            'text-xl font-medium text-foreground ml-2'
             // (selected || bottomItem) && 'text-foreground'
           )}
         >

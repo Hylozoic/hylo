@@ -3,7 +3,7 @@ import { matchPath } from 'react-router-dom'
 import { flow, groupBy, map, omit, pick, reduce, sortBy, values } from 'lodash/fp'
 import orm from 'store/models'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { topicUrl } from 'util/navigation'
+import { topicUrl } from '@hylo/navigation'
 
 const getTopicName = ({ topic: { name } }) => name.toLowerCase()
 

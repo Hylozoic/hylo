@@ -24,7 +24,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
 
 import styles from './CreateGroup.module.scss'

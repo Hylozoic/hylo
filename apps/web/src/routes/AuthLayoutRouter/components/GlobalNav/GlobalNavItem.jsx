@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-import { baseUrl } from 'util/navigation'
+import { baseUrl } from '@hylo/navigation'
 
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations

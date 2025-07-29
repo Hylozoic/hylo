@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
+import { amaranth, capeCod, rhino40, rhino80, twBackground } from '@hylo/presenters/colors'
 
 export default function GroupSettingsWebView () {
   const navigation = useNavigation()

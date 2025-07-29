@@ -77,7 +77,7 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { setQuerystringParam } from 'util/navigation'
+import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 
@@ -382,7 +382,7 @@ function PostEditor ({
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
     } else {
-      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
+      dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })

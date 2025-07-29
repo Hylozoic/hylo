@@ -4,7 +4,7 @@ import {
   white40onCaribbeanGreen,
   amaranth,
   white
-} from 'style/colors'
+} from '@hylo/presenters/colors'
 
 export default {
   control: {

@@ -1,7 +1,7 @@
 import React from 'react'
 import config from './config.json'
 import { createIconSet } from 'react-native-vector-icons'
-import * as colors from 'style/colors'
+import * as colors from '@hylo/presenters/colors'
 
 const glyphMap = config.icons.reduce((m, { properties: { code, name } }) => {
   m[name] = code

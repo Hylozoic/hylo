@@ -1,9 +1,18 @@
-import { get, isEmpty, isNumber, omitBy } from 'lodash/fp'
-import qs from 'query-string'
-import { host } from 'config/index'
-import { isStaticContext } from '@hylo/presenters/GroupPresenter'
-import { findHomeWidget } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MESSAGES_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import get from 'lodash/fp/get.js'
+import isEmpty from 'lodash/fp/isEmpty.js'
+import isNumber from 'lodash/fp/isNumber.js'
+import omitBy from 'lodash/fp/omitBy.js'
+
+// https://regex101.com/r/0M6mbp/1
+export const HYLO_URL_REGEX = /^(https?:\/?\/?)?(www\.|staging\.)?(hylo\.com|localhost)(:?\d{0,6})(.*)/gi
+
+export const ALL_GROUPS_CONTEXT_SLUG = 'all'
+export const MESSAGES_CONTEXT_SLUG = 'messages'
+export const MY_CONTEXT_SLUG = 'my'
+export const PUBLIC_CONTEXT_SLUG = 'public'
+
+export const isStaticContext = contextOrSlug =>
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -17,6 +26,15 @@ export const REQUIRED_EDIT_POST_MATCH = ':detail(post)/:postId/:action(edit)'
 
 export const GROUP_DETAIL_MATCH = 'group/:detailGroupSlug'
 export const OPTIONAL_GROUP_MATCH = ':detail(group)?/(:detailGroupSlug)?'
+
+// TODO: have to have this here because otherwise the presenters package loads navigation package and visa versa which is a circular dependency
+export function findHomeWidget (group) {
+  if (!group?.contextWidgets) {
+    throw new Error('Group has no contextWidgets')
+  }
+  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
+  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
+}
 
 // Fundamental URL paths
 
@@ -256,10 +274,23 @@ export function setQuerystringParam (key, value, location) {
   return querystringParams.toString()
 }
 
-export function addQuerystringToPath (path, querystringParams) {
+export function stringifyParams (paramsObj) {
   // The weird query needed to ignore empty arrays but allow for boolean values and numbers
-  querystringParams = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), querystringParams)
-  return `${path}${!isEmpty(querystringParams) ? '?' + qs.stringify(querystringParams) : ''}`
+  const filtered = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), paramsObj)
+  const params = new URLSearchParams()
+  Object.entries(filtered).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach(v => params.append(key, v))
+    } else if (value !== undefined && value !== null) {
+      params.append(key, value)
+    }
+  })
+  return params.toString()
+}
+
+export function addQuerystringToPath (path, querystringParams) {
+  const queryString = stringifyParams(querystringParams)
+  return `${path}${queryString ? '?' + queryString : ''}`
 }
 
 export function removeCreateEditModalFromUrl (url) {
@@ -290,7 +321,7 @@ export function gotoExternalUrl (url) {
 }
 
 export const origin = () =>
-  typeof window !== 'undefined' ? window.location.origin : host
+  typeof window !== 'undefined' ? window.location.origin : process.env.VITE_HOST
 
 // Utility path functions
 
@@ -304,4 +335,32 @@ export function isMapView (path) {
 
 export function isGroupsView (path) {
   return (path.includes('/groups/'))
+}
+
+export const getTrackIdFromPath = (path) => {
+  if (!path) return null
+  const match = path.match(/tracks\/(\d+)/)
+  return match ? match[1] : null
+}
+
+export const getGroupslugFromPath = (path) => {
+  if (!path) return null
+  const match = path.match(/\/groups\/([^/]+)(?:\/|$)/)
+  return match ? match[1] : null
+}
+
+export function topicPath (topicName, groupSlug) {
+  if (groupSlug && ![ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(groupSlug)) {
+    return `/groups/${groupSlug}/topics/${topicName}`
+  } else {
+    return `/${ALL_GROUPS_CONTEXT_SLUG}/topics/${topicName}`
+  }
+}
+
+export function mentionPath (memberId, groupSlug) {
+  if (groupSlug && ![ALL_GROUPS_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(groupSlug)) {
+    return `/groups/${groupSlug}/members/${memberId}`
+  } else {
+    return `/${ALL_GROUPS_CONTEXT_SLUG}/members/${memberId}`
+  }
 }

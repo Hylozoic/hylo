@@ -46,7 +46,7 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from 'util/navigation'
+import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
 import { getLocaleFromLocalStorage } from 'util/locale'
 

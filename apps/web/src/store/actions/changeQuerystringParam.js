@@ -1,8 +1,8 @@
 import qs from 'query-string'
 import { push, replace } from 'redux-first-history'
-import { addQuerystringToPath } from 'util/navigation'
+import { addQuerystringToPath } from '@hylo/navigation'
 
-// Could have a home in `util/navigation`, or make `util/navigation` a directory and put this in there?
+// Could have a home in `@hylo/navigation`, or make `@hylo/navigation` a directory and put this in there?
 export default function changeQuerystringParam (location, key, value, defaultValue, useReplace) {
   const querystringParams = qs.parse(location.search)
   const newQuerystringParams = {

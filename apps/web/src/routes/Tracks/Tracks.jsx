@@ -10,7 +10,7 @@ import { RESP_MANAGE_TRACKS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTracks from 'store/selectors/getTracksForGroup'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { groupUrl, createTrackUrl } from 'util/navigation'
+import { groupUrl, createTrackUrl } from '@hylo/navigation'
 
 function Tracks () {
   const dispatch = useDispatch()

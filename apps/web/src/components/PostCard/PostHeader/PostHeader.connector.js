@@ -1,7 +1,7 @@
 import { connect } from 'react-redux'
 import { push } from 'redux-first-history'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl } from 'util/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'

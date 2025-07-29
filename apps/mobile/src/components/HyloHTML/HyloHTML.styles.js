@@ -1,4 +1,4 @@
-import { nevada, rhino, white80 } from 'style/colors'
+import { nevada, rhino, white80 } from '@hylo/presenters/colors'
 
 export const baseStyle = {
   color: nevada,
