@@ -27403,7 +27403,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mitt@npm:^3.0.0":
+"mitt@npm:^3.0.0, mitt@npm:^3.0.1":
   version: 3.0.1
   resolution: "mitt@npm:3.0.1"
   checksum: 10/287c70d8e73ffc25624261a4989c783768aed95ecb60900f051d180cf83e311e3e59865bfd6e9d029cdb149dc20ba2f128a805e9429c5c4ce33b1416c65bbd14
@@ -27652,6 +27652,7 @@ __metadata:
     react-native-webview: "npm:^13.13.1"
     react-redux: "npm:^8.0.4"
     react-test-renderer: "npm:^19.0.0"
+    reactotron-react-native: "npm:^5.1.14"
     redux: "npm:^4.2.0"
     redux-logger: "npm:^3.0.6"
     redux-mock-store: "npm:^1.5.5"
@@ -33086,6 +33087,34 @@ __metadata:
   dependencies:
     loose-envify: "npm:^1.1.0"
   checksum: 10/261137d3f3993eaa2368a83110466fc0e558bc2c7f7ae7ca52d94f03aac945f45146bd85e5f481044db1758a1dbb57879e2fcdd33924e2dde1bdc550ce73f7bf
+  languageName: node
+  linkType: hard
+
+"reactotron-core-client@npm:2.9.7":
+  version: 2.9.7
+  resolution: "reactotron-core-client@npm:2.9.7"
+  dependencies:
+    reactotron-core-contract: "npm:0.2.5"
+  checksum: 10/7bd1300a5984aef22b011d61d7dd1e185574189ea517aa933d406497610f8cf9d1021b6e9be3240970761f5d796949479d18eb44de03f6b31e4d9183e3f0dcd6
+  languageName: node
+  linkType: hard
+
+"reactotron-core-contract@npm:0.2.5":
+  version: 0.2.5
+  resolution: "reactotron-core-contract@npm:0.2.5"
+  checksum: 10/6035af3c0a047e0c860477abddbd8e25869bff8ed0d4ae64994ee35cb9630ae8f1b37d3bf713316b22cd741a1897f9d75a26e8fc2d9d90a20e14710607e7d14e
+  languageName: node
+  linkType: hard
+
+"reactotron-react-native@npm:^5.1.14":
+  version: 5.1.14
+  resolution: "reactotron-react-native@npm:5.1.14"
+  dependencies:
+    mitt: "npm:^3.0.1"
+    reactotron-core-client: "npm:2.9.7"
+  peerDependencies:
+    react-native: ">=0.40.0"
+  checksum: 10/f69647e5dd90f7996f54f56e6ab87b98ae4f7f4133627a7ee4db4d007f1142d971ce4318fd2186c1c4ceb38573162d00597515f4457d02e9323e147af5c06c6b
   languageName: node
   linkType: hard
 
