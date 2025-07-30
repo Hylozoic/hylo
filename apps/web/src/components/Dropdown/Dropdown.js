@@ -4,16 +4,30 @@ import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
 import Icon from 'components/Icon'
+import { useDropdown } from 'contexts/DropdownContext'
 import classes from './Dropdown.module.scss'
 
-const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow }) => {
+const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow, id }) => {
   const [active, setActive] = useState(false)
   const parentRef = useRef(null)
+  const { activeDropdownId, openDropdown, closeAllDropdowns } = useDropdown()
+
+  useEffect(() => {
+    if (activeDropdownId !== id) {
+      setActive(false)
+    }
+  }, [activeDropdownId, id])
 
   const toggle = (event) => {
     if (event) {
       event.stopPropagation()
       event.preventDefault()
+    }
+    if (!active) {
+      closeAllDropdowns()
+      openDropdown(id)
+    } else {
+      closeAllDropdowns()
     }
     setActive(!active)
   }
@@ -21,7 +35,10 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
   const hide = (e) => {
     e.stopPropagation()
     e.preventDefault()
-    if (active) setActive(false)
+    if (active) {
+      closeAllDropdowns()
+      setActive(false)
+    }
     return true
   }
 
@@ -88,7 +105,8 @@ Dropdown.propTypes = {
   toggleChildren: PropTypes.object.isRequired,
   alignRight: PropTypes.bool,
   menuAbove: PropTypes.bool,
-  noOverflow: PropTypes.bool
+  noOverflow: PropTypes.bool,
+  id: PropTypes.string
 }
 
 const margin = 10

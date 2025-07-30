@@ -8,7 +8,7 @@ export const REMOVE_MEMBER = 'REMOVE_MEMBER'
 export const REMOVE_MEMBER_PENDING = REMOVE_MEMBER + '_PENDING'
 
 export const groupMembersQuery = `
-query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String) {
+query FetchGroupMembers ($slug: String, $groupId: ID, $first: Int, $sortBy: String, $order: String, $offset: Int, $search: String) {
   group (slug: $slug) {
     id
     name
@@ -23,6 +23,16 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: St
         location
         tagline
         lastActiveAt
+        groupJoinQuestionAnswers (groupId: $groupId) {
+          items {
+            id
+            question {
+              id
+              text
+            }
+            answer
+          }
+        }
         groupRoles {
           items {
             id
@@ -60,12 +70,12 @@ query FetchGroupMembers ($slug: String, $first: Int, $sortBy: String, $order: St
   }
 }`
 
-export function fetchGroupMembers ({ slug, sortBy, order, offset, search, first = 20 }) {
+export function fetchGroupMembers ({ slug, groupId, sortBy, order, offset, search, first = 20 }) {
   return {
     type: FETCH_MEMBERS,
     graphql: {
       query: groupMembersQuery,
-      variables: { slug, first, offset, sortBy, order, search }
+      variables: { slug, groupId, first, offset, sortBy, order, search }
     },
     meta: {
       extractModel: 'Group',
@@ -96,8 +106,8 @@ export function removeMember (personId, groupId, slug) {
   }
 }
 // I don't know why there is this duplication (see fetchGroupMembers). Not taking the time to refactor.
-export function fetchMembers ({ slug, sortBy, offset, search }) {
-  return fetchGroupMembers({ slug, sortBy, offset, search })
+export function fetchMembers ({ slug, groupId, sortBy, offset, search }) {
+  return fetchGroupMembers({ slug, groupId, sortBy, offset, search })
 }
 
 export default function reducer (state = {}, action) {

@@ -9,7 +9,7 @@ import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { isIOS } from 'util/platform'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import LucideIcon from 'components/LucideIcon/LucideIcon'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 export default function TabStackHeader ({
   options,

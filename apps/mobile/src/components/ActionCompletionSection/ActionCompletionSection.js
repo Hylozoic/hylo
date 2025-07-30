@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from '../Toast'
@@ -91,7 +92,7 @@ export default function ActionCompletionSection({ post, trackId }) {
 
   if (!completionAction) return null
 
-  const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+  const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair({ start: post.completedAt }) : null
   let completionControls = null
   let completionButtonText = null
   let alreadyCompletedMessage = null

@@ -6,6 +6,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.11] - 2025-07-25
+
+### Added
+- Completed GDPR support! You can now fully opt out of non-essentia cookies (which are Mixpanel for analytics and Intercom for support), and this is now tracked and stored on your device and in the database. You can update your GDPR settings in the Account Settings page.
+
+### Changed
+- Only fetch all your group's chat rooms when opening up post editor for a a non chat post This will remove a ton of extra database queries from loading chat rooms.
+
+### Fixed
+- Issue where new group members couldn't navigate away from welcome page to the #general chat room
+
+## [6.1.10] - 2025-07-15
+
+### Added
+- Add ability to pin groups to the top of the global nav. Pinned groups can be reordered by dragging and dropping.
+
+## [6.1.9] - 2025-07-08
+
+### Changed
+- Removed some data loading on initial group load, to improve performance
+
+### Fixed
+- Content flagging/moderation in dark mode
+
+## [6.1.8] - 2025-07-05
+
+### Fixed
+- Inability to scroll post editor when creating a post from the chat box when the post gets too tall for the screen.
+- Joining groups from the group card in the group explorer
+
+## [6.1.7] - 2025-07-04
+
+### Changed
+- Can now interact with the nav menus while a post is open
+- Added a nicer UI when a group has no posts
+
+### Fixed
+- Viewing action completion responses for a long action that requires scrolling down
+- Stacking of event RSVP dropdown
+- Project post UI in dark mode
+
+## [6.1.6] - 2025-07-02
+
+### Changed
+- Group Welcome Page is now centered and has a max width
+
+### Fixed
+- Filtering by topics in map drawer
+- Map drawer styling in dark mode
+- #topic links in Group Welcome Page
+- Setting up prerequisite groups that must be joined before your group can be joined
+- Fix flash of [Object] in page titles
+- Remove action as a post type option for custom views
+- Remove extra weird star on proposal options
+- Topic selector text color in dark mode
+- OAuth login and consent flow
+- Ability to view posts at URL of /post/:postId when logged in
+- Bug when viewing track action of Select One type
+- Text color of featured groups in group explorer
+- Scrolling of long public posts when not logged in
+
+## [6.1.5] - 2025-07-01
+
+### Changed
+- Many improvements to UI/UX of the Group Explorer. Added featured groups to the top of it.
+- Many improvements to styling of the My Home pages, including My Groups, My Invites, Account and more
+- Many improvements to UI/UX when using Hylo in a mobile browser
+- Many improvements to styling of welcome modals
+- Topics load much faster when typing a # in the post editor
+
+### Fixed
+- Display of login/signup flow in dark mode
+- Display of dropdowns at the top of the stream
+
+## [6.1.4] - 2025-06-25
+
+### Fixed
+- Editing posts that have link previews
+- Once again can close map drawer on mobile browser
+- Many other issues when using Hylo in mobile browser
+- Missing translations
+
+## [6.1.3] - 2025-06-16
+
+### Added
+- Display join question answers in the member directory, when toggled on
+
+### Changed
+- Re-add timezone display to datetimes throughout the app
+
+### Fixed
+- Issue where people would be asked to answer join questions after joining even if they already had
+- Issue where the chat room wouldn't scroll down to show new posts created by the current user when created through the plus button
+- Width of multiple image attachments in safari
+- Correctly navigate to first message when going to /messages
+
 ## [6.1.2] - 2025-06-12
 
 ### Changed
@@ -115,7 +211,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.0.0] - 2025-03-14
 
 Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
-There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+There are many improvements across the board. You can see the summary of the big changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
+
+### Added
+- A new look for Hylo! The Hylo interface colors are now warmer and lots of details have been updated and refined. There is also now ~dark mode~ in addition to light mode. For now, these will correspond to your device's settings (you will see the light or dark version according to your device preferences).
+- New chat-centered focus that puts conversations at the heart of collaboration, making it easier to communicate and coordinate with your community in real-time. Every group now defaults to its home page being a #home chat room.
+- New global navigation menus always visible on the left to easily jump between groups, your personal My space, your Messages, and the public Commons. You will also find your notifications here, and buttons to create a post and to get support.
+- New customizable Group Menu that contains links to all the important views in your group. This menu can be fully edited by group stewards. The home view can be changed to any existing view. The views can be rearranged and hidden, and any existing view, member or post can be added to the menu. You can also group views into container widgets in the menu with a header. The menu also automatically updates as your group grows. Initially it starts with just the #home chat room. As posts are added new views are automatically added to the menu for the post types that are used.
+- New Requests & Offers view, Resources view, and Discussions view, for these post types.
+- Calendar view mode! The Events view will use this by default, and you can switch any other view to use the calendar interface.
+- New notification when a member joins your group which includes answers to any join questions that were set.
+- New welcome email for all new Hylo users
+- Easily invite new members or copy an invite link from the Add Members link in the group Context Menu.
+- New Welcome Page that be setup as the landing page for new members first joining your group. This is configured in the group settings.
+- Upcoming events are now displayed with an Upcoming tag
+- New toggle to show or hide "active" posts in the stream. For example this can hide completed asks and offers.
+- New Link button in the post editor to add a link to the post.
+- Ability to create full posts from the chat box in chat room
+- New URL field for groups to link to the group's website.
+- Support for publishing Murmurations profiles for public groups
+
+### Changed
+- New layout which removes the right side bar
+- We updated all notifications and email messages to improve the content and make them look much nicer
+- We have made significant backend updates to improve performance, speed, and reliability across the web and mobile apps.
+- The experience of adding topics to posts has changed. We no longer have a separate section dedicated to it. When you are deciding where to send your post to you will see all the chat room topics as options in the “To” field. This adds that topic to the post and makes it easy to send your post to multiple chat rooms, in multiple groups. You can still use any other topic you want in a post, by typing the # symbol followed by the keyword.
+- Hylo will no longer create a chat channel for every Topic. Chat rooms are now created manually by a group steward. Chat rooms are still connected to a topic and any posts that use that topic in that group will appear in the chat room if it exists.
+- When joining a new group, by default you will get a notification for each chat in the home chat room. For chats in other topics you only get notified if mentioned in them. To control your notifications, click the bell icon at the top of the chatroom to adjust settings.
+- Hylo still has a separate user setting for each group about whether to get a notification for every non-chat post in the group. This is on by default. When turned off, then the user only gets notifications for posts in chat rooms to which they have subscribed. If a member participates in a chat for the first time, we consider that “subscribing” to the chat/topic and we turn on notifications for them for every post in that channel. Afterwards, this setting can be manually changed per chat room to mute/unsubscribe from the channel, or re-subscribe to it.
+- Redesigned & Improved Email Digest:  The email digest will be streamlined to remove top links and highlight more useful information. The number of new posts in each chat room. New comments on posts in the group. New reminders, such as: Upcoming events in the next week, proposals closing this week, requests or offers that are closing this week, and highlighting currently open requests and offers. The digest will no longer show you chats and posts you created, and will also filter out chats you have already seen.
+- Access Group Settings by clicking the gear icon in the group header.
+- The hylo tour has been removed for now.
+- Pinning posts to the stream has been removed for now. You can pin posts to the group menu instead.
+- New group creation flow.
+- Moderation actions has been moved to its own view. THe decisions view is now called Proposals and only shows proposals.
+- Moved most of our icons to use the Lucide icons library.
+- Support longer filenames for attachments
+- Removed the Explore page
+- The Public space is now called The Commons.
+- Improved Datetime picker for posts
+- Setting a start time for an event automatically adds a default end time an hour later
+- Start using Tailwind CSS for styling
+- Start using Shadcn UI components throughout the app
+- Update to React 18
+- Pressing enter in a chat box creates a newline, press option/alt-enter to send the chat or post
+- Chat post email notifications are sent in a digest every 10 minutes instead of instantly for every post
+
+### Fixed
+- When clicking on a notification for a chat, scroll to that post in the chat room
+- Fix receiving real time posts after switching chat rooms
 
 ## [5.11.4] - 2024-01-14
 

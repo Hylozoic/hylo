@@ -100,15 +100,13 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-visible w-[320px]'
+        'bg-background h-full flex flex-col flex-wrap overflow-visible w-full max-w-[320px]'
       )}
       onClick={handleContainerClick}
     >
       <div className={classes.header}>
         <div className={cn('bg-black/20 p-2 relative border-2 transition-all border-transparent rounded flex items-center', { 'border-2 border-focus': isSearchFocused })}>
-          <div className='absolute left-1 top-1'>
-            <Search />
-          </div>
+          <Search width={20} height={20} />
           <input
             ref={searchInputRef}
             type='text'
@@ -117,7 +115,7 @@ function ThreadList () {
             onChange={onSearchChange}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
-            className='bg-transparent border-foreground pl-6 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
+            className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
         <Link className='bg-black/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground' to='/messages/new'>

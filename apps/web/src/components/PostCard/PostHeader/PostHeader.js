@@ -5,7 +5,7 @@ import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation, withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
 import Highlight from 'components/Highlight'
@@ -16,7 +16,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { cn } from 'util/index'
-import { personUrl, topicUrl } from 'util/navigation'
+import { personUrl, topicUrl } from '@hylo/navigation'
 
 class PostHeader extends PureComponent {
   static defaultProps = {
@@ -121,7 +121,7 @@ class PostHeader extends PureComponent {
     // If it was completed/fulfilled before it ended, then use that as the end datetime
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
-    const { from, to } = TextHelpers.formatDatePair(startTime, actualEndTime, true)
+    const { from, to } = DateTimeHelpers.formatDatePair({ start: startTime, end: actualEndTime, returnAsObj: true })
 
     const startString = fulfilledAt
       ? false
@@ -190,7 +190,7 @@ class PostHeader extends PureComponent {
                 id='post-header-flag-tt'
               />
               {dropdownItems.length > 0 &&
-                <Dropdown toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
+                <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
                 <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
                   <Icon name='Ex' className='align-middle' dataTestId='close' />

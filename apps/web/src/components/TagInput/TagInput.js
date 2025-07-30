@@ -173,6 +173,7 @@ class TagInput extends Component {
         ? []
         : [{ name: this.props.t('no more than {{maxTags}} allowed', { maxTags }), isError: true }]
       : suggestions
+
     return (
       <div className={cn('TagInput-container w-full relative h-full', { [theme.readOnly]: readOnly }, className)} onClick={this.handleContainerClick}>
         <ul className={theme.selected}>
@@ -205,9 +206,9 @@ class TagInput extends Component {
                   renderListItem={renderSuggestion}
                   onChange={maxReached ? this.resetInput : this.select}
                   theme={{
-                    items: 'p-0 m-0 text-foreground',
-                    item: cn('TagInput-KeyControlledList-item p-2 hover:bg-selected/100 text-foreground m-0 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
-                    itemActive: 'text-foreground',
+                    items: 'TagInput-KeyControlledList-items p-0 m-0 text-foreground',
+                    item: cn('TagInput-KeyControlledList-item p-2 hover:bg-selected/100 text-foreground m-0 mt-1 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
+                    itemActive: 'TagInput-KeyControlledList-item text-foreground',
                     itemLink: 'TagInput-KeyControlledList-itemLink text-foreground hover:text-foreground'
                   }}
                   ref={this.list}

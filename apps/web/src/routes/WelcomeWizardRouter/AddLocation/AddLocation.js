@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import { AnalyticsEvents } from '@hylo/shared'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
@@ -6,8 +5,6 @@ import LocationInput from 'components/LocationInput'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
 import WelcomeWizardModalFooter from '../WelcomeWizardModalFooter'
 import Icon from 'components/Icon'
-
-import styles from '../WelcomeWizard.module.scss'
 
 class AddLocation extends Component {
   constructor () {
@@ -59,26 +56,19 @@ class AddLocation extends Component {
 
   render () {
     const { t } = this.props
-    const inputClass = cn({
-      [styles.input]: true,
-      [styles.padding]: true,
-      [styles.largeInputText]: true,
-      [styles.grayBottomBorder]: true
-    })
 
     return (
-      <div className={styles.flexWrapper}>
-        <div className={styles.panel}>
-          <span className={styles.stepCount}>{t('STEP 2/3')}</span>
+      <div className='bg-background w-[360px] mx-auto rounded-lg'>
+        <div className='p-8 relative'>
+          <span className='absolute top-4 right-4 text-xs text-muted-foreground'>{t('STEP 2/3')}</span>
           <br />
-          <div className={styles.center}>
-            <Icon name='Globe' className={styles.globeIcon} />
+          <div className='flex justify-center items-center'>
+            <Icon name='Globe' className='text-[100px] mb-5 text-muted-foreground' />
           </div>
-          <div className={cn(styles.center, styles.locationInput)}>
-            {/* <Icon name='Location' className={styles.locationIcon} /> */}
+          <div className='flex justify-center items-center relative'>
             <LocationInput
               saveLocationToDB
-              inputClass={inputClass}
+              inputClass='w-full text-lg font-light text-muted-foreground bg-background border-b border-foreground/20 px-4 py-2 focus:outline-none'
               location={this.state.location}
               locationObject={this.props.currentUser ? this.props.currentUser.locationObject : null}
               onChange={this.handleLocationChange}
@@ -91,8 +81,10 @@ class AddLocation extends Component {
               autofocus
             />
           </div>
-          <div className={styles.instructions}>
-            <p>{t('Add your location to see more relevant content, and find people and projects around you')}.</p>
+          <div className='text-center mt-6'>
+            <p className='text-muted-foreground text-sm'>
+              {t('Add your location to see more relevant content, and find people and projects around you')}.
+            </p>
           </div>
           <div>
             <WelcomeWizardModalFooter submit={this.submit} previous={this.previous} continueText={t('Next: Welcome to Hylo!')} />
@@ -102,4 +94,5 @@ class AddLocation extends Component {
     )
   }
 }
+
 export default withTranslation()(AddLocation)

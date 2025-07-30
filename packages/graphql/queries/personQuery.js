@@ -41,6 +41,7 @@ export default gql`
           title
           location
           startTime
+          timezone
           eventInvitations {
             items {
               response

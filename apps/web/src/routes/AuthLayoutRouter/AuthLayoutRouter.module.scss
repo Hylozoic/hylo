@@ -366,14 +366,13 @@ $drawer-z-index: 51;
 }
 
 .detail {
-  background-color: white;
   position: absolute;
-  z-index: 30;
+  z-index: 60;
   top: 0px;
   right: 0px;
   height: 100vh;
   width: $detail-column-width;
-  box-shadow: 0px 4px 56px 0px $shadow-color;
+  box-shadow: 0px 4px 56px 0px var(--black);
   transition-delay: 0.1s;
   transition-duration: 0.2s;
   padding-bottom: 50px;

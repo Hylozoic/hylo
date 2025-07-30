@@ -1,5 +1,5 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { capeCod10, rhino60, caribbeanGreen, regent, mangoYellow, black, twBackground } from 'style/colors'
+import { capeCod10, rhino60, caribbeanGreen, regent, mangoYellow, black, twBackground } from '@hylo/presenters/colors'
 
 export default {
   childPost: {

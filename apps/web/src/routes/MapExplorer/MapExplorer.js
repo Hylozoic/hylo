@@ -39,7 +39,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -150,6 +150,7 @@ function MapExplorer (props) {
     slug: groupSlug,
     groupSlugs,
     ...filters,
+    topics: filters.topics.map(t => t.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
@@ -287,6 +288,42 @@ function MapExplorer (props) {
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
 
+  const [drawerWidth, setDrawerWidth] = useState(300) // minimum width of drawer
+  const resizeObserverRef = useRef(null)
+
+  function observeDrawerWidth () {
+    const drawer = document.getElementById('map-drawer')
+    if (!drawer) return
+
+    // Set initial width
+    setDrawerWidth(drawer.offsetWidth)
+
+    // Clean up any previous observer
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect()
+    }
+
+    // Listen for width changes
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setDrawerWidth(entry.contentRect.width)
+      }
+    })
+    resizeObserver.observe(drawer)
+    resizeObserverRef.current = resizeObserver
+  }
+
+  useEffect(() => {
+    if (!hideDrawer) {
+      observeDrawerWidth()
+    }
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect()
+      }
+    }
+  }, [hideDrawer])
+
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
     setCreatePopupVisible(true)
@@ -351,6 +388,15 @@ function MapExplorer (props) {
     setHideDrawer(!hideDrawer)
     setTimeout(() => {
       mapRef.current.resize()
+      if (hideDrawer) {
+        // Drawer is being opened
+        observeDrawerWidth()
+      } else {
+        // Drawer is being closed
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect()
+        }
+      }
     }, 100)
   }, [dispatch, hideDrawer, location])
 
@@ -445,10 +491,8 @@ function MapExplorer (props) {
     setCreatePopupVisible(false)
     creatingPostRef.current = true
     setTimeout(() => {
-      console.log('creatingPost', creatingPostRef.current)
       if (creatingPostRef.current) {
         showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
-        console.log('showCreatePopup', e.point, e.lngLat)
       }
     }, isAddingItemToMap ? 0 : oneSecondInMs)
   }, [isAddingItemToMap, showCreatePopup])
@@ -547,6 +591,9 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
+    } else if (!hideDrawer) {
+      // Start observing drawer width on load unless its already hidden
+      observeDrawerWidth()
     }
 
     if (currentUser) {
@@ -756,7 +803,8 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs ', { 'right-5': hideDrawer, 'right-[520px]': !hideDrawer })}
+        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
+        style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
@@ -781,13 +829,13 @@ function MapExplorer (props) {
           posts={postsForDrawer}
           queryParams={queryParams}
           routeParams={routeParams}
-          topics={filters.topics}
+          topics={topicsFromPosts}
         />
       )}
       <div className='absolute top-5 left-[74px]'>
         <LocationInput saveLocationToDB={false} onChange={handleLocationInputSelection} className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none mb-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground focus:border-focus hover:scale-105' />
       </div>
-      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
+      <button className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-2 sm:bottom-10 left-2 sm:left-5 gap-1 text-xs', classes.toggleFeatureFiltersButton, { [classes.open]: showFeatureFilters, [classes.withoutNav]: withoutNav })} onClick={toggleFeatureFilters}>
         {t('Features:')} <strong>{possibleFeatureTypes.filter(t => filters.featureTypes[t]).length}/{possibleFeatureTypes.length}</strong>
       </button>
 
@@ -846,6 +894,7 @@ function MapExplorer (props) {
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
+            id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
             menuAbove
             toggleChildren={(

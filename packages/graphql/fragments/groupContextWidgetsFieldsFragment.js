@@ -33,6 +33,7 @@ export default gql`
           createdAt
           startTime
           endTime
+          timezone
           isPublic
         }
         customView {

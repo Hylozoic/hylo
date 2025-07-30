@@ -1,12 +1,24 @@
-import { cn } from 'util/index'
-import React from 'react'
 import { Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
-import { groupUrl, groupDetailUrl } from 'util/navigation'
-import ClickCatcher from 'components/ClickCatcher'
+import React from 'react'
+import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
-import GroupHeader from './GroupHeader'
-import HyloHTML from 'components/HyloHTML'
+import {
+  DEFAULT_BANNER,
+  DEFAULT_AVATAR,
+  accessibilityDescription,
+  accessibilityIcon,
+  accessibilityString,
+  visibilityDescription,
+  visibilityIcon,
+  visibilityString
+} from 'store/models/Group'
+import { bgImageStyle, cn } from 'util/index'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
+
+import { UserRoundCheck } from 'lucide-react'
+
+import Icon from 'components/Icon'
+import RoundImage from 'components/RoundImage'
 
 import classes from './GroupCard.module.scss'
 
@@ -20,62 +32,50 @@ import classes from './GroupCard.module.scss'
 
   TODO: Then is contents changed based on group type... perhaps passed in as a Content component
 */
-
-export default function GroupCard ({
-  memberships,
-  group = {},
-  highlightProps = {},
-  className,
-  expanded = false,
-  constrained = false,
-  onClick = () => {}
-}) {
-  // XXX: turning this off for now because topics are random and can be weird. Turn back on when groups have their own #tags
-  // const topics = group.groupTopics && group.groupTopics.toModelArray()
-
+export default function GroupCard ({ group }) {
+  const { t } = useTranslation()
   const routeParams = useRouteParams()
 
-  const linkTo = memberships.includes(group.id)
-    ? groupUrl(group.slug)
-    : groupDetailUrl(group.slug, routeParams)
+  if (!group) return null
 
   return (
-    <Link to={linkTo} className={classes.groupLink}>
-      <div
-        onClick={onClick}
-        data-testid='group-card'
-        className={cn(classes.card, { [classes.expanded]: expanded, [classes.constrained]: constrained }, className)}
-      >
-        <GroupHeader
-          {...group}
-          group={group}
-          routeParams={routeParams}
-          highlightProps={highlightProps}
-          constrained={constrained}
-        />
-        {group.description && (
-          <div className={classes.groupDescription}>
-            <ClickCatcher>
-              <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
-            </ClickCatcher>
+    <Link to={group.memberStatus === 'member' ? groupUrl(group.slug) : groupDetailUrl(group.slug, routeParams)} className='group'>
+      <div className='flex relative rounded-lg p-4 bg-black shadow-xl hover:scale-102 transition-all duration-300'>
+        <div className='flex gap-2 relative z-10 w-full justify-between'>
+          <div className='flex flex-row gap-2'>
+            <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} size='50px' square className='shadow-xl' />
+            <div className={cn('flex flex-row gap-2', classes.groupDetails)}>
+              <div className='flex flex-col gap-0'>
+                <span className='w-full text-white font-bold'>{group.name}</span>
+                {group.memberCount ? <span className='text-xs text-white/80'>{group.memberCount} {t('Members')}</span> : ''}
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* XXX: turning this off for now because topics are random and can be weird. Turn back on when groups have their own #tags
-         {topics.length > 0
-           ? <div className={classes.groupTags}>
-             {topics.map((topic, index) => (
-               <Pill
-                 className={classes.tagPill}
-                 darkText
-                 label={capitalize(topic.topic.name.toLowerCase())}
-                 id={topic.id}
-                 key={index}
-               />
-             ))}
-           </div>
-           : ''
-         } */}
+          <div className={cn(classes.groupStats)}>
+            <div className={cn('flex flex-row gap-2 items-center h-full', classes.membershipStatus)}>
+              <div className={classes.groupPrivacy}>
+                <Icon name={visibilityIcon(group.visibility)} className={classes.privacyIcon} />
+                <div className={classes.privacyTooltip}>
+                  <div><strong>{t(visibilityString(group.visibility))}</strong> - {t(visibilityDescription(group.visibility))}</div>
+                </div>
+              </div>
+              <div className={classes.groupPrivacy}>
+                <Icon name={accessibilityIcon(group.accessibility)} className={classes.privacyIcon} />
+                <div className={classes.privacyTooltip}>
+                  <div><strong>{t(accessibilityString(group.accessibility))}</strong> - {t(accessibilityDescription(group.accessibility))}</div>
+                </div>
+              </div>
+              {
+                group.memberStatus === 'member'
+                  ? <div className='p-2 bg-black/30 rounded-lg text-white text-sm flex items-center gap-1'><UserRoundCheck className='w-4 h-4' /> <b>{t('Member')}</b></div>
+                  : group.memberStatus === 'requested'
+                    ? <div className={classes.statusTag}><b>{t('Membership Requested')}</b></div>
+                    : <div className='focus:text-foreground relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center text-sm'><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
+              }
+            </div>
+          </div>
+        </div>
+        <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className='w-full h-full bg-cover bg-center rounded-lg absolute top-0 left-0 opacity-60 group-hover:opacity-80 transition-all' />
       </div>
     </Link>
   )

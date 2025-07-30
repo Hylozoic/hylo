@@ -12,7 +12,6 @@ export default function GroupWelcomePage() {
     <ScrollView 
       className='flex-1 bg-background'
       contentContainerStyle={{
-        paddingTop: insets.top,
         paddingBottom: insets.bottom,
         paddingLeft: insets.left,
         paddingRight: insets.right

@@ -70,9 +70,9 @@ PODS:
   - MixpanelReactNative (3.0.8):
     - Mixpanel-swift (= 4.3.0)
     - React-Core
-  - OneSignalXCFramework (5.2.9):
-    - OneSignalXCFramework/OneSignalComplete (= 5.2.9)
-  - OneSignalXCFramework/OneSignal (5.2.9):
+  - OneSignalXCFramework (5.2.13):
+    - OneSignalXCFramework/OneSignalComplete (= 5.2.13)
+  - OneSignalXCFramework/OneSignal (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalLiveActivities
@@ -80,38 +80,38 @@ PODS:
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.2.9):
+  - OneSignalXCFramework/OneSignalComplete (5.2.13):
     - OneSignalXCFramework/OneSignal
     - OneSignalXCFramework/OneSignalInAppMessages
     - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.2.9)
-  - OneSignalXCFramework/OneSignalExtension (5.2.9):
+  - OneSignalXCFramework/OneSignalCore (5.2.13)
+  - OneSignalXCFramework/OneSignalExtension (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.2.9):
+  - OneSignalXCFramework/OneSignalInAppMessages (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.2.9):
+  - OneSignalXCFramework/OneSignalLiveActivities (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.2.9):
+  - OneSignalXCFramework/OneSignalLocation (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.2.9):
+  - OneSignalXCFramework/OneSignalNotifications (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.2.9):
+  - OneSignalXCFramework/OneSignalOSCore (5.2.13):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.2.9):
+  - OneSignalXCFramework/OneSignalOutcomes (5.2.13):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalUser (5.2.9):
+  - OneSignalXCFramework/OneSignalUser (5.2.13):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
@@ -1403,8 +1403,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-onesignal (5.2.8):
-    - OneSignalXCFramework (= 5.2.9)
+  - react-native-onesignal (5.2.12):
+    - OneSignalXCFramework (= 5.2.13)
     - React (< 1.0.0, >= 0.13.0)
   - react-native-pager-view (6.7.0):
     - DoubleConversion
@@ -2530,7 +2530,7 @@ SPEC CHECKSUMS:
   MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
-  OneSignalXCFramework: f5b2a3c4f130e4c910ead7bb25bed7455e976fbf
+  OneSignalXCFramework: 6a06ab8a3e44370cb70c6ef31c472b271cdaa7aa
   RCT-Folly: 84578c8756030547307e4572ab1947de1685c599
   RCTDeprecation: 063fc281b30b7dc944c98fe53a7e266dab1a8706
   RCTRequired: 8eda2a5a745f6081157a4f34baac40b65fe02b31
@@ -2566,7 +2566,7 @@ SPEC CHECKSUMS:
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: 732212151b686ff27ff57a7ea90f5d07d1a0c813
-  react-native-onesignal: 1795c532f8bd86c3307a032621c17d85998402d0
+  react-native-onesignal: a8e7e5c9fc9a973befdbd38aa23f1e54fd364a8b
   react-native-pager-view: 4ad4883a8288c5207bd432dd3c98bf648b7bc7d7
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
   react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863

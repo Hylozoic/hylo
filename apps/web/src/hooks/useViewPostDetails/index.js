@@ -3,7 +3,7 @@ import queryString from 'query-string'
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
-import { postUrl } from 'util/navigation'
+import { postUrl } from '@hylo/navigation'
 
 export default function useViewPostDetails () {
   const routeParams = useRouteParams()

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { isEmpty } from 'lodash/fp'
 import { decode } from 'html-entities'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { humanResponse, RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import HyloHTML from 'components/HyloHTML'
 import EmojiRow from 'components/EmojiRow'
@@ -10,7 +10,7 @@ import LinkPreview from 'components/PostCard/LinkPreview'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import PostBodyProposal from '../PostBodyProposal'
-import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from '@hylo/presenters/colors'
 import { useTranslation } from 'react-i18next'
 
 const MAX_DETAILS_LENGTH = 144
@@ -26,6 +26,7 @@ export default function PostBody ({
   post,
   linkPreview,
   // linkPreviewFeatured,
+  timezone,
   myEventResponse,
   respondToEvent,
   shouldTruncate
@@ -38,7 +39,7 @@ export default function PostBody ({
   return (
     <View style={styles.container}>
       {startTime && endTime && (
-        <Text style={styles.resourceEndsAt}>{TextHelpers.formatDatePair(startTime, endTime)}</Text>
+        <Text style={styles.resourceEndsAt}>{DateTimeHelpers.formatDatePair({ start: startTime, end: endTime, timezone })}</Text>
       )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <PostTitle title={isFlagged ? t('Post flagged') : title} />

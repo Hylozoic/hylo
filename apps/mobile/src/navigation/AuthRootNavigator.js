@@ -3,14 +3,11 @@ import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
-import { gql, useMutation, useQuery, useSubscription } from 'urql'
+import { useMutation, useQuery } from 'urql'
 import mixpanel from 'services/mixpanel'
 import { useTranslation } from 'react-i18next'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
-import messageThreadFieldsFragment from '@hylo/graphql/fragments/messageThreadFieldsFragment'
-import notificationFieldsFragment from '@hylo/graphql/fragments/notificationFieldsFragment'
-import registerDeviceMutation from '@hylo/graphql/mutations/registerDeviceMutation'
 import commonRolesQuery from '@hylo/graphql/queries/commonRolesQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -33,37 +30,8 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import UploadAction from 'screens/UploadAction'
-import { twBackground } from 'style/colors'
-
-const updatesSubscription = gql`
-  subscription UpdatesSubscription($firstMessages: Int = 1) {
-    updates {
-      ... on Notification {
-        ...NotificationFieldsFragment
-      }
-      ... on MessageThread {
-        ...MessageThreadFieldsFragment
-      }
-      ... on Message {
-        id
-        createdAt
-        text
-        creator {
-          id
-          name
-          avatarUrl
-        }
-        messageThread {
-          id
-          unreadCount
-        }
-      }
-      
-    }
-  }
-  ${notificationFieldsFragment}
-  ${messageThreadFieldsFragment}
-`
+import { twBackground } from '@hylo/presenters/colors'
+import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
@@ -75,11 +43,13 @@ export default function AuthRootNavigator () {
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
-  const [initialized, setInitialize] = useState(true)
+  const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
-  const [, registerDevice] = useMutation(registerDeviceMutation)
-  
-  useSubscription({ query: updatesSubscription })
+
+  // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
+  // This stays within Android's 4 concurrent SSE connection limit
+  useUnifiedSubscription()
+
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
@@ -93,20 +63,21 @@ export default function AuthRootNavigator () {
     resetNotificationsCount()
   }, [])
 
-  const oneSignalChangeListener = ({ externalId, onesignalId }) => {
-    if (externalId === currentUser?.id) {
-      registerDevice({
-        playerId: onesignalId,
-        platform: Platform.OS + (isDev ? '_dev' : ''),
-        version: hyloAppVersion
-      })
-    } else {
-      console.warn(
-        'Not registering to OneSignal for push notifications:\n' +
-        `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
-      )
-    }
-  }
+  // DEPRECATED: This is no longer used, all we need to do is log the user in and a subscription will be created. Remove after 2025-08-26
+  // const oneSignalChangeListener = ({ externalId, onesignalId }) => {
+  //   if (externalId === currentUser?.id) {
+  //     registerDevice({
+  //       playerId: onesignalId,
+  //       platform: Platform.OS + (isDev ? '_dev' : ''),
+  //       version: hyloAppVersion
+  //     })
+  //   } else {
+  //     console.warn(
+  //       'Not registering to OneSignal for push notifications:\n' +
+  //       `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
+  //     )
+  //   }
+  // }
 
   useEffect(() => {
     (async function () {
@@ -118,7 +89,7 @@ export default function AuthRootNavigator () {
 
         // OneSignal setup
         if (isDev) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
-        OneSignal.User.addEventListener('change', oneSignalChangeListener)
+        // TOOD push notif: Add soft prompt setup for push notifs
         const permissionGranted = await OneSignal.Notifications.canRequestPermission()
         if (permissionGranted) OneSignal.Notifications.requestPermission(true)
         OneSignal.login(currentUser?.id)
@@ -143,10 +114,6 @@ export default function AuthRootNavigator () {
         setInitialize(true)
       }
     })()
-
-    return () => {
-      OneSignal.User.removeEventListener('change', oneSignalChangeListener)
-    }
   }, [initialized, currentUser, currentUserFetching, error])
 
   // TODO: What do we want to happen if there is an error loading the current user?

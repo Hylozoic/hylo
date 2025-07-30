@@ -23,7 +23,7 @@ import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from 'util/navigation'
+import { allGroupsUrl, groupUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -46,7 +46,7 @@ export default function GroupSettings () {
   const rawGroup = useSelector(state => getGroupForSlug(state, slug))
   const group = useMemo(() => rawGroup ? presentGroup(rawGroup) : null, [rawGroup])
   const currentUser = useSelector(getMe)
-  const parentGroups = useSelector(state => getParentGroups(state, group))
+  const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
   const commonRoles = useSelector(getCommonRoles)
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
 

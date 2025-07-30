@@ -35,7 +35,6 @@ Object {
     }
     avatarUrl
     bannerUrl
-    postCount
 
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,

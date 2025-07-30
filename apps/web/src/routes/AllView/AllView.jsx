@@ -42,7 +42,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
-import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
+import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from '@hylo/navigation'
 
 const CHAT = types.CHAT
 const POST = types.POST
@@ -499,11 +499,11 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
       try {
         const response = await dispatch(findTopics({
           autocomplete: debouncedSearch,
-          groupId: group.id,
+          groupIds: [group.id],
           maxItems: 10
         }))
-        const result = response?.payload?.data?.groupTopics?.items?.map(item => item.topic)
-        if (debouncedSearch.length > 0) result.push({ name: debouncedSearch, id: 'create' })
+        const result = response?.payload?.data?.topics?.items
+        if (debouncedSearch.length > 0 && !result.find(t => t.name === debouncedSearch)) result.push({ name: debouncedSearch, id: 'create' })
         setItems(result || [])
       } catch (error) {
         console.error('Error fetching topics:', error)

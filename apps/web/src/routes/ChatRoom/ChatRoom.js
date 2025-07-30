@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -38,6 +38,7 @@ import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -45,9 +46,9 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from 'util/navigation'
+import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
 
@@ -78,7 +79,7 @@ EditorView.prototype.updateState = function updateState (state) {
 }
 
 // Define icon components as functions that accept props
-const NotificationsIcon = ({ type, ...props }) => {
+const NotificationsIcon = React.forwardRef(({ type, ...props }, ref) => {
   const { t } = useTranslation()
 
   switch (type) {
@@ -91,12 +92,12 @@ const NotificationsIcon = ({ type, ...props }) => {
     default:
       return <BellMinus {...props} data-tooltip-id='notifications-tt' data-tooltip-html={t('You are previewing this chat room. <br /> Add a chat or change your notification settings to subscribe to this room.')} />
   }
-}
+})
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTime.now(), 'day')
+  return date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()), 'day')
     ? 'Today'
-    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+    : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -594,7 +595,7 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
           modal={false}
@@ -612,13 +613,14 @@ export default function ChatRoom (props) {
 
 /** * Virtuoso Components ***/
 const EmptyPlaceholder = ({ context }) => {
+  const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
-          : <NoPosts className={styles.noPosts} />}
+          : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
     </div>
   )
 }
@@ -633,7 +635,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -687,8 +689,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt, { locale: getLocaleFromLocalStorage() }) : DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage())
+  const currentDay = DateTimeHelpers.toDateTime(post.createdAt, { locale: getLocaleFromLocalStorage() })
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if
@@ -732,7 +734,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
       {post.type === 'chat'
         ? (
           <div
-            className={cn('mx-auto max-w-[750px]', animationClass)}
+            className={cn('mx-auto max-w-[750px] transition-all mb-0', animationClass, { 'mb-5': index === context.numPosts - 1 })}
             style={animationStyle}
           >
             <ChatPost

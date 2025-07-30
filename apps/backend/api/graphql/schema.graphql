@@ -115,8 +115,10 @@ type Query {
     autocomplete: String,
     # Int of GroupTopics to return
     first: Int,
-    # filter by group id
-    groupId: ID
+    # filter by group id XXX: DEPRECATED use groupIds instead
+    groupId: ID,
+    # filter by group ids
+    groupIds: [ID],
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
     isDefault: Boolean,
     # For pagination, start loading GroupTopics after this offset
@@ -298,6 +300,8 @@ type Query {
     autocomplete: String,
     # Number of topics to return
     first: Int,
+    # Only return topics used in these groups by group ID
+    groupIds: [ID],
     # Only return topics used in this Group by URL slug
     groupSlug: String,
     # If true only return topics that are set to be a default topic in a group that the current logged in user is a member of
@@ -315,6 +319,27 @@ type Query {
 
 union Update = Message | MessageThread | Notification
 
+# Group membership update payload for subscriptions
+type GroupMembershipUpdate {
+  group: Group
+  member: Person
+  # Action type: 'joined', 'left', 'role_changed', 'moderator_added', 'moderator_removed'
+  action: String
+  role: String
+}
+
+# Group relationship update payload for subscriptions
+type GroupRelationshipUpdate {
+  parentGroup: Group
+  childGroup: Group
+  # Action type: 'relationship_created', 'relationship_removed', 'invite_sent', 'invite_accepted', 'invite_rejected', 'invite_cancelled'
+  action: String
+  relationship: GroupRelationship
+}
+
+# Union type for all possible subscription updates
+union SubscriptionUpdate = Notification | Group | GroupMembershipUpdate | GroupRelationshipUpdate | Post | Comment | Person
+
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
   comments(postId: ID, parentCommentId: ID): Comment,
@@ -325,6 +350,16 @@ type Subscription {
   # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
   # example usage of this in Mobile.
   updates: Update
+  # Group-specific subscriptions for membership and relationship updates
+  groupUpdates: Group
+  groupMembershipUpdates: GroupMembershipUpdate
+  groupRelationshipUpdates: GroupRelationshipUpdate
+  # Post updates subscription for real-time post changes
+  postUpdates: Post
+  
+  # UNIFIED: Single subscription that combines all user-specific updates
+  # Reduces Android SSE connection limit issues by using only one connection
+  allUpdates: SubscriptionUpdate
 }
 
 # The meta data associated with an Activity
@@ -534,6 +569,23 @@ type Comment {
   commentReactions: [Reaction]
   # The reactions of the logged-in user to this
   myReactions: [Reaction]
+}
+
+# Cookie consent preferences for a user
+type CookieConsent {
+  id: ID
+  # The unique consent identifier
+  consentId: ID
+  # The user this consent belongs to (null for anonymous users)
+  userId: ID
+  # The consent settings
+  settings: JSON
+  # Version of the consent structure
+  version: String
+  # When this consent was last updated
+  updatedAt: Date
+  # The user this consent belongs to
+  user: Person
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1438,9 +1490,8 @@ type Me {
   emailValidated: Boolean
   # The URL to the logged in user Facebook profile
   facebookUrl: String
-  # Whether the logged in user is using the Hylo app on any mobile devices
-  hasDevice: Boolean
-  # False for new users who have not completed the registration process
+ # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
+  hasDevice: Boolean  # False for new users who have not completed the registration process
   hasRegistered: Boolean
   # NOT CURRENTLY USED
   hasStripeAccount: Boolean
@@ -1582,6 +1633,9 @@ type Me {
     # 'enrolled_at', 'name'
     sortBy: String
   ): TrackQuerySet
+
+  # Cookie consent preferences for the current user
+  cookieConsentPreferences: CookieConsent
 }
 
 # A user's group membership
@@ -1604,6 +1658,8 @@ type Membership {
   membershipCommonRoles: MembershipCommonRoleQuerySet
   # The group defined roles this members has in this group - just the join table data
   membershipGroupRoles: MembershipGroupRoleQuerySet
+  # The order of this group membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
   newPostCount: Int
   person: Person
@@ -1870,6 +1926,11 @@ type Person {
   ): MembershipCommonRoleQuerySet
   # All the member roles for a user
   groupRoles: GroupRoleQuerySet
+  # Answers to join questions for the current group context (when queried through a group's members)
+  groupJoinQuestionAnswers(
+    groupId: ID,
+    slug: String
+  ): GroupJoinQuestionAnswerQuerySet
   # The set of Memberships to groups this person moderates (that are visible to logged in user
   moderatedGroupMemberships(first: Int, cursor: ID, order: String): [Membership]
   # The set of Posts this person has created (that are visible to logged in user)
@@ -1999,10 +2060,10 @@ type Post {
   createdAt: Date
   # The body of the post
   details: String
+  # When the text was last edited
+  editedAt: Date
   # Link to a donation page, only used for projects only right now
   donationsLink: String
-  # When this post was last significantly edited (such as title and details)
-  editedAt: Date
   # When this post "ends". Used for events, resources, projects, requests and offers right now
   endTime: Date
   # List of group ids for groups that have flagged this post
@@ -2699,7 +2760,7 @@ type Mutation {
   recordClickthrough(postId: ID): GenericResult
   # Regenerate the invite URL used to invite people to a Group. Only a group Host can call this.
   regenerateAccessCode(groupId: ID): Group
-  # Register a new mobile device to the current logged in user account
+  # DEPRECATED: register a new mobile device to the current logged in user account
   registerDevice(playerId: String, platform: String, version: String): GenericResult
   # Reinvite all pending invitations to the current group. Only a group Host can call this.
   reinviteAll(groupId: ID): GenericResult
@@ -3332,6 +3393,8 @@ input MembershipInput {
   acceptAgreements: Boolean
   # update the lastViewedAt
   lastViewedAt: Date
+  # The order of this membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group

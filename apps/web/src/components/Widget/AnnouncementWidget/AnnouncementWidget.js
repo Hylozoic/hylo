@@ -1,9 +1,10 @@
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
-import { postUrl } from 'util/navigation'
+import { postUrl } from '@hylo/navigation'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
 import classes from './AnnouncementWidget.module.scss'
@@ -45,7 +46,7 @@ export default ({ items = [], group, routeParams }) => {
                 <div>
                   <div className={classes.meta}>
                     <span className={classes.author}>{a.author}</span>
-                    <span className={classes.created}>{DateTime.fromJSDate(a.createdAt).toRelative()}</span>
+                    <span className={classes.created}>{DateTimeHelpers.toDateTime(a.createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()}</span>
                   </div>
                   <div className={classes.title}>{a.title}</div>
                 </div>

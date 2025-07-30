@@ -16,7 +16,6 @@ function testProviders () {
 
 describe('NotificationSettingsTab', () => {
   const currentUser = {
-    hasDevice: true,
     settings: {
       dmNotifications: 'both',
       commentNotifications: 'email'
@@ -36,34 +35,34 @@ describe('NotificationSettingsTab', () => {
     updateUserSettings: jest.fn(),
     currentUser,
     memberships: [
-      { 
-        id: 1, 
-        settings: { 
+      {
+        id: 1,
+        settings: {
           sendEmail: true,
           sendPushNotifications: true,
           postNotifications: 'all',
           digestFrequency: 'daily'
-        }, 
-        group: { 
+        },
+        group: {
           id: '1',
-          name: 'Group 1', 
+          name: 'Group 1',
           avatarUrl: 'group1.png',
           chatRooms: { toModelArray: () => [] }
-        } 
-      }, 
-      { 
-        id: 2, 
-        settings: { 
+        }
+      },
+      {
+        id: 2,
+        settings: {
           sendEmail: true,
           sendPushNotifications: false,
           postNotifications: 'important',
           digestFrequency: 'weekly'
-        }, 
-        group: { 
+        },
+        group: {
           id: '2',
-          name: 'Group 2', 
+          name: 'Group 2',
           avatarUrl: 'group2.png',
-          chatRooms: { 
+          chatRooms: {
             toModelArray: () => [{
               id: '1',
               groupTopic: {
@@ -75,7 +74,7 @@ describe('NotificationSettingsTab', () => {
               }
             }]
           }
-        } 
+        }
       }
     ]
   }
@@ -98,7 +97,6 @@ describe('NotificationSettingsTab', () => {
         {...defaultProps}
         currentUser={{
           ...currentUser,
-          hasDevice: false
         }}
       />,
       { wrapper: testProviders() }
@@ -159,7 +157,7 @@ describe('NotificationSettingsTab', () => {
       <NotificationSettingsTab {...defaultProps} />,
       { wrapper: testProviders() }
     )
-    
+
     // First find the sections by their text
     const messagesSection = screen.getByText('Messages')
     const commentsSection = screen.getByText('Comments on followed posts')
@@ -186,10 +184,10 @@ describe('NotificationSettingsTab', () => {
       <NotificationSettingsTab {...defaultProps} />,
       { wrapper: testProviders() }
     )
-    
+
     const iosLink = screen.getByText('iOS').closest('a')
     const androidLink = screen.getByText('Android').closest('a')
-    
+
     expect(iosLink).toHaveAttribute('href', 'https://itunes.apple.com/app/appName/id1002185140')
     expect(androidLink).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=com.hylo.hyloandroid')
     expect(iosLink).toHaveAttribute('target', '_blank')
@@ -201,15 +199,15 @@ describe('NotificationSettingsTab', () => {
       <NotificationSettingsTab {...defaultProps} />,
       { wrapper: testProviders() }
     )
-    
+
     // Initially, group settings should not be visible
     expect(queryByLabelText('Group 1 email digest frequency')).not.toBeInTheDocument()
     expect(queryByLabelText('Group 1 post notifications frequency')).not.toBeInTheDocument()
-    
+
     // Click on Group 1
     const group1Button = getByRole('button', { name: 'toggle Group 1 settings' })
     fireEvent.click(group1Button)
-    
+
     // Now group settings should be visible
     expect(getByRole('combobox', { name: 'Group 1 email digest frequency' })).toBeInTheDocument()
     expect(getByRole('combobox', { name: 'Group 1 post notifications frequency' })).toBeInTheDocument()

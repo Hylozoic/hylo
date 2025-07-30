@@ -131,12 +131,6 @@ module.exports = {
     }, attrs))
   },
 
-  device: attrs => {
-    return new Device(merge({
-      token: faker.datatype.uuid()
-    }, attrs))
-  },
-
   activity: attrs => {
     return new Activity(attrs)
   },

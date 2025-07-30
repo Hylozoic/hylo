@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`formatDatePair can accept a custom timezone 1`] = `"Tue Jan 1, 2019 • 6:41 PM - 9:41 PM UTC"`;
+
+exports[`formatDatePair displays differences of dates 1`] = `"Tue Jan 1, 2019 • 6:41 PM - 9:41 PM UTC"`;
+
+exports[`formatDatePair displays differences of dates 2`] = `"Tue Jan 1, 2019 • 6:41 PM - Wed Jan 2, 2019 • 9:41 PM UTC"`;
+
+exports[`formatDatePair displays differences of dates 3`] = `"Tue Jan 1, 2019 • 6:41 PM - Sat Feb 2, 2019 • 9:41 PM UTC"`;
+
+exports[`formatDatePair displays differences of dates 4`] = `"Tue Jan 1, 2019 • 6:41 PM - Wed Feb 2 • 9:41 PM UTC"`;
+
+exports[`formatDatePair displays differences of dates 5`] = `"Tue Jan 1, 2019 • 6:41 PM UTC"`;
+
+exports[`formatDatePair returns object when returnAsObj is true 1`] = `
+Object {
+  "from": "Tue Jan 1, 2019 • 6:41 PM",
+  "to": "9:41 PM UTC",
+}
+`;
+
+exports[`formatDatePair supports skipTime parameter 1`] = `"Tue Jan 1, 2019 - 9:41 PM"`;
+
+exports[`formatDatePair supports skipTime parameter 2`] = `"Tue Jan 1, 2019 - Wed Jan 2, 2019"`;

@@ -42,6 +42,8 @@ class ModalDialog extends Component {
 
     submitButtonText: string,
 
+    submitButtonClassName: string,
+
     // Uses alternate format with green bolded text, +/- an icon
     useNotificationFormat: bool,
 
@@ -163,7 +165,7 @@ class ModalDialog extends Component {
               {showSubmitButton &&
                 <Button
                   variant='secondary'
-                  className={classes.submitBtn}
+                  className={cn(classes.submitBtn, this.props.submitButtonClassName)}
                   onClick={this.submit}
                   disabled={submitButtonIsDisabled()}
                 >

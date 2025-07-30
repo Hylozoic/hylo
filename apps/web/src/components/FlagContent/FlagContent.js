@@ -1,15 +1,14 @@
-import { cn } from 'util/index'
 import { isEmpty, trim } from 'lodash'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { createPortal } from 'react-dom'
 import TextareaAutosize from 'react-textarea-autosize'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import Icon from 'components/Icon'
-import Select from 'components/Select'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { submitFlagContent } from './FlagContent.store'
-
-import classes from './FlagContent.module.scss'
+import { rootDomId } from 'client/util'
 
 function FlagContent ({ linkData, onClose, type = 'content' }) {
   const { t } = useTranslation()
@@ -26,6 +25,17 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
       onClose()
     }
   }
+
+  // Add escape key handler
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        closeModal()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
 
   const isExplanationOptional = (selectedCategory) =>
     (selectedCategory || selectedCategory) !== 'other'
@@ -71,41 +81,72 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
     { label: t('Other'), id: 'other' }
   ]
 
-  return (
-    <div className={classes.popup} onClick={(e) => e.stopPropagation()}>
-      <div className={classes.popupInner}>
-        <h1>{t('Explanation for Flagging')}</h1>
-        <span onClick={closeModal} className={classes.closeBtn} role='button' aria-label='Ex'>
-          <Icon name='Ex' className={classes.icon} />
-        </span>
-
-        <div className={classes.content}>
-          <div className={classes.reason}>
-            <Select
-              onChange={updateSelected}
-              fullWidth
-              className={cn({
-                [classes.reasonRequired]: reasonRequired
-              })}
-              selected={selectedCategory}
-              placeholder={t('Select a reason')}
-              options={options}
-              role='combobox'
-            />
+  const modalContent = (
+    <div className='fixed inset-0 z-[1001] overflow-y-auto pointer-events-auto' onClick={(e) => e.stopPropagation()}>
+      <div className='absolute inset-0 bg-black/50 z-0 w-full h-full top-0 left-0' onClick={closeModal} />
+      <div className='relative max-h-screen flex items-center justify-center p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[750px] w-full'>
+        <div className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] p-6'>
+          <div className='flex flex-row items-center justify-between mb-4'>
+            <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
+            <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
+              <Icon name='Ex' className='w-5 h-5' />
+            </button>
           </div>
-          <TextareaAutosize
-            className={classes.explanationTextbox}
-            minRows={6}
-            value={explanation}
-            onChange={(e) => { setExplanation(e.target.value) }}
-            placeholder={subtitle}
-            data-testid='textbox'
-          />
-          <Button className={classes.submitBtn} onClick={submit} disabled={isEmpty(selectedCategory)} name='Submit'>{t('Submit')}</Button>
+
+          <div className='space-y-4'>
+            <div className={`space-y-2 ${reasonRequired ? 'ring-2 ring-red-500 rounded-lg' : ''}`}>
+              <Select
+                value={selectedCategory}
+                onValueChange={updateSelected}
+              >
+                <SelectTrigger className='w-full'>
+                  {selectedCategory ? options.find(opt => opt.id === selectedCategory)?.label : t('Select a reason')}
+                </SelectTrigger>
+                <SelectContent className='z-[1002]'>
+                  {options.map(option => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {reasonRequired && (
+                <p className='text-red-500 text-sm'>{t('Please select a reason')}</p>
+              )}
+            </div>
+
+            <TextareaAutosize
+              className={`w-full min-h-[120px] p-3 rounded-lg border-2 ${
+                highlightRequired && !isExplanationOptional() ? 'border-red-500' : 'border-foreground/10'
+              } bg-transparent text-foreground/80 focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-foreground/50`}
+              minRows={4}
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder={subtitle}
+              data-testid='textbox'
+            />
+
+            <div className='flex justify-end space-x-2'>
+              <Button variant='outline' onClick={closeModal}>
+                {t('Cancel')}
+              </Button>
+              <Button
+                variant='secondary'
+                onClick={submit}
+                disabled={isEmpty(selectedCategory)}
+              >
+                {t('Submit')}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
+
+  return document.getElementById(rootDomId)
+    ? createPortal(modalContent, document.getElementById(rootDomId))
+    : null
 }
 
 export default FlagContent

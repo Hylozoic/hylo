@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { white80onCaribbeanGreen } from 'style/colors'
+import { white80onCaribbeanGreen } from '@hylo/presenters/colors'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 
 const LocaleSelector = ({ small, dark }) => {

@@ -27,14 +27,15 @@ const TIMEFRAME_OPTIONS = [
   { id: 'past', label: 'Past Events' }
 ]
 
-const makeFilterDropdown = (selected, options, onChange, t, IconComponent) => {
+const makeFilterDropdown = (selected, options, onChange, t, IconComponent, id) => {
   // Load these strings in the component
   t('Upcoming Events')
   t('Past Events')
 
   return (
     <Dropdown
-      className='bg-background border-foreground/20 border-2 shadow-xl rounded text-xs px-2 mr-2 hover:scale-125 transition-all'
+      id={id}
+      className='bg-background border-foreground/20 border-2 shadow-xl rounded text-xs px-2 mr-2 hover:scale-125 transition-all z-[30]'
       toggleChildren={
         <span className={classes.dropdownLabel}>
           {IconComponent && <IconComponent size={14} className='text-muted-foreground mr-1' />}
@@ -84,13 +85,13 @@ const StreamViewControls = ({
     const postTypeOptionsForFilter = postTypesAvailable && postTypesAvailable.length > 1
       ? POST_TYPE_OPTIONS.filter(postType => postType.label === 'All Posts' || postTypesAvailable.includes(postType.id))
       : POST_TYPE_OPTIONS
-    filterDropdown = makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changePostTypeFilter, t)
+    filterDropdown = makeFilterDropdown(postTypeFilter, postTypeOptionsForFilter, changePostTypeFilter, t, null, 'post-type-filter')
   }
 
   if (view === 'events' && viewMode !== 'calendar') {
-    sortDropdown = makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t)
+    sortDropdown = makeFilterDropdown(timeframe, TIMEFRAME_OPTIONS, changeTimeframe, t, null, 'timeframe-filter')
   } else if (viewMode !== 'calendar') {
-    sortDropdown = makeFilterDropdown(sortBy, defaultSortOptions, changeSort, t, ArrowDownWideNarrow)
+    sortDropdown = makeFilterDropdown(sortBy, defaultSortOptions, changeSort, t, ArrowDownWideNarrow, 'sort-filter')
   }
 
   const handleSearchToggle = () => {
@@ -107,7 +108,7 @@ const StreamViewControls = ({
   }, [childPostInclusion, location]) // Location is needed to get the updated passed in changeChildPostInclusion callback
 
   return (
-    <div className={cn(classes.streamViewContainer, { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
+    <div className={cn('flex flex-col gap-1 sm:gap-2 p-2 sm:p-4 items-center', { [classes.searchActive]: searchActive || searchValue, [classes.extend]: searchActive && searchValue })}>
       <div className='flex w-full flex-row-reverse justify-between flex-wrap gap-y-1'>
         <div className={cn('bg-background border-foreground/20 border-2 shadow-xl px-2 flex items-center rounded transition-all cursor-pointer', { 'bg-selected': searchActive })} onClick={handleSearchToggle}>
           <Icon name='Search' className={cn(classes.toggleIcon, { [classes.active]: searchActive })} />

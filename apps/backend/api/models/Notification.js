@@ -84,7 +84,7 @@ module.exports = bookshelf.Model.extend({
     const userId = this.reader().id
     switch (this.get('medium')) {
       case MEDIUM.Push:
-        if (process.env.PUSH_NOTIFICATIONS_ENABLED || User.isTester(userId)) {
+        if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
           await this.sendPush()
         }
         break
@@ -423,7 +423,7 @@ module.exports = bookshelf.Model.extend({
         announcement: true,
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Announcement', { userId: reader.id })
       }
     })
@@ -459,7 +459,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
       }
     })
@@ -494,7 +494,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
       }
     })
@@ -802,7 +802,7 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams }),
+        post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Event Invitation', { userId: reader.id })
       }
     })
@@ -915,7 +915,7 @@ module.exports = bookshelf.Model.extend({
 
   updateUserSocketRoom: async function (userId) {
     const { activity } = this.relations
-    const { actor, comment, group, otherGroup, post } = activity.relations
+    const { actor, comment, group, otherGroup, post, track } = activity.relations
     const action = Notification.priorityReason(activity.get('meta').reasons)
 
     const payload = {
@@ -928,11 +928,15 @@ module.exports = bookshelf.Model.extend({
           comment: refineOne(comment, ['id', 'text']),
           group: refineOne(group, ['id', 'name', 'slug']),
           otherGroup: refineOne(otherGroup, ['id', 'name', 'slug']),
-          post: refineOne(
-            post,
-            ['id', 'name', 'description'],
-            { description: 'details', name: 'title' }
-          )
+          post: {
+            ...refineOne(
+              post,
+              ['id', 'name', 'description', 'type'],
+              { description: 'details', name: 'title' }
+            ),
+            topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
+          },
+          track: refineOne(track, ['id', 'name'])
         }
       )
     }
@@ -950,7 +954,7 @@ module.exports = bookshelf.Model.extend({
 
   findUnsent: function (options = {}) {
     return Notification.query(q => {
-      q.where({sent_at: null})
+      q.where({ sent_at: null })
       if (!options.includeOld) {
         q.where('created_at', '>', bookshelf.knex.raw("now() - interval '6 hour'"))
       }
@@ -966,26 +970,28 @@ module.exports = bookshelf.Model.extend({
   sendUnsent: function () {
     // FIXME empty out this withRelated list and just load things on demand when
     // creating push notifications / emails
-    return Notification.findUnsent({withRelated: [
-      'activity',
-      'activity.post',
-      'activity.post.tags',
-      'activity.post.groups',
-      'activity.post.user',
-      'activity.post.media',
-      'activity.comment',
-      'activity.comment.media',
-      'activity.comment.user',
-      'activity.comment.post',
-      'activity.comment.post.user',
-      'activity.comment.post.relatedUsers',
-      'activity.comment.post.groups',
-      'activity.group',
-      'activity.otherGroup',
-      'activity.reader',
-      'activity.actor',
-      'activity.track'
-    ]})
+    return Notification.findUnsent({
+      withRelated: [
+        'activity',
+        'activity.post',
+        'activity.post.tags',
+        'activity.post.groups',
+        'activity.post.user',
+        'activity.post.media',
+        'activity.comment',
+        'activity.comment.media',
+        'activity.comment.user',
+        'activity.comment.post',
+        'activity.comment.post.user',
+        'activity.comment.post.relatedUsers',
+        'activity.comment.post.groups',
+        'activity.group',
+        'activity.otherGroup',
+        'activity.reader',
+        'activity.actor',
+        'activity.track'
+      ]
+    })
       .then(ns => ns.length > 0 &&
         Promise.each(ns.models,
           n => n.send().catch(err => {

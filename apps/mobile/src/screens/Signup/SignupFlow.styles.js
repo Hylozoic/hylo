@@ -1,4 +1,4 @@
-import { caribbeanGreen, white80onCaribbeanGreen, white60onCaribbeanGreen, white20onCaribbeanGreen, white40onCaribbeanGreen, white, rhino30 } from 'style/colors'
+import { caribbeanGreen, white80onCaribbeanGreen, white60onCaribbeanGreen, white20onCaribbeanGreen, white40onCaribbeanGreen, white, rhino30 } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
 
 const buttonStyle = {

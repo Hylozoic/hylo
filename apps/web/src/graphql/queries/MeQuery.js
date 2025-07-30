@@ -47,7 +47,6 @@ export default gql`
     linkedinUrl
     facebookUrl
     url
-    hasDevice
     intercomHash
     hasStripeAccount
     settings {
@@ -93,6 +92,7 @@ export default gql`
     memberships {
       id
       lastViewedAt
+      navOrder
       newPostCount
       person {
         id
@@ -134,6 +134,12 @@ export default gql`
         id
         name
       }
+    }
+    cookieConsentPreferences {
+      id
+      settings
+      version
+      updatedAt
     }
   }
 `

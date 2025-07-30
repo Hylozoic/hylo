@@ -1,10 +1,32 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef } from 'react'
+import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  RightClickMenu,
+  RightClickMenuContent,
+  RightClickMenuItem,
+  RightClickMenuTrigger
+} from 'components/ui/right-click-menu'
 import {
   Popover,
   PopoverContent,
@@ -16,15 +38,56 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import { getCookieConsent } from 'util/cookieConsent'
+import { useCookieConsent } from 'contexts/CookieConsentContext'
+import ModalDialog from 'components/ModalDialog'
+import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 
 import styles from './GlobalNav.module.scss'
+
+// Sortable wrapper for GlobalNavItem
+function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: group.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <GlobalNavItem
+        badgeCount={group.newPostCount || 0}
+        img={group.avatarUrl}
+        tooltip={group.name}
+        url={`/groups/${group.slug}`}
+        className={isVisible}
+        showTooltip={isContainerHovered}
+        isPinned
+      />
+    </div>
+  )
+}
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 export default function GlobalNav (props) {
   const { currentUser } = props
   const { show: showIntercom } = useIntercom()
-  const groups = useSelector(getMyGroups)
+  const { showPreferences } = useCookieConsent()
+  const [showSupportModal, setShowSupportModal] = useState(false)
+  const dispatch = useDispatch()
+  const sortedGroups = useSelector(getMyGroups)
+  const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
+  const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
   const [visibleCount, setVisibleCount] = useState(0)
@@ -34,7 +97,7 @@ export default function GlobalNav (props) {
   const navContainerRef = useRef(null)
 
   useEffect(() => {
-    const totalItems = 4 + groups.length + 2 // fixed items + groups + plus & help buttons
+    const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
     let currentCount = 0
     const interval = setInterval(() => {
       if (currentCount >= totalItems) {
@@ -46,7 +109,7 @@ export default function GlobalNav (props) {
     }, 50) // 50ms between each item
 
     return () => clearInterval(interval)
-  }, [groups.length])
+  }, [sortedGroups.length])
 
   // Add effect to handle menu timeout
   useEffect(() => {
@@ -121,12 +184,69 @@ export default function GlobalNav (props) {
     setShowGradient(false)
   }
 
+  const handleSupportClick = () => {
+    const consent = getCookieConsent()
+    if (consent && consent.support === false) {
+      setShowSupportModal(true)
+    } else {
+      showIntercom()
+    }
+  }
+
+  const handlePinGroup = (groupId) => {
+    dispatch(pinGroup(groupId))
+  }
+
+  const handleUnpinGroup = (groupId) => {
+    dispatch(unpinGroup(groupId))
+  }
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 15
+      }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  )
+
+  // Handle drag end for reordering pinned groups
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+
+    if (active && over && active.id !== over.id) {
+      const oldIndex = pinnedGroups.findIndex(group => group.id === active.id)
+      const newIndex = pinnedGroups.findIndex(group => group.id === over.id)
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        // Use arrayMove to calculate the new order
+        const newOrder = arrayMove(pinnedGroups, oldIndex, newIndex)
+
+        // Find the moved group in the new order and get its new position
+        const movedGroup = newOrder.find(group => group.id === active.id)
+        const newNavOrder = newOrder.indexOf(movedGroup)
+
+        // Only update the moved group's navOrder - backend will handle updating others
+        dispatch(updateGroupNavOrder(active.id, newNavOrder))
+      }
+    }
+  }
+
+  // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
+  useEffect(() => {
+    const nav = document.querySelector('.globalNavContainer')
+    nav.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
+  }, [])
+
   return (
-    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-50 items-center pb-0')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0 pointer-events-auto')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
       <div
         ref={navContainerRef}
         className={cn(
-          'pt-4 flex flex-col items-center pl-5 pr-3 relative z-10 overflow-x-visible overflow-y-scroll grow',
+          'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
           styles.globalNavContainer
         )}
         onMouseEnter={handleContainerMouseEnter}
@@ -171,18 +291,59 @@ export default function GlobalNav (props) {
           <Globe color='hsl(var(--primary-foreground))' />
         </GlobalNavItem>
 
-        {groups.map((group, index) =>
-          <GlobalNavItem
-            key={group.id}
-            badgeCount={group.newPostCount || 0}
-            img={group.avatarUrl}
-            tooltip={group.name}
-            url={`/groups/${group.slug}`}
-            className={isVisible(4 + index)}
-            showTooltip={isContainerHovered}
-          />
-        )}
+        {/* Pinned Groups Section - Sortable */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={pinnedGroups.map(group => group.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {pinnedGroups.map((group, pinnedIndex) => (
+              <RightClickMenu key={group.id}>
+                <RightClickMenuTrigger>
+                  <SortableGlobalNavItem
+                    group={group}
+                    index={pinnedIndex}
+                    isVisible={isVisible(4 + pinnedIndex)}
+                    showTooltip={isContainerHovered}
+                    isContainerHovered={isContainerHovered}
+                  />
+                </RightClickMenuTrigger>
+                <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handleUnpinGroup(group.id)}>{t('Unpin')}</RightClickMenuItem>
+                </RightClickMenuContent>
+              </RightClickMenu>
+            ))}
+          </SortableContext>
+        </DndContext>
 
+        {/* Add a divider between pinned and unpinned groups */}
+        {pinnedGroups.length > 0 && <div className='rounded-lg bg-foreground/20 w-full mb-4 p-[2px]' />}
+
+        {/* Non-pinned Groups Section */}
+        {unpinnedGroups.map((group, unpinnedIndex) => {
+          const actualIndex = pinnedGroups.length + unpinnedIndex
+          return (
+            <RightClickMenu key={group.id}>
+              <RightClickMenuTrigger>
+                <GlobalNavItem
+                  badgeCount={group.newPostCount || 0}
+                  img={group.avatarUrl}
+                  tooltip={group.name}
+                  url={`/groups/${group.slug}`}
+                  className={isVisible(4 + actualIndex)}
+                  showTooltip={isContainerHovered}
+                />
+              </RightClickMenuTrigger>
+              <RightClickMenuContent>
+                <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
+              </RightClickMenuContent>
+            </RightClickMenu>
+          )
+        })}
         <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>
 
       </div>
@@ -221,12 +382,33 @@ export default function GlobalNav (props) {
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
             <ul>
-              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={showIntercom}>{t('Feedback & Support')}</span></li>
+              <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={handleSupportClick}>{t('Feedback & Support')}</span></li>
               <li><a className='text-foreground hover:text-secondary/80' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
               <li><a className='text-foreground hover:text-secondary/80' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
               <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
               <li><a className='text-foreground hover:text-secondary/80' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
+            {showSupportModal && (
+              <ModalDialog
+                closeModal={() => setShowSupportModal(false)}
+                showModalTitle={false}
+                submitButtonAction={() => {
+                  setShowSupportModal(false)
+                  showPreferences()
+                }}
+                submitButtonText={t('Edit Cookie Preferences')}
+              >
+                <div className='p-4'>
+                  <h2 className='text-xl font-semibold mb-2'>{t('Support Chat Disabled')}</h2>
+                  <p className='text-foreground/70 mb-4'>
+                    {t('To use the support chat you need to enable support cookies in your cookie preferences')}
+                  </p>
+                  <p className='text-foreground/70 mb-2'>
+                    {t('Click below to edit your cookie preferences')}
+                  </p>
+                </div>
+              </ModalDialog>
+            )}
           </PopoverContent>
         </Popover>
       </div>

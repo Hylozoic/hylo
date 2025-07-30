@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 15.2 (Debian 15.2-1.pgdg110+1)
--- Dumped by pg_dump version 15.2 (Debian 15.2-1.pgdg110+1)
+-- Dumped from database version 14.17 (Postgres.app)
+-- Dumped by pg_dump version 17.4 (Postgres.app)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,6 +17,13 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
 -- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -28,20 +35,6 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;
 --
 
 COMMENT ON EXTENSION pg_stat_statements IS 'track execution statistics of all SQL statements executed';
-
-
---
--- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
-
-
---
--- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
 
 
 --
@@ -87,7 +80,8 @@ CREATE TABLE public.activities (
     contribution_id bigint,
     project_contribution_id bigint,
     group_id bigint,
-    other_group_id bigint
+    other_group_id bigint,
+    track_id integer
 );
 
 
@@ -510,6 +504,7 @@ CREATE TABLE public.context_widgets (
     parent_id bigint,
     view character varying(255),
     icon character varying(255),
+    auto_added boolean DEFAULT false,
     view_group_id bigint,
     view_post_id bigint,
     custom_view_id bigint,
@@ -517,7 +512,7 @@ CREATE TABLE public.context_widgets (
     view_chat_id bigint,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    auto_added boolean DEFAULT false,
+    view_track_id bigint,
     CONSTRAINT single_view_reference CHECK (((((((
 CASE
     WHEN (view_group_id IS NOT NULL) THEN 1
@@ -725,7 +720,8 @@ CREATE TABLE public.event_invitations (
     event_id bigint,
     response character varying(255),
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    ical_sequence integer
 );
 
 
@@ -788,7 +784,8 @@ ALTER SEQUENCE public.event_responses_id_seq OWNED BY public.event_responses.id;
 CREATE TABLE public.extensions (
     id integer NOT NULL,
     type text,
-    created_at timestamp with time zone
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
 );
 
 
@@ -1347,7 +1344,9 @@ CREATE TABLE public.groups (
     steward_descriptor_plural character varying(255) DEFAULT NULL::character varying,
     about_video_uri character varying(255),
     allow_in_public boolean DEFAULT false,
-    purpose text
+    purpose text,
+    welcome_page text,
+    website_url text
 );
 
 
@@ -1431,7 +1430,7 @@ CREATE TABLE public.groups_roles (
     active boolean,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    description text
+    description character varying(255)
 );
 
 
@@ -1484,6 +1483,39 @@ CREATE SEQUENCE public.groups_suggested_skills_id_seq
 --
 
 ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_suggested_skills.id;
+
+
+--
+-- Name: groups_tracks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.groups_tracks (
+    id integer NOT NULL,
+    track_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: groups_tracks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.groups_tracks_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: groups_tracks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.groups_tracks_id_seq OWNED BY public.groups_tracks.id;
 
 
 --
@@ -1717,11 +1749,11 @@ CREATE SEQUENCE public.media_seq
 CREATE TABLE public.media (
     id bigint DEFAULT nextval('public.media_seq'::regclass) NOT NULL,
     type character varying(255),
-    url character varying(255),
+    url text,
     thumbnail_url character varying(255),
     created_at timestamp with time zone,
     post_id bigint,
-    name character varying(255),
+    name text,
     width integer,
     height integer,
     comment_id bigint,
@@ -2017,7 +2049,9 @@ CREATE TABLE public.oidc_payloads (
     user_code character varying(255),
     uid character varying(255),
     expires_at timestamp with time zone,
-    consumed_at timestamp with time zone
+    consumed_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
 );
 
 
@@ -2142,8 +2176,8 @@ CREATE TABLE public.posts (
     is_public boolean DEFAULT false,
     donations_link character varying(255),
     project_management_link character varying(255),
-    reactions_summary jsonb,
     link_preview_featured boolean DEFAULT false,
+    reactions_summary jsonb,
     timezone character varying(255),
     quorum bigint,
     proposal_status text,
@@ -2152,8 +2186,12 @@ CREATE TABLE public.posts (
     proposal_vote_limit integer,
     proposal_strict boolean DEFAULT false,
     anonymous_voting text,
+    edited_at timestamp with time zone,
     flagged_groups bigint[],
-    edited_at timestamp with time zone
+    completion_action character varying(255),
+    completion_action_settings jsonb DEFAULT '{}'::jsonb,
+    num_people_completed integer DEFAULT 0,
+    num_commenters integer DEFAULT 0
 );
 
 
@@ -2214,7 +2252,9 @@ CREATE TABLE public.posts_users (
     project_role_id bigint,
     following boolean DEFAULT true,
     active boolean DEFAULT true,
-    clickthrough boolean
+    clickthrough boolean,
+    completed_at timestamp with time zone,
+    completion_response jsonb DEFAULT '[]'::jsonb
 );
 
 
@@ -2449,7 +2489,8 @@ CREATE TABLE public.push_notifications (
     platform character varying(255),
     path character varying(255),
     disabled boolean,
-    device_id bigint
+    device_id bigint,
+    user_id bigint
 );
 
 
@@ -2826,6 +2867,122 @@ CREATE SEQUENCE public.token_action_seq
 
 
 --
+-- Name: tracks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tracks (
+    id integer NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    banner_url text,
+    action_descriptor_plural character varying(255),
+    welcome_message text,
+    completion_message text,
+    deactivated_at timestamp with time zone,
+    published_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    settings jsonb DEFAULT '{}'::jsonb,
+    num_actions integer DEFAULT 0,
+    num_people_enrolled integer DEFAULT 0,
+    num_people_completed integer DEFAULT 0,
+    completion_role_id bigint,
+    completion_role_type character varying(255),
+    action_descriptor character varying(255)
+);
+
+
+--
+-- Name: tracks_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tracks_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tracks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tracks_id_seq OWNED BY public.tracks.id;
+
+
+--
+-- Name: tracks_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tracks_posts (
+    id integer NOT NULL,
+    track_id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    sort_order integer,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: tracks_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tracks_posts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tracks_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tracks_posts_id_seq OWNED BY public.tracks_posts.id;
+
+
+--
+-- Name: tracks_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tracks_users (
+    id integer NOT NULL,
+    track_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    settings jsonb DEFAULT '{}'::jsonb,
+    enrolled_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: tracks_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tracks_users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tracks_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tracks_users_id_seq OWNED BY public.tracks_users.id;
+
+
+--
 -- Name: user_affiliations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3049,14 +3206,6 @@ CREATE SEQUENCE public.users_groups_agreements_id_seq
 --
 
 ALTER SEQUENCE public.users_groups_agreements_id_seq OWNED BY public.users_groups_agreements.id;
-
-
---
--- Name: votes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.votes (
-);
 
 
 --
@@ -3402,6 +3551,13 @@ ALTER TABLE ONLY public.groups_tags ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: groups_tracks id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_tracks ALTER COLUMN id SET DEFAULT nextval('public.groups_tracks_id_seq'::regclass);
+
+
+--
 -- Name: join_requests id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3595,6 +3751,27 @@ ALTER TABLE ONLY public.tag_follows ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.tags ALTER COLUMN id SET DEFAULT nextval('public.tags_id_seq'::regclass);
+
+
+--
+-- Name: tracks id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks ALTER COLUMN id SET DEFAULT nextval('public.tracks_id_seq'::regclass);
+
+
+--
+-- Name: tracks_posts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_posts ALTER COLUMN id SET DEFAULT nextval('public.tracks_posts_id_seq'::regclass);
+
+
+--
+-- Name: tracks_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_users ALTER COLUMN id SET DEFAULT nextval('public.tracks_users_id_seq'::regclass);
 
 
 --
@@ -4023,6 +4200,14 @@ ALTER TABLE ONLY public.groups_tags
 
 
 --
+-- Name: groups_tracks groups_tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_tracks
+    ADD CONSTRAINT groups_tracks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: group_join_questions_answers join_request_question_answers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4423,6 +4608,30 @@ ALTER TABLE ONLY public.tags
 
 
 --
+-- Name: tracks tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks
+    ADD CONSTRAINT tracks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tracks_posts tracks_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_posts
+    ADD CONSTRAINT tracks_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tracks_users tracks_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_users
+    ADD CONSTRAINT tracks_users_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: communities unique_beta_access_code; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4484,6 +4693,14 @@ ALTER TABLE ONLY public.tags
 
 ALTER TABLE ONLY public.posts_tags
     ADD CONSTRAINT unique_posts_tags UNIQUE (post_id, tag_id);
+
+
+--
+-- Name: proposal_votes unique_proposal_vote_per_user; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.proposal_votes
+    ADD CONSTRAINT unique_proposal_vote_per_user UNIQUE (option_id, user_id);
 
 
 --
@@ -4643,10 +4860,10 @@ CREATE INDEX fk_community_created_by_1 ON public.communities USING btree (create
 
 
 --
--- Name: group_extensions_groups_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: group_extensions_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX group_extensions_groups_id_index ON public.group_extensions USING btree (group_id);
+CREATE INDEX group_extensions_group_id_index ON public.group_extensions USING btree (group_id);
 
 
 --
@@ -4727,6 +4944,13 @@ CREATE INDEX groups_tags_group_id_visibility_index ON public.groups_tags USING b
 
 
 --
+-- Name: groups_tracks_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_tracks_group_id_index ON public.groups_tracks USING btree (group_id);
+
+
+--
 -- Name: groups_visibility_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4759,13 +4983,6 @@ CREATE INDEX idx_reactions_entity_id ON public.reactions USING btree (entity_id)
 --
 
 CREATE INDEX idx_reactions_entity_type ON public.reactions USING btree (entity_type);
-
-
---
--- Name: index_users_on_name_trigram; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX index_users_on_name_trigram ON public.users USING gin (name public.gin_trgm_ops);
 
 
 --
@@ -4965,6 +5182,27 @@ CREATE INDEX saved_searches_user_id_index ON public.saved_searches USING btree (
 
 
 --
+-- Name: tracks_posts_track_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tracks_posts_track_id_index ON public.tracks_posts USING btree (track_id);
+
+
+--
+-- Name: tracks_users_track_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tracks_users_track_id_index ON public.tracks_users USING btree (track_id);
+
+
+--
+-- Name: tracks_users_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tracks_users_user_id_index ON public.tracks_users USING btree (user_id);
+
+
+--
 -- Name: user_verification_codes_email_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5016,6 +5254,14 @@ ALTER TABLE ONLY public.activities
 
 ALTER TABLE ONLY public.activities
     ADD CONSTRAINT activities_project_contribution_id_foreign FOREIGN KEY (project_contribution_id) REFERENCES public.project_contributions(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: activities activities_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activities
+    ADD CONSTRAINT activities_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id);
 
 
 --
@@ -5264,6 +5510,14 @@ ALTER TABLE ONLY public.context_widgets
 
 ALTER TABLE ONLY public.context_widgets
     ADD CONSTRAINT context_widgets_view_post_id_foreign FOREIGN KEY (view_post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_view_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_track_id_foreign FOREIGN KEY (view_track_id) REFERENCES public.tracks(id);
 
 
 --
@@ -5899,6 +6153,22 @@ ALTER TABLE ONLY public.groups_tags
 
 
 --
+-- Name: groups_tracks groups_tracks_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_tracks
+    ADD CONSTRAINT groups_tracks_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: groups_tracks groups_tracks_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_tracks
+    ADD CONSTRAINT groups_tracks_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: group_join_questions_answers join_request_question_answers_join_request_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6227,6 +6497,14 @@ ALTER TABLE ONLY public.push_notifications
 
 
 --
+-- Name: push_notifications push_notifications_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_notifications
+    ADD CONSTRAINT push_notifications_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: responsibilities responsibilities_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6299,6 +6577,38 @@ ALTER TABLE ONLY public.tag_follows
 
 
 --
+-- Name: tracks_posts tracks_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_posts
+    ADD CONSTRAINT tracks_posts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: tracks_posts tracks_posts_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_posts
+    ADD CONSTRAINT tracks_posts_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: tracks_users tracks_users_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_users
+    ADD CONSTRAINT tracks_users_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: tracks_users tracks_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tracks_users
+    ADD CONSTRAINT tracks_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: user_affiliations user_affiliations_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6343,7 +6653,7 @@ ALTER TABLE ONLY public.communities_users
 --
 
 ALTER TABLE ONLY public.users_groups_agreements
-    ADD CONSTRAINT users_groups_agreements_agreement_id_foreign FOREIGN KEY (agreement_id) REFERENCES public.agreements(id);
+    ADD CONSTRAINT users_groups_agreements_agreement_id_foreign FOREIGN KEY (agreement_id) REFERENCES public.agreements(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6351,7 +6661,7 @@ ALTER TABLE ONLY public.users_groups_agreements
 --
 
 ALTER TABLE ONLY public.users_groups_agreements
-    ADD CONSTRAINT users_groups_agreements_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id);
+    ADD CONSTRAINT users_groups_agreements_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6359,7 +6669,7 @@ ALTER TABLE ONLY public.users_groups_agreements
 --
 
 ALTER TABLE ONLY public.users_groups_agreements
-    ADD CONSTRAINT users_groups_agreements_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT users_groups_agreements_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --

@@ -1,4 +1,4 @@
-import { rhino, rhino50, twBackground } from 'style/colors'
+import { rhino, rhino50, twBackground } from '@hylo/presenters/colors'
 
 const screenMargin = 16
 

@@ -54,7 +54,7 @@ function WelcomePageTab ({ group, updateGroupSettings }) {
           key={group.id}
           containerClassName='mt-2'
           contentHTML={group.welcomePage}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1 rounded-lg bg-input'
           extendedMenu
           groupIds={[group.id]}
           onUpdate={(html) => {

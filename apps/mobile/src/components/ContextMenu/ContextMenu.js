@@ -13,14 +13,14 @@ import {
 } from '@hylo/presenters/ContextWidgetPresenter'
 import useContextWidgetChildren from '@hylo/hooks/useContextWidgetChildren'
 import useHasResponsibility, { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import { isIOS } from 'util/platform'
-import { widgetUrl as makeWidgetUrl } from 'util/navigation'
+import { widgetUrl as makeWidgetUrl } from '@hylo/navigation'
 import useLogout from 'hooks/useLogout'
 import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import HyloHTML from 'components/HyloHTML'
+import { isIOS } from 'util/platform'
 
 export default function ContextMenu () {
   const insets = useSafeAreaInsets()

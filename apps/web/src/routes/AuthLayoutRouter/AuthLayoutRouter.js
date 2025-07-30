@@ -8,6 +8,7 @@ import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
+import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
@@ -31,7 +32,7 @@ import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
   groupHomeUrl
-} from 'util/navigation'
+} from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
@@ -57,12 +58,13 @@ import MyTracks from 'routes/MyTracks'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
+import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -145,7 +147,7 @@ export default function AuthLayoutRouter (props) {
         $location: currentUser.location
       })
 
-      if (currentUser?.settings?.locale) localeLocalStorageSync(currentUser?.settings?.locale)
+      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
@@ -344,9 +346,11 @@ export default function AuthLayoutRouter (props) {
               <Route path='all/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn(classes.center, { [classes.withoutNav]: withoutNav })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -428,16 +432,18 @@ export default function AuthLayoutRouter (props) {
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
+                <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
                 <Route path='search' element={<Search />} />
+                <Route path='themes' element={<Themes />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                 {/* **** Default Route (404) **** */}
                 <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
               </Routes>
             </div>
 
-            <div className={cn(classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
@@ -471,6 +477,7 @@ export default function AuthLayoutRouter (props) {
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
           </div>
         </div>
+        <CookieConsentLinker />
       </Div100vh>
     </IntercomProvider>
   )

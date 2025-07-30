@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "6.1.1-0",
+  "version": "6.1.6-0",
   "private": true,
   "scripts": {
     "android": "adb reverse tcp:3001 tcp:3001 && adb reverse tcp:3000 tcp:3000 && react-native run-android",
@@ -62,7 +62,6 @@
     "lucide-react-native": "0.471.0",
     "luxon": "^3.5.0",
     "mixpanel-react-native": "^3.0.8",
-    "moment-timezone": "^0.5.46",
     "nativewind": "^4.1.23",
     "path-to-regexp": "^6.2.2",
     "prettier": "2.8.8",
@@ -71,7 +70,7 @@
     "re-reselect": "^4.0.1",
     "react": "^18.3.1",
     "react-i18next": "^13.0.0",
-    "react-native": "0.76.6",
+    "react-native": "0.76.9",
     "react-native-autoheight-webview": "^1.6.5",
     "react-native-background-timer": "^2.4.1",
     "react-native-bootsplash": "6.3.2",
@@ -91,7 +90,7 @@
     "react-native-linear-gradient": "^2.8.3",
     "react-native-localization": "^2.3.2",
     "react-native-modal": "^13.0.1",
-    "react-native-onesignal": "^5.2.8",
+    "react-native-onesignal": "^5.2.12",
     "react-native-pager-view": "^6.6.1",
     "react-native-picker-select": "^9.3.1",
     "react-native-prompt-android": "^1.1.0",

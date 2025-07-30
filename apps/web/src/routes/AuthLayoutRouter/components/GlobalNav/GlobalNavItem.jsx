@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { cn } from 'util/index'
-import { baseUrl } from 'util/navigation'
+import { baseUrl } from '@hylo/navigation'
+
 /**
  * GlobalNavItem component renders a navigation item with tooltip and hover animations
  * @param {ReactNode} children - Content to render inside the nav item
@@ -29,7 +30,8 @@ export default function GlobalNavItem ({
   tooltip,
   url,
   showTooltip: parentShowTooltip,
-  index = 0
+  index = 0,
+  isPinned = false
 }) {
   const navigate = useNavigate()
   const routeParams = useRouteParams()

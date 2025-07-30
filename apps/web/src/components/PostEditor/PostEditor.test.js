@@ -6,7 +6,7 @@ import { graphql, HttpResponse } from 'msw'
 import { render, screen, fireEvent, waitFor, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import PostEditor from './PostEditor'
 import ActionsBar from './ActionsBar'
-import { editPostUrl } from 'util/navigation'
+import { editPostUrl } from '@hylo/navigation'
 import * as reactRedux from 'react-redux'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import presentPost from 'store/presenters/presentPost'
@@ -51,7 +51,7 @@ jest.mock('react-router-dom', () => ({
   useLocation: jest.fn().mockReturnValue({ pathname: '/groups/test-group', search: '' })
 }))
 
-jest.mock('lodash/debounce', () => fn => {  
+jest.mock('lodash/debounce', () => fn => {
   fn.cancel = jest.fn()
   return fn
 })
@@ -194,7 +194,7 @@ describe('PostEditor', () => {
       jest.clearAllMocks()
       jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ groupSlug: 'test-group', postId: '1' })
       renderComponent(editProps)
-      
+
       const titleInput = await screen.findByLabelText(/title/i)
       expect(titleInput.value).toEqual('Test Post')
       fireEvent.change(titleInput, { target: { value: 'New Title' } })

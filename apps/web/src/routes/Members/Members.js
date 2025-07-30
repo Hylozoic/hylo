@@ -1,5 +1,5 @@
 import { debounce, get, isEmpty, some } from 'lodash/fp'
-import React, { useEffect, useCallback, useMemo } from 'react'
+import React, { useEffect, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { Link, useParams, useLocation } from 'react-router-dom'
@@ -9,10 +9,11 @@ import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import Member from 'components/Member'
 import ScrollListener from 'components/ScrollListener'
+import SwitchStyled from 'components/SwitchStyled'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { RESP_ADD_MEMBERS } from 'store/constants'
+import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { queryParamWhitelist } from 'store/reducers/queryResults'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { FETCH_MEMBERS, fetchMembers, getMembers, getHasMoreMembers, removeMember } from './Members.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -42,6 +43,11 @@ function Members (props) {
   const pending = useSelector(state => state.pending[FETCH_MEMBERS])
   const myResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { groupId: group.id }))
   const myResponsibilityTitles = useMemo(() => myResponsibilities.map(r => r.title), [myResponsibilities])
+  const canSeeJoinAnswers = useMemo(() =>
+    myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
+  [myResponsibilityTitles])
+
+  const [showAnswers, setShowAnswers] = useState(false)
 
   // Action creators
   const changeSearch = useCallback(term =>
@@ -54,7 +60,7 @@ function Members (props) {
     dispatch(removeMember(id, group.id, slug))
   }, [group.id, slug])
   const fetchMembersAction = useCallback((offset = 0) =>
-    dispatch(fetchMembers({ slug, sortBy, offset, search })), [dispatch, slug, sortBy, search])
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search })), [dispatch, slug, group.id, sortBy, search])
 
   useEffect(() => {
     if (isEmpty(members) && hasMore !== false) fetchMembersAction()
@@ -112,6 +118,7 @@ function Members (props) {
             onChange={e => debouncedSearch(e.target.value)}
           />
           <Dropdown
+            id='members-sort-dropdown'
             className='border-2 border-foreground/20 rounded-lg p-2 text-foreground/100'
             toggleChildren={<SortLabel text={sortKeys[sortBy]} />}
             alignRight
@@ -120,6 +127,16 @@ function Members (props) {
               onClick: () => changeSort(k)
             }))}
           />
+          {canSeeJoinAnswers && (
+            <div className='flex items-center gap-2'>
+              <SwitchStyled
+                checked={showAnswers}
+                onChange={() => setShowAnswers(!showAnswers)}
+                backgroundColor={showAnswers ? '#0DC39F' : '#8B96A4'}
+              />
+              <span className='text-sm font-medium text-foreground/80'>{t('Show Answers')}</span>
+            </div>
+          )}
         </div>
         <div className='flex flex-col gap-2'>
           {members.map(member => (
@@ -129,6 +146,8 @@ function Members (props) {
               member={member}
               key={member.id}
               context={context}
+              canSeeJoinAnswers={canSeeJoinAnswers}
+              showAnswers={showAnswers}
             />
           ))}
         </div>

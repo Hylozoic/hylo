@@ -1,4 +1,4 @@
-import { nevada, rhino, white80 } from 'style/colors'
+import { nevada, rhino, white80 } from '@hylo/presenters/colors'
 
 export const baseStyle = {
   color: nevada,
@@ -8,6 +8,48 @@ export const baseStyle = {
 }
 
 export const tagsStyles = {
+  h1: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    lineHeight: 34,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
+  h2: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    lineHeight: 30,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 26,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
+  h4: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 24,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
+  h5: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    lineHeight: 22,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
+  h6: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 20,
+    marginTop: 0,
+    marginBottom: '0.5em'
+  },
   iframe: {
     alignSelf: 'center'
   },

@@ -10,7 +10,7 @@ import { cn, bgImageStyle } from 'util/index'
 
 import classes from './Member.module.scss'
 
-const { object, string, shape } = PropTypes
+const { bool, object, string, shape } = PropTypes
 
 class Member extends React.Component {
   removeOnClick (e, id, name, removeMember) {
@@ -23,6 +23,7 @@ class Member extends React.Component {
 
   render () {
     const {
+      canSeeJoinAnswers,
       className,
       group,
       member,
@@ -30,6 +31,7 @@ class Member extends React.Component {
       removeMember,
       currentUserResponsibilities,
       roles,
+      showAnswers,
       t
     } = this.props
 
@@ -40,6 +42,7 @@ class Member extends React.Component {
       <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
         {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
           <Dropdown
+            id='member-dropdown'
             alignRight
             className={classes.dropdown}
             toggleChildren={<Icon name='More' />}
@@ -60,6 +63,23 @@ class Member extends React.Component {
             {tagline && <div className='text-base text-foreground/100'>{tagline}</div>}
           </div>
         </div>
+        {canSeeJoinAnswers && showAnswers && member.groupJoinQuestionAnswers?.items?.length > 0 && (
+          <div className='flex flex-col gap-2 z-10 relative'>
+            <div className='text-sm font-semibold text-foreground/80 border-t border-foreground/20 pt-2'>
+              {t('Join Question Responses')}
+            </div>
+            {member.groupJoinQuestionAnswers.items.map((item) => (
+              <div key={item.id} className='flex flex-col gap-1'>
+                <div className='text-xs font-medium text-foreground/70'>
+                  {item.question.text}
+                </div>
+                <div className='text-sm text-foreground/90 pl-2 border-l-2 border-foreground/20'>
+                  {item.answer}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className='absolute inset-0 w-full h-full bg-cover bg-center z-0 opacity-30' style={bgImageStyle(bannerUrl)} />
       </div>
     )
@@ -76,7 +96,8 @@ Member.propTypes = {
     tagline: string,
     avatarUrl: string,
     bannerUrl: string
-  }).isRequired
+  }).isRequired,
+  showAnswers: bool
 }
 
 export default withTranslation()(Member)

@@ -8,7 +8,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 
 const PostListRow = (props) => {
   const {

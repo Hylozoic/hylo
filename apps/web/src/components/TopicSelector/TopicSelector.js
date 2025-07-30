@@ -8,37 +8,95 @@ import Icon from 'components/Icon'
 import { fetchDefaultTopics } from 'store/actions/fetchTopics'
 import findTopics from 'store/actions/findTopics'
 import getDefaultTopics from 'store/selectors/getDefaultTopics'
-import { cn } from 'util/index'
-
-import classes from './TopicSelector.module.scss'
 
 const MAX_TOPICS = 3
 const inputStyles = {
   container: styles => ({
     ...styles,
     cursor: 'text',
-    fontFamily: 'Circular Book, sans-serif'
+    fontFamily: 'Onest, Circular Book, sans-serif',
+    backgroundColor: 'hsl(var(--card))',
+    width: '100%'
   }),
   valueContainer: styles => ({
     ...styles,
-    padding: 0
+    padding: '0.5rem'
   }),
   control: styles => ({
     ...styles,
     minWidth: '200px',
     border: 'none',
-    boxShadow: 0,
-    cursor: 'text'
+    borderRadius: '0.5rem',
+    backgroundColor: 'hsl(var(--background))',
+    boxShadow: 'none',
+    transition: 'all 0.2s ease-in-out',
+    cursor: 'text',
+    '&:hover': {
+      border: '1px solid hsl(var(--border))'
+    }
+  }),
+  input: styles => ({
+    ...styles,
+    color: 'hsl(var(--text-foreground))'
   }),
   multiValue: styles => ({
     ...styles,
-    backgroundColor: 'transparent'
+    backgroundColor: 'hsl(var(--selected))',
+    borderRadius: '0.25rem',
+    padding: '0.125rem'
   }),
-  multiValueRemove: styles => ({ ...styles, color: 'black', cursor: 'pointer' }),
-  clearIndicator: styles => ({ ...styles, cursor: 'pointer' }),
-  placeholder: styles => ({ ...styles, color: 'rgb(192, 197, 205)' }),
+  multiValueLabel: styles => ({
+    ...styles,
+    color: 'hsl(var(--accent-foreground))'
+  }),
+  multiValueRemove: styles => ({
+    ...styles,
+    color: 'hsl(var(--selected-foreground))',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease-in-out',
+    '&:hover': {
+      backgroundColor: 'hsl(var(--selected))',
+      color: 'hsl(var(--selected-foreground))'
+    }
+  }),
+  clearIndicator: styles => ({
+    ...styles,
+    cursor: 'pointer',
+    color: 'hsl(var(--foreground))',
+    '&:hover': {
+      color: 'hsl(var(--foreground))'
+    }
+  }),
+  placeholder: styles => ({
+    ...styles,
+    color: 'hsl(var(--foreground)/70)'
+  }),
   dropdownIndicator: styles => ({ display: 'none' }),
-  indicatorSeparator: styles => ({ display: 'none' })
+  indicatorSeparator: styles => ({ display: 'none' }),
+  menu: styles => ({
+    ...styles,
+    backgroundColor: 'hsl(var(--background))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '0.5rem',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+    overflow: 'hidden'
+  }),
+  option: (styles, { isFocused, isSelected }) => ({
+    ...styles,
+    transition: 'all 0.2s ease-in-out',
+    backgroundColor: isSelected
+      ? 'hsl(var(--selected))'
+      : isFocused
+        ? 'hsl(var(--selected)/10)'
+        : 'transparent',
+    color: isSelected
+      ? 'hsl(var(--accent-foreground))'
+      : 'hsl(var(--foreground))',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: 'hsl(var(--selected)/10)'
+    }
+  })
 }
 
 function TopicSelector (props) {
@@ -71,8 +129,8 @@ function TopicSelector (props) {
 
     if (selected.length >= MAX_TOPICS || isEmpty(input)) return []
 
-    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug }))
-    const topicResults = response.payload.getData().items.map(get('topic'))
+    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug, includeCounts: true }))
+    const topicResults = response.payload.getData().items
     const sortedTopicResults = orderBy(
       [t => t.name === input ? -1 : 1, 'followersTotal', 'postsTotal'],
       ['asc', 'desc', 'desc'],
@@ -148,12 +206,12 @@ function TopicSelector (props) {
       }}
       formatOptionLabel={(item, { context }) => {
         if (context === 'value') {
-          return <div className={classes.topicLabel}>#{item.name}</div>
+          return <div className='text-accent-foreground'>{item.name}</div>
         }
 
         if (item.__isNew__) {
           const validationMessage = Validators.validateTopicName(item.value)
-          return <div>{validationMessage || t('Create topic "#{{item.value}}"', { item })}</div>
+          return <div className='text-foreground'>{validationMessage || t('Create topic "#{{item.value}}"', { item })}</div>
         }
 
         const { name, postsTotal, followersTotal } = item
@@ -164,11 +222,17 @@ function TopicSelector (props) {
             : (count / 1000).toFixed(1) + 'k'
 
         return (
-          <div className={classes.item}>
-            <div className={classes.menuTopicLabel}>#{name}</div>
-            <div className={classes.suggestionMeta}>
-              <span className={cn(classes.column, classes.icon)}><Icon name='Star' className={classes.icon} />{formatCount(followersTotal)} {t('subscribers')}</span>
-              <span className={cn(classes.column, classes.icon)}><Icon name='Events' className={classes.icon} />{formatCount(postsTotal)} {t('posts')}</span>
+          <div className='flex flex-col gap-1 p-1'>
+            <div className='text-foreground font-medium'>#{name}</div>
+            <div className='flex text-xs text-foreground/70 gap-4'>
+              <span className='flex items-center gap-1'>
+                <Icon name='Star' className='w-4 h-4' />
+                {formatCount(followersTotal)} {t('subscribers')}
+              </span>
+              <span className='flex items-center gap-1'>
+                <Icon name='Events' className='w-4 h-4' />
+                {formatCount(postsTotal)} {t('posts')}
+              </span>
             </div>
           </div>
         )

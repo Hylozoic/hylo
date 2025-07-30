@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Settings, X } from 'lucide-react'
+import { cn, bgImageStyle } from 'util/index'
 import React, { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -12,7 +13,6 @@ import {
 } from 'components/ui/select'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import SettingsToggles from './SettingToggles'
-import { bgImageStyle } from 'util/index'
 
 import classes from './NotificationSettingsTab.module.scss'
 
@@ -25,7 +25,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
   return (
     <div
       id={`group-${membership.group.id}`}
-      className='py-3 border-b border-gray-200'
+      className={cn('p-4 bg-card/60 hover:bg-card/100 rounded-lg shadow-lg mb-2 scale-100 hover:scale-102 transition-all group', { 'bg-card/100': isOpen })}
       aria-label={`${membership.group.name} notification settings`}
     >
       <div
@@ -37,18 +37,20 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
       >
         <div className={classes.groupAvatar} style={bgImageStyle(membership.group.avatarUrl)} />
         <h2 className='text-xl font-bold flex-1'>{membership.group.name}</h2>
-        {isOpen ? <ChevronDown className='w-4 h-4' /> : <ChevronRight className='w-4 h-4' />}
+        {isOpen ? <X className='w-6 h-6' /> : <Settings className='w-6 h-6 opacity-50 group-hover:opacity-100 transition-all' />}
       </div>
       {isOpen && (
-        <div className=''>
-          <SettingsToggles
-            id={membership.id}
-            settings={membership.settings}
-            update={updateMembershipSettings}
-            label={<span>Receive group notifications by <InfoButton content='This controls how you receive all notifications for this group. Including new posts (accordinding to setting below), event invitations and mentions.' /></span>}
-            groupName={membership.group.name}
-          />
-          <div className='flex items-center justify-between mt-2'>
+        <div className='mt-2'>
+          <div className='py-3 border-b-2 border-foreground/20'>
+            <SettingsToggles
+              id={membership.id}
+              settings={membership.settings}
+              update={updateMembershipSettings}
+              label={<span>Receive group notifications by <InfoButton content='This controls how you receive all notifications for this group. Including new posts (accordinding to setting below), event invitations and mentions.' /></span>}
+              groupName={membership.group.name}
+            />
+          </div>
+          <div className='flex items-center justify-between py-3 border-b-2 border-foreground/20'>
             <span className=''>{t('Send me an email digest for this group')}</span>
             <Select
               value={membership.settings.digestFrequency}
@@ -64,7 +66,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
               </SelectContent>
             </Select>
           </div>
-          <div className='flex items-center justify-between mt-2'>
+          <div className='flex items-center justify-between py-3'>
             <span>Send new post notifications in this group for</span>
             <Select
               value={membership.settings.postNotifications}
@@ -104,8 +106,8 @@ function ChatRoomRow ({ chatRoom, groupName }) {
   }, [chatRoom.topicFollow.id])
 
   return (
-    <div className='flex items-center justify-between mt-2' key={chatRoom.id}>
-      <span><span className='text-secondary'>#{chatRoom.groupTopic.topic.name}</span> chat notifications</span>
+    <div className='flex items-center justify-between py-3 border-t-2 border-foreground/20' key={chatRoom.id}>
+      <span><span className='text-secondary'>#{chatRoom.groupTopic.topic.name}</span> {t('chat notifications')}</span>
       <Select
         value={notificationsSettings}
         onValueChange={updateNotificationsSettings}

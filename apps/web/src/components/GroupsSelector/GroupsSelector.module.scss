@@ -4,7 +4,7 @@
   position: relative;
   top: 2px;
   /* shared font styles */
-  color: $color-caribbean-green;
+  color: hsl(var(--accent));
   font-size: 1em;
   line-height: 1.2;
   margin-top: -$space-2x;
@@ -24,7 +24,7 @@
 }
 
 .selectedTag {
-  color: $color-caribbean-green;
+  color: hsl(var(--accent));
   display: inline-flex;
   align-items: center;
   padding: $space-2x $space-3x 0 0;
@@ -59,6 +59,12 @@
 
 .searchInputContainer, .searchInput {
   width: 100%;
+}
+
+.searchInput {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 8px;
 }
 
 .search {
@@ -126,7 +132,7 @@
   margin: 0 -1px;
   padding: 0;
   list-style: none;
-  background: white;
+  background: hsl(var(--background));
   border-bottom: 1px solid #D1D1D1;
   border-left: 1px solid #D1D1D1;
   border-right: 1px solid #D1D1D1;
@@ -140,17 +146,17 @@
 }
 
 .suggestion a {
-  color: $color-caribbean-green;
+  color: hsl(var(--accent));
   display: block;
 }
 
 .suggestion:hover {
   cursor: pointer;
-  background: #eee;
+  background: hsl(var(--background));
 }
 
 .suggestion-active {
-  background: #b7cfe0;
+  background: hsl(var(--accent));
 }
 
 .suggestion .disabled {

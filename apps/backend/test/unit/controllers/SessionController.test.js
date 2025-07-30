@@ -246,7 +246,7 @@ describe('SessionController', function () {
         expect(account).to.exist
         expect(account.get('provider_key')).to.equal('facebook')
         expect(user.get('facebook_url')).to.equal(mockProfile.profileUrl)
-        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/100101/picture?type=large&access_token=186895474801147|zzzzzz')
+        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/100101/picture?type=large&access_token=186895474801147|ppppppp')
         return user
       })
     }

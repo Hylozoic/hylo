@@ -91,7 +91,6 @@ Object {
     name
     avatarUrl
     bannerUrl
-    postCount
 
   members(sortBy: $sortBy, order: \\"asc\\", boundingBox: $boundingBox, search: $search) {
     items {
@@ -200,7 +199,6 @@ Object {
     name
     avatarUrl
     bannerUrl
-    postCount
 
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,
@@ -463,7 +461,6 @@ Object {
     name
     avatarUrl
     bannerUrl
-    postCount
     posts: viewPosts(
       activePostsOnly: $activePostsOnly,
       afterTime: $afterTime,

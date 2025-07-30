@@ -1,4 +1,3 @@
-import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
@@ -8,8 +7,6 @@ import Loading from 'components/Loading'
 import GroupDetail from 'routes/GroupDetail'
 import PublicPageHeader from './PublicPageHeader'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
-
-import classes from './PublicLayoutRouter.module.scss'
 
 export default function PublicGroupDetail (props) {
   const dispatch = useDispatch()
@@ -37,10 +34,12 @@ export default function PublicGroupDetail (props) {
   }
 
   return (
-    <Div100vh className={classes.publicContainer}>
+    <Div100vh className='flex flex-col items-stretch bg-background'>
       <PublicPageHeader />
-      <div className={cn(classes.centerColumn, classes.nonMapView)} id={CENTER_COLUMN_ID}>
-        <GroupDetail {...props} context='public' />
+      <div className='w-full h-full overflow-y-auto'>
+        <div className='bg-midground w-full max-w-[750px] mx-auto rounded-xl' id={CENTER_COLUMN_ID}>
+          <GroupDetail {...props} context='public' />
+        </div>
       </div>
     </Div100vh>
   )

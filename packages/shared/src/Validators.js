@@ -1,5 +1,6 @@
-import { compact } from 'lodash'
-import { isURL } from 'validator'
+import compact from 'lodash/compact.js'
+import validator from 'validator'
+const { isURL } = validator
 
 // Validators return a string describing the error if invalid, or null if valid.
 export const hasDisallowedCharacters = blacklist => s =>

@@ -7,11 +7,15 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground hover:bg-primary/90',
+          'bg-primary text-primary-foreground hover:bg-primary/90 scale-100 hover:scale-105 hover:opacity-100 flex items-center justify-between border-2 border-transparent hover:border-foreground/20 hover:shadow-xl',
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        highVisibility:
+          'p-2 rounded-md bg-selected text-foreground text-xs sm:text-base hover:bg-selected/90 border-2 border-transparent hover:border-foreground/20 transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center hover:shadow-xl',
         outline:
-          'border border-input bg-background hover:bg-selected hover:text-accent-foreground',
+          'focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center justify-between group opacity-100',
+        selectedOutline:
+          'focus:text-foreground text-base border-2 border-selected/100 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 hover:opacity-100 flex items-center justify-between group opacity-100',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         tertiary:

@@ -1,7 +1,8 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X, Star } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { TriangleAlert, X } from 'lucide-react'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -28,7 +29,7 @@ import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import fetchMyMemberships from 'store/actions/fetchMyMemberships'
+import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import {
   PROPOSAL_ADVICE,
   PROPOSAL_CONSENSUS,
@@ -76,7 +77,7 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { setQuerystringParam } from 'util/navigation'
+import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 
@@ -190,7 +191,7 @@ function PostEditor ({
     locationId: null,
     proposalOptions: [],
     quorum: 0,
-    timezone: DateTime.now().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
     topics: topic ? [topic] : [],
     type: postType || (modal ? 'discussion' : 'chat'),
@@ -298,12 +299,23 @@ function PostEditor ({
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-    dispatch(fetchMyMemberships())
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))
     }
   }, [])
+
+  // Fetch chat rooms if we're not in a chat and we haven't fetched them yet
+  const hasFetchedChatRoomsRef = useRef(false)
+  useEffect(() => {
+    if (
+      currentPost.type !== 'chat' &&
+      !hasFetchedChatRoomsRef.current
+    ) {
+      dispatch(fetchAllMyGroupsChatRooms())
+      hasFetchedChatRoomsRef.current = true
+    }
+  }, [currentPost.type])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -353,11 +365,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -370,7 +382,7 @@ function PostEditor ({
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
     } else {
-      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
+      dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })
@@ -624,7 +636,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       completionAction,
       completionActionSettings,
@@ -979,9 +991,6 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-                <div className='flex flex-row gap-2 items-center'>
-                  <Star className='w-4 h-4 text-foreground' />
-                </div>
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
@@ -997,9 +1006,9 @@ function PostEditor ({
                 </div>
               </div>
             ))}
-            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
+            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2 cursor-pointer' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
+              <span className='rounded-md'>{t('Add an option to vote on...')}</span>
             </div>
             {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
@@ -1067,7 +1076,7 @@ function PostEditor ({
       {canHaveTimes && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1'>
+          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
