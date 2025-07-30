@@ -36,7 +36,7 @@
     "@intercom/intercom-react-native": "^8.1.0",
     "@invertase/react-native-apple-authentication": "^2.4.0",
     "@native-html/iframe-plugin": "^2.6.1",
-    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.1",
     "@react-native-community/checkbox": "^0.5.17",
     "@react-native-community/hooks": "^3.0.0",
