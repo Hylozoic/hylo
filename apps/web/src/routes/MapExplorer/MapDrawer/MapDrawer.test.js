@@ -47,6 +47,9 @@ describe('MapDrawer', () => {
     }
     render(<MapDrawer {...props} />)
     expect(screen.getByText('Post')).toBeInTheDocument()
+    
+    // Click on Groups tab first
+    fireEvent.click(screen.getByText('Groups'))
     expect(screen.getByText('group one')).toBeInTheDocument()
     expect(screen.getByText('#food')).toBeInTheDocument()
   })

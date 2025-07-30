@@ -28,7 +28,7 @@ describe('Membership', () => {
       }
     }
 
-    const { asFragment } = render(<Membership {...props} />, { wrapper: AllTheProviders() })
+    const { asFragment } = render(<Membership {...props} />)
     expect(asFragment()).toMatchSnapshot()
   })
 })

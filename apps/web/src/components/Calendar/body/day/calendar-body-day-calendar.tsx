@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
-import { Calendar } from '@/components/ui/calendar'
+import { Calendar } from 'components/ui/calendar'
 import { DateTimeHelpers } from '@hylo/shared'
-import { cn } from '@/lib/utils'
-import Button from '@/components/ui/button'
-import { buttonVariants } from '@/components/ui/button-variants'
+import { cn } from 'util/index'
+import Button from 'components/ui/button'
+import { buttonVariants } from 'components/ui/button-variants'
 
 export default function CalendarBodyDayCalendar () {
   const { t } = useTranslation()

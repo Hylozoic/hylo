@@ -122,7 +122,7 @@ function TopicSelector (props) {
     ).slice(0, MAX_TOPICS)
 
     setSelected(newSelected)
-  }, [selectedTopics])
+  }, [selectedTopics, topicsEdited])
 
   const loadOptions = useCallback(async (input) => {
     input = input.charAt(0) === '#' ? input.slice(1) : input

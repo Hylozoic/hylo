@@ -181,6 +181,18 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
+  /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
+  useEffect(() => {
+    if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+      currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+      if (currentGroup?.settings?.showWelcomePage) {
+        navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
+      } else {
+        navigate(groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup }), { replace: true })
+      }
+    }
+  }, [currentGroupMembership, currentGroup, currentGroupSlug, navigate, pathMatchParams])
+
   if (currentUserLoading) {
     return (
       <div className={classes.container} data-testid='loading-screen'>

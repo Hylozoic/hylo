@@ -3,15 +3,15 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'luci
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
 import { DayPicker } from 'react-day-picker'
-import Button from '@/components/ui/button'
-import { buttonVariants } from '@/components/ui/button-variants'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getLocaleForDayPicker } from '@/components/Calendar/calendar-util'
+import Button from 'components/ui/button'
+import { buttonVariants } from 'components/ui/button-variants'
+import { Input } from 'components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
+import { getLocaleForDayPicker } from 'components/Calendar/calendar-util'
+import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import { cn } from '@/lib/utils'
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 
 // ---------- utils start ----------
 /**

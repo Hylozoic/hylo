@@ -5,50 +5,106 @@ import { AllTheProviders, render, screen, waitFor } from 'util/testing/reactTest
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
 import RolesSettingsTab, { AddMemberToRole, RoleList } from './RolesSettingsTab'
 
+const FETCH_STEWARD_SUGGESTIONS = 'FETCH_STEWARD_SUGGESTIONS'
+const CLEAR_STEWARD_SUGGESTIONS = 'CLEAR_STEWARD_SUGGESTIONS'
+
+const mockFetchStewardSuggestions = jest.fn()
+const mockingFetchStewardSuggestions = jest.fn((f, id, autocomplete) => {
+  mockFetchStewardSuggestions(autocomplete)
+  return f()
+})
+const mockClearStewardSuggestions = jest.fn()
+const mockingClearStewardSuggestions = jest.fn((f) => {
+  mockClearStewardSuggestions()
+  return f()
+})
+jest.mock('./RolesSettingsTab.store', () => {
+  const actual = jest.requireActual('./RolesSettingsTab.store')
+  return {
+    __esModule: true,
+    default: actual.default,
+    fetchStewardSuggestions: (id, autocomplete) => mockingFetchStewardSuggestions(actual.fetchStewardSuggestions, id, autocomplete),
+    clearStewardSuggestions: () => mockingClearStewardSuggestions(actual.clearStewardSuggestions),
+    MODULE_NAME: 'RolesSettingsTab'
+  }
+})
+
+const mockInitialState = {
+  RoleSettings: []
+}
+
+beforeEach(() => {
+  mockGraphqlServer.use(
+    graphql.query('fetchResponsibilitiesForCommonRole', () => {
+      return HttpResponse.json({
+        data: {
+          responsibilities: []
+        }
+      })
+    }),
+    graphql.query('fetchResponsibiltiesForGroup', () => {
+      return HttpResponse.json({
+        data: {
+          responsibilities: []
+        }
+      })
+    }),
+    graphql.query('fetchMembersForCommonRole', () => {
+      return HttpResponse.json({
+        data: {
+          group: {
+            members: {
+              items: []
+            }
+          }
+        }
+      })
+    }),
+    graphql.operation(({ query, variables }) => {
+      return HttpResponse.json({
+        data: {
+          group: {
+            id: '1',
+            members: {
+              hasMore: false,
+              items: [
+                { id: '1', name: 'Demeter', avatarUrl: null },
+                { id: '2', name: 'Ares', avatarUrl: null },
+                { id: '3', name: 'Hermes', avatarUrl: null }
+              ]
+            }
+          }
+        }
+      })
+    }, )
+  )
+})
+
 describe('RolesSettingsTab', () => {
   it('clears suggestions on unmount', () => {
-    const clearStewardSuggestions = jest.fn()
     const { unmount } = render(
-      <RolesSettingsTab clearStewardSuggestions={clearStewardSuggestions} commonRoles={[]} />,
-      { wrapper: AllTheProviders() }
+      <RolesSettingsTab commonRoles={[]} />,
+      { wrapper: AllTheProviders(mockInitialState) }
     )
     unmount()
-    expect(clearStewardSuggestions).toHaveBeenCalled()
+    expect(mockClearStewardSuggestions).toHaveBeenCalled()
   })
 })
 
 describe('RoleList', () => {
   it('renders correctly', async () => {
     const props = {
-      clearStewardSuggestions: jest.fn(),
-      fetchStewardSuggestions: jest.fn(),
+      mockClearStewardSuggestions: jest.fn(),
+      mockFetchStewardSuggestions: jest.fn(),
       roleId: '1',
       slug: 'foogroup',
       suggestions: [],
       isCommonRole: true,
       group: { id: 1 },
-      fetchMembersForCommonRole: jest.fn().mockResolvedValue({ response: { payload: { data: { group: { members: { items: [] } } } } } }),
       t: (str) => str
     }
 
-    mockGraphqlServer.use(
-      graphql.query('fetchResponsibilitiesForCommonRole', () => {
-        return HttpResponse.json({
-          data: {
-            responsibilities: []
-          }
-        })
-      }),
-      graphql.query('fetchResponsibiltiesForGroup', () => {
-        return HttpResponse.json({
-          data: {
-            responsibilities: []
-          }
-        })
-      })
-    )
-
-    render(<RoleList {...props} />, { wrapper: AllTheProviders() })
+    render(<RoleList {...props} />, { wrapper: AllTheProviders(mockInitialState) })
 
     await waitFor(() => {
       expect(screen.getByText('Responsibilities')).toBeInTheDocument()
@@ -65,7 +121,7 @@ describe('AddMemberToRole', () => {
       clearSuggestions: jest.fn()
     }
 
-    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
+    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders(mockInitialState) })
 
     expect(screen.getByText('+ Add Member to Role')).toBeInTheDocument()
 
@@ -88,7 +144,7 @@ describe('AddMemberToRole', () => {
       ]
     }
 
-    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders() })
+    render(<AddMemberToRole {...props} />, { wrapper: AllTheProviders(mockInitialState) })
 
     const user = userEvent.setup()
     await user.click(screen.getByTestId('add-new'))
@@ -101,44 +157,43 @@ describe('AddMemberToRole', () => {
   })
 
   it('handles interactions correctly', async () => {
-    const fetchStewardSuggestions = jest.fn()
-    const clearStewardSuggestions = jest.fn()
-
     render(
       <AddMemberToRole
-        fetchSuggestions={fetchStewardSuggestions}
-        clearSuggestions={clearStewardSuggestions}
+        fetchSuggestions={mockFetchStewardSuggestions}
+        clearSuggestions={mockClearStewardSuggestions}
       />,
-      { wrapper: AllTheProviders() }
+      { wrapper: AllTheProviders(mockInitialState) }
     )
 
     const user = userEvent.setup()
+    mockFetchStewardSuggestions.mockClear()
+    mockClearStewardSuggestions.mockClear()
 
     await user.click(screen.getByTestId('add-new'))
-    expect(clearStewardSuggestions).toHaveBeenCalledTimes(1)
+    expect(mockClearStewardSuggestions).toHaveBeenCalledTimes(1)
 
     const input = screen.getByTestId('add-member-input')
-    fetchStewardSuggestions.mockClear()
-    clearStewardSuggestions.mockClear()
+    mockFetchStewardSuggestions.mockClear()
+    mockClearStewardSuggestions.mockClear()
 
     await user.type(input, 'Artem')
-    expect(fetchStewardSuggestions).toHaveBeenCalledWith('Artem')
-    expect(clearStewardSuggestions).not.toHaveBeenCalled()
+    expect(mockFetchStewardSuggestions).toHaveBeenCalledWith('Artem')
+    expect(mockClearStewardSuggestions).not.toHaveBeenCalled()
 
-    fetchStewardSuggestions.mockClear()
-    clearStewardSuggestions.mockClear()
+    mockFetchStewardSuggestions.mockClear()
+    mockClearStewardSuggestions.mockClear()
 
     await user.clear(input)
-    expect(clearStewardSuggestions).toHaveBeenCalledTimes(1)
-    expect(fetchStewardSuggestions).not.toHaveBeenCalled()
+    expect(mockFetchStewardSuggestions).not.toHaveBeenCalled()
+    expect(mockClearStewardSuggestions).toHaveBeenCalledTimes(1)
 
-    fetchStewardSuggestions.mockClear()
-    clearStewardSuggestions.mockClear()
+    mockFetchStewardSuggestions.mockClear()
+    mockClearStewardSuggestions.mockClear()
 
     await user.keyboard('{Enter}')
-    expect(clearStewardSuggestions).not.toHaveBeenCalled()
+    expect(mockClearStewardSuggestions).not.toHaveBeenCalled()
 
     await user.keyboard('{Escape}')
-    expect(clearStewardSuggestions).toHaveBeenCalled()
+    expect(mockClearStewardSuggestions).toHaveBeenCalled()
   })
 })

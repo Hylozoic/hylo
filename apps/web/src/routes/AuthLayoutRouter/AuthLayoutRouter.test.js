@@ -31,8 +31,32 @@ it('shows group if the group exists', async () => {
   const group = {
     id: '1',
     slug: 'test-group',
-    name: 'Test Group'
+    name: 'Test Group',
+    settings: {
+      showWelcomePage: true
+    },
+    contextWidgets: {
+      items: [
+        { 
+          id: '1',
+          type: 'home',
+          parentId: null
+        },
+        { 
+          id: '2',
+          type: 'settings',
+          parentId: '1'
+        },
+        {
+          id: '3',
+          type: 'welcome',
+          parentId: null,
+          settings: {}
+        }
+      ]
+    }
   }
+
   const membership = { id: '1', person: { id: '1' }, group, commonRoles: { items: [] } }
   const me = {
     id: '1',
@@ -122,7 +146,7 @@ it('shows group if the group exists', async () => {
 
   await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
 
-  expect(screen.getByText('Stream')).toBeInTheDocument()
+  expect(screen.getByText('Welcome to Test Group!')).toBeInTheDocument()
 })
 
 it('shows NotFound if the group does not exist', async () => {

@@ -31,9 +31,9 @@ import general from '../GroupSettings.module.scss'
 const { object, func } = PropTypes
 
 function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, updateGroupSettings }) {
+  const { t } = useTranslation()
   const dispatch = useDispatch()
   const [state, setState] = useState(defaultEditState())
-  const { t } = useTranslation()
 
   useEffect(() => {
     if (!fetchPending) {

@@ -61,56 +61,68 @@ posts: viewPosts(
 
   id
   announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  createdAt
   clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  timezone
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
   donationsLink
   editedAt
-  projectManagementLink
+  endTime
+  flaggedGroups
+  fulfilledAt
+  isAnonymousVote
+  isPublic
+  linkPreviewFeatured
+  location
   myEventResponse
+  peopleReactedTotal
+  projectManagementLink
+  proposalOutcome
+  proposalStatus
+  quorum
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  votingMethod
+  attachments {
+    type
+    url
+    position
+    id
+  }
   commenters(first: 3) {
     id
     name
     avatarUrl
+  }
+  creator {
+    id
+    name
+    avatarUrl
+  }
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
+  groups {
+    id
+    name
+    slug
   }
   commentersTotal
   commentsTotal
@@ -122,32 +134,18 @@ posts: viewPosts(
     title
     url
   }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
     }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
   }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
   proposalOptions {
     total
     hasMore
@@ -326,56 +324,68 @@ posts(
 
   id
   announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  createdAt
   clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  timezone
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
   donationsLink
   editedAt
-  projectManagementLink
+  endTime
+  flaggedGroups
+  fulfilledAt
+  isAnonymousVote
+  isPublic
+  linkPreviewFeatured
+  location
   myEventResponse
+  peopleReactedTotal
+  projectManagementLink
+  proposalOutcome
+  proposalStatus
+  quorum
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  votingMethod
+  attachments {
+    type
+    url
+    position
+    id
+  }
   commenters(first: 3) {
     id
     name
     avatarUrl
+  }
+  creator {
+    id
+    name
+    avatarUrl
+  }
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
+  groups {
+    id
+    name
+    slug
   }
   commentersTotal
   commentsTotal
@@ -387,32 +397,18 @@ posts(
     title
     url
   }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
     }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
   }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
   proposalOptions {
     total
     hasMore

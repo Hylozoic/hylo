@@ -41,7 +41,7 @@ describe('CreateTopic', () => {
     render(<CreateTopic {...defaultProps} buttonText='Open Modal' />)
     fireEvent.click(screen.getByText('Open Modal'))
     expect(screen.getByText('Open Modal')).toBeInTheDocument()
-    expect(screen.getByLabelText('topic-name')).toBeInTheDocument()
+    expect(screen.getByLabelText(/topic name/i)).toBeInTheDocument()
   })
 
   it('disables submit button when topic name is empty', () => {
@@ -53,7 +53,7 @@ describe('CreateTopic', () => {
   it('enables submit button when topic name is not empty', () => {
     render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
-    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
+    fireEvent.change(screen.getByLabelText(/topic name/i), { target: { value: 'New Topic' } })
     expect(screen.getByText('Add Topic')).not.toBeDisabled()
   })
 
@@ -61,7 +61,7 @@ describe('CreateTopic', () => {
   it.skip('calls createTopic when submitting a new topic', async () => {
     render(<CreateTopic {...defaultProps} buttonText='Create a Topic' subscribeAfterCreate />)
     fireEvent.click(screen.getByText('Create a Topic'))
-    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'New Topic' } })
+    fireEvent.change(screen.getByLabelText(/topic name/i), { target: { value: 'New Topic' } })
     await waitFor(() => {
       expect(screen.getByText('Add Topic')).toBeInTheDocument()
     })
@@ -75,7 +75,7 @@ describe('CreateTopic', () => {
   it('shows error message for invalid topic name', async () => {
     render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
-    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'Invalid@Topic' } })
+    fireEvent.change(screen.getByLabelText(/topic name/i), { target: { value: 'Invalid@Topic' } })
 
     await waitFor(() => {
       expect(screen.getByText(/Topic name must not contain/)).toBeInTheDocument()
@@ -86,7 +86,7 @@ describe('CreateTopic', () => {
   it.skip('allows leading `#` characters in topic name', async () => {
     render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
-    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: '#ValidTopic' } })
+    fireEvent.change(screen.getByLabelText(/topic name/i), { target: { value: '#ValidTopic' } })
     await waitFor(() => {
       expect(screen.getByText('Add Topic')).toBeInTheDocument()
     })
@@ -102,7 +102,7 @@ describe('CreateTopic', () => {
   it.skip('shows success message after creating a topic', async () => {
     render(<CreateTopic {...defaultProps} buttonText='Create a Topic' />)
     fireEvent.click(screen.getByText('Create a Topic'))
-    fireEvent.change(screen.getByLabelText('topic-name'), { target: { value: 'NewTopic' } })
+    fireEvent.change(screen.getByLabelText(/topic name/i), { target: { value: 'NewTopic' } })
     await waitFor(() => {
       expect(screen.getByText('Add Topic')).toBeInTheDocument()
     })

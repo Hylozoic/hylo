@@ -1,7 +1,7 @@
 import React from 'react'
 import { Switch } from 'components/ui/switch'
 
-export default function SettingsToggles ({ id, settings, update, label }) {
+export default function SettingsToggles ({ id, settings, update, label, groupName }) {
   return (
     <div className='flex items-center justify-between'>
       {label && <span>{label}</span>}
@@ -11,6 +11,7 @@ export default function SettingsToggles ({ id, settings, update, label }) {
             id={`${id}-push-notifications`}
             checked={settings.sendPushNotifications}
             onCheckedChange={value => update({ sendPushNotifications: value })}
+            aria-label={`${groupName || id.replace(/-/g, ' ')} push notifications`}
           />
           <label htmlFor={`${id}-push-notifications`}>Push Notifications</label>
         </div>
@@ -19,6 +20,7 @@ export default function SettingsToggles ({ id, settings, update, label }) {
             id={`${id}-email-notifications`}
             checked={settings.sendEmail}
             onCheckedChange={value => update({ sendEmail: value })}
+            aria-label={`${groupName || id.replace(/-/g, ' ')} email notifications`}
           />
           <label htmlFor={`${id}-email-notifications`}>Email</label>
         </div>

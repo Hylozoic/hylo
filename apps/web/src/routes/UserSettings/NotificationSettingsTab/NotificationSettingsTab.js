@@ -134,6 +134,7 @@ function NotificationSettingsTab ({
               label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Messages')}</span>}
               settings={getCurrentSettings(me, 'dmNotifications')}
               update={updateUserSetting('dmNotifications')}
+              id='messages'
             />
           </div>
           <div className='py-2'>
@@ -141,6 +142,7 @@ function NotificationSettingsTab ({
               label={<span className='text-xl'><Icon name='Messages' className='mr-2' />{t('Comments on followed posts')}</span>}
               settings={getCurrentSettings(me, 'commentNotifications')}
               update={updateUserSetting('commentNotifications')}
+              id='comments'
             />
           </div>
         </div>
@@ -155,6 +157,7 @@ function NotificationSettingsTab ({
                 label={<span className='flex items-center'>Receive group notifications by <InfoButton content='This controls how you receive notifications for all your groups.' /></span>}
                 settings={allGroupsSettings}
                 update={updateAllGroupsAlert}
+                id='all-groups'
               />
             </div>
 
@@ -164,7 +167,7 @@ function NotificationSettingsTab ({
                 value={allGroupsSettings.postNotifications}
                 onValueChange={value => updateAllGroupsAlert({ postNotifications: value })}
               >
-                <SelectTrigger className='inline-flex w-auto'>
+                <SelectTrigger className='inline-flex w-auto' aria-label='all groups post notifications frequency'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,7 +184,7 @@ function NotificationSettingsTab ({
                 value={allGroupsSettings.digestFrequency}
                 onValueChange={value => updateAllGroupsAlert({ digestFrequency: value })}
               >
-                <SelectTrigger className='inline-flex w-auto'>
+                <SelectTrigger className='inline-flex w-auto' aria-label='all groups email digest frequency'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

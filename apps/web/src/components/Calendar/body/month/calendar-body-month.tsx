@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Interval, Info } from 'luxon'
 import { DateTimeHelpers } from '@hylo/shared'
-import { cn } from '@/lib/utils'
 import CalendarEvent from '../../calendar-event'
 import { AnimatePresence, motion } from 'framer-motion'
 import { eachIntervalDay } from '../../calendar-util'
+import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 export default function CalendarBodyMonth () {

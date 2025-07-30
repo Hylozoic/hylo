@@ -7,6 +7,7 @@ exports[`renders a redirect if you can not moderate 1`] = `
     data-testid="loading-container"
   >
     <div
+      aria-label="loading"
       class="loadingIndicator"
       data-testid="loading-indicator"
     >
@@ -47,6 +48,7 @@ exports[`renders correctly with a group 1`] = `
     data-testid="loading-container"
   >
     <div
+      aria-label="loading"
       class="loadingIndicator"
       data-testid="loading-indicator"
     >
@@ -87,6 +89,7 @@ exports[`renders correctly with no group 1`] = `
     data-testid="loading-container"
   >
     <div
+      aria-label="loading"
       class="loadingIndicator"
       data-testid="loading-indicator"
     >

@@ -123,6 +123,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
               placeholder={subtitle}
+              data-testid='textbox'
             />
 
             <div className='flex justify-end space-x-2'>

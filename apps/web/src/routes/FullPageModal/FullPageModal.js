@@ -4,8 +4,8 @@ import { Route, Routes } from 'react-router-dom'
 import isWebView from 'util/webView'
 
 export default function FullPageModal ({
-  confirmMessage, navigate, goToOnClose,
-  content, children, narrow, fullWidth, leftSideBarHidden
+  content,
+  children
 }) {
   const multipleTabs = Array.isArray(content)
 

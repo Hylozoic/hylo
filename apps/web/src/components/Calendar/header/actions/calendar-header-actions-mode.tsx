@@ -2,12 +2,12 @@
 
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { ToggleGroup, ToggleGroupItem } from 'components/ui/toggle-group'
 import { Mode, calendarModes } from '../../calendar-types'
 import { useCalendarContext } from '../../calendar-context'
 import { calendarModeIconMap } from '../../calendar-mode-icon-map'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { cn } from 'util/index'
 
 export default function CalendarHeaderActionsMode () {
   const { t } = useTranslation()

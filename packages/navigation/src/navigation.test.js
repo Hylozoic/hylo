@@ -154,7 +154,7 @@ describe('createUrl', () => {
 
 describe('primaryPostUrl with comment', () => {
   it('returns correct path', () => {
-    const expected = '/all/post/123/comments/456'
+    const expected = '/all/post/123?commentId=456'
     const actual = primaryPostUrl('123', { commentId: '456' })
     expect(actual).toEqual(expected)
   })
