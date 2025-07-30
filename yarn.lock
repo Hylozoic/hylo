@@ -27704,7 +27704,6 @@ __metadata:
     lucide-react-native: "npm:0.471.0"
     luxon: "npm:^3.5.0"
     mixpanel-react-native: "npm:^3.0.8"
-    moment-timezone: "npm:^0.5.46"
     msw: "npm:^2.7.0"
     nativewind: "npm:^4.1.23"
     path-to-regexp: "npm:^6.2.2"
@@ -27821,22 +27820,6 @@ __metadata:
   version: 9.3.1
   resolution: "mock-socket@npm:9.3.1"
   checksum: 10/c5c07568f2859db6926d79cb61580c07e67958b5cd6b52d1270fdfa17ae066d7f74a18a4208fc4386092eea4e1ee001aa23f015c88a1774265994e4fae34d18e
-  languageName: node
-  linkType: hard
-
-"moment-timezone@npm:^0.5.46":
-  version: 0.5.47
-  resolution: "moment-timezone@npm:0.5.47"
-  dependencies:
-    moment: "npm:^2.29.4"
-  checksum: 10/b2ad32e6b7ea4ce99756c9f571f8eb1bdd6592ecdc2bf3f7fb988ae980a49a7e87b986776090571b9608c8576205f839b736dc7589c180ce36c82fad4b8416c6
-  languageName: node
-  linkType: hard
-
-"moment@npm:^2.29.4":
-  version: 2.30.1
-  resolution: "moment@npm:2.30.1"
-  checksum: 10/ae42d876d4ec831ef66110bdc302c0657c664991e45cf2afffc4b0f6cd6d251dde11375c982a5c0564ccc0fa593fc564576ddceb8c8845e87c15f58aa6baca69
   languageName: node
   linkType: hard
 
