@@ -1,3 +1,3 @@
 import ThemeTab from './ThemeTab'
 
-export default ThemeTab 
+export default ThemeTab
