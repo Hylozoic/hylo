@@ -1,6 +1,6 @@
 import { sortBy } from 'lodash/fp'
 import { gql, useQuery } from 'urql'
-import { topicUrl } from 'util/navigation'
+import { topicUrl } from '@hylo/navigation'
 
 const groupTopicsQueryBlock = `
   groupTopics(

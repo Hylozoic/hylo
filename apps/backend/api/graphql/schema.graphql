@@ -337,6 +337,9 @@ type GroupRelationshipUpdate {
   relationship: GroupRelationship
 }
 
+# Union type for all possible subscription updates
+union SubscriptionUpdate = Notification | Group | GroupMembershipUpdate | GroupRelationshipUpdate | Post | Comment | Person
+
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
   comments(postId: ID, parentCommentId: ID): Comment,
@@ -349,8 +352,14 @@ type Subscription {
   updates: Update
   # Group-specific subscriptions for membership and relationship updates
   groupUpdates: Group
-  groupMembershipUpdates: GroupMembershipUpdate  
+  groupMembershipUpdates: GroupMembershipUpdate
   groupRelationshipUpdates: GroupRelationshipUpdate
+  # Post updates subscription for real-time post changes
+  postUpdates: Post
+  
+  # UNIFIED: Single subscription that combines all user-specific updates
+  # Reduces Android SSE connection limit issues by using only one connection
+  allUpdates: SubscriptionUpdate
 }
 
 # The meta data associated with an Activity
@@ -560,6 +569,23 @@ type Comment {
   commentReactions: [Reaction]
   # The reactions of the logged-in user to this
   myReactions: [Reaction]
+}
+
+# Cookie consent preferences for a user
+type CookieConsent {
+  id: ID
+  # The unique consent identifier
+  consentId: ID
+  # The user this consent belongs to (null for anonymous users)
+  userId: ID
+  # The consent settings
+  settings: JSON
+  # Version of the consent structure
+  version: String
+  # When this consent was last updated
+  updatedAt: Date
+  # The user this consent belongs to
+  user: Person
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1607,6 +1633,9 @@ type Me {
     # 'enrolled_at', 'name'
     sortBy: String
   ): TrackQuerySet
+
+  # Cookie consent preferences for the current user
+  cookieConsentPreferences: CookieConsent
 }
 
 # A user's group membership
@@ -1629,6 +1658,8 @@ type Membership {
   membershipCommonRoles: MembershipCommonRoleQuerySet
   # The group defined roles this members has in this group - just the join table data
   membershipGroupRoles: MembershipGroupRoleQuerySet
+  # The order of this group membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
   newPostCount: Int
   person: Person
@@ -2029,10 +2060,10 @@ type Post {
   createdAt: Date
   # The body of the post
   details: String
+  # When the text was last edited
+  editedAt: Date
   # Link to a donation page, only used for projects only right now
   donationsLink: String
-  # When this post was last significantly edited (such as title and details)
-  editedAt: Date
   # When this post "ends". Used for events, resources, projects, requests and offers right now
   endTime: Date
   # List of group ids for groups that have flagged this post
@@ -3362,6 +3393,8 @@ input MembershipInput {
   acceptAgreements: Boolean
   # update the lastViewedAt
   lastViewedAt: Date
+  # The order of this membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group

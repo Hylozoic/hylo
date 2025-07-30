@@ -42,7 +42,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { CustomViewRow } from 'routes/GroupSettings/CustomViewsTab/CustomViewsTab'
 import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import { cleanCustomView } from 'util'
-import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from 'util/navigation'
+import { addQuerystringToPath, baseUrl, widgetUrl, groupUrl } from '@hylo/navigation'
 
 const CHAT = types.CHAT
 const POST = types.POST

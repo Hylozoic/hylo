@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native'
-import { amaranth, caribbeanGreen, rhino60, rhino80 } from 'style/colors'
+import { amaranth, caribbeanGreen, rhino60, rhino80 } from '@hylo/presenters/colors'
 
 const screenHeight = Dimensions.get('window').height
 const smallScreenFudge = screenHeight < 550 ? 0.6 : 1

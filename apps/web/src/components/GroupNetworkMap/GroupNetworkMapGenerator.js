@@ -1,4 +1,4 @@
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import * as d3 from 'd3'
 import { cn } from 'util/index'

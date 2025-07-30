@@ -51,28 +51,28 @@ export const filterAndSortPosts = curry((opts, q) => {
   const { CHAT, DISCUSSION, REQUEST, OFFER, PROJECT, EVENT, RESOURCE, PROPOSAL } = Post.Type
 
   if (isAnnouncement) {
-    q.where('announcement', true).andWhere('posts.created_at', '>=', DateTime.now().minus({months: 1}).toISODate())
+    q.where('announcement', true).andWhere('posts.created_at', '>=', DateTime.now().minus({ months: 1 }).toISODate())
   }
 
   if (isFulfilled === true) {
     q.where(q2 => {
       q2.whereNotNull('posts.fulfilled_at')
-      .orWhere('posts.end_time', '<', DateTime.now().toISODate())
+        .orWhere('posts.end_time', '<', DateTime.now().toISODate())
     })
   } else if (isFulfilled === false) {
     q.whereNull('posts.fulfilled_at')
-    .andWhere(q2 => {
-      q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
-    })
+      .andWhere(q2 => {
+        q2.whereNull('posts.end_time')
+          .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
+      })
   }
 
   if (activePostsOnly) {
     q.whereNull('posts.fulfilled_at')
-    .andWhere(q2 => {
-      q2.whereNull('posts.end_time')
-      .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
-    })
+      .andWhere(q2 => {
+        q2.whereNull('posts.end_time')
+          .orWhere('posts.end_time', '>=', DateTime.now().toISODate())
+      })
   }
 
   // NB: ongoing posts are returned in both cases
@@ -111,7 +111,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     if (!includes(values(Post.Type), type)) {
       throw new GraphQLError(`unknown post type: "${type}"`)
     }
-    q.where({'posts.type': type})
+    q.where({ 'posts.type': type })
   }
 
   if (!isEmpty(search)) {
@@ -147,7 +147,6 @@ export const filterAndSortPosts = curry((opts, q) => {
   } else if (sort) {
     q.orderBy(sort, order || (sortBy === 'order' ? 'asc' : 'desc'))
   }
-
 })
 
 export const filterAndSortUsers = curry(({ autocomplete, boundingBox, groupId, groupRoleId, commonRoleId, order, search, sortBy }, q) => {

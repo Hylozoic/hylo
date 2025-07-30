@@ -13,7 +13,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import {
   acceptGroupRelationshipInvite,
   cancelGroupRelationshipInvite,

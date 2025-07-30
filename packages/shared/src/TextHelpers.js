@@ -1,11 +1,14 @@
 import { convert as convertHtmlToText } from 'html-to-text'
-import { isURL } from 'validator'
+import validator from 'validator'
 import { marked } from 'marked'
-import merge from 'lodash/fp/merge'
+import merge from 'lodash/fp/merge.js' // Have to load this way for Electron ESM environment
 import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'
 import truncText from 'trunc-text'
+
+// Have to load this way for Electron ESM environment
+const { isURL } = validator
 
 // Sanitization options
 export function insaneOptions (providedInsaneOptions) {
@@ -152,55 +155,6 @@ export function humanDate (date, short) {
     .replace(/ weeks?/, 'w')
     .replace(/ years?/, 'y')
     .replace(/ month(s?)/, ' mo$1')
-}
-
-export const formatDatePair = (startTime, endTime, returnAsObj, timezone, skipTime = false) => {
-  const parseFunction = typeof startTime === 'object' ? DateTime.fromJSDate : DateTime.fromISO
-  const start = parseFunction(startTime, { zone: timezone || DateTime.now().zoneName || 'UTC' })
-  const end = endTime ? parseFunction(endTime, { zone: timezone || DateTime.now().zoneName || 'UTC' }) : null
-
-  // Base formats without timezone
-  const formatWithYear = skipTime ? 'ccc MMM d, yyyy' : 'ccc MMM d, yyyy • t'
-  const formatWithoutYear = skipTime ? 'ccc MMM d' : 'ccc MMM d • t'
-
-  // Formats with timezone
-  const formatWithYearWithTz = skipTime ? 'ccc MMM d, yyyy' : 'ccc MMM d, yyyy • t ZZZZ'
-  const formatWithoutYearWithTz = skipTime ? 'ccc MMM d' : 'ccc MMM d • t ZZZZ'
-
-  const now = DateTime.now()
-
-  const isSameDay = end && start.get('day') === end.get('day') &&
-                    start.get('month') === end.get('month') &&
-                    start.get('year') === end.get('year')
-
-  let to = ''
-  let from = ''
-
-  // Format the start date - only include year if it's not this year
-  // Include the timezone if the end date is not provided
-  if (start.get('year') !== now.get('year')) {
-    from = start.toFormat(endTime ? formatWithYear : formatWithYearWithTz)
-  } else {
-    from = start.toFormat(endTime ? formatWithoutYear : formatWithoutYearWithTz)
-  }
-
-  // Format the end date/time if provided
-  if (endTime) {
-    if (isSameDay) {
-      // If same day, only show the end time (with timezone if not skipping time)
-      to = end.toFormat(skipTime ? 't' : 't ZZZZ')
-    } else if (end.get('year') < now.get('year')) {
-      // If end date is in a past year, include the year (with timezone)
-      to = end.toFormat(formatWithYearWithTz)
-    } else {
-      // Otherwise just month, day and time (with timezone)
-      to = end.toFormat(formatWithoutYearWithTz)
-    }
-
-    to = returnAsObj ? to : ' - ' + to
-  }
-
-  return returnAsObj ? { from, to } : from + to
 }
 
 export function isDateInTheFuture (date) {

@@ -220,7 +220,7 @@ export default function GroupWelcomeModal (props) {
               {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers?.length > 0 && <div className={classes.questionsHeader}>{t('Please answer the following questions to enter')}</div>}
               {!joinQuestionsAnsweredAt && group.settings?.askJoinQuestions && questionAnswers && questionAnswers.map((q, index) => (
                 <div className={classes.joinQuestion} key={index}>
-                  <h3>{q.text}</h3>
+                  <h3 className='text-lg font-bold'>{q.text}</h3>
                   <textarea name={`question_${q.questionId}`} onChange={handleAnswerQuestion(index)} value={q.answer} placeholder={t('Type your answer here...')} />
                 </div>)
               )}

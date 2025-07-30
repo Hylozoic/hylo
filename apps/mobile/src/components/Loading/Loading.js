@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, ActivityIndicator } from 'react-native'
-import { gunsmoke } from 'style/colors'
+import { gunsmoke } from '@hylo/presenters/colors'
 
 export default function Loading ({
   style,

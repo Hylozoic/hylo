@@ -13,7 +13,7 @@ import {
   visibilityString
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
-import { groupUrl, groupDetailUrl } from 'util/navigation'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 
 import { UserRoundCheck } from 'lucide-react'
 

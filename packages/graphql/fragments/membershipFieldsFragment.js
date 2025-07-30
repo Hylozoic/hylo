@@ -4,6 +4,7 @@ export default gql`
   fragment MembershipFieldsFragment on Membership {
     id
     lastViewedAt
+    navOrder
     newPostCount
     hasModeratorRole
     person {

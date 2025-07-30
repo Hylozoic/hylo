@@ -38,6 +38,10 @@ module.exports.policies = {
     '*': true
   },
 
+  CookieConsentController: {
+    '*': true
+  },
+
   UploadController: {
     '*': 'sessionAuth'
   },
@@ -71,7 +75,7 @@ module.exports.policies = {
     subscribe:              ['isSocket', 'sessionAuth', 'checkAndSetPost'],
     unsubscribe:            ['isSocket', 'sessionAuth', 'checkAndSetPost'],
     typing:                 ['isSocket', 'sessionAuth', 'checkAndSetPost'],
-    createFromEmailForm:    ['checkAndDecodeToken'],
+    createFromEmailForm:    ['checkAndDecodeToken']
   },
 
   UserController: {

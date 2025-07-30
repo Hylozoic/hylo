@@ -163,15 +163,6 @@ export const isHiddenInContextMenuResolver = (widget) => {
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */
 
-// TODO: To be relocated to GroupPresenter once utilized in Web
-export function findHomeWidget (group) {
-  if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
-  }
-  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
-  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
-}
-
 export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
   if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS
   if (isMyContext) return MY_CONTEXT_WIDGETS(profileUrl)

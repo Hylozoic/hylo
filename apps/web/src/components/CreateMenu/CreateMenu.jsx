@@ -9,7 +9,7 @@ import { POST_TYPES } from 'store/models/Post'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { createTrackUrl } from 'util/navigation'
+import { createTrackUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat' && t !== 'action')

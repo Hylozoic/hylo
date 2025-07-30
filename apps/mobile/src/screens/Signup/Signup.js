@@ -8,13 +8,14 @@ import validator from 'validator'
 import { AnalyticsEvents } from '@hylo/shared'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import sendEmailVerificationMutation from '@hylo/graphql/mutations/sendEmailVerificationMutation'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import useOpenURL from 'hooks/useOpenURL'
 import useRouteParams from 'hooks/useRouteParams'
 import Button from 'components/Button'
 import FormattedError from 'components/FormattedError'
 import SocialAuth from 'components/SocialAuth'
 import styles from './Signup.styles'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 const backgroundImage = require('assets/signin_background.png')
 const merkabaImage = require('assets/merkaba_white.png')
@@ -61,6 +62,7 @@ export default function Signup () {
   const { email: routeEmail, error: routeError, bannerError: routeBannerError } = useRouteParams()
   const openURL = useOpenURL()
   const { fetching } = useSignupWorkflow()
+  const [{ currentUser }] = useCurrentUser()
   const [, sendEmailVerification] = useMutation(sendEmailVerificationMutation)
   const [email, providedSetEmail] = useState(routeEmail)
   const [signingUp, setSigningUp] = useState(false)
@@ -76,7 +78,7 @@ export default function Signup () {
       setBannerError(routeBannerError)
     }, [routeBannerError])
   )
-
+  
   const setEmail = validateEmail => {
     setBannerError()
     setError()
@@ -100,12 +102,14 @@ export default function Signup () {
       const { data } = await sendEmailVerification({ email })
 
       if (data?.sendEmailVerification?.success) {
-        mixpanel.track(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email })
+        // If currentUser is not available, pass noUser: true
+        trackWithConsent(AnalyticsEvents.SIGNUP_EMAIL_VERIFICATION_SENT, { email }, currentUser, !currentUser)
         openURL(`/signup/verify-email?email=${encodeURIComponent(email)}`)
       } else {
         throw genericError
       }
     } catch (err) {
+      console.log('is this the errrrrrrror?', err)
       setError(err.message)
     } finally {
       setSigningUp(false)

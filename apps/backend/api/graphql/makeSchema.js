@@ -191,6 +191,17 @@ export default async function makeSchema ({ req }) {
           if (foundType) return foundType
           throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
         }
+      },
+      // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
+      SubscriptionUpdate: {
+        __resolveType (data, context, info) {
+          // Use makeModelsType if set by the subscription resolver
+          if (data?.makeModelsType) return data.makeModelsType
+
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
+        }
       }
     }
   } else if (req.api_client) {
@@ -411,7 +422,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteProjectRole: (root, { id }, context) => deleteProjectRole(context.currentUserId, id),
 
-    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data),
+    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data, context),
 
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
@@ -457,7 +468,7 @@ export function makeMutations ({ fetchOne }) {
 
     processStripeToken: (root, { postId, token, amount }, context) => processStripeToken(context.currentUserId, postId, token, amount),
 
-    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data),
+    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data, context),
 
     reactivateMe: (root, context) => reactivateUser({ userId: context.currentUserId }),
 

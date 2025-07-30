@@ -13,10 +13,8 @@ import { agreementsURL } from 'store/constants'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForDetail from 'store/selectors/getGroupForDetails'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
-
-import classes from './FlagGroupContent.module.scss'
 
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const { t } = useTranslation()
@@ -25,6 +23,17 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
 
   useEffect(() => {
     dispatch(fetchPlatformAgreements())
+  }, [])
+
+  // Add escape key handler
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        closeModal()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
   const platformAgreements = useSelector(getPlatformAgreements)
@@ -78,55 +87,93 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   }
 
   return (
-    <div className={classes.popup} onClick={(e) => e.stopPropagation()}>
-      <div className={classes.bg} onClick={closeModal} />
-      <div className={classes.popupInner}>
-        <h1>{t('Explanation for Flagging')}</h1>
-        <span onClick={closeModal} className={classes.closeBtn}>
-          <Icon name='Ex' className={classes.icon} />
-        </span>
+    <div className='fixed inset-0 z-[1001] overflow-y-auto pointer-events-auto' onClick={(e) => e.stopPropagation()}>
+      <div className='fixed inset-0 bg-black/50 z-0 w-full h-full top-0 left-0' onClick={closeModal} />
+      <div className='relative max-h-screen flex items-center justify-center p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[750px] w-full'>
+        <div className='relative bg-background rounded-lg shadow-xl w-full max-w-[750px] p-6'>
+          <div className='flex flex-row items-center justify-between mb-4'>
+            <h2 className='text-xl font-semibold'>{t('Explanation for Flagging')}</h2>
+            <button onClick={closeModal} className='text-foreground/70 hover:text-foreground transition-colors'>
+              <Icon name='Ex' className='w-5 h-5' />
+            </button>
+          </div>
 
-        <div className={classes.content}>
-          <div className={classes.explainer}>
-            {t('flaggingExplainer')}
-          </div>
-          <div className={classes.explainer + ' ' + classes.reasonRequired}>
-            {t('flagsNeedACategory')}
-          </div>
-          <TextareaAutosize
-            className={classes.explanationTextbox}
-            minRows={6}
-            value={explanation}
-            onChange={(e) => setExplanation(e.target.value)}
-            placeholder={explanationPlaceholder}
-          />
-          {group && agreements.length > 0 && (
-            <>
-              <h3>{t('Not permitted in {{groupName}}', { groupName: group?.name })}</h3>
-              <a href={groupAgreementsUrl} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to group agreements')}</a>
-              <MultiSelect items={agreements} selected={agreementsSelected} handleSelect={handleAgreementsSelect} />
-            </>
-          )}
-          <h3>{t('Violations of platform agreements')}</h3>
-          <a href={agreementsURL} target='_blank' rel='noopener noreferrer' className={classes.agreementsLink}>{t('Link to platform agreements')}</a>
-          <h5>{t('Not permitted in Public Spaces')}</h5>
-          <MultiSelect items={platformAgreements.filter((ag) => ag.type !== 'anywhere')} selected={platformAgreementsSelected} handleSelect={handlePlatformAgreementsSelect} />
-          <h5>{t('Not permitted anywhere on the platform')}</h5>
-          <MultiSelect items={platformAgreements.filter((ag) => ag.type === 'anywhere')} selected={platformAgreementsSelected} handleSelect={handlePlatformAgreementsSelect} />
-          <div className={classes.submission}>
-            <CheckBox
-              checked={anonymous}
-              label={t('Anonymous (moderators will see your name)')}
-              onChange={value => setAnonymous(value)}
-              labelClass={classes.anonLabel}
+          <div className='space-y-4 max-h-[80vh] overflow-y-auto pr-2'>
+            <div className='text-foreground/70 text-sm'>
+              {t('flaggingExplainer')}
+            </div>
+            <div className='text-accent text-sm font-medium'>
+              {t('flagsNeedACategory')}
+            </div>
+            <TextareaAutosize
+              className='w-full min-h-[120px] p-3 rounded-lg border-2 border-foreground/10 bg-transparent text-foreground/80 focus:outline-none focus:ring-2 focus:ring-accent placeholder:text-foreground/50'
+              minRows={4}
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder={explanationPlaceholder}
             />
-            <Button variant='secondary' onClick={submit} disabled={!isValid()} data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')} data-tooltip-id='flagging-submit-tt'>
-              {t('Submit')}
-            </Button>
-            <Tooltip
-              id='flagging-submit-tt'
-              delay={250}
-            />
+            {group && agreements.length > 0 && (
+              <div className='space-y-3'>
+                <h3 className='text-base font-medium'>{t('Not permitted in {{groupName}}', { groupName: group?.name })}</h3>
+                <a
+                  href={groupAgreementsUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
+                >
+                  {t('View group agreements')}
+                </a>
+                <MultiSelect items={agreements} selected={agreementsSelected} handleSelect={handleAgreementsSelect} />
+              </div>
+            )}
+            <div className='space-y-3'>
+              <h3 className='text-base font-medium'>{t('Violations of platform agreements')}</h3>
+              <a
+                href={agreementsURL}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit block hover:scale-105 transition-all'
+              >
+                {t('View platform agreements')}
+              </a>
+              <div className='space-y-2'>
+                <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted in Public Spaces')}</h5>
+                <MultiSelect
+                  items={platformAgreements.filter((ag) => ag.type !== 'anywhere')}
+                  selected={platformAgreementsSelected}
+                  handleSelect={handlePlatformAgreementsSelect}
+                />
+              </div>
+              <div className='space-y-2'>
+                <h5 className='text-sm font-medium text-foreground/70'>{t('Not permitted anywhere on the platform')}</h5>
+                <MultiSelect
+                  items={platformAgreements.filter((ag) => ag.type === 'anywhere')}
+                  selected={platformAgreementsSelected}
+                  handleSelect={handlePlatformAgreementsSelect}
+                />
+              </div>
+            </div>
+            <div className='flex items-center justify-between pt-2 border-t border-foreground/10'>
+              <CheckBox
+                checked={anonymous}
+                label={t('Anonymous (moderators will see your name)')}
+                onChange={value => setAnonymous(value)}
+                className='text-sm text-foreground/70'
+              />
+              <Button
+                variant='secondary'
+                onClick={submit}
+                disabled={!isValid()}
+                data-tooltip-content={t('Select an agreement and add an explanation for why you are flagging this post')}
+                data-tooltip-id='flagging-submit-tt'
+              >
+                {t('Submit')}
+              </Button>
+              <Tooltip
+                id='flagging-submit-tt'
+                delay={250}
+              />
+            </div>
           </div>
         </div>
       </div>

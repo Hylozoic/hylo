@@ -3,7 +3,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import RoundImage from 'components/RoundImage'
-import { bodyForNotification, titleForNotification, imageForNotification } from 'store/models/Notification'
+import { bodyForNotification, titleForNotification, imageForNotification } from '@hylo/presenters/NotificationPresenter'
 
 export default function NotificationItem ({ notification, onClick }) {
   const { activity: { unread } } = notification

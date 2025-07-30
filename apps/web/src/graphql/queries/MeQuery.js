@@ -92,6 +92,7 @@ export default gql`
     memberships {
       id
       lastViewedAt
+      navOrder
       newPostCount
       person {
         id
@@ -133,6 +134,12 @@ export default gql`
         id
         name
       }
+    }
+    cookieConsentPreferences {
+      id
+      settings
+      version
+      updatedAt
     }
   }
 `

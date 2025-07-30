@@ -8,6 +8,9 @@ import SettingsControl from 'components/SettingsControl'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn, validateEmail } from 'util/index'
 import ModalDialog from 'components/ModalDialog'
+import { useCookieConsent } from 'contexts/CookieConsentContext'
+import { Switch } from 'components/ui/switch'
+import SettingsSection from '../../GroupSettings/SettingsSection/SettingsSection'
 
 function AccountSettingsTab ({
   currentUser,
@@ -133,6 +136,24 @@ function AccountSettingsTab ({
     updateUserSettings(pick(keys(omit('confirm', changed)), edits))
   }
 
+  const { updateCookieConsent } = useCookieConsent()
+  const [cookieSettings, setCookieSettings] = useState({
+    analytics: true,
+    support: true
+  })
+
+  useEffect(() => {
+    if (currentUser?.cookieConsentPreferences?.settings) {
+      setCookieSettings(currentUser.cookieConsentPreferences.settings)
+    }
+  }, [currentUser])
+
+  const handleCookieSettingChange = async (setting, value) => {
+    const newSettings = { ...cookieSettings, [setting]: value }
+    setCookieSettings(newSettings)
+    await updateCookieConsent(newSettings)
+  }
+
   if (!currentUser) return <Loading />
 
   const { edits, showDeactivateModal, showDeleteModal } = state
@@ -158,22 +179,7 @@ function AccountSettingsTab ({
         {t('Passwords must be at least 9 characters long, and should be a mix of lower and upper case letters, numbers and symbols.')}
       </div>
 
-      <div className='pt-4 flex flex-row gap-4 items-center'>
-        <Button
-          onClick={() => setState(prev => ({ ...prev, showDeactivateModal: true }))}
-          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
-        >
-          {t('Deactivate Account')}
-        </Button>
-        <Button
-          onClick={() => setState(prev => ({ ...prev, showDeleteModal: true }))}
-          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
-        >
-          {t('Delete Account')}
-        </Button>
-      </div>
-
-      <div className='flex items-center justify-between border-t border-foreground/10 pt-4 mt-6'>
+      <div className='flex items-center justify-between pt-4 mt-6'>
         <span className={cn(
           'text-sm',
           canSaveValue ? 'text-accent' : 'text-foreground/50'
@@ -187,6 +193,21 @@ function AccountSettingsTab ({
           onClick={canSaveValue ? save : null}
         >
           {t('Save Changes')}
+        </Button>
+      </div>
+
+      <div className='pt-4 flex flex-row gap-4 items-center'>
+        <Button
+          onClick={() => setState(prev => ({ ...prev, showDeactivateModal: true }))}
+          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
+        >
+          {t('Deactivate Account')}
+        </Button>
+        <Button
+          onClick={() => setState(prev => ({ ...prev, showDeleteModal: true }))}
+          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
+        >
+          {t('Delete Account')}
         </Button>
       </div>
 
@@ -250,6 +271,54 @@ function AccountSettingsTab ({
           </div>
         </ModalDialog>
       )}
+
+      {/* Visual divider before cookies section */}
+      <div className='border-t border-foreground/10 my-8' />
+
+      {/* Cookie Consent Section */}
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Cookie Preferences')}</h3>
+        <p className='text-foreground/70 mb-4'>
+          {t('We use cookies to help understand whether you are logged in and to understand your preferences and where you are in Hylo.')}
+        </p>
+        <div className='space-y-4'>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <div className='flex items-center gap-2'>
+                <h4 className='text-foreground font-medium'>{t('Analytics (Mixpanel)')}</h4>
+              </div>
+              <p className='text-foreground/70 text-sm'>
+                {t('We use a service called Mixpanel to understand how people like you use Hylo. Your identity is anonymized but your behavior is recorded so that we can make improvements to Hylo based on how people are using it.')}
+              </p>
+              <p className='text-xs text-muted-foreground mt-1'>
+                {t('This helps us understand how people use Hylo so we can improve the platform. Your data is anonymized and aggregated.')}
+              </p>
+            </div>
+            <Switch
+              checked={cookieSettings.analytics}
+              onCheckedChange={(checked) => handleCookieSettingChange('analytics', checked)}
+            />
+          </div>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <div className='flex items-center gap-2'>
+                <h4 className='text-foreground font-medium'>{t('Support (Intercom)')}</h4>
+              </div>
+              <p className='text-foreground/70 text-sm'>
+                {t('When people on Hylo need help or want to report a bug, they are interacting with a service called Intercom. Intercom stores cookies in your browser to keep track of conversations with us, the development team.')}
+              </p>
+              <p className='text-xs text-muted-foreground mt-1'>
+                {t('This helps us provide better customer support and track bug reports. Your conversations are stored securely.')}
+              </p>
+            </div>
+            <Switch
+              checked={cookieSettings.support}
+              onCheckedChange={(checked) => handleCookieSettingChange('support', checked)}
+            />
+          </div>
+        </div>
+      </SettingsSection>
+      {/* ...end cookie consent section... */}
     </div>
   )
 }

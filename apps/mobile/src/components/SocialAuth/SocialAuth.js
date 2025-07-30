@@ -7,7 +7,7 @@ import { isIOS } from 'util/platform'
 import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
-import { rhino60 } from 'style/colors'
+import { rhino60 } from '@hylo/presenters/colors'
 
 export default function SocialAuth ({
   onStart: providedOnStart,

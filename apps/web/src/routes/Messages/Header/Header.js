@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isEmpty, filter, get, map } from 'lodash/fp'
 import Icon from 'components/Icon'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 import { others } from 'store/models/MessageThread'
 
 const MAX_CHARACTERS = 60

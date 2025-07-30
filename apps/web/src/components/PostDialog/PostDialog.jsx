@@ -2,7 +2,7 @@ import React, { useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
-import { removePostFromUrl } from 'util/navigation'
+import { removePostFromUrl } from '@hylo/navigation'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
 

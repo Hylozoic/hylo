@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { View, TouchableOpacity, TextInput, Text, StyleSheet } from 'react-native'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
-import { rhino60, amaranth } from 'style/colors'
+import { rhino60, amaranth } from '@hylo/presenters/colors'
 
 export default function Control ({
   value,

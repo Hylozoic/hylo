@@ -20,7 +20,7 @@ import {
   getSearchResults,
   getHasMoreSearchResults
 } from './Search.store'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { cn } from 'util/index'

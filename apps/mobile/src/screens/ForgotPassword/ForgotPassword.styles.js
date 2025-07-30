@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native'
-import { caribbeanGreen, rhino, rhino80 } from 'style/colors'
+import { caribbeanGreen, rhino, rhino80 } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
 
 const screenHeight = Dimensions.get('window').height

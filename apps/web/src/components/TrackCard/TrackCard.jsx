@@ -10,7 +10,7 @@ import { duplicateTrack, updateTrack } from 'store/actions/trackActions'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
-import { trackUrl } from 'util/navigation'
+import { trackUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
 function TrackCard ({ track }) {

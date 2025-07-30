@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -30,7 +30,8 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
@@ -274,8 +275,8 @@ export default function ChatPost ({
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
             <div className='text-xs text-foreground/50'>
-              {DateTime.fromISO(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
+              {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')})</span>}
             </div>
           </div>
         )}

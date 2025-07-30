@@ -41,7 +41,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
+import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 
 import {
@@ -76,7 +76,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
 
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({ slug, withWidgets: true, withPrerequisites: !!currentUser }))
+    dispatch(fetchGroupDetails({ slug, withContextWidgets: false, withWidgets: true, withPrerequisites: !!currentUser }))
   }, [dispatch, slug, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
@@ -121,7 +121,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
   return (
-    <div className={cn('relative mx-auto', { 'w-full max-w-[750px]': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
+    <div className={cn('GroupDetail relative mx-auto', { 'w-full max-w-[750px] my-4': fullPage, 'w-screen-lg': !fullPage, [g.isAboutCurrentGroup]: isAboutCurrentGroup })}>
       <Helmet>
         <title>{group.name} | Hylo</title>
         <meta name='description' content={TextHelpers.truncateHTML(group.description, MAX_DETAILS_LENGTH)} />
@@ -129,7 +129,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
       {!isAboutCurrentGroup && (
         <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {!fullPage && (
+          {!fullPage && !isWebView() && (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
           <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
