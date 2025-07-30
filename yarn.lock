@@ -4116,10 +4116,10 @@ __metadata:
 
 "@hylo/navigation@file:.yalc/@hylo/navigation::locator=desktop%40workspace%3Aapps%2Fdesktop":
   version: 0.0.1
-  resolution: "@hylo/navigation@file:.yalc/@hylo/navigation#.yalc/@hylo/navigation::hash=4f2597&locator=desktop%40workspace%3Aapps%2Fdesktop"
+  resolution: "@hylo/navigation@file:.yalc/@hylo/navigation#.yalc/@hylo/navigation::hash=430963&locator=desktop%40workspace%3Aapps%2Fdesktop"
   dependencies:
     lodash: "npm:^4.17.21"
-  checksum: 10/251c7d4494ce28659257402cce0ff49f3f8eb4fb27cf0df31cba99425909f5bcb8ee2472ca147f3f1d0cc91219a5a1b2b3b5ef8305f7db7db99e60c615d62573
+  checksum: 10/3d0d5e8e0ee1d41fff300b9bafee8a1bbf44ae590180799bdace2e93849df2354a125be85c0af938f0a4350132149a2973a5a215a3726eec1532d2d24d9571d2
   languageName: node
   linkType: hard
 
@@ -4137,14 +4137,14 @@ __metadata:
 
 "@hylo/presenters@file:.yalc/@hylo/presenters::locator=desktop%40workspace%3Aapps%2Fdesktop":
   version: 0.0.1
-  resolution: "@hylo/presenters@file:.yalc/@hylo/presenters#.yalc/@hylo/presenters::hash=0a0279&locator=desktop%40workspace%3Aapps%2Fdesktop"
+  resolution: "@hylo/presenters@file:.yalc/@hylo/presenters#.yalc/@hylo/presenters::hash=9012ba&locator=desktop%40workspace%3Aapps%2Fdesktop"
   dependencies:
     "@hylo/navigation": "npm:*"
     html-to-text: "npm:^8.1.0"
     lodash: "npm:^4.17.21"
     tinycolor2: "npm:^1.6.0"
     trunc-text: "npm:^1.0.2"
-  checksum: 10/ad203ab11044a1be7ec81e33cd25214e41f619c354a248b0a94914dd5fe4554d64ce4799f7c13f2e59eb8b1dfb094bf56603e6f3146c97711c00ff229bad728f
+  checksum: 10/ad107f42cb9081133e6e9727cba9eaf1ea0cbb64522b0bd4434f842b781caa0f09e694226675d8390531582491e234f8fcd67e84f680b33bed20dd5efc49bd40
   languageName: node
   linkType: hard
 
