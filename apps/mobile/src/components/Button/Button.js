@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { omit } from 'lodash/fp'
 import Icon from 'components/Icon'
-import { caribbeanGreen, white } from 'style/colors'
+import { caribbeanGreen, white } from '@hylo/presenters/colors'
 
 export default function Button (props) {
   const {

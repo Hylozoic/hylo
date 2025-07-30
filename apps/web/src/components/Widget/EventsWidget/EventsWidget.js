@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
-import { postUrl, createPostUrl } from 'util/navigation'
+import { postUrl, createPostUrl } from '@hylo/navigation'
 
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'

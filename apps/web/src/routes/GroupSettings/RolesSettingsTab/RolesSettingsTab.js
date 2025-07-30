@@ -32,7 +32,7 @@ import KeyControlledItemList from 'components/KeyControlledList/KeyControlledIte
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { keyMap } from 'util/textInput'
 import { cn } from 'util/index'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 
 import styles from './RolesSettingsTab.module.scss'
 

@@ -1,7 +1,7 @@
 import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -23,6 +23,7 @@ export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   // This should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
@@ -32,7 +33,24 @@ export default function RootRouter () {
       await dispatch(checkLogin())
       setLoading(false)
     }())
-  }, [dispatch, setLoading])
+
+    // For navigation to work from notifactions in the electron app
+    if (window.electron && window.electron.onNavigateTo) {
+      window.electron.onNavigateTo((url) => {
+        // Optionally, strip the host if present
+        // For example, if url is '/groups/123', just navigate(url)
+        // If url is 'https://hylo.com/groups/123', extract the path
+        let path = url
+        try {
+          const u = new URL(url)
+          path = u.pathname + u.search + u.hash
+        } catch (e) {
+          // url is likely already a path
+        }
+        navigate(path)
+      })
+    }
+  }, [])
 
   if (loading) {
     return (

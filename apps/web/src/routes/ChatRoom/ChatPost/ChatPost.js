@@ -30,7 +30,7 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { cn } from 'util/index'
 

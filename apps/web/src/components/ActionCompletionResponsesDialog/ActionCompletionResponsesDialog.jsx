@@ -6,7 +6,7 @@ import Avatar from 'components/Avatar'
 import CardFileAttachments from 'components/CardFileAttachments'
 import * as Dialog from '@radix-ui/react-dialog'
 import HyloHTML from 'components/HyloHTML'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 
 export default function ActionCompletionResponsesDialog ({ portalTarget, post, onClose }) {
   const { t } = useTranslation()

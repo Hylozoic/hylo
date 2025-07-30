@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
-import { createPostUrl } from 'util/navigation'
+import { createPostUrl } from '@hylo/navigation'
 
 export default function PostPrompt (props) {
   const { className, firstName = '', querystringParams = {}, postTypesAvailable, routeParams = {} } = props

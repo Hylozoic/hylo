@@ -1,5 +1,5 @@
 import { Dimensions } from 'react-native'
-import { black10onRhino } from 'style/colors'
+import { black10onRhino } from '@hylo/presenters/colors'
 
 export default imageCount => {
   const containerWidth = Dimensions.get('window').width - 25

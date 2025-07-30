@@ -7,7 +7,7 @@ import Button from 'components/Button'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 
 function TrackCard({ track, groupSlug }) {
@@ -20,8 +20,8 @@ function TrackCard({ track, groupSlug }) {
   const handlePublishTrack = useCallback((publishedAt) => {
     Alert.alert(
       t('Confirm'),
-      publishedAt 
-        ? t('Are you sure you want to publish this track?') 
+      publishedAt
+        ? t('Are you sure you want to publish this track?')
         : t('Are you sure you want to unpublish this track?'),
       [
         {
@@ -45,7 +45,7 @@ function TrackCard({ track, groupSlug }) {
   }
 
   return (
-    <Pressable 
+    <Pressable
       onPress={navigateToTrack}
       className='mb-2'
     >

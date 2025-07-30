@@ -7,7 +7,7 @@ import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
 import NotificationItem from './NotificationItem'
 import LoadingItems from 'routes/AuthLayoutRouter/components/GlobalNav/LoadingItems'
 import NoItems from 'routes/AuthLayoutRouter/components/GlobalNav/NoItems'
-import { urlForNotification } from 'store/models/Notification'
+import { urlForNotification } from '@hylo/presenters/NotificationPresenter'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import {

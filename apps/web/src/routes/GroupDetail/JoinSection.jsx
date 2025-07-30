@@ -5,7 +5,7 @@ import Button from 'components/ui/button'
 import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
 import { cn } from 'util/index'
-import { groupUrl, groupDetailUrl } from 'util/navigation'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 
 import Icon from 'components/Icon'
 

@@ -14,7 +14,6 @@ import {
   isGroupsView,
   origin
 } from './navigation'
-import { host } from 'config/index'
 
 describe('postUrl', () => {
   it('should default to displaying the all groups context', () => {
@@ -135,11 +134,6 @@ describe('origin with windows === undefined', () => {
 
   afterAll(() => {
     global.window = window
-  })
-
-  it('returns host', () => {
-    const actual = origin()
-    expect(actual).toEqual(host)
   })
 })
 

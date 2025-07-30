@@ -1,6 +1,6 @@
 import { connect } from 'react-redux'
 import { push } from 'redux-first-history'
-import { postUrl } from 'util/navigation'
+import { postUrl } from '@hylo/navigation'
 
 export function mapStateToProps (state, props) {
   return { }

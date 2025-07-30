@@ -1,6 +1,6 @@
 import React from 'react'
 import { bgImageStyle } from 'util/index'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { Link } from 'react-router-dom'
 import { chunk } from 'lodash/fp'
 import { DEFAULT_AVATAR } from 'store/models/Group'

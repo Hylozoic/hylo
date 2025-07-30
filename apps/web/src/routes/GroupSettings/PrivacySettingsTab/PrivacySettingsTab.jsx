@@ -9,7 +9,7 @@ import Button from 'components/ui/button'
 import { Switch } from 'components/ui/switch'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import {
   accessibilityDescription,
   accessibilityString,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
 import { useNavigate } from 'react-router-dom'
 import Button from 'components/ui/button'

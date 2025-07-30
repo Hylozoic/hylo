@@ -1,9 +1,8 @@
-import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { findHomeWidget, PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/navigation'
 import ContextWidgetPresenter, {
-  findHomeWidget,
   MY_CONTEXT_WIDGETS,
   PUBLIC_CONTEXT_WIDGETS
-} from './ContextWidgetPresenter'
+} from './ContextWidgetPresenter.js'
 
 export default function GroupPresenter (group) {
   if (!group || group?._presented) return group

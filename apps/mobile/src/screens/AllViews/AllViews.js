@@ -6,7 +6,7 @@ import { translateTitle } from '@hylo/presenters/ContextWidgetPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADMINISTRATION } from '@hylo/hooks/useHasResponsibility'
-import { widgetUrl } from 'util/navigation'
+import { widgetUrl } from '@hylo/navigation'
 import useOpenURL from 'hooks/useOpenURL'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 

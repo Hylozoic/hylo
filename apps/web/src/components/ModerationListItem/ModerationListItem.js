@@ -9,7 +9,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import useRouteParams from 'hooks/useRouteParams'
 import Avatar from 'components/Avatar/Avatar'
 import MultiSelect from 'components/MultiSelect/MultiSelect'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import PostListRow from 'components/PostListRow'
 import { cn } from 'util/index'
