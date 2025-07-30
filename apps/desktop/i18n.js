@@ -20,8 +20,6 @@ const initI18n = async () => {
           escapeValue: false
         }
       })
-
-    console.log('i18next initialized successfully')
     return i18next
   } catch (error) {
     console.error('Failed to initialize i18next:', error)
