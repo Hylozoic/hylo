@@ -24,9 +24,12 @@ const NotificationOverlay = ({ message, onPress, onComplete, position = 'top', t
   }, [message])
 
   // Animated style for the container
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: heightAnim.value
-  }))
+  const animatedStyle = useAnimatedStyle(() => {
+    'worklet'
+    return {
+      height: heightAnim.value
+    }
+  })
 
   if (isEmpty(message)) return null
 
