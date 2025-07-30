@@ -202,7 +202,7 @@ function CreateGroup () {
           className='w-full group'
         >
           <div
-            className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+            className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
             style={{ backgroundImage: `url(${bannerUrl})` }}
           >
             <div className='flex flex-col items-center justify-center gap-1'>
@@ -219,7 +219,7 @@ function CreateGroup () {
         >
           <div
             style={bgImageStyle(avatarUrl)}
-            className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
+            className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
           >
             {!avatarUrl && (
               <div className='flex flex-col items-center justify-center gap-1'>

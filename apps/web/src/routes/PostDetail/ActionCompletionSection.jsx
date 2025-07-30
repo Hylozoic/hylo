@@ -168,7 +168,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>
         <Dialog.Portal>
-          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
+          <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
             <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
               <PartyPopper className='w-10 h-10 text-green-500 mx-auto' />
               <Dialog.Title className='sr-only'>Congratulations!</Dialog.Title>

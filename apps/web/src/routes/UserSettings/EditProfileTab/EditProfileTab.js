@@ -134,9 +134,9 @@ function EditProfileTab ({
             >
               <div
                 style={bgImageStyle(bannerUrl)}
-                className='relative w-full h-[20vh] flex flex-col items-center justify-center rounded-lg shadow-md bg-cover bg-center bg-black/20 hover:bg-black/100 scale-100 hover:scale-105 transition-all cursor-pointer'
+                className='relative w-full h-[20vh] flex flex-col items-center justify-center rounded-lg shadow-md bg-cover bg-center bg-darkening/20 hover:bg-darkening/100 scale-100 hover:scale-105 transition-all cursor-pointer'
               >
-                <div className='absolute top-0 left-0 w-full h-full bg-black/20 group-hover:bg-black/60 transition-all duration-300 z-0 rounded-lg' />
+                <div className='absolute top-0 left-0 w-full h-full bg-darkening/20 group-hover:bg-darkening/60 transition-all duration-300 z-0 rounded-lg' />
                 <ImageUp className='w-8 h-8 text-white/60 group-hover:text-white/100 transition-colors relative z-1' />
               </div>
             </UploadAttachmentButton>
@@ -151,7 +151,7 @@ function EditProfileTab ({
                 style={bgImageStyle(avatarUrl)}
                 className='relative w-20 h-20 rounded-lg shadow-md flex items-center justify-center group bg-cover scale-100 hover:scale-105 transition-all cursor-pointer'
               >
-                <div className='absolute top-0 left-0 w-full h-full bg-black/20 group-hover:bg-black/60 transition-all duration-300 z-0 rounded-lg' />
+                <div className='absolute top-0 left-0 w-full h-full bg-darkening/20 group-hover:bg-darkening/60 transition-all duration-300 z-0 rounded-lg' />
                 <ImageUp className='w-6 h-6 text-foreground/50 group-hover:text-foreground/80 transition-colors relative z-1' />
               </div>
             </UploadAttachmentButton>

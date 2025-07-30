@@ -78,7 +78,7 @@ export default function Search (props) {
         <div className='relative flex items-center'>
           <Icon name='Search' className='left-2 absolute opacity-50' />
           <TextInput
-            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[360px] max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
+            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[360px] max-w-[750px] bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
             value={searchForInput}
             placeholder={t('Search for people, posts and comments')}
@@ -137,7 +137,7 @@ function TabBar ({ filter, setSearchFilter }) {
   ]
 
   return (
-    <div className='flex gap-2 justify-center items-center rounded-lg bg-black/10 p-2'>
+    <div className='flex gap-2 justify-center items-center rounded-lg bg-darkening/10 p-2'>
       {tabs.map(({ id, label }) => (
         <span
           key={id}
