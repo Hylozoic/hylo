@@ -42,7 +42,7 @@ import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { createPostUrl } from 'util/navigation'
+import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 

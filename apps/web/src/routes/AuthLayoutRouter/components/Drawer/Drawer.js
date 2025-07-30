@@ -15,7 +15,7 @@ import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { baseUrl, createGroupUrl, groupUrl } from 'util/navigation'
+import { baseUrl, createGroupUrl, groupUrl } from '@hylo/navigation'
 
 // import s from './Drawer.module.scss' // eslint-disable-line no-unused-vars
 import s from './Drawer.module.scss'

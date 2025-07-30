@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { agreementsURL } from 'store/constants'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -11,7 +11,7 @@ import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
 import Button from 'components/Button/Button'
 import PostListRow from 'components/PostListRow'
-import { caribbeanGreen, mediumPurple, white } from 'style/colors'
+import { caribbeanGreen, mediumPurple, white } from '@hylo/presenters/colors'
 
 const ModerationListItem = ({
   moderationAction,

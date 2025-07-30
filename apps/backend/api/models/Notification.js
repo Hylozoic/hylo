@@ -915,7 +915,7 @@ module.exports = bookshelf.Model.extend({
 
   updateUserSocketRoom: async function (userId) {
     const { activity } = this.relations
-    const { actor, comment, group, otherGroup, post } = activity.relations
+    const { actor, comment, group, otherGroup, post, track } = activity.relations
     const action = Notification.priorityReason(activity.get('meta').reasons)
 
     const payload = {
@@ -928,11 +928,15 @@ module.exports = bookshelf.Model.extend({
           comment: refineOne(comment, ['id', 'text']),
           group: refineOne(group, ['id', 'name', 'slug']),
           otherGroup: refineOne(otherGroup, ['id', 'name', 'slug']),
-          post: refineOne(
-            post,
-            ['id', 'name', 'description'],
-            { description: 'details', name: 'title' }
-          )
+          post: {
+            ...refineOne(
+              post,
+              ['id', 'name', 'description', 'type'],
+              { description: 'details', name: 'title' }
+            ),
+            topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
+          },
+          track: refineOne(track, ['id', 'name'])
         }
       )
     }

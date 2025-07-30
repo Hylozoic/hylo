@@ -16,7 +16,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { cn } from 'util/index'
-import { personUrl, topicUrl } from 'util/navigation'
+import { personUrl, topicUrl } from '@hylo/navigation'
 
 class PostHeader extends PureComponent {
   static defaultProps = {

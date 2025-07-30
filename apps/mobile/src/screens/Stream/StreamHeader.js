@@ -7,7 +7,7 @@ import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon'
-import { bannerlinearGradientColors, white, rhino, black, twBackground } from 'style/colors'
+import { bannerlinearGradientColors, white, rhino, black, twBackground } from '@hylo/presenters/colors'
 import { Plus } from 'lucide-react-native'
 
 export default function StreamHeader ({ image, icon, iconName,name, postPrompt = false, currentGroup, streamType }) {

@@ -1,5 +1,5 @@
 import { connect } from 'react-redux'
-import { groupInviteUrl } from 'util/navigation'
+import { groupInviteUrl } from '@hylo/navigation'
 import { regenerateAccessCode, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import {

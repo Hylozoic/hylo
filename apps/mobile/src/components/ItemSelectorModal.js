@@ -2,7 +2,7 @@ import React, { useState, useImperativeHandle, useCallback } from 'react'
 import { View, Modal, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ItemSelector, { defaultColors } from 'components/ItemSelector'
-import { rhino } from 'style/colors'
+import { rhino } from '@hylo/presenters/colors'
 import { X } from 'lucide-react-native'
 
 // TODO: Make it close when pressing outside the modal: https://stackoverflow.com/a/52936928

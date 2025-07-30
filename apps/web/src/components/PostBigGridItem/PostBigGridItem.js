@@ -13,7 +13,7 @@ import Tooltip from 'components/Tooltip'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 
 import classes from './PostBigGridItem.module.scss'
 

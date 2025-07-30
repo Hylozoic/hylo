@@ -31,7 +31,7 @@ import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
-import { createPostUrl, groupUrl, personUrl } from 'util/navigation'
+import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 
 import ActionSummary from './ActionSummary'
 

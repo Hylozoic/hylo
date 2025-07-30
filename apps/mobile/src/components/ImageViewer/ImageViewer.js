@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Avatar from 'components/Avatar'
 import ImageView from 'react-native-image-viewing'
-import { rhino30, white } from 'style/colors'
+import { rhino30, white } from '@hylo/presenters/colors'
 
 export function ImageViewerButton ({
   creator,

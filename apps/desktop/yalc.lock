@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "packages": {
+    "@hylo/navigation": {
+      "signature": "984ff8a1f825979a731ac63ea96f58f2",
+      "file": true,
+      "replaced": "workspace:*"
+    },
+    "@hylo/presenters": {
+      "signature": "c36786dc9990c820e9ad7fe9800c1d3e",
+      "file": true,
+      "replaced": "workspace:*"
+    }
+  }
+}

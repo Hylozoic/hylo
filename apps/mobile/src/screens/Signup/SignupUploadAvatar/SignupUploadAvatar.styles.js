@@ -1,4 +1,4 @@
-import { white40onCaribbeanGreen } from 'style/colors'
+import { white40onCaribbeanGreen } from '@hylo/presenters/colors'
 import defaultStyles from '../SignupFlow.styles'
 
 const imagePickerChild = {

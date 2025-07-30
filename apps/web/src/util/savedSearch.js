@@ -1,6 +1,6 @@
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 
 const parsegroup = group => `Group: ${group.name}`
 const parsePostTypes = postTypes => `Post types: ${postTypes.join(', ')}`

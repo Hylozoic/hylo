@@ -41,7 +41,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
+import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 
 import {

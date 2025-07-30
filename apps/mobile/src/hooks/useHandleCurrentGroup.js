@@ -5,7 +5,7 @@ import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettin
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { getLastViewedGroupSlug, useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
-import { widgetUrl } from 'util/navigation'
+import { widgetUrl } from '@hylo/navigation'
 import mixpanel from 'services/mixpanel'
 import useOpenURL from 'hooks/useOpenURL'
 import useConfirmAlert from 'hooks/useConfirmAlert'

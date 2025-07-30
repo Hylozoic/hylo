@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { bigStone, persimmon, rhino60, rhino80, gunsmoke } from 'style/colors'
+import { bigStone, persimmon, rhino60, rhino80, gunsmoke } from '@hylo/presenters/colors'
 
 export default {
   container: {

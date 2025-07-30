@@ -4,7 +4,7 @@ import { Header } from '@react-navigation/elements'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 // Screens
 import NoContextFallbackScreen from 'screens/NoContextFallbackScreen'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
@@ -44,23 +44,23 @@ export default function HomeNavigator () {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen 
-        name='No Context Fallback' 
-        component={NoContextFallbackScreen} 
+      <HomeTab.Screen
+        name='No Context Fallback'
+        component={NoContextFallbackScreen}
                   options={{
             header: () => (
-              <Header 
+              <Header
                 title="Hylo"
                 headerTitleAlign="center"
                 headerLeft={() => null}
                 headerStyle={{ backgroundColor: twBackground }}
-                headerTitleStyle={{ 
+                headerTitleStyle={{
                   fontFamily: 'Circular-Bold',
                   fontSize: 18
                 }}
               />
             )
-          }} 
+          }}
       />
       {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
