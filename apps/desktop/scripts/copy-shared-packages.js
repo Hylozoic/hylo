@@ -10,7 +10,7 @@ function copySharedPackages () {
   const desktopDir = __dirname
   const rootDir = path.resolve(desktopDir, '../../../')
   const packagesDir = path.resolve(desktopDir, '../../../packages')
-  const sharedPackagesDir = path.resolve(desktopDir, '../shared-packages')
+  const nodeModulesDir = path.resolve(desktopDir, '../node_modules')
 
   console.log('🔨 Building shared packages...')
   try {
@@ -25,9 +25,10 @@ function copySharedPackages () {
     process.exit(1)
   }
 
-  // Create shared-packages directory if it doesn't exist
-  if (!fs.existsSync(sharedPackagesDir)) {
-    fs.mkdirSync(sharedPackagesDir, { recursive: true })
+  // Create node_modules/@hylo directory if it doesn't exist
+  const hyloNodeModulesDir = path.join(nodeModulesDir, '@hylo')
+  if (!fs.existsSync(hyloNodeModulesDir)) {
+    fs.mkdirSync(hyloNodeModulesDir, { recursive: true })
   }
 
   // Packages to copy
@@ -35,7 +36,7 @@ function copySharedPackages () {
 
   packagesToCopy.forEach(packageName => {
     const sourceDir = path.join(packagesDir, packageName)
-    const targetDir = path.join(sharedPackagesDir, packageName)
+    const nodeModulesTargetDir = path.join(hyloNodeModulesDir, packageName)
 
     if (!fs.existsSync(sourceDir)) {
       console.error(`Package ${packageName} not found at ${sourceDir}`)
@@ -43,56 +44,67 @@ function copySharedPackages () {
     }
 
     // Remove existing target directory
-    if (fs.existsSync(targetDir)) {
-      fs.rmSync(targetDir, { recursive: true, force: true })
+    if (fs.existsSync(nodeModulesTargetDir)) {
+      fs.rmSync(nodeModulesTargetDir, { recursive: true, force: true })
     }
 
-    // Copy the package
-    fs.cpSync(sourceDir, targetDir, { recursive: true })
+    // Copy the package to node_modules/@hylo
+    fs.cpSync(sourceDir, nodeModulesTargetDir, { recursive: true, force: true })
 
     // Remove node_modules and other unnecessary files
-    const nodeModulesPath = path.join(targetDir, 'node_modules')
-    if (fs.existsSync(nodeModulesPath)) {
-      fs.rmSync(nodeModulesPath, { recursive: true, force: true })
+    const nodeModulesNodeModulesPath = path.join(nodeModulesTargetDir, 'node_modules')
+    if (fs.existsSync(nodeModulesNodeModulesPath)) {
+      fs.rmSync(nodeModulesNodeModulesPath, { recursive: true, force: true })
     }
 
-    console.log(`✓ Copied ${packageName} to ${targetDir}`)
+    // Remove any symlinks that might point outside the package
+    removeExternalSymlinks(nodeModulesTargetDir, nodeModulesTargetDir)
+
+    console.log(`✓ Copied ${packageName} to node_modules/@hylo`)
   })
 
   // Fix workspace references in package.json files
   console.log('🔧 Fixing workspace references...')
-  const presentersPackageJson = path.join(sharedPackagesDir, 'presenters', 'package.json')
-  if (fs.existsSync(presentersPackageJson)) {
-    const packageJson = JSON.parse(fs.readFileSync(presentersPackageJson, 'utf8'))
+  const presentersNodeModulesJson = path.join(hyloNodeModulesDir, 'presenters', 'package.json')
+
+  if (fs.existsSync(presentersNodeModulesJson)) {
+    const packageJson = JSON.parse(fs.readFileSync(presentersNodeModulesJson, 'utf8'))
 
     // Replace workspace references with file references
     if (packageJson.dependencies && packageJson.dependencies['@hylo/navigation'] === 'workspace:*') {
       packageJson.dependencies['@hylo/navigation'] = 'file:../navigation'
-      fs.writeFileSync(presentersPackageJson, JSON.stringify(packageJson, null, 2))
+      fs.writeFileSync(presentersNodeModulesJson, JSON.stringify(packageJson, null, 2))
       console.log('✓ Fixed @hylo/navigation reference in presenters package.json')
     }
   }
 
-  // Update desktop app's package.json to use file references for the build
-  const desktopPackageJson = path.join(desktopDir, '../package.json')
-  if (fs.existsSync(desktopPackageJson)) {
-    const packageJson = JSON.parse(fs.readFileSync(desktopPackageJson, 'utf8'))
-
-    // Replace workspace references with file references for the build
-    if (packageJson.dependencies) {
-      if (packageJson.dependencies['@hylo/navigation'] === 'workspace:*') {
-        packageJson.dependencies['@hylo/navigation'] = 'file:./shared-packages/navigation'
-      }
-      if (packageJson.dependencies['@hylo/presenters'] === 'workspace:*') {
-        packageJson.dependencies['@hylo/presenters'] = 'file:./shared-packages/presenters'
-      }
-    }
-
-    fs.writeFileSync(desktopPackageJson, JSON.stringify(packageJson, null, 2))
-    console.log('✓ Updated desktop package.json to use file references', packageJson.dependencies)
-  }
-
   console.log('✓ Shared packages copied successfully')
+}
+
+/**
+ * Recursively removes symlinks that point outside the given directory
+ */
+function removeExternalSymlinks (dir, baseDir) {
+  if (!fs.existsSync(dir)) return
+
+  const items = fs.readdirSync(dir)
+  for (const item of items) {
+    const itemPath = path.join(dir, item)
+    const stat = fs.lstatSync(itemPath)
+
+    if (stat.isSymbolicLink()) {
+      const target = fs.realpathSync(itemPath)
+      const relativeTarget = path.relative(baseDir, target)
+
+      // If the symlink points outside the base directory, remove it
+      if (relativeTarget.startsWith('..')) {
+        fs.unlinkSync(itemPath)
+        console.log(`⚠️  Removed external symlink: ${itemPath} -> ${target}`)
+      }
+    } else if (stat.isDirectory()) {
+      removeExternalSymlinks(itemPath, baseDir)
+    }
+  }
 }
 
 copySharedPackages()

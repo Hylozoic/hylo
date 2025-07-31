@@ -2,8 +2,6 @@
 
 The Desktop version of Hylo built with Electron.
 
-## Development
-
 ### Prerequisites
 
 - Node.js ^20
@@ -16,7 +14,14 @@ The Desktop version of Hylo built with Electron.
    yarn install
    ```
 
-2. Start the desktop app in development mode:
+2. Build the shared packages and copy them into node_modules
+   ```bash
+   yarn copy-shared-packages
+   ```
+
+### Development
+
+1. Start the desktop app in development mode:
    ```bash
    yarn desktop
    ```
@@ -26,14 +31,13 @@ The Desktop version of Hylo built with Electron.
 The desktop app uses shared packages from the monorepo. The build process automatically:
 
 1. **Builds** shared packages using `yarn build-packages` from the root
-2. **Copies** packages to `shared-packages/` directory for Electron builds
+2. **Copies** packages to `node_modules/@hylo/` for Electron builds
 3. **Fixes** workspace references in copied packages to use file references
-4. **Restores** workspace references in package.json after the build
 
 This ensures:
 - New developers can run `yarn install` without issues (uses workspace references)
-- Electron builds work correctly (uses file references during build)
-- Package.json stays clean for git commits (workspace references restored)
+- Electron builds work correctly (uses copied packages in node_modules)
+- Development and builds work seamlessly
 
 #### Build Commands
 
@@ -64,7 +68,3 @@ If you encounter issues with shared packages:
    cd apps/desktop
    yarn copy-shared-packages
    ```
-
-3. If yarn install fails with missing shared-packages:
-   - This is expected for new developers
-   - Run `yarn desktop` which will create the needed directories

@@ -12,13 +12,11 @@
   },
   "scripts": {
     "prebuild": "yarn copy-shared-packages",
-    "postbuild": "yarn restore-workspace-references",
     "copy-shared-packages": "node scripts/copy-shared-packages.js",
-    "restore-workspace-references": "node scripts/restore-workspace-references.js",
-    "start": "electron-forge start",
+    "start": "yarn copy-shared-packages && electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "yarn copy-shared-packages && electron-forge package && yarn restore-workspace-references",
-    "make": "yarn copy-shared-packages && electron-forge make && yarn restore-workspace-references"
+    "package": "yarn copy-shared-packages && electron-forge package",
+    "make": "yarn copy-shared-packages && electron-forge make"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -36,7 +34,11 @@
     "@hylo/navigation": "workspace:*",
     "@hylo/presenters": "workspace:*",
     "electron-squirrel-startup": "^1.0.1",
+    "html-to-text": "^8.1.0",
     "i18next": "^23.0.0",
-    "i18next-http-backend": "^2.0.0"
+    "i18next-http-backend": "^2.0.0",
+    "lodash": "^4.17.21",
+    "tinycolor2": "^1.6.0",
+    "trunc-text": "^1.0.2"
   }
 }

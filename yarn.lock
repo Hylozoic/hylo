@@ -16825,8 +16825,12 @@ __metadata:
     "@hylo/presenters": "workspace:*"
     electron: "npm:^37.2.4"
     electron-squirrel-startup: "npm:^1.0.1"
+    html-to-text: "npm:^8.1.0"
     i18next: "npm:^23.0.0"
     i18next-http-backend: "npm:^2.0.0"
+    lodash: "npm:^4.17.21"
+    tinycolor2: "npm:^1.6.0"
+    trunc-text: "npm:^1.0.2"
   languageName: unknown
   linkType: soft
 
