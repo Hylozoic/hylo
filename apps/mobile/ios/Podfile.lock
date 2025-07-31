@@ -63,7 +63,7 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - MCEmojiPicker (1.2.3)
+  - MCEmojiPicker (1.2.5)
   - Mixpanel-swift (4.3.0):
     - Mixpanel-swift/Complete (= 4.3.0)
   - Mixpanel-swift/Complete (4.3.0)
@@ -2527,7 +2527,7 @@ SPEC CHECKSUMS:
   intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
+  MCEmojiPicker: f5d1d691c56aacf287a50378ee2afe2b30bd6b52
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: 6a06ab8a3e44370cb70c6ef31c472b271cdaa7aa
