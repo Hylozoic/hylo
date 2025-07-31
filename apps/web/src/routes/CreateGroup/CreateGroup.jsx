@@ -78,6 +78,7 @@ function CreateGroup () {
     slug: initialGroupSlug || '',
     slugCustomized: false,
     visibility: 1,
+    mode: 'admined',
     edited: false,
     errors: {
       name: false,
@@ -165,13 +166,13 @@ function CreateGroup () {
   }
 
   const onSubmit = () => {
-    let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility } = state
+    let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility, mode } = state
     name = typeof name === 'string' ? trim(name) : name
     purpose = typeof purpose === 'string' ? trim(purpose) : purpose
     avatarUrl = avatarUrl || DEFAULT_AVATAR
 
     if (isValid()) {
-      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
+      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility, mode }))
         .then(({ error }) => {
           if (error) {
             setState(prev => ({
@@ -186,7 +187,7 @@ function CreateGroup () {
   }
 
   // Parent groups are not used in the CreateGroup component -- we will add them back in the future -- add 'parentGroups' to the state object
-  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, slug, visibility } = state
+  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, slug, visibility, mode } = state
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -319,6 +320,36 @@ function CreateGroup () {
                   </div>
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4 flex justify-between gap-4'>
+          <Select
+            value={mode}
+            onValueChange={(value) => updateField('mode')(value)}
+          >
+            <SelectTrigger className='inline-flex border-0'>
+              <SelectValue>
+                <Icon name={mode === 'self_stewarded' ? 'Shield' : 'Users'} className='mr-2' />
+                <span>{mode === 'self_stewarded' ? t('Self-Stewarded') : t('Admined')}</span>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='admined' className='pl-2'>
+                <div className=''>
+                  <Icon name='Users' />
+                  <b className='ml-2'>{t('Admined')}:</b>
+                  <span className=''> {t('Traditional group with designated administrators')}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value='self_stewarded' className='pl-2'>
+                <div className=''>
+                  <Icon name='Shield' />
+                  <b className='ml-2'>{t('Self-Stewarded')}:</b>
+                  <span className=''> {t('Members volunteer and earn trust to steward roles')}</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

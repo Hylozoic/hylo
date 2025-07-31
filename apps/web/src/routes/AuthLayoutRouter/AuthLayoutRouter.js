@@ -39,11 +39,11 @@ import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
+import GroupExplorer from 'routes/GroupExplorer'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import Groups from 'routes/Groups'
-import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
@@ -52,13 +52,14 @@ import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
 import Messages from 'routes/Messages'
-import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
 import PostDetail from 'routes/PostDetail'
+import RolesPanel from 'components/RolesPanel/RolesPanel'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
 import Themes from 'routes/Themes'
+
 import TrackHome from 'routes/TrackHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
@@ -285,8 +286,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='messages/:messageThreadId' element={<ThreadList />} />
-                <Route path='messages' element={<ThreadList />} />
+                <Route path='messages/:messageThreadId' element={<Messages />} />
+                <Route path='messages' element={<Messages />} />
               </Routes>}
           </div> {/* END NavContainer */}
 
@@ -394,6 +395,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='members/create/*' element={<Members context='groups' />} />
                             <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
                             <Route path='members/*' element={<Members context='groups' />} />
+                            <Route path='roles/*' element={<RolesPanel />} />
                             <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />

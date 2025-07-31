@@ -75,5 +75,13 @@ module.exports.routes = {
 
   'POST   /noo/upload':                                   'UploadController.create',
 
-  'GET    /noo/export/group':                             'ExportController.groupData'
+  'GET    /noo/export/group':                             'ExportController.groupData',
+
+  // Role Stewardship endpoints
+  'POST   /noo/role/:roleId/volunteer':                   'RoleStewardshipController.volunteer',
+  'POST   /noo/role/:roleId/nominate':                    'RoleStewardshipController.nominate',
+  'POST   /noo/role/:roleId/trust':                       'RoleStewardshipController.trust',
+  'GET    /noo/role/:roleId/trust-data':                  'RoleStewardshipController.trustData',
+  'POST   /noo/role/:roleId/recalculate':                 'RoleStewardshipController.recalculate',
+  'POST   /noo/group/:groupId/recalculate-roles':         'RoleStewardshipController.recalculateRoles'
 }

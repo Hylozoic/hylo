@@ -89,5 +89,9 @@ module.exports.policies = {
 
   PaymentController: {
     registerStripe: ['sessionAuth']
+  },
+
+  RoleStewardshipController: {
+    '*': ['sessionAuth']
   }
 }

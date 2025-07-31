@@ -23,6 +23,8 @@ import {
   clearStewardSuggestions
 } from './RolesSettingsTab.store'
 import getPerson from 'store/selectors/getPerson'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { updateGroupSettings } from '../GroupSettings.store'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
 import SettingsControl from 'components/SettingsControl'
@@ -145,8 +147,48 @@ function RolesSettingsTab ({ group, commonRoles }) {
 
   const unsavedRolePresent = roles.length > 0 ? roles[roles.length - 1]?.active === '' : false
 
+  // ------------ Anti-abuse settings helpers ---------------
+  const minMemberAgeDays = group?.settings?.minMemberAgeDays || 0
+  const rateLimitHours = group?.settings?.trustRateLimitHours || 0
+
+  const handleSaveAntiAbuse = (changes) => {
+    dispatch(updateGroupSettings(group.id, { settings: changes }))
+  }
+
+  // Determine coordinator privilege
+  const canConfigureAntiAbuse = useSelector(state => (
+    group ? hasResponsibilityForGroup(state, { groupId: group.id, responsibility: ['Administration', 'Manage Members'] }) : false
+  ))
+
   return (
     <>
+      {canConfigureAntiAbuse && (
+        <SettingsSection>
+          <h3>{t('Anti-abuse Settings')}</h3>
+          <div className='text-foreground/70 text-xs mb-4'>{t('Configure optional limits on trust actions')}</div>
+          <div className='flex flex-col gap-4 max-w-sm'>
+            <label className='flex items-center justify-between'>
+              <span>{t('Min membership age (days)')}</span>
+              <input
+                type='number'
+                min='0'
+                className='border rounded p-1 w-20 text-right bg-input text-foreground'
+                defaultValue={minMemberAgeDays}
+                onBlur={e => handleSaveAntiAbuse({ minMemberAgeDays: Number(e.target.value) })}
+              />
+            </label>
+            <label className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                defaultChecked={rateLimitHours > 0}
+                onChange={e => handleSaveAntiAbuse({ trustRateLimitHours: e.target.checked ? 24 : 0 })}
+              />
+              <span>{t('Enable 24-hour trust rate limit')}</span>
+            </label>
+          </div>
+        </SettingsSection>
+      )}
+
       <SettingsSection>
         <h2 className='text-foreground'>{t('Common Roles')}</h2>
         <div className='text-foreground/70 text-xs'>{t('adminRolesHelpText')}</div>

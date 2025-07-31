@@ -374,6 +374,10 @@ export const COMMON_VIEWS = {
     postTypes: ['resource'],
     defaultSortBy: 'created'
   },
+  roles: {
+    name: 'Roles',
+    iconName: 'Shield'
+  },
   stream: {
     name: 'Stream',
     iconName: 'Stream',

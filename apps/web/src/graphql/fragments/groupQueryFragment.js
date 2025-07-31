@@ -44,6 +44,7 @@ export default function groupQueryFragment () {
     invitePath
     location
     memberCount
+    mode
     stewardDescriptor
     stewardDescriptorPlural
     name
@@ -73,6 +74,26 @@ export default function groupQueryFragment () {
         active
         emoji
         groupId
+        assignment
+        status
+        thresholdCurrent
+        thresholdRequired
+        bootstrap
+        stewards {
+          items {
+            id
+            name
+            avatarUrl
+          }
+        }
+        candidates {
+          items {
+            id
+            name
+            avatarUrl
+            trustScore
+          }
+        }
         responsibilities {
           items {
             id

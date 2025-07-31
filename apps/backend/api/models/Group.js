@@ -584,6 +584,11 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-custom-views', type: 'custom-views', order: 6 }
     ]
 
+    // Add roles widget for self-stewarded groups
+    if (this.get('mode') === 'self_stewarded') {
+      orderedWidgets.push({ title: 'widget-roles', type: 'roles', view: 'roles', order: 7 })
+    }
+
     // These are accessible in the all view
     const unorderedWidgets = [
       { title: 'widget-about', type: 'about', view: 'about' },
@@ -612,6 +617,48 @@ module.exports = bookshelf.Model.extend(merge({
         ...widget
       }).save(null, { transacting: trx })
     ))
+  },
+
+  async setupBootstrapRole (userId, trx) {
+    // Create a basic Coordinator role for self-stewarded groups
+    const coordinatorRole = await GroupRole.forge({
+      group_id: this.id,
+      name: 'Coordinator',
+      description: 'Basic group administration and member management',
+      assignment: 'trust',
+      status: 'pending',
+      threshold_current: 1,
+      threshold_required: 10, // Will be recalculated based on group size
+      bootstrap: true,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+
+    // Auto-volunteer the creator
+    await coordinatorRole.stewards().attach(userId, { transacting: trx })
+
+    // Attach core responsibilities (Administration=1, Manage Content=3, Manage Members=4)
+    const coreRespIds = [1, 3, 4]
+    await Promise.all(coreRespIds.map(rid => bookshelf.knex('group_roles_responsibilities')
+      .insert({ group_role_id: coordinatorRole.id, responsibility_id: rid })
+      .onConflict(['group_role_id','responsibility_id']).ignore()
+      .transacting(trx)))
+
+    // Create initial trust expression from creator to creator
+    await TrustExpression.forge({
+      group_id: this.id,
+      group_role_id: coordinatorRole.id,
+      trustor_id: userId,
+      trustee_id: userId,
+      value: 1,
+      created_at: new Date(),
+      updated_at: new Date()
+    }).save(null, { transacting: trx })
+
+    // Set status to active if group size < 3 (bootstrap override)
+    if (this.get('memberCount') < 3) {
+      await coordinatorRole.save({ status: 'active' }, { transacting: trx })
+    }
   },
 
   update: async function (changes, updatedByUserId) {
@@ -818,6 +865,95 @@ module.exports = bookshelf.Model.extend(merge({
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
     const group = await Group.find(groupId)
 
+    // Auto-assign trust for new members in self-stewarded groups
+    if (group && group.get('mode') === 'self_stewarded' && newUserIds.length > 0) {
+      console.log(`[Group.afterAddMembers] Auto-assigning trust for ${newUserIds.length} new members in self-stewarded group ${groupId}`)
+      
+      try {
+        // Get all trust-assigned roles in this group
+        const trustRoles = await GroupRole.where({ group_id: groupId, assignment: 'trust' }).fetchAll()
+        
+        for (const role of trustRoles.models) {
+          const roleId = role.id
+          
+          // Get ALL trust expressions for this role from existing members (including self-trust)
+          const allTrustExpressions = await bookshelf.knex('trust_expressions')
+            .where({ group_role_id: roleId })
+            .whereNotIn('trustor_id', newUserIds) // Exclude new members
+            .select('trustor_id', 'trustee_id', 'value')
+          
+          if (allTrustExpressions.length === 0) continue
+          
+          // Get existing member count (excluding new members)
+          const existingMembers = await bookshelf.knex('group_memberships')
+            .where({ group_id: groupId, active: true })
+            .whereNotIn('user_id', newUserIds)
+            .pluck('user_id')
+          
+          if (existingMembers.length === 0) continue
+          
+          // Calculate average trust for each person who has been voted on
+          const trustAverages = {}
+          const allTrustees = [...new Set(allTrustExpressions.map(t => t.trustee_id))]
+          
+          for (const trusteeId of allTrustees) {
+            const trusteeExpressions = allTrustExpressions.filter(t => t.trustee_id === trusteeId)
+            
+            if (trusteeExpressions.length === 0) {
+              trustAverages[trusteeId] = 0
+            } else {
+              // Calculate average trust from existing members - FIXED: convert to numbers to avoid string concatenation
+              const totalTrust = trusteeExpressions.reduce((sum, expr) => sum + Number(expr.value), 0)
+              const average = totalTrust / existingMembers.length
+              trustAverages[trusteeId] = average
+              
+              console.log(`[Group.afterAddMembers] Trust calculation for user ${trusteeId}:`)
+              console.log(`  - Trust expressions: ${trusteeExpressions.length} votes = ${trusteeExpressions.map(e => `${e.trustor_id}→${e.value}`).join(', ')}`)
+              console.log(`  - Total trust: ${totalTrust}`)
+              console.log(`  - Existing members count: ${existingMembers.length}`)
+              console.log(`  - Average: ${totalTrust}/${existingMembers.length} = ${average}`)
+            }
+          }
+          
+          // Create trust expressions for new members based on averages
+          const trustInserts = []
+          
+          for (const trusteeId of allTrustees) {
+            const averageTrust = trustAverages[trusteeId]
+            
+            if (averageTrust > 0) {
+              // Convert to binary (>=0.5 = trust, <0.5 = no trust)
+              const binaryTrust = averageTrust >= 0.5 ? 1 : 0
+              
+              console.log(`[Group.afterAddMembers] Auto-assigning trust: ${newUserIds.length} new members getting ${binaryTrust} trust for user ${trusteeId} (average was ${averageTrust.toFixed(2)})`)
+              
+              for (const userId of newUserIds) {
+                trustInserts.push({
+                  group_id: groupId, // FIXED: Added missing group_id field
+                  group_role_id: roleId,
+                  trustor_id: userId,
+                  trustee_id: trusteeId,
+                  value: binaryTrust,
+                  created_at: new Date(),
+                  updated_at: new Date()
+                })
+              }
+            }
+          }
+          
+          if (trustInserts.length > 0) {
+            await bookshelf.knex('trust_expressions').insert(trustInserts)
+          }
+          
+          // Recalculate role after adding trust expressions
+          const TrustStewardshipService = require('../services/TrustStewardshipService').default
+          await TrustStewardshipService.recalculateRole(roleId)
+        }
+      } catch (error) {
+        console.error('[Group.afterAddMembers] Error in auto-trust assignment:', error)
+      }
+    }
+
     // Publish group membership updates for new and reactivated members
     if (group && members.length > 0) {
       const { publishGroupMembershipUpdate } = require('../../lib/groupSubscriptionPublisher')
@@ -909,7 +1045,7 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'group_data_type', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'group_data_type', 'mode', 'name', 'purpose', 'settings', 'slug',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
@@ -917,6 +1053,7 @@ module.exports = bookshelf.Model.extend(merge({
         avatar_url: DEFAULT_AVATAR,
         banner_url: DEFAULT_BANNER,
         group_data_type: 1,
+        mode: 'admined',
         visibility: Group.Visibility.PROTECTED
       }
     )
@@ -952,6 +1089,11 @@ module.exports = bookshelf.Model.extend(merge({
       await group.createInitialWidgets(trx)
 
       await group.setupContextWidgets(trx)
+
+      // Bootstrap logic for self-stewarded groups
+      if (data.mode === 'self_stewarded') {
+        await group.setupBootstrapRole(userId, trx)
+      }
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
       await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR, lastReadAt: new Date() }, { transacting: trx })

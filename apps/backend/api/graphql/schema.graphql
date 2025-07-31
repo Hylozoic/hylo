@@ -772,6 +772,8 @@ type Group {
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptorPlural: String
+  # Group mode: 'admined' for traditional groups with designated administrators, 'self_stewarded' for groups where members volunteer and earn trust
+  mode: String
   # Group name
   name: String
   # For the current logged in user how many prerequisite groups must they join before they can join this one
@@ -1243,6 +1245,20 @@ type GroupRole {
   responsibilities: ResponsibilityQuerySet
   # The total number of responsibilities that are part of this role
   responsibilitiesTotal: Int
+  # How this role is assigned: 'admin' for traditional admin assignment, 'trust' for trust-based assignment
+  assignment: String
+  # Current status of the role: 'vacant', 'pending', 'active', 'contested', 'dormant'
+  status: String
+  # Current trust threshold for this role
+  thresholdCurrent: Int
+  # Required trust threshold for this role
+  thresholdRequired: Int
+  # Whether this role is in bootstrap mode (creator has temporary powers)
+  bootstrap: Boolean
+  # The users who are stewards of this role (for trust-based roles)
+  stewards: PersonQuerySet
+  # The users who have volunteered for this role (trust-based roles only)
+  candidates: PersonQuerySet
 }
 
 # A question required to be answered when a group requests to join this group
@@ -1884,6 +1900,8 @@ type Person {
   tagline: String
   # This person's twitter handle
   twitterName: String
+  # Trust score for this person in a specific role context (only available when queried through role candidates)
+  trustScore: Int
   # A website URL this person has added to their profile
   url: String
 
@@ -3213,6 +3231,8 @@ input GroupInput {
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptorPlural: String
+  # Group mode: 'admined' for traditional groups with designated administrators, 'self_stewarded' for groups where members volunteer and earn trust
+  mode: String
   # Group name
   name: String
   # IDs of parent Groups to add this Group to

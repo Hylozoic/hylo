@@ -308,7 +308,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
         enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
+        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        trustScore: p => {
+          // This is computed in the candidates query as trust_score
+          return p.get('trust_score') ? Number(p.get('trust_score')) : null
+        }
       },
       relations: [
         'memberships',
@@ -594,6 +598,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'location',
         'geo_shape',
         'memberCount',
+        'mode',
         'name',
         'postCount',
         'purpose',
@@ -919,12 +924,49 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'group_id',
         'name',
         'active',
+        'assignment',
+        'status',
+        'threshold_current',
+        'threshold_required',
+        'bootstrap',
         'createdAt',
         'updatedAt'
       ],
       relations: [
         'group',
-        { responsibilities: { querySet: true } }
+        { responsibilities: { querySet: true } },
+        { stewards: { querySet: true } },
+        {
+          candidates: {
+            querySet: true,
+            filter: (relation, args, context, info) => {
+              const roleId = relation.relatedData.parentId
+              return relation.query(qb => {
+                // Get all users who have volunteered (expressed trust in themselves for this role)
+                qb.whereIn('users.id', function() {
+                  this.select('trustee_id')
+                    .from('trust_expressions')
+                    .where({
+                      'trust_expressions.group_role_id': roleId,
+                      'trust_expressions.value': 1
+                    })
+                    .whereRaw('trust_expressions.trustor_id = trust_expressions.trustee_id')
+                })
+                // Add trust score as a subquery
+                qb.select('users.*')
+                qb.select(
+                  bookshelf.knex.raw(`(
+                    SELECT COUNT(*) 
+                    FROM trust_expressions 
+                    WHERE trust_expressions.group_role_id = ? 
+                    AND trust_expressions.trustee_id = users.id 
+                    AND trust_expressions.value = 1
+                  ) as trust_score`, [roleId])
+                )
+              })
+            }
+          }
+        }
       ]
     },
 
