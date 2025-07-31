@@ -40,7 +40,7 @@ export default function NoContextFallbackScreen () {
 
   if (fetching || currentGroup?.slug) {
     return <LoadingScreen />
-  }
+  } 
 
   // Only show the context menu if we truly have no group context
   return (
