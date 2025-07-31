@@ -187,7 +187,6 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
   const otherGroupSlug = get('slug', otherGroup)
   post = presentPost(post)
 
-
   switch (action) {
     case ACTION_ANNOUNCEMENT:
       return primaryPostUrl(post, { groupSlug })

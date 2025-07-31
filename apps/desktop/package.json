@@ -11,10 +11,12 @@
     "yarn": "^4.5.0"
   },
   "scripts": {
-    "start": "electron-forge start",
+    "prebuild": "yarn copy-shared-packages",
+    "copy-shared-packages": "node scripts/copy-shared-packages.js",
+    "start": "yarn copy-shared-packages && electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "package": "yarn copy-shared-packages && electron-forge package",
+    "make": "yarn copy-shared-packages && electron-forge make"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -29,8 +31,8 @@
     "electron": "^37.2.4"
   },
   "dependencies": {
-    "@hylo/navigation": "file:.yalc/@hylo/navigation",
-    "@hylo/presenters": "file:.yalc/@hylo/presenters",
+    "@hylo/navigation": "file:./shared-packages/navigation",
+    "@hylo/presenters": "file:./shared-packages/presenters",
     "electron-squirrel-startup": "^1.0.1",
     "i18next": "^23.0.0",
     "i18next-http-backend": "^2.0.0"
