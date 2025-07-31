@@ -4114,24 +4114,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hylo/navigation@file:../navigation::locator=%40hylo%2Fpresenters%40file%3A.%2Fshared-packages%2Fpresenters%23.%2Fshared-packages%2Fpresenters%3A%3Ahash%3Dbae1cd%26locator%3Ddesktop%2540workspace%253Aapps%252Fdesktop":
-  version: 0.0.1
-  resolution: "@hylo/navigation@file:../navigation#../navigation::hash=5fe9bc&locator=%40hylo%2Fpresenters%40file%3A.%2Fshared-packages%2Fpresenters%23.%2Fshared-packages%2Fpresenters%3A%3Ahash%3Dbae1cd%26locator%3Ddesktop%2540workspace%253Aapps%252Fdesktop"
-  dependencies:
-    lodash: "npm:^4.17.21"
-  checksum: 10/d0deb82416e873ca14083aa01dc65d06353488e6879cb7099f398f99e2da805d2167bbc4120ba8cbcd62a333b1c8d76c190247d07b272a70a88cf6193bffd4d8
-  languageName: node
-  linkType: hard
-
-"@hylo/navigation@file:./shared-packages/navigation::locator=desktop%40workspace%3Aapps%2Fdesktop":
-  version: 0.0.1
-  resolution: "@hylo/navigation@file:./shared-packages/navigation#./shared-packages/navigation::hash=5fe9bc&locator=desktop%40workspace%3Aapps%2Fdesktop"
-  dependencies:
-    lodash: "npm:^4.17.21"
-  checksum: 10/d0deb82416e873ca14083aa01dc65d06353488e6879cb7099f398f99e2da805d2167bbc4120ba8cbcd62a333b1c8d76c190247d07b272a70a88cf6193bffd4d8
-  languageName: node
-  linkType: hard
-
 "@hylo/navigation@workspace:*, @hylo/navigation@workspace:packages/navigation":
   version: 0.0.0-use.local
   resolution: "@hylo/navigation@workspace:packages/navigation"
@@ -4143,19 +4125,6 @@ __metadata:
     lodash: "npm:^4.17.21"
   languageName: unknown
   linkType: soft
-
-"@hylo/presenters@file:./shared-packages/presenters::locator=desktop%40workspace%3Aapps%2Fdesktop":
-  version: 0.0.1
-  resolution: "@hylo/presenters@file:./shared-packages/presenters#./shared-packages/presenters::hash=bae1cd&locator=desktop%40workspace%3Aapps%2Fdesktop"
-  dependencies:
-    "@hylo/navigation": "file:../navigation"
-    html-to-text: "npm:^8.1.0"
-    lodash: "npm:^4.17.21"
-    tinycolor2: "npm:^1.6.0"
-    trunc-text: "npm:^1.0.2"
-  checksum: 10/615d491c163aa1dfd8c88483b555a5c6e8834cdd06ea269408ed7bffd38405573b11d0c2e4c832c6b740bd4036faa280bf82cded96f8586e44430050ff9bfaf3
-  languageName: node
-  linkType: hard
 
 "@hylo/presenters@workspace:*, @hylo/presenters@workspace:packages/presenters":
   version: 0.0.0-use.local
@@ -16852,8 +16821,8 @@ __metadata:
     "@electron-forge/plugin-auto-unpack-natives": "npm:^7.8.1"
     "@electron-forge/plugin-fuses": "npm:^7.8.1"
     "@electron/fuses": "npm:^1.8.0"
-    "@hylo/navigation": "file:./shared-packages/navigation"
-    "@hylo/presenters": "file:./shared-packages/presenters"
+    "@hylo/navigation": "workspace:*"
+    "@hylo/presenters": "workspace:*"
     electron: "npm:^37.2.4"
     electron-squirrel-startup: "npm:^1.0.1"
     i18next: "npm:^23.0.0"

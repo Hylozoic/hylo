@@ -23,12 +23,17 @@ The Desktop version of Hylo built with Electron.
 
 ### Building
 
-The desktop app uses shared packages from the monorepo. Before building, the shared packages are automatically:
+The desktop app uses shared packages from the monorepo. The build process automatically:
 
-1. Built using `yarn build-packages` from the root
-2. Copied to `shared-packages/` directory for Electron builds
+1. **Builds** shared packages using `yarn build-packages` from the root
+2. **Copies** packages to `shared-packages/` directory for Electron builds
+3. **Fixes** workspace references in copied packages to use file references
+4. **Restores** workspace references in package.json after the build
 
-This ensures the packages are available as regular npm packages during the Electron build process.
+This ensures:
+- New developers can run `yarn install` without issues (uses workspace references)
+- Electron builds work correctly (uses file references during build)
+- Package.json stays clean for git commits (workspace references restored)
 
 #### Build Commands
 
@@ -40,7 +45,7 @@ This ensures the packages are available as regular npm packages during the Elect
 
 The desktop app uses these shared packages:
 - `@hylo/navigation` - Navigation utilities
-- `@hylo/presenters` - Notification presenters
+- `@hylo/presenters` - Notification presenters (depends on navigation)
 
 These are automatically copied from the monorepo packages before each build.
 
@@ -59,3 +64,7 @@ If you encounter issues with shared packages:
    cd apps/desktop
    yarn copy-shared-packages
    ```
+
+3. If yarn install fails with missing shared-packages:
+   - This is expected for new developers
+   - Run `yarn desktop` which will create the needed directories

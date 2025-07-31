@@ -73,6 +73,25 @@ function copySharedPackages () {
     }
   }
 
+  // Update desktop app's package.json to use file references for the build
+  const desktopPackageJson = path.join(desktopDir, '../package.json')
+  if (fs.existsSync(desktopPackageJson)) {
+    const packageJson = JSON.parse(fs.readFileSync(desktopPackageJson, 'utf8'))
+
+    // Replace workspace references with file references for the build
+    if (packageJson.dependencies) {
+      if (packageJson.dependencies['@hylo/navigation'] === 'workspace:*') {
+        packageJson.dependencies['@hylo/navigation'] = 'file:./shared-packages/navigation'
+      }
+      if (packageJson.dependencies['@hylo/presenters'] === 'workspace:*') {
+        packageJson.dependencies['@hylo/presenters'] = 'file:./shared-packages/presenters'
+      }
+    }
+
+    fs.writeFileSync(desktopPackageJson, JSON.stringify(packageJson, null, 2))
+    console.log('✓ Updated desktop package.json to use file references', packageJson.dependencies)
+  }
+
   console.log('✓ Shared packages copied successfully')
 }
 
