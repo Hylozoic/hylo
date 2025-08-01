@@ -10,7 +10,25 @@ module.exports = {
         name: 'Hylo',
         schemes: ['hylo']
       }
-    ]
+    ],
+    // Add notification entitlements for macOS
+    extendInfo: {
+      NSUserNotificationAlertStyle: 'alert'
+    },
+    // Code signing configuration
+    osxSign: {
+      identity: process.env.CSC_IDENTITY_AUTO,
+      hardenedRuntime: true,
+      entitlements: 'entitlements.plist',
+      entitlementsInherit: 'entitlements.plist',
+      'entitlements-loginhelper': 'entitlements.plist'
+    },
+    osxNotarize: process.env.APPLE_ID ? {
+      tool: 'notarytool',
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID
+    } : undefined
   },
   rebuildConfig: {},
   makers: [

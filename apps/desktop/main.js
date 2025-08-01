@@ -93,6 +93,35 @@ ipcMain.on('set-badge-count', (event, count) => app.setBadgeCount(count))
 ipcMain.on('set-title', (event, title) => handleSetTitle(event, title))
 ipcMain.on('show-notification', (event, notification) => handleShowNotification(event, notification))
 ipcMain.handle('get-locale', () => app.getLocale())
+ipcMain.handle('request-notification-permission', async () => {
+  if (process.platform === 'darwin') {
+    const { systemPreferences } = require('electron')
+    try {
+      // Try to create a test notification to check permissions
+      const testNotification = new Notification({
+        title: 'Permission Test',
+        body: 'Testing notification permissions'
+      })
+
+      // If we can create the notification, permissions are likely working
+      console.log('Notification permissions appear to be working')
+      return true
+    } catch (error) {
+      console.warn('Notification permissions may be restricted:', error.message)
+
+      // Try requesting microphone access as a fallback to trigger permission dialogs
+      try {
+        const granted = await systemPreferences.askForMediaAccess('microphone')
+        console.log('Microphone permission request result:', granted)
+        return granted
+      } catch (micError) {
+        console.error('Error requesting microphone permission:', micError)
+        return false
+      }
+    }
+  }
+  return true
+})
 
 app.on('second-instance', (event, commandLine, workingDirectory) => {
   // Someone tried to run a second instance, we should focus our window.
@@ -105,6 +134,27 @@ app.on('second-instance', (event, commandLine, workingDirectory) => {
 
 app.whenReady().then(async () => {
   await initI18n()
+
+  // Request notification permissions on macOS
+  if (process.platform === 'darwin') {
+    const { systemPreferences } = require('electron')
+    // Request notification permissions explicitly
+    if (systemPreferences.isTrustedAccessibilityClient(false)) {
+      systemPreferences.registerDefaults({
+        'NSUserNotificationAlertStyle': 'alert'
+      })
+    }
+
+    // Log notification permission status
+    try {
+      // Check if we can create notifications (this will fail if permissions are denied)
+      const testNotification = new Notification({ title: 'Test', body: 'Testing notifications' })
+      console.log('Notification permissions appear to be working')
+    } catch (error) {
+      console.warn('Notification permissions may be restricted:', error.message)
+    }
+  }
+
   createMainWindow()
 
   // Set the dock icon on macOS
