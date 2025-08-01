@@ -5,7 +5,7 @@ The Desktop version of Hylo built with Electron.
 ### Prerequisites
 
 - Node.js ^20
-- Yarn ^4.5.0
+- Yarn ^4.9.2
 
 ### Setup
 

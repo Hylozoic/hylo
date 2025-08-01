@@ -8,9 +8,9 @@
   "type": "module",
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.2",
   "browserslist": [
     "defaults"
   ],
