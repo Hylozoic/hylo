@@ -1,7 +1,7 @@
 {
   "name": "desktop",
   "productName": "Hylo",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "The Desktop version of Hylo",
   "main": "main.js",
   "author": "Hylo <hello@hylo.com>",
