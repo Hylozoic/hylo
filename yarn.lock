@@ -1314,6 +1314,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@babel/plugin-transform-export-namespace-from@npm:^7.22.11":
+  version: 7.27.1
+  resolution: "@babel/plugin-transform-export-namespace-from@npm:7.27.1"
+  dependencies:
+    "@babel/helper-plugin-utils": "npm:^7.27.1"
+  peerDependencies:
+    "@babel/core": ^7.0.0-0
+  checksum: 10/85082923eca317094f08f4953d8ea2a6558b3117826c0b740676983902b7236df1f4213ad844cb38c2dae104753dbe8f1cc51f01567835d476d32f5f544a4385
+  languageName: node
+  linkType: hard
+
 "@babel/plugin-transform-export-namespace-from@npm:^7.25.8, @babel/plugin-transform-export-namespace-from@npm:^7.25.9":
   version: 7.25.9
   resolution: "@babel/plugin-transform-export-namespace-from@npm:7.25.9"
@@ -4490,6 +4501,7 @@ __metadata:
   dependencies:
     "@babel/cli": "npm:^7.17.6"
     "@babel/core": "npm:^7.17.0"
+    "@babel/plugin-transform-export-namespace-from": "npm:^7.22.11"
     "@babel/preset-env": "npm:^7.16.11"
     "@babel/runtime": "npm:^7.25.0"
     "@hylo/navigation": "workspace:*"
@@ -27732,6 +27744,7 @@ __metadata:
     "@babel/eslint-parser": "npm:^7.25.8"
     "@babel/plugin-proposal-decorators": "npm:^7.25.9"
     "@babel/plugin-syntax-decorators": "npm:^7.25.9"
+    "@babel/plugin-transform-export-namespace-from": "npm:^7.22.11"
     "@babel/preset-env": "npm:^7.26.8"
     "@babel/runtime": "npm:^7.26.7"
     "@expo/react-native-action-sheet": "npm:^4.1.0"
