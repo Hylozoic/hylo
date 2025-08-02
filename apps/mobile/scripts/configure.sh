@@ -6,6 +6,10 @@ cd ../
 
 echo "Root Directory $PWD"
 
+# Build shared packages first to ensure they're available for the mobile app
+echo "Building shared packages..."
+yarn build-packages
+
 set -a
 source .env
 set +a
