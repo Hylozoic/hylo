@@ -44,7 +44,6 @@ describe('ChatPost', () => {
       ],
       fileAttachments: [],
       linkPreviewFeatured: null,
-      myReactions: [],
       postReactions: []
     },
     group: {

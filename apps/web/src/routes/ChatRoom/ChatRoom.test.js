@@ -158,7 +158,6 @@ function setupTestProviders() {
       creator: { id: '1', name: 'Test User' },
       createdAt: '2023-01-01T11:55:00.000Z',
       groups: [{ id: '1', name: 'Test Group' }],
-      myReactions: [],
       postReactions: []
     },
     {
@@ -168,7 +167,6 @@ function setupTestProviders() {
       creator: { id: '1', name: 'Test User' },
       createdAt: '2023-01-01T12:00:00.000Z',
       groups: [{ id: '1', name: 'Test Group' }],
-      myReactions: [],
       postReactions: []
     },
     {
@@ -178,7 +176,6 @@ function setupTestProviders() {
       creator: { id: '2', name: 'Another User' },
       createdAt: '2023-01-01T12:05:00.000Z',
       groups: [{ id: '1', name: 'Test Group' }],
-      myReactions: [],
       postReactions: []
     }
   ]
@@ -241,7 +238,6 @@ describe('ChatRoom', () => {
                     type: 'chat',
                     creator: { id: '1', name: 'Test User' },
                     createdAt: '2023-01-01T12:00:00.000Z',
-                    myReactions: [],
                     postReactions: []
                   },
                   {
@@ -249,7 +245,6 @@ describe('ChatRoom', () => {
                     type: 'chat',
                     creator: { id: '2', name: 'Another User' },
                     createdAt: '2023-01-01T12:05:00.000Z',
-                    myReactions: [],
                     postReactions: []
                   }
                 ],

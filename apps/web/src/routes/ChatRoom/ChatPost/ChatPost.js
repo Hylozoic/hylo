@@ -60,7 +60,6 @@ export default function ChatPost ({
     id,
     linkPreview,
     linkPreviewFeatured,
-    myReactions,
     postReactions
   } = post
 
@@ -197,7 +196,7 @@ export default function ChatPost ({
     { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
   ])
 
-  const myEmojis = useMemo(() => myReactions ? myReactions.map((reaction) => reaction.emojiFull) : [], [myReactions])
+  const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
 
