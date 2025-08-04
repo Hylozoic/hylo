@@ -52,7 +52,7 @@ import {
   fetchMembers,
   fetchPostsForDrawer,
   fetchPostsForMap,
-  fetchGroups,
+  fetchGroupsForMap,
   formatBoundingBox,
   getCurrentTopics,
   getGroupsFilteredByTopics,
@@ -631,7 +631,7 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      dispatch(fetchGroups({ ...fetchGroupParams }))
+      dispatch(fetchGroupsForMap({ ...fetchGroupParams }))
     }
   }, [fetchGroupParams])
 
