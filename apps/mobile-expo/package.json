@@ -1,0 +1,52 @@
+{
+  "name": "mobile-expo",
+  "version": "6.1.6-0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "prebuild": "expo prebuild",
+    "build:android": "eas build --platform android",
+    "build:ios": "eas build --platform ios",
+    "build:all": "eas build --platform all",
+    "submit:android": "eas submit --platform android",
+    "submit:ios": "eas submit --platform ios"
+  },
+  "dependencies": {
+    "@babel/plugin-proposal-decorators": "^7.25.9",
+    "@babel/plugin-transform-class-properties": "^7.25.9",
+    "@babel/plugin-transform-export-namespace-from": "^7.22.11",
+    "@babel/plugin-transform-private-methods": "^7.25.9",
+    "@babel/plugin-transform-private-property-in-object": "^7.25.9",
+    "@hylo/contexts": "workspace:*",
+    "@hylo/graphql": "workspace:*",
+    "@hylo/hooks": "workspace:*",
+    "@hylo/navigation": "workspace:*",
+    "@hylo/presenters": "workspace:*",
+    "@hylo/shared": "workspace:*",
+    "@hylo/urql": "workspace:*",
+    "babel-plugin-import-graphql": "^2.8.1",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "expo": "~53.0.20",
+    "expo-status-bar": "~2.2.3",
+    "graphql": "^16.9.0",
+    "nativewind": "^4.1.23",
+    "react": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@expo/config-plugins": "~10.1.1",
+    "babel-plugin-remove-style": "^0.1.0",
+    "babel-plugin-transform-remove-console": "^6.9.4",
+    "eas-cli": "^16.17.4",
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "tailwindcss": "^3.4.17"
+  }
+}
