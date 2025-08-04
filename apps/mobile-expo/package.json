@@ -1,6 +1,6 @@
 {
   "name": "mobile-expo",
-  "version": "6.1.6-0",
+  "version": "6.1.6",
   "private": true,
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,8 @@
     "build:ios": "eas build --platform ios",
     "build:all": "eas build --platform all",
     "submit:android": "eas submit --platform android",
-    "submit:ios": "eas submit --platform ios"
+    "submit:ios": "eas submit --platform ios",
+    "postinstall": "cd ../.. && yarn workspaces foreach --recursive --from='packages/*' --topological --verbose run build"
   },
   "dependencies": {
     "@babel/plugin-proposal-decorators": "^7.25.9",
@@ -48,5 +49,12 @@
     "eas-cli": "^16.17.4",
     "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.17"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
   }
 }

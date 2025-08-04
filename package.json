@@ -21,7 +21,10 @@
     "desktop": "yarn workspace desktop start",
     "desktop:build": "yarn workspace desktop make",
     "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
-    "heroku-postbuild": "./heroku-postbuild.sh"
+    "heroku-postbuild": "./heroku-postbuild.sh",
+    "expo:build:android": "eas build --platform android",
+    "expo:build:ios": "eas build --platform ios",
+    "expo:build:all": "eas build --platform all"
   },
   "engines": {
     "node": "^20",
@@ -30,6 +33,7 @@
   "packageManager": "yarn@4.9.2",
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "eas-cli": "^16.17.4",
     "standard": "^17.1.2",
     "ts-jest": "^29.4.0",
     "typescript": "5.0.4"
@@ -44,7 +48,9 @@
     "@emotion/utils": "^1.1.0",
     "@emotion/sheet": "^1.1.0",
     "htmlparser2": "9.1.0",
-    "entities": "4.5.0"
+    "entities": "4.5.0",
+    "@expo/config-plugins": "~10.1.1",
+    "@expo/prebuild-config": "~9.0.0"
   },
   "version": "1.0.0"
 }

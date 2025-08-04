@@ -1,27 +1,31 @@
 {
   "expo": {
     "name": "Hylo",
-    "slug": "hylo-mobile",
-    "version": "6.1.6-0",
+    "slug": "hylo",
+    "version": "6.1.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hylo.HyloA"
+      "bundleIdentifier": "com.hylo.HyloA",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.hylo.HyloA"
     },
     "web": {
@@ -30,7 +34,7 @@
     "plugins": [],
     "extra": {
       "eas": {
-        "projectId": "8c8884a0-4c15-4613-8e78-ebb0dd447390"
+        "projectId": "b09cf94b-bf31-4ff9-8560-e883b0020b0a"
       }
     }
   }

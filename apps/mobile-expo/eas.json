@@ -1,18 +1,24 @@
 {
   "cli": {
-    "version": ">= 16.17.4"
+    "version": ">= 16.17.4",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "corepack": true
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "corepack": true
     },
-    "production": {}
+    "production": {
+      "autoIncrement": true,
+      "corepack": true
+    }
   },
   "submit": {
     "production": {}
   }
-} 
+}
