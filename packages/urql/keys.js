@@ -46,6 +46,8 @@ export default {
   ResponsibilityQuerySet: () => null,
   SearchResultQuerySet: () => null,
   SkillQuerySet: () => null,
+  TopicFollow: data => data?.id,
+  TopicFollowSettings: () => null,
   TrackQuerySet: () => null,
   UserSettings: () => null
 }

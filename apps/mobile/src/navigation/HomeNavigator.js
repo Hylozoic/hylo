@@ -10,6 +10,7 @@ import NoContextFallbackScreen from 'screens/NoContextFallbackScreen'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
 import GroupSettingsWebView from 'screens/GroupSettingsWebView'
 import ChatRoomWebView from 'screens/ChatRoomWebView'
+import ChatRoomNative from 'screens/ChatRoomNative'
 import Stream from 'screens/Stream'
 import Moderation from 'screens/Moderation'
 import AllViews from 'screens/AllViews'
@@ -64,6 +65,8 @@ export default function HomeNavigator () {
       />
       {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
+      {/* Native screens */}
+      <HomeTab.Screen name='Chat Room Native' component={ChatRoomNative} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       <HomeTab.Screen name='Web View' component={HyloWebView} />
