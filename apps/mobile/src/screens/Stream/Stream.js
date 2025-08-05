@@ -152,7 +152,7 @@ export default function Stream () {
         sortBy === DEFAULT_SORT_BY_ID &&
         !streamQueryVariables.filter
       ) {
-        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0} })
+        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0 } })
       }
     }
   }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])

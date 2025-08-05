@@ -1,10 +1,9 @@
 import { gql, useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
 import { trackWithConsent } from 'services/mixpanel'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
-const reactOnMutation = gql` 
+const reactOnMutation = gql`
   mutation ReactOnMutation($entityId: ID, $data: ReactionInput) {
     reactOn(entityId: $entityId, data: $data) {
       id

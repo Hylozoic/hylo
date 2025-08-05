@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { Text, View, Alert, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
@@ -131,7 +131,7 @@ export default function Comment ({
           <View style={styles.headerRight}>
             <EmojiPicker
               myEmojis={myEmojis}
-              includePicker={true}
+              includePicker
               handleReaction={handleReaction}
               handleRemoveReaction={handleRemoveReaction}
             >
