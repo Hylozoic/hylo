@@ -70,7 +70,7 @@ const createMainWindow = () => {
     }
   })
 
-  mainWindow.loadURL(HOST)
+  mainWindow.loadURL(HOST + '/login')
 
   mainWindow.once('ready-to-show', () => mainWindow.show())
 
@@ -181,7 +181,7 @@ app.whenReady().then(async () => {
     // Request notification permissions explicitly
     if (systemPreferences.isTrustedAccessibilityClient(false)) {
       systemPreferences.registerDefaults({
-        'NSUserNotificationAlertStyle': 'alert'
+        NSUserNotificationAlertStyle: 'alert'
       })
     }
 
