@@ -119,8 +119,10 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/post/:id':                                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/post/:id/edit':                           `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/chat/:topicName':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/chat-native/:topicName':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room Native`,
   // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
   '/:context(groups)/:groupSlug/chat/:topicName/post/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
+  '/:context(groups)/:groupSlug/chat-native/:topicName/post/:id':         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room Native`,
   '/:context(groups)/:groupSlug/create':                                  `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
