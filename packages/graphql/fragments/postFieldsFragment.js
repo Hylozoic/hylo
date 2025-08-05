@@ -116,8 +116,6 @@ export const postFieldsFragment = gql`
     topics {
       id
       name
-      postsTotal
-      followersTotal
     }
     members {
       total

@@ -13,7 +13,7 @@ import { agreementsURL } from 'store/constants'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForDetail from 'store/selectors/getGroupForDetails'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
 
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {

@@ -42,7 +42,7 @@ import getPost from 'store/selectors/getPost'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
-import { removePostFromUrl } from 'util/navigation'
+import { removePostFromUrl } from '@hylo/navigation'
 import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'

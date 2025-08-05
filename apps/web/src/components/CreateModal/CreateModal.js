@@ -9,7 +9,7 @@ import CreateGroup from 'components/CreateGroup'
 import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
-import { removeCreateEditModalFromUrl } from 'util/navigation'
+import { removeCreateEditModalFromUrl } from '@hylo/navigation'
 import classes from './CreateModal.module.scss'
 
 const CreateModal = (props) => {

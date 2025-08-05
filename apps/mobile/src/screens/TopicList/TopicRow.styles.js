@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { rhino40, caribbeanGreen } from 'style/colors'
+import { rhino40, caribbeanGreen } from '@hylo/presenters/colors'
 
 export default StyleSheet.create({
   topicRow: {

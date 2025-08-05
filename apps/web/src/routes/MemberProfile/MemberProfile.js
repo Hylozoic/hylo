@@ -51,7 +51,7 @@ import {
   messagePersonUrl,
   messagesUrl,
   gotoExternalUrl
-} from 'util/navigation'
+} from '@hylo/navigation'
 
 import styles from './MemberProfile.module.scss'
 

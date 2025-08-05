@@ -7,7 +7,7 @@
   "description": "Code shared across Hylo applications for consistency of results",
   "scripts": {
     "test": "jest",
-    "build": "tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\;"
+    "build": "echo 'Building shared package' && tsc && find dist/cjs -name '*.js' -exec sh -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\; && echo 'Shared package built'"
   },
   "exports": {
     ".": {

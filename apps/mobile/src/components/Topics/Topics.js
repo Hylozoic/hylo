@@ -1,6 +1,6 @@
 import { ScrollView, Text, TouchableOpacity } from 'react-native'
 import Icon from 'components/Icon'
-import { amaranth, caribbeanGreen, rhino30, white } from 'style/colors'
+import { amaranth, caribbeanGreen, rhino30, white } from '@hylo/presenters/colors'
 
 export default function Topics ({
   onPress,

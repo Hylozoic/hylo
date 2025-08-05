@@ -191,6 +191,17 @@ export default async function makeSchema ({ req }) {
           if (foundType) return foundType
           throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
         }
+      },
+      // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
+      SubscriptionUpdate: {
+        __resolveType (data, context, info) {
+          // Use makeModelsType if set by the subscription resolver
+          if (data?.makeModelsType) return data.makeModelsType
+
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
+        }
       }
     }
   } else if (req.api_client) {

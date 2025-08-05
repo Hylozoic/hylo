@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { persimmon } from 'style/colors'
+import { persimmon } from '@hylo/presenters/colors'
 
 export default StyleSheet.create({
   badge: {

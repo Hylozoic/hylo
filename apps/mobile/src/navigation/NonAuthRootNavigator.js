@@ -7,7 +7,7 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'
 import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
-import { white } from 'style/colors'
+import { white } from '@hylo/presenters/colors'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {

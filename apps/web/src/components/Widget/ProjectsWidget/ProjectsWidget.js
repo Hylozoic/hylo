@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import React, { Component } from 'react'
 import { withTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { postUrl, createPostUrl } from 'util/navigation'
+import { postUrl, createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import RoundImage from '../../RoundImage'
 

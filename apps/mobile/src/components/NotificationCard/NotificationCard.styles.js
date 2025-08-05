@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native'
 
-import { persimmon, rhino, rhino30, rhino60 } from 'style/colors'
+import { persimmon, rhino, rhino30, rhino60 } from '@hylo/presenters/colors'
 
 export default StyleSheet.create({
   avatar: {

@@ -1,10 +1,26 @@
 # Changelog
-All notable changes to Hylo Evo (the Hylo front-end) will be documented in this file.
+All notable changes to the Hylo Web app (the Hylo front-end) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [6.1.12] - 2025-07-31
+
+### Aded
+- Tweaks to get notifications working for the desktop app
+
+## [6.1.11] - 2025-07-25
+
+### Added
+- Completed GDPR support! You can now fully opt out of non-essentia cookies (which are Mixpanel for analytics and Intercom for support), and this is now tracked and stored on your device and in the database. You can update your GDPR settings in the Account Settings page.
+
+### Changed
+- Only fetch all your group's chat rooms when opening up post editor for a a non chat post This will remove a ton of extra database queries from loading chat rooms.
+
+### Fixed
+- Issue where new group members couldn't navigate away from welcome page to the #general chat room
 
 ## [6.1.10] - 2025-07-15
 
