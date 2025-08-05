@@ -7,15 +7,28 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "corepack": true
+      "corepack": true,
+
+      "env": {
+        "NODE_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "corepack": true
+      "corepack": true,
+
+      "env": {
+        "NODE_ENV": "staging"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "corepack": true
+      "corepack": true,
+
+      "env": {
+        "NODE_ENV": "production",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {
