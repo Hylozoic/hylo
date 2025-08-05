@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View } from 'react-native'
 import useReactOnEntity from 'hooks/useReactOnEntity'
 import EmojiPicker from 'components/EmojiPicker'
@@ -20,10 +20,10 @@ export default function EmojiRow (props) {
   // const groupIds = post.groups.map(g => g.id)
   const handleReaction = (emojiFull) => reactOnEntity(entityType, entityId, emojiFull)
   const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity(entityType, entityId, emojiFull)
-  const myReactions = (comment ? comment.myReactions : post.myReactions) || []
-  const entityReactions = (comment ? comment.commentReactions : post.postReactions) || []
-  const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
-  const usersReactions = entityReactions.reduce((accum, entityReaction) => {
+  const entityReactions = useMemo(() => (comment ? comment.commentReactions : post.postReactions) || [], [comment, post])
+  const myReactions = useMemo(() => entityReactions.filter(reaction => reaction.user.id === currentUser.id), [entityReactions, currentUser])
+  const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
+  const usersReactions = useMemo(() => entityReactions.reduce((accum, entityReaction) => {
     if (accum[entityReaction.emojiFull]) {
       const { userList } = accum[entityReaction.emojiFull]
       accum[entityReaction.emojiFull] = { emojiFull: entityReaction.emojiFull, userList: [...userList, entityReaction.user.name] }
@@ -34,7 +34,7 @@ export default function EmojiRow (props) {
     if (myEmojis.includes(entityReaction.emojiFull)) accum[entityReaction.emojiFull] = { ...accum[entityReaction.emojiFull], loggedInUser: true }
 
     return accum
-  }, {})
+  }, {}), [entityReactions, myEmojis])
 
   if (!entityReactions) {
     return null
