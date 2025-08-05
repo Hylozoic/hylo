@@ -48,7 +48,9 @@ export default {
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: process.env.IOS_GOOGLE_CLIENT_ID
+          iosUrlScheme: process.env.IOS_GOOGLE_CLIENT_ID,
+          googleServicesFile: "./google-services.json",
+          googleServiceInfoPlist: "./GoogleService-Info.plist"
         }
       ],
       "expo-document-picker"
