@@ -21016,7 +21016,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"expo-constants@npm:~17.1.7":
+"expo-constants@npm:^17.1.7, expo-constants@npm:~17.1.7":
   version: 17.1.7
   resolution: "expo-constants@npm:17.1.7"
   dependencies:
@@ -30200,6 +30200,7 @@ __metadata:
     dotenv: "npm:^17.2.1"
     eas-cli: "npm:^16.17.4"
     expo: "npm:~53.0.20"
+    expo-constants: "npm:^17.1.7"
     expo-document-picker: "npm:^13.1.6"
     expo-status-bar: "npm:~2.2.3"
     graphql: "npm:^16.9.0"
@@ -30237,10 +30238,12 @@ __metadata:
     react-native-pager-view: "npm:6.7.1"
     react-native-picker-select: "npm:^9.3.1"
     react-native-reanimated: "npm:~3.17.4"
+    react-native-render-html: "npm:^6.3.4"
     react-native-restart: "npm:^0.0.27"
     react-native-safe-area-context: "npm:5.4.0"
     react-native-screens: "npm:~4.11.1"
     react-native-share: "npm:12.0.6"
+    react-native-sse: "npm:^1.2.1"
     react-native-svg: "npm:15.11.2"
     react-native-tab-view: "npm:^3.5.2"
     react-native-url-polyfill: "npm:^2.0.0"
@@ -35674,7 +35677,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-render-html@npm:6.3.4":
+"react-native-render-html@npm:6.3.4, react-native-render-html@npm:^6.3.4":
   version: 6.3.4
   resolution: "react-native-render-html@npm:6.3.4"
   dependencies:
@@ -37691,6 +37694,7 @@ __metadata:
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
     "@types/jest": "npm:^30.0.0"
+    cross-fetch: "npm:^4.1.0"
     eas-cli: "npm:^16.17.4"
     standard: "npm:^17.1.2"
     ts-jest: "npm:^29.4.0"

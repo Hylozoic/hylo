@@ -24,7 +24,8 @@ module.exports = function (api) {
           root: ['./src'],
           alias: {
             config: './config',
-            assets: './assets'
+            assets: './assets',
+            util: './util'
           }
         }
       ],
@@ -50,7 +51,8 @@ module.exports = function (api) {
             alias: {
               '@hylo': '../../packages',
               config: './config',
-              assets: './assets'
+              assets: './assets',
+              util: './util'
             }
           }]
         ]
