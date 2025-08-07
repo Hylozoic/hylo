@@ -51,7 +51,7 @@ export default async function makeUrqlClient ({
       cache,
       fetchExchange,
       providedSubscriptionExchange
-    ],
+    ].filter(Boolean),
     fetch: async (...args) => {
       const response = await fetch(...args)
 

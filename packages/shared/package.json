@@ -13,6 +13,10 @@
     ".": {
       "import": "./src/index.js",
       "require": "./dist/cjs/index.cjs"
+    },
+    "./*": {
+      "import": "./src/*.js",
+      "require": "./dist/cjs/*.cjs"
     }
   },
   "standard": {

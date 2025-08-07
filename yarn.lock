@@ -5288,6 +5288,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@invertase/react-native-apple-authentication@npm:^2.4.1":
+  version: 2.4.1
+  resolution: "@invertase/react-native-apple-authentication@npm:2.4.1"
+  checksum: 10/f453702673fe19f7444e06e6d9603b0a03d3a74826c96225a746c6706ae0104321aaf1275810453507e1b9edf0e7cc32cd538794960f9b48a43f27093dcb5bb0
+  languageName: node
+  linkType: hard
+
 "@ioredis/commands@npm:^1.1.1":
   version: 1.2.0
   resolution: "@ioredis/commands@npm:1.2.0"
@@ -30176,6 +30183,7 @@ __metadata:
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"
     "@intercom/intercom-react-native": "npm:^8.1.0"
+    "@invertase/react-native-apple-authentication": "npm:^2.4.1"
     "@react-native-async-storage/async-storage": "npm:2.1.2"
     "@react-native-clipboard/clipboard": "npm:^1.16.1"
     "@react-native-community/checkbox": "npm:^0.5.17"
@@ -30224,6 +30232,7 @@ __metadata:
     react-native-autoheight-webview: "npm:^1.6.5"
     react-native-background-timer: "npm:^2.4.1"
     react-native-bouncy-checkbox: "npm:^3.0.7"
+    react-native-config: "npm:^1.5.6"
     react-native-confirmation-code-field: "npm:^7.4.0"
     react-native-date-picker: "npm:^5.0.8"
     react-native-device-info: "npm:^14.0.2"
@@ -30246,6 +30255,7 @@ __metadata:
     react-native-sse: "npm:^1.2.1"
     react-native-svg: "npm:15.11.2"
     react-native-tab-view: "npm:^3.5.2"
+    react-native-triangle: "npm:^0.0.9"
     react-native-url-polyfill: "npm:^2.0.0"
     react-native-vector-icons: "npm:^10.2.0"
     react-native-webview: "npm:13.13.5"
@@ -30256,6 +30266,7 @@ __metadata:
     tailwindcss: "npm:^3.4.17"
     tinycolor2: "npm:^1.6.0"
     urql: "npm:^4.2.1"
+    validator: "npm:^13.15.15"
     zustand: "npm:5.0.3"
   languageName: unknown
   linkType: soft
@@ -35328,6 +35339,18 @@ __metadata:
     react-native-windows:
       optional: true
   checksum: 10/f99c136fb4fd4167b5b9e32698518400642cb241feea975d8126bf5bf12869b68b2d65602f5ee7fb4d0c3a7ecff153136a6ca44be05d1488a6fc93d1415d87b0
+  languageName: node
+  linkType: hard
+
+"react-native-config@npm:^1.5.6":
+  version: 1.5.6
+  resolution: "react-native-config@npm:1.5.6"
+  peerDependencies:
+    react-native-windows: ">=0.61"
+  peerDependenciesMeta:
+    react-native-windows:
+      optional: true
+  checksum: 10/0199c644d784ac0679d31084e740979f0c7df826dfd3fdc21c264e17fa9be119fe08493bddb474b7fdd7c655a0f61a9fb407331fe1fc1c74766a6d05b0f40203
   languageName: node
   linkType: hard
 
@@ -42312,6 +42335,13 @@ __metadata:
   version: 13.12.0
   resolution: "validator@npm:13.12.0"
   checksum: 10/db6eb0725e2b67d60d30073ae8573982713b5903195d031dc3c7db7e82df8b74e8c13baef8e2106d146d979599fd61a06cde1fec5c148e4abd53d52817ff0fd9
+  languageName: node
+  linkType: hard
+
+"validator@npm:^13.15.15":
+  version: 13.15.15
+  resolution: "validator@npm:13.15.15"
+  checksum: 10/a43d9271c879468b1ad6dd5d2597b71719a185d2c7ceb3d68f3c9c8c17c25af0d90a53edfa7efaa6ac0d4425ba0345684b9c7d8111bde0d06d915a634a287018
   languageName: node
   linkType: hard
 

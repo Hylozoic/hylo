@@ -8,11 +8,11 @@
   },
   "exports": {
     ".": {
-      "import": "./src/index.js",
+      "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js"
     },
     "./*": {
-      "import": "./src/*.js",
+      "import": "./dist/esm/*.js",
       "require": "./dist/cjs/*.js"
     }
   },
