@@ -28,6 +28,14 @@ export default function App() {
   const [appState, setAppState] = useState(AppState.currentState)
   const urqlClientFromHook = useMakeUrqlClient({ subscriptionExchange: mobileSubscriptionExchange })
 
+  // Memoize the TRenderEngineProvider props to prevent unnecessary re-renders
+  const renderEngineProps = useMemo(() => ({
+    baseStyle,
+    tagsStyles,
+    classesStyles,
+    systemFonts
+  }), [])
+
   useEffect(() => {
     if (urqlClientFromHook) {
       setUrqlClient(urqlClientFromHook)
