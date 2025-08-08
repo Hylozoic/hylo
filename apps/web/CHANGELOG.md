@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Don't change desktop app title on new notification
 - Display of Track action completion responses
 - Display of enrolled members of a track
+- Scroll events in notifications dropdown when a post dialog is open
+- Inviting people to events from an open post details dialog
 
 ## [6.1.12] - 2025-07-31
 
