@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Performance improvements
+- Remove focus from post editor when scrolling on a mobile device. This may fix issue of extra whitespace below chat box in safari on ios.
 
 ### Fixed
 - Make sure comment notifications link to the right group
