@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen: electronScreen, ipcMain, Notification } = require('electron')
+const { app, BrowserWindow, screen: electronScreen, ipcMain, Notification, shell } = require('electron')
 const path = require('path')
 const { initI18n, i18next } = require('./i18n.js')
 const { bodyForNotification, titleForNotification, urlForNotification } = require('@hylo/presenters/NotificationPresenter')
@@ -70,12 +70,52 @@ const createMainWindow = () => {
     }
   })
 
-  mainWindow.loadURL(HOST)
+  mainWindow.loadURL(HOST + '/login')
 
   mainWindow.once('ready-to-show', () => mainWindow.show())
 
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  // Handle external links - open them in the system default browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Check if the URL is external (not our app's domain)
+    const isExternal = !url.startsWith(HOST) && !url.startsWith('hylo://')
+
+    if (isExternal) {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    }
+
+    // Allow internal links to open normally
+    return { action: 'allow' }
+  })
+
+  // Handle new window requests (like target="_blank")
+  mainWindow.webContents.on('new-window', (event, navigationUrl) => {
+    event.preventDefault()
+
+    // Check if the URL is external
+    const isExternal = !navigationUrl.startsWith(HOST) && !navigationUrl.startsWith('hylo://')
+
+    if (isExternal) {
+      shell.openExternal(navigationUrl)
+    } else {
+      // For internal links, navigate in the same window
+      mainWindow.loadURL(navigationUrl)
+    }
+  })
+
+  // Handle will-navigate events (for regular link clicks)
+  mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+    // Check if the URL is external
+    const isExternal = !navigationUrl.startsWith(HOST) && !navigationUrl.startsWith('hylo://')
+
+    if (isExternal) {
+      event.preventDefault()
+      shell.openExternal(navigationUrl)
+    }
   })
 }
 
@@ -141,7 +181,7 @@ app.whenReady().then(async () => {
     // Request notification permissions explicitly
     if (systemPreferences.isTrustedAccessibilityClient(false)) {
       systemPreferences.registerDefaults({
-        'NSUserNotificationAlertStyle': 'alert'
+        NSUserNotificationAlertStyle: 'alert'
       })
     }
 

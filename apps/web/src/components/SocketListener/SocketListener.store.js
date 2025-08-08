@@ -141,7 +141,6 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         const notification = payload.data.notification
 
         window.electron.setBadgeCount(currentUser.newNotificationCount)
-        window.electron.setTitle('Hylo' + notification.title)
         window.electron.showNotification(notification)
       }
       break

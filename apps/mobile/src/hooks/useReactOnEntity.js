@@ -1,6 +1,5 @@
 import { gql, useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
 import { trackWithConsent } from 'services/mixpanel'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 

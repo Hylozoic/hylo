@@ -30,9 +30,9 @@ export default function useRouteParams () {
       const pathParts = location.pathname.split('/')
       // Correctly track the view
       if (params.context === 'groups') {
-        params.view = !['create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
+        params.view = !['create', 'post'].includes(pathParts[3]) ? pathParts[3] : ''
       } else {
-        params.view = !['create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
+        params.view = !['create', 'post'].includes(pathParts[2]) ? pathParts[2] : ''
       }
     }
 

@@ -137,7 +137,7 @@ export default function Comment ({
           <View style={styles.headerRight}>
             <EmojiPicker
               myEmojis={myEmojis}
-              includePicker={true}
+              includePicker
               handleReaction={handleReaction}
               handleRemoveReaction={handleRemoveReaction}
             >
