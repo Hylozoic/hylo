@@ -2,7 +2,7 @@ import { Pencil, PartyPopper } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
@@ -53,7 +53,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
 
   if (!completionAction) return null
 
-  const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+  const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair(post.completedAt) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
   let completionResponseText = completionResponse?.length > 0 ? completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>) : null
   switch (completionAction) {

@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useLocation, useNavigate, Routes, Route, Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
@@ -259,10 +259,10 @@ function PeopleTab ({ currentTrack }) {
               </div>
               <div className='flex flex-row gap-4 items-center text-xs text-foreground/60'>
                 <div>
-                  <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
+                  <span>{t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair(user.enrolledAt) })}</span>
                 </div>
                 <div>
-                  <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
+                  <span>{user.completedAt ? t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair(user.completedAt) }) : ''}</span>
                 </div>
               </div>
             </div>
