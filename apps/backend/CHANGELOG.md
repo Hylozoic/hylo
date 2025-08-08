@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Chat digest emails come from the group name, instead of the Team from Hylo
+
 ## [6.1.12] - 2025-07-31
 
 ### Added

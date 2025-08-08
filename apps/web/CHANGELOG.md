@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Performance improvements
+
+### Fixed
+- Make sure comment notifications link to the right group
+- Copying post link from a post page
+- Don't change desktop app title on new notification
+
 ## [6.1.12] - 2025-07-31
 
 ### Aded
