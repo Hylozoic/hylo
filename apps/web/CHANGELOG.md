@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make sure comment notifications link to the right group
 - Copying post link from a post page
 - Don't change desktop app title on new notification
+- Display of Track action completion responses
+- Display of enrolled members of a track
 
 ## [6.1.12] - 2025-07-31
 
