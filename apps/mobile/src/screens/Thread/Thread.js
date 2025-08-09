@@ -137,7 +137,7 @@ export default function Thread () {
         inverted
         keyExtractor={(item) => item.id}
         keyboardDismissMode='on-drag'
-        keyboardShouldPersistTaps
+        keyboardShouldPersistTaps='always'
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
