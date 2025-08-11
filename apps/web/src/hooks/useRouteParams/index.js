@@ -20,6 +20,11 @@ export default function useRouteParams () {
       const firstPart = pathParts[1]
       if (['groups', 'all', 'public', 'my', 'welcome', 'messages'].includes(firstPart)) {
         params.context = firstPart
+      } else if (['post'].includes(firstPart)) {
+        // Special case of hylo.com/post/postId
+        params.context = ''
+        params.view = 'post'
+        params.postId = pathParts[2]
       } else {
         params.context = 'all'
       }

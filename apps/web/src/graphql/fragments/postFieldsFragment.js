@@ -42,10 +42,6 @@ const CommentFieldsFragment = `
   parentComment {
     id
   }
-  myReactions {
-    emojiFull
-    id
-  }
   commentReactions {
     emojiFull
     id
@@ -208,10 +204,6 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
           avatarUrl
         }
       }
-  }
-  myReactions {
-    emojiFull
-    id
   }
   postReactions {
     emojiFull

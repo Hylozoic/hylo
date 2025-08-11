@@ -33,7 +33,6 @@ export default `query FetchTopics (
           followersTotal
           isDefault
           isSubscribed
-          lastReadPostId
           newPostCount
           postsTotal
           visibility

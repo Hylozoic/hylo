@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Performance improvements
+- Remove focus from post editor when scrolling on a mobile device. This may fix issue of extra whitespace below chat box in safari on ios.
+
+### Fixed
+- Make sure comment notifications link to the right group
+- Copying post link from a post page
+- Don't change desktop app title on new notification
+- Display of Track action completion responses
+- Display of enrolled members of a track
+- Scroll events in notifications dropdown when a post dialog is open
+- Inviting people to events from an open post details dialog
+
 ## [6.1.12] - 2025-07-31
 
 ### Aded

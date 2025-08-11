@@ -16,10 +16,6 @@ const reactOnMutation = gql`
           avatarUrl
         }
       }
-      myReactions {
-        id
-        emojiFull
-      }
       peopleReactedTotal
     }
   }
@@ -37,10 +33,6 @@ const deletePostReactionMutation = gql`
           name
           avatarUrl
         }
-      }
-      myReactions {
-        id
-        emojiFull
       }
       peopleReactedTotal
     }

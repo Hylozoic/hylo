@@ -8,7 +8,6 @@ export default function fetchGroupTopic (topicName, groupSlug) {
         groupTopic(groupSlug: $groupSlug, topicName: $topicName) {
           id
           followersTotal
-          lastReadPostId
           postsTotal
           group {
             id

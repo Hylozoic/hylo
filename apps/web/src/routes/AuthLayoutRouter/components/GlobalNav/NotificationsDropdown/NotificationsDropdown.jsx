@@ -38,6 +38,16 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
     dispatch(fetchNotifications())
   }, [dispatch])
 
+  // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
+  useEffect(() => {
+    setTimeout(() => {
+      const container = document.getElementById('notifications-scroll-list')
+      if (container) {
+        container.addEventListener('wheel', (e) => { console.log('wheel event', e); e.stopPropagation() }, { passive: false })
+      }
+    }, 100)
+  }, [modalOpen])
+
   const handleOpenChange = useCallback(isOpen => {
     if (isOpen) {
       setLastOpenedAt(new Date())
@@ -88,7 +98,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       return <NoItems message={message} />
     } else {
       return (
-        <div className='overflow-y-auto h-[calc(100vh-100px)]' id='notifications-scroll-list'>
+        <div className='overflow-y-auto h-[calc(100vh-100px)] pointer-events-auto' id='notifications-scroll-list'>
           {filteredNotifications.map(notification => (
             <NotificationItem
               notification={notification}
@@ -112,7 +122,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
         {renderToggleChildren(hasUnread)}
       </PopoverTrigger>
       <PopoverContent side='right' align='start' className='!p-0 !w-[248px] sm:!w-[300px]'>
-        <div className='flex items-center w-full z-10 p-2'>
+        <div className='flex items-center w-full z-10 p-2 pointer-events-auto'>
           <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'border-b-2 border-accent relative': !showingUnread })}>
             {t('Recent')}
           </span>

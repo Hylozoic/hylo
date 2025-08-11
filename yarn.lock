@@ -11211,15 +11211,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/message-list@npm:^1.12.2":
-  version: 1.12.2
-  resolution: "@virtuoso.dev/message-list@npm:1.12.2"
+"@virtuoso.dev/message-list@npm:^1.13.2":
+  version: 1.13.2
+  resolution: "@virtuoso.dev/message-list@npm:1.13.2"
   dependencies:
     "@virtuoso.dev/gurx": "npm:1.1.0"
   peerDependencies:
     react: ">= 16 || >= 17 || >= 18 || >= 19"
     react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
-  checksum: 10/927ec3d791e2ae8a8b449cfa67fa4c264c4d9ca70bccc9d037b36e3b8026c17e0e7ab521c2d47aba516bfb4b4a596579c141785a259baed6f73cd0c5ed26de1b
+  checksum: 10/6cee5d8b86ad0c7ffd1cd8ace4246f7e3745563a7fe3a5fef5dd06ccb9695e6bac068a4681edce6b0cf8421a23c4635fec718429fa97a457965ad10b3836efef
   languageName: node
   linkType: hard
 
@@ -39432,7 +39432,7 @@ __metadata:
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
     "@typescript-eslint/parser": "npm:^8.18.2"
-    "@virtuoso.dev/message-list": "npm:^1.12.2"
+    "@virtuoso.dev/message-list": "npm:^1.13.2"
     "@vitejs/plugin-react": "npm:^4.3.3"
     autoprefixer: "npm:10.4.20"
     babel-jest: "npm:^29.7.0"
