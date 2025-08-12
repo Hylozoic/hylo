@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
 import RedisClient from '../../services/RedisClient'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
