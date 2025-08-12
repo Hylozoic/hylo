@@ -4,6 +4,24 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [6.1.7] - 2025-07-31
+- Speed up stream loading
+
+### [6.1.6] - 2025-07-30
+- A user's pinned groups now show at the top of the nav menu
+- Fixed a bug causing occasional timeouts on requests for data
+
+### [6.1.5] - 2025-07-23
+- GDPR support
+- Several navigation fixes and tweaks, reducing double-bounce, and UI lock out
+- Comments are highlighted when appropriate
+- Reactions fixed for post detail screen
+- Events correctly store timezone on creation
+- Clicking on files won't crash the app
+- Added more data subscriptions to maintain data freshness
+- Fixed header tag styling in html views
+- Updated queries for member profile to show more relevant content
+
 ### [6.1.4] - 2025-06-29
 - Bug fix: Remove reference to listener function that has been removed
 

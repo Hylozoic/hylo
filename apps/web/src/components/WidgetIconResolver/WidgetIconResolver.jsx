@@ -1,6 +1,6 @@
 import React from 'react'
 import { Grid3x3, Shapes } from 'lucide-react'
-import ContextWidgetPresenter from '@hylo/presenters/ContextWidgetPresenter'
+import { ContextWidgetPresenter } from '@hylo/presenters'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 

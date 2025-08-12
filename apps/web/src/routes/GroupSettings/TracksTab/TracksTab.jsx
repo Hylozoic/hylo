@@ -14,9 +14,9 @@ import getTracks from 'store/selectors/getTracksForGroup'
 import TrackCard from 'components/TrackCard'
 import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
-import { createTrackUrl } from 'util/navigation'
+import { createTrackUrl } from '@hylo/navigation'
 
-function TracksTab ({ group, fetchPending, parentGroups, updateGroupSettings }) {
+function TracksTab ({ group, fetchPending, updateGroupSettings }) {
   const { t } = useTranslation()
   const [settings, setSettings] = useState(group.settings)
   const [changed, setChanged] = useState(false)

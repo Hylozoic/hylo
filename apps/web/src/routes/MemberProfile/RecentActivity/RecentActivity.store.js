@@ -60,15 +60,24 @@ const recentActivityQuery =
   }
 }`
 
-export function fetchRecentActivity (id, first = 10, query = recentActivityQuery) {
+export function fetchRecentActivity (id, first = 10, offset = 0, query = recentActivityQuery) {
   return {
     type: FETCH_RECENT_ACTIVITY,
     graphql: {
       query,
-      variables: { id, first, order: 'desc' }
+      variables: { id, first, offset, order: 'desc' }
     },
     meta: { extractModel: 'Person' }
   }
+}
+
+// Helper to determine if there are more items to fetch
+export function hasMoreActivity (person) {
+  // If either posts or comments has more, return true
+  return (
+    (person?.posts?.hasMore || false) ||
+    (person?.comments?.hasMore || false)
+  )
 }
 
 // Deliberately preserves object references

@@ -2,7 +2,7 @@ import React from 'react'
 import { View } from 'react-native'
 import {
   rhino80, linkWater
-} from 'style/colors'
+} from '@hylo/presenters/colors'
 import Icon from 'components/Icon'
 
 export default function StarIcon ({ style, theme = {} }) {

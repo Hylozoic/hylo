@@ -8,6 +8,7 @@ import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
+import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
@@ -31,7 +32,7 @@ import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
   groupHomeUrl
-} from 'util/navigation'
+} from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
@@ -63,7 +64,7 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -146,7 +147,7 @@ export default function AuthLayoutRouter (props) {
         $location: currentUser.location
       })
 
-      if (currentUser?.settings?.locale) localeLocalStorageSync(currentUser?.settings?.locale)
+      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
@@ -337,7 +338,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn p-0 sm:p-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -464,6 +465,7 @@ export default function AuthLayoutRouter (props) {
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
           </div>
         </div>
+        <CookieConsentLinker />
       </Div100vh>
     </IntercomProvider>
   )

@@ -5,9 +5,9 @@ import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 import {
   publishGroupUpdate,
   publishGroupMembershipUpdate,
-  publishGroupRelationshipUpdate,
-  publishAsync
+  publishGroupRelationshipUpdate
 } from '../../../lib/groupSubscriptionPublisher'
+import { publishAsync } from '../../../lib/subscriptionUtils'
 
 // Util function
 async function getStewardedGroup (userId, groupId, additionalResponsibility = '', opts = {}) {

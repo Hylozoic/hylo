@@ -101,10 +101,6 @@ const PostFieldsFragment = `
     neighborhood
     region
   }
-  myReactions {
-    emojiFull
-    id
-  }
   postReactions {
     emojiFull
     id

@@ -124,6 +124,110 @@ export default function makeSubscriptions () {
           }
         }
       }
+    },
+
+    postUpdates: {
+      subscribe: (parent, args, context) => pipe(
+        context.pubSub.subscribe(`postUpdates:${context.currentUserId}`),
+        withDontSendToCreator({ context })
+      ),
+      resolve: (payload) => {
+        if (payload?.post) {
+          return new Post(payload.post)
+        }
+      }
+    },
+
+    // UNIFIED SUBSCRIPTION: Combines all user-specific updates into a single stream
+    // This reduces the number of SSE connections needed (helpful for Android's 4-connection limit)
+    allUpdates: {
+      subscribe: async function * (parent, args, context) {
+        const userId = context.currentUserId
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔧 Setting up unified subscription for user ${userId}`)
+        }
+
+        // Create individual subscription iterators
+        const subscriptions = [
+          pipe(context.pubSub.subscribe(`updates:${userId}`), withDontSendToCreator({ context })),
+          pipe(context.pubSub.subscribe(`groupUpdates:${userId}`), withDontSendToCreator({ context })),
+          pipe(context.pubSub.subscribe(`groupMembershipUpdates:${userId}`), withDontSendToCreator({ context })),
+          pipe(context.pubSub.subscribe(`groupRelationshipUpdates:${userId}`), withDontSendToCreator({ context })),
+          pipe(context.pubSub.subscribe(`postUpdates:${userId}`), withDontSendToCreator({ context }))
+        ]
+
+        // Merge all subscription streams
+        const mergedStream = async function * () {
+          const iterators = subscriptions.map(sub => sub[Symbol.asyncIterator]())
+          const promises = iterators.map((iterator, index) =>
+            iterator.next().then(result => ({ result, index }))
+          )
+
+          while (promises.length > 0) {
+            const { result, index } = await Promise.race(promises.filter(Boolean))
+
+            if (!result.done) {
+              if (process.env.NODE_ENV === 'development') {
+                const streamNames = ['updates', 'groupUpdates', 'groupMembershipUpdates', 'groupRelationshipUpdates', 'postUpdates']
+                console.log(`🔧 Unified subscription yielding from ${streamNames[index]} stream:`, Object.keys(result.value))
+              }
+
+              yield result.value
+
+              // Replace the resolved promise with the next value from the same iterator
+              promises[index] = iterators[index].next().then(nextResult => ({ result: nextResult, index }))
+            } else {
+              // Remove completed iterator
+              promises[index] = null
+            }
+          }
+        }
+
+        yield * mergedStream()
+      },
+      resolve: (payload) => {
+        // Route payload to appropriate type based on content
+        if (payload?.message) {
+          const message = new Comment(payload.message)
+          message.makeModelsType = 'Message'
+          return message
+        }
+        if (payload?.messageThread) {
+          const messageThread = new Post(payload.messageThread)
+          messageThread.makeModelsType = 'MessageThread'
+          return messageThread
+        }
+        if (payload?.notification) {
+          return new Notification(payload.notification)
+        }
+        if (payload?.group) {
+          return new Group(payload.group)
+        }
+        if (payload?.groupMembershipUpdate) {
+          return {
+            group: new Group(payload.groupMembershipUpdate.group),
+            member: new User(payload.groupMembershipUpdate.member),
+            action: payload.groupMembershipUpdate.action,
+            role: payload.groupMembershipUpdate.role,
+            makeModelsType: 'GroupMembershipUpdate'
+          }
+        }
+        if (payload?.groupRelationshipUpdate) {
+          return {
+            parentGroup: new Group(payload.groupRelationshipUpdate.parentGroup),
+            childGroup: new Group(payload.groupRelationshipUpdate.childGroup),
+            action: payload.groupRelationshipUpdate.action,
+            relationship: payload.groupRelationshipUpdate.relationship ? new GroupRelationship(payload.groupRelationshipUpdate.relationship) : null,
+            makeModelsType: 'GroupRelationshipUpdate'
+          }
+        }
+        if (payload?.post) {
+          return new Post(payload.post)
+        }
+
+        return null
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
@@ -27,6 +28,7 @@ import { usePostEditorStore } from '../PostEditor/PostEditor.store'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
+import { trackWithConsent } from 'services/mixpanel'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -169,13 +171,13 @@ export default function UploadAction () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      mixpanel.track(AnalyticsEvents.POST_OPENED, {
+      trackWithConsent(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
-      })
+      }, currentUser, !currentUser)
     }
   }, [fetching, error, post])
 
@@ -196,7 +198,7 @@ export default function UploadAction () {
   const files = post.getFiles()
 
   if (post?.completedAt) {
-    const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+    const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair({ start: post.completedAt }) : null
     return (
       <View className='p-4 bg-background-plus rounded-lg mb-4'>
         <View className='flex-row items-center'>

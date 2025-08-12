@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import useRouteParams from 'hooks/useRouteParams'
 import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
@@ -12,7 +13,7 @@ import {
   visibilityString
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
-import { groupUrl, groupDetailUrl } from 'util/navigation'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 
 import { UserRoundCheck } from 'lucide-react'
 
@@ -31,8 +32,9 @@ import classes from './GroupCard.module.scss'
 
   TODO: Then is contents changed based on group type... perhaps passed in as a Content component
 */
-export default function GroupCard ({ group, routeParams }) {
+export default function GroupCard ({ group }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
 
   if (!group) return null
 

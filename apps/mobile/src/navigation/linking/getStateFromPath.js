@@ -3,7 +3,7 @@ import { isEmpty, isFunction } from 'lodash/fp'
 import { match } from 'path-to-regexp'
 import { URL } from 'react-native-url-polyfill'
 import queryString from 'query-string'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/navigation'
 import { useAuthStore } from '@hylo/contexts/AuthContext'
 import useLinkingStore from 'navigation/linking/store'
 import {

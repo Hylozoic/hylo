@@ -6,8 +6,8 @@ import { difference, filter, get, omitBy, uniqBy, isEmpty, intersection, isUndef
 import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
-import { TextHelpers } from '@hylo/shared'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
@@ -18,6 +18,7 @@ import ProjectMixin from './project/mixin'
 import EventMixin from './event/mixin'
 import * as RichText from '../services/RichText'
 import { defaultTimezone } from '../../lib/group/digest2/util'
+import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 
 init({ data })
 
@@ -394,7 +395,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('completion_response')) || null
   },
 
-  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full' }) {
+  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
 
@@ -402,17 +403,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
       id: parseInt(this.id),
       announcement: this.get('announcement'),
       comments: [],
-      day: type !== 'oneline' && this.get('start_time') && TextHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
+      day: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
       details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
-      end_time: type === 'oneline' && this.get('end_time') && TextHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone')),
+      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone'), locale),
       link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
         linkPreview.pick('title', 'description', 'url', 'image_url'),
       location: type !== 'oneline' && this.get('location'),
       image_url: type !== 'oneline' && media?.filter(m => m.get('type') === 'image')?.[0]?.get(type === 'full' ? 'url' : 'thumbnail_url'), // Thumbail for digest
-      month: type !== 'oneline' && this.get('start_time') && TextHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
+      month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
-      start_time: type === 'oneline' && this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone')),
+      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone'), locale),
       title: this.summary(),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {
@@ -422,7 +423,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
       url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
-      when: this.get('start_time') && TextHelpers.formatDatePair(this.get('start_time'), this.get('end_time'), false, this.get('timezone'))
+      when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
 
@@ -467,7 +468,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async addProposalVote ({ userId, optionId }) {
-    return ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
+    const result = await ProposalVote.forge({ post_id: this.id, user_id: userId, option_id: optionId, created_at: new Date() }).save()
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async removeFollowers (usersOrIds, { transacting } = {}) {
@@ -476,7 +479,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async removeProposalVote ({ userId, optionId }) {
     const vote = await ProposalVote.query({ where: { user_id: userId, option_id: optionId } }).fetch()
-    return vote.destroy()
+    const result = await vote.destroy()
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async setProposalOptions ({ options = [], userId, opts = {} }) {
@@ -500,7 +505,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     ${insertQuery};
     COMMIT;
 `
-    return bookshelf.knex.raw(fullQuery).transacting(opts.transacting)
+    const result = await bookshelf.knex.raw(fullQuery).transacting(opts.transacting)
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   async swapProposalVote ({ userId, removeOptionId, addOptionId }) {
@@ -550,6 +557,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         return { ...option, post_id: this.id }
       })).transacting(opts.transacting)
     }
+
+    // Trigger post pub/sub update after proposal options change
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
 
     // Return a resolved promise
     return Promise.resolve()
@@ -743,6 +753,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await this.complete(userId, JSON.stringify([emojiFull]), trx)
       }
 
+      // Trigger post update after reaction added
+      Post.afterRelatedMutation(this.id, { changeContext: 'reaction' })
+
       return this
     })
   },
@@ -773,12 +786,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
         const reactionsSummary = this.get('reactions_summary')
         await this.save({ reactions_summary: { ...reactionsSummary, [emojiFull]: reactionCount - 1 } }, { transacting: trx })
       }
+
+      // Trigger post update after reaction removed
+      Post.afterRelatedMutation(this.id, { changeContext: 'reaction' })
+
       return this
     })
   },
 
   updateProposalOutcome: function (proposalOutcome) {
-    return Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome })
+    const result = Post.where({ id: this.id }).query().update({ proposal_outcome: proposalOutcome })
+    Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
+    return result
   },
 
   removeFromGroup: function (idOrSlug) {
@@ -1000,6 +1019,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
         }
       }
     }
+
+    // Publish post update after comment changes
+    Post.afterRelatedMutation(postId, { changeContext: 'comment' })
   },
 
   deactivate: postId =>
@@ -1165,6 +1187,30 @@ module.exports = bookshelf.Model.extend(Object.assign({
         // TODO: what to do with the response? check if succeeded or not?
       }
     }
+  },
+
+  // Background task to publish post updates to subscriptions
+  publishPostUpdates: async ({ postId, options = {} }) => {
+    const post = await Post.find(postId, { withRelated: ['groups'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📡 Background job: Publishing post update for post ${post.id}`)
+    }
+
+    try {
+      await publishPostUpdate(null, post, options)
+    } catch (error) {
+      console.error('❌ Error publishing post update in background job:', error)
+    }
+  },
+
+  // Non-blocking method to trigger post subscription updates
+  afterRelatedMutation: function (postId, options = {}) {
+    if (!postId) return
+
+    // Use Queue system for non-blocking post subscription publishing
+    Queue.classMethod('Post', 'publishPostUpdates', { postId, options }, 0)
   }
 
 })

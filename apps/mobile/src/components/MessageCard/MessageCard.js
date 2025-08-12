@@ -5,7 +5,7 @@ import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import { capeCod, rhino30, twBackground } from 'style/colors'
+import { capeCod, rhino30, twBackground } from '@hylo/presenters/colors'
 
 export default function MessageCard ({ message }) {
   const navigation = useNavigation()

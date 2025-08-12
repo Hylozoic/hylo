@@ -1,11 +1,12 @@
 import { cn } from 'util/index'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Icon from 'components/Icon'
 import { Link } from 'react-router-dom'
 import Slider from 'react-slick'
-import { postUrl, createPostUrl } from 'util/navigation'
+import { postUrl, createPostUrl } from '@hylo/navigation'
 
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
@@ -46,7 +47,7 @@ export default ({ items, group, routeParams, isMember }) => {
           <div className={cn(classes.event, { [classes.narrow]: items.length > 1 })} key={e.id}>
             <Link to={postUrl(e.id, routeParams)} onClickCapture={handleOnItemClick}>
               <div className={classes.content}>
-                <div className={classes.time}>{DateTime.fromJSDate(e.startTime).toFormat('MMM d yyyy')}</div>
+                <div className={classes.time}>{DateTimeHelpers.toDateTime(e.startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM d yyyy')}</div>
                 <div className={classes.title}>{e.title}</div>
                 <div className={classes.location}>{e.location}</div>
               </div>

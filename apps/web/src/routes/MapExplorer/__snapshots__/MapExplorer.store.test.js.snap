@@ -334,10 +334,6 @@ posts: viewPosts(
         }
       }
   }
-  myReactions {
-    emojiFull
-    id
-  }
   postReactions {
     emojiFull
     id

@@ -2,7 +2,7 @@ import { gql } from 'urql'
 import { find, pick } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { openURL } from 'hooks/useOpenURL'
-import { personUrl, chatUrl, groupUrl } from 'util/navigation'
+import { personUrl, chatUrl, groupUrl } from '@hylo/navigation'
 
 export const ACTION_ANNOUNCEMENT = 'announcement'
 export const ACTION_APPROVED_JOIN_REQUEST = 'approvedJoinRequest'

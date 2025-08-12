@@ -1,0 +1,16 @@
+# Changelog
+All notable changes to HyloReactNative (the Hylo mobile app) will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0-beta.2] - 2025-08-04
+
+### Changed
+- Open external links in the system default browser.
+- Open login page on app start instead of home page
+
+## [1.0.0-beta.1] - 2025-07-31
+
+### Added
+- Initial release of the Hylo desktop app! Supports desktop notifications, deep-linking and dock badges on a mac.

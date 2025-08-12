@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Chat digest emails come from the group name, instead of the Team from Hylo
+
+## [6.1.12] - 2025-07-31
+
+### Added
+- Tweaks to get notifications working in the desktop app
+
+## [6.1.11] - 2025-07-23
+
+### Added
+- Show last active at date in exported member data
+- Support tracking cookie consent for GDPR compliance
+
+## [6.1.10] - 2025-07-15
+
+### Added
+- Ability to pin groups to the top of the global nav with an ordering.
+
+## [6.1.6] - 2025-07-08
+
+### Changed
+- New database indexes to improve performance when loading posts and other data
+
+### Fixed
+- When creating a group set creator's lastViewedAt correctly, so that when trying to create a new post in a new group doesn't redirect to home view
+
 ## [6.1.5] - 2025-07-04
 
 ### Changed

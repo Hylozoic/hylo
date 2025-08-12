@@ -9,7 +9,7 @@ import particlesjsConfig from 'routes/NonAuthLayoutRouter/particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import OAuthConsent from 'routes/OAuth/Consent'
 import OAuthLogin from 'routes/OAuth/Login'
-import { localeLocalStorageSync, localeToFlagEmoji } from 'util/locale'
+import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
 
 import classes from 'routes/NonAuthLayoutRouter/NonAuthLayoutRouter.module.scss'
 
@@ -25,7 +25,7 @@ export default function OAuthLayoutRouter (props) {
   const { t } = useTranslation()
   const location = useLocation()
   const thisApplicationText = t('this application')
-  const locale = localeLocalStorageSync()
+  const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'

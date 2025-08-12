@@ -2,13 +2,13 @@ import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
-import { localeToFlagEmoji, localeLocalStorageSync, localeToWord } from 'util/locale'
+import { localeToFlagEmoji, getLocaleFromLocalStorage, localeToWord } from 'util/locale'
 
 export default function LocaleTab ({ currentUser }) {
   const { t } = useTranslation()
   const locale = currentUser?.settings?.locale
-  const localeFlag = localeToFlagEmoji(localeLocalStorageSync(locale))
-  const localeWord = localeToWord(localeLocalStorageSync(locale))
+  const localeFlag = localeToFlagEmoji(getLocaleFromLocalStorage(locale))
+  const localeWord = localeToWord(getLocaleFromLocalStorage(locale))
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {

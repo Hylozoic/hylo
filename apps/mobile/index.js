@@ -26,6 +26,10 @@ import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
 
+if (__DEV__) {
+  require('./ReactotronConfig')
+}
+
 /* eslint-disable no-global-assign */
 
 // For MSW, see https://mswjs.io/docs/integrations/react-native

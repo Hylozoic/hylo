@@ -4,7 +4,7 @@ import { filter, get, map, find, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
-import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from 'style/colors'
+import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from '@hylo/presenters/colors'
 
 const MAX_THREAD_PREVIEW_LENGTH = 55
 

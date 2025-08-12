@@ -1,10 +1,60 @@
 # Changelog
-All notable changes to Hylo Evo (the Hylo front-end) will be documented in this file.
+All notable changes to the Hylo Web app (the Hylo front-end) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Performance improvements
+- Remove focus from post editor when scrolling on a mobile device. This may fix issue of extra whitespace below chat box in safari on ios.
+
+### Fixed
+- Make sure comment notifications link to the right group
+- Copying post link from a post page
+- Don't change desktop app title on new notification
+- Display of Track action completion responses
+- Display of enrolled members of a track
+- Scroll events in notifications dropdown when a post dialog is open
+- Inviting people to events from an open post details dialog
+
+## [6.1.12] - 2025-07-31
+
+### Aded
+- Tweaks to get notifications working for the desktop app
+
+## [6.1.11] - 2025-07-25
+
+### Added
+- Completed GDPR support! You can now fully opt out of non-essentia cookies (which are Mixpanel for analytics and Intercom for support), and this is now tracked and stored on your device and in the database. You can update your GDPR settings in the Account Settings page.
+
+### Changed
+- Only fetch all your group's chat rooms when opening up post editor for a a non chat post This will remove a ton of extra database queries from loading chat rooms.
+
+### Fixed
+- Issue where new group members couldn't navigate away from welcome page to the #general chat room
+
+## [6.1.10] - 2025-07-15
+
+### Added
+- Add ability to pin groups to the top of the global nav. Pinned groups can be reordered by dragging and dropping.
+
+## [6.1.9] - 2025-07-08
+
+### Changed
+- Removed some data loading on initial group load, to improve performance
+
+### Fixed
+- Content flagging/moderation in dark mode
+
+## [6.1.8] - 2025-07-05
+
+### Fixed
+- Inability to scroll post editor when creating a post from the chat box when the post gets too tall for the screen.
+- Joining groups from the group card in the group explorer
 
 ## [6.1.7] - 2025-07-04
 
@@ -15,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Viewing action completion responses for a long action that requires scrolling down
 - Stacking of event RSVP dropdown
-- Project post UI in custom views
+- Project post UI in dark mode
 
 ## [6.1.6] - 2025-07-02
 

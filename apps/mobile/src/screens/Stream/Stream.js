@@ -4,9 +4,9 @@ import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 import { useMutation, useQuery } from 'urql'
-import { capitalize, get, isEmpty } from 'lodash/fp'
+import { capitalize, isEmpty } from 'lodash/fp'
 import { clsx } from 'clsx'
-import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/navigation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
@@ -21,7 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 /* === CONSTANTS === */
 
@@ -152,7 +152,7 @@ export default function Stream () {
         sortBy === DEFAULT_SORT_BY_ID &&
         !streamQueryVariables.filter
       ) {
-        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0} })
+        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0 } })
       }
     }
   }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])

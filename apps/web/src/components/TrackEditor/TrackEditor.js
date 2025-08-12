@@ -15,7 +15,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { createTrack, updateTrack } from 'store/actions/trackActions'
 
 function TrackEditor (props) {

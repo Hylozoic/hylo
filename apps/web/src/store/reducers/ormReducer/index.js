@@ -51,6 +51,7 @@ import {
   UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
@@ -776,6 +777,88 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case UPDATE_MEMBERSHIP_NAV_ORDER_PENDING: {
+      me = Me.first()
+      membership = Membership.safeGet({ group: meta.groupId, person: me.id })
+
+      if (!membership) break
+
+      const newNavOrder = meta.navOrder
+
+      if (newNavOrder === null) {
+        // Unpinning - just update this membership
+        membership.update({
+          navOrder: null
+        })
+      } else {
+        // Check if this is a new pin or reorder
+        const currentNavOrder = membership.navOrder
+        const isNewPin = currentNavOrder === null
+
+        if (isNewPin) {
+          // Pinning a new group - increment all other pinned memberships
+          const allMemberships = session.Membership.all().toModelArray()
+          const otherPinnedMemberships = allMemberships.filter(m =>
+            m.group.id !== meta.groupId && m.navOrder !== null
+          )
+
+          // Increment navOrder of all other pinned groups
+          otherPinnedMemberships.forEach(m => {
+            m.update({
+              navOrder: m.navOrder + 1
+            })
+          })
+
+          // Set this group's navOrder to 0
+          membership.update({
+            navOrder: 0
+          })
+        } else {
+          // Reordering - handle moving up or down
+          const currentNavOrder = membership.navOrder
+
+          if (newNavOrder > currentNavOrder) {
+            // Moving down - decrement groups between current+1 and newNavOrder
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToDecrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder > currentNavOrder &&
+              m.navOrder <= newNavOrder
+            )
+
+            groupsToDecrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder - 1
+              })
+            })
+          } else if (newNavOrder < currentNavOrder) {
+            // Moving up - increment groups between newNavOrder and current-1
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToIncrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder >= newNavOrder &&
+              m.navOrder < currentNavOrder
+            )
+
+            groupsToIncrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder + 1
+              })
+            })
+          }
+          // If newNavOrder === currentNavOrder, no changes needed
+
+          // Set this group's navOrder
+          membership.update({
+            navOrder: newNavOrder
+          })
+        }
+      }
+      break
+    }
+
     case UPDATE_POST: {
       // This is needed right now to make sure posts update in real time on the landing page
       if (payload.data.updatePost.groups) {
@@ -845,7 +928,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       me = Me.first()
 
       const optimisticUpdate = {
-        myReactions: [...(comment.myReactions || []), { emojiFull }],
         commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
       }
 
@@ -862,7 +944,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      comment.update({ myReactions: comment.myReactions.filter(react => react.emojiFull !== emojiFull), commentReactions })
+      comment.update({ commentReactions })
       break
     }
 
@@ -871,7 +953,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
+      const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
 
@@ -891,7 +973,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      post.update({ myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions })
+      post.update({ postReactions })
       break
     }
   }

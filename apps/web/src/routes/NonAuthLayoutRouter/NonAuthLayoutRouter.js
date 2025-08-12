@@ -11,13 +11,12 @@ import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import Button from 'components/ui/button'
-import HyloCookieConsent from 'components/HyloCookieConsent'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
 import PasswordReset from 'routes/NonAuthLayoutRouter/PasswordReset'
 import SignupRouter from 'routes/NonAuthLayoutRouter/Signup/SignupRouter'
-import { localeLocalStorageSync, localeToFlagEmoji } from 'util/locale'
+import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
 
 import classes from './NonAuthLayoutRouter.module.scss'
 
@@ -40,7 +39,7 @@ export default function NonAuthLayoutRouter (props) {
   const returnToPath = returnToNavigationState
     ? returnToNavigationState.pathname + returnToNavigationState.search
     : returnToPathFromQueryString
-  const locale = localeLocalStorageSync()
+  const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
@@ -155,7 +154,6 @@ export default function NonAuthLayoutRouter (props) {
           <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>
       </div>
-      <HyloCookieConsent />
     </Div100vh>
   )
 }

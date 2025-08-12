@@ -26,7 +26,7 @@ import updatePost from 'store/actions/updatePost'
 
 import PostEditor from './PostEditor'
 import ActionsBar from './ActionsBar'
-import { editPostUrl } from 'util/navigation'
+import { editPostUrl } from '@hylo/navigation'
 
 jest.mock('lodash/debounce', () => fn => {
   fn.cancel = jest.fn()

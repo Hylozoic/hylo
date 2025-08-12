@@ -9,7 +9,7 @@ import ActionCompletionResponsesDialog from 'components/ActionCompletionResponse
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
-import { editPostUrl, trackUrl } from 'util/navigation'
+import { editPostUrl, trackUrl } from '@hylo/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,

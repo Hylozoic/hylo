@@ -85,6 +85,7 @@ export function fetchModerationActions ({ slug, offset, sortBy, first = 20 }) {
             postId
             groupId
             status
+            createdAt
             post {
               id
               title

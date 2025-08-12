@@ -39,7 +39,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -52,7 +52,7 @@ import {
   fetchMembers,
   fetchPostsForDrawer,
   fetchPostsForMap,
-  fetchGroups,
+  fetchGroupsForMap,
   formatBoundingBox,
   getCurrentTopics,
   getGroupsFilteredByTopics,
@@ -631,7 +631,7 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      dispatch(fetchGroups({ ...fetchGroupParams }))
+      dispatch(fetchGroupsForMap({ ...fetchGroupParams }))
     }
   }, [fetchGroupParams])
 

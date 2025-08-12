@@ -19,6 +19,7 @@ Membership.fields = {
   agreements: many('MembershipAgreement'),
   group: fk('Group', 'memberships'),
   lastViewAt: attr(),
+  navOrder: attr(),
   newPostCount: attr(),
   person: fk('Person', 'memberships'),
   settings: attr()

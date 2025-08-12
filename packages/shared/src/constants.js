@@ -43,11 +43,3 @@ export const WebViewMessageTypes = {
   }
 }
 
-// https://regex101.com/r/0M6mbp/1
-export const HYLO_URL_REGEX = /^(https?:\/?\/?)?(www\.|staging\.)?(hylo\.com|localhost)(:?\d{0,6})(.*)/gi
-
-// When/if ReduxORM models become shared merge add these back into the Group model
-export const ALL_GROUPS_CONTEXT_SLUG = 'all'
-export const PUBLIC_CONTEXT_SLUG = 'public'
-export const MY_CONTEXT_SLUG = 'my'
-export const MESSAGES_CONTEXT_SLUG = 'messages'

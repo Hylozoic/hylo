@@ -7,8 +7,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { useNavigate, Routes, Route, Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { useLocation, useNavigate, Routes, Route, Link } from 'react-router-dom'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
@@ -31,7 +31,7 @@ import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
-import { createPostUrl, groupUrl, personUrl } from 'util/navigation'
+import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 
 import ActionSummary from './ActionSummary'
 
@@ -51,6 +51,7 @@ function TrackHome () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
+  const location = useLocation()
   const queryParams = useMemo(() => getQuerystringParam(['tab'], location), [location])
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
@@ -258,10 +259,10 @@ function PeopleTab ({ currentTrack }) {
               </div>
               <div className='flex flex-row gap-4 items-center text-xs text-foreground/60'>
                 <div>
-                  <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
+                  <span>{t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair(user.enrolledAt) })}</span>
                 </div>
                 <div>
-                  <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
+                  <span>{user.completedAt ? t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair(user.completedAt) }) : ''}</span>
                 </div>
               </div>
             </div>

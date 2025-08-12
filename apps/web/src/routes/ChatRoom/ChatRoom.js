@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { debounce, includes, isEmpty } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -38,6 +38,7 @@ import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
+import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -45,9 +46,9 @@ import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from 'util/navigation'
+import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
-import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
 
@@ -94,9 +95,9 @@ const NotificationsIcon = React.forwardRef(({ type, ...props }, ref) => {
 })
 
 const getDisplayDay = (date) => {
-  return date.hasSame(DateTime.now(), 'day')
+  return date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()), 'day')
     ? 'Today'
-    : date.hasSame(DateTime.now().minus({ days: 1 }), 'day')
+    : date.hasSame(DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).minus({ days: 1 }), 'day')
       ? 'Yesterday'
       : date.toFormat('MMM dd, yyyy')
 }
@@ -396,7 +397,7 @@ export default function ChatRoom (props) {
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
   const onAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
@@ -406,7 +407,7 @@ export default function ChatRoom (props) {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions }
+    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
@@ -594,7 +595,7 @@ export default function ChatRoom (props) {
       </div>
 
       {/* Post chat box */}
-      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg'>
+      <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
           modal={false}
@@ -634,7 +635,7 @@ const Footer = ({ context }) => {
 
 const StickyHeader = ({ data, prevData }) => {
   const firstItem = useCurrentlyRenderedData()[0]
-  const createdAt = firstItem?.createdAt ? DateTime.fromISO(firstItem.createdAt) : null
+  const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
   return (
@@ -688,8 +689,8 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
-  const previousDay = prevData?.createdAt ? DateTime.fromISO(prevData.createdAt) : DateTime.now()
-  const currentDay = DateTime.fromISO(post.createdAt)
+  const previousDay = prevData?.createdAt ? DateTimeHelpers.toDateTime(prevData.createdAt, { locale: getLocaleFromLocalStorage() }) : DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage())
+  const currentDay = DateTimeHelpers.toDateTime(post.createdAt, { locale: getLocaleFromLocalStorage() })
   const displayDay = prevData?.createdAt && previousDay.hasSame(currentDay, 'day') ? null : getDisplayDay(currentDay)
   const createdTimeDiff = currentDay.diff(previousDay, 'minutes')?.toObject().minutes || 1000
   /* Display the author header if
