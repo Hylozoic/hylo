@@ -19,7 +19,7 @@ import useReactOnEntity from 'hooks/useReactOnEntity'
 import { deletePostMutation } from 'hooks/usePostActionSheet'
 
 const DEFAULT_CHAT_TOPIC = 'general'
-const PAGE_SIZE = 25
+const PAGE_SIZE = 18
 
 /**
  * Native chat room screen with real-time messaging
@@ -36,6 +36,7 @@ export default function ChatRoom () {
 
   const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
   const messageListRef = useRef(null)
+  const suppressAutoScrollRef = useRef(false)
   const [offset, setOffset] = useState(0)
   const [sending, setSending] = useState(false)
 
@@ -48,15 +49,15 @@ export default function ChatRoom () {
     order: 'desc', // Most recent first
     first: PAGE_SIZE,
     offset,
-    // Only show discussion posts (chat messages) - exclude events, requests, etc.
-    filter: 'discussion'
+    filter: 'chat'
   }), [currentGroup?.slug, topicName, offset])
 
   // Fetch posts (chat messages)
   const [{ data, fetching, error }, refetchPosts] = useQuery({
     query: makeStreamQuery(streamQueryVariables).query,
     variables: streamQueryVariables,
-    pause: !currentGroup?.slug
+    pause: !currentGroup?.slug,
+    requestPolicy: 'cache-and-network'
   })
 
   // GraphQL mutations
@@ -66,10 +67,26 @@ export default function ChatRoom () {
 
   const postsQuerySet = useMemo(() => data?.group?.posts, [data])
   const hasMore = useMemo(() => postsQuerySet?.hasMore, [postsQuerySet])
-  const posts = useMemo(() => {
-    // Reverse the posts to show oldest at top, newest at bottom (like typical chat)
-    return postsQuerySet?.items ? [...postsQuerySet.items].reverse() : []
-  }, [postsQuerySet])
+  const [messages, setMessages] = useState([])
+  const posts = useMemo(() => postsQuerySet?.items || [], [postsQuerySet])
+
+  // Accumulate pages locally to avoid blanking the list while loading more
+  useEffect(() => {
+    if (!posts) return
+    if (offset === 0) {
+      setMessages(posts)
+      return
+    }
+    // Merge unique by id, appending older items to the end
+    setMessages(prev => {
+      if (!prev?.length) return posts
+      const existingIds = new Set(prev.map(p => p.id))
+      const appended = posts.filter(p => !existingIds.has(p.id))
+      return appended.length ? [...prev, ...appended] : prev
+    })
+  }, [posts, offset])
+
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const handleSendMessage = useCallback(async (messageText) => {
     if (!messageText.trim() || !currentGroup?.id || sending) return
@@ -77,18 +94,19 @@ export default function ChatRoom () {
     setSending(true)
     try {
       await createPost({
-        type: 'discussion',
+        type: 'chat',
         details: messageText,
         groupIds: [currentGroup.id],
         topicNames: [topicName]
       })
 
-      // Refetch to get the new message
+      // Reset pagination and refetch newest page to include the new post
+      setOffset(0)
       refetchPosts({ requestPolicy: 'network-only' })
 
-      // Scroll to bottom to show new message
+      // With inverted list, offset 0 is the visual bottom
       setTimeout(() => {
-        messageListRef.current?.scrollToEnd({ animated: true })
+        messageListRef.current?.scrollToOffset({ offset: 0, animated: true })
       }, 100)
     } catch (error) {
       console.error('Error sending message:', error)
@@ -145,14 +163,24 @@ export default function ChatRoom () {
   }, [deletePost, refetchPosts, t])
 
   const handleLoadMore = useCallback(() => {
-    if (hasMore && !fetching) {
-      setOffset(posts.length)
+    if (loadingMore || fetching) return
+    if (hasMore) {
+      suppressAutoScrollRef.current = true
+      setLoadingMore(true)
+      setOffset(messages.length)
     }
-  }, [hasMore, fetching, posts.length])
+  }, [hasMore, fetching, loadingMore, messages.length])
+
+  // Reset loadingMore once a new page has been merged
+  useEffect(() => {
+    if (loadingMore && posts?.length) {
+      setLoadingMore(false)
+    }
+  }, [posts?.length, loadingMore])
 
   const renderMessage = useCallback(({ item: post, index }) => {
-    const previousPost = index > 0 ? posts[index - 1] : null
-    const nextPost = index < posts.length - 1 ? posts[index + 1] : null
+    const previousPost = index > 0 ? messages[index - 1] : null
+    const nextPost = index < messages.length - 1 ? messages[index + 1] : null
 
     return (
       <ChatMessage
@@ -169,29 +197,48 @@ export default function ChatRoom () {
         }}
       />
     )
-  }, [posts, currentUser, handleAddReaction, handleRemoveReaction, handleFlagPost, handleRemovePost])
+  }, [messages, currentUser, handleAddReaction, handleRemoveReaction, handleFlagPost, handleRemovePost])
 
   const keyExtractor = useCallback((item) => item.id, [])
 
   // Auto-scroll to bottom when new messages arrive and user is at/near bottom
   const [isNearBottom, setIsNearBottom] = useState(true)
-  const handleScroll = useMemo(() =>
-    debounce(300, (info) => {
-      const { contentOffset, contentSize, layoutMeasurement } = info
-      const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height)
-      setIsNearBottom(distanceFromBottom < 100)
-    }),
-  []
+  // Debounced updater that operates on plain values, not the pooled event
+  const debouncedScrollUpdate = useMemo(
+    () =>
+      debounce(300, (payload) => {
+        if (!payload) return
+        const { contentOffset, contentSize, layoutMeasurement } = payload
+        if (!contentSize || !layoutMeasurement || !contentOffset) return
+        // In inverted lists, y=0 is the visual bottom. Consider near bottom if
+        // the current offset is within a small threshold from 0.
+        const offsetY = contentOffset?.y ?? 0
+        const nearBottom = offsetY < 48
+        setIsNearBottom(nearBottom)
+        if (nearBottom) suppressAutoScrollRef.current = false
+        // If we've paginated (offset>0) and user comes back to bottom, reset to newest
+        if (nearBottom && offset !== 0 && !loadingMore && !fetching) {
+          setOffset(0)
+        }
+      }),
+    [offset, loadingMore, fetching]
   )
+
+  // Synchronous onScroll handler to extract values before React pools the event
+  const onScroll = useCallback((event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event?.nativeEvent || {}
+    debouncedScrollUpdate({ contentOffset, contentSize, layoutMeasurement })
+  }, [debouncedScrollUpdate])
 
   // Scroll to bottom when posts change and user is near bottom
   useEffect(() => {
-    if (posts.length > 0 && isNearBottom) {
+    // Only auto-scroll when we're on the newest page (offset === 0) and user is near bottom
+    if (offset === 0 && messages.length > 0 && isNearBottom && !loadingMore && !suppressAutoScrollRef.current) {
       setTimeout(() => {
-        messageListRef.current?.scrollToEnd({ animated: true })
+        messageListRef.current?.scrollToOffset({ offset: 0, animated: true })
       }, 100)
     }
-  }, [posts.length, isNearBottom])
+  }, [messages.length, isNearBottom, offset, loadingMore])
 
   // Set navigation title
   useEffect(() => {
@@ -219,27 +266,26 @@ export default function ChatRoom () {
     <KeyboardFriendlyView style={styles.container}>
       <FlashList
         ref={messageListRef}
-        data={posts}
+        data={messages}
+        inverted
         estimatedItemSize={80}
         estimatedListSize={Dimensions.get('screen')}
         renderItem={renderMessage}
         keyExtractor={keyExtractor}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.1}
-        onScroll={handleScroll}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshing={fetching}
         onRefresh={() => {
           setOffset(0)
           refetchPosts({ requestPolicy: 'network-only' })
         }}
-        ListFooterComponent={fetching ? <Loading style={styles.loadingFooter} /> : null}
+        // In inverted mode we don't need an initial scroll
+        ListFooterComponent={fetching || loadingMore ? <Loading style={styles.loadingFooter} /> : null}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
-        // Keep messages at bottom initially
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10
-        }}
+        // No maintainVisibleContentPosition in inverted mode to avoid layout issues
       />
 
       <ChatMessageInput
