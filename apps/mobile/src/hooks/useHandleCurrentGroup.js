@@ -22,10 +22,10 @@ export function useHandleCurrentGroupSlug () {
   const pathAfterMatch = pathMatches?.[2] ?? null
 
   useEffect(() => {
-    if (currentUser && !currentGroupSlug && !groupSlugFromPath) {
+    if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
-  }, [currentUser, currentGroupSlug])
+  }, [currentUser?.memberships, currentGroupSlug])
 
   useEffect(() => {
     if (context) {

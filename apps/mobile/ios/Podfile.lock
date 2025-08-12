@@ -71,9 +71,9 @@ PODS:
   - MixpanelReactNative (3.0.8):
     - Mixpanel-swift (= 4.3.0)
     - React-Core
-  - OneSignalXCFramework (5.2.13):
-    - OneSignalXCFramework/OneSignalComplete (= 5.2.13)
-  - OneSignalXCFramework/OneSignal (5.2.13):
+  - OneSignalXCFramework (5.2.14):
+    - OneSignalXCFramework/OneSignalComplete (= 5.2.14)
+  - OneSignalXCFramework/OneSignal (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalLiveActivities
@@ -81,38 +81,38 @@ PODS:
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.2.13):
+  - OneSignalXCFramework/OneSignalComplete (5.2.14):
     - OneSignalXCFramework/OneSignal
     - OneSignalXCFramework/OneSignalInAppMessages
     - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.2.13)
-  - OneSignalXCFramework/OneSignalExtension (5.2.13):
+  - OneSignalXCFramework/OneSignalCore (5.2.14)
+  - OneSignalXCFramework/OneSignalExtension (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.2.13):
+  - OneSignalXCFramework/OneSignalInAppMessages (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.2.13):
+  - OneSignalXCFramework/OneSignalLiveActivities (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.2.13):
+  - OneSignalXCFramework/OneSignalLocation (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.2.13):
+  - OneSignalXCFramework/OneSignalNotifications (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.2.13):
+  - OneSignalXCFramework/OneSignalOSCore (5.2.14):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.2.13):
+  - OneSignalXCFramework/OneSignalOutcomes (5.2.14):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalUser (5.2.13):
+  - OneSignalXCFramework/OneSignalUser (5.2.14):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
@@ -1371,8 +1371,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-onesignal (5.2.12):
-    - OneSignalXCFramework (= 5.2.13)
+  - react-native-onesignal (5.2.13):
+    - OneSignalXCFramework (= 5.2.14)
     - React (< 1.0.0, >= 0.13.0)
   - react-native-pager-view (6.7.0):
     - DoubleConversion
@@ -2053,7 +2053,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSentry (6.7.0):
+  - RNSentry (6.19.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2074,7 +2074,7 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - Sentry/HybridSDK (= 8.44.0)
+    - Sentry/HybridSDK (= 8.53.2)
     - Yoga
   - RNShare (12.0.6):
     - DoubleConversion
@@ -2167,7 +2167,7 @@ PODS:
   - SDWebImageWebPCoder (0.8.5):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.10)
-  - Sentry/HybridSDK (8.44.0)
+  - Sentry/HybridSDK (8.53.2)
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
 
@@ -2511,14 +2511,14 @@ CHECKOUT OPTIONS:
 SPEC CHECKSUMS:
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   BEMCheckBox: 5ba6e37ade3d3657b36caecc35c8b75c6c2b1a4e
-  boost: 1dca942403ed9342f98334bf4c3621f011aa7946
+  boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
-  DoubleConversion: f16ae600a246532c4020132d54af21d0ddb2a385
+  DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   EmojiPopup: a95b9a2c53a4d56947e831c2fe61cad42083d814
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 23d8c5470c648a635893dc0956c6dbaead54b656
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
-  glog: 08b301085f15bcbb6ff8632a8ebaf239aae04e6a
+  glog: eb93e2f488219332457c3c4eafd2738ddc7e80b8
   GoogleSignIn: b232380cf495a429b8095d3178a8d5855b42e842
   GTMAppAuth: 99fb010047ba3973b7026e45393f51f27ab965ae
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
@@ -2530,7 +2530,7 @@ SPEC CHECKSUMS:
   MCEmojiPicker: f5d1d691c56aacf287a50378ee2afe2b30bd6b52
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
-  OneSignalXCFramework: 6a06ab8a3e44370cb70c6ef31c472b271cdaa7aa
+  OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: 6ee92578d332db1d4e03267d3ae98bcf8b780863
   RCTRequired: 5b3da0e0f91fddda935574b81748c3e3d3649ee7
@@ -2566,7 +2566,7 @@ SPEC CHECKSUMS:
   react-native-document-picker: a338165804b1a14c8e408448115dc0edfd7b73ca
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: df2b20cdfa981f7288f4019774d9baa26a4772c1
-  react-native-onesignal: a8e7e5c9fc9a973befdbd38aa23f1e54fd364a8b
+  react-native-onesignal: 0829ce2a504db26dd80eaf14d4e0211ea626fe62
   react-native-pager-view: cda3e94765176877702695c4b8c4b5ca69cb2f16
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
   react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863
@@ -2616,13 +2616,13 @@ SPEC CHECKSUMS:
   RNGoogleSignin: b8f09e3ec56e09497e1e53b0ff66d5a45916c6b1
   RNReanimated: 8a4ea733f88a33379150eb2e73b375e14de81e84
   RNScreens: 5a1573ceb1a13b2d0663cbfb42cb4aa8803554eb
-  RNSentry: d72048c24e2698bd61002e9917318f8cc0f28cbf
+  RNSentry: 681b0d076e741ea60b62f26dbc3b01f463e1ea68
   RNShare: 8c835cefc565a56b5c2902ff4f3cdc62b48d102e
   RNSVG: 2089e8b3a145acb2f392017279790f007f934567
   RNVectorIcons: bd818296a51dc2bb8c3bd97a3ca399df1afe216d
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
-  Sentry: 0f9bc9adfc0b960e7f3bb5ec67e9a3d8193f3bdb
+  Sentry: 59993bffde4a1ac297ba6d268dc4bbce068d7c1b
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: 7d51419602153919f32aec72812e324d495ee49d
 
