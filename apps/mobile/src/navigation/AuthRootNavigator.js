@@ -48,7 +48,8 @@ export default function AuthRootNavigator () {
 
   // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
   // This stays within Android's 4 concurrent SSE connection limit
-  useUnifiedSubscription()
+  // Pause until we have a currentUser to avoid unauthenticated subscription attempts
+  useUnifiedSubscription({ pause: !currentUser })
 
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })

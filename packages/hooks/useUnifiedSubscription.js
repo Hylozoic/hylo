@@ -129,16 +129,17 @@ const UNIFIED_SUBSCRIPTION = gql`
  * This replaces the need for multiple individual subscriptions,
  * which helps with Android's 4 SSE connection limit.
  */
-export default function useUnifiedSubscription () {
+export default function useUnifiedSubscription (options = {}) {
+  const { pause = false } = options
   const [result] = useSubscription({
     query: UNIFIED_SUBSCRIPTION,
-    pause: false // Always active
+    pause
   })
 
   // Handle subscription errors gracefully
   if (result.error) {
     console.warn('Unified subscription error:', result.error)
-    
+
     // In development, log more details about the error
     if (process.env.NODE_ENV === 'development') {
       console.error('📱 Unified subscription failed:', {
