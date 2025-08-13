@@ -354,16 +354,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: async function (eventInvitation, forUserId) {
+  getCalEventData: async function (eventInvitation, forUserId, eventChanges = {}) {
     const organizer = await this.user().fetch()
 
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: this.get('location'),
-      start: this.get('start_time'),
-      end: this.get('end_time'),
-      timezone: this.get('timezone'),
+      location: eventChanges.location || this.get('location'),
+      start: eventChanges.start_time || this.get('start_time'),
+      end: eventChanges.end_time || this.get('end_time'),
+      // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
+      // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
       status: eventInvitation.notGoing() ? ICalEventStatus.CANCELLED : ICalEventStatus.CONFIRMED,
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
@@ -390,7 +391,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async sendEventRsvpEmail (eventInvitation, eventChanges = {}) {
     const cal = ical()
     const user = await eventInvitation.user().fetch()
-    const calEvent = this.getCalEventData(eventInvitation, user.id)
+    const calEvent = await this.getCalEventData(eventInvitation, user.id, eventChanges)
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
     await this.load('groups')
@@ -437,7 +438,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   async sendEventCancelEmail (eventInvitation) {
     const cal = ical()
     const user = await eventInvitation.user().fetch()
-    const calEvent = this.getCalEventCancelData(eventInvitation)
+    const calEvent = await this.getCalEventCancelData(eventInvitation)
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
     const groupNames = this.relations.groups?.map(g => g.get('name')).join(', ')
