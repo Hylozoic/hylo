@@ -1,4 +1,4 @@
-import { uniq, difference, includes } from 'lodash/fp'
+import { uniq, difference } from 'lodash/fp'
 
 export default {
   isEvent () {
