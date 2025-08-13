@@ -21,7 +21,7 @@ export function createPost (userId, data) {
     .then(validatedData => underlyingCreatePost(userId, validatedData))
 }
 
-export function deletePost (userId, postId) {
+export async function deletePost (userId, postId) {
   return Post.find(postId)
     .then(post => {
       if (!post) {
@@ -30,9 +30,22 @@ export function deletePost (userId, postId) {
       if (post.get('user_id') !== userId) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
+      return post.isEvent() ? cancelEvent(post) : true
+    }).then(() => {
       return Post.deactivate(postId)
-    })
-    .then(() => ({ success: true }))
+    }).then(() => ({ success: true }))
+}
+
+export async function cancelEvent (post) {
+  await post.load('eventInvitations')
+  const eventInvitations = await post.relations.eventInvitations.fetch()
+  const eventInvitationFindData = eventInvitations.map(eventInvitation => {
+    return {
+      userId: eventInvitation.get('user_id'),
+      eventId: post.id
+    }
+  })
+  Queue.classMethod('Post', 'sendEventCancelRsvps', { postId: post.id, eventInvitationFindData })
 }
 
 export function updatePost (userId, { id, data }) {
