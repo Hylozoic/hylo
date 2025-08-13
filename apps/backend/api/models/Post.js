@@ -402,6 +402,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }).toString()
 
     const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
+    const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
+    const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || this.get('end_time')) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: this.get('timezone')}) : null
+    const newLocation = eventChanges.location
 
     Queue.classMethod('Email', emailTemplate, {
       email: user.get('email'),
@@ -415,8 +419,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         event_url: Frontend.Route.post(this, this.relations.groups.first(), clickthroughParams),
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
-        newDate: DateTimeHelpers.formatDatePair({start: eventChanges.start_time, end: eventChanges.end_time, timezone: this.get('timezone')}),
-        newLocation: eventChanges.location
+        newDate: newDate,
+        newLocation: newLocation
       },
       files: [
         {
