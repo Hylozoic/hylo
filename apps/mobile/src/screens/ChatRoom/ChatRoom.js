@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Dimensions, Alert } from 'react-native'
+import { StyleSheet, Dimensions, Alert, TouchableOpacity, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
@@ -288,6 +288,16 @@ export default function ChatRoom () {
         // No maintainVisibleContentPosition in inverted mode to avoid layout issues
       />
 
+      {!isNearBottom && (
+        <TouchableOpacity
+          onPress={() => messageListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          style={styles.scrollToBottomButton}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.scrollToBottomButtonText}>↓</Text>
+        </TouchableOpacity>
+      )}
+
       <ChatMessageInput
         onSend={handleSendMessage}
         disabled={sending}
@@ -307,5 +317,28 @@ const styles = StyleSheet.create({
   },
   loadingFooter: {
     paddingVertical: 16
+  },
+  scrollToBottomButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 88,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // iOS shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+    // Android shadow
+    elevation: 3
+  },
+  scrollToBottomButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    lineHeight: 20
   }
 })
