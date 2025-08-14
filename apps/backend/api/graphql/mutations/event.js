@@ -29,7 +29,7 @@ export async function respondToEvent (userId, eventId, response) {
   }
 
   if (sendEmail) {
-    await event.sendEventRsvpEmail(eventInvitation)
+    Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
   }
 
   return { success: true }

@@ -389,55 +389,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
-  async sendEventRsvpEmail (eventInvitation, eventChanges = {}) {
-    const user = await eventInvitation.user().fetch()
-    const clickthroughParams = '?' + new URLSearchParams({
-      ctt: 'event_rsvp',
-      cti: user.id
-    }).toString()
-    const url = Frontend.Route.post(this, this.relations.groups.first(), clickthroughParams)
-
-    const cal = ical()
-    const calEvent = await this.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
-    await this.load('groups')
-    const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
-
-    const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
-    const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
-    const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || this.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: this.get('timezone')}) : null
-    const newLocation = eventChanges.location
-
-    Queue.classMethod('Email', emailTemplate, {
-      email: user.get('email'),
-      version: 'default',
-      data: {
-        date: DateTimeHelpers.formatDatePair({start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone')}),
-        user_name: user.get('name'),
-        event_name: this.title(),
-        event_description: this.details(),
-        event_location: this.get('location'),
-        event_url: url,
-        response: eventInvitation.getHumanResponse(),
-        group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
-      },
-      files: [
-        {
-          id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
-        }
-      ]
-    }).then(() => {
-      // update the ical sequence number, no need to await
-      eventInvitation.incrementIcalSequence()
-    })
-  },
-
-  async sendEventCancelEmail (eventInvitation) {
+  async sendEventCancelRsvp (eventInvitation) {
     const cal = ical()
     const user = await eventInvitation.user().fetch()
     const calEvent = await this.getCalEventCancelData(eventInvitation)
@@ -1312,19 +1264,68 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     eventInvitations.forEach(eventInvitation => {
       if (!eventInvitation.notGoing()) {
-        post.sendEventRsvpEmail(eventInvitation, eventChanges)
+        Post.sendEventRsvp({eventId: postId, eventInvitationId: eventInvitation.id, eventChanges})
       }
     })
   },
 
-  sendEventCancelRsvps: async function ({ postId, eventInvitationFindData }) {
+  sendEventCancelRsvps: async function ({ postId, eventInvitationIds }) {
     const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
-    for (const eventInvitationData of eventInvitationFindData) {
-      const eventInvitation = await EventInvitation.find(eventInvitationData)
+    for (const eventInvitationId of eventInvitationIds) {
+      const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
       if (eventInvitation && !eventInvitation.notGoing()) {
-        post.sendEventCancelEmail(eventInvitation)
+        post.sendEventCancelRsvp(eventInvitation)
       }
     }
-  }
+  },
 
+  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
+    const post = await Post.where({ id: eventId }).fetch()
+    const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
+    const user = await eventInvitation.user().fetch()
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_rsvp',
+      cti: user.id
+    }).toString()
+    await post.load('groups')
+    const url = Frontend.Route.post(post, post.relations.groups.first(), clickthroughParams)
+
+    const cal = ical()
+    const calEvent = await post.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+    const groupNames = post.relations.groups.map(g => g.get('name')).join(', ')
+
+    const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
+    const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
+    const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: post.get('timezone')}) : null
+    const newLocation = eventChanges.location
+
+    Queue.classMethod('Email', emailTemplate, {
+      email: user.get('email'),
+      version: 'default',
+      data: {
+        date: DateTimeHelpers.formatDatePair({start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone')}),
+        user_name: user.get('name'),
+        event_name: post.title(),
+        event_description: post.details(),
+        event_location: post.get('location'),
+        event_url: url,
+        response: eventInvitation.getHumanResponse(),
+        group_names: groupNames,
+        newDate: newDate,
+        newLocation: newLocation
+      },
+      files: [
+        {
+          id: 'invite.ics',
+          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+        }
+      ]
+    }).then(() => {
+      // update the ical sequence number, no need to await
+      eventInvitation.incrementIcalSequence()
+    })
+  }
 })

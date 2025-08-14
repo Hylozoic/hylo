@@ -39,13 +39,8 @@ export async function deletePost (userId, postId) {
 export async function cancelEvent (post) {
   await post.load('eventInvitations')
   const eventInvitations = await post.relations.eventInvitations.fetch()
-  const eventInvitationFindData = eventInvitations.map(eventInvitation => {
-    return {
-      userId: eventInvitation.get('user_id'),
-      eventId: post.id
-    }
-  })
-  Queue.classMethod('Post', 'sendEventCancelRsvps', { postId: post.id, eventInvitationFindData })
+  const eventInvitationIds = eventInvitations.pluck('id')
+  Queue.classMethod('Post', 'sendEventCancelRsvps', { postId: post.id, eventInvitationIds })
 }
 
 export function updatePost (userId, { id, data }) {
