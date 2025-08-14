@@ -371,13 +371,23 @@ export default {
 
     login: (result, args, cache, info) => {
       if (!result?.error) {
-        cache.updateQuery({ query: meCheckAuthQuery }, data => result?.login)
+        const me = result?.login?.me
+        // Hydrate both mini-me (auth check) and big me immediately
+        cache.updateQuery({ query: meCheckAuthQuery }, () => ({ me }))
+        cache.updateQuery({ query: meQuery }, () => ({ me }))
+        // Ensure any stale field-level results are not returned
+        cache.invalidate('Query', 'me')
       }
     },
 
     logout: (result, args, cache, info) => {
       if (result?.logout?.success) {
-        cache.updateQuery({ query: meCheckAuthQuery }, data => ({ me: null }))
+        // Clear both queries so readers see null immediately
+        cache.updateQuery({ query: meCheckAuthQuery }, () => ({ me: null }))
+        cache.updateQuery({ query: meQuery }, () => ({ me: null }))
+        // Invalidate normalized Me entity and root field so nothing stale lingers
+        cache.invalidate('Query', 'me')
+        cache.invalidate({ __typename: 'Me', id: 'me' })
       }
     },
 

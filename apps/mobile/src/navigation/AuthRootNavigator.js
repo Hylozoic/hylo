@@ -41,7 +41,7 @@ export default function AuthRootNavigator () {
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'cache-and-network' })
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
