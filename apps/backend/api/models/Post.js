@@ -354,7 +354,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: async function (eventInvitation, forUserId, eventChanges = {}) {
+  getCalEventData: async function ({ eventInvitation, forUserId, eventChanges = {}, url }) {
     const organizer = await this.user().fetch()
 
     return {
@@ -369,6 +369,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
       uid: this.iCalUid(),
+      url: url,
       organizer: {
         name: organizer.get('name'),
         email: organizer.get('email')
@@ -389,18 +390,19 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async sendEventRsvpEmail (eventInvitation, eventChanges = {}) {
-    const cal = ical()
     const user = await eventInvitation.user().fetch()
-    const calEvent = await this.getCalEventData(eventInvitation, user.id, eventChanges)
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
-    await this.load('groups')
-    const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
-
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'event_rsvp',
       cti: user.id
     }).toString()
+    const url = Frontend.Route.post(this, this.relations.groups.first(), clickthroughParams)
+
+    const cal = ical()
+    const calEvent = await this.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+    await this.load('groups')
+    const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
 
     const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
@@ -417,7 +419,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         event_name: this.title(),
         event_description: this.details(),
         event_location: this.get('location'),
-        event_url: Frontend.Route.post(this, this.relations.groups.first(), clickthroughParams),
+        event_url: url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
         newDate: newDate,
@@ -1015,10 +1017,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Post.where({ id, 'posts.active': true }).fetch(options)
   },
 
-  findDeactivated: function (id, options) {
-    return Post.where({ id, 'posts.active': false }).fetch(options)
-  },
-
   createdInTimeRange: function (collection, startTime, endTime) {
     if (endTime === undefined) {
       endTime = startTime
@@ -1320,7 +1318,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   sendEventCancelRsvps: async function ({ postId, eventInvitationFindData }) {
-    const post = await Post.findDeactivated(postId)
+    const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
     for (const eventInvitationData of eventInvitationFindData) {
       const eventInvitation = await EventInvitation.find(eventInvitationData)
       if (eventInvitation && !eventInvitation.notGoing()) {
