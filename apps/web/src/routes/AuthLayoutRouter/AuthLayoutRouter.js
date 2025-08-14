@@ -145,8 +145,8 @@ export default function AuthLayoutRouter (props) {
     const html = document.documentElement
     const body = document.body
     if (isIOS) {
-      html.classList.add('is-ios')
-      body.classList.add('is-ios')
+      html.classList.add(classes.isIos)
+      body.classList.add(classes.isIos)
     }
   }, [])
 
