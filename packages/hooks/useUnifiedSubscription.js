@@ -135,6 +135,20 @@ export default function useUnifiedSubscription () {
     pause: false // Always active
   })
 
+  // Handle subscription errors gracefully
+  if (result.error) {
+    console.warn('Unified subscription error:', result.error)
+    
+    // In development, log more details about the error
+    if (process.env.NODE_ENV === 'development') {
+      console.error('📱 Unified subscription failed:', {
+        message: result.error.message,
+        graphQLErrors: result.error.graphQLErrors,
+        networkError: result.error.networkError
+      })
+    }
+  }
+
   // The subscription handling is done automatically by urql's cache system
   // The cache updates are handled by the existing update functions in packages/urql/updates
   // since they key off the typename and payload structure

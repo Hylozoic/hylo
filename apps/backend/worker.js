@@ -59,12 +59,13 @@ const throttledLog = throttle(error => {
   if (rollbar.disabled) {
     sails.log.error(error.message)
   } else {
+    sails.log.error(error.message)
     rollbar.error(error)
   }
 }, 30000)
 
 function handleRedisError (err) {
-  if (err && err.message && err.message.includes('Redis connection')) {
+  if (err && err.message) {
     throttledLog(err)
   }
 }
