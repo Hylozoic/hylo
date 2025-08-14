@@ -21,7 +21,7 @@ export function createPost (userId, data) {
     .then(validatedData => underlyingCreatePost(userId, validatedData))
 }
 
-export async function deletePost (userId, postId) {
+export function deletePost (userId, postId) {
   return Post.find(postId)
     .then(post => {
       if (!post) {
