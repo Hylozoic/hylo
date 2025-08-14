@@ -3,6 +3,7 @@ import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 're
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
+import isMobile from 'ismobilejs'
 import Div100vh from 'react-div-100vh'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
@@ -136,6 +137,17 @@ export default function AuthLayoutRouter (props) {
       setCurrentUserLoading(false)
       dispatch(fetchThreads())
     })()
+  }, [])
+
+  // Add an iOS-specific class to html and body to allow CSS overrides (e.g., disabling overflow: hidden)
+  useEffect(() => {
+    const isIOS = isMobile.apple?.device
+    const html = document.documentElement
+    const body = document.body
+    if (isIOS) {
+      html.classList.add('is-ios')
+      body.classList.add('is-ios')
+    }
   }, [])
 
   useEffect(() => {

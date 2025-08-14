@@ -1,5 +1,11 @@
-body {
+html, body {
   overflow: hidden;
+}
+
+/* Disable overflow hidden on iOS to avoid keyboard visualViewport jump issues */
+html.is-ios, body.is-ios {
+  overflow: auto;
+  overflow-x: hidden;
 }
 
 .container {

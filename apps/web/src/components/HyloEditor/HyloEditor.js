@@ -147,6 +147,12 @@ const HyloEditor = React.forwardRef(({
       // Don't call onUpdate until the editor is full initialized (including initial content added)
       if (!onUpdate || !initialized) return
       onUpdate(editor.getHTML())
+    },
+    onFocus: () => {
+      document.addEventListener('touchmove', onTouchMove)
+    },
+    onBlur: () => {
+      document.removeEventListener('touchmove', onTouchMove)
     }
   })
 
@@ -186,7 +192,6 @@ const HyloEditor = React.forwardRef(({
   useImperativeHandle(ref, () => ({
     blur: () => {
       editorRef.current.commands.blur()
-      document.removeEventListener('touchmove', onTouchMove)
     },
     clearContent: () => {
       // `true` here means it will emit an `onUpdate`
@@ -196,7 +201,6 @@ const HyloEditor = React.forwardRef(({
       if (editorRef.current) {
         editorRef.current.commands.focus(position)
       }
-      document.addEventListener('touchmove', onTouchMove)
     },
     getHTML: () => {
       return editorRef.current.getHTML()
