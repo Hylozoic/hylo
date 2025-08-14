@@ -26,18 +26,23 @@ export default function ChatMessage ({
   const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
 
-  // Check if this message should show header (avatar, name, timestamp)
+  // Determine whether to render a header for this message.
+  // Show header when author changes, it's a new day, or more than 5 minutes have passed.
+  const createdAtDate = new Date(post.createdAt)
+  const prevCreatedAtDate = previousPost ? new Date(previousPost.createdAt) : null
+  const minutesSincePrev = prevCreatedAtDate ? Math.abs((createdAtDate - prevCreatedAtDate) / 60000) : Infinity
   const showHeader = !previousPost ||
     previousPost.creator?.id !== post.creator?.id ||
-    !DateTimeHelpers.isSameDay(previousPost.createdAt, post.createdAt)
+    !DateTimeHelpers.isSameDay(previousPost.createdAt, post.createdAt) ||
+    minutesSincePrev >= 5
 
   // Check if this is the current user's message
   const isOwnMessage = currentUser?.id === post.creator?.id
 
-  // Format timestamp
-  const displayTime = DateTimeHelpers.humanDate(post.createdAt, {
-    locale: t('locale'),
-    timezone: currentUser?.timezone
+  // Format exact time for header (e.g., 2:37 PM)
+  const displayTime = new Date(post.createdAt).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit'
   })
 
   const handleLongPress = useCallback(() => {
@@ -78,12 +83,13 @@ export default function ChatMessage ({
       isOwnMessage && styles.ownMessage
     ]}
     >
-      {/* Message Header */}
+      {/* Message Header */
+      }
       {showHeader && (
         <View style={styles.messageHeader}>
           <Avatar
-            person={post.creator}
-            size='xs'
+            avatarUrl={post.creator?.avatarUrl}
+            size='small'
             style={styles.avatar}
           />
           <Text style={styles.creatorName}>{post.creator?.name}</Text>
@@ -100,8 +106,7 @@ export default function ChatMessage ({
           onPress={onPress}
           style={[
             styles.messageContent,
-            !showHeader && styles.messageContentNoHeader,
-            isOwnMessage && styles.ownMessageContent
+            !showHeader && styles.messageContentNoHeader
           ]}
         >
           {/* Post Title (for announcement/event posts) */}
@@ -198,21 +203,15 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: '#8B96A5',
-    marginLeft: 'auto'
+    marginLeft: 4
   },
   messageContent: {
     marginLeft: 32, // Align with avatar
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 12
+    backgroundColor: 'transparent',
+    padding: 0
   },
   messageContentNoHeader: {
     marginTop: 2
-  },
-  ownMessageContent: {
-    backgroundColor: '#007bff',
-    marginLeft: 48,
-    marginRight: 16
   },
   messageTitle: {
     fontFamily: 'Circular-Bold',
