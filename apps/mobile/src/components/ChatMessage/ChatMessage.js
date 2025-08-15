@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import { useTranslation } from 'react-i18next'
 import { DateTimeHelpers } from '@hylo/shared'
 import { LongPressGestureHandler, State } from 'react-native-gesture-handler'
@@ -25,6 +27,7 @@ export default function ChatMessage ({
 }) {
   const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
+  const navigation = useNavigation()
 
   // Determine whether to render a header for this message.
   // Show header when author changes, it's a new day, or more than 5 minutes have passed.
@@ -75,6 +78,10 @@ export default function ChatMessage ({
     onRemovePost?.(post.id)
     setShowActions(false)
   }, [post.id, onRemovePost])
+
+  const handleOpenReplies = useCallback(() => {
+    navigation.navigate(modalScreenName('Post Details'), { id: post.id })
+  }, [navigation, post.id])
 
   return (
     <View style={[
@@ -151,9 +158,37 @@ export default function ChatMessage ({
             post={post}
             currentUser={currentUser}
             includePicker
+            style={styles.emojiRow}
           />
         </View>
       )}
+
+      {/* Replies summary */}
+      {(() => {
+        const replyCount = (post?.comments && post?.comments?.total) || post?.commentersTotal || 0
+        if (!replyCount) return null
+        const commenters = post?.commenters || []
+        const label = replyCount === 1 ? t('1 reply') : t('{{count}} replies', { count: replyCount })
+        return (
+          <TouchableOpacity onPress={handleOpenReplies} activeOpacity={0.8} style={styles.repliesContainer}>
+            <View style={styles.repliesPill}>
+              <View style={styles.repliesAvatars}>
+                {commenters.slice(0, 3).map((person, index) => (
+                  <Avatar
+                    key={person?.id || index}
+                    avatarUrl={person?.avatarUrl}
+                    size='small'
+                    hasBorder
+                    hasOverlap={index > 0}
+                    zIndex={3 - index}
+                  />
+                ))}
+              </View>
+              <Text style={styles.repliesText}>{label}</Text>
+            </View>
+          </TouchableOpacity>
+        )
+      })()}
 
       {/* Action Menu */}
       {showActions && (
@@ -179,7 +214,7 @@ export default function ChatMessage ({
 const styles = StyleSheet.create({
   messageContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingBottom: 4,
     backgroundColor: 'transparent'
   },
   highlighted: {
@@ -191,7 +226,8 @@ const styles = StyleSheet.create({
   messageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: 4,
+    marginTop: 0
   },
   avatar: {
     marginRight: 8
@@ -213,7 +249,7 @@ const styles = StyleSheet.create({
     padding: 0
   },
   messageContentNoHeader: {
-    marginTop: 2
+    marginTop: 0
   },
   messageTitle: {
     fontFamily: 'Circular-Bold',
@@ -259,7 +295,33 @@ const styles = StyleSheet.create({
   },
   reactions: {
     marginLeft: 32,
-    marginTop: 4
+    marginTop: 0
+  },
+  emojiRow: {
+    marginBottom: 0
+  },
+  repliesContainer: {
+    marginLeft: 32,
+    marginTop: 0
+  },
+  repliesPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    alignSelf: 'flex-start'
+  },
+  repliesAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6
+  },
+  repliesText: {
+    fontSize: 13,
+    color: '#2C405A',
+    fontFamily: 'Circular-Book'
   },
   actionMenu: {
     flexDirection: 'row',

@@ -41,7 +41,7 @@ export default function EmojiRow (props) {
   }
 
   return (
-    <View style={styles.footerReactions}>
+    <View style={{ ...styles.footerReactions, ...props.style }}>
       {Object.values(usersReactions).map(reaction => (
         <EmojiPill
           onPress={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
