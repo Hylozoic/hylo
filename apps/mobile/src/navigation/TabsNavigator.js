@@ -44,7 +44,7 @@ export default function TabsNavigator () {
         <Icon
           name={route.name.split(' Tab')[0]}
           size={32}
-          color={focused ? black10OnCaribbeanGreen : gunsmoke}
+          color={focused ? global.COLORS.selected : global.COLORS.foreground}
           style={{ paddingTop: isIOS ? 0 : 5 }}
         />
       ),

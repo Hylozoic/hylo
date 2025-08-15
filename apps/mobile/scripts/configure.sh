@@ -78,6 +78,22 @@ cat > android/app/src/release/res/values/strings.xml <<EOL
 
 EOL
 
+# Generate theme-aware color system from NativeWind CSS
+echo "Generating theme-aware color system..."
+if [ -f "scripts/generate-theme-colors.js" ]; then
+    echo "Running color generation script..."
+    node scripts/generate-theme-colors.js
+    if [ $? -eq 0 ]; then
+        echo "✅ Color system generated successfully"
+    else
+        echo "❌ Color generation failed"
+        exit 1
+    fi
+else
+    echo "❌ Color generation script not found"
+    exit 1
+fi
+
 read -r -d "" gradleProperties <<EOF
 HYLO_DEBUG_STORE_FILE=debug.keystore
 HYLO_DEBUG_KEY_ALIAS=androiddebugkey
