@@ -133,7 +133,6 @@ export default function GlobalNav (props) {
     return () => {
       if (menuTimeoutId) {
         clearTimeout(menuTimeoutId)
-        setMenuTimeoutId(null)
       }
     }
   }, [isContainerHovered])
