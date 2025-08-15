@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Dimensions, Alert, TouchableOpacity, Text } from 'react-native'
+import { StyleSheet, Dimensions, Alert, TouchableOpacity, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
@@ -87,6 +87,7 @@ export default function ChatRoom () {
   }, [posts, offset])
 
   const [loadingMore, setLoadingMore] = useState(false)
+  const [dayMarker, setDayMarker] = useState('')
 
   const handleSendMessage = useCallback(async (messageText) => {
     if (!messageText.trim() || !currentGroup?.id || sending) return
@@ -230,6 +231,30 @@ export default function ChatRoom () {
     debouncedScrollUpdate({ contentOffset, contentSize, layoutMeasurement })
   }, [debouncedScrollUpdate])
 
+  // Update floating day marker based on the top-most visible message
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    if (!viewableItems?.length) return
+    let topMost = null
+    for (const v of viewableItems) {
+      if (!v?.isViewable) continue
+      if (topMost == null || (typeof v.index === 'number' && v.index > topMost.index)) {
+        topMost = { index: v.index, item: v.item }
+      }
+    }
+    const createdAt = topMost?.item?.createdAt
+    if (!createdAt) return
+    const label = (() => {
+      const d = new Date(createdAt)
+      const now = new Date()
+      const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      const diffDays = Math.floor((startOfDay(now) - startOfDay(d)) / 86400000)
+      if (diffDays === 0) return 'Today'
+      if (diffDays === 1) return 'Yesterday'
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    })()
+    setDayMarker(label)
+  }, [])
+
   // Scroll to bottom when posts change and user is near bottom
   useEffect(() => {
     // Only auto-scroll when we're on the newest page (offset === 0) and user is near bottom
@@ -276,6 +301,7 @@ export default function ChatRoom () {
         onEndReachedThreshold={0.1}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        onViewableItemsChanged={onViewableItemsChanged}
         refreshing={fetching}
         onRefresh={() => {
           setOffset(0)
@@ -287,6 +313,12 @@ export default function ChatRoom () {
         showsVerticalScrollIndicator={false}
         // No maintainVisibleContentPosition in inverted mode to avoid layout issues
       />
+
+      {dayMarker ? (
+        <View style={styles.dayMarkerContainer} pointerEvents='none'>
+          <Text style={styles.dayMarkerText}>{dayMarker}</Text>
+        </View>
+      ) : null}
 
       {!isNearBottom && (
         <TouchableOpacity
@@ -317,6 +349,20 @@ const styles = StyleSheet.create({
   },
   loadingFooter: {
     paddingVertical: 16
+  },
+  dayMarkerContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  dayMarkerText: {
+    color: '#fff',
+    fontSize: 12,
+    fontFamily: 'Circular-Bold'
   },
   scrollToBottomButton: {
     position: 'absolute',
