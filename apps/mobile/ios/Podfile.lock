@@ -10,11 +10,11 @@ PODS:
   - BVLinearGradient (2.8.3):
     - React-Core
   - DoubleConversion (1.1.6)
-  - EmojiPopup (0.3.1):
+  - EmojiPopup (0.3.3):
     - DoubleConversion
     - glog
     - hermes-engine
-    - MCEmojiPicker
+    - MCEmojiPicker (= 1.2.3)
     - RCT-Folly (= 2024.11.18.00)
     - RCTRequired
     - RCTTypeSafety
@@ -64,7 +64,7 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - MCEmojiPicker (1.2.5)
+  - MCEmojiPicker (1.2.3)
   - Mixpanel-swift (4.3.0):
     - Mixpanel-swift/Complete (= 4.3.0)
   - Mixpanel-swift/Complete (4.3.0)
@@ -2519,7 +2519,7 @@ SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
-  EmojiPopup: a95b9a2c53a4d56947e831c2fe61cad42083d814
+  EmojiPopup: 1295fc121fb05a5ab3bee795df9e9dbd775e16b6
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 23d8c5470c648a635893dc0956c6dbaead54b656
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
@@ -2532,7 +2532,7 @@ SPEC CHECKSUMS:
   intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  MCEmojiPicker: f5d1d691c56aacf287a50378ee2afe2b30bd6b52
+  MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
