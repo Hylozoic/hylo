@@ -7,6 +7,7 @@
 @layer base {
 
   :root {
+    --black: 34 9% 15%;
     --background: 42 20% 88%;
     --midground: 45 28% 94%;
     --foreground: 240 10% 3.9%;
@@ -42,6 +43,7 @@
   }
 
   .dark {
+    --black: 0 0% 0%;
     --background: 33 8% 28%;
     --midground: 27 5% 34%;
     --foreground: 40 100% 99%;

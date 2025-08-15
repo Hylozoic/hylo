@@ -27,7 +27,7 @@ import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
-
+import './src/style/theme-colors'
 if (__DEV__) {
   require('./ReactotronConfig')
 }
