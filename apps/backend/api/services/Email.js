@@ -97,6 +97,8 @@ module.exports = {
   sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
   sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
   sendEventRsvpEmail: sendEmailWithOptions('tem_36CYP4XjSmSjPtqqdBJBRcjF'),
+  sendEventUpdateEmail: sendEmailWithOptions('tem_rQpvDV9yc37FfdW4MC9PCkWY'),
+  sendEventCancelEmail: sendEmailWithOptions('tem_hHcpgSQfFjbCyXjXrkhxrr64'),
   sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_vwd7DKxrGrXPX8Wq63VkTvMd'),
   sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
