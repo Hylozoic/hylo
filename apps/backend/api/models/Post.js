@@ -1269,8 +1269,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  sendEventCancelRsvps: async function ({ postId, eventInvitationIds }) {
+  sendEventCancelRsvps: async function ({ postId }) {
     const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
+    const eventInvitationIds = (await post.eventInvitations().fetch()).pluck('id')
     for (const eventInvitationId of eventInvitationIds) {
       const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
       if (eventInvitation && !eventInvitation.notGoing()) {

@@ -30,17 +30,10 @@ export function deletePost (userId, postId) {
       if (post.get('user_id') !== userId) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
-      return post.isEvent() ? cancelEvent(post) : true
+      return post.isEvent() ? Queue.classMethod('Post', 'sendEventCancelRsvps', { postId }) : true
     }).then(() => {
       return Post.deactivate(postId)
     }).then(() => ({ success: true }))
-}
-
-export async function cancelEvent (post) {
-  await post.load('eventInvitations')
-  const eventInvitations = await post.relations.eventInvitations.fetch()
-  const eventInvitationIds = eventInvitations.pluck('id')
-  Queue.classMethod('Post', 'sendEventCancelRsvps', { postId: post.id, eventInvitationIds })
 }
 
 export function updatePost (userId, { id, data }) {
