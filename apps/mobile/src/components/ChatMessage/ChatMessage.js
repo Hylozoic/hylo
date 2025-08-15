@@ -146,11 +146,13 @@ export default function ChatMessage ({
 
       {/* Reactions */}
       {post.postReactions?.length > 0 && (
-        <EmojiRow
-          reactions={post.postReactions}
-          onReaction={handleReaction}
-          style={styles.reactions}
-        />
+        <View style={styles.reactions}>
+          <EmojiRow
+            post={post}
+            currentUser={currentUser}
+            includePicker
+          />
+        </View>
       )}
 
       {/* Action Menu */}
