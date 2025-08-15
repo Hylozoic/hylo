@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.14] - 2025-08-14
+
+### Fixed
+- Push notifications get sent right away after a post is created
+- Fixed bugs that were preventing some digest emails and comment digest emails from being sent
+
 ## [6.1.13] - 2025-08-08
 
 ### Changed
