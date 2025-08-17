@@ -15,6 +15,8 @@ import Loading from 'components/Loading'
 import ChatMessage from 'components/ChatMessage'
 import ChatMessageInput from 'components/ChatMessageInput'
 import createPostMutation from '@hylo/graphql/mutations/createPostMutation'
+import fetchTopicFollowQuery from '@hylo/graphql/queries/fetchTopicFollowQuery'
+import updateTopicFollowMutation from '@hylo/graphql/mutations/updateTopicFollowMutation'
 import useReactOnEntity from 'hooks/useReactOnEntity'
 import { deletePostMutation } from 'hooks/usePostActionSheet'
 
@@ -33,26 +35,74 @@ export default function ChatRoom () {
   const [{ currentGroup, fetching: groupFetching }] = useCurrentGroup()
   const routeParams = useRouteParams()
   const { topicName: routeTopicName } = routeParams
-
+  const [lastReadPostId, setLastReadPostId] = useState(null)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
+  
   const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
-  const messageListRef = useRef(null)
+  const postListRef = useRef(null)
   const suppressAutoScrollRef = useRef(false)
   const [offset, setOffset] = useState(0)
   const [sending, setSending] = useState(false)
 
-  // Chat query parameters - focused on recent messages in reverse chronological order
-  const streamQueryVariables = useMemo(() => ({
-    context: 'groups',
-    slug: currentGroup?.slug,
-    topic: topicName,
-    sortBy: 'created',
-    order: 'desc', // Most recent first
-    first: PAGE_SIZE,
-    offset,
-    filter: 'chat'
-  }), [currentGroup?.slug, topicName, offset])
 
-  // Fetch posts (chat messages)
+  // Fetch topicFollow to get lastReadPostId
+  const [{ data: topicFollowData, fetching: topicFollowFetching }] = useQuery({
+    query: fetchTopicFollowQuery,
+    variables: {
+      groupId: currentGroup?.id,
+      topicName
+    },
+    pause: !currentGroup?.id
+  })
+
+  const topicFollow = useMemo(() => topicFollowData?.topicFollow, [topicFollowData])
+
+  // Chat query parameters - load posts after lastReadPostId on initial load
+  const streamQueryVariables = useMemo(() => {
+    const newPostCount = topicFollow?.newPostCount || 0
+    const lastReadPostId = topicFollow?.lastReadPostId || null
+    console.log('newPostCount', newPostCount, newPostCount > 0)
+    console.log('lastReadPostId', lastReadPostId)
+    console.log('initialLoadComplete', initialLoadComplete, !initialLoadComplete)
+
+    // When loading additional posts, only load 10 more
+    let postsToLoad = 9
+
+    let loadStrategy = 'recent' // default: load most recent posts
+    if (!initialLoadComplete && lastReadPostId && newPostCount > 0) {
+      console.log('loading from lastReadPostId')
+      loadStrategy = 'fromLastRead'
+      postsToLoad = 18 // Load enough to fill the screen on initial load (18 posts)
+    }
+
+    return {
+      context: 'groups',
+      slug: currentGroup?.slug,
+      topic: topicName,
+      sortBy: 'id',
+      childPostInclusion: 'no',
+      order: loadStrategy === 'fromLastRead' ? 'asc' : 'desc',
+      first: postsToLoad,
+      offset,
+      filter: 'chat',
+      // When loading from lastReadPostId, use cursor to start from that position
+      ...(loadStrategy === 'fromLastRead' && {
+        cursor: parseInt(lastReadPostId)
+      })
+    }
+  }, [currentGroup?.slug, topicName, offset, initialLoadComplete, topicFollow?.lastReadPostId, topicFollow?.newPostCount])
+
+  // Set initial lastReadPostId when topicFollow loads
+  useEffect(() => {
+    if (topicFollow?.lastReadPostId && !initialLoadComplete) {
+      setLastReadPostId(topicFollow.lastReadPostId)
+    }
+  }, [topicFollow?.lastReadPostId, initialLoadComplete])
+
+  console.log('bootstrapDone', bootstrapDone)
+  console.log('paused?', !currentGroup?.slug || !topicFollow?.id || !bootstrapDone)
+
+  // Fetch posts
   const [{ data, fetching, error }, refetchPosts] = useQuery({
     query: makeStreamQuery(streamQueryVariables).query,
     variables: streamQueryVariables,
@@ -63,22 +113,28 @@ export default function ChatRoom () {
   // GraphQL mutations
   const [, createPost] = useMutation(createPostMutation)
   const [, deletePost] = useMutation(deletePostMutation)
+  const [, updateTopicFollow] = useMutation(updateTopicFollowMutation)
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
 
   const postsQuerySet = useMemo(() => data?.group?.posts, [data])
   const hasMore = useMemo(() => postsQuerySet?.hasMore, [postsQuerySet])
-  const [messages, setMessages] = useState([])
-  const posts = useMemo(() => postsQuerySet?.items || [], [postsQuerySet])
+  const [postsToDisplay, setPostsToDisplay] = useState([])
+  const posts = useMemo(() => postsQuerySet?.items, [postsQuerySet])
+  console.log('current posts', posts)
 
   // Accumulate pages locally to avoid blanking the list while loading more
   useEffect(() => {
     if (!posts) return
-    if (offset === 0) {
-      setMessages(posts)
+    if (!initialLoadComplete) {
+      console.log('did initial load we think, setting postsToDisplay', posts)
+      setPostsToDisplay(posts)
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true)
+      }
       return
     }
     // Merge unique by id, appending older items to the end
-    setMessages(prev => {
+    setPostsToDisplay(prev => {
       if (!prev?.length) return posts
       const existingIds = new Set(prev.map(p => p.id))
       const appended = posts.filter(p => !existingIds.has(p.id))
@@ -89,14 +145,14 @@ export default function ChatRoom () {
   const [loadingMore, setLoadingMore] = useState(false)
   const [dayMarker, setDayMarker] = useState('')
 
-  const handleSendMessage = useCallback(async (messageText) => {
-    if (!messageText.trim() || !currentGroup?.id || sending) return
+  const handleSendPost = useCallback(async (postText) => {
+    if (!postText.trim() || !currentGroup?.id || sending) return
 
     setSending(true)
     try {
       await createPost({
         type: 'chat',
-        details: messageText,
+        details: postText,
         groupIds: [currentGroup.id],
         topicNames: [topicName]
       })
@@ -107,11 +163,11 @@ export default function ChatRoom () {
 
       // With inverted list, offset 0 is the visual bottom
       setTimeout(() => {
-        messageListRef.current?.scrollToOffset({ offset: 0, animated: true })
+        postListRef.current?.scrollToOffset({ offset: 0, animated: true })
       }, 100)
     } catch (error) {
-      console.error('Error sending message:', error)
-      Alert.alert(t('Error'), t('Failed to send message. Please try again.'))
+      console.error('Error sending post:', error)
+      Alert.alert(t('Error'), t('Failed to send post. Please try again.'))
     } finally {
       setSending(false)
     }
@@ -142,8 +198,8 @@ export default function ChatRoom () {
 
   const handleRemovePost = useCallback(async (postId) => {
     Alert.alert(
-      t('Remove Message'),
-      t('Are you sure you want to remove this message?'),
+      t('Remove Post'),
+      t('Are you sure you want to remove this post?'),
       [
         { text: t('Cancel'), style: 'cancel' },
         {
@@ -155,7 +211,7 @@ export default function ChatRoom () {
               refetchPosts({ requestPolicy: 'network-only' })
             } catch (error) {
               console.error('Error deleting post:', error)
-              Alert.alert(t('Error'), t('Failed to remove message.'))
+              Alert.alert(t('Error'), t('Failed to remove post.'))
             }
           }
         }
@@ -168,9 +224,9 @@ export default function ChatRoom () {
     if (hasMore) {
       suppressAutoScrollRef.current = true
       setLoadingMore(true)
-      setOffset(messages.length)
+      setOffset(postsToDisplay.length)
     }
-  }, [hasMore, fetching, loadingMore, messages.length])
+  }, [hasMore, fetching, loadingMore, postsToDisplay.length])
 
   // Reset loadingMore once a new page has been merged
   useEffect(() => {
@@ -179,26 +235,53 @@ export default function ChatRoom () {
     }
   }, [posts?.length, loadingMore])
 
-  const renderMessage = useCallback(({ item: post, index }) => {
-    const previousPost = index > 0 ? messages[index - 1] : null
-    const nextPost = index < messages.length - 1 ? messages[index + 1] : null
+  // Determine if we should show "New Posts" indicator
+  const shouldShowNewPostsIndicator = useCallback((post, index) => {
+    if (!lastReadPostId || !initialLoadComplete) return false
+
+    // In inverted list: index 0 = newest, higher index = older
+    // Show indicator if this is the first unread post when going from newer to older
+    // (post is newer than lastReadPostId and next post (older) is read or doesn't exist)
+    const olderPost = index < postsToDisplay.length - 1 ? postsToDisplay[index + 1] : null
+    const isPostUnread = parseInt(post.id) > parseInt(lastReadPostId)
+    const isOlderPostRead = !olderPost || parseInt(olderPost.id) <= parseInt(lastReadPostId)
+
+    return isPostUnread && isOlderPostRead
+  }, [lastReadPostId, postsToDisplay, initialLoadComplete])
+
+  const renderPost = useCallback(({ item: post, index }) => {
+    // In inverted list: we need to swap previous/next for ChatMessage component
+    // ChatMessage expects previousPost to be the chronologically earlier post
+    // and nextPost to be the chronologically later post
+    const previousPost = index < postsToDisplay.length - 1 ? postsToDisplay[index + 1] : null // Older post
+    const nextPost = index > 0 ? postsToDisplay[index - 1] : null // Newer post
+    const showNewPostsIndicator = shouldShowNewPostsIndicator(post, index)
 
     return (
-      <ChatMessage
-        post={post}
-        currentUser={currentUser}
-        previousPost={previousPost}
-        nextPost={nextPost}
-        onAddReaction={handleAddReaction}
-        onRemoveReaction={handleRemoveReaction}
-        onFlagPost={handleFlagPost}
-        onRemovePost={handleRemovePost}
-        onPress={() => {
-          // TODO: Handle message press (show details, etc.)
-        }}
-      />
+      <>
+        {showNewPostsIndicator && (
+          <View style={styles.newPostsIndicator}>
+            <View style={styles.newPostsLine} />
+            <Text style={styles.newPostsText}>New Posts</Text>
+            <View style={styles.newPostsLine} />
+          </View>
+        )}
+        <ChatMessage
+          post={post}
+          currentUser={currentUser}
+          previousPost={previousPost}
+          nextPost={nextPost}
+          onAddReaction={handleAddReaction}
+          onRemoveReaction={handleRemoveReaction}
+          onFlagPost={handleFlagPost}
+          onRemovePost={handleRemovePost}
+          onPress={() => {
+            // TODO: Handle post press (show details, etc.)
+          }}
+        />
+      </>
     )
-  }, [messages, currentUser, handleAddReaction, handleRemoveReaction, handleFlagPost, handleRemovePost])
+  }, [postsToDisplay, currentUser, handleAddReaction, handleRemoveReaction, handleFlagPost, handleRemovePost, shouldShowNewPostsIndicator])
 
   const keyExtractor = useCallback((item) => item.id, [])
 
@@ -231,29 +314,61 @@ export default function ChatRoom () {
     debouncedScrollUpdate({ contentOffset, contentSize, layoutMeasurement })
   }, [debouncedScrollUpdate])
 
-  // Update floating day marker based on the top-most visible message
+  // Debounced function to update lastReadPostId
+  const updateLastReadPost = useMemo(
+    () => debounce(500, (postId) => {
+      if (!topicFollow?.id || !postId) return
+      if (!lastReadPostId || parseInt(postId) > parseInt(lastReadPostId)) {
+        setLastReadPostId(postId)
+        updateTopicFollow({
+          id: topicFollow.id,
+          data: { lastReadPostId: postId }
+        }).catch(error => {
+          console.error('Error updating last read post:', error)
+        })
+      }
+    }),
+    [topicFollow?.id, lastReadPostId, updateTopicFollow]
+  )
+
+  // Update floating day marker and track last read post based on visible posts
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (!viewableItems?.length) return
+
     let topMost = null
+    let bottomMost = null
+
     for (const v of viewableItems) {
       if (!v?.isViewable) continue
       if (topMost == null || (typeof v.index === 'number' && v.index > topMost.index)) {
         topMost = { index: v.index, item: v.item }
       }
+      if (bottomMost == null || (typeof v.index === 'number' && v.index < bottomMost.index)) {
+        console.log('updating bottomMost', v.index, v.item.id)
+        bottomMost = { index: v.index, item: v.item }
+      }
     }
+
+    // Update day marker
     const createdAt = topMost?.item?.createdAt
-    if (!createdAt) return
-    const label = (() => {
-      const d = new Date(createdAt)
-      const now = new Date()
-      const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
-      const diffDays = Math.floor((startOfDay(now) - startOfDay(d)) / 86400000)
-      if (diffDays === 0) return 'Today'
-      if (diffDays === 1) return 'Yesterday'
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-    })()
-    setDayMarker(label)
-  }, [])
+    if (createdAt) {
+      const label = (() => {
+        const d = new Date(createdAt)
+        const now = new Date()
+        const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
+        const diffDays = Math.floor((startOfDay(now) - startOfDay(d)) / 86400000)
+        if (diffDays === 0) return 'Today'
+        if (diffDays === 1) return 'Yesterday'
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      })()
+      setDayMarker(label)
+    }
+
+    // Update last read post ID to the bottom-most visible post
+    if (initialLoadComplete && bottomMost?.item?.id) {
+      updateLastReadPost(bottomMost.item.id)
+    }
+  }, [updateLastReadPost, initialLoadComplete])
 
   // Scroll to bottom when posts change and user is near bottom
   useEffect(() => {
@@ -272,14 +387,14 @@ export default function ChatRoom () {
     })
   }, [navigation, topicName])
 
-  // Refetch when screen comes into focus for latest messages
+  // Refetch when screen comes into focus for latest posts
   useEffect(() => {
     if (isFocused && currentGroup?.slug) {
       refetchPosts({ requestPolicy: 'cache-and-network' })
     }
   }, [isFocused, currentGroup?.slug, refetchPosts])
 
-  if (groupFetching || !currentGroup) {
+  if (groupFetching || !currentGroup || topicFollowFetching) {
     return <Loading />
   }
 
@@ -290,12 +405,12 @@ export default function ChatRoom () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <FlashList
-        ref={messageListRef}
-        data={messages}
+        ref={postListRef}
+        data={postsToDisplay}
         inverted
         estimatedItemSize={80}
         estimatedListSize={Dimensions.get('screen')}
-        renderItem={renderMessage}
+        renderItem={renderPost}
         keyExtractor={keyExtractor}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.1}
@@ -309,20 +424,22 @@ export default function ChatRoom () {
         }}
         // In inverted mode we don't need an initial scroll
         ListFooterComponent={fetching || loadingMore ? <Loading style={styles.loadingFooter} /> : null}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={styles.postsList}
         showsVerticalScrollIndicator={false}
         // No maintainVisibleContentPosition in inverted mode to avoid layout issues
       />
 
-      {dayMarker ? (
-        <View style={styles.dayMarkerContainer} pointerEvents='none'>
-          <Text style={styles.dayMarkerText}>{dayMarker}</Text>
-        </View>
-      ) : null}
+      {dayMarker
+        ? (
+          <View style={styles.dayMarkerContainer} pointerEvents='none'>
+            <Text style={styles.dayMarkerText}>{dayMarker}</Text>
+          </View>
+          )
+        : null}
 
       {!isNearBottom && (
         <TouchableOpacity
-          onPress={() => messageListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+          onPress={() => postListRef.current?.scrollToOffset({ offset: 0, animated: true })}
           style={styles.scrollToBottomButton}
           activeOpacity={0.8}
         >
@@ -331,9 +448,9 @@ export default function ChatRoom () {
       )}
 
       <ChatMessageInput
-        onSend={handleSendMessage}
+        onSend={handleSendPost}
         disabled={sending}
-        placeholder={t('Message #{{topicName}}', { topicName })}
+        placeholder={t('Post to #{{topicName}}', { topicName })}
       />
     </KeyboardFriendlyView>
   )
@@ -344,7 +461,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff'
   },
-  messagesList: {
+  postsList: {
     paddingVertical: 8
   },
   loadingFooter: {
@@ -386,5 +503,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     lineHeight: 20
+  },
+  newPostsIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    marginHorizontal: 16
+  },
+  newPostsLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ef4444' // red-500
+  },
+  newPostsText: {
+    color: '#ef4444', // red-500
+    fontSize: 12,
+    fontFamily: 'Circular-Bold',
+    marginHorizontal: 12,
+    textTransform: 'uppercase'
   }
 })
