@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { StyleSheet, Dimensions, Alert, TouchableOpacity, Text, View } from 'react-native'
+import { StyleSheet, Dimensions, Alert, TouchableOpacity, Text, View, InteractionManager } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { FlashList } from '@shopify/flash-list'
-import { useMutation, useQuery } from 'urql'
+import { useClient, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
 
 import { makeStreamQuery } from 'screens/Stream/makeStreamQuery'
@@ -20,8 +20,11 @@ import updateTopicFollowMutation from '@hylo/graphql/mutations/updateTopicFollow
 import useReactOnEntity from 'hooks/useReactOnEntity'
 import { deletePostMutation } from 'hooks/usePostActionSheet'
 
+// Single place for RAF wrapper to satisfy linter and work across platforms
+// eslint-disable-next-line no-undef
+const raf = global?.requestAnimationFrame || ((cb) => setTimeout(cb, 0))
+
 const DEFAULT_CHAT_TOPIC = 'general'
-const PAGE_SIZE = 18
 
 /**
  * Native chat room screen with real-time messaging
@@ -37,10 +40,14 @@ export default function ChatRoom () {
   const { topicName: routeTopicName } = routeParams
   const [lastReadPostId, setLastReadPostId] = useState(null)
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
-  
+
   const topicName = routeTopicName || DEFAULT_CHAT_TOPIC
   const postListRef = useRef(null)
-  const suppressAutoScrollRef = useRef(false)
+  // Track whether we've performed the first positioning, and whether we should follow new posts to bottom
+  const initialPositionedRef = useRef(false)
+  const followBottomRef = useRef(true)
+  // Whether the user is visually at the bottom (offset near zero)
+  const [atBottom, setAtBottom] = useState(true)
   const [offset, setOffset] = useState(0)
   const [sending, setSending] = useState(false)
 
@@ -106,7 +113,7 @@ export default function ChatRoom () {
   const [{ data, fetching, error }, refetchPosts] = useQuery({
     query: makeStreamQuery(streamQueryVariables).query,
     variables: streamQueryVariables,
-    pause: !currentGroup?.slug,
+    pause: true, // !currentGroup?.slug || !topicFollow?.id || !bootstrapDone,
     requestPolicy: 'cache-and-network'
   })
 
@@ -140,7 +147,43 @@ export default function ChatRoom () {
       const appended = posts.filter(p => !existingIds.has(p.id))
       return appended.length ? [...prev, ...appended] : prev
     })
-  }, [posts, offset])
+  }, [posts, offset, initialLoadComplete])
+
+
+  // Bootstrap sequence when we need to start from lastReadPostId
+  const urqlClient = useClient()
+  const [bootstrapDone, setBootstrapDone] = useState(false)
+  useEffect(() => {
+    if (!currentGroup?.slug || !topicFollow?.id || bootstrapDone) return
+    let cancelled = false
+    const base = {
+      context: 'groups',
+      slug: currentGroup.slug,
+      topic: topicName,
+      filter: 'chat',
+      childPostInclusion: 'no'
+    }
+    const run = async () => {
+      // 1) Load forward (new posts) from lastRead
+      const forwardVars = { ...base, sortBy: 'id', order: 'asc', first: 18, cursor: parseInt(topicFollow.lastReadPostId) }
+      console.log('doing forwardVars', forwardVars)
+      const f = await urqlClient.query(makeStreamQuery(forwardVars).query, forwardVars, { requestPolicy: 'network-only' }).toPromise()
+      if (cancelled) return
+      const forwardItems = f.data?.group?.posts?.items || []
+      setPostsToDisplay(forwardItems)
+
+      // 2) Load a short slice of older posts before lastRead for context
+      const backwardVars = { ...base, sortBy: 'id', order: 'desc', first: 10, cursor: parseInt(topicFollow.lastReadPostId) + 1 }
+      console.log('doing backwardVars', backwardVars)
+      const b = await urqlClient.query(makeStreamQuery(backwardVars).query, backwardVars, { requestPolicy: 'network-only' }).toPromise()
+      if (cancelled) return
+      const backwardItems = b.data?.group?.posts?.items || []
+      if (backwardItems.length) setPostsToDisplay(prev => [...backwardItems, ...prev])
+      setBootstrapDone(true)
+    }
+    run()
+    return () => { cancelled = true }
+  }, [currentGroup?.slug, topicFollow?.id, urqlClient, topicName, bootstrapDone])
 
   const [loadingMore, setLoadingMore] = useState(false)
   const [dayMarker, setDayMarker] = useState('')
@@ -222,7 +265,6 @@ export default function ChatRoom () {
   const handleLoadMore = useCallback(() => {
     if (loadingMore || fetching) return
     if (hasMore) {
-      suppressAutoScrollRef.current = true
       setLoadingMore(true)
       setOffset(postsToDisplay.length)
     }
@@ -285,25 +327,20 @@ export default function ChatRoom () {
 
   const keyExtractor = useCallback((item) => item.id, [])
 
-  // Auto-scroll to bottom when new messages arrive and user is at/near bottom
-  const [isNearBottom, setIsNearBottom] = useState(true)
+  // Auto-scroll to bottom when new posts arrive and user is at/near bottom
+  // Backwards-compat flag removed; keep constant true to satisfy deps
+  const isNearBottom = true
   // Debounced updater that operates on plain values, not the pooled event
   const debouncedScrollUpdate = useMemo(
     () =>
-      debounce(300, (payload) => {
+      debounce(150, (payload) => {
         if (!payload) return
-        const { contentOffset, contentSize, layoutMeasurement } = payload
-        if (!contentSize || !layoutMeasurement || !contentOffset) return
-        // In inverted lists, y=0 is the visual bottom. Consider near bottom if
-        // the current offset is within a small threshold from 0.
+        const { contentOffset } = payload
         const offsetY = contentOffset?.y ?? 0
-        const nearBottom = offsetY < 48
-        setIsNearBottom(nearBottom)
-        if (nearBottom) suppressAutoScrollRef.current = false
-        // If we've paginated (offset>0) and user comes back to bottom, reset to newest
-        if (nearBottom && offset !== 0 && !loadingMore && !fetching) {
-          setOffset(0)
-        }
+        const atBottomNow = offsetY < 16
+        setAtBottom(atBottomNow)
+        followBottomRef.current = atBottomNow
+        if (atBottomNow && offset !== 0 && !loadingMore && !fetching) setOffset(0)
       }),
     [offset, loadingMore, fetching]
   )
@@ -370,15 +407,116 @@ export default function ChatRoom () {
     }
   }, [updateLastReadPost, initialLoadComplete])
 
-  // Scroll to bottom when posts change and user is near bottom
+  // Handle initial scroll positioning after loading posts
   useEffect(() => {
-    // Only auto-scroll when we're on the newest page (offset === 0) and user is near bottom
-    if (offset === 0 && messages.length > 0 && isNearBottom && !loadingMore && !suppressAutoScrollRef.current) {
-      setTimeout(() => {
-        messageListRef.current?.scrollToOffset({ offset: 0, animated: true })
-      }, 100)
+    if (initialPositionedRef.current) return
+    if (initialLoadComplete && postsToDisplay.length > 0 && lastReadPostId) {
+      const oneLinePostsPerScreen = Math.floor(Dimensions.get('window').height / 35) + 5
+      const unreadLoadedCount = postsToDisplay.reduce((acc, p) => acc + (parseInt(p.id) > parseInt(lastReadPostId) ? 1 : 0), 0)
+      console.log('unreadLoadedCount', unreadLoadedCount)
+      const lastReadIndex = postsToDisplay.findIndex(p => p.id === lastReadPostId)
+
+      // If we didn't load around lastRead at all (neither unread nor the lastRead item), refetch a slice from lastRead
+      if (unreadLoadedCount === 0 && lastReadIndex === -1) {
+        followBottomRef.current = false
+        console.log('refetching posts from lastReadPostId', lastReadPostId)
+        // refetchPosts({
+        //   requestPolicy: 'network-only',
+        //   variables: {
+        //     ...streamQueryVariables,
+        //     sortBy: 'id',
+        //     order: 'asc',
+        //     first: oneLinePostsPerScreen,
+        //     offset: 0,
+        //     cursor: parseInt(lastReadPostId)
+        //   }
+        // })
+        return
+      }
+
+      // Prevent auto-follow during initial positioning
+      followBottomRef.current = false
+
+      if (unreadLoadedCount === 0) {
+        if (lastReadIndex !== -1) {
+          console.log('Initial scroll: lastReadIndex !== -1, showing lastReadPostId at top', lastReadIndex)
+          InteractionManager.runAfterInteractions(() => {
+            raf(() => {
+              postListRef.current?.scrollToIndex({ index: lastReadIndex, animated: false, viewPosition: 1 })
+              setTimeout(() => {
+                initialPositionedRef.current = true
+                followBottomRef.current = true
+              }, 500)
+            })
+          })
+        }
+      } else if (unreadLoadedCount < oneLinePostsPerScreen) {
+        console.log('Initial scroll: Few new posts, scrolling to bottom')
+        InteractionManager.runAfterInteractions(() => {
+          raf(() => {
+            postListRef.current?.scrollToOffset({ offset: 0, animated: false })
+            setTimeout(() => {
+              initialPositionedRef.current = true
+              followBottomRef.current = true
+            }, 500)
+          })
+        })
+      } else {
+        if (lastReadIndex !== -1) {
+          console.log('Initial scroll: Many new posts, showing lastReadPostId at top')
+          InteractionManager.runAfterInteractions(() => {
+            raf(() => {
+              const targetIndex = Math.min(lastReadIndex + 1, postsToDisplay.length - 1)
+              postListRef.current?.scrollToIndex({ index: targetIndex, animated: false, viewPosition: 1 })
+              setTimeout(() => {
+                initialPositionedRef.current = true
+                followBottomRef.current = true
+              }, 500)
+            })
+          })
+        } else {
+          let firstUnreadIndex = -1
+          for (let i = postsToDisplay.length - 1; i >= 0; i--) {
+            if (parseInt(postsToDisplay[i].id) > parseInt(lastReadPostId)) { firstUnreadIndex = i; break }
+          }
+          if (firstUnreadIndex !== -1) {
+            console.log('Initial scroll: Many new posts, showing first unread at top')
+            InteractionManager.runAfterInteractions(() => {
+              raf(() => {
+                postListRef.current?.scrollToIndex({ index: firstUnreadIndex, animated: false, viewPosition: 1 })
+                setTimeout(() => {
+                  initialPositionedRef.current = true
+                  followBottomRef.current = true
+                }, 500)
+              })
+            })
+          } else {
+            console.log('Initial scroll: Fallback to bottom')
+            setTimeout(() => {
+              postListRef.current?.scrollToOffset({ offset: 0, animated: false })
+              setTimeout(() => {
+                initialPositionedRef.current = true
+                followBottomRef.current = true
+              }, 800)
+            }, 100)
+          }
+        }
+      }
     }
-  }, [messages.length, isNearBottom, offset, loadingMore])
+  }, [initialLoadComplete, postsToDisplay.length, lastReadPostId])
+
+  // Follow to bottom only when user is at bottom and wants following
+  useEffect(() => {
+    if (!initialPositionedRef.current) return
+    if (offset === 0 && postsToDisplay.length > 0 && followBottomRef.current && atBottom && !loadingMore && initialLoadComplete) {
+      setTimeout(() => {
+        if (followBottomRef.current && atBottom) {
+          console.log('Auto-scrolling to bottom due to new posts')
+          postListRef.current?.scrollToOffset({ offset: 0, animated: true })
+        }
+      }, 150)
+    }
+  }, [postsToDisplay.length, atBottom, offset, loadingMore, initialLoadComplete])
 
   // Set navigation title
   useEffect(() => {
@@ -390,7 +528,8 @@ export default function ChatRoom () {
   // Refetch when screen comes into focus for latest posts
   useEffect(() => {
     if (isFocused && currentGroup?.slug) {
-      refetchPosts({ requestPolicy: 'cache-and-network' })
+      console.log('refetching posts from focus')
+      // refetchPosts({ requestPolicy: 'cache-and-network' })
     }
   }, [isFocused, currentGroup?.slug, refetchPosts])
 
@@ -419,8 +558,9 @@ export default function ChatRoom () {
         onViewableItemsChanged={onViewableItemsChanged}
         refreshing={fetching}
         onRefresh={() => {
+          console.log('refresh flash list - refetching posts')
           setOffset(0)
-          refetchPosts({ requestPolicy: 'network-only' })
+          // refetchPosts({ requestPolicy: 'network-only' })
         }}
         // In inverted mode we don't need an initial scroll
         ListFooterComponent={fetching || loadingMore ? <Loading style={styles.loadingFooter} /> : null}
