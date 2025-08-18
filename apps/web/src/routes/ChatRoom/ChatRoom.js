@@ -686,6 +686,7 @@ const StickyFooter = ({ context }) => {
 }
 
 const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
+  const { t } = useTranslation()
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
