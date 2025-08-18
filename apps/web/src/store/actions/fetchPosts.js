@@ -104,12 +104,6 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
     id
     slug
     name
-    locationObject {
-      center {
-        lat
-        lng
-      }
-    }
     avatarUrl
     bannerUrl
     ${groupViewPostsQueryFragment(childPostInclusion)}
