@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native'
 
-import { persimmon, rhino, rhino30, rhino60 } from '@hylo/presenters/colors'
+import { persimmon } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default StyleSheet.create({
   avatar: {
@@ -26,12 +27,12 @@ export default StyleSheet.create({
     flexDirection: 'column',
     paddingRight: 15,
     paddingBottom: 15,
-    borderBottomColor: rhino30,
+    borderBottomColor: Colors.foreground30,
     borderBottomWidth: StyleSheet.hairlineWidth
   },
   date: {
     fontSize: 12,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book',
     marginTop: 3
   },
@@ -40,28 +41,28 @@ export default StyleSheet.create({
     flexDirection: 'row'
   },
   name: {
-    color: rhino60,
+    color: Colors.foreground60,
     fontFamily: 'Circular-Bold',
     fontSize: 14,
     marginTop: 3
   },
   separator: {
-    borderBottomColor: rhino30,
+    borderBottomColor: Colors.foreground30,
     borderBottomWidth: StyleSheet.hairlineWidth
   },
   text: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: rhino60,
+    color: Colors.foreground60,
     marginTop: 3
   },
   unreadText: {
-    color: rhino
+    color: Colors.foreground
   },
   title: {
     fontFamily: 'Circular-Bold',
     fontSize: 14,
-    color: rhino60,
+    color: Colors.foreground60,
     marginTop: 3
   }
 })

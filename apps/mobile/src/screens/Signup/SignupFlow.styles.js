@@ -1,5 +1,6 @@
-import { caribbeanGreen, white80onCaribbeanGreen, white60onCaribbeanGreen, white20onCaribbeanGreen, white40onCaribbeanGreen, white, rhino30 } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
+import Colors from '../../style/theme-colors'
 
 const buttonStyle = {
   height: 40,
@@ -8,7 +9,7 @@ const buttonStyle = {
 
 export default {
   container: {
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     flex: 1,
     justifyContent: 'flex-end'
   },
@@ -30,7 +31,7 @@ export default {
     marginBottom: 8
   },
   subTitle: {
-    color: white80onCaribbeanGreen,
+    color: Colors.selected80,
     fontSize: 14,
     fontFamily: 'Circular-Book'
   },
@@ -42,7 +43,7 @@ export default {
     paddingBottom: isIOS ? 30 : 10,
     paddingTop: 10,
     paddingHorizontal: 10,
-    backgroundColor: white20onCaribbeanGreen
+          backgroundColor: Colors.selected20
   },
   buttonRow: {
     flexDirection: 'row',
@@ -54,21 +55,21 @@ export default {
     ...buttonStyle,
     width: 100,
     color: white,
-    backgroundColor: white40onCaribbeanGreen
+          backgroundColor: Colors.selected40
   },
   continueButton: {
     ...buttonStyle,
     width: 134,
     marginLeft: 'auto',
-    color: caribbeanGreen,
+    color: Colors.selected,
     backgroundColor: white,
     disabledColor: white,
-    disabledBackgroundColor: rhino30
+    disabledBackgroundColor: Colors.foreground30
   },
 
   //
   headerStyle: {
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     shadowColor: 'transparent'
   },
   headerTitleStyle: {
@@ -76,5 +77,5 @@ export default {
     fontFamily: 'Circular-Bold',
     fontSize: 12
   },
-  headerTintColor: white60onCaribbeanGreen
+      headerTintColor: Colors.selected60
 }

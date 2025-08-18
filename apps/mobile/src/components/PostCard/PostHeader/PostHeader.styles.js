@@ -1,5 +1,6 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { amaranth, rhino30, rhino50, caribbeanGreen, rhino40 } from '@hylo/presenters/colors'
+import { amaranth } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 export const styles = {
   container: {
@@ -26,7 +27,7 @@ export const styles = {
   date: {
     marginLeft: 2,
     fontSize: 12,
-    color: rhino40,
+    color: Colors.foreground40,
     fontFamily: 'Circular-Book'
   },
   avatarSpacing: {
@@ -34,14 +35,14 @@ export const styles = {
   },
   spacer: {
     fontSize: 12,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book',
     marginHorizontal: 5
   },
   contextLabel: {
     fontSize: 12,
     fontFamily: 'Circular-Book',
-    color: caribbeanGreen
+    color: Colors.selected
   },
   topicList: {
     marginLeft: 4,
@@ -52,7 +53,7 @@ export const styles = {
     paddingRight: 5,
     flex: 1,
     fontFamily: 'Circular-Book',
-    color: caribbeanGreen
+    color: Colors.selected
   },
   upperRight: {
     flexDirection: 'row',
@@ -66,10 +67,10 @@ export const styles = {
   moreIcon: {
     fontSize: 20,
     paddingLeft: 5,
-    color: rhino50
+    color: Colors.foreground50
   },
   announcementIcon: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontSize: 20,
     alignItems: 'flex-end',
     marginRight: 2

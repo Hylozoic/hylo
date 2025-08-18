@@ -5,7 +5,8 @@ import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import { capeCod, rhino30, twBackground } from '@hylo/presenters/colors'
+import { capeCod } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function MessageCard ({ message }) {
   const navigation = useNavigation()
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
     paddingHorizontal: 10,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   header: {
     flexDirection: 'row',
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book'
   },
   messageRow: {
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
   },
   dateInline: {
     fontSize: 12,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book',
     marginLeft: 8 // Add spacing to prevent overlap with message text
   }

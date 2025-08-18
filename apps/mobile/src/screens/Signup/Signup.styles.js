@@ -1,6 +1,7 @@
 import { Dimensions, StyleSheet } from 'react-native'
 import loginStyles from 'screens/Login/Login.styles'
-import { caribbeanGreen, rhino30, rhino80, white } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import { isIOS } from 'util/platform'
 
 const bgImageWidth = Dimensions.get('window').width
@@ -50,14 +51,14 @@ export default {
   labelText: {
     textAlign: 'center',
     marginBottom: 10,
-    color: rhino80,
+    color: Colors.foreground80,
     fontSize: 14,
     fontWeight: 'bold'
   },
   textInput: {
     textAlign: 'center',
     padding: 15,
-    borderColor: rhino80,
+    borderColor: Colors.foreground80,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 5,
     marginBottom: 15,
@@ -74,7 +75,7 @@ export default {
     fontSize: 20,
     marginBottom: 25,
     disabledColor: white,
-    disabledBackgroundColor: rhino30
+    disabledBackgroundColor: Colors.foreground30
   },
   login: {
     flexDirection: 'row',
@@ -86,7 +87,7 @@ export default {
   },
   loginButton: {
     ...loginStyles.helpText,
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book'
   },
   terms: {

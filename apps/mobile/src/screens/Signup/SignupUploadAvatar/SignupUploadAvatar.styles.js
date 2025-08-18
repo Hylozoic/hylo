@@ -1,4 +1,5 @@
-import { white40onCaribbeanGreen } from '@hylo/presenters/colors'
+import { white, white80 } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 import defaultStyles from '../SignupFlow.styles'
 
 const imagePickerChild = {
@@ -24,7 +25,7 @@ export default {
   },
   imagePickerBackground: {
     ...imagePickerChild,
-    backgroundColor: white40onCaribbeanGreen,
+    backgroundColor: Colors.selected40,
     alignItems: 'center',
     justifyContent: 'center'
   },

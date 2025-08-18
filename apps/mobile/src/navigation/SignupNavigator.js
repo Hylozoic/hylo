@@ -6,7 +6,8 @@ import SignupEmailValidation from 'screens/Signup/SignupEmailValidation'
 import SignupRegistration from 'screens/Signup/SignupRegistration'
 import SignupUploadAvatar from 'screens/Signup/SignupUploadAvatar'
 import SignupSetLocation from 'screens/Signup/SignupSetLocation'
-import { white, white20onCaribbeanGreen } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const Signup = createStackNavigator()
 export default function SignupNavigator () {
@@ -22,7 +23,7 @@ export default function SignupNavigator () {
             headerLeftStyle={{ color: white }}
             headerLeftOnPress={close}
             headerTitleStyle={{ color: white }}
-            style={{ backgroundColor: white20onCaribbeanGreen }}
+            style={{ backgroundColor: Colors.selected20 }}
             {...headerProps}
           />
         )

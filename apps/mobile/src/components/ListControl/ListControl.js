@@ -4,7 +4,7 @@ import { find } from 'lodash/fp'
 import { isIOS } from 'util/platform'
 import useHyloActionSheet from 'hooks/useHyloActionSheet'
 import Icon from 'components/Icon'
-import { rhino } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function ListControl ({ selected, options, onChange }) {
   const { t } = useTranslation()
@@ -35,7 +35,7 @@ const styles = {
   },
   optionText: {
     fontSize: 14,
-    color: rhino
+    color: Colors.foreground
   },
   downArrow: {
     top: isIOS ? 2 : 4,

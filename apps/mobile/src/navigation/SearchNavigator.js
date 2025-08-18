@@ -2,13 +2,14 @@ import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import SearchPage from 'screens/SearchPage'
-import { alabaster, black10OnCaribbeanGreen } from '@hylo/presenters/colors'
+import { alabaster } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const Search = createStackNavigator()
 export default function SearchNavigator () {
   const navigatorProps = {
     screenOptions: {
-      headerStyle: { backgroundColor: black10OnCaribbeanGreen },
+      headerStyle: { backgroundColor: Colors.selected10 },
       headerTitleStyle: { color: alabaster },
       header: headerProps => (
         <ModalHeader

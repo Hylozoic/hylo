@@ -1,4 +1,5 @@
-import { capeCod, rhino80, rhino60 } from '@hylo/presenters/colors'
+import { capeCod } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   header: {
@@ -20,23 +21,23 @@ export default {
   },
   icon: {
     fontSize: 30,
-    color: rhino60,
+    color: Colors.foreground60,
     marginRight: 10
   },
   lastIcon: {
     fontSize: 30,
-    color: rhino60
+    color: Colors.foreground60
   },
   location: {
     fontSize: 16,
-    color: rhino80,
+    color: Colors.foreground80,
     fontFamily: 'Circular-Book',
     marginBottom: 10
   },
   tagline: {
     marginBottom: 10,
     fontSize: 16,
-    color: rhino80,
+    color: Colors.foreground80,
     fontFamily: 'Circular-Book'
   }
 }

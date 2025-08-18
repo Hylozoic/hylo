@@ -8,7 +8,8 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from '@hylo/presenters/colors'
+import { gainsboro, gunsmoke } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const DummyComponent = () => {}
 
@@ -29,22 +30,22 @@ export default function TabsNavigator () {
       tabBarHideOnKeyboard: !isIOS,
       tabBarShowLabel: true,
       tabBarPressColor: gainsboro,
-      tabBarIndicatorStyle: { backgroundColor: twBackground },
+      tabBarIndicatorStyle: { backgroundColor: Colors.background20 },
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: twBackground
+            backgroundColor: Colors.background20
           }
         : {
             display: 'flex',
-            backgroundColor: twBackground,
+            backgroundColor: Colors.background20,
             borderTopWidth: StyleSheet.hairlineWidth
           },
       tabBarIcon: ({ focused }) => (
         <Icon
           name={route.name.split(' Tab')[0]}
           size={32}
-          color={focused ? global.COLORS.selected : global.COLORS.foreground}
+          color={focused ? Colors.selected : Colors.foreground}
           style={{ paddingTop: isIOS ? 0 : 5 }}
         />
       ),

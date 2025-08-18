@@ -4,7 +4,7 @@ import { Header } from '@react-navigation/elements'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
-import { twBackground } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 // Screens
 import NoContextFallbackScreen from 'screens/NoContextFallbackScreen'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
@@ -53,7 +53,7 @@ export default function HomeNavigator () {
                 title="Hylo"
                 headerTitleAlign="center"
                 headerLeft={() => null}
-                headerStyle={{ backgroundColor: twBackground }}
+                headerStyle={{ backgroundColor: Colors.background20 }}
                 headerTitleStyle={{
                   fontFamily: 'Circular-Bold',
                   fontSize: 18

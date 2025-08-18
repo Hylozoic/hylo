@@ -7,7 +7,7 @@ import { isIOS } from 'util/platform'
 import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
-import { rhino60 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function SocialAuth ({
   onStart: providedOnStart,
@@ -78,7 +78,7 @@ const styles = {
   connectWithText: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: rhino60,
+    color: Colors.foreground60,
     textAlign: 'center',
     marginBottom: 15
   },

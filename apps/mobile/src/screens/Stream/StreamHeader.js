@@ -7,7 +7,8 @@ import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon'
-import { bannerlinearGradientColors, white, rhino, black, twBackground } from '@hylo/presenters/colors'
+import { bannerlinearGradientColors, white, black } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import { Plus } from 'lucide-react-native'
 
 export default function StreamHeader ({ image, icon, iconName,name, postPrompt = false, currentGroup, streamType }) {
@@ -54,7 +55,7 @@ export function PostPrompt ({ forGroup, currentType, currentTopicName }) {
 
   return (
     <TouchableOpacity className='flex-row rounded-lg p-2 bg-primary opacity-90' style={styles.postPrompt} onPress={handleOpenPostEditor}>
-      <Plus style={{ color: rhino }} size={20} />
+              <Plus style={{ color: Colors.foreground }} size={20} />
       <Text style={{ marginRight: 5 }} className='text-l'>{t('Create')}</Text>
     </TouchableOpacity>
   )
@@ -68,8 +69,7 @@ const hasTextShadow = {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    alignItems: 'center',
-    justifyContent: 'center'
+    backgroundColor: Colors.background20
   },
   customViewIcon: {
     fontSize: 16,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   image: {
     height: '100%',

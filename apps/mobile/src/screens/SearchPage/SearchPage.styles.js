@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native'
-import { capeCod40, rhino, rhino30, rhino60, capeCod10, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
+import { capeCod40, capeCod10 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const cardMargin = 15
 const cardPadding = 10
@@ -9,9 +10,9 @@ const row = {
 }
 
 export default {
-  flatListContainer: {
+  container: {
     flex: 1,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   row,
   searchBar: {
@@ -47,11 +48,11 @@ export default {
   },
   tab: {
     fontSize: 15,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book'
   },
   active: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   postResult: {
     marginHorizontal: cardMargin,
@@ -81,12 +82,12 @@ export default {
     justifyContent: 'space-between'
   },
   name: {
-    color: rhino,
+    color: Colors.foreground,
     fontSize: 16,
     paddingBottom: 4
   },
   location: {
-    color: rhino60,
+    color: Colors.foreground60,
     fontSize: 12
   },
   postTitle: {

@@ -6,7 +6,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { rhino } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function ThreadHeaderTitle ({ thread, currentUserId }) {
   const navigation = useNavigation()
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   participantNames: {
     paddingLeft: 10,
-    color: rhino,
+    color: Colors.foreground,
     fontSize: 18,
     fontFamily: 'Circular-Bold'
   }

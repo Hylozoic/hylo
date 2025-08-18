@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 
 const LocaleSelector = ({ small, dark }) => {
@@ -27,7 +27,7 @@ const LocaleSelector = ({ small, dark }) => {
   const styles = StyleSheet.create({
     container: {
       padding: 4,
-      backgroundColor: dark ? null : white80onCaribbeanGreen,
+      backgroundColor: dark ? null : Colors.selected20,
       borderRadius: 4,
       alignItems: 'center'
     },

@@ -10,7 +10,8 @@ import LinkPreview from 'components/PostCard/LinkPreview'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import PostBodyProposal from '../PostBodyProposal'
-import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 import { useTranslation } from 'react-i18next'
 
 const MAX_DETAILS_LENGTH = 144
@@ -96,12 +97,12 @@ const styles = StyleSheet.create({
   resourceEndsAt: {
     marginTop: 6,
     marginBottom: 6,
-    color: white20onCaribbeanGreen,
+    color: Colors.selected20,
     fontSize: 10,
     textTransform: 'uppercase'
   },
   title: {
-    color: rhino,
+    color: Colors.foreground,
     fontSize: 19,
     fontFamily: 'Circular-Medium',
     marginBottom: 8,
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Circular-Book'
   },
   RSVPOption: {
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,

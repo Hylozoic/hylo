@@ -1,4 +1,5 @@
-import { limedSpruce, slateGrey80, rhino50 } from '@hylo/presenters/colors'
+import { limedSpruce, slateGrey80 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   container: {
@@ -34,7 +35,7 @@ export default {
   menuIcon: {
     fontSize: 20,
     paddingLeft: 10,
-    color: rhino50
+    color: Colors.foreground50
   },
   actionSheetIcon: {
     fontSize: 20

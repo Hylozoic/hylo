@@ -11,7 +11,8 @@ import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
 import Button from 'components/Button/Button'
 import PostListRow from 'components/PostListRow'
-import { caribbeanGreen, mediumPurple, white } from '@hylo/presenters/colors'
+import { mediumPurple, white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const ModerationListItem = ({
   moderationAction,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   cleared: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   active: {
     color: '#f39c12'

@@ -1,5 +1,6 @@
 import { Dimensions, StyleSheet } from 'react-native'
-import { amaranth, caribbeanGreen, rhino60, rhino80 } from '@hylo/presenters/colors'
+import { amaranth } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const screenHeight = Dimensions.get('window').height
 const smallScreenFudge = screenHeight < 550 ? 0.6 : 1
@@ -8,7 +9,7 @@ const mixins = {
   helpText: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: rhino60
+    color: Colors.foreground60
   },
   icon: {
     fontSize: 20,
@@ -69,7 +70,7 @@ export default {
     backgroundColor: amaranth
   },
   bannerMessage: {
-    backgroundColor: caribbeanGreen
+    backgroundColor: Colors.selected
   },
   logo: {
     height: 80,
@@ -79,7 +80,7 @@ export default {
   },
   title: {
     fontSize: 24,
-    color: caribbeanGreen,
+    color: Colors.selected,
     marginBottom: 20 * smallScreenFudge,
     fontFamily: 'Circular-Bold'
   },
@@ -89,7 +90,7 @@ export default {
   },
   iconGreen: {
     ...mixins.icon,
-    color: caribbeanGreen
+    color: Colors.selected
   },
   login: {
     backgroundColor: 'white',
@@ -99,7 +100,7 @@ export default {
   forgotPasswordText: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: caribbeanGreen
+    color: Colors.selected
   },
   loginText: {
     color: 'white',
@@ -122,7 +123,7 @@ export default {
   },
   signupLink: {
     fontSize: 16,
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Bold'
   },
 
@@ -151,12 +152,12 @@ export default {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 5,
     minHeight: 45,
-    borderColor: caribbeanGreen
+    borderColor: Colors.selected
   },
   loginButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     height: 36,
     borderRadius: 50,
     justifyContent: 'center',
@@ -192,7 +193,7 @@ export default {
   labelText: {
     fontFamily: 'Circular-Book',
     textAlign: 'left',
-    color: rhino80,
+    color: Colors.foreground80,
     flex: 1
   },
   rightIconView: {

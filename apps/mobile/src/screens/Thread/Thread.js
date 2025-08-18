@@ -17,7 +17,8 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { caribbeanGreen, twBackground } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -111,7 +112,7 @@ export default function Thread () {
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({
-        headerLeftStyle: { color: caribbeanGreen },
+        headerLeftStyle: { color: Colors.selected },
         headerTitle: () => (
           <ThreadHeaderTitle thread={data?.messageThread} currentUserId={currentUser?.id} />
         )
@@ -174,6 +175,6 @@ export default function Thread () {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   }
 })

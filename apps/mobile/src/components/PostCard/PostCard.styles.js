@@ -1,5 +1,6 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { capeCod10, rhino60, caribbeanGreen, regent, mangoYellow, black, twBackground } from '@hylo/presenters/colors'
+import { capeCod10, regent, mangoYellow, black } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   childPost: {
@@ -23,7 +24,7 @@ export default {
     marginRight: 2
   },
   childPostInner: {
-    backgroundColor: twBackground,
+    backgroundColor: Colors.background20,
     borderWidth: 1,
     borderColor: 'grey',
     borderTopLeftRadius: 6,
@@ -39,7 +40,7 @@ export default {
     fontWeight: 'bold'
   },
   container: {
-    backgroundColor: twBackground,
+    backgroundColor: Colors.background20,
     borderColor: capeCod10,
     borderRadius: 4,
     borderWidth: 1,
@@ -71,11 +72,11 @@ export default {
   },
   locationIcon: {
     marginRight: 5,
-    color: rhino60
+    color: Colors.foreground60
   },
   locationText: {
     fontSize: 12,
-    color: rhino60
+    color: Colors.foreground60
   },
   projectJoinButton: {
     backgroundColor: POST_TYPES.project.backgroundColor,
@@ -103,7 +104,7 @@ export default {
     marginBottom: 10
   },
   memberCount: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   topics: {
     paddingHorizontal: 7,

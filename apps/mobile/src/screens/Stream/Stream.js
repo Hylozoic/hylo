@@ -21,7 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 /* === CONSTANTS === */
 
@@ -217,7 +217,7 @@ export default function Stream () {
           shadowRadius: 6,
           shadowOpacity: 0.1,
           elevation: 6,
-          backgroundColor: twBackground,
+          backgroundColor: Colors.background20,
           zIndex: 10
         }}
       >

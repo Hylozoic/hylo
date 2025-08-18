@@ -138,13 +138,14 @@ function ThemeColumn ({ title, isDark = false }) {
         </div>
 
         {/* Mobile Color Migration Guide */}
-        {!isDark && ( <div className='mb-6'>
-          <h3 className='text-lg font-semibold mb-3'>Mobile Color Migration</h3>
-          <p className='text-sm text-muted-foreground mb-3'>
-            Colors currently used in mobile app → Suggested theme replacements
-          </p>
+        {!isDark && (
+          <div className='mb-6'>
+            <h3 className='text-lg font-semibold mb-3'>Mobile Color Migration</h3>
+            <p className='text-sm text-muted-foreground mb-3'>
+              Colors currently used in mobile app → Suggested theme replacements
+            </p>
 
-          <div className='space-y-3'>
+            <div className='space-y-3'>
             {/* High Priority - Most Used */}
             <div className='p-3 bg-destructive/10 rounded border border-destructive/20'>
               <div className='text-xs font-medium text-destructive mb-2'>🔥 High Priority (20+ files)</div>
@@ -180,11 +181,13 @@ function ThemeColumn ({ title, isDark = false }) {
                 </div>
                 <div className='flex items-center space-x-2'>
                   <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
-                  <span>→ foreground</span>
+                  <span>→ foreground80</span>
                 </div>
               </div>
               <div className='text-xs text-muted-foreground mt-2'>
-                rhino05-60 → muted variants, rhino10-40 → background variants
+                <strong>NEW:</strong> Use transparency variants like Colors.foreground80, Colors.foreground30, etc.
+                <br />
+                rhino05 → Colors.foreground05, rhino10 → Colors.foreground10, rhino30 → Colors.foreground30
               </div>
             </div>
 
@@ -427,7 +430,8 @@ function ThemeColumn ({ title, isDark = false }) {
               </div>
             </div>
           </div>
-        </div>)}
+        </div>
+        )}
       </div>
     </div>
   )

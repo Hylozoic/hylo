@@ -6,7 +6,8 @@ import getFirstRootField from '@hylo/urql/getFirstRootFieldFromData'
 import Avatar from 'components/Avatar'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
-import { caribbeanGreen, alabaster, rhino80 } from '@hylo/presenters/colors'
+import { alabaster } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 export const DefaultItem = ({ item, onPress, chooser, chosen, toggleChosen, styles = defaultStyles, colors = defaultColors }) => (
   <TouchableOpacity style={[styles.item, { borderBottomColor: colors.border }]} onPress={() => onPress(item)}>
@@ -20,7 +21,7 @@ export const DefaultItem = ({ item, onPress, chooser, chosen, toggleChosen, styl
       <RoundCheckbox
         style={styles.checkbox}
         checked={!!chosen || false}
-        backgroundColor={caribbeanGreen}
+        backgroundColor={Colors.selected}
         onValueChange={() => toggleChosen(item)}
       />
     )}
@@ -157,7 +158,7 @@ export const ItemSelector = ({
 
 export const defaultColors = {
   text: alabaster,
-  border: rhino80
+  border: Colors.foreground80
 }
 
 export const defaultStyles = StyleSheet.create({

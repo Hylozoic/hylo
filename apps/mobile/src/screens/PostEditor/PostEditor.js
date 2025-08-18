@@ -44,7 +44,7 @@ import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import styles from './PostEditor.styles'
-import { caribbeanGreen, rhino30, rhino80 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export const MAX_TITLE_LENGTH = 50
 
@@ -235,7 +235,7 @@ export default function PostEditor (props) {
         <View style={styles.header}>
           <HeaderLeftCloseIcon
             style={styles.headerCloseIcon}
-            color={rhino30}
+            color={Colors.foreground30}
             onPress={() => navigation.goBack()}
           />
           <TypeSelector
@@ -347,7 +347,7 @@ export default function PostEditor (props) {
                 editable={!isSaving}
                 onChangeText={title => updatePost({ title })}
                 placeholder={t(titlePlaceholders[post.type])}
-                placeholderTextColor={rhino30}
+                placeholderTextColor={Colors.foreground30}
                 underlineColorAndroid='transparent'
                 autoCorrect={false}
                 value={post.title}
@@ -504,13 +504,13 @@ export default function PostEditor (props) {
                     name='Globe'
                     style={[{ marginRight: 7 }]}
                     size={20}
-                    color={rhino80}
+                    color={Colors.foreground80}
                   />
                   <Text style={styles.pressSelectionLeftText}>{t('Make Public')}</Text>
                 </View>
                 <View style={styles.pressSelectionRightNoBorder}>
                   <Switch
-                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                    trackColor={{ true: Colors.selected, false: Colors.foreground80 }}
                     onValueChange={togglePublicPost}
                     style={styles.pressSelectionSwitch}
                     value={post.isPublic}
@@ -535,7 +535,7 @@ export default function PostEditor (props) {
                     name='MapPin'
                     style={{ marginRight: 7 }}
                     size={20}
-                    color={rhino80}
+                    color={Colors.foreground80}
                   />
                   <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Location')}</Text>
                 </View>
@@ -608,13 +608,13 @@ export default function PostEditor (props) {
                   <Icon
                     name='Announcement'
                     style={{ marginLeft: -5, marginRight: 6, fontSize: 28 }}
-                    color={rhino80}
+                    color={Colors.foreground80}
                   />
                   <Text style={styles.pressSelectionLeftText}>{t('Announcement?')}</Text>
                 </View>
                 <View style={styles.pressSelectionRightNoBorder}>
                   <Switch
-                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                    trackColor={{ true: Colors.selected, false: Colors.foreground80 }}
                     onValueChange={toggleAnnouncement}
                     style={styles.pressSelectionSwitch}
                     value={post?.announcement}
@@ -633,7 +633,7 @@ export default function PostEditor (props) {
                 <Icon
                   name='AddImage'
                   style={{ marginLeft: -5, fontSize: 28, marginRight: 5 }}
-                  color={rhino80}
+                  color={Colors.foreground80}
                 />
                 <Text style={styles.pressSelectionLeftText}>{t('Images')}</Text>
               </View>
@@ -679,7 +679,7 @@ export default function PostEditor (props) {
                 <Icon
                   name='Paperclip'
                   style={{ marginLeft: -5, fontSize: 28, marginRight: 5 }}
-                  color={rhino80}
+                  color={Colors.foreground80}
                 />
                 <Text style={styles.pressSelectionLeftText}>{t('Files')}</Text>
               </View>

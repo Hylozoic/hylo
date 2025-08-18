@@ -1,4 +1,5 @@
-import { capeCod, rhino, rhino50, ghost } from '@hylo/presenters/colors'
+import { capeCod, ghost } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   badgeRow: {
@@ -21,12 +22,12 @@ export default {
     flexDirection: 'row',
     borderWidth: 1,
     padding: 3,
-    borderColor: rhino50,
+    borderColor: Colors.foreground50,
     borderRadius: 32
   },
   searchIcon: {
     marginLeft: 2,
-    color: rhino50,
+    color: Colors.foreground50,
     backgroundColor: 'transparent'
   },
   searchInput: {
@@ -39,7 +40,7 @@ export default {
     flexDirection: 'row'
   },
   sortByText: {
-    color: rhino,
+    color: Colors.foreground,
     fontFamily: 'Circular-Book'
   },
   downArrow: {
@@ -67,7 +68,7 @@ export default {
   memberName: {
     fontSize: 18,
     marginTop: 14,
-    color: rhino,
+    color: Colors.foreground,
     fontFamily: 'Circular-Black',
     textAlign: 'center'
   },
@@ -79,7 +80,7 @@ export default {
   },
   memberBio: {
     fontFamily: 'Circular-Book',
-    color: rhino50,
+    color: Colors.foreground50,
     textAlign: 'center',
     padding: 4
   }

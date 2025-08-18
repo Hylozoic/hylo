@@ -14,7 +14,8 @@ import {
   GROUP_WELCOME_JOIN_QUESTIONS
 } from 'screens/GroupWelcome/GroupWelcome.store'
 import Button from 'components/Button'
-import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function GroupWelcomeTabBar ({
   acceptedAllAgreements,
@@ -129,7 +130,7 @@ const buttonStyle = {
 
 const styles = {
   container: {
-    backgroundColor: white20onCaribbeanGreen,
+          backgroundColor: Colors.selected20,
     paddingTop: 10,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -139,16 +140,16 @@ const styles = {
     ...buttonStyle,
     width: 80,
     color: white,
-    backgroundColor: white40onCaribbeanGreen,
+          backgroundColor: Colors.selected40,
     marginRight: 8
   },
   continueButton: {
     ...buttonStyle,
     width: 134,
     marginLeft: 'auto',
-    color: caribbeanGreen,
+    color: Colors.selected,
     backgroundColor: white,
     disabledColor: white,
-    disabledBackgroundColor: rhino30
+    disabledBackgroundColor: Colors.foreground30
   }
 }

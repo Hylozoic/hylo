@@ -10,7 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Avatar from 'components/Avatar'
 import ImageView from 'react-native-image-viewing'
-import { rhino30, white } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export function ImageViewerButton ({
   creator,
@@ -182,7 +183,7 @@ const headerStyles = StyleSheet.create({
   closeText: {
     fontSize: 24,
     includeFontPadding: false,
-    color: rhino30
+    color: Colors.foreground30
   }
 })
 

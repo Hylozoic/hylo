@@ -16,7 +16,8 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost, twBackground } from '@hylo/presenters/colors'
+import { capeCod20, pictonBlue, amaranth, black10onRhino, ghost } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -117,7 +118,7 @@ export default function NewMessage () {
   }, [participantsFetching, recentContactsFetching])
 
   useEffect(() => {
-    navigation.setOptions({ headerLeftStyle: { color: caribbeanGreen } })
+    navigation.setOptions({ headerLeftStyle: { color: Colors.selected } })
   }, [])
 
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: ghost }}
+        colors={{ text: Colors.foreground80, border: ghost }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -217,9 +218,9 @@ export function Participant ({ participant, onPress }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: twBackground,
-    position: 'relative',
-    flex: 1
+    flex: 1,
+    backgroundColor: Colors.background20,
+    paddingTop: 20
   },
   // participants
   addParticipantButtonWrapper: {

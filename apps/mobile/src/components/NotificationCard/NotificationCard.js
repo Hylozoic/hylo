@@ -1,7 +1,8 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Avatar from 'components/Avatar'
-import { persimmon, rhino, rhino10, rhino30, rhino60, twBackground } from '@hylo/presenters/colors'
+import { persimmon } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function NotificationCard ({ notification }) {
   const {
@@ -66,22 +67,22 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     paddingTop: 15,
-    backgroundColor: rhino10
+    backgroundColor: Colors.foreground10
   },
   unreadContainer: {
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   content: {
     flex: 1,
     flexDirection: 'column',
     paddingRight: 15,
     paddingBottom: 15,
-    borderBottomColor: rhino30,
+    borderBottomColor: Colors.foreground30,
     borderBottomWidth: StyleSheet.hairlineWidth
   },
   date: {
     fontSize: 12,
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book',
     marginTop: 3
   },
@@ -90,28 +91,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row'
   },
   name: {
-    color: rhino60,
+    color: Colors.foreground60,
     fontFamily: 'Circular-Bold',
     fontSize: 14,
     marginTop: 3
   },
   separator: {
-    borderBottomColor: rhino30,
+    borderBottomColor: Colors.foreground30,
     borderBottomWidth: StyleSheet.hairlineWidth
   },
   text: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: rhino60,
+    color: Colors.foreground60,
     marginTop: 3
   },
   unreadText: {
-    color: rhino
+    color: Colors.foreground
   },
   title: {
     fontFamily: 'Circular-Bold',
     fontSize: 14,
-    color: rhino60,
+    color: Colors.foreground60,
     marginTop: 3
   }
 })

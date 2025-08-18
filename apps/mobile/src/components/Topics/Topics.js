@@ -1,6 +1,8 @@
-import { ScrollView, Text, TouchableOpacity } from 'react-native'
+import React from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import Icon from 'components/Icon'
-import { amaranth, caribbeanGreen, rhino30, white } from '@hylo/presenters/colors'
+import { amaranth, white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function Topics ({
   onPress,
@@ -13,7 +15,7 @@ export default function Topics ({
   if (!topics || topics.length < 1) return null
 
   return (
-    <ScrollView horizontal style={[styles.topicPillBox, style]}>
+    <View style={[styles.topicPillBox, style]}>
       {topics.map((topic, index) => (
         <TopicPill
           style={pillStyle}
@@ -24,7 +26,7 @@ export default function Topics ({
           key={index}
         />
       ))}
-    </ScrollView>
+    </View>
   )
 }
 
@@ -66,7 +68,7 @@ const styles = {
     backgroundColor: white,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: rhino30,
+    borderColor: Colors.foreground30,
     marginRight: 5,
     paddingVertical: 3,
     paddingHorizontal: 7,
@@ -78,7 +80,7 @@ const styles = {
     marginLeft: 10
   },
   topicText: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Bold',
     fontSize: 12
   }
