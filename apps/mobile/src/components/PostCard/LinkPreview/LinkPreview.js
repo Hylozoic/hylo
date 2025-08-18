@@ -3,7 +3,6 @@ import { TouchableOpacity, Text, View } from 'react-native'
 import { URL } from 'react-native-url-polyfill'
 import useOpenURL from 'hooks/useOpenURL'
 import FastImage from 'react-native-fast-image'
-import { athensGray, athensGrayDark, doveGray50, doveGray75 } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 
 export default function LinkPreview ({ title, description, url, imageUrl }) {
@@ -32,9 +31,9 @@ export default function LinkPreview ({ title, description, url, imageUrl }) {
 
 const styles = {
   linkContainer: {
-    backgroundColor: athensGray,
+    backgroundColor: Colors.muted,
     borderRadius: 4,
-    borderColor: athensGrayDark,
+          borderColor: Colors.mutedForeground,
     borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -58,11 +57,11 @@ const styles = {
     marginBottom: 4
   },
   linkDomain: {
-    color: doveGray50,
+    color: Colors.foreground50,
     fontSize: 10
   },
   linkDescription: {
-    color: doveGray75,
+    color: Colors.foreground75,
     fontSize: 10,
     marginBottom: 4
   }

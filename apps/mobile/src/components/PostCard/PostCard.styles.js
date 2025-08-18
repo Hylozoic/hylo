@@ -1,5 +1,5 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { capeCod10, regent, mangoYellow, black } from '@hylo/presenters/colors'
+import { regent } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -41,7 +41,7 @@ export default {
   },
   container: {
     backgroundColor: Colors.background20,
-    borderColor: capeCod10,
+    borderColor: Colors.foreground10,
     borderRadius: 4,
     borderWidth: 1,
     position: 'relative',
@@ -86,7 +86,7 @@ export default {
   },
   projectMembersContainer: {
     borderTopWidth: 1,
-    borderColor: capeCod10,
+    borderColor: Colors.foreground10,
     paddingHorizontal: 12,
     paddingVertical: 10
   },
@@ -124,13 +124,13 @@ export default {
     left: 0,
     right: 0,
     zIndex: 15,
-    backgroundColor: mangoYellow,
+    backgroundColor: Colors.accent,
     borderRadius: 5,
     padding: 20,
     marginHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: black,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 15,

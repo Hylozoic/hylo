@@ -1,4 +1,4 @@
-import { treePoppy } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
 import Colors from '../../../style/theme-colors'
 
 export default {
@@ -24,7 +24,7 @@ export default {
   },
   fileIcon: {
     fontSize: 24,
-    color: treePoppy,
+    color: Colors.accent,
     marginRight: 4
   }
 }

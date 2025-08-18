@@ -1,7 +1,6 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Avatar from 'components/Avatar'
-import { persimmon } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function NotificationCard ({ notification }) {
@@ -60,7 +59,7 @@ const styles = StyleSheet.create({
     marginTop: 5
   },
   badge: {
-    color: persimmon,
+    color: Colors.accent,
     fontFamily: 'Circular-Bold',
     fontSize: 12
   },

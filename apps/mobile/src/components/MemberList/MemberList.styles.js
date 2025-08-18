@@ -1,4 +1,4 @@
-import { capeCod, ghost } from '@hylo/presenters/colors'
+import { ghost } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -47,7 +47,7 @@ export default {
     top: 4,
     marginLeft: 4,
     fontSize: 12,
-    color: capeCod
+    color: Colors.foreground
   },
   // Member cells/cards
   cell: {

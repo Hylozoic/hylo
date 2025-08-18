@@ -15,7 +15,6 @@ import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { gunsmoke, amaranth } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
@@ -225,13 +224,13 @@ const styles = StyleSheet.create({
     marginRight: 5,
     fontSize: 22,
     lineHeight: 20,
-    color: amaranth
+    color: Colors.destructive
   },
 
   submitButton: {
     marginLeft: 8,
     marginRight: 4,
-    color: gunsmoke
+    color: Colors.mutedForeground
   },
 
   activeButton: {

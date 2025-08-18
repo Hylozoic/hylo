@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { bigStone, persimmon, gunsmoke } from '@hylo/presenters/colors'
+import { bigStone } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -35,15 +35,15 @@ export default {
     marginBottom: 5
   },
   groupRowCounts: {
-    color: gunsmoke,
+    color: Colors.mutedForeground,
     fontSize: 12,
     marginBottom: 5
   },
   groupRowDescription: {
-    color: gunsmoke
+    color: Colors.mutedForeground
   },
   badge: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     height: 20,
     width: 20,
     borderRadius: 100,

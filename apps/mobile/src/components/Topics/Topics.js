@@ -1,7 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import Icon from 'components/Icon'
-import { amaranth, white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function Topics ({
@@ -65,7 +64,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     flexDirection: 'row',
-    backgroundColor: white,
+    backgroundColor: Colors.muted,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: Colors.foreground30,
@@ -75,7 +74,7 @@ const styles = {
     paddingRight: 5
   },
   topicRemove: {
-    color: amaranth,
+    color: Colors.destructive,
     fontSize: 16,
     marginLeft: 10
   },

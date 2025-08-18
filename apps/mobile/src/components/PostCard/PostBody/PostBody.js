@@ -10,7 +10,6 @@ import LinkPreview from 'components/PostCard/LinkPreview'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import PostBodyProposal from '../PostBodyProposal'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 import { useTranslation } from 'react-i18next'
 
@@ -79,7 +78,7 @@ export function EventRSVP ({ myEventResponse, respondToEvent }) {
     <PopupMenuButton actions={actions}>
       <View style={styles.RSVPOption}>
         <Text style={styles.RSVPOptionText}>{t(humanResponse(myEventResponse))} |</Text>
-        <Icon name='ArrowDown' color={white} style={styles.RSVPOptionText} />
+        <Icon name='ArrowDown' color={Colors.muted} style={styles.RSVPOptionText} />
       </View>
     </PopupMenuButton>
   )
@@ -125,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   RSVPOptionText: {
-    color: white,
+    color: Colors.muted,
     fontSize: 12
   },
   RSVPOptionIcon: {

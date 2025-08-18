@@ -4,7 +4,7 @@ import { filter, get, map, find, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
-import { limedSpruce, nevada, persimmon } from '@hylo/presenters/colors'
+import { limedSpruce, nevada } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 const MAX_THREAD_PREVIEW_LENGTH = 55
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   badge: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     marginRight: 10,
     height: 26,
     width: 26,

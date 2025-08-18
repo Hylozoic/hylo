@@ -7,7 +7,7 @@ import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon'
-import { bannerlinearGradientColors, white, black } from '@hylo/presenters/colors'
+import { bannerlinearGradientColors, white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 import { Plus } from 'lucide-react-native'
 
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   postPrompt: {
     alignItems: 'center',
     justifyContent: 'flex-start',
-    fontColor: black
+    fontColor: Colors.black
   }
 
 })

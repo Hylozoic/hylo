@@ -1,7 +1,6 @@
 import React, { useRef } from 'react'
 import { View, TouchableOpacity, TextInput, Text, StyleSheet } from 'react-native'
 import EntypoIcon from 'react-native-vector-icons/Entypo'
-import { amaranth } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function Control ({
@@ -85,6 +84,6 @@ const styles = StyleSheet.create({
   controlErrorText: {
     fontSize: 13,
     fontFamily: 'Circular-Book',
-    color: amaranth
+    color: Colors.destructive
   }
 })

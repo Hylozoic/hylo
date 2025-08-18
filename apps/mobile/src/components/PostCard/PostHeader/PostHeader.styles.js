@@ -1,5 +1,4 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { amaranth } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 
 export const styles = {
@@ -61,7 +60,7 @@ export const styles = {
   },
   flagIcon: {
     fontSize: 24,
-    color: amaranth,
+    color: Colors.destructive,
     marginRight: 6
   },
   moreIcon: {

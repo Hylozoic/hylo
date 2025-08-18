@@ -4,7 +4,6 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { amaranth, capeCod } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function GroupSettingsWebView () {
@@ -36,7 +35,7 @@ export default function GroupSettingsWebView () {
     { settingsArea: 'requests', label: 'Join Requests' },
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
-    { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
+    { settingsArea: 'delete', label: 'Delete', style: { color: Colors.destructive } }
   ]
 
   if (routeSettingsArea !== 'index') {
@@ -72,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: capeCod,
+    backgroundColor: Colors.foreground,
     height: 60
   },
   headerTitle: {

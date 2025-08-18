@@ -64,10 +64,21 @@ Based on actual usage in the app, these transparency levels are supported:
 | `rhino10` | `Colors.foreground10` | Light backgrounds (10% opacity) |
 | `rhino05` | `Colors.foreground05` | Very subtle backgrounds (5% opacity) |
 | `caribbeanGreen` | `Colors.selected` | Accent colors, highlights |
+| `caribbeanGreen` variants | `Colors.selectedXX` | Transparency variants (10%, 20%, 40%, 60%, 80%) |
 | `capeCod` | `Colors.foreground` | Text, borders |
+| `capeCod10` | `Colors.foreground10` | Light backgrounds (10% opacity) |
+| `capeCod20` | `Colors.foreground20` | Light borders (20% opacity) |
+| `capeCod40` | `Colors.foreground40` | Medium borders, text (40% opacity) |
 | `athensGray` | `Colors.muted` | Muted backgrounds |
-| `amaranth` | `Colors.destructive` | Error states |
-| `persimmon` | `Colors.accent` | Warning states |
+| `athensGrayDark` | `Colors.mutedForeground` | Muted borders, text |
+| `doveGray50` | `Colors.foreground50` | Medium text (50% opacity) |
+| `doveGray75` | `Colors.foreground75` | Text (75% opacity) |
+| `amaranth` | `Colors.destructive` | Error states, destructive actions |
+| `persimmon` | `Colors.accent` | Warning states, accent elements |
+| `treePoppy` | `Colors.accent` | Accent elements |
+| `mangoYellow` | `Colors.accent` | Accent elements |
+| `gunsmoke` | `Colors.mutedForeground` | Muted text, borders |
+| `gainsboro` | `Colors.primary` | Primary elements, press states |
 
 ### Example Migration
 

@@ -5,7 +5,7 @@ import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import { capeCod } from '@hylo/presenters/colors'
+import { white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function MessageCard ({ message }) {
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     marginRight: 8
   },
   name: {
-    color: capeCod,
+    color: Colors.foreground,
     fontFamily: 'Circular-Bold'
   },
   date: {

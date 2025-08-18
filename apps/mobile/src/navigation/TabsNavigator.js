@@ -8,7 +8,6 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { gainsboro, gunsmoke } from '@hylo/presenters/colors'
 import Colors from '../style/theme-colors'
 
 const DummyComponent = () => {}
@@ -29,7 +28,7 @@ export default function TabsNavigator () {
       // Set only for Android as it makes undesirable animation in iOS
       tabBarHideOnKeyboard: !isIOS,
       tabBarShowLabel: true,
-      tabBarPressColor: gainsboro,
+      tabBarPressColor: Colors.primary,
       tabBarIndicatorStyle: { backgroundColor: Colors.background20 },
       tabBarStyle: isIOS
         ? {

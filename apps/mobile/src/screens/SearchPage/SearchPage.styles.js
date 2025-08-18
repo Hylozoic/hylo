@@ -1,5 +1,4 @@
 import { StyleSheet } from 'react-native'
-import { capeCod40, capeCod10 } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 const cardMargin = 15
@@ -18,7 +17,7 @@ export default {
   searchBar: {
     height: 50,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: capeCod40,
+    borderBottomColor: Colors.foreground40,
     justifyContent: 'center',
     paddingHorizontal: 18
   },
@@ -27,11 +26,11 @@ export default {
     alignItems: 'center',
     height: 30,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: capeCod40,
+    borderColor: Colors.foreground40,
     borderRadius: 100
   },
   searchIcon: {
-    color: capeCod40,
+    color: Colors.foreground40,
     fontSize: 26,
     marginHorizontal: 5
   },
@@ -62,7 +61,7 @@ export default {
     marginHorizontal: cardMargin,
     marginBottom: cardMargin,
     borderWidth: 1,
-    borderColor: capeCod10,
+    borderColor: Colors.foreground10,
     borderRadius: 4
   },
   personResult: {
@@ -73,7 +72,7 @@ export default {
     marginBottom: cardMargin,
     paddingHorizontal: cardPadding,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: capeCod40
+    borderBottomColor: Colors.foreground40
   },
   avatar: {
     marginRight: 8
@@ -99,7 +98,7 @@ export default {
   commentDivider: {
     marginHorizontal: cardMargin,
     borderBottomWidth: 1,
-    borderBottomColor: capeCod10,
+    borderBottomColor: Colors.foreground10,
     marginTop: 9,
     marginBottom: 21
   }

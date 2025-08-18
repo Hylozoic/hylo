@@ -1,8 +1,7 @@
 import React from 'react'
-import { Text, View, TouchableOpacity } from 'react-native'
+import { TouchableOpacity, Text, StyleSheet, View } from 'react-native'
 import { omit } from 'lodash/fp'
 import Icon from 'components/Icon'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function Button (props) {
@@ -36,7 +35,7 @@ export default function Button (props) {
     : providedStyles.backgroundColor || Colors.selected
   const color = disabled
     ? providedStyles.disabledColor
-    : providedStyles.color || white
+    : providedStyles.color || Colors.muted
   const borderColor = color
   const buttonStyle = { ...styles.button, backgroundColor, height, borderRadius, borderColor }
   const textStyle = { ...styles.text, color, fontSize }
@@ -79,7 +78,7 @@ const styles = {
     fontFamily: 'Circular-Bold'
   },
   icon: {
-    color: white,
+    color: Colors.muted,
     fontSize: 16,
     paddingRight: 5
   }

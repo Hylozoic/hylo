@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, amaranth, black10onRhino, ghost } from '@hylo/presenters/colors'
+import { pictonBlue, black10onRhino, ghost } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export const recentContactsQuery = gql`
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   participants: {
     borderTopWidth: isIOS ? 0 : 1,
-    borderTopColor: capeCod20,
+    borderTopColor: Colors.foreground20,
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   participant: {
     borderWidth: 1,
-    borderColor: capeCod20,
+    borderColor: Colors.foreground20,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   participantRemoveIcon: {
     paddingLeft: 5,
     fontSize: 20,
-    color: amaranth,
+    color: Colors.destructive,
     marginRight: 'auto'
   }
 })

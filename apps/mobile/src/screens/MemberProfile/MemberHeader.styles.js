@@ -1,4 +1,4 @@
-import { capeCod } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -11,7 +11,7 @@ export default {
   },
   name: {
     fontSize: 24,
-    color: capeCod,
+    color: Colors.foreground,
     fontFamily: 'Circular-Bold'
   },
   icons: {

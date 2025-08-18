@@ -1,5 +1,4 @@
 import { Dimensions, StyleSheet } from 'react-native'
-import { amaranth } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 const screenHeight = Dimensions.get('window').height
@@ -67,7 +66,7 @@ export default {
     zIndex: 2
   },
   bannerError: {
-    backgroundColor: amaranth
+    backgroundColor: Colors.destructive
   },
   bannerMessage: {
     backgroundColor: Colors.selected

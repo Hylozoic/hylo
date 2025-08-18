@@ -1,4 +1,3 @@
-import { capeCod } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 const screenMargin = 16
@@ -56,13 +55,13 @@ export default {
   editIcon: {
     top: 2,
     fontSize: 12,
-    color: capeCod,
+    color: Colors.foreground,
     marginRight: 2
   },
   editButtonText: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: capeCod
+    color: Colors.foreground
   },
   buttonContainer: {
     marginBottom: 30,
