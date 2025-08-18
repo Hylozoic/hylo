@@ -714,7 +714,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
-      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /></div>}
+      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /> <span className='text-red-500 text-center w-full block'>{t('New posts')}</span></div>}
       {firstUnread && displayDay &&
         <div className={styles.unreadAndDay}>
           <hr className='border-t-2 border-red-500' />
