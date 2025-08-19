@@ -657,7 +657,7 @@ const EmptyPlaceholder = ({ context }) => {
 }
 
 const Header = ({ context }) => {
-  return context.loadingPast ? <div style={{ height: '30px' }}><Loading /></div> : null
+  return context.loadingPast ? <div className='absolute top-1 flex items-center justify-center w-full h-[30px]'><Loading /></div> : null
 }
 
 const Footer = ({ context }) => {
