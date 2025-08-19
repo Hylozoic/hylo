@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Alert, Linking, Platform, PermissionsAndroid, ToastAndroid } from 'react-native'
-import Geolocation from 'react-native-geolocation-service'
+import Geolocation from '@react-native-community/geolocation'
 
 export default function useCurrentLocation () {
   const [loading, setLoading] = useState(false)

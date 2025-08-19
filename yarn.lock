@@ -7920,6 +7920,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-community/geolocation@npm:^3.4.0":
+  version: 3.4.0
+  resolution: "@react-native-community/geolocation@npm:3.4.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/e8f9c487dbea6ae0540185f07d92aca68a1efc823ef572492776b7533be9eebe0234374b9a34f1837899a15e98dbd7673e906380442c19313405bccf7f3e42b1
+  languageName: node
+  linkType: hard
+
 "@react-native-community/hooks@npm:^3.0.0":
   version: 3.0.0
   resolution: "@react-native-community/hooks@npm:3.0.0"
@@ -27796,6 +27806,7 @@ __metadata:
     "@react-native-community/cli": "npm:15.0.1"
     "@react-native-community/cli-platform-android": "npm:15.0.1"
     "@react-native-community/cli-platform-ios": "npm:15.0.1"
+    "@react-native-community/geolocation": "npm:^3.4.0"
     "@react-native-community/hooks": "npm:^3.0.0"
     "@react-native-community/netinfo": "npm:^11.2.1"
     "@react-native-google-signin/google-signin": "npm:^11.0.0"
@@ -27880,7 +27891,6 @@ __metadata:
     react-native-document-picker: "npm:^8.1.2"
     react-native-emoji-popup: "npm:0.3.3"
     react-native-fast-image: "npm:^8.6.3"
-    react-native-geolocation-service: "npm:^5.3.1"
     react-native-gesture-handler: "npm:^2.22.0"
     react-native-image-picker: "npm:^8.2.0"
     react-native-image-viewing: "npm:^0.2.2"
@@ -32643,13 +32653,6 @@ __metadata:
     react: ^17 || ^18
     react-native: ">=0.60.0"
   checksum: 10/ed340c2b6c2e76658fa0a899a45132871017018bec0a03423b7456610810e79b2844dfa16063c05d98b89a7613eeb0de2fdf3ad978cdfa4d488a4e01228a7349
-  languageName: node
-  linkType: hard
-
-"react-native-geolocation-service@npm:^5.3.1":
-  version: 5.3.1
-  resolution: "react-native-geolocation-service@npm:5.3.1"
-  checksum: 10/429c09dd245ef5b21f4fc98632224972c42f19041c48052be3bcba44e750ca2b75c210efc0036df3b822802d437b7f68530e4925f41138af435efbce5d71eae2
   languageName: node
   linkType: hard
 
