@@ -1,4 +1,6 @@
-body {
+html, body {
+  height: 100vh; /* fallback */
+  height: 100dvh;
   overflow: hidden;
 }
 

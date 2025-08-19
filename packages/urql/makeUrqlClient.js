@@ -30,7 +30,8 @@ export async function fetchGraphqlSchema (endpoint) {
 
 export default async function makeUrqlClient ({
   subscriptionExchange: providedSubscriptionExchange,
-  schemaAwareness = true // Enable by default to fix union type warnings
+  schemaAwareness = true, // Enable by default to fix union type warnings
+  storage: providedStorageAdapter // this is platform dependent, so we need to pass it in
 } = {}) {
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
   if (schema && process.env.NODE_ENV === 'development') {
@@ -43,7 +44,8 @@ export default async function makeUrqlClient ({
     updates,
     optimistic,
     directives,
-    schema
+    schema,
+    ...(providedStorageAdapter ? { storage: providedStorageAdapter } : {})
   })
 
   const client = createClient({
