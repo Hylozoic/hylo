@@ -123,7 +123,6 @@ export default function ChatRoom (props) {
   const [postIdToStartAt, setPostIdToStartAt] = useState(querystringParams?.postId)
 
   const [container, setContainer] = React.useState(null)
-  const editorRef = useRef()
   const messageListRef = useRef(null)
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
@@ -323,13 +322,6 @@ export default function ChatRoom (props) {
       // Reset marker of new posts
       setLatestOldPostId(topicFollow.lastReadPostId)
     }
-
-    setTimeout(() => {
-      // In case we unmounted really quick and its no longer here
-      if (editorRef.current) {
-        editorRef.current.focus()
-      }
-    }, 1000)
   }, [topicFollow?.id])
 
   // Do once after loading posts for the room to get things ready
@@ -523,8 +515,6 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
-    // Focus back on the chat box
-    editorRef.current?.focus()
     return true
   }, [])
 
