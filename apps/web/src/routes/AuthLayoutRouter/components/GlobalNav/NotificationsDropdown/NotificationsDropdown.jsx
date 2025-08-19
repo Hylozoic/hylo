@@ -43,7 +43,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
     setTimeout(() => {
       const container = document.getElementById('notifications-scroll-list')
       if (container) {
-        container.addEventListener('wheel', (e) => { console.log('wheel event', e); e.stopPropagation() }, { passive: false })
+        container.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
       }
     }, 100)
   }, [modalOpen])

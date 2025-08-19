@@ -56,7 +56,7 @@ export default function PostContent ({
             {editedTimestamp}
           </div>
         )}
-        <div className='flex flex-col gap-4 mt-6'>
+        <div className='flex flex-col gap-4'>
           {linkPreview && !linkPreviewFeatured && (
             <LinkPreview {...pick(['title', 'description', 'url', 'imageUrl'], linkPreview)} />
           )}
