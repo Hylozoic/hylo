@@ -6,7 +6,6 @@ import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import { black10onRhino, havelockBlue, ghost } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function ModalHeader ({
@@ -54,7 +53,7 @@ export default function ModalHeader ({
   })()
 
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
-  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || black10onRhino
+  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || Colors.foreground10
   const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || Colors.foreground
   const props = {
     headerTransparent: typeof options.headerTransparent !== 'undefined' ? options.headerTransparent : headerTransparent,
@@ -126,11 +125,11 @@ const styles = StyleSheet.create({
   button: {
     fontFamily: 'Circular-Book',
     fontSize: 17,
-    color: havelockBlue,
+    color: Colors.secondary,
     fontWeight: 'bold'
   },
   disabled: {
-    color: ghost,
+    color: Colors.primary,
     fontWeight: 'normal'
   }
 })

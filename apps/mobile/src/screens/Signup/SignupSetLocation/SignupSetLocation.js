@@ -11,7 +11,6 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 
 export default function SignupSetLocation ({ navigation }) {
@@ -51,12 +50,12 @@ export default function SignupSetLocation ({ navigation }) {
       </View>
       <View style={styles.content}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: Colors.muted }}>Selected:</Text>
           {locationObject?.fullText && (
             <X size={20} style={{ color: Colors.selected80 }} onPress={() => setLocationObject()} />
           )}
         </View>
-        <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
+        <Text style={{ fontSize: 16, marginBottom: 18, color: Colors.muted }}>
           {locationObject?.fullText || '(None selected)'}
         </Text>
         {!locationObject?.fullText && (

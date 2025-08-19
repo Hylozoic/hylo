@@ -1,4 +1,4 @@
-import { ghost } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -76,7 +76,7 @@ export default {
     fontFamily: 'Circular-Book',
     fontSize: 14,
     textAlign: 'center',
-    color: ghost
+    color: Colors.primary
   },
   memberBio: {
     fontFamily: 'Circular-Book',

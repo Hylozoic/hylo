@@ -1,5 +1,4 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { regent } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -137,7 +136,7 @@ export default {
     elevation: 5
   },
   clickthroughText: {
-    color: regent,
+    color: Colors.mutedForeground,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center'
@@ -147,12 +146,12 @@ export default {
     width: 120,
     height: 30,
     borderWidth: 1,
-    borderColor: regent,
+    borderColor: Colors.mutedForeground,
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center'
   },
   clickthroughButtonText: {
-    color: regent
+    color: Colors.mutedForeground
   }
 }

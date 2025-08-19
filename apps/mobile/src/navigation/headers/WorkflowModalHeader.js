@@ -1,6 +1,5 @@
 import React from 'react'
-import ModalHeader from './ModalHeader'
-import { white } from '@hylo/presenters/colors'
+import { View, StyleSheet } from 'react-native'
 import Colors from '../../style/theme-colors'
 
 export default function WorkflowModalHeader (props) {
@@ -9,7 +8,7 @@ export default function WorkflowModalHeader (props) {
       headerBackTitleVisible={false}
       headerLeftCloseIcon={false}
       headerStyle={{
-        backgroundColor: props?.style?.backgroundColor || white,
+        backgroundColor: props?.style?.backgroundColor || Colors.muted,
         shadowColor: 'transparent'
       }}
       headerTitleStyle={{
@@ -19,7 +18,7 @@ export default function WorkflowModalHeader (props) {
       }}
       headerTintColor={Colors.selected60}
       statusBarOptions={{
-        backgroundColor: props?.style?.backgroundColor || white,
+        backgroundColor: props?.style?.backgroundColor || Colors.muted,
         barStyle: 'light-content'
       }}
       {...props}

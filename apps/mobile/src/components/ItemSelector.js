@@ -6,7 +6,6 @@ import getFirstRootField from '@hylo/urql/getFirstRootFieldFromData'
 import Avatar from 'components/Avatar'
 import RoundCheckbox from 'components/RoundCheckBox'
 import SearchBar from 'components/SearchBar'
-import { alabaster } from '@hylo/presenters/colors'
 import Colors from '../style/theme-colors'
 
 export const DefaultItem = ({ item, onPress, chooser, chosen, toggleChosen, styles = defaultStyles, colors = defaultColors }) => (
@@ -157,7 +156,7 @@ export const ItemSelector = ({
 }
 
 export const defaultColors = {
-  text: alabaster,
+  text: Colors.muted,
   border: Colors.foreground80
 }
 

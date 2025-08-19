@@ -1,4 +1,5 @@
-import { limedSpruce, slateGrey80 } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import { limedSpruce } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -46,7 +47,7 @@ export default {
     fontSize: 14
   },
   date: {
-    color: slateGrey80,
+    color: Colors.mutedForeground,
     fontFamily: 'Circular-Book',
     fontSize: 12
   },
@@ -61,7 +62,7 @@ export default {
   replyLinkIcon: {
     transform: [{ rotateY: '180deg' }],
     fontSize: 20,
-    color: slateGrey80
+    color: Colors.mutedForeground
   },
   imageAttachment: {
     borderRadius: 10

@@ -1,9 +1,9 @@
-import React from 'react'
-import { View, TouchableOpacity, TextInput, Text, StyleSheet } from 'react-native'
+import React, { useState, useRef, useEffect } from 'react'
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import Colors from '../../style/theme-colors'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { havelockBlue } from '@hylo/presenters/colors'
-import Colors from '../../style/theme-colors'
 
 export default function SearchBar ({
   value,
@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     fontWeight: 'bold',
     fontSize: 14,
-    color: havelockBlue
+    color: Colors.secondary
   }
 })

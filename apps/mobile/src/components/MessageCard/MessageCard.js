@@ -5,7 +5,6 @@ import { TextHelpers } from '@hylo/shared'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import HyloHTML from 'components/HyloHTML'
 import Avatar from 'components/Avatar'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export default function MessageCard ({ message }) {

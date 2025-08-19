@@ -1,7 +1,7 @@
 import 'react'
 import { useActionSheet } from '@expo/react-native-action-sheet'
 import { isEmpty, filter } from 'lodash/fp'
-import { pictonBlue } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 import { isIOS } from 'util/platform'
 import { DefaultTheme } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -69,7 +69,7 @@ export default function useHyloActionSheet () {
           options,
           tintColor: DefaultTheme.primaryColor,
           cancelButtonIndex,
-          cancelButtonTintColor: isIOS ? DefaultTheme.primaryColor : pictonBlue,
+          cancelButtonTintColor: isIOS ? DefaultTheme.primaryColor : Colors.secondary,
           destructiveButtonIndex,
           // Great options for adding more context (e.g. Title of Post, etc)
           // title: '',

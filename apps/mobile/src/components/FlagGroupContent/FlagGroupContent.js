@@ -13,6 +13,7 @@ import { agreementsURL } from 'store/constants'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import GroupPresenter from '@hylo/presenters/GroupPresenter'
 import { mangoOrange } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
@@ -255,7 +256,7 @@ const styles = {
     marginBottom: 10
   },
   submission: {
-    color: 'black',
+    color: Colors.black,
     marginTop: 20,
     flexDirection: 'column',
     justifyContent: 'space-between',

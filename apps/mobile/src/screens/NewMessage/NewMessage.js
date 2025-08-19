@@ -16,7 +16,7 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { pictonBlue, black10onRhino, ghost } from '@hylo/presenters/colors'
+import { pictonBlue } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export const recentContactsQuery = gql`
@@ -167,7 +167,7 @@ export default function NewMessage () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
-        <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
+        <Text style={{ fontSize: 16, color: Colors.foreground10, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
           <Participant participant={participant} onPress={handleRemoveParticipant} key={index} />
         ))}
@@ -185,7 +185,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: Colors.foreground80, border: ghost }}
+        colors={{ text: Colors.foreground80, border: Colors.primary }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   addParticipantButton: {
-    backgroundColor: pictonBlue,
+    backgroundColor: Colors.secondary,
     width: 150,
     fontSize: 14,
     height: 36

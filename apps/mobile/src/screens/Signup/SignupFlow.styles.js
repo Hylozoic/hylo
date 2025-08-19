@@ -1,6 +1,6 @@
-import { white } from '@hylo/presenters/colors'
-import { isIOS } from 'util/platform'
+import { StyleSheet } from 'react-native'
 import Colors from '../../style/theme-colors'
+import { isIOS } from 'util/platform'
 
 const buttonStyle = {
   height: 40,
@@ -54,7 +54,7 @@ export default {
   backButton: {
     ...buttonStyle,
     width: 100,
-    color: white,
+    color: Colors.muted,
           backgroundColor: Colors.selected40
   },
   continueButton: {
@@ -62,8 +62,8 @@ export default {
     width: 134,
     marginLeft: 'auto',
     color: Colors.selected,
-    backgroundColor: white,
-    disabledColor: white,
+    backgroundColor: Colors.muted,
+    disabledColor: Colors.muted,
     disabledBackgroundColor: Colors.foreground30
   },
 

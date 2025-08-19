@@ -1,4 +1,5 @@
-import { white, white80 } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import { white80 } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 import defaultStyles from '../SignupFlow.styles'
 

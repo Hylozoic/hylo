@@ -1,6 +1,4 @@
-import { white } from '@hylo/presenters/colors'
 import { StyleSheet } from 'react-native'
-import { isIOS } from 'util/platform'
 import Colors from '../../style/theme-colors'
 
 export default {
@@ -17,7 +15,7 @@ export default {
     marginBottom: 40
   },
   heading: {
-    color: white,
+    color: Colors.muted,
     fontSize: 20,
     fontWeight: 'bold',
     paddingBottom: 10
@@ -48,7 +46,7 @@ export default {
     fontSize: 18,
     height: 100,
     fontWeight: 'bold',
-    marginVertical: isIOS ? 10 : 1,
+    marginVertical: 10,
     padding: 15,
     borderColor: Colors.foreground80,
     borderWidth: StyleSheet.hairlineWidth,
@@ -69,7 +67,7 @@ export default {
     height: 30
   },
   editText: {
-    color: white,
+    color: Colors.muted,
     fontSize: 16,
     marginTop: 10
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { isEmpty } from 'lodash/fp'
 import {
   View,
@@ -10,7 +10,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Avatar from 'components/Avatar'
 import ImageView from 'react-native-image-viewing'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 export function ImageViewerButton ({
@@ -160,15 +159,15 @@ const headerStyles = StyleSheet.create({
     marginLeft: 10
   },
   postDetailsName: {
-    color: white,
+    color: Colors.muted,
     fontFamily: 'Circular-Bold'
   },
   postDetailsDate: {
-    color: white,
+    color: Colors.muted,
     fontSize: 12
   },
   postDetailsTitle: {
-    color: white,
+    color: Colors.muted,
     marginLeft: 0,
     marginTop: 10,
     fontSize: 16,

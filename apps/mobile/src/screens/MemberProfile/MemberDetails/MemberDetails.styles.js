@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native'
 import headerStyles from '../MemberHeader.styles.js'
-import { nevada, ghost } from '@hylo/presenters/colors'
 import Colors from '../../../style/theme-colors'
 
 const screenMargin = 16
@@ -26,7 +25,7 @@ export default {
     // marginBottom: 10
   },
   bio: {
-    color: nevada,
+    color: Colors.foreground,
     fontFamily: 'Circular-Book',
     fontSize: 16,
     marginBottom: 10
@@ -48,7 +47,7 @@ export default {
     fontSize: 10,
     color: Colors.foreground50,
     borderWidth: 1,
-    borderColor: ghost,
+    borderColor: Colors.primary,
     lineHeight: 22,
     textAlignVertical: 'top',
     textAlign: 'center'
@@ -70,14 +69,14 @@ export default {
   },
   affiliationRole: {
     fontWeight: 'bold',
-    color: nevada
+    color: Colors.foreground
   },
   affiliationPreposition: {
-    color: nevada
+    color: Colors.foreground
   },
   affiliationOrgName: {
     fontWeight: 'bold',
-    color: nevada
+    color: Colors.foreground
   },
   affiliationOrgNameLink: {
     color: Colors.selected

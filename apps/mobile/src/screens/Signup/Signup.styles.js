@@ -1,8 +1,7 @@
 import { Dimensions, StyleSheet } from 'react-native'
 import loginStyles from 'screens/Login/Login.styles'
-import { white } from '@hylo/presenters/colors'
-import Colors from '../../style/theme-colors'
 import { isIOS } from 'util/platform'
+import Colors from '../../style/theme-colors'
 
 const bgImageWidth = Dimensions.get('window').width
 const bgImageHeight = Dimensions.get('window').height * 0.25
@@ -33,7 +32,7 @@ export default {
   },
   title: {
     ...loginStyles.title,
-    color: white,
+    color: Colors.muted,
     marginTop: 15,
     marginBottom: 10,
     textAlign: 'center'
@@ -43,7 +42,7 @@ export default {
   subTitle: {
     ...loginStyles.helpText,
     textAlign: 'center',
-    color: white,
+    color: Colors.muted,
     fontSize: 16,
     paddingHorizontal: '20%',
     marginBottom: 20
@@ -74,7 +73,7 @@ export default {
     height: 45,
     fontSize: 20,
     marginBottom: 25,
-    disabledColor: white,
+    disabledColor: Colors.muted,
     disabledBackgroundColor: Colors.foreground30
   },
   login: {

@@ -17,7 +17,6 @@ import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { white } from '@hylo/presenters/colors'
 import Colors from '../../style/theme-colors'
 
 const BOTTOM_THRESHOLD = 10
