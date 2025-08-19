@@ -36,13 +36,13 @@ const LocaleSelector = ({ small, dark }) => {
       borderRadius: 5,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: dark ? null : '#ccc',
-      backgroundColor: dark ? '#aaa' : '#fff',
+      borderColor: dark ? null : Colors.mutedForeground,
+      backgroundColor: dark ? Colors.mutedForeground : Colors.muted,
       width: '100%'
     },
     selectorButtonText: {
       fontSize: 12,
-      color: dark ? 'white' : '#333'
+      color: dark ? 'white' : Colors.foreground
     },
     dropdown: {
       marginTop: 10,
@@ -50,24 +50,25 @@ const LocaleSelector = ({ small, dark }) => {
       top: 12,
       position: 'absolute',
       width: '100%',
-      backgroundColor: '#fff',
+      backgroundColor: Colors.muted,
       borderRadius: 5,
       borderWidth: 1,
-      borderColor: '#ccc'
+      borderColor: Colors.mutedForeground
     },
     optionButton: {
       padding: 12,
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor: '#ccc'
+      borderBottomColor: Colors.mutedForeground,
+      backgroundColor: Colors.muted
     },
     selectedOption: {
-      backgroundColor: '#007bff',
-      borderColor: '#007bff'
+      backgroundColor: Colors.secondary,
+      borderColor: Colors.secondary
     },
     optionText: {
       fontSize: 16,
-      color: '#333'
+      color: Colors.foreground
     },
     selectedOptionText: {
       color: 'white'

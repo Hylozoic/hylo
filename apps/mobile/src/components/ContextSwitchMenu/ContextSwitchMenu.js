@@ -81,7 +81,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
         keyExtractor={item => item.id || item.slug || Math.random().toString()}
         renderItem={({ item }) => (
           item.__divider ? (
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 8, marginHorizontal: 12 }} />
+            <View style={{ height: 1, backgroundColor: Colors.mutedForeground, marginVertical: 8, marginHorizontal: 12 }} />
           ) : (
             <ContextRow
               context={item}

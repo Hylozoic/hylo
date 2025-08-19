@@ -206,6 +206,6 @@ const footerStyles = StyleSheet.create({
   },
   text: {
     fontSize: 17,
-    color: '#FFF'
+    color: Colors.muted
   }
 })

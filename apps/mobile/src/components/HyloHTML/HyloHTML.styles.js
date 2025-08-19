@@ -59,7 +59,7 @@ export const tagsStyles = {
     marginBottom: '0.8em'
   },
   a: {
-    color: '#0275d8',
+    color: Colors.secondary,
     textDecorationLine: 'none'
   },
   ul: {
@@ -90,17 +90,17 @@ export const tagsStyles = {
 
 export const classesStyles = {
   'hylo-link': {
-    color: '#0DC39F'
+    color: Colors.selected
   },
   mention: {
-    color: '#0DC39F',
+    color: Colors.selected,
     textDecorationLine: 'none'
   },
   'mention-current-user': {
-    color: '#FFB949'
+    color: Colors.accent
   },
   topic: {
-    color: '#0DC39F',
+    color: Colors.selected,
     textDecorationLine: 'none'
   }
 }

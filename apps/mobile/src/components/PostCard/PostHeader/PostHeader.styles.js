@@ -19,7 +19,7 @@ export const styles = {
   },
   name: {
     fontSize: 13,
-    color: '#363D3C',
+    color: Colors.foreground,
     fontFamily: 'Circular-Bold',
     marginRight: 4
   },

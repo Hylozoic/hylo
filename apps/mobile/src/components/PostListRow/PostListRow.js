@@ -9,6 +9,7 @@ import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import { personUrl } from '@hylo/navigation'
+import Colors from '../../style/theme-colors'
 
 const PostListRow = (props) => {
   const {
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   },
   participants: {
     fontSize: 12,
-    color: '#8C9DAE'
+    color: Colors.mutedForeground
   },
   participantsContent: {
     flexDirection: 'row',
@@ -171,13 +172,13 @@ const styles = StyleSheet.create({
   },
   participantsText: {
     fontSize: 12,
-    color: '#8C9DAE'
+    color: Colors.mutedForeground
   },
   avatar: {
     marginRight: 5
   },
   title: {
-    color: '#2F3D4C',
+    color: Colors.foreground,
     fontSize: 16,
     marginTop: 0,
     marginBottom: 0,
@@ -185,19 +186,19 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   details: {
-    color: '#5F6C7D',
+    color: Colors.mutedForeground,
     width: '100%',
     maxHeight: 18,
     overflow: 'hidden',
     marginBottom: 4
   },
   topic: {
-    color: '#00BF8F',
+    color: Colors.selected,
     marginRight: 10
   },
   timestamp: {
     fontSize: 12,
-    color: '#8C9DAE'
+    color: Colors.mutedForeground
   },
   pushToRight: {
     marginLeft: 'auto'
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
     marginRight: 12,
     fontSize: 24,
-    color: '#ED5653',
+    color: Colors.destructive,
     fontWeight: 'bold'
   },
   date: {
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: '#8C9DAE'
+    color: Colors.mutedForeground
   },
   topics: {
     flexDirection: 'row',

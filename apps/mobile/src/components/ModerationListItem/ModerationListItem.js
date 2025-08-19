@@ -124,7 +124,7 @@ const ModerationListItem = ({
 const styles = StyleSheet.create({
   moderationActionCard: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.mutedForeground,
     borderRadius: 8,
     marginHorizontal: 16,
     marginBottom: 24,
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 10,
-    backgroundColor: '#fefefe',
+    backgroundColor: Colors.muted,
     elevation: 5
   },
   cardHeader: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   agreementsLink: {
-    color: '#2C405A',
+    color: Colors.foreground,
     fontSize: 14,
     textDecorationLine: 'underline',
     marginTop: 10
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     color: Colors.selected
   },
   active: {
-    color: '#f39c12'
+    color: Colors.accent
   },
   cardFooter: {
     flexDirection: 'row',

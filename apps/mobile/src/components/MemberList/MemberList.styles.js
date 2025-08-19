@@ -56,8 +56,8 @@ export default {
     alignItems: 'center'
   },
   memberCell: {
-    backgroundColor: '#FFF',
-    borderColor: '#EAEBEB',
+    backgroundColor: Colors.muted,
+    borderColor: Colors.mutedForeground,
     borderStyle: 'solid',
     borderWidth: 1,
     borderRadius: 4

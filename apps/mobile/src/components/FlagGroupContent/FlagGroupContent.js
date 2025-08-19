@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, Linking, Modal, TextInput } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, Linking, Modal, TextInput, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation, useQuery } from 'urql'
 import { isEmpty } from 'lodash'
@@ -176,7 +176,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   )
 }
 
-const styles = {
+const styles = StyleSheet.create({
   popup: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -196,7 +196,7 @@ const styles = {
   },
   title: {
     fontSize: 24,
-    color: '#2C405A',
+    color: Colors.foreground,
     fontWeight: 'normal',
     fontFamily: 'Circular Medium',
     textAlign: 'center',
@@ -216,16 +216,16 @@ const styles = {
     flex: 1
   },
   explainer: {
-    color: '#666',
+    color: Colors.mutedForeground,
     fontSize: 14,
     marginBottom: 5
   },
   reasonRequired: {
-    color: 'red'
+    color: Colors.destructive
   },
   explanationTextbox: {
     borderWidth: 1,
-    borderColor: '#CCD1D7',
+    borderColor: Colors.mutedForeground,
     borderRadius: 2,
     padding: 14,
     marginTop: 20,
@@ -234,7 +234,7 @@ const styles = {
   },
   sectionTitle: {
     fontSize: 20,
-    color: '#2C405A',
+    color: Colors.foreground,
     fontWeight: 'normal',
     fontFamily: 'Circular Medium',
     marginTop: 20,
@@ -242,14 +242,14 @@ const styles = {
   },
   subSectionTitle: {
     fontSize: 18,
-    color: '#2C405A',
+    color: Colors.foreground,
     fontWeight: 'normal',
     fontFamily: 'Circular Medium',
     marginTop: 15,
     marginBottom: 5
   },
   link: {
-    color: '#2C405A',
+    color: Colors.foreground,
     fontSize: 14,
     textDecorationLine: 'underline',
     marginTop: 10,
@@ -270,7 +270,7 @@ const styles = {
     alignItems: 'center'
   },
   anonLabel: {
-    color: '#666',
+    color: Colors.mutedForeground,
     fontSize: 10,
     marginRight: 10
   },
@@ -278,6 +278,6 @@ const styles = {
     marginTop: 21,
     disabledColor: mangoOrange
   }
-}
+})
 
 export default FlagGroupContent

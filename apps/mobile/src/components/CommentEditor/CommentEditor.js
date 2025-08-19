@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     backgroundColor: Colors.background20,
     borderWidth: 1,
-    borderColor: '#CCC',
+    borderColor: Colors.mutedForeground,
     borderRadius: 10
   },
 

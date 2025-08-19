@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   details: {
-    color: '#5D757A',
+    color: Colors.mutedForeground,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 8,

@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.foreground30
   },
   lastCard: {
-    borderColor: '#FFF'
+    borderColor: Colors.muted
   },
   messageContent: {
     flex: 1,

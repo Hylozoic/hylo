@@ -26,9 +26,9 @@ const mixins = {
     borderStyle: 'solid',
     borderRightWidth: 15,
     borderLeftWidth: 15,
-    borderTopColor: '#EE4266',
+    borderTopColor: Colors.destructive,
     borderRightColor: 'transparent',
-    borderBottomColor: '#EE4266',
+    borderBottomColor: Colors.destructive,
     borderLeftColor: 'transparent',
     paddingBottom: -10,
     marginTop: 12,
@@ -133,7 +133,7 @@ export default {
     alignSelf: 'stretch',
     marginLeft: 5,
     marginRight: 5,
-    backgroundColor: '#EE4266',
+    backgroundColor: Colors.destructive,
     padding: 10,
     marginBottom: 3,
     marginTop: -21,
@@ -145,11 +145,11 @@ export default {
   },
   errorBanner: {
     ...mixins.banner,
-    backgroundColor: '#EE4266'
+    backgroundColor: Colors.destructive
   },
   banner: {
     ...mixins.banner,
-    backgroundColor: '#33D089'
+    backgroundColor: Colors.selected
   },
   textInput: {
     height: 38,

@@ -76,7 +76,7 @@ export default {
     width: 20
   },
   avatarContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.muted,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,7 +168,7 @@ export default {
   acceptanceText: {
     fontFamily: 'Circular-Book',
     fontSize: 16,
-    color: 'orange',
+    color: Colors.accent,
     lineHeight: 24
   },
   skillPills: {
