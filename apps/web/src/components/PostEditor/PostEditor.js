@@ -295,7 +295,9 @@ function PostEditor ({
 
   useEffect(() => {
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
@@ -350,7 +352,9 @@ function PostEditor ({
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
