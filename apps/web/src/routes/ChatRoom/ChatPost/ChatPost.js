@@ -226,12 +226,13 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] mb-1 relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] mb-1 relative transition-all group cursor-pointer',
           className,
           styles.container,
           {
             [styles.longPressed]: isLongPress,
             [styles.hovered]: isHovered,
+            'bg-background shadow-lg': isHovered,
             'bg-accent/30': highlighted
           }
         )}
@@ -240,7 +241,15 @@ export default function ChatPost ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className='flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 group-hover:opacity-100 delay-300 scale-0 group-hover:scale-100'>
+        <div className={
+          cn(
+            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 delay-100 scale-0',
+            {
+              'opacity-100 scale-100 scale-100': isHovered
+            }
+          )
+          }
+        >
           {actionItems.map(item => (
             <button
               key={item.label}
