@@ -11,8 +11,8 @@ export default function ClickableLocationText ({ text, style, className, ...prop
 
   // Function to detect URLs in text
   const detectUrls = (text) => {
-    // Regex to match various URL patterns including Zoom links, Google Meet, Teams, and other common meeting platforms
-    const urlRegex = /(https?:\/\/[^\s]+|zoom\.us\/[^\s]+|meet\.google\.com\/[^\s]+|teams\.microsoft\.com\/[^\s]+|discord\.gg\/[^\s]+|slack\.com\/[^\s]+|webex\.com\/[^\s]+|gotomeeting\.com\/[^\s]+|join\.skype\.com\/[^\s]+)/gi
+    // Regex to match any valid URL pattern
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}[^\s]*)/gi
     const parts = text.split(urlRegex)
     
     return parts.map((part, index) => {
