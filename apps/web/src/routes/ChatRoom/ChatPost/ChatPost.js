@@ -226,7 +226,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] mb-1 relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer',
           className,
           styles.container,
           {
@@ -251,7 +251,7 @@ export default function ChatPost ({
             </button>
           ))}
           <EmojiPicker
-            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
@@ -314,20 +314,24 @@ export default function ChatPost ({
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
-        <EmojiRow
-          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
-          post={post}
-          currentUser={currentUser}
-          onAddReaction={onAddReaction}
-          onRemoveReaction={onRemoveReaction}
-        />
+        <div className='w-full' onClick={handleClick}>
+          <EmojiRow
+            className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+            post={post}
+            currentUser={currentUser}
+            onAddReaction={onAddReaction}
+            onRemoveReaction={onRemoveReaction}
+          />
+        </div>
         {commentsTotal > 0 && (
-          <span className='bg-black/10 rounded-lg py-2 px-2 h-[40px] items-center justify-center flex w-[120px]'>
-            <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className='text-sm text-foreground' onClick={handleClick}>
-              {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+          <div className='w-full' onClick={handleClick}>
+            <span className='ChatPost_commenters bg-black/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
+              <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
+              <span className='text-sm text-foreground' onClick={handleClick}>
+                {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+              </span>
             </span>
-          </span>
+          </div>
         )}
       </div>
     </Highlight>
