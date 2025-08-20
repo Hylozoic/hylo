@@ -5,7 +5,6 @@ import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import { useNavigation } from '@react-navigation/native'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import useGoToTopic from 'hooks/useGoToTopic'
 
 export default function PostRow ({ context, post, forGroupId, showGroups }) {
@@ -15,7 +14,7 @@ export default function PostRow ({ context, post, forGroupId, showGroups }) {
 
   if (!post) return null
 
-  const handleOnPress = () => navigation.navigate(modalScreenName('Post Details'), { id: post?.id })
+  const handleOnPress = () => navigation.navigate('Post Details', { id: post?.id })
   const handleRespondToEvent = response => respondToEvent({ id: post.id, response })
   const groupIds = post.groups.map(group => group.id)
   const isChildPost = (
