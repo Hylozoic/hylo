@@ -4,6 +4,11 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [6.1.9] - 2025-08-20
+- Fix notifications list crashing
+- Fix location permissions
+- Allow any url link in post location field (zoom links, luma links, etc)
+
 ### [6.1.8] - 2025-08-13
 - Fix authenication bug for real-time updates
 - Reduce query size to speed up response
