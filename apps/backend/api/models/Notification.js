@@ -4,6 +4,8 @@ import { refineOne } from './util/relations'
 import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
+import RedisClient from '../services/RedisClient'
+import { v4 as uuidv4 } from 'uuid'
 import { en } from '../../lib/i18n/en'
 import { es } from '../../lib/i18n/es'
 const locales = { en, es }
@@ -949,7 +951,7 @@ module.exports = bookshelf.Model.extend({
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)
-    return Notification.where({ id: id }).fetch(options)
+    return Notification.where({ id }).fetch(options)
   },
 
   findUnsent: function (options = {}) {
@@ -967,49 +969,75 @@ module.exports = bookshelf.Model.extend({
       .fetchAll(options)
   },
 
-  // Process a bounded batch of unsent notifications and return.
+  // Process a bounded batch of unsent notifications with a distributed lock.
   // If there may be more to process, re-enqueue another job so we don't
   // hold a Kue worker slot indefinitely.
-  sendUnsent: function () {
-    // FIXME empty out this withRelated list and just load things on demand when
-    // creating push notifications / emails
-    return Notification.findUnsent({
-      withRelated: [
-        'activity',
-        'activity.post',
-        'activity.post.tags',
-        'activity.post.groups',
-        'activity.post.user',
-        'activity.post.media',
-        'activity.comment',
-        'activity.comment.media',
-        'activity.comment.user',
-        'activity.comment.post',
-        'activity.comment.post.user',
-        'activity.comment.post.relatedUsers',
-        'activity.comment.post.groups',
-        'activity.group',
-        'activity.otherGroup',
-        'activity.reader',
-        'activity.actor',
-        'activity.track'
-      ]
-    })
-      .then(async ns => {
-        if (!ns || ns.length === 0) return
-        await Promise.each(ns.models, n =>
-          n.send().catch(err => {
-            console.error('Error sending notification', err, n.attributes)
-            rollbar.error(err, null, { notification: n.attributes })
-            return n.save({ failed_at: new Date() }, { patch: true })
-          })
-        )
-        // If we hit the limit (200), there may be more to process.
-        if (ns.length >= 200) {
-          // Re-enqueue another pass shortly.
-          Queue.classMethod('Notification', 'sendUnsent', {}, 1000)
-        }
+  sendUnsent: async function () {
+    // Use a Redis-based mutex to ensure only one worker runs this at a time
+    const redisClient = RedisClient.create()
+    const lockKey = 'locks:Notification.sendUnsent'
+    const lockTtlMs = Number(process.env.NOTIFICATIONS_SENDUNSENT_LOCK_MS) || 120000 // 2 minutes
+    const token = uuidv4()
+
+    try {
+      const acquired = await redisClient.set(lockKey, token, 'NX', 'PX', lockTtlMs)
+      if (acquired !== 'OK') return
+
+      // FIXME empty out this withRelated list and just load things on demand when
+      // creating push notifications / emails
+      const ns = await Notification.findUnsent({
+        withRelated: [
+          'activity',
+          'activity.post',
+          'activity.post.tags',
+          'activity.post.groups',
+          'activity.post.user',
+          'activity.post.media',
+          'activity.comment',
+          'activity.comment.media',
+          'activity.comment.user',
+          'activity.comment.post',
+          'activity.comment.post.user',
+          'activity.comment.post.relatedUsers',
+          'activity.comment.post.groups',
+          'activity.group',
+          'activity.otherGroup',
+          'activity.reader',
+          'activity.actor',
+          'activity.track'
+        ]
       })
+
+      if (!ns || ns.length === 0) return
+
+      await Promise.each(ns.models, n =>
+        n.send().catch(err => {
+          console.error('Error sending notification', err, n.attributes)
+          rollbar.error(err, null, { notification: n.attributes })
+          return n.save({ failed_at: new Date() }, { patch: true })
+        })
+      )
+
+      // If we hit the limit (200), there may be more to process.
+      if (ns.length >= 200) {
+        // Re-enqueue another pass shortly.
+        Queue.classMethod('Notification', 'sendUnsent', {}, 1000)
+      }
+    } finally {
+      // Safely release the lock only if we still own it
+      try {
+        const unlockScript = `
+          if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+          else
+            return 0
+          end
+        `
+        await redisClient.eval(unlockScript, 1, lockKey, token)
+      } catch (e) {
+        console.error('Error releasing Notification.sendUnsent lock', e)
+      }
+    }
   },
 
   priorityReason: function (reasons) {
