@@ -124,8 +124,7 @@ export default function GlobalNav (props) {
         // Check if the menu container is actually being hovered
         const navContainer = document.querySelector(`.${styles.globalNavContainer}`)
         if (navContainer && !navContainer.matches(':hover')) {
-          setIsContainerHovered(false)
-          setShowGradient(false)
+          clearHover()
         }
       }, 10000) // 10 seconds
       setMenuTimeoutId(timeoutId)
@@ -168,20 +167,40 @@ export default function GlobalNav (props) {
     setTimeout(() => {
       // Check current hover state directly from DOM instead of using the captured state variable
       const navContainer = document.querySelector('.globalNavContainer')
-      if (navContainer && navContainer.matches(':hover')) {
+      if (navContainer && navContainer.matches(':hover') && !isMobileDevice()) {
         setShowGradient(true)
       }
     }, 200)
   }
 
-  const handleContainerMouseLeave = () => {
+  const clearHover = () => {
     setIsContainerHovered(false)
     setShowGradient(false)
   }
 
+  const handleContainerMouseLeave = () => {
+    clearHover()
+  }
+
   const handleClick = () => {
-    setIsContainerHovered(false)
-    setShowGradient(false)
+    clearHover()
+  }
+
+  // Touch events to handle hover state on mobile
+  const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
+  const handleContainerTouchStart = () => {
+    setIsContainerHovered(true)
+    setShowGradient(true)
+    if (clearHoverTimeout) {
+      clearTimeout(clearHoverTimeout)
+      setClearHoverTimeout(null)
+    }
+  }
+
+  const handleContainerTouchEnd = () => {
+    setClearHoverTimeout(setTimeout(() => {
+      clearHover()
+    }, 1000))
   }
 
   const handleSupportClick = () => {
@@ -242,7 +261,14 @@ export default function GlobalNav (props) {
   }, [])
 
   return (
-    <div className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0 pointer-events-auto')} onClick={handleClick} onMouseLeave={handleContainerMouseLeave}>
+    <div
+      className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] z-[50] items-center pb-0 pointer-events-auto')}
+      onClick={handleClick}
+      onMouseLeave={handleContainerMouseLeave}
+      onMouseEnter={handleContainerMouseEnter}
+      onTouchStart={handleContainerTouchStart}
+      onTouchEnd={handleContainerTouchEnd}
+    >
       <div
         ref={navContainerRef}
         className={cn(
