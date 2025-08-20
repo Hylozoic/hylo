@@ -7,7 +7,7 @@ import Button from 'components/Button'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 const { object } = PropTypes
 
-const clientId = process.env.STRIPE_CLIENT_ID
+const clientId = import.meta.env.VITE_STRIPE_CLIENT_ID
 const stripeUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write`
 
 class PaymentSettingsTab extends Component {
