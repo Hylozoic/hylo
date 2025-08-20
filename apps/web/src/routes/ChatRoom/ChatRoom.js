@@ -526,8 +526,6 @@ export default function ChatRoom (props) {
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
-    // TODO: probably dont need this, backend should set last_read_post on the chat room when a chat is created
-    updateLastReadPost(post)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
       setNotificationsSetting('all')
