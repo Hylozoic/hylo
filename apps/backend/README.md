@@ -1,4 +1,4 @@
-### hylo-node
+### Hylo Backend
 
 Thanks for checking out our code. The documentation below may be incomplete or incorrect. We welcome pull requests! But we're a very small team, so we can't guarantee timely responses.
 
@@ -6,9 +6,7 @@ Thanks for checking out our code. The documentation below may be incomplete or i
 
 [![Code Climate](https://codeclimate.com/github/Hylozoic/hylo-node/badges/gpa.svg)](https://codeclimate.com/github/Hylozoic/hylo-node) [![Test Coverage](https://codeclimate.com/github/Hylozoic/hylo-node/badges/coverage.svg)](https://codeclimate.com/github/Hylozoic/hylo-node/coverage)
 
-### setup
-
-Use nvm to install the correct version of node. Once installed you can just do `nvm install` to ensure the correct version is installed and then `nvm use`
+### Setup
 
 You need to install redis locally, then follow the steps to launch it on startup (on the default port of 6379). For OSX/MacOS:
 
@@ -30,13 +28,6 @@ Ubuntu Linux:
 sudo apt-get -y install redis-server
 sudo systemctl enable redis
 sudo systemctl start redis
-```
-
-Next install the node modules (and Yarn, if you don't already have it available):
-
-```shell
-npm install -g foreman yarn
-yarn install
 ```
 
 Create a `.env` file in the root directory by copying .env.example. Values below are team specific and should be supplied as needed:
@@ -205,7 +196,7 @@ knex migrate:make my_migration_name
 
 (You can either install knex globally with `npm install -g knex`, or run the version in your `node_modules` with `./node_modules/.bin/knex`.)
 
-Run migrations with `npm run migrate` and rollback the last one with `npm run rollback`.
+Run migrations with `yarn migrate` and rollback the last one with `yarn rollback`.
 
 ### loading database snapshots
 
