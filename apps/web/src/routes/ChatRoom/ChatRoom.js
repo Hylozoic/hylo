@@ -747,17 +747,12 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
-      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /> <span className='text-red-500 text-center w-full block'>{t('New posts')}</span></div>}
-      {firstUnread && displayDay &&
-        <div className={styles.unreadAndDay}>
+      {firstUnread &&
+        <div className='w-full relative py-3 text-sm'>
           <hr className='border-t-2 border-red-500' />
-          <div className='flex w-full items-center my-3'>
-            <div className='grow h-px bg-foreground/10' />
-            <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
-            <div className='grow h-px bg-foreground/10' />
-          </div>
+          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
         </div>}
-      {!firstUnread && displayDay && (
+      {displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='grow h-px bg-foreground/10' />
           <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
