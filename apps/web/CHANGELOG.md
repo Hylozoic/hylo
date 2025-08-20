@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.14] - 2025-08-14
+
+### Changed
+- Line up emojis and replies with chat post content
+- Tweak padding of chat posts
+- Use newPostCount to determine how many past and future posts we actually need to load - improving performance.
+- When loading chat room the new posts now start at the top of the screen instead of below the bottom of the screen.
+- Load less posts at a time as you scroll so that should be faster
+- Loading spinner in the middle of the chat room.
+- Add "New posts" text to new post line in chat room
+- Don't need to load group location when loading posts
+
+### Fixed
+- UI fixes to display of post groups in post details. Width not overlapping. Don't show multiple Public groups sometimes. Spacing improved.
+- Scroll jumping while scrolling up in chat room
+- Emoji picker doesnt jump around when hovering over it for chat post
+- Clicking to right of emoji or replies row opens post as expected.
+- Button to jump to latest post in chat room actually does so when there are lots of new posts
+- Small spacing fix of post datetimes in post details header, don't overlap post content
+
+
 ## [6.1.13] - 2025-08-08
 
 ### Changed

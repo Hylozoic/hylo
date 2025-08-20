@@ -150,6 +150,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
+                alignLeft
                 className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}

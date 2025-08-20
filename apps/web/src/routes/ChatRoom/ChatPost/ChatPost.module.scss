@@ -163,7 +163,8 @@
 }
 
 .emojis {
-  margin-left: 23px;
+  margin-left: 44px;
+  margin-bottom: 2px;
 }
 
 .noEmojis {
@@ -197,7 +198,7 @@
   filter: blur(4px);
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 640px) {
   .container {
     padding-left: 15px;
 
@@ -238,22 +239,18 @@
 }
 
 
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 410px) {
   .postContentContainer {
-    margin-left: 39px;
+    margin-left: 35px;
+  }
+
+  .emojis {
+    margin-left: 37px;
   }
 
   .container {
     -webkit-user-select: none; /* disable selection/Copy of UIWebView */
     user-select: none;
     -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
-  }
-}
-
-@media screen and (max-width: 375px) {
-
-  .postContent {
-    font-size: 12px;
-    line-height: 16px;
   }
 }
