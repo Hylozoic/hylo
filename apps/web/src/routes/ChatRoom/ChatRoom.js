@@ -659,10 +659,12 @@ const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
 }
 
-const StickyHeader = ({ data, prevData }) => {
+const StickyHeader = ({ data, prevData, context }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
+
+  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
 
   return (
     <div className={cn(styles.displayDay, '!absolute top-0')}>
