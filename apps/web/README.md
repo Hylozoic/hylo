@@ -1,17 +1,10 @@
-# hylo-evo
+# Hylo Web / Frontend
 
-## Getting Started
+## Setup
 
-1. `git clone git@github.com:Hylozoic/hylo-evo.git`
-2. `cd hylo-evo`
-3. Setup your .env file by copying `.env.example` to `.env`. You will need to ask a Hylo dev team member for API keys or tokens for Filepicker, Intercom, MapBox and Mixpanel as needed.
-
-## Running local:
-
-1. `yarn install`
-2. `yarn dev`
-3. Setup [hylo-node](https://github.com/Hylozoic/hylo-node) and run that locally as well.
-4. Run hylo-node
+1. Make sure you have done basic setup from the root of the monorepo and are running the back-end server in another terminal window
+2. Setup your .env file by copying `.env.example` to `.env`. You will need to ask a Hylo dev team member for API keys or tokens for Filepicker, Intercom, MapBox and Mixpanel as needed.
+3. `yarn dev`
 
 ## Building for standard Hylo API deployment
 
@@ -28,12 +21,13 @@
 HTTPS=true
 LOCAL_CERT=localhost (this should be the root filename used for your certificate files above)
 
-API_HOST=https://localhost:3001
-SOCKET_HOST=https://localhost:3001
+VITE_API_HOST=https://localhost:3001
+VITE_SOCKET_HOST=https://localhost:3001
 ```
 ## Contributions and Code of Conduct
 
 Please review our [Contribution Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) to step into co-creative stewardship with us.
+
 ## Data fetching and storage
 
 The application's series of Redux middlewares take care of *MOST* of the data fetching for the application. Data fetching side-effects are triggered by dispatching specific redux actions, as with most redux setups. Instead of custom or specific request handlers, however, Evo uses a series of middleware handlers to handle all fetching to the platform backend. These actions conform to the flux-standard-action pattern, with some additions to handle the application's edge cases.

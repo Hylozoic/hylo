@@ -259,10 +259,10 @@ function PeopleTab ({ currentTrack }) {
               </div>
               <div className='flex flex-row gap-4 items-center text-xs text-foreground/60'>
                 <div>
-                  <span>{t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair(user.enrolledAt) })}</span>
+                  <span>{t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.enrolledAt }) })}</span>
                 </div>
                 <div>
-                  <span>{user.completedAt ? t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair(user.completedAt) }) : ''}</span>
+                  <span>{user.completedAt ? t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.completedAt }) }) : ''}</span>
                 </div>
               </div>
             </div>

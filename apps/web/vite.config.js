@@ -83,7 +83,7 @@ export default defineConfig({
       '/noo': {
         target: proxyTarget,
         changeOrigin: true,
-        secure: process.env.VITE_HTTPS === 'true',
+        secure: process.env.HTTPS === 'true',
         ws: true,
         configure: (proxy, options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
