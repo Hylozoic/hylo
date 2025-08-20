@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.15] - 2025-08-20
+
+### Fixed
+- Display of times for upcoming events in digest emails
+
 ## [6.1.14] - 2025-08-14
 
 ### Fixed
