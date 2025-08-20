@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import { debounce, includes, isEmpty } from 'lodash/fp'
+import { debounce } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
@@ -9,7 +9,6 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { createSelector as ormCreateSelector } from 'redux-orm'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -34,15 +33,14 @@ import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
+import { getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
@@ -56,19 +54,9 @@ import styles from './ChatRoom.module.scss'
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
 
-const getPosts = ormCreateSelector(
-  orm,
-  getPostResults,
-  (session, results) => {
-    if (isEmpty(results)) return null
-    if (isEmpty(results.ids)) return []
-    return session.Post.all()
-      .filter(x => includes(x.id, results.ids))
-      .orderBy(p => Number(p.id))
-      .toModelArray()
-      .map(p => presentPost(p))
-  }
-)
+// IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
+// Preserve the order defined by queryResults.ids and transform to presentPost
+const makeGetPostsSelector = () => makeQueryResultsModelSelector(getPostResults, 'Post', p => presentPost(p))
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -169,16 +157,33 @@ export default function ChatRoom (props) {
     topic: topicFollow?.topic.id
   }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
-  const postsPast = useSelector(state => getPosts(state, fetchPostsPastParams))
-  const hasMorePostsPast = useSelector(state => getHasMorePosts(state, fetchPostsPastParams))
+  // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
+  const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
+  const getPostsFutureSelector = useMemo(() => makeGetPostsSelector(), [])
 
-  const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
-  const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
+  const postsPast = useSelector(state => getPostsPastSelector(state, fetchPostsPastParams))
+  const hasMorePostsPast = useSelector(state => getPostResults(state, fetchPostsPastParams)?.hasMore)
+
+  const postsFuture = useSelector(state => getPostsFutureSelector(state, fetchPostsFutureParams))
+  const hasMorePostsFuture = useSelector(state => getPostResults(state, fetchPostsFutureParams)?.hasMore)
 
   const postsForDisplay = useMemo(() => {
     if (!postsPast && !postsFuture) return []
-    return (postsPast || []).concat(postsFuture || [])
+    return ([...(postsPast || []), ...(postsFuture || [])])
+      .sort((a, b) => Number(a.id) - Number(b.id))
   }, [postsPast, postsFuture])
+
+  // Keep the on-screen Virtuoso data in sync when any post updates elsewhere (edit, comment, react)
+  useEffect(() => {
+    if (!messageListRef.current) return
+    if (!postsForDisplay || postsForDisplay.length === 0) return
+
+    const byId = new Map(postsForDisplay.map(p => [p.id, p]))
+    messageListRef.current?.data.map(item => {
+      const updated = item?.id ? byId.get(item.id) : null
+      return updated ? { ...item, ...updated } : item
+    })
+  }, [postsForDisplay])
 
   const fetchPostsPast = useCallback((offset, extraParams = {}, force = false) => {
     if ((loadingPast || hasMorePostsPast === false) && !force) return Promise.resolve()
