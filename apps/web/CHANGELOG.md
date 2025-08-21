@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make sure New Posts text always appears with new posts line in chat room
 - Fix extra scroll bar when a chat room has no posts
 - Display of emoji button on comments
+- Adding text to flagging of group content dialog
 
 ## [6.1.14] - 2025-08-14
 
