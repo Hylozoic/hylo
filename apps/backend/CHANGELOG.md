@@ -6,11 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.1.15] - 2025-08-20
+## [6.1.15] - 2025-08-21
 
 ### Fixed
 - Display of times for upcoming events in digest emails
 - Times for event RSPV ical attachements
+- Bug where deleting a comment would remove the tag froms the parent post!
 
 ## [6.1.14] - 2025-08-14
 
