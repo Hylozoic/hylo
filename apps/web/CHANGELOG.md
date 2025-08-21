@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
 - Display group names as you scroll global nav menu on mobile browser.
+- Center track title on track home page
 
 ### Fixed
 - Hover state of global nav menu no longer lingers on mobile browser.
