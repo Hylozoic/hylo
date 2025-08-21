@@ -15,7 +15,5 @@ export default function deleteComment (comment, userId) {
       num_comments: post.get('num_comments') - 1,
       num_commenters: await post.getCommentersTotal()
     }, { transaction: trx })
-
-    await Tag.updateForPost(post, null, null, null, trx)
   })
 }

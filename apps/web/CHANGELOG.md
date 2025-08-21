@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.15] - 2025-08-21
+
+### Changed
+- Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
+- Display group names as you scroll global nav menu on mobile browser.
+- Center track title on track home page
+
+### Fixed
+- Hover state of global nav menu no longer lingers on mobile browser.
+- Correct display of enrolled and completed dates for tracks
+- Growing comment box in android app
+- Map going below the bottom of the screen on mobile
+- Don't double update last read post when creating a new chat
+- Make sure New Posts text always appears with new posts line in chat room
+- Fix extra scroll bar when a chat room has no posts
+- Display of emoji button on comments
+- Adding text to flagging of group content dialog
+
 ## [6.1.14] - 2025-08-14
 
 ### Changed
@@ -25,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking to right of emoji or replies row opens post as expected.
 - Button to jump to latest post in chat room actually does so when there are lots of new posts
 - Small spacing fix of post datetimes in post details header, don't overlap post content
-
+- Focusing on the chat box in chat room doesn't do a big scroll jump and add a bunch of extra whitespace below it in safari on ios. This does require a change where trying to scroll while the chat box will now remove focus from it.
 
 ## [6.1.13] - 2025-08-08
 

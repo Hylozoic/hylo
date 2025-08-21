@@ -22,26 +22,6 @@
   }
 }
 
-.displayDay, .firstUnread, .unreadAndDay {
-  width: 100%;
-  position: relative;
-  padding: 30px 0 30px 0;
-  font-size: .8rem
-}
-
-
-.firstUnread .divider, .unreadAndDay .divider {
-  border-bottom: 1px dashed rgba(65, 211, 145, .6);
-
-}
-
-.unreadAndDay {
-  .day {
-    color: rgba(66, 210, 146, 1.0);
-    background-color: rgba(221, 246, 233, 1.0);
-  }
-}
-
 .newPost {
   border-radius: 30px;
   text-align: center;
