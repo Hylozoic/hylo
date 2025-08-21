@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
 - Display group names as you scroll global nav menu on mobile browser.
+- Center track title on track home page
 
 ### Fixed
 - Hover state of global nav menu no longer lingers on mobile browser.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make sure New Posts text always appears with new posts line in chat room
 - Fix extra scroll bar when a chat room has no posts
 - Display of emoji button on comments
+- Adding text to flagging of group content dialog
 
 ## [6.1.14] - 2025-08-14
 

@@ -218,7 +218,7 @@ function AboutTab ({ currentTrack }) {
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
         <div className='absolute inset-0 bg-black/40 z-10' />
-        <h1 className='text-white text-4xl font-bold z-20'>{name}</h1>
+        <h1 className='text-white text-4xl font-bold z-20 px-1 text-center'>{name}</h1>
       </div>
       <HyloHTML html={description} />
     </>
