@@ -405,7 +405,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       comments: [],
       day: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
       details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
-      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone'), locale),
+      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair({ start: this.get('end_time'), timezone: this.get('timezone'), locale }),
       link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
         linkPreview.pick('title', 'description', 'url', 'image_url'),
       location: type !== 'oneline' && this.get('location'),
@@ -413,7 +413,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
-      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone'), locale),
+      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {

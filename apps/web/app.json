@@ -4,13 +4,13 @@
   "scripts": {
   },
   "env": {
-    "API_HOST": {
+    "VITE_API_HOST": {
       "required": true
     },
-    "FILEPICKER_API_KEY": {
+    "VITE_FILEPICKER_API_KEY": {
       "required": true
     },
-    "MAPBOX_TOKEN": {
+    "VITE_MAPBOX_TOKEN": {
       "required": true
     },
     "NODE_MODULES_CACHE": {
@@ -22,17 +22,17 @@
     "PROXY_HOST": {
       "required": true
     },
-    "SOCKET_HOST": {
+    "VITE_SOCKET_HOST": {
       "required": true
     },
     "ROLLBAR_CLIENT_TOKEN": {
       "required": true
     },
-    "MIXPANEL_TOKEN": {
+    "VITE_MIXPANEL_TOKEN": {
       "required": true
     },
     "ROLLBAR_ENV": "reviewApp",
-    "INTERCOM_APP_ID": {
+    "VITE_INTERCOM_APP_ID": {
       "required": true
     }
   },

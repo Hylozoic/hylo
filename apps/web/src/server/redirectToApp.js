@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
 export default function (req, res, next, opts = {}) {
-  if (req.url !== '/' || !req.cookies[process.env.VITE_HYLO_COOKIE_NAME]) {
+  if (req.url !== '/' || !req.cookies[process.env.HYLO_COOKIE_NAME]) {
     return next()
   }
 
@@ -17,7 +17,7 @@ export default function (req, res, next, opts = {}) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Cookie: `${process.env.VITE_HYLO_COOKIE_NAME}=${req.cookies[process.env.VITE_HYLO_COOKIE_NAME]}`
+      Cookie: `${process.env.HYLO_COOKIE_NAME}=${req.cookies[process.env.HYLO_COOKIE_NAME]}`
     },
     body: JSON.stringify({ query })
   })
