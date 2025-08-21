@@ -3,6 +3,7 @@ const { faker } = require('@faker-js/faker')
 const promisify = require('bluebird').promisify
 const hash = promisify(bcrypt.hash, bcrypt)
 const readline = require('readline')
+const { URL } = require('url')
 
 const n = {
   groups: 50,
@@ -22,16 +23,28 @@ const group = 'Test Group'
 const groupSlug = 'test'
 let provider_user_id = ''
 
-function warning () {
+function warning (knex) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   })
 
   return new Promise((resolve, reject) => {
+    const connection = knex && knex.client && knex.client.config && knex.client.config.connection
+    let dbName = '(unknown)'
+    if (connection) {
+      if (typeof connection === 'string') {
+        try {
+          const parsed = new URL(connection)
+          dbName = (parsed.pathname || '').replace(/^\//, '')
+        } catch (e) {}
+      } else if (connection.database) {
+        dbName = connection.database
+      }
+    }
     rl.question(`
       WARNING: Running the dummy seed will COMPLETELY WIPE anything you cared about
-      in the database. If you're sure that's what you want, type 'yes'. Anything else
+      in the database "${dbName}". If you're sure that's what you want, type 'yes'. Anything else
       will result in this script terminating.
 
     `, answer => {
@@ -46,7 +59,7 @@ function warning () {
   })
 }
 
-exports.seed = (knex) => warning()
+exports.seed = (knex) => warning(knex)
   .then(() => truncateAll(knex))
   .then(() => seed('users', knex))
   .then(() => hash(password, 10))
@@ -154,7 +167,7 @@ function addPostsToGroups (knex) {
 function seed (entity, knex, fake = fakeLookup, iterations = n) { // Default to the fakeLookup and n in this file, if none is passed in
   console.info(`  --> ${entity}`)
   return Promise.all(
-    [ ...new Array(iterations[entity]) ].map(
+    [...new Array(iterations[entity])].map(
       () => fake[entity](knex).then(row => knex(entity).insert(row))
     )
   )
@@ -295,7 +308,8 @@ function fakeTag () {
   })
 }
 
-function fakeUser (email) {
+function fakeUser (maybeEmail) {
+  const email = typeof maybeEmail === 'string' ? maybeEmail : null
   return Promise.resolve({
     email: email || faker.internet.email(),
     name: `${faker.name.firstName()} ${faker.name.lastName()}`,
