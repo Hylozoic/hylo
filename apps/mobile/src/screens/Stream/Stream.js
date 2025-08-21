@@ -231,7 +231,7 @@ export default function Stream () {
           postPrompt
         />
         {!streamType && (
-          <View className='flex-row justify-between items-center px-2.5 py-2'>
+          <View className='flex-row justify-between items-center px-2.5 py-2 bg-muted'>
             <ListControl selected={sortBy} onChange={handleSortChange} options={sortOptions} />
             <View className='flex-row items-center gap-2'>
               {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&

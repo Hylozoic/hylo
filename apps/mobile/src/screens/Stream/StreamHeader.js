@@ -69,7 +69,7 @@ const hasTextShadow = {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: Colors.background20
+    backgroundColor: Colors.muted
   },
   customViewIcon: {
     fontSize: 16,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontFamily: 'Circular-Black',
-    color: white,
+    color: Colors.foreground80,
     textAlign: 'left',
     backgroundColor: 'transparent',
     ...hasTextShadow
