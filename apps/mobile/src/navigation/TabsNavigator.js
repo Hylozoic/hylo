@@ -33,19 +33,21 @@ export default function TabsNavigator () {
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: twBackground
+            backgroundColor: twBackground,
+            paddingBottom: 0
           }
         : {
             display: 'flex',
             backgroundColor: twBackground,
-            borderTopWidth: StyleSheet.hairlineWidth
+            borderTopWidth: StyleSheet.hairlineWidth,
+            paddingBottom: 0
           },
       tabBarIcon: ({ focused }) => (
         <Icon
           name={route.name.split(' Tab')[0]}
-          size={32}
+          size={28}
           color={focused ? black10OnCaribbeanGreen : gunsmoke}
-          style={{ paddingTop: isIOS ? 0 : 5 }}
+          style={{ paddingTop: isIOS ? 0 : 1, marginBottom: 2 }}
         />
       ),
       tabBarLabel: () => null,

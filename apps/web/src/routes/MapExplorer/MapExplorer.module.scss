@@ -4,12 +4,7 @@
   overflow: hidden;
   display: flex;
 
-  &.withoutNav {
-    height: 100vh;
-  }
-
   &.noUser {
-    height: 100%;
     width: 100%;
   }
 }
@@ -172,7 +167,7 @@
 button.toggleFeatureFiltersButton {
 
   &.open {
-    
+
   }
 }
 

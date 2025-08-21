@@ -14,7 +14,8 @@
 10. `cd ..` (leave the ios folder)
 11. `yarn start` (must be within apps/mobile) launches `metro`, the heart of the mobile dev experience
 12. You will see the metro options for launching the different environments and the devtools, and reload
-13. You will also need to run `yarn run android` to open the correct ports for the android emulator to be able to access the backend. Once it opens the ports, you can just cancel the rest of its actions
+13. To build/install the android app run `yarn run android` in a different terminal window.
+13. To build/install the ios app run `yarn run ios` in a different terminal window. If it fails with error code 70 you need to specify the destination device or simulator you want to build for. You can select which to build for by running `yarn react-native run-ios --list-devices`
 
 ## Quick debug
 1. Most code changes will hot-reload into the devices; sometimes you need to hit 'r' in the metro terminal instance to reload (what you see afer hitting `yarn start`)
@@ -123,4 +124,4 @@ Real-time updates are handled in urql by subscriptions. These are integrated int
 ### Push Notification testing
 This requires tweaks to your local backend env; PUSH_NOTIFICATIONS_TESTING_ENABLED needs to be set to TRUE or sometimes you can get away with just adding specific hylo user ids to the HYLO_TESTER_IDS. And you'll need to add valid OneSignal ID and key to your backend env
 
-After you have done this, the quick-n-dirty way to test is to go to the OneSignal model in the backend, insert a url you want to test, and then trigger a notification on a user that you have control of, and that exists in both in your local db and the prod db. 
+After you have done this, the quick-n-dirty way to test is to go to the OneSignal model in the backend, insert a url you want to test, and then trigger a notification on a user that you have control of, and that exists in both in your local db and the prod db.
