@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.1.15] - 2025-08-20
+## [6.1.15] - 2025-08-21
 
 ### Changed
 - Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
