@@ -627,10 +627,12 @@ export default function ChatRoom (props) {
           afterSave={afterCreate}
         />
       </div>
-
-      <Routes>
-        <Route path='post/:postId' element={<PostDialog container={container} />} />
-      </Routes>
+      {/* This is hidden for webView in mobile; stops two different versions of a post detail view getting rendered */}
+      {!isWebView() && (
+        <Routes>
+          <Route path='post/:postId' element={<PostDialog container={container} />} />
+        </Routes>
+      )}
     </div>
   )
 }
