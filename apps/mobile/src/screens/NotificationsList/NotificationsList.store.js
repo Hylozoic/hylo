@@ -80,7 +80,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         header: t('mentioned you in a comment on'),
         nameInHeader: true,
         title: post.title,
-        onPress: () => openURL(`/post/${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}`)
       }
 
     case ACTION_NEW_COMMENT:
@@ -88,7 +88,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(comment.text)}"`,
         header: t('New Comment on'),
         title: post.title,
-        onPress: () => openURL(`/post/${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}`)
       }
 
     case ACTION_MEMBER_JOINED_GROUP:
@@ -103,7 +103,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('mentioned you'),
         nameInHeader: true,
-        onPress: () => openURL(`/post/${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}`)
       }
 
     case ACTION_TAG: {
@@ -113,7 +113,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: topic,
-        onPress: () => openURL(`/post/${post.id}/chat/${topic}?postId=${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}/chat/${topic}?postId=${post.id}`)
       }
     }
 
@@ -122,7 +122,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: group.name,
-        onPress: () => openURL(`/post/${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}`)
       }
     }
 
@@ -147,7 +147,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateText(post.title)}"`,
         header: t('posted an announcement'),
         nameInHeader: true,
-        onPress: () => openURL(`/post/${post.id}/edit`),
+        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}/edit`),
       }
     case ACTION_TRACK_COMPLETED:
       return {
