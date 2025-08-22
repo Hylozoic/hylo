@@ -75,5 +75,6 @@ module.exports.routes = {
 
   'POST   /noo/upload':                                   'UploadController.create',
 
-  'GET    /noo/export/group':                             'ExportController.groupData'
+  'GET    /noo/export/group':                             'ExportController.groupData',
+  'POST   /noo/export/user-account':                      'ExportController.userAccountData'
 }
