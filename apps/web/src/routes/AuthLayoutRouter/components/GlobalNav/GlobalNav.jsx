@@ -134,7 +134,7 @@ export default function GlobalNav (props) {
         clearTimeout(menuTimeoutId)
       }
     }
-  }, [isContainerHovered, menuTimeoutId])
+  }, [isContainerHovered])
 
   // Add effect to handle scroll position updates for tooltips
   useEffect(() => {
