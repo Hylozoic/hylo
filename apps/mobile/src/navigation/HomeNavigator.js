@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Header } from '@react-navigation/elements'
-import { useNavigation } from '@react-navigation/native'
-import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
