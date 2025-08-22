@@ -116,6 +116,7 @@ export default function (state = {}, action) {
 }
 
 export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups, topics = [] }) {
+  console.log('matchNewPostIntoQueryResults', id, isPublic, type, groups, topics)
   /* about this:
       we add the post id into queryResult sets that are based on time of
       creation because we know that the post just created is the latest
@@ -177,8 +178,8 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the future posts in a chat room (future because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room (past because of order: 'asc')
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 
