@@ -113,7 +113,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: topic,
-        onPress: () => openURL(`/groups/${group?.slug}/post/${post.id}/chat/${topic}?postId=${post.id}`)
+        onPress: () => openURL(`/groups/${group?.slug}/chat/${topic}?postId=${post.id}`)
       }
     }
 
