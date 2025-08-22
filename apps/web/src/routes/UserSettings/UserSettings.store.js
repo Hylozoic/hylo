@@ -16,6 +16,8 @@ export const UPDATE_MEMBERSHIP_SETTINGS_PENDING = UPDATE_MEMBERSHIP_SETTINGS + '
 export const UPDATE_ALL_MEMBERSHIP_SETTINGS = `${MODULE_NAME}/UPDATE_ALL_MEMBERSHIP_SETTINGS`
 export const UPDATE_ALL_MEMBERSHIP_SETTINGS_PENDING = `${UPDATE_ALL_MEMBERSHIP_SETTINGS}_PENDING`
 export const REGISTER_STRIPE_ACCOUNT = `${MODULE_NAME}/REGISTER_STRIPE_ACCOUNT`
+export const EXPORT_USER_ACCOUNT = `${MODULE_NAME}/EXPORT_USER_ACCOUNT`
+export const EXPORT_USER_ACCOUNT_PENDING = `${EXPORT_USER_ACCOUNT}_PENDING`
 
 const defaultState = {
   searches: []
@@ -220,6 +222,18 @@ export function registerStripeAccount (authorizationCode) {
     },
     meta: {
       authorizationCode
+    }
+  }
+}
+
+export function exportUserAccount () {
+  return {
+    type: EXPORT_USER_ACCOUNT,
+    payload: {
+      api: {
+        method: 'POST',
+        path: '/noo/export/user-account'
+      }
     }
   }
 }

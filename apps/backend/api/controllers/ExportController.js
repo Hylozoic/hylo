@@ -33,5 +33,21 @@ module.exports = {
 
     // got to the end and nothing output/exited, throw error
     throw new Error('Unknown datasets specified: ' + JSON.stringify(p.datasets))
+  },
+
+  userAccountData: async function (req, res) {
+    try {
+      const userId = req.session.userId
+      if (!userId) {
+        return res.status(401).send({ error: 'Unauthorized' })
+      }
+
+      // Queue the export job
+      Queue.classMethod('ExportService', 'exportUserAccount', { userId })
+      
+      return res.ok({ message: 'Account export started. You will receive an email when it\'s ready.' })
+    } catch (err) {
+      return res.status(500).send({ error: err.message || 'Failed to start account export' })
+    }
   }
 }
