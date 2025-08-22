@@ -84,7 +84,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   chatRooms () {
-    return this.hasMany(ContextWidget).where('type', 'chat')
+    return this.hasMany(ContextWidget).query(q => {
+      q.whereNotNull('view_chat_id')
+    })
   },
 
   childGroups () {
@@ -567,7 +569,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Create general chat widget as child of home widget
     await ContextWidget.forge({
       group_id: this.id,
-      type: 'chat',
+      type: 'viewChat',
       view_chat_id: generalTag.id,
       parent_id: homeWidget.id,
       order: 1,
