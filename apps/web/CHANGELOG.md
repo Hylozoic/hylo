@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.16] - 2025-08-23
+
+### Added
+- Allow users to export their profile and content. This actually, truly, completes GDPR support!
+
+### Changed
+- Make text bold for current view in group menu
+
+### Fixed
+- Display of parent groups in related groups view
+- Make sure as you move between chat rooms that new chat posts dont get added to multiple chat rooms at the same time. They should only appear in the current chat room.
+- Make sure new chat posts get added optimistically to the chat room even as you navigate around. They were disappearing when you navigated to a new chat room.
+- Fix jump to bottom button appearing when at bottom in chat rooms
+- Fix bug where you see no posts when viewing a chat room you have not followed
+- UI issues in blocked users tab. Show no blocked users instead of empty page for people who have no blocked users. Show loading spinner correctly
+- UI of flagged posts in grid views
+- Double display of login errors
+
 ## [6.1.15] - 2025-08-21
 
 ### Changed
