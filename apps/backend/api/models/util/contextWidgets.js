@@ -68,12 +68,12 @@ function settle (items) {
   }))
 }
 
-function findHomeChild(widgets) {
+function findHomeChild (widgets) {
   const homeParentId = widgets.find(widget => widget.type === 'home')?.id
-  return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId, }
+  return { homeChild: widgets.find(widget => widget.parentId === homeParentId), homeParentId }
 }
 
-export function replaceHomeWidget({ widgets, newHomeWidgetId }) {
+export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   const { homeChild, homeParentId } = findHomeChild(widgets)
   const widgetToBeMoved = widgets.find(widget => widget.id === newHomeWidgetId)
   let updatedWidgets = widgets.filter(widget => {
@@ -96,7 +96,7 @@ export function replaceHomeWidget({ widgets, newHomeWidgetId }) {
   // so by here the updatedWidgets array has removed the new home widget from its prior position and its prior peers are settled
 
   // if the old home widget is a chat, we need to move it to the top of the chats widget, otherwise we remove it from the menu
-  if (homeChild.type === 'chat') {
+  if (homeChild.type === 'viewChat') {
     const chatsWidgetId = updatedWidgets.find(widget => widget.type === 'chats')?.id
     const newPeers = updatedWidgets.filter(widget => widget.parentId === chatsWidgetId).map(peer => ({
       ...peer,

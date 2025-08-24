@@ -61,7 +61,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // If "subscribing" and there's no tag follow yet or there's an existing tag follow but they haven't "subscribed" yet
     if (isSubscribing && !attrs.settings.notifications) {
-      const hasChatRoom = await ContextWidget.where({ type: 'chat', group_id: attrs.group_id, view_chat_id: attrs.tag_id }).fetch({ transacting })
+      const hasChatRoom = await ContextWidget.where({ group_id: attrs.group_id, view_chat_id: attrs.tag_id }).fetch({ transacting })
       if (hasChatRoom) {
         // Default to all notifications turned on for chat rooms when initially "subscribing"
         attrs.settings.notifications = 'all'

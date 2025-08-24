@@ -80,7 +80,6 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   'custom-views': 'Stack',
   chats: 'Topics',
   viewChat: 'Topics',
-  chat: 'Topics',
   viewPost: 'Posticon',
   about: 'Info',
   viewTrack: 'Shapes'
@@ -113,17 +112,17 @@ export function humanReadableTypeResolver (type) {
   switch (true) {
     case type === 'home':
       return 'home'
-    case type === 'group' || type === 'viewGroup':
+    case type === 'viewGroup':
       return 'group'
-    case type === 'viewPost' || type === 'post':
+    case type === 'viewPost':
       return 'post'
-    case type === 'viewUser' || type === 'user':
+    case type === 'viewUser':
       return 'member'
-    case type === 'viewChat' || type === 'chat':
+    case type === 'viewChat':
       return 'chat'
-    case type === 'customView' || type === 'customview':
+    case type === 'customView':
       return 'custom view'
-    case type === 'viewTrack' || type === 'track':
+    case type === 'viewTrack':
       return 'track'
     case type === null:
       return 'container'

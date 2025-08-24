@@ -81,9 +81,37 @@ exports.seed = (knex) => warning(knex)
       provider_key: 'password'
     }))
   .then(() => knex('tags').insert([
-    {name: 'permaculture'},
-    {name: 'collaboration'},
-    {name: 'regeneration'}
+    { name: 'general' },
+    { name: 'collaboration' },
+    { name: 'regeneration' }
+  ]))
+  .then(() => knex('responsibilities').insert([
+    { title: 'Administration', type: 'system' },
+    { title: 'Add Members', type: 'system' },
+    { title: 'Remove Members', type: 'system' },
+    { title: 'Manage Content', type: 'system' },
+    { title: 'Manage Tracks', type: 'system' }
+  ]))
+  .then(() => knex('common_roles').insert([
+    { name: 'Coordinator' },
+    { name: 'Moderator' }
+  ]))
+  .then(() => Promise.all([
+    knex('responsibilities').where('title', 'Administration').first('id'),
+    knex('responsibilities').where('title', 'Add Members').first('id'),
+    knex('responsibilities').where('title', 'Remove Members').first('id'),
+    knex('responsibilities').where('title', 'Manage Content').first('id'),
+    knex('responsibilities').where('title', 'Manage Tracks').first('id'),
+    knex('common_roles').where('name', 'Coordinator').first('id'),
+    knex('common_roles').where('name', 'Moderator').first('id')
+  ]))
+  .then(([admin, addMembers, removeMembers, manageContent, manageTracks, coordinator, moderator]) => knex('common_roles_responsibilities').insert([
+    { common_role_id: coordinator.id, responsibility_id: admin.id },
+    { common_role_id: coordinator.id, responsibility_id: addMembers.id },
+    { common_role_id: coordinator.id, responsibility_id: removeMembers.id },
+    { common_role_id: coordinator.id, responsibility_id: manageContent.id },
+    { common_role_id: coordinator.id, responsibility_id: manageTracks.id },
+    { common_role_id: moderator.id, responsibility_id: manageContent.id }
   ]))
   .then(() => seed('tags', knex))
   .then(() => knex('groups').insert(fakeGroupData('starter-posts', 'starter-posts')))
@@ -94,7 +122,7 @@ exports.seed = (knex) => warning(knex)
     knex('users').where('email', email).first('id'),
     knex('groups').where('slug', groupSlug).first('id')
   ]))
-  .then(([ user, group ]) => knex('group_memberships').insert({
+  .then(([user, group]) => knex('group_memberships').insert({
     active: true,
     user_id: user.id,
     group_id: group.id,

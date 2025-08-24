@@ -52,6 +52,20 @@ COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial
 
 
 --
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
 -- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
 --
 
@@ -585,6 +599,43 @@ CREATE TABLE public.contributions (
 
 
 --
+-- Name: cookie_consents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cookie_consents (
+    id integer NOT NULL,
+    consent_id uuid NOT NULL,
+    user_id bigint,
+    settings jsonb DEFAULT '{}'::jsonb,
+    version text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    ip_address text,
+    user_agent text
+);
+
+
+--
+-- Name: cookie_consents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.cookie_consents_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: cookie_consents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.cookie_consents_id_seq OWNED BY public.cookie_consents.id;
+
+
+--
 -- Name: custom_view_topics; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1065,7 +1116,8 @@ CREATE TABLE public.group_memberships (
     updated_at timestamp with time zone,
     new_post_count integer DEFAULT 0,
     group_data_type integer,
-    project_role_id bigint
+    project_role_id bigint,
+    nav_order integer
 );
 
 
@@ -3376,6 +3428,13 @@ ALTER TABLE ONLY public.context_widgets ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: cookie_consents id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cookie_consents ALTER COLUMN id SET DEFAULT nextval('public.cookie_consents_id_seq'::regclass);
+
+
+--
 -- Name: custom_view_topics id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3949,6 +4008,22 @@ ALTER TABLE ONLY public.groups_tags
 
 ALTER TABLE ONLY public.context_widgets
     ADD CONSTRAINT context_widgets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cookie_consents cookie_consents_consent_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cookie_consents
+    ADD CONSTRAINT cookie_consents_consent_id_unique UNIQUE (consent_id);
+
+
+--
+-- Name: cookie_consents cookie_consents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cookie_consents
+    ADD CONSTRAINT cookie_consents_pkey PRIMARY KEY (id);
 
 
 --
@@ -4832,6 +4907,27 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
+-- Name: blocked_users_blocked_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blocked_users_blocked_user_id_index ON public.blocked_users USING btree (blocked_user_id);
+
+
+--
+-- Name: blocked_users_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blocked_users_user_id_index ON public.blocked_users USING btree (user_id);
+
+
+--
+-- Name: common_roles_responsibilities_responsibility_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX common_roles_responsibilities_responsibility_id_index ON public.common_roles_responsibilities USING btree (responsibility_id);
+
+
+--
 -- Name: communities_tags_community_id_visibility_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4850,6 +4946,20 @@ CREATE INDEX context_widgets_group_id_index ON public.context_widgets USING btre
 --
 
 CREATE INDEX context_widgets_parent_id_index ON public.context_widgets USING btree (parent_id);
+
+
+--
+-- Name: cookie_consents_consent_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX cookie_consents_consent_id_index ON public.cookie_consents USING btree (consent_id);
+
+
+--
+-- Name: cookie_consents_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX cookie_consents_user_id_index ON public.cookie_consents USING btree (user_id);
 
 
 --
@@ -4888,10 +4998,24 @@ CREATE INDEX group_join_questions_group_id_index ON public.group_join_questions 
 
 
 --
--- Name: group_memberships_common_roles_group_id_user_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: group_memberships_common_roles_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX group_memberships_common_roles_group_id_user_id_index ON public.group_memberships_common_roles USING btree (group_id, user_id);
+CREATE INDEX group_memberships_common_roles_user_id_group_id_index ON public.group_memberships_common_roles USING btree (user_id, group_id);
+
+
+--
+-- Name: group_memberships_group_roles_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_memberships_group_roles_user_id_group_id_index ON public.group_memberships_group_roles USING btree (user_id, group_id);
+
+
+--
+-- Name: group_memberships_user_id_active_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_memberships_user_id_active_index ON public.group_memberships USING btree (user_id, active);
 
 
 --
@@ -4899,6 +5023,27 @@ CREATE INDEX group_memberships_common_roles_group_id_user_id_index ON public.gro
 --
 
 CREATE INDEX group_relationship_invites_from_group_id_to_group_id_index ON public.group_relationship_invites USING btree (from_group_id, to_group_id);
+
+
+--
+-- Name: group_relationships_child_group_id_active_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_relationships_child_group_id_active_index ON public.group_relationships USING btree (child_group_id, active);
+
+
+--
+-- Name: group_relationships_parent_group_id_active_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_relationships_parent_group_id_active_index ON public.group_relationships USING btree (parent_group_id, active);
+
+
+--
+-- Name: group_roles_responsibilities_responsibility_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_roles_responsibilities_responsibility_id_index ON public.group_roles_responsibilities USING btree (responsibility_id);
 
 
 --
@@ -4951,10 +5096,10 @@ CREATE INDEX groups_tracks_group_id_index ON public.groups_tracks USING btree (g
 
 
 --
--- Name: groups_visibility_index; Type: INDEX; Schema: public; Owner: -
+-- Name: groups_visibility_active_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX groups_visibility_index ON public.groups USING btree (visibility);
+CREATE INDEX groups_visibility_active_index ON public.groups USING btree (visibility, active);
 
 
 --
@@ -5126,13 +5271,6 @@ CREATE INDEX location_center_idx ON public.locations USING gist (center);
 
 
 --
--- Name: members_roles_group_id_user_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX members_roles_group_id_user_id_index ON public.group_memberships_group_roles USING btree (group_id, user_id);
-
-
---
 -- Name: notifications_pk_medium_0; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5200,6 +5338,13 @@ CREATE INDEX tracks_users_track_id_index ON public.tracks_users USING btree (tra
 --
 
 CREATE INDEX tracks_users_user_id_index ON public.tracks_users USING btree (user_id);
+
+
+--
+-- Name: user_connections_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_connections_user_id_index ON public.user_connections USING btree (user_id);
 
 
 --
@@ -5526,6 +5671,14 @@ ALTER TABLE ONLY public.context_widgets
 
 ALTER TABLE ONLY public.context_widgets
     ADD CONSTRAINT context_widgets_view_user_id_foreign FOREIGN KEY (view_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: cookie_consents cookie_consents_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cookie_consents
+    ADD CONSTRAINT cookie_consents_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --

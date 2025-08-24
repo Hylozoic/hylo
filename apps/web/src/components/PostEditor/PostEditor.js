@@ -178,6 +178,10 @@ function PostEditor ({
   const toFieldRef = useRef()
   const endTimeRef = useRef()
 
+  // Track the topic that was injected from the current route so we can
+  // replace it when the route changes without touching user-added topics
+  const routeTopicIdRef = useRef(topic?.id || null)
+
   const initialPost = useMemo(() => ({
     acceptContributions: false,
     completionAction: 'button',
@@ -332,11 +336,30 @@ function PostEditor ({
   }, [linkPreview])
 
   useEffect(() => {
-    // XXX: to make sure the topic gets included in the selectedToOptions once its loaded
-    // TODO: we may want to just make sure all the necessary stuff is loaded from the server before we display the editor
-    if (!topic || currentPost.topics.some(t => t.id === topic.id)) return
-    setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
-  }, [topic])
+    // Ensure the route-derived topic is present and unique:
+    // - remove the previously injected route topic (if any)
+    // - add the new route topic (if present)
+    // User-added topics remain untouched.
+    setCurrentPost(prev => {
+      let nextTopics = prev.topics || []
+
+      // Remove the prior route topic if it exists
+      if (routeTopicIdRef.current) {
+        nextTopics = nextTopics.filter(t => t && t.id !== routeTopicIdRef.current)
+      }
+
+      // Add the new route topic if present and not already included
+      if (topic?.id) {
+        const exists = nextTopics.some(t => t && t.id === topic.id)
+        if (!exists) nextTopics = [...nextTopics, topic]
+        routeTopicIdRef.current = topic.id
+      } else {
+        routeTopicIdRef.current = null
+      }
+
+      return { ...prev, topics: nextTopics }
+    })
+  }, [topic?.id])
 
   /**
    * Resets the editor to its initial state

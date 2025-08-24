@@ -19,6 +19,9 @@ const jobDefinitions = {
   classMethod: function (job) {
     const { id, data, data: { className, methodName } } = job
     sails.log.debug(`Job ${id}: ${className}.${methodName}`)
+    if (className === 'Email') {
+      sails.log.debug(`Job ${id}: sent to "${data.email}"`)
+    }
     const fn = global[className][methodName]
 
     // we wrap the method call in a promise so that if it throws an error

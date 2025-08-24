@@ -744,7 +744,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const contextWidgets = group.contextWidgets?.items
         if (contextWidgets) {
           const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            if (cw.viewChat?.id === data.topic.id) {
               return { ...cw, highlightNumber: data.newPostCount }
             }
             return cw
