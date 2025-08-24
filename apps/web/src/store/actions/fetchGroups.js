@@ -103,7 +103,6 @@ query FetchGroups (
       groupTopics(first: 8) {
         items {
           id
-          lastReadPostId
           topic {
             id
             name

@@ -1,10 +1,87 @@
 # Changelog
-All notable changes to Hylo Evo (the Hylo front-end) will be documented in this file.
+All notable changes to the Hylo Web app (the Hylo front-end) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [6.1.16] - 2025-08-23
+
+### Added
+- Allow users to export their profile and content. This actually, truly, completes GDPR support!
+
+### Changed
+- Make text bold for current view in group menu
+
+### Fixed
+- Display of parent groups in related groups view
+- Make sure as you move between chat rooms that new chat posts dont get added to multiple chat rooms at the same time. They should only appear in the current chat room.
+- Make sure new chat posts get added optimistically to the chat room even as you navigate around. They were disappearing when you navigated to a new chat room.
+- Fix jump to bottom button appearing when at bottom in chat rooms
+- Fix bug where you see no posts when viewing a chat room you have not followed
+- UI issues in blocked users tab. Show no blocked users instead of empty page for people who have no blocked users. Show loading spinner correctly
+- UI of flagged posts in grid views
+- Double display of login errors
+
+## [6.1.15] - 2025-08-21
+
+### Changed
+- Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
+- Display group names as you scroll global nav menu on mobile browser.
+- Center track title on track home page
+
+### Fixed
+- Hover state of global nav menu no longer lingers on mobile browser.
+- Correct display of enrolled and completed dates for tracks
+- Growing comment box in android app
+- Map going below the bottom of the screen on mobile
+- Don't double update last read post when creating a new chat
+- Make sure New Posts text always appears with new posts line in chat room
+- Fix extra scroll bar when a chat room has no posts
+- Display of emoji button on comments
+- Adding text to flagging of group content dialog
+
+## [6.1.14] - 2025-08-14
+
+### Changed
+- Line up emojis and replies with chat post content
+- Tweak padding of chat posts
+- Use newPostCount to determine how many past and future posts we actually need to load - improving performance.
+- When loading chat room the new posts now start at the top of the screen instead of below the bottom of the screen.
+- Load less posts at a time as you scroll so that should be faster
+- Loading spinner in the middle of the chat room.
+- Add "New posts" text to new post line in chat room
+- Don't need to load group location when loading posts
+
+### Fixed
+- UI fixes to display of post groups in post details. Width not overlapping. Don't show multiple Public groups sometimes. Spacing improved.
+- Scroll jumping while scrolling up in chat room
+- Emoji picker doesnt jump around when hovering over it for chat post
+- Clicking to right of emoji or replies row opens post as expected.
+- Button to jump to latest post in chat room actually does so when there are lots of new posts
+- Small spacing fix of post datetimes in post details header, don't overlap post content
+- Focusing on the chat box in chat room doesn't do a big scroll jump and add a bunch of extra whitespace below it in safari on ios. This does require a change where trying to scroll while the chat box will now remove focus from it.
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Performance improvements
+- Remove focus from post editor when scrolling on a mobile device. This may fix issue of extra whitespace below chat box in safari on ios.
+
+### Fixed
+- Make sure comment notifications link to the right group
+- Copying post link from a post page
+- Don't change desktop app title on new notification
+- Display of Track action completion responses
+- Display of enrolled members of a track
+- Scroll events in notifications dropdown when a post dialog is open
+- Inviting people to events from an open post details dialog
+
+## [6.1.12] - 2025-07-31
+
+### Aded
+- Tweaks to get notifications working for the desktop app
 
 ## [6.1.11] - 2025-07-25
 

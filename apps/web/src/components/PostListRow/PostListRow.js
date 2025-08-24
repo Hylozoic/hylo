@@ -13,7 +13,7 @@ import Tooltip from 'components/Tooltip'
 import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
-import { personUrl, topicUrl } from 'util/navigation'
+import { personUrl, topicUrl } from '@hylo/navigation'
 
 import classes from './PostListRow.module.scss'
 

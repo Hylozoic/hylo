@@ -17,7 +17,18 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+import {
+  ALL_GROUPS_CONTEXT_SLUG,
+  MY_CONTEXT_SLUG,
+  PUBLIC_CONTEXT_SLUG,
+  widgetUrl,
+  baseUrl,
+  groupUrl,
+  groupInviteUrl,
+  addQuerystringToPath,
+  personUrl
+} from '@hylo/navigation'
+import { TextHelpers } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -37,7 +48,6 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -582,7 +592,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center animate-slide-up invisible'>
         {(() => {
-          if (item.type === 'chat') {
+          if (item.type === 'viewChat') {
             return (
               <MenuLink
                 badgeCount={item.highlightNumber}
@@ -616,7 +626,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 {isItemDraggable && <div className='hidden group-hover:block'><GrabMe {...itemListeners} {...itemAttributes} /></div>}
               </MenuLink>
             )
-          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
+          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'viewChat')) {
             return (
               <MenuLink
                 to={itemUrl}

@@ -14,7 +14,7 @@ import {
   GROUP_WELCOME_JOIN_QUESTIONS
 } from 'screens/GroupWelcome/GroupWelcome.store'
 import Button from 'components/Button'
-import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, rhino30, white, white20onCaribbeanGreen, white40onCaribbeanGreen } from '@hylo/presenters/colors'
 
 export default function GroupWelcomeTabBar ({
   acceptedAllAgreements,

@@ -1,11 +1,11 @@
 import { useCallback, useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import { useMutation } from 'urql'
-import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { getLastViewedGroupSlug, useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
-import { widgetUrl } from 'util/navigation'
+import { widgetUrl } from '@hylo/navigation'
 import mixpanel from 'services/mixpanel'
 import useOpenURL from 'hooks/useOpenURL'
 import useConfirmAlert from 'hooks/useConfirmAlert'
@@ -22,10 +22,10 @@ export function useHandleCurrentGroupSlug () {
   const pathAfterMatch = pathMatches?.[2] ?? null
 
   useEffect(() => {
-    if (currentUser && !currentGroupSlug && !groupSlugFromPath) {
+    if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
-  }, [currentUser, currentGroupSlug])
+  }, [currentUser?.memberships, currentGroupSlug])
 
   useEffect(() => {
     if (context) {
@@ -102,7 +102,7 @@ export function useChangeToGroup () {
   const openURL = useOpenURL()
   const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
   const [{ currentUser }] = useCurrentUser()
-  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, updateMembership] = useMutation(updateMembershipMutation)
 
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
@@ -114,10 +114,14 @@ export function useChangeToGroup () {
       skipCanViewCheck
 
     if (canViewGroup) {
-      const goToGroup = () => {
+        const goToGroup = () => {
         setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
-        updateUserSettings({ changes: { settings: { lastViewedAt: (new Date()).toISOString() } } })
+          const membership = currentUser?.memberships?.find(m => m.group.slug === groupSlug)
+          const groupId = membership?.group?.id
+          if (groupId) {
+            updateMembership({ groupId, data: { lastViewedAt: new Date().toISOString() } })
+          }
       }
       if (confirm) {
         confirmAlert({

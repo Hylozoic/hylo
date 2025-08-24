@@ -144,6 +144,16 @@ export default function makeSubscriptions () {
       subscribe: async function * (parent, args, context) {
         const userId = context.currentUserId
 
+        // If unauthenticated, return a harmless empty async iterable to avoid 'Async Iterable' errors
+        if (!userId) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('allUpdates subscription requested without user; returning empty iterable')
+          }
+          async function * emptyIterable () { /* noop */ }
+          yield * emptyIterable()
+          return
+        }
+
         if (process.env.NODE_ENV === 'development') {
           console.log(`🔧 Setting up unified subscription for user ${userId}`)
         }

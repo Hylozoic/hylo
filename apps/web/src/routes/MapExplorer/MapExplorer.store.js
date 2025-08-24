@@ -424,7 +424,7 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
   }
 }
 
-export function fetchGroups ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
+export function fetchGroupsForMap ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
   return {
     type: FETCH_GROUPS_MAP,
     graphql: {

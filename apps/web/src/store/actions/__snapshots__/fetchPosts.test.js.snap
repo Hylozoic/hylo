@@ -170,10 +170,6 @@ posts: viewPosts(
         }
       }
   }
-  myReactions {
-    emojiFull
-    id
-  }
   postReactions {
     emojiFull
     id
@@ -434,10 +430,6 @@ posts(
           avatarUrl
         }
       }
-  }
-  myReactions {
-    emojiFull
-    id
   }
   postReactions {
     emojiFull

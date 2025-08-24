@@ -17,6 +17,12 @@ case "$WORKSPACE_NAME" in
   "backend")
     echo "Building @hylo/shared"
     yarn workspace @hylo/shared build
+
+    echo "Building @hylo/navigation"
+    yarn workspace @hylo/navigation build
+
+    echo "Building @hylo/presenters"
+    yarn workspace @hylo/presenters build
     ;;
   *)
     echo "Error: Unrecognized workspace name: $WORKSPACE_NAME"

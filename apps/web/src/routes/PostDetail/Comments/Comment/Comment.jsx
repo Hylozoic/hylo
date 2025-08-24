@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { filter, isFunction, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
@@ -150,6 +150,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
+                alignLeft
                 className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}

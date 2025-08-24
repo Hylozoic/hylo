@@ -13,7 +13,7 @@ import { agreementsURL } from 'store/constants'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForDetail from 'store/selectors/getGroupForDetails'
 import getPlatformAgreements from 'store/selectors/getPlatformAgreements'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
 
 const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
@@ -41,7 +41,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
   const group = presentGroup(currentGroup)
 
   const agreements = group?.agreements || []
-  const groupAgreementsUrl = group ? groupUrl(group.slug) + `/group/${group.slug}` : ''
+  const groupAgreementsUrl = group ? groupUrl(group.slug) + '/about' : ''
 
   const [anonymous, setAnonymous] = useState(false)
   const [explanation, setExplanation] = useState('')
@@ -98,7 +98,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
             </button>
           </div>
 
-          <div className='space-y-4 max-h-[80vh] overflow-y-auto pr-2'>
+          <div className='space-y-4 max-h-[80vh] overflow-y-auto px-1'>
             <div className='text-foreground/70 text-sm'>
               {t('flaggingExplainer')}
             </div>

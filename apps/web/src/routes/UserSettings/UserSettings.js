@@ -1,4 +1,4 @@
-import { isEmpty, get } from 'lodash/fp'
+import { get } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -20,7 +20,7 @@ import deleteMe from 'store/actions/deleteMe'
 import fetchUserSettings from 'store/actions/fetchUserSettings'
 import logout from 'store/actions/logout'
 import unBlockUser from 'store/actions/unBlockUser'
-import { FETCH_FOR_CURRENT_USER } from 'store/constants'
+import { FETCH_USER_SETTINGS } from 'store/constants'
 import getBlockedUsers from 'store/selectors/getBlockedUsers'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -42,7 +42,7 @@ const UserSettings = () => {
   const blockedUsers = useSelector(getBlockedUsers)
   const memberships = useSelector(state => getMyMemberships(state).sort((a, b) => a.group.name.localeCompare(b.group.name)))
   const confirm = useSelector(state => get('FullPageModal.confirm', state))
-  const fetchPending = useSelector(state => state.pending[FETCH_FOR_CURRENT_USER])
+  const fetchPending = useSelector(state => state.pending[FETCH_USER_SETTINGS])
   const queryParams = {
     registered: getQuerystringParam('registered', location)
   }
@@ -118,7 +118,7 @@ const UserSettings = () => {
     }
   ]
 
-  if (currentUser && !isEmpty(blockedUsers)) {
+  if (currentUser) {
     content.push({
       name: t('Blocked Users'),
       path: 'blocked-users',

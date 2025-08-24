@@ -13,7 +13,7 @@ import Tooltip from 'components/Tooltip'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 
 import classes from './PostBigGridItem.module.scss'
 
@@ -116,7 +116,7 @@ export default function PostBigGridItem ({
             </div>
           )}
           <h3 className='font-bold text-foreground mb-0 mt-0 w-full' onClick={showDetailsTargeted}>
-            {title}
+            <span className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</span>
             <div className='w-full flex items-center justify-between' onClick={() => viewPostDetails(post)}>
               <div className='text-foreground/60 text-xs font-normal flex items-center gap-1'>
                 <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
@@ -139,7 +139,7 @@ export default function PostBigGridItem ({
           <HyloHTML html={details} onClick={showDetailsTargeted} className='text-foreground/60 text-sm overflow-hidden' style={{ maxHeight: detailsMaxHeight }} />
         </div>
 
-        <div className='absolute bottom-0 rounded-b-lg left-0 right-0 p-2 bg-gradient-to-t from-card/100 to-card/80 pb-1'>
+        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough }, 'absolute bottom-0 rounded-b-lg left-0 right-0 p-2 bg-gradient-to-t from-card/100 to-card/80 pb-1')}>
           <div className={classes.gridMetaRow1}>
             <h3 className={classes.title} onClick={() => viewPostDetails(post)}>{title}</h3>
             <div className={classes.contentSnippet}>

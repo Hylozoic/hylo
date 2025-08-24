@@ -19,7 +19,7 @@ export function fetchRelatedGroups (slug) {
             type
           }
         }
-        childGroups {
+        parentGroups {
           items {
             id
             accessibility

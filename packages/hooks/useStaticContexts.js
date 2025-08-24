@@ -1,4 +1,4 @@
-import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/shared'
+import { PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG } from '@hylo/navigation'
 import { getStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from './useCurrentUser'
 

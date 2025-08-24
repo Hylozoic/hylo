@@ -30,10 +30,8 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import UploadAction from 'screens/UploadAction'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
-
-
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
@@ -50,8 +48,9 @@ export default function AuthRootNavigator () {
 
   // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
   // This stays within Android's 4 concurrent SSE connection limit
-  useUnifiedSubscription()
-  
+  // Pause until we have a currentUser to avoid unauthenticated subscription attempts
+  useUnifiedSubscription({ pause: !currentUser })
+
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
   usePlatformAgreements()
@@ -141,6 +140,8 @@ export default function AuthRootNavigator () {
           in views which have different behavior when opened as a modal. Don't use it if there is no non-modal
           counterpart to a modal screen.
         */}
+        <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+
         <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
           <AuthRoot.Screen
             name='Creation'
@@ -155,7 +156,6 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
           <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
           <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
-          <AuthRoot.Screen name='Notifications' component={NotificationsList} />
           <AuthRoot.Screen name='Upload Action' component={UploadAction} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />

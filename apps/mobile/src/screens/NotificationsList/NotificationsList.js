@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { useMutation, useQuery } from 'urql'
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
@@ -16,7 +16,7 @@ import CreateGroupNotice from 'components/CreateGroupNotice'
 import notificationsQuery from '@hylo/graphql/queries/notificationsQuery'
 import resetNotificationsCountMutation from '@hylo/graphql/mutations/resetNotificationsCountMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 const styles = StyleSheet.create({
   notificationsList: {
@@ -41,7 +41,7 @@ export default function NotificationsList (props) {
     query: notificationsQuery,
     variables: { offset }
   })
-  
+
   const refreshNotifications = async () => {
     setOffset(0)
     fetchNotifications({ requestPolicy: 'network-only' })
@@ -53,6 +53,10 @@ export default function NotificationsList (props) {
   const currentUserHasMemberships = !isEmpty(memberships)
 
   const goToCreateGroup = () => navigation.navigate('Create Group')
+
+  useEffect(() => {
+    fetchNotifications({ requestPolicy: 'cache-and-network' })
+  }, [fetchNotifications])
 
   useFocusEffect(
     useCallback(() => {

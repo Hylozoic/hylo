@@ -18,10 +18,6 @@ entirely if we returned a Reaction type from these two methods.
 const commentReactionsFragment = gql`
   fragment _ on Comment {
     commentReactionsTotal
-    myReactions {
-      id
-      emojiFull
-    }
     commentReactions {
       id
       emojiFull
@@ -59,7 +55,6 @@ export function reactOn (_results, args, cache, info) {
   cache.writeFragment(commentReactionsFragment, {
     id: entityId,
     commentReactionsTotal: (commentData?.commentReactionsTotal || 0) + 1,
-    myReactions: [...(commentData?.myReactions || []), myReaction],
     commentReactions: [...(commentData?.commentReactions || []), commentReaction]
   })
 }
@@ -75,7 +70,6 @@ export function deleteReaction (_results, args, cache, info) {
   cache.writeFragment(commentReactionsFragment, {
     id: entityId,
     commentReactionsTotal: Math.max(0, commentData.commentReactionsTotal - 1),
-    myReactions: commentData.myReactions.filter(r => r.emojiFull !== emojiFull),
     commentReactions: commentData.commentReactions.filter(
       r => !(r.emojiFull === emojiFull && r.user.id === currentUser.id)
     )

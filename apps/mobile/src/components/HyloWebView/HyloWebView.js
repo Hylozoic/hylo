@@ -21,7 +21,7 @@ export const useNativeRouteHandler = () => {
 
       switch (type) {
         case 'post': {
-          navigation.navigate(modalScreenName('Post Details'), { id })
+          navigation.navigate('Post Details', { id })
           break
         }
         case 'members': {

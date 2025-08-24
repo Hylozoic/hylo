@@ -744,7 +744,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const contextWidgets = group.contextWidgets?.items
         if (contextWidgets) {
           const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            if (cw.viewChat?.id === data.topic.id) {
               return { ...cw, highlightNumber: data.newPostCount }
             }
             return cw
@@ -928,7 +928,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       me = Me.first()
 
       const optimisticUpdate = {
-        myReactions: [...(comment.myReactions || []), { emojiFull }],
         commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
       }
 
@@ -945,7 +944,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      comment.update({ myReactions: comment.myReactions.filter(react => react.emojiFull !== emojiFull), commentReactions })
+      comment.update({ commentReactions })
       break
     }
 
@@ -954,7 +953,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
+      const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
 
@@ -974,7 +973,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      post.update({ myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions })
+      post.update({ postReactions })
       break
     }
   }

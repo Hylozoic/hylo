@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { useLocation, useNavigate, Routes, Route, Link } from 'react-router-dom'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
@@ -31,7 +31,7 @@ import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { bgImageStyle, cn } from 'util/index'
-import { createPostUrl, groupUrl, personUrl } from 'util/navigation'
+import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 
 import ActionSummary from './ActionSummary'
 
@@ -218,7 +218,7 @@ function AboutTab ({ currentTrack }) {
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
         <div className='absolute inset-0 bg-black/40 z-10' />
-        <h1 className='text-white text-4xl font-bold z-20'>{name}</h1>
+        <h1 className='text-white text-4xl font-bold z-20 px-1 text-center'>{name}</h1>
       </div>
       <HyloHTML html={description} />
     </>
@@ -259,10 +259,10 @@ function PeopleTab ({ currentTrack }) {
               </div>
               <div className='flex flex-row gap-4 items-center text-xs text-foreground/60'>
                 <div>
-                  <span>{t('Enrolled {{date}}', { date: TextHelpers.formatDatePair(user.enrolledAt) })}</span>
+                  <span>{t('Enrolled {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.enrolledAt }) })}</span>
                 </div>
                 <div>
-                  <span>{user.completedAt ? t('Completed {{date}}', { date: TextHelpers.formatDatePair(user.completedAt) }) : ''}</span>
+                  <span>{user.completedAt ? t('Completed {{date}}', { date: DateTimeHelpers.formatDatePair({ start: user.completedAt }) }) : ''}</span>
                 </div>
               </div>
             </div>

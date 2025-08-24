@@ -80,7 +80,6 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   'custom-views': 'Stack',
   chats: 'Topics',
   viewChat: 'Topics',
-  chat: 'Topics',
   viewPost: 'Posticon',
   about: 'Info',
   viewTrack: 'Shapes'
@@ -113,17 +112,17 @@ export function humanReadableTypeResolver (type) {
   switch (true) {
     case type === 'home':
       return 'home'
-    case type === 'group' || type === 'viewGroup':
+    case type === 'viewGroup':
       return 'group'
-    case type === 'viewPost' || type === 'post':
+    case type === 'viewPost':
       return 'post'
-    case type === 'viewUser' || type === 'user':
+    case type === 'viewUser':
       return 'member'
-    case type === 'viewChat' || type === 'chat':
+    case type === 'viewChat':
       return 'chat'
-    case type === 'customView' || type === 'customview':
+    case type === 'customView':
       return 'custom view'
-    case type === 'viewTrack' || type === 'track':
+    case type === 'viewTrack':
       return 'track'
     case type === null:
       return 'container'
@@ -162,15 +161,6 @@ export const isHiddenInContextMenuResolver = (widget) => {
 }
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */
-
-// TODO: To be relocated to GroupPresenter once utilized in Web
-export function findHomeWidget (group) {
-  if (!group?.contextWidgets) {
-    throw new Error('Group has no contextWidgets')
-  }
-  const homeWidget = group.contextWidgets.items.find(w => w.type === 'home')
-  return group.contextWidgets.items.find(w => w.parentId === homeWidget.id)
-}
 
 export function getStaticMenuWidgets ({ isPublicContext, isMyContext, profileUrl }) {
   if (isPublicContext) return PUBLIC_CONTEXT_WIDGETS

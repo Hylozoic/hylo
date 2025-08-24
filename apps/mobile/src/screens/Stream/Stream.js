@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
-import { View, TouchableOpacity, Dimensions } from 'react-native'
+import { View, TouchableOpacity, Dimensions, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 import { useMutation, useQuery } from 'urql'
-import { capitalize, get, isEmpty } from 'lodash/fp'
+import { capitalize, isEmpty } from 'lodash/fp'
 import { clsx } from 'clsx'
-import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/navigation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
@@ -21,7 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 
 /* === CONSTANTS === */
 
@@ -152,7 +152,7 @@ export default function Stream () {
         sortBy === DEFAULT_SORT_BY_ID &&
         !streamQueryVariables.filter
       ) {
-        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0} })
+        resetGroupNewPostCount({ groupId: currentGroup?.id, data: { newPostCount: 0 } })
       }
     }
   }, [currentGroup?.id, streamQueryVariables?.filter, streamQueryVariables?.context, hasMore, isFocused, postIds])
@@ -294,6 +294,15 @@ export default function Stream () {
         onEndReached={fetchMorePosts}
         ListFooterComponent={
           fetching ? <Loading className='py-5' /> : null
+        }
+        ListEmptyComponent={
+          !fetching && hasMore === false ? (
+            <View className='flex-1 justify-center items-center p-6'>
+              <Text className='text-center text-base text-foreground-muted font-circular-book'>
+                {t('No posts to display')}
+              </Text>
+            </View>
+          ) : null
         }
       />
     </View>

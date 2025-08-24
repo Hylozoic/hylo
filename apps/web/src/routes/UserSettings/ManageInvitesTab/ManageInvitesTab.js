@@ -10,7 +10,7 @@ import GroupButton from 'components/GroupButton'
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { JOIN_REQUEST_STATUS } from 'store/models/JoinRequest'
-import { currentUserSettingsUrl, personUrl, groupUrl } from 'util/navigation'
+import { currentUserSettingsUrl, personUrl, groupUrl } from '@hylo/navigation'
 import acceptInvitation from 'store/actions/acceptInvitation'
 import { FETCH_MY_REQUESTS_AND_INVITES } from 'store/constants'
 import {

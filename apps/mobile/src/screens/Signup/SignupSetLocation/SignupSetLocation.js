@@ -11,7 +11,7 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
-import { caribbeanGreen, white, white80onCaribbeanGreen } from 'style/colors'
+import { caribbeanGreen, white, white80onCaribbeanGreen } from '@hylo/presenters/colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()

@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.16] - 2025-08-23
+
+### Added
+- Send an email with event changes to folks RSVP'd to an event. Also updates the calendar attachement with the new event details.
+- Allow users to export their profile and content
+
+### Fixed
+- Not all chat rooms were appearing in the post editor's list.
+- Subscribing to chat rooms was not always working
+
+## [6.1.15] - 2025-08-21
+
+### Fixed
+- Display of times for upcoming events in digest emails
+- Times for event RSPV ical attachements
+- Bug where deleting a comment would remove the tag froms the parent post!
+
+## [6.1.14] - 2025-08-14
+
+### Fixed
+- Push notifications get sent right away after a post is created
+- Fixed bugs that were preventing some digest emails and comment digest emails from being sent
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Chat digest emails come from the group name, instead of the Team from Hylo
+
+## [6.1.12] - 2025-07-31
+
+### Added
+- Tweaks to get notifications working in the desktop app
+
 ## [6.1.11] - 2025-07-23
 
 ### Added

@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
 import GroupMenuHeader from './GroupMenuHeader'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 
 const group = {
   bannerUrl: 'banner.png',

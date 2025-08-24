@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "6.1.11",
+  "version": "6.1.16",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -16,9 +16,9 @@
   "main": "app.js",
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.2",
   "scripts": {
     "start": "node --optimize_for_size --gc_interval=100 app.js",
     "console": "node console.js",
@@ -30,7 +30,7 @@
     "rollback": "node ./node_modules/.bin/knex migrate:rollback",
     "migrate-make": "node ./node_modules/.bin/knex migrate:make",
     "debug": "node-debug app.js",
-    "dev": "yarn workspace @hylo/shared build && nf -j Procfile.dev -p 3001 start -t 1000",
+    "dev": "nf -j Procfile.dev -p 3001 start -t 1000",
     "dump": "pg_dump -Osx hylo | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
     "dump-docker": "docker exec devcontainer-db-1 pg_dump -Osx hylo -U postgres | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
     "test": "mocha -r test/setup/core -r @babel/register --exit",
@@ -65,6 +65,7 @@
     "@babel/register": "^7.17.7",
     "@emoji-mart/data": "^1.0.6",
     "@graphql-yoga/redis-event-target": "^3.0.3",
+    "@hylo/navigation": "workspace:*",
     "@hylo/shared": "workspace:*",
     "@mapbox/mapbox-sdk": "^0.13.3",
     "@onesignal/node-onesignal": "^5.1.0-beta1",

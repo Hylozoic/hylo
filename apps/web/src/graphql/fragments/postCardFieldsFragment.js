@@ -106,10 +106,6 @@ const postCardFieldsFragment = `
         }
       }
   }
-  myReactions {
-    emojiFull
-    id
-  }
   postReactions {
     emojiFull
     id

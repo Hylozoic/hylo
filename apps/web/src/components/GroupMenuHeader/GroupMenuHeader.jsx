@@ -7,7 +7,7 @@ import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle } from 'util/index'
-import { groupUrl, currentUserSettingsUrl } from 'util/navigation'
+import { groupUrl, currentUserSettingsUrl } from '@hylo/navigation'
 
 export default function GroupMenuHeader ({
   group

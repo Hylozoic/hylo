@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Header } from '@react-navigation/elements'
+import { useNavigation } from '@react-navigation/native'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
-import { twBackground } from 'style/colors'
+import { twBackground } from '@hylo/presenters/colors'
 // Screens
 import NoContextFallbackScreen from 'screens/NoContextFallbackScreen'
 import UserSettingsWebView from 'screens/UserSettingsWebView'
@@ -44,23 +46,23 @@ export default function HomeNavigator () {
 
   return (
     <HomeTab.Navigator {...navigatorProps}>
-      <HomeTab.Screen 
-        name='No Context Fallback' 
-        component={NoContextFallbackScreen} 
+      <HomeTab.Screen
+        name='No Context Fallback'
+        component={NoContextFallbackScreen}
                   options={{
             header: () => (
-              <Header 
+              <Header
                 title="Hylo"
                 headerTitleAlign="center"
                 headerLeft={() => null}
                 headerStyle={{ backgroundColor: twBackground }}
-                headerTitleStyle={{ 
+                headerTitleStyle={{
                   fontFamily: 'Circular-Bold',
                   fontSize: 18
                 }}
               />
             )
-          }} 
+          }}
       />
       {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
@@ -68,7 +70,7 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       <HomeTab.Screen name='Web View' component={HyloWebView} />
       {/* Other screens */}
-      <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='Stream' component={Stream} options={{ lazy: false }} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Tracks' component={Tracks} />
       <HomeTab.Screen name='My Tracks' component={MyTracks} />

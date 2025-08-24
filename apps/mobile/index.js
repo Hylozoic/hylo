@@ -3,6 +3,8 @@ import { enableScreens } from 'react-native-screens'
 import React, { useEffect, useState } from 'react'
 import Config from 'react-native-config'
 import { Provider as UrqlProvider } from 'urql'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { makeAsyncStorage } from '@urql/storage-rn'
 import { Provider } from 'react-redux'
 import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
 import Timer from 'react-native-background-timer'
@@ -25,6 +27,10 @@ import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
+
+if (__DEV__) {
+  require('./ReactotronConfig')
+}
 
 /* eslint-disable no-global-assign */
 
@@ -108,7 +114,11 @@ if (Platform.OS === 'ios') {
 
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
-  const urqlClient = useMakeUrqlClient({ subscriptionExchange: mobileSubscriptionExchange })
+  const storage = makeAsyncStorage({ storage: AsyncStorage })
+  const urqlClient = useMakeUrqlClient({
+    subscriptionExchange: mobileSubscriptionExchange,
+    storage
+  })
 
   useEffect(() => {
     if (urqlClient) {
