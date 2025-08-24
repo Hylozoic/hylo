@@ -116,7 +116,6 @@ export default function (state = {}, action) {
 }
 
 export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups, topics = [] }) {
-  console.log('matchNewPostIntoQueryResults', id, isPublic, type, groups, topics)
   /* about this:
       we add the post id into queryResult sets that are based on time of
       creation because we know that the post just created is the latest
