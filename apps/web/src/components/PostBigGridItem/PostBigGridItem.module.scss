@@ -595,12 +595,13 @@
 }
 
 .flagIcon {
-  top: 1px;
-  margin-right: 12px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 50%;
   font-size: 24px;
   color: $color-persimmon;
   font-weight: bolder;
-  position: absolute;
 }
 
 @media screen and (max-width: 500px) {

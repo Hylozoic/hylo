@@ -592,7 +592,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
       </DropZone>
       <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center animate-slide-up invisible'>
         {(() => {
-          if (item.type === 'chat') {
+          if (item.type === 'viewChat') {
             return (
               <MenuLink
                 badgeCount={item.highlightNumber}
@@ -626,7 +626,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 {isItemDraggable && <div className='hidden group-hover:block'><GrabMe {...itemListeners} {...itemAttributes} /></div>}
               </MenuLink>
             )
-          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
+          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'viewChat')) {
             return (
               <MenuLink
                 to={itemUrl}

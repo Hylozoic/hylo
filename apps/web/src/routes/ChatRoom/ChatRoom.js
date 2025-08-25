@@ -303,6 +303,7 @@ export default function ChatRoom (props) {
     // New chat room loaded, reset everything
     if (topicFollow?.id) {
       setLoadedFuture(false)
+      setLoadedPast(false)
       setNotificationsSetting(topicFollow?.settings?.notifications)
 
       messageListRef.current?.data.replace([], {
@@ -315,12 +316,7 @@ export default function ChatRoom (props) {
         setLoadedFuture(true)
       }
 
-      if (topicFollow.lastReadPostId) {
-        setLoadedPast(false)
-        fetchPostsPast(0).then(() => setLoadedPast(true))
-      } else {
-        setLoadedPast(true)
-      }
+      fetchPostsPast(0).then(() => setLoadedPast(true))
 
       resetInitialPostToScrollTo()
 

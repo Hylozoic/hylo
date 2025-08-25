@@ -28,6 +28,15 @@ module.exports = bookshelf.Model.extend({
 
   notGoing: function () {
     return this.get('response') === EventInvitation.RESPONSE.NO
+  },
+
+  getHumanResponse: function () {
+    const responseMap = {
+      [EventInvitation.RESPONSE.YES]: 'Going to',
+      [EventInvitation.RESPONSE.NO]: 'Not Going to',
+      [EventInvitation.RESPONSE.INTERESTED]: 'Interested in'
+    }
+    return responseMap[this.get('response')]
   }
 }, {
 
@@ -40,15 +49,6 @@ module.exports = bookshelf.Model.extend({
   going: function (eventInvitationOrResponse) {
     const response = eventInvitationOrResponse.get?.('response') || eventInvitationOrResponse
     return response === EventInvitation.RESPONSE.YES || response === EventInvitation.RESPONSE.INTERESTED
-  },
-
-  getHumanResponse: function (response) {
-    const responseMap = {
-      [this.RESPONSE.YES]: 'Going to',
-      [this.RESPONSE.NO]: 'Not Going to',
-      [this.RESPONSE.INTERESTED]: 'Interested in'
-    }
-    return responseMap[response]
   },
 
   create: function ({ userId, inviterId, eventId, response }, trxOpts) {

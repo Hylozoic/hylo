@@ -17,16 +17,17 @@ function BlockedUsersTab ({ blockedUsers, unBlockUser, loading }) {
     })
   }, [])
 
-  if (loading || !blockedUsers) return <Loading />
+  if (loading) return <Loading />
 
   return (
     <div>
-      {blockedUsers.map(blockedUser =>
+      {blockedUsers && blockedUsers.map(blockedUser =>
         <UnBlockUserControl
           blockedUser={blockedUser}
           unBlockUser={unBlockUser}
           key={blockedUser.id}
         />)}
+      {(!blockedUsers || blockedUsers.length === 0) && <div className={classes.noBlockedUsers}>{t('No blocked users')}</div>}
     </div>
   )
 }
