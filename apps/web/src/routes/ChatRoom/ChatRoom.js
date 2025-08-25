@@ -663,8 +663,8 @@ const StickyHeader = ({ data, prevData, context }) => {
   if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
 
   return (
-    <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
+    <div className='!absolute top-0 w-full relative py-4'>
+      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
         {displayDay}
       </div>
     </div>

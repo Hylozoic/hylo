@@ -1,3 +1,5 @@
+/* eslint-disable camelcase */
+
 const bcrypt = require('bcrypt')
 const { faker } = require('@faker-js/faker')
 const promisify = require('bluebird').promisify
@@ -7,7 +9,7 @@ const { URL } = require('url')
 
 const n = {
   groups: 50,
-  posts: 1000,
+  posts: 5000,
   tags: 20,
   users: 1000,
   threads: 100
@@ -69,17 +71,19 @@ exports.seed = (knex) => warning(knex)
       name,
       email,
       active: true,
-      avatar_url: faker.internet.avatar(),
+      avatar_url: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${faker.random.word()}`,
       email_validated: true,
       created_at: knex.fn.now()
     })
     .returning('id'))
-  .then(([ user_id ]) => knex('linked_account')
-    .insert({
-      user_id,
-      provider_user_id,
-      provider_key: 'password'
-    }))
+  .then(([user_id]) => {
+    return knex('linked_account')
+      .insert({
+        user_id,
+        provider_user_id,
+        provider_key: 'password'
+      })
+  })
   .then(() => knex('tags').insert([
     { name: 'general' },
     { name: 'collaboration' },
@@ -120,16 +124,42 @@ exports.seed = (knex) => warning(knex)
   .then(() => seed('posts', knex))
   .then(() => Promise.all([
     knex('users').where('email', email).first('id'),
-    knex('groups').where('slug', groupSlug).first('id')
+    knex('groups').where('slug', groupSlug).first('id'),
+    knex('tags').where('name', 'general').first('id'),
+    knex('tags').where('name', 'regeneration').first('id')
   ]))
-  .then(([user, group]) => knex('group_memberships').insert({
-    active: true,
-    user_id: user.id,
-    group_id: group.id,
-    created_at: knex.fn.now(),
-    role: 1,
-    settings: '{ "send_email": true, "send_push_notifications": true }'
-  }))
+  .then(async ([user, group, general, regeneration]) => {
+    // Add main user to group
+    await knex('group_memberships').insert({
+      active: true,
+      user_id: user.id,
+      group_id: group.id,
+      created_at: knex.fn.now(),
+      role: 1,
+      settings: '{ "send_email": true, "send_push_notifications": true }'
+    })
+
+    // Add chat rooms to main group
+    const homeWidget = await knex('context_widgets').insert({
+      group_id: group.id,
+      type: 'home',
+      title: 'widget-home',
+      order: 1
+    })
+    await knex('context_widgets').insert({
+      type: 'viewChat',
+      view_chat_id: general.id,
+      group_id: group.id,
+      parent_id: homeWidget.id,
+      order: 1
+    })
+    await knex('context_widgets').insert({
+      type: 'viewChat',
+      view_chat_id: regeneration.id,
+      group_id: group.id,
+      order: 2
+    })
+  })
   .then(() => addUsersToGroups(knex))
   .then(() => createThreads(knex))
   .then(() => seedMessages(knex))
@@ -178,18 +208,26 @@ function addUsersToGroups (knex) {
     .then(users => Promise.all(users.map(({ id }) => fakeMembership(id, knex))))
 }
 
-function addPostsToGroups (knex) {
+async function addPostsToGroups (knex) {
   console.info('  --> groups_posts')
-  return knex('posts')
-    .select([ 'id as post_id', 'user_id' ])
-    .whereNull('type')
-    .then(posts => Promise.all(
-      posts.map(({ post_id, user_id }) => knex('group_memberships')
-        .where('group_memberships.user_id', user_id)
-        .first('group_id')
-        .then(({ group_id }) => knex('groups_posts')
-          .insert({ post_id, group_id }))
-      )))
+  const posts = await knex('posts')
+    .select(['id as post_id', 'user_id'])
+    .where('type', '!=', 'thread')
+
+  await Promise.all(
+    posts.map(({ post_id, user_id }) => knex('group_memberships')
+      .where('group_memberships.user_id', user_id)
+      .first('group_id')
+      .then(({ group_id }) => knex('groups_posts')
+        .insert({ post_id, group_id }))
+    )
+  )
+
+  const [general, regeneration] = await knex('tags').whereIn('name', ['general', 'regeneration']).select('id')
+
+  await Promise.all(
+    posts.map(({ post_id }) => knex('posts_tags').insert({ post_id, tag_id: randomIndex(2) === 0 ? general.id : regeneration.id }))
+  )
 }
 
 function seed (entity, knex, fake = fakeLookup, iterations = n) { // Default to the fakeLookup and n in this file, if none is passed in
@@ -205,7 +243,7 @@ function createThreads (knex) {
   console.info('  --> threads')
   return knex('groups').where('slug', groupSlug).first('id')
     .then(group => Promise.all(
-      [ ...new Array(n.threads) ].map(() => fakeThread(group.id, knex))
+      [...new Array(n.threads)].map(() => fakeThread(group.id, knex))
     ))
 }
 
@@ -219,7 +257,7 @@ function seedMessages (knex) {
       const created = faker.date.past()
       return Promise.all(
         // Add five messages to each followed thread
-        [ ...follows, ...follows, ...follows, ...follows, ...follows ]
+        [...follows, ...follows, ...follows, ...follows, ...follows]
           .map(follow => {
             created.setHours(created.getHours() + 1)
             return knex('comments')
@@ -230,8 +268,8 @@ function seedMessages (knex) {
                 created_at: created.toUTCString(),
                 active: true
               })
-            })
-        )
+          })
+      )
     })
 }
 
@@ -262,24 +300,24 @@ function fakeThread (groupId, knex) {
         active: true
       })
       .returning(['id', 'user_id']))
-    .then(([ post ]) =>
-        knex('follows').insert({
-          post_id: post.id,
-          user_id: post.user_id,
-          added_at: faker.date.past()
-        })
+    .then(([post]) =>
+      knex('follows').insert({
+        post_id: post.id,
+        user_id: post.user_id,
+        added_at: faker.date.past()
+      })
         .returning('user_id')
     )
 }
 
-function fakeGroupData(name, slug, created_by_id, type) {
+function fakeGroupData (name, slug, created_by_id, type) {
   return {
     name,
     group_data_type: 1,
-    avatar_url: `https://avatars.dicebear.com/api/bottts/${faker.random.word()}.svg`,
+    avatar_url: `https://api.dicebear.com/9.x/glass/svg?seed=${faker.random.word()}`,
     access_code: faker.datatype.uuid(),
     description: faker.lorem.paragraph(),
-    slug: slug,
+    slug,
     banner_url: 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg',
     created_at: faker.date.past(),
     created_by_id,
@@ -299,12 +337,12 @@ function fakeGroup (knex) {
 
   return Promise.all([
     sample('users', true, knex)
-  ]).then(([ users ]) => fakeGroupData(name, faker.helpers.slugify(name).toLowerCase(), users[0].id))
+  ]).then(([users]) => fakeGroupData(name, faker.helpers.slugify(name).toLowerCase(), users[0].id))
 }
 
 function fakeMembership (user_id, knex) {
   return sample('groups', true, knex)
-    .then(([ group ]) => knex('group_memberships')
+    .then(([group]) => knex('group_memberships')
       .insert({
         active: true,
         group_id: group.id,
@@ -316,13 +354,16 @@ function fakeMembership (user_id, knex) {
 }
 
 function fakePost (knex) {
+  const type = randomIndex(2) === 0 ? 'discussion' : 'chat'
+
   return sample('users', true, knex)
-    .then(([ user ]) => ({
-      name: faker.lorem.sentence(),
+    .then(([user]) => ({
+      name: type === 'discussion' ? faker.lorem.sentence() : null,
       description: faker.lorem.paragraph(),
       created_at: faker.date.past(),
       user_id: user.id,
-      active: true
+      active: true,
+      type
     }))
 }
 
@@ -341,7 +382,7 @@ function fakeUser (maybeEmail) {
   return Promise.resolve({
     email: email || faker.internet.email(),
     name: `${faker.name.firstName()} ${faker.name.lastName()}`,
-    avatar_url: `https://avatars.dicebear.com/api/open-peeps/${faker.random.word()}.svg`,
+    avatar_url: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${faker.random.word()}`,
     first_name: faker.name.firstName(),
     last_name: faker.name.lastName(),
     last_login_at: faker.date.past(),

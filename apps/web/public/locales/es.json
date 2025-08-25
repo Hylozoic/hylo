@@ -1486,5 +1486,18 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} y {{othersTotal}} otros",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "agreementChunk1": "¡Te invitamos cordialmente a ser parte de esta comunidad! Nuestra invitación es que vengas a la plataforma y sus comunidades como contribuyente y co-creador. Sabemos que tienes un papel único que desempeñar para hacer este lugar más agradable y útil para todos. Pedimos a todos los participantes de Hylo que se comprometan a mantener nuestros {{codeOfConductLink}} y {{termsOfUseLink}} al consentir los Acuerdos de la Plataforma Hylo. ¡Nos alegra mucho que estés con nosotros en este viaje. ¡Bienvenido a Hylo!",
+  "agreementChunk2": "Me comprometo a comportarme en Hylo de maneras que contribuyan a una comunidad abierta, acogedora y saludable, y a apoyar a otros miembros para que se sientan respetados y apreciados.",
+  "agreementChunk3": "Respetaré diferentes puntos de vista y experiencias, y trabajaré para encontrar un terreno común y valores compartidos con otros miembros de Hylo.",
+  "agreementChunk4": "Me comprometo a aprender de cada interacción. Escucharé comentarios, me adaptaré y abrazaré la responsabilidad por los errores como oportunidades de crecimiento.",
+  "agreementChunk5": "Me comprometo a compartir mi voz, ideas y habilidades al servicio de mi(s) grupo(s) en Hylo, reconociendo que trabajar juntos lleva a mejores resultados.",
+  "agreementChunk6": "Si veo una oportunidad de mejorar algo en la plataforma Hylo o dentro de mi grupo, tomaré acción para hacerlo mejor.",
+  "agreementChunk7": "Me comprometo a mantener el {{codeOfConductLink}}, y {{termsOfUseLink}}, y acepto participar en procesos de responsabilidad cuando sea necesario.",
+  "codeOfConductText": "Código de Conducta y Normas Culturales",
+  "termsOfUseText": "Términos de Uso",
+  "agreementTitle": "Acuerdos de la Plataforma Hylo",
+  "agreementSubtitle": "Por favor revisa y acepta nuestros acuerdos comunitarios para continuar",
+  "acceptAgreements": "Acepto los acuerdos",
+  "viewFullAgreements": "Ver acuerdos completos"
 }

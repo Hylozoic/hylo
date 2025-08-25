@@ -90,18 +90,6 @@ export const register = (fetchOne) => async (_, { name, password }, context) => 
 
 export const login = (fetchOne) => async (_, { email, password }, context) => {
   try {
-    const isLoggedIn = await UserSession.isLoggedIn(context.req)
-
-    // Based upon current front-end implementation this should never run,
-    // wondering if it might be better to logout and authenticate with the
-    // provided credentials.
-    if (isLoggedIn) {
-      return {
-        me: fetchOne('Me', context.currentUserId),
-        error: 'already logged-in'
-      }
-    }
-
     const user = await User.authenticate(email, password)
 
     await UserSession.login(context.req, user, 'password')
