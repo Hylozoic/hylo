@@ -1,6 +1,5 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
-import { DateTimeHelpers } from '@hylo/shared'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
