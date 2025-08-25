@@ -185,7 +185,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           images: post.relations.media.filter(m => m.get('type') === 'image').map(m => m.pick('url', 'thumbnail_url')),
           mentionedMe,
           post_url: Frontend.Route.post(post, tagFollow.relations.group),
-          timestamp: post.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+          timestamp: post.get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, timeZone: post.get('timezone') || 'UTC' })
         }
       })
 
