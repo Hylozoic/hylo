@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, ActivityIndicator } from 'react-native'
-import { gunsmoke } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function Loading ({
   style,
@@ -13,7 +13,7 @@ export default function Loading ({
         Without it being explcitely set the indicator will be invisble in Android.
         Remove once the bug is fixed: https://github.com/facebook/react-native/pull/29830
       */}
-      <ActivityIndicator size={size} color={gunsmoke} accessibilityHint='loading' />
+      <ActivityIndicator size={size} color={Colors.mutedForeground} accessibilityHint='loading' />
     </View>
   )
 }

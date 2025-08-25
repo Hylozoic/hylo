@@ -1,4 +1,4 @@
-import { capeCod, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const screenMargin = 16
 const avatarSize = 112
@@ -55,13 +55,13 @@ export default {
   editIcon: {
     top: 2,
     fontSize: 12,
-    color: capeCod,
+    color: Colors.foreground,
     marginRight: 2
   },
   editButtonText: {
     fontFamily: 'Circular-Book',
     fontSize: 14,
-    color: capeCod
+    color: Colors.foreground
   },
   buttonContainer: {
     marginBottom: 30,
@@ -72,14 +72,14 @@ export default {
   },
   button: {
     height: 30,
-    backgroundColor: twBackground,
+    backgroundColor: Colors.background20,
     justifyContent: 'center',
     alignItems: 'center',
     flex: 1,
     borderRadius: 15
   },
   buttonText: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontSize: 13,
     fontFamily: 'Circular-Bold'
   }

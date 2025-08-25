@@ -8,6 +8,7 @@
     "codecov": "bash -c 'source .env && codecov -t $CODECOV_TOKEN'",
     "configure": "./scripts/configure.sh",
     "coverage:diff": "node ../jest-diff-coverage && open coverage/lcov-report/index.html",
+    "generate-colors": "node scripts/generate-theme-colors.js",
     "ios": "react-native run-ios",
     "lint": "standard",
     "bump-version": "node scripts/bump-version.js",

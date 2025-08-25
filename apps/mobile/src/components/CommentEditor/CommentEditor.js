@@ -15,7 +15,7 @@ import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
 import { getTrackIdFromPath } from '@hylo/navigation'
@@ -182,7 +182,7 @@ export default CommentEditor
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
 
   editor: {
@@ -194,15 +194,15 @@ const styles = StyleSheet.create({
 
   htmlEditor: {
     minHeight: 44,
-    backgroundColor: twBackground,
+    backgroundColor: Colors.background20,
     borderWidth: 1,
-    borderColor: '#CCC',
+    borderColor: Colors.mutedForeground,
     borderRadius: 10
   },
 
   prompt: {
     borderTopWidth: 1,
-    borderColor: rhino10,
+    borderColor: Colors.foreground10,
     paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 5,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
 
   promptText: {
-    color: rhino80,
+    color: Colors.foreground80,
     lineHeight: 22
   },
 
@@ -224,16 +224,16 @@ const styles = StyleSheet.create({
     marginRight: 5,
     fontSize: 22,
     lineHeight: 20,
-    color: amaranth
+    color: Colors.destructive
   },
 
   submitButton: {
     marginLeft: 8,
     marginRight: 4,
-    color: gunsmoke
+    color: Colors.mutedForeground
   },
 
   activeButton: {
-    color: caribbeanGreen
+    color: Colors.selected
   }
 })

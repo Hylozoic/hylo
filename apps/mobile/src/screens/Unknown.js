@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import Colors from '../style/theme-colors'
 import useRouteParams from 'hooks/useRouteParams'
 
 export default function Unknown () {
@@ -17,28 +18,40 @@ export default function Unknown () {
   )
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'top',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5' // Light background for readability
+    backgroundColor: Colors.background,
+    padding: 20
   },
   scrollView: {
     maxHeight: '60%', // Limits height, making it scrollable
     width: '90%', // Ensures it doesn't stretch too wide
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.mutedForeground,
     borderRadius: 8,
-    backgroundColor: '#fff' // White background for the "code editor"
+    backgroundColor: Colors.muted, // White background for the "code editor"
+    marginTop: 20
   },
   scrollContent: {
-    padding: 12
+    maxHeight: '60%', // Limits height, making it scrollable
+    width: '90%', // Ensures it doesn't stretch too wide
+    borderWidth: 1,
+    borderColor: Colors.mutedForeground,
+    borderRadius: 8,
+    backgroundColor: Colors.muted, // White background for the "code editor"
+    marginTop: 20
+  },
+  scrollContentText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'left',
+    color: Colors.foreground
   },
   codeBlock: {
     fontSize: 14,
-    color: '#333',
+    color: Colors.foreground,
     fontFamily: 'monospace', // Ensures fixed-width font
     textAlign: 'left'
   }
-}
+})

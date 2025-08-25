@@ -22,7 +22,7 @@ import GroupWelcomeTabBar from 'screens/GroupWelcome/GroupWelcomeTabBar'
 import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
 import styles from 'screens/GroupWelcome/GroupWelcome.styles'
-import { caribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export const addSkillMutation = gql`
   mutation AddSkillMutation ($name: String) {
@@ -239,7 +239,7 @@ function AgreementsBodyContent ({ agreements, acceptedAgreements, handleCheckAgr
             >
               <CheckBox
                 size={20}
-                fillColor={caribbeanGreen}
+                fillColor={Colors.selected}
                 isChecked={acceptedAgreements[index] || acceptedAllAgreements}
                 onPress={() => handleCheckAgreement({ index, checked: !acceptedAgreements[index] })}
                 disableBuiltInState
@@ -258,7 +258,7 @@ function AgreementsBodyContent ({ agreements, acceptedAgreements, handleCheckAgr
         >
           <CheckBox
             size={20}
-            fillColor={caribbeanGreen}
+            fillColor={Colors.selected}
             isChecked={acceptedAllAgreements}
             onPress={handleCheckAllAgreements}
             disableBuiltInState

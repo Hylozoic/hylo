@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle } from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { usePeopleTyping } from '@hylo/hooks/usePeopleTyping'
-import { rhino30 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const PeopleTyping = forwardRef(({ messageThreadId, postId, commentId }, ref) => {
   const { sendTyping, typingMessage } = usePeopleTyping({ messageThreadId, postId, commentId })
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     marginVertical: 5
   },
   message: {
-    color: rhino30,
+    color: Colors.foreground30,
     fontFamily: 'Circular-Book',
     fontSize: 11
   }

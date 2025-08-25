@@ -1,5 +1,5 @@
 import { POST_TYPES } from '@hylo/presenters/PostPresenter'
-import { capeCod10, rhino60, caribbeanGreen, regent, mangoYellow, black, twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   childPost: {
@@ -23,7 +23,7 @@ export default {
     marginRight: 2
   },
   childPostInner: {
-    backgroundColor: twBackground,
+    backgroundColor: Colors.background20,
     borderWidth: 1,
     borderColor: 'grey',
     borderTopLeftRadius: 6,
@@ -39,8 +39,8 @@ export default {
     fontWeight: 'bold'
   },
   container: {
-    backgroundColor: twBackground,
-    borderColor: capeCod10,
+    backgroundColor: Colors.background20,
+    borderColor: Colors.foreground10,
     borderRadius: 4,
     borderWidth: 1,
     position: 'relative',
@@ -71,11 +71,11 @@ export default {
   },
   locationIcon: {
     marginRight: 5,
-    color: rhino60
+    color: Colors.foreground60
   },
   locationText: {
     fontSize: 12,
-    color: rhino60
+    color: Colors.foreground60
   },
   projectJoinButton: {
     backgroundColor: POST_TYPES.project.backgroundColor,
@@ -85,7 +85,7 @@ export default {
   },
   projectMembersContainer: {
     borderTopWidth: 1,
-    borderColor: capeCod10,
+    borderColor: Colors.foreground10,
     paddingHorizontal: 12,
     paddingVertical: 10
   },
@@ -103,7 +103,7 @@ export default {
     marginBottom: 10
   },
   memberCount: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   topics: {
     paddingHorizontal: 7,
@@ -123,20 +123,20 @@ export default {
     left: 0,
     right: 0,
     zIndex: 15,
-    backgroundColor: mangoYellow,
+    backgroundColor: Colors.accent,
     borderRadius: 5,
     padding: 20,
     marginHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: black,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
     elevation: 5
   },
   clickthroughText: {
-    color: regent,
+    color: Colors.mutedForeground,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center'
@@ -146,12 +146,12 @@ export default {
     width: 120,
     height: 30,
     borderWidth: 1,
-    borderColor: regent,
+    borderColor: Colors.mutedForeground,
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center'
   },
   clickthroughButtonText: {
-    color: regent
+    color: Colors.mutedForeground
   }
 }

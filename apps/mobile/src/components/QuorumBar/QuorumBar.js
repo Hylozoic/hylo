@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { View, Text, Platform } from 'react-native'
 import { PROPOSAL_STATUS_COMPLETED } from '@hylo/presenters/PostPresenter'
+import Colors from '../../style/theme-colors'
 
 const QuorumBar = ({ totalVoters, quorum, actualVoters, proposalStatus }) => {
   const { t } = useTranslation()
@@ -29,7 +30,7 @@ const styles = {
     position: 'relative',
     height: 16,
     width: '100%',
-    backgroundColor: '#C0C5CD75',
+    backgroundColor: Colors.mutedForeground75,
     borderRadius: 5
   },
   votersBar: {
@@ -42,21 +43,21 @@ const styles = {
     height: '100%',
     zIndex: 1,
     borderRadius: 5,
-    backgroundColor: '#C0C5CD75'
+    backgroundColor: Colors.mutedForeground75
   },
   actualVoters: {
     position: 'absolute',
     height: '100%',
     zIndex: 3,
     borderRadius: 5,
-    backgroundColor: '#0074D8'
+    backgroundColor: Colors.secondary
   },
   quorumBar: {
     position: 'absolute',
     borderRadius: 5,
     height: '100%',
     zIndex: 2,
-    backgroundColor: '#808C9B'
+    backgroundColor: Colors.mutedForeground
   },
   quorumText: {
     position: 'absolute',
@@ -71,7 +72,7 @@ const styles = {
     position: 'absolute',
     textTransform: 'uppercase',
     top: Platform.OS === 'ios' ? 0 : -1,
-    color: 'red',
+    color: Colors.destructive,
     fontSize: 12,
     right: -80
   },
@@ -81,7 +82,7 @@ const styles = {
     fontSize: 12
   },
   quorumReached: {
-    color: '#0074D8'
+    color: Colors.secondary
   }
 }
 

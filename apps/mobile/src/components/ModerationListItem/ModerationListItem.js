@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { agreementsURL } from 'store/constants'
-import { groupUrl } from '@hylo/navigation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useHasResponsibility, { RESP_MANAGE_CONTENT } from '@hylo/hooks/useHasResponsibility'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
@@ -11,7 +10,7 @@ import Avatar from 'components/Avatar'
 import MultiSelect from 'components/MultiSelect'
 import Button from 'components/Button/Button'
 import PostListRow from 'components/PostListRow'
-import { caribbeanGreen, mediumPurple, white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const ModerationListItem = ({
   moderationAction,
@@ -112,8 +111,8 @@ const ModerationListItem = ({
               width: 120,
               height: 40,
               borderRadius: 8,
-              backgroundColor: mediumPurple,
-              color: white
+              backgroundColor: Colors.secondary80,
+              color: Colors.muted
             }}
           />
         )}
@@ -125,7 +124,7 @@ const ModerationListItem = ({
 const styles = StyleSheet.create({
   moderationActionCard: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.mutedForeground,
     borderRadius: 8,
     marginHorizontal: 16,
     marginBottom: 24,
@@ -133,7 +132,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 10,
-    backgroundColor: '#fefefe',
+    backgroundColor: Colors.muted,
     elevation: 5
   },
   cardHeader: {
@@ -185,7 +184,7 @@ const styles = StyleSheet.create({
     marginTop: 16
   },
   agreementsLink: {
-    color: '#2C405A',
+    color: Colors.foreground,
     fontSize: 14,
     textDecorationLine: 'underline',
     marginTop: 10
@@ -194,10 +193,10 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   cleared: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   active: {
-    color: '#f39c12'
+    color: Colors.accent
   },
   cardFooter: {
     flexDirection: 'row',

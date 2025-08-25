@@ -1,7 +1,7 @@
 import { Dimensions, StyleSheet } from 'react-native'
 import loginStyles from 'screens/Login/Login.styles'
-import { caribbeanGreen, rhino30, rhino80, white } from '@hylo/presenters/colors'
 import { isIOS } from 'util/platform'
+import Colors from '../../style/theme-colors'
 
 const bgImageWidth = Dimensions.get('window').width
 const bgImageHeight = Dimensions.get('window').height * 0.25
@@ -32,7 +32,7 @@ export default {
   },
   title: {
     ...loginStyles.title,
-    color: white,
+    color: Colors.muted,
     marginTop: 15,
     marginBottom: 10,
     textAlign: 'center'
@@ -42,7 +42,7 @@ export default {
   subTitle: {
     ...loginStyles.helpText,
     textAlign: 'center',
-    color: white,
+    color: Colors.muted,
     fontSize: 16,
     paddingHorizontal: '20%',
     marginBottom: 20
@@ -50,14 +50,14 @@ export default {
   labelText: {
     textAlign: 'center',
     marginBottom: 10,
-    color: rhino80,
+    color: Colors.foreground80,
     fontSize: 14,
     fontWeight: 'bold'
   },
   textInput: {
     textAlign: 'center',
     padding: 15,
-    borderColor: rhino80,
+    borderColor: Colors.foreground80,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 5,
     marginBottom: 15,
@@ -73,8 +73,8 @@ export default {
     height: 45,
     fontSize: 20,
     marginBottom: 25,
-    disabledColor: white,
-    disabledBackgroundColor: rhino30
+    disabledColor: Colors.muted,
+    disabledBackgroundColor: Colors.foreground30
   },
   login: {
     flexDirection: 'row',
@@ -86,7 +86,7 @@ export default {
   },
   loginButton: {
     ...loginStyles.helpText,
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book'
   },
   terms: {

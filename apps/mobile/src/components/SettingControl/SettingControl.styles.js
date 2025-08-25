@@ -1,68 +1,34 @@
-import {
-  caribbeanGreen,
-  white60onCaribbeanGreen,
-  white40onCaribbeanGreen,
-  amaranth,
-  white
-} from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
-export default {
-  control: {
-    position: 'relative'
+export default StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.foreground20
   },
   label: {
-    fontFamily: 'Circular-Bold',
-    fontSize: 14,
-    color: white60onCaribbeanGreen
-  },
-  textInput: {
-    fontFamily: 'Circular-Book',
-    fontSize: 18,
-    color: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: white40onCaribbeanGreen,
-    paddingBottom: 6,
-    marginBottom: 15
-  },
-  buttonText: {
-    fontFamily: 'Circular-Medium',
     fontSize: 16,
-    color: caribbeanGreen
+    color: Colors.foreground,
+    fontFamily: 'Circular-Book'
   },
-  toggles: {
-    flexDirection: 'row',
-    top: 20,
-    right: 0,
-    position: 'absolute'
+  value: {
+    fontSize: 16,
+    color: Colors.selected,
+    fontFamily: 'Circular-Book'
   },
-  eyeIcon: {
+  description: {
+    fontSize: 14,
+    color: Colors.foreground60,
+    fontFamily: 'Circular-Book',
+    marginTop: 5
+  },
+  icon: {
     fontSize: 20,
-    color: white40onCaribbeanGreen,
-    marginRight: 10
-  },
-  editIcon: {
-    fontSize: 20,
-    opacity: 0.5
-  },
-  errorWrapper: {
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  error: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 100,
-    backgroundColor: amaranth
-  },
-  errorText: {
-    color: white,
-    fontSize: 12
-  },
-  errorTriangle: {
-    backgroundColor: amaranth
-  },
-  highlight: {
-    backgroundColor: '#99EEFF',
-    borderRadius: 4
+    color: Colors.foreground40
   }
-}
+})

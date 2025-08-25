@@ -1,11 +1,11 @@
 import React from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { TouchableOpacity, StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 import Icon from 'components/Icon'
-import { white } from '@hylo/presenters/colors'
 
 export default function HeaderLeftCloseIcon ({
   onPress,
-  color = white,
+  color = Colors.muted,
   disabled,
   style
 }) {

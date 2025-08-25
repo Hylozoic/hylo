@@ -1,10 +1,12 @@
 /* eslint-disable react/no-unstable-nested-components */
-import { View } from 'react-native'
-import RNPickerSelect from 'react-native-picker-select'
+import React from 'react'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useCurrentGroup } from '@hylo/hooks/useCurrentGroup'
+import Colors from '../../style/theme-colors'
+import RNPickerSelect from 'react-native-picker-select'
 import Icon from 'components/Icon'
 import styles, { typeSelectorStyles } from './PostEditor.styles'
-import { white } from '@hylo/presenters/colors'
 
 export default function TypeSelector (props) {
   const { t } = useTranslation()
@@ -15,7 +17,7 @@ export default function TypeSelector (props) {
         {...props}
         style={typeSelectorStyles(props.value)}
         useNativeAndroidPickerStyle={false}
-        pickerProps={{ itemStyle: { backgroundColor: white, letterSpacing: 2, fontWeight: 'bold', fontSize: 20 } }}
+        pickerProps={{ itemStyle: { backgroundColor: Colors.muted, letterSpacing: 2, fontWeight: 'bold', fontSize: 20 } }}
         items={
           ['Discussion', 'Request', 'Offer', 'Resource', 'Project', 'Event'].map(type => ({
             label: t(type).toUpperCase(),

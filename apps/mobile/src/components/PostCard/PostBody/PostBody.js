@@ -10,7 +10,7 @@ import LinkPreview from 'components/PostCard/LinkPreview'
 import Icon from 'components/Icon'
 import PopupMenuButton from 'components/PopupMenuButton'
 import PostBodyProposal from '../PostBodyProposal'
-import { caribbeanGreen, rhino, white, white20onCaribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 import { useTranslation } from 'react-i18next'
 
 const MAX_DETAILS_LENGTH = 144
@@ -78,7 +78,7 @@ export function EventRSVP ({ myEventResponse, respondToEvent }) {
     <PopupMenuButton actions={actions}>
       <View style={styles.RSVPOption}>
         <Text style={styles.RSVPOptionText}>{t(humanResponse(myEventResponse))} |</Text>
-        <Icon name='ArrowDown' color={white} style={styles.RSVPOptionText} />
+        <Icon name='ArrowDown' color={Colors.muted} style={styles.RSVPOptionText} />
       </View>
     </PopupMenuButton>
   )
@@ -96,26 +96,26 @@ const styles = StyleSheet.create({
   resourceEndsAt: {
     marginTop: 6,
     marginBottom: 6,
-    color: white20onCaribbeanGreen,
+    color: Colors.selected20,
     fontSize: 10,
     textTransform: 'uppercase'
   },
   title: {
-    color: rhino,
+    color: Colors.foreground,
     fontSize: 19,
     fontFamily: 'Circular-Medium',
     marginBottom: 8,
     flex: 1
   },
   details: {
-    color: '#5D757A',
+    color: Colors.mutedForeground,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 8,
     fontFamily: 'Circular-Book'
   },
   RSVPOption: {
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   RSVPOptionText: {
-    color: white,
+    color: Colors.muted,
     fontSize: 12
   },
   RSVPOptionIcon: {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
@@ -18,7 +18,7 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import Unknown from 'screens/Unknown'
-import { white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {
@@ -30,7 +30,7 @@ export default function RootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white }
+      cardStyle: { backgroundColor: Colors.muted }
     }
   }
 

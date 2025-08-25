@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native'
-import { bigStone, persimmon, rhino60, rhino80, gunsmoke } from '@hylo/presenters/colors'
+import { bigStone } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   container: {
@@ -7,14 +8,14 @@ export default {
   },
   sectionHeader: {
     fontWeight: 'bold',
-    color: rhino80,
+    color: Colors.foreground80,
     padding: 15,
     fontSize: 18
   },
   groupRow: {
     padding: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: rhino60,
+    borderTopColor: Colors.foreground60,
     flexDirection: 'row',
     alignItems: 'center'
   },
@@ -34,15 +35,15 @@ export default {
     marginBottom: 5
   },
   groupRowCounts: {
-    color: gunsmoke,
+    color: Colors.mutedForeground,
     fontSize: 12,
     marginBottom: 5
   },
   groupRowDescription: {
-    color: gunsmoke
+    color: Colors.mutedForeground
   },
   badge: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     height: 20,
     width: 20,
     borderRadius: 100,
@@ -60,10 +61,10 @@ export default {
   groupStatusIcon: {
     fontSize: 14,
     marginRight: 5,
-    color: rhino80
+    color: Colors.foreground80
   },
   groupStatusText: {
     fontSize: 14,
-    color: rhino80
+    color: Colors.foreground80
   }
 }

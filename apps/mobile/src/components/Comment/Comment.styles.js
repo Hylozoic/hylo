@@ -1,4 +1,6 @@
-import { limedSpruce, slateGrey80, rhino50 } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import { limedSpruce } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default {
   container: {
@@ -34,7 +36,7 @@ export default {
   menuIcon: {
     fontSize: 20,
     paddingLeft: 10,
-    color: rhino50
+    color: Colors.foreground50
   },
   actionSheetIcon: {
     fontSize: 20
@@ -45,7 +47,7 @@ export default {
     fontSize: 14
   },
   date: {
-    color: slateGrey80,
+    color: Colors.mutedForeground,
     fontFamily: 'Circular-Book',
     fontSize: 12
   },
@@ -60,7 +62,7 @@ export default {
   replyLinkIcon: {
     transform: [{ rotateY: '180deg' }],
     fontSize: 20,
-    color: slateGrey80
+    color: Colors.mutedForeground
   },
   imageAttachment: {
     borderRadius: 10

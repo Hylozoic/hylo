@@ -1,4 +1,6 @@
-import { white, white40onCaribbeanGreen, white80 } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import { white80 } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 import defaultStyles from '../SignupFlow.styles'
 
 const styles = {
@@ -16,21 +18,21 @@ const styles = {
     padding: 5,
     margin: 5,
     textAlign: 'center',
-    color: white,
+    color: Colors.muted,
     fontSize: 24,
     fontWeight: 'bold',
     borderWidth: 2,
     borderRadius: 3,
-    borderColor: white40onCaribbeanGreen
+    borderColor: Colors.selected40
   },
   codeFieldCellSeparator: {
     height: 2,
     width: 10,
-    backgroundColor: white,
+    backgroundColor: Colors.muted,
     alignSelf: 'center'
   },
   codeFieldCellFocused: {
-    borderColor: white
+    borderColor: Colors.muted
   },
   resendCodeLink: {
     marginTop: 30,

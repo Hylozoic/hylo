@@ -1,4 +1,5 @@
-import { capeCod, rhino80, rhino60 } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 export default {
   header: {
@@ -10,7 +11,7 @@ export default {
   },
   name: {
     fontSize: 24,
-    color: capeCod,
+    color: Colors.foreground,
     fontFamily: 'Circular-Bold'
   },
   icons: {
@@ -20,23 +21,23 @@ export default {
   },
   icon: {
     fontSize: 30,
-    color: rhino60,
+    color: Colors.foreground60,
     marginRight: 10
   },
   lastIcon: {
     fontSize: 30,
-    color: rhino60
+    color: Colors.foreground60
   },
   location: {
     fontSize: 16,
-    color: rhino80,
+    color: Colors.foreground80,
     fontFamily: 'Circular-Book',
     marginBottom: 10
   },
   tagline: {
     marginBottom: 10,
     fontSize: 16,
-    color: rhino80,
+    color: Colors.foreground80,
     fontFamily: 'Circular-Book'
   }
 }

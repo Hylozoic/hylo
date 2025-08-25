@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import BadgeEmoji from 'components/BadgeEmoji'
-import { white80onCaribbeanGreen, white40onCaribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function CondensingBadgeRow ({ postId, creatorIsSteward, badges, currentGroup, containerStyle, limit = 3 }) {
   const moderatorCount = creatorIsSteward ? 1 : 0
@@ -40,26 +40,26 @@ export default function CondensingBadgeRow ({ postId, creatorIsSteward, badges, 
 }
 
 const styles = {
-  allBadgesPill: {
-    backgroundColor: white40onCaribbeanGreen,
-    borderRadius: 10,
-    border: 1,
-    padding: 2,
-    flex: 1,
-    gap: 2,
-    borderColor: white40onCaribbeanGreen,
-    position: 'absolute',
-    bottom: 30
-  },
+      allBadgesPill: {
+      backgroundColor: Colors.selected40,
+      borderRadius: 10,
+      border: 1,
+      padding: 2,
+      flex: 1,
+      gap: 2,
+      borderColor: Colors.selected40,
+      position: 'absolute',
+      bottom: 30
+    },
   badgePill: {
-    backgroundColor: white80onCaribbeanGreen,
+    backgroundColor: Colors.selected80,
     borderRadius: 30,
     border: 1,
     padding: 2,
     gap: -3,
     flex: 1,
     flexDirection: 'row',
-    borderColor: white80onCaribbeanGreen,
+    borderColor: Colors.selected80,
     alignItems: 'center',
     justifyContent: 'center'
   },

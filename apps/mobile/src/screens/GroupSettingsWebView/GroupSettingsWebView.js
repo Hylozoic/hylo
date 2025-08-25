@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { amaranth, capeCod, rhino40, rhino80, twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function GroupSettingsWebView () {
   const navigation = useNavigation()
@@ -35,7 +35,7 @@ export default function GroupSettingsWebView () {
     { settingsArea: 'requests', label: 'Join Requests' },
     { settingsArea: 'relationships', label: 'Related Groups' },
     { settingsArea: 'export', label: 'Export Data' },
-    { settingsArea: 'delete', label: 'Delete', style: { color: amaranth } }
+    { settingsArea: 'delete', label: 'Delete', style: { color: Colors.destructive } }
   ]
 
   if (routeSettingsArea !== 'index') {
@@ -64,14 +64,14 @@ export default function GroupSettingsWebView () {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: capeCod,
+    backgroundColor: Colors.foreground,
     height: 60
   },
   headerTitle: {
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
-    color: twBackground
+    color: Colors.background20
   },
   backButton: {
     position: 'absolute',
@@ -97,14 +97,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     marginBottom: 10,
-    marginHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: rhino40,
-    backgroundColor: twBackground
+    backgroundColor: Colors.background20
   },
   menuText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: rhino80
+    color: Colors.foreground80
   }
 })

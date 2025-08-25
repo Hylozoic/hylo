@@ -1,3 +1,4 @@
+import React, { forwardRef } from 'react'
 import {
   CircleHelp,
   Globe,
@@ -8,7 +9,7 @@ import {
   Shapes,
   UserPlus
 } from 'lucide-react-native'
-import { black } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 // For app size reasons only add to this set as new Icons are required
 export const CustomIcons = {
@@ -18,8 +19,8 @@ export const CustomIcons = {
   LogOut,
   MapPin,
   Plus,
-  UserPlus,
-  Shapes
+  Shapes,
+  UserPlus
 }
 
 export default function LucideIcon ({ name, color, size, ...forwardedProps }) {
@@ -30,5 +31,5 @@ export default function LucideIcon ({ name, color, size, ...forwardedProps }) {
     return null
   }
 
-  return <CustomIcon color={color || black} size={size} {...forwardedProps} />
+  return <CustomIcon color={color || Colors.black} size={size} {...forwardedProps} />
 }

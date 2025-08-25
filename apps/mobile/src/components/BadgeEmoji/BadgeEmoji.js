@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 export default function Badge ({ emoji, onPress, isSteward, extraStyle, emojiStyle }) {
   if (!emoji) return null
@@ -13,7 +14,7 @@ export default function Badge ({ emoji, onPress, isSteward, extraStyle, emojiSty
   )
 }
 
-const styles = {
+const styles = StyleSheet.create({
   container: {
     display: 'flex',
     alignItems: 'center',
@@ -23,22 +24,28 @@ const styles = {
     width: 24,
     height: 24,
     marginRight: 1,
-    backgroundColor: '#d1f3e9',
+    backgroundColor: Colors.selected20,
     borderRadius: 30,
     border: 1,
     borderColor: '#ffd192'
 
   },
   emoji: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: 'white',
-    position: 'relative'
+    fontSize: 16,
+    backgroundColor: Colors.selected20,
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.accent
   },
   isSteward: {
-    backgroundColor: '#ffe8c8',
+    backgroundColor: Colors.accent20,
     borderRadius: 30,
     border: 1,
-    borderColor: '#ffd192'
+    borderColor: Colors.accent
+  },
+  steward: {
+    backgroundColor: Colors.accent20,
+    borderColor: Colors.accent
   }
-}
+})

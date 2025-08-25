@@ -1,5 +1,5 @@
-import { Dimensions } from 'react-native'
-import { black10onRhino } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../../style/theme-colors'
 
 export default imageCount => {
   const containerWidth = Dimensions.get('window').width - 25
@@ -28,7 +28,7 @@ export default imageCount => {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: black10onRhino,
+      backgroundColor: Colors.foreground10,
       opacity: 0.5
     }
   }

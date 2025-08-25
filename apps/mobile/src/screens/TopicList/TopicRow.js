@@ -1,7 +1,6 @@
 import React from 'react'
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native'
-import Icon from 'components/Icon'
-import { rhino40, caribbeanGreen } from '@hylo/presenters/colors'
+import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 export default function TopicRow ({ item, onPress }) {
   return (
@@ -34,14 +33,14 @@ const styles = StyleSheet.create({
     flexDirection: 'column'
   },
   hashtag: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book',
     fontSize: 18,
     fontStyle: 'italic',
     paddingRight: 2
   },
   topicName: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book',
     fontSize: 18
   },
@@ -56,11 +55,11 @@ const styles = StyleSheet.create({
     paddingTop: 7
   },
   detailIcon: {
-    color: rhino40,
+    color: Colors.foreground40,
     marginRight: 5
   },
   detailText: {
-    color: rhino40,
+    color: Colors.foreground40,
     fontFamily: 'Circular-Book',
     fontSize: 16,
     marginRight: 10

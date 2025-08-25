@@ -6,6 +6,7 @@ import prompt from 'react-native-prompt-android'
 import { toUpper, isEmpty, trim } from 'lodash'
 import { gql, useMutation } from 'urql'
 import Icon from 'components/Icon'
+import Colors from '../../style/theme-colors'
 
 const flagInappropriateContentMutation = gql`
   mutation FlagInappropriateContentMutation ($category: String, $reason: String, $linkData: LinkDataInput) {
@@ -126,7 +127,7 @@ const styles = {
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     borderWidth: 1,
-    borderColor: '#CCD1D7',
+    borderColor: Colors.mutedForeground,
     overflow: 'hidden'
   },
   title: {
@@ -135,18 +136,18 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     height: 60,
-    borderColor: '#AAA',
+    borderColor: Colors.mutedForeground,
     borderBottomWidth: 0.5
   },
   titleText: {
     fontFamily: 'Circular-Bold',
-    color: '#959FAC',
+    color: Colors.mutedForeground,
     fontSize: 12,
     flex: 1
   },
   icon: {
     width: 20,
-    color: '#959FAC',
+    color: Colors.mutedForeground,
     fontSize: 22,
     marginRight: 4
   },
@@ -156,11 +157,11 @@ const styles = {
     paddingHorizontal: 20,
     borderTopWidth: 0.5,
     borderBottomWidth: 0.5,
-    borderColor: '#CCD1D7'
+    borderColor: Colors.mutedForeground
   },
   actionText: {
     fontFamily: 'Circular-Book',
-    color: '#2C405A',
+    color: Colors.foreground,
     fontSize: 16
   }
 }

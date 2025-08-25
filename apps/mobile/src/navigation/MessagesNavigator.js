@@ -7,7 +7,7 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import NewMessage from 'screens/NewMessage'
 import Thread from 'screens/Thread'
 import ThreadList from 'screens/ThreadList'
-import { caribbeanGreen, rhino, twBackground } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const Messages = createStackNavigator()
 export default function MessagesNavigator () {
@@ -36,8 +36,8 @@ export default function MessagesNavigator () {
           restSpeedThreshold: 0.01
         }
       },
-      headerStyle: { backgroundColor: twBackground },
-      headerTitleStyle: { color: rhino }
+      headerStyle: { backgroundColor: Colors.background20 },
+      headerTitleStyle: { color: Colors.foreground }
     }
   }
 
@@ -56,7 +56,7 @@ export default function MessagesNavigator () {
                   style={{ marginRight: 20 }}
                   onPress={() => headerProps.navigation.navigate('New Message')}
                 >
-                  <SquarePen color={caribbeanGreen} size={28} />
+                  <SquarePen color={Colors.selected} size={28} />
                 </TouchableOpacity>
               )}
             />

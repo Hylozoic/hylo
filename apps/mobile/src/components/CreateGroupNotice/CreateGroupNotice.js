@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import Button from 'components/Button'
-import { rhino50 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const axolotlImage = require('assets/hey-axolotl.png')
 
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     fontSize: 20,
     textAlign: 'center',
-    color: rhino50
+    color: Colors.foreground50
   },
   image: {
     marginLeft: 'auto',

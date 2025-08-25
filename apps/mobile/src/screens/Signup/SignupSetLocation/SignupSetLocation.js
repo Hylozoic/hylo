@@ -11,7 +11,7 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
-import { caribbeanGreen, white, white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 export default function SignupSetLocation ({ navigation }) {
   const { t } = useTranslation()
@@ -50,18 +50,18 @@ export default function SignupSetLocation ({ navigation }) {
       </View>
       <View style={styles.content}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, color: Colors.muted }}>Selected:</Text>
           {locationObject?.fullText && (
-            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+            <X size={20} style={{ color: Colors.selected80 }} onPress={() => setLocationObject()} />
           )}
         </View>
-        <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>
+        <Text style={{ fontSize: 16, marginBottom: 18, color: Colors.muted }}>
           {locationObject?.fullText || '(None selected)'}
         </Text>
         {!locationObject?.fullText && (
-          <LocationSelector
-            style={{ flex: 0, padding: 10, backgroundColor: white80onCaribbeanGreen, borderRadius: 20 }}
-            colors={{ text: caribbeanGreen, border: caribbeanGreen }}
+                      <LocationSelector
+              style={{ flex: 0, padding: 10, backgroundColor: Colors.selected80, borderRadius: 20 }}
+            colors={{ text: Colors.selected, border: Colors.selected }}
             onItemPress={setLocationObject}
           />
         )}

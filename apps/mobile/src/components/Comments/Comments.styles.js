@@ -1,4 +1,4 @@
-import { caribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export const childCommentIndentation = 30
 
@@ -29,7 +29,7 @@ export default {
     marginRight: 12,
     marginBottom: 15,
     fontSize: 13,
-    color: caribbeanGreen
+    color: Colors.selected
   },
   childComment: {
     marginLeft: childCommentIndentation

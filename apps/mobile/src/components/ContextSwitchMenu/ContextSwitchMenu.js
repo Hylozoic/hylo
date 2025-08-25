@@ -13,7 +13,7 @@ import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { isIOS } from 'util/platform'
 import useOpenURL from 'hooks/useOpenURL'
 import LucideIcon from 'components/LucideIcon'
-import { black, white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const STAY_EXPANDED_DURATION = 1500
 
@@ -81,7 +81,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
         keyExtractor={item => item.id || item.slug || Math.random().toString()}
         renderItem={({ item }) => (
           item.__divider ? (
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 8, marginHorizontal: 12 }} />
+            <View style={{ height: 1, backgroundColor: Colors.mutedForeground, marginVertical: 8, marginHorizontal: 12 }} />
           ) : (
             <ContextRow
               context={item}
@@ -142,7 +142,7 @@ function ContextRow ({
     >
       <View>
         {context?.iconName && (
-          <LucideIcon name={context.iconName} color={bottomItem ? black : white} size={bottomItem ? 24 : 35} />
+          <LucideIcon name={context.iconName} color={bottomItem ? Colors.black : Colors.muted} size={bottomItem ? 24 : 35} />
         )}
         {!context?.iconName && (
           <FastImage source={{ uri: context?.avatarUrl }} style={{ height: 35, width: 35 }} />

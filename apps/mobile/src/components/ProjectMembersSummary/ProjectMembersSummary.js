@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
 import { slice } from 'lodash/fp'
 import Avatar from 'components/Avatar'
-import { rhino30 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function ProjectMembersSummary ({ members, onPress, style, dimension = 43 }) {
   const membersTotal = members.length
@@ -40,7 +40,7 @@ const styles = {
   },
   membersText: {
     paddingLeft: 6,
-    color: rhino30,
+    color: Colors.foreground30,
     fontSize: 13,
     fontFamily: 'Circular-Book'
   }

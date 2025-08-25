@@ -1,8 +1,9 @@
-import React from 'react'
-import { View, TouchableOpacity, TextInput, Text, StyleSheet } from 'react-native'
+import React, { useState, useRef, useEffect } from 'react'
+import { View, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import Colors from '../../style/theme-colors'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { rhino50, havelockBlue } from '@hylo/presenters/colors'
 
 export default function SearchBar ({
   value,
@@ -51,13 +52,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     padding: 3,
-    borderColor: rhino50,
+    borderColor: Colors.foreground50,
     borderRadius: 32
   },
   searchIcon: {
     marginLeft: 2,
     fontSize: 30,
-    color: rhino50,
+    color: Colors.foreground50,
     backgroundColor: 'transparent'
   },
   searchInput: {
@@ -84,6 +85,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     fontWeight: 'bold',
     fontSize: 14,
-    color: havelockBlue
+    color: Colors.secondary
   }
 })

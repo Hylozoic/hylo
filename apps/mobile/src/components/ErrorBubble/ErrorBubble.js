@@ -1,7 +1,7 @@
 import React from 'react'
-import { Text, View } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import Triangle from 'react-native-triangle'
-import { amaranth, white } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import { get } from 'lodash/fp'
 
 export default function ErrorBubble ({
@@ -52,7 +52,7 @@ const styles = {
     marginTop: -1
   },
   errorText: {
-    color: amaranth,
+    color: Colors.destructive,
     textAlign: 'center',
     fontWeight: 'bold'
   },
@@ -60,7 +60,7 @@ const styles = {
     alignSelf: 'stretch',
     marginLeft: 5,
     marginRight: 5,
-    backgroundColor: white,
+    backgroundColor: Colors.muted,
     padding: 10,
     borderRadius: 30
   }

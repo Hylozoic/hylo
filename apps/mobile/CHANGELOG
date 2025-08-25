@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow any url link in post location field (zoom links, luma links, etc)
 
 ### [6.1.8] - 2025-08-13
-- Fix authenication bug for real-time updates
+- Fix authentication bug for real-time updates
 - Reduce query size to speed up response
 
 ### [6.1.7] - 2025-07-31

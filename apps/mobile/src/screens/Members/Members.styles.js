@@ -1,4 +1,5 @@
-import { white } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 const hasTextShadow = {
   textShadowColor: 'rgba(0, 0, 0, 0.25)',
@@ -8,7 +9,7 @@ const hasTextShadow = {
 
 export default {
   container: {
-    backgroundColor: white,
+    backgroundColor: Colors.muted,
     flex: 1
   },
   bannerContainer: {
@@ -39,7 +40,7 @@ export default {
   name: {
     fontSize: 24,
     fontFamily: 'Circular-Black',
-    color: white,
+    color: Colors.muted,
     backgroundColor: 'transparent',
     ...hasTextShadow
   },

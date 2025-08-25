@@ -1,10 +1,10 @@
 import React from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { uniq, merge } from 'lodash/fp'
+import { isEmpty, merge, uniq } from 'lodash/fp'
+import Colors from '../../style/theme-colors'
 import LinkButton from 'components/LinkButton'
 import Triangle from 'react-native-triangle'
-import { amaranth, white } from '@hylo/presenters/colors'
 import errorMessages from 'util/errorMessages'
 
 export const defaultStyles = {
@@ -15,15 +15,15 @@ export const defaultStyles = {
   error: {
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: amaranth,
+    backgroundColor: Colors.destructive,
     borderRadius: 100
   },
   errorText: {
-    color: white,
+    color: Colors.muted,
     fontSize: 14
   },
   errorTriangle: {
-    backgroundColor: amaranth
+    backgroundColor: Colors.destructive
   }
 }
 
@@ -42,15 +42,16 @@ export default function FormattedError ({
   const noPasswordMatch = error.match(/password account not found. available: \[(.*)\]/)
 
   if (noPasswordMatch) {
+    const optionMap = {
+      google: 'Google',
+      'google-token': 'Google',
+      facebook: 'Facebook',
+      'facebook-token': 'Facebook',
+      linkedin: 'LinkedIn',
+      'linkedin-token': 'LinkedIn'
+    }
     const options = uniq(noPasswordMatch[1].split(',')
-      .map(option => ({
-        google: 'Google',
-        'google-token': 'Google',
-        facebook: 'Facebook',
-        'facebook-token': 'Facebook',
-        linkedin: 'LinkedIn',
-        'linkedin-token': 'LinkedIn'
-      }[option])))
+      .map(option => optionMap[option]))
 
     return (
       <Error styles={styles}>
