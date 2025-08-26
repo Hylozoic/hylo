@@ -46,6 +46,32 @@ exports.es = {
   textForGroupParentGroupJoinRequestAcceptedChildModerator: ({actor, parentGroup, childGroup}) => `Tu grupo ${childGroup.name} ha sido aceptado como miembro de ${parentGroup.name} por ${actor.get('name')}`,
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({parentGroup, childGroup}) => `¡El grupo ${childGroup.name} acaba de unirse a su grupo ${parentGroup.name}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({parentGroup, childGroup}) => `Tu grupo ${childGroup.name} te ha unido a ${parentGroup.name}.`,
+  textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
+  textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
+  groupPeerGroupInviteSubject: ({ fromGroup, toGroup }) => `${fromGroup.get('name')} quiere formar una relación de pares con ${toGroup.get('name')}`,
+  groupPeerGroupInviteBody: ({ actor, fromGroup, toGroup, fromGroupUrl, toGroupSettingsUrl, emailSettingsUrl, inviterProfileUrl }) => `Hola,
+
+${actor.get('name')} de ${fromGroup.get('name')} ha invitado a tu grupo ${toGroup.get('name')} a formar una relación de pares.
+
+Esto significa que los grupos estarían conectados como pares, permitiendo a los moderadores colaborar y coordinar actividades.
+
+Ver ${fromGroup.get('name')}: ${fromGroupUrl}
+Gestionar invitaciones de relaciones de grupo: ${toGroupSettingsUrl}
+Ver el perfil de ${actor.get('name')}: ${inviterProfileUrl}
+
+Configuración de notificaciones por correo: ${emailSettingsUrl}`,
+  groupPeerGroupInviteAcceptedSubject: ({ fromGroup, toGroup }) => `Relación de pares establecida entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
+  groupPeerGroupInviteAcceptedBody: ({ actor, fromGroup, toGroup, fromGroupUrl, toGroupUrl, emailSettingsUrl, accepterProfileUrl }) => `Hola,
+
+${actor.get('name')} ha aceptado la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}.
+
+Tus grupos ahora están conectados como pares, permitiendo la colaboración y coordinación de moderadores.
+
+Ver ${fromGroup.get('name')}: ${fromGroupUrl}
+Ver ${toGroup.get('name')}: ${toGroupUrl}
+Ver el perfil de ${actor.get('name')}: ${accepterProfileUrl}
+
+Configuración de notificaciones por correo: ${emailSettingsUrl}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
   textForPostMention: ({ groupName, person, postName }) => `${person} te mencionó en "${postName}" en ${groupName}`,
   textForPost: ({ firstTag, groupName, person, postName }) => `${person} publicó "${postName}" en ${groupName}${firstTag ? ` #${firstTag}` : ''}`,

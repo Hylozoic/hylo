@@ -37,8 +37,10 @@ export {
   addModerator,
   cancelGroupRelationshipInvite,
   createGroup,
+  invitePeerRelationship,
   deleteGroup,
   deleteGroupRelationship,
+  deletePeerRelationship,
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
@@ -46,7 +48,8 @@ export {
   rejectGroupRelationshipInvite,
   removeModerator,
   removeMember,
-  updateGroup
+  updateGroup,
+  updatePeerRelationship
 } from './group'
 export {
   createInvitation,

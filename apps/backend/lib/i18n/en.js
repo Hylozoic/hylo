@@ -43,6 +43,32 @@ exports.en = {
   textForGroupParentGroupJoinRequestAcceptedChildModerator: ({ actor, parentGroup, childGroup }) => `Your group ${childGroup.name} has been accepted as a member of ${parentGroup.name} by ${actor.get('name')}`,
   textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `The group ${childGroup.name} just joined your group ${parentGroup.name}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Your group ${childGroup.name} has joined ${parentGroup.name}.`,
+  textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invited your group ${toGroup.get('name')} to form a peer relationship with ${fromGroup.get('name')}`,
+  textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} accepted the peer relationship between ${fromGroup.get('name')} and ${toGroup.get('name')}`,
+  groupPeerGroupInviteSubject: ({ fromGroup, toGroup }) => `${fromGroup.get('name')} wants to form a peer relationship with ${toGroup.get('name')}`,
+  groupPeerGroupInviteBody: ({ actor, fromGroup, toGroup, fromGroupUrl, toGroupSettingsUrl, emailSettingsUrl, inviterProfileUrl }) => `Hi there,
+
+${actor.get('name')} from ${fromGroup.get('name')} has invited your group ${toGroup.get('name')} to form a peer relationship.
+
+This means the groups would be connected as peers, allowing moderators to collaborate and coordinate activities.
+
+View ${fromGroup.get('name')}: ${fromGroupUrl}
+Manage group relationship invitations: ${toGroupSettingsUrl}
+View ${actor.get('name')}'s profile: ${inviterProfileUrl}
+
+Email notification settings: ${emailSettingsUrl}`,
+  groupPeerGroupInviteAcceptedSubject: ({ fromGroup, toGroup }) => `Peer relationship established between ${fromGroup.get('name')} and ${toGroup.get('name')}`,
+  groupPeerGroupInviteAcceptedBody: ({ actor, fromGroup, toGroup, fromGroupUrl, toGroupUrl, emailSettingsUrl, accepterProfileUrl }) => `Hi there,
+
+${actor.get('name')} has accepted the peer relationship between ${fromGroup.get('name')} and ${toGroup.get('name')}.
+
+Your groups are now connected as peers, enabling moderator collaboration and coordination.
+
+View ${fromGroup.get('name')}: ${fromGroupUrl}
+View ${toGroup.get('name')}: ${toGroupUrl}
+View ${actor.get('name')}'s profile: ${accepterProfileUrl}
+
+Email notification settings: ${emailSettingsUrl}`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} asked to join ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `New member has joined ${group.get('name')}: ${actor.get('name')}`,
   textForPostMention: ({ groupName, person, postName }) => `${person} mentioned you in post "${postName}" in ${groupName}`,

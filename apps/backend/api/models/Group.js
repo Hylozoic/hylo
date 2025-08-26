@@ -92,7 +92,13 @@ module.exports = bookshelf.Model.extend(merge({
   childGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'parent_group_id', 'child_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .orderBy('groups.name', 'asc')
   },
 
@@ -276,14 +282,97 @@ module.exports = bookshelf.Model.extend(merge({
   parentGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'child_group_id', 'parent_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .withPivot(['settings'])
       .orderBy('groups.name', 'asc')
   },
 
   parentGroupRelationships () {
     return this.hasMany(GroupRelationship, 'child_group_id')
-      .query({ where: { active: true } })
+      .query({ where: { active: true, relationship_type: 0 } }) // PARENT_CHILD only
+  },
+
+  peerGroups () {
+    // For peer relationships, we need to get groups connected to this one in either direction
+    const groupId = this.id
+    return Group.query(qb => {
+      qb.join('group_relationships', function () {
+        this.on(function () {
+          this.on('groups.id', '=', 'group_relationships.parent_group_id')
+            .andOn('group_relationships.child_group_id', '=', groupId)
+        }).orOn(function () {
+          this.on('groups.id', '=', 'group_relationships.child_group_id')
+            .andOn('group_relationships.parent_group_id', '=', groupId)
+        })
+      })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .orderBy('groups.name', 'asc')
+    })
+  },
+
+  peerGroupRelationships () {
+    const groupId = this.id
+    return GroupRelationship.query(qb => {
+      qb.where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where(function () {
+          this.where('parent_group_id', groupId)
+            .orWhere('child_group_id', groupId)
+        })
+    })
+  },
+
+  // Get peer groups visible to a specific user (respects visibility rules)
+  visiblePeerGroups (userId) {
+    if (!userId) {
+      // Non-authenticated users can only see public peer groups
+      return this.peerGroups().query(qb => {
+        qb.where('groups.visibility', Group.Visibility.PUBLIC)
+      })
+    }
+
+    const groupId = this.id
+    return Group.query(qb => {
+      qb.join('group_relationships', function () {
+        this.on(function () {
+          this.on('groups.id', '=', 'group_relationships.parent_group_id')
+            .andOn('group_relationships.child_group_id', '=', groupId)
+        }).orOn(function () {
+          this.on('groups.id', '=', 'group_relationships.child_group_id')
+            .andOn('group_relationships.parent_group_id', '=', groupId)
+        })
+      })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .where(qb2 => {
+          // Can see public peer groups
+          qb2.where('groups.visibility', Group.Visibility.PUBLIC)
+          // Can see protected peer groups if user is member of this group
+          const selectIdsForMember = Group.selectIdsForMember(userId)
+          qb2.orWhere(qb3 => {
+            qb3.where('groups.visibility', Group.Visibility.PROTECTED)
+            qb3.andWhere(groupId, 'in', selectIdsForMember)
+          })
+          // Stewards of this group can see hidden peer groups
+          const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
+          qb2.orWhere(qb4 => {
+            qb4.where('groups.visibility', Group.Visibility.HIDDEN)
+            qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
+          })
+        })
+        .orderBy('groups.name', 'asc')
+    })
   },
 
   prerequisiteGroups () {
@@ -809,6 +898,11 @@ module.exports = bookshelf.Model.extend(merge({
     CLOSED: 0,
     RESTRICTED: 1,
     OPEN: 2
+  },
+
+  RelationshipType: {
+    PARENT_CHILD: 0,
+    PEER_TO_PEER: 1
   },
 
   // ******* Class methods ******** //
