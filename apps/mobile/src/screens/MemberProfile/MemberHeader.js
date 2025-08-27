@@ -53,25 +53,31 @@ export default function MemberHeader ({
     // })
   }
 
-  const handleBlockUserWithConfirmation = () => {
+  const handleBlockUserWithConfirmation = useCallback(() => {
     const blockUserFun = async () => {
-      await blockUser(person.id)
-      mixpanel.track(AnalyticsEvents.BLOCK_USER)
-      navigation.goBack()
+      try {
+        const result = await blockUser({ blockedUserId: person.id })
+        mixpanel.track(AnalyticsEvents.BLOCK_USER)
+        navigation.goBack()
+      } catch (error) {
+        console.error('Error blocking user:', error)
+        Alert.alert(
+          t('Error'),
+          t('Failed to block user Please try again'),
+          [{ text: t('OK') }]
+        )
+      }
     }
 
-    return function () {
-      return Alert.alert(
-        t('Are you sure you want to block {{name}}?', { name }),
-        t('You will no longer see {{name}}s activity and they wont see yours', { name }),
-        '',
-        t('You can unblock this member at any time Go to Settings > Blocked Users'),
-        [
-          { text: `${t('Block')} ${name}`, onPress: (blockedUserId) => blockUserFun(blockedUserId) },
-          { text: t('Cancel'), style: 'cancel' }
-        ])
-    }
-  }
+    Alert.alert(
+      t('Are you sure you want to block {{name}}?', { name }),
+      t('You will no longer see {{name}}s activity and they wont see yours', { name }),
+      [
+        { text: `${t('Block')} ${name}`, onPress: blockUserFun },
+        { text: t('Cancel'), style: 'cancel' }
+      ]
+    )
+  }, [person, blockUser, navigation, t, isMe, isAxolotl])
 
   const goToEdit = () => openURL('/my/edit-profile')
   const goToEditAccount = () => openURL('/my/account')

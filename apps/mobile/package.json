@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "6.1.6-0",
+  "version": "6.1.11",
   "private": true,
   "scripts": {
     "android": "adb reverse tcp:3001 tcp:3001 && adb reverse tcp:3000 tcp:3000 && react-native run-android",
@@ -25,7 +25,7 @@
   "dependencies": {
     "@babel/plugin-syntax-decorators": "^7.25.9",
     "@babel/runtime": "^7.26.7",
-    "@expo/react-native-action-sheet": "^4.1.0",
+    "@expo/react-native-action-sheet": "^4.1.1",
     "@hylo/contexts": "workspace:*",
     "@hylo/graphql": "workspace:*",
     "@hylo/hooks": "workspace:*",
