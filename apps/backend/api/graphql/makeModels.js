@@ -565,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           limit: first,
           mentionsOf,
           offset,
-          onlyMyGroups: context === 'all',
+          onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
           proposalOutcome,
