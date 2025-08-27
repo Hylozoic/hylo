@@ -294,12 +294,17 @@ export async function addMember (userId, groupId, role) {
 }
 
 export async function invitePeerRelationship (userId, fromGroupId, toGroupId, description = null, opts = {}) {
+  console.log('🔄 invitePeerRelationship called:', { userId, fromGroupId, toGroupId, description })
+
   if (fromGroupId === toGroupId) {
     throw new GraphQLError('Cannot create peer relationship between the same group')
   }
 
   const fromGroup = await getStewardedGroup(userId, fromGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+  console.log('✅ fromGroup found:', { id: fromGroup.id, name: fromGroup.get('name') })
+
   const toGroup = await Group.find(toGroupId, opts)
+  console.log('✅ toGroup found:', { id: toGroup?.id, name: toGroup?.get('name') })
 
   if (!toGroup) {
     throw new GraphQLError('Target group not found')
@@ -310,12 +315,22 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
   const existingChildParent = await GroupRelationship.forPair(toGroup, fromGroup).fetch(opts)
   const existingPeer = await GroupRelationship.forPair(fromGroup, toGroup, Group.RelationshipType.PEER_TO_PEER).fetch(opts)
   
+  console.log('🔍 Existing relationships check:', {
+    existingParentChild: !!existingParentChild,
+    existingChildParent: !!existingChildParent,
+    existingPeer: !!existingPeer
+  })
   if (existingParentChild || existingChildParent || existingPeer) {
+    console.log('❌ Groups are already related')
     throw new GraphQLError('Groups are already related')
   }
 
-  // If current user is an administrator of both groups, create the relationship directly
-  if (await GroupMembership.hasResponsibility(userId, toGroup, Responsibility.constants.RESP_ADMINISTRATION, opts)) {
+  // Check if current user is an administrator of both groups
+  const isAdminOfToGroup = await GroupMembership.hasResponsibility(userId, toGroup, Responsibility.constants.RESP_ADMINISTRATION, opts)
+  console.log('🔑 Permission check:', { isAdminOfToGroup })
+
+  if (isAdminOfToGroup) {
+    console.log('🚀 Creating peer relationship directly (user is admin of both groups)')
     const relationship = await GroupRelationship.forge({
       parent_group_id: fromGroup.id,
       child_group_id: toGroup.id,
@@ -323,6 +338,14 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       description,
       active: true
     }).save(null, opts)
+
+    console.log('✅ Peer relationship created:', { 
+      id: relationship.id, 
+      parentGroupId: relationship.get('parent_group_id'),
+      childGroupId: relationship.get('child_group_id'),
+      relationshipType: relationship.get('relationship_type'),
+      description: relationship.get('description')
+    })
 
     await publishAsync({
       type: 'groupRelationshipUpdate',
@@ -336,10 +359,13 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
 
     return { success: true, groupRelationship: relationship }
   } else {
+    console.log('📬 Creating peer relationship invitation (user is not admin of target group)')
+    
     // Create an invitation
     const existingInvite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch(opts)
 
     if (existingInvite && existingInvite.get('status') === GroupRelationshipInvite.STATUS.Pending) {
+      console.log('⚠️ Existing pending invite found')
       return { success: false, groupRelationshipInvite: existingInvite }
     }
 
@@ -351,11 +377,18 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       message: description
     }, opts)
 
+    console.log('✅ Peer relationship invitation created:', { 
+      id: invite.id,
+      type: invite.get('type'),
+      status: invite.get('status')
+    })
+
     return { success: true, groupRelationshipInvite: invite }
   }
 }
 
 export async function updatePeerRelationship (userId, relationshipId, description, opts = {}) {
+  console.log('🔄 updatePeerRelationship called:', { userId, relationshipId, description })
   const relationship = await GroupRelationship.where({ id: relationshipId, active: true }).fetch(opts)
   if (!relationship) {
     throw new GraphQLError('Relationship not found')
@@ -395,6 +428,7 @@ export async function updatePeerRelationship (userId, relationshipId, descriptio
 }
 
 export async function deletePeerRelationship (userId, relationshipId, opts = {}) {
+  console.log('🔄 deletePeerRelationship called:', { userId, relationshipId })
   const relationship = await GroupRelationship.where({ id: relationshipId, active: true }).fetch(opts)
   if (!relationship) {
     throw new GraphQLError('Relationship not found')

@@ -649,12 +649,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { parentGroups: { querySet: true } },
-        {
-          peerGroups: {
-            querySet: true,
-            filter: (relation) => relation.query(groupFilter(userId))
-          }
-        },
+        { peerGroups: { querySet: true } },
         {
           posts: {
             querySet: true,

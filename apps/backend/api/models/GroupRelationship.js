@@ -1,4 +1,5 @@
 import HasSettings from './mixins/HasSettings'
+import Group from './Group'
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'group_relationships',
@@ -67,21 +68,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   peerIdsFor (groupIds) {
-    const groupIdList = Array.isArray(groupIds) ? groupIds : [groupIds]
-    return GroupRelationship.query(qb => {
-      qb.where('group_relationships.active', true)
-        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
-        .where(function () {
-          groupIdList.forEach(groupId => {
-            this.orWhere(function () {
-              this.where('parent_group_id', groupId).select('child_group_id as group_id')
-            }).orWhere(function () {
-              this.where('child_group_id', groupId).select('parent_group_id as group_id')
-            })
-          })
-        })
-    })
+    // For peer relationships, we need to get both directions since they're stored as single records
+    // Use a union approach that's simpler and avoids parameter binding issues
+    const parentPeers = GroupRelationship.query()
+      .select('child_group_id as group_id')
+      .where('group_relationships.active', true)
+      .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+      .whereIn('parent_group_id', groupIds)
+
+    const childPeers = GroupRelationship.query()
+      .select('parent_group_id as group_id')
+      .where('group_relationships.active', true)
+      .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+      .whereIn('child_group_id', groupIds)
+
+    return parentPeers.union(childPeers)
   }
-}, {
-  constants: Group.GROUP_RELATIONSHIP_TYPE
 })

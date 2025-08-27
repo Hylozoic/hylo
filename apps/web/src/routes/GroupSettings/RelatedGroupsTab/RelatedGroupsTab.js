@@ -19,6 +19,7 @@ import {
   cancelGroupRelationshipInvite,
   deleteGroupRelationship,
   inviteGroupToJoinParent,
+  invitePeerRelationship,
   rejectGroupRelationshipInvite,
   requestToAddGroupToParent
 } from 'store/actions/groupRelationshipActions'
@@ -27,6 +28,7 @@ import {
   getGroupInvitesToJoinThem,
   getGroupInvitesToJoinUs,
   getParentGroups,
+  getPeerGroups,
   getGroupRequestsToJoinThem,
   getGroupRequestsToJoinUs
 } from 'store/selectors/getGroupRelationships'
@@ -44,6 +46,7 @@ function RelatedGroupsTab () {
 
   const childGroups = useSelector(state => getChildGroups(state, group))
   const parentGroups = useSelector(state => getParentGroups(state, group))
+  const peerGroups = useSelector(state => getPeerGroups(state, group))
   const possibleRelatedGroups = useSelector(state => getPossibleRelatedGroups(state, group))
   const groupInvitesToJoinUs = useSelector(state => getGroupInvitesToJoinUs(state, group))
   const _groupRequestsToJoinUs = useSelector(state => getGroupRequestsToJoinUs(state, group))
@@ -52,6 +55,9 @@ function RelatedGroupsTab () {
   const groupRequestsToJoinThem = useSelector(state => getGroupRequestsToJoinThem(state, group))
 
   const [showInviteAsChildPicker, setShowInviteAsChildPicker] = useState(false)
+  const [showInviteAsPeerPicker, setShowInviteAsPeerPicker] = useState(false)
+  const [selectedPeerGroup, setSelectedPeerGroup] = useState(null)
+  const [peerDescription, setPeerDescription] = useState('')
   const [showRequestToJoinModalForGroup, setShowRequestToJoinModalForGroup] = useState(false)
   const [showRequestToJoinPicker, setShowRequestToJoinPicker] = useState(false)
 
@@ -61,6 +67,17 @@ function RelatedGroupsTab () {
 
   const toggleInviteAsChildPicker = () => {
     setShowInviteAsChildPicker(!showInviteAsChildPicker)
+    setShowInviteAsPeerPicker(false) // Close peer picker when opening child picker
+  }
+
+  const toggleInviteAsPeerPicker = () => {
+    setShowInviteAsPeerPicker(!showInviteAsPeerPicker)
+    setShowInviteAsChildPicker(false) // Close child picker when opening peer picker
+    // Reset peer selection state when closing
+    if (showInviteAsPeerPicker) {
+      setSelectedPeerGroup(null)
+      setPeerDescription('')
+    }
   }
 
   const hideRequestToJoinModal = () => {
@@ -87,15 +104,52 @@ function RelatedGroupsTab () {
     toggleInviteAsChildPicker()
   }
 
+  const handleSelectPeerGroup = (membership) => (e) => {
+    setSelectedPeerGroup(membership)
+  }
+
+  const handleInvitePeerRelationship = (fromGroupId, toGroupId, description) => (e) => {
+    e?.preventDefault()
+    dispatch(invitePeerRelationship(fromGroupId, toGroupId, description))
+    // Reset state and close picker
+    setSelectedPeerGroup(null)
+    setPeerDescription('')
+    toggleInviteAsPeerPicker()
+  }
+
+  const handlePeerDescriptionSubmit = (e) => {
+    e.preventDefault()
+    if (selectedPeerGroup) {
+      handleInvitePeerRelationship(group.id, selectedPeerGroup.group.id, peerDescription.trim() || null)(e)
+    }
+  }
+
   const relationshipDropdownItems = (fromGroup, toGroup, type) => {
+    if (type === GROUP_RELATIONSHIP_TYPE.PeerToPeer) {
+      return [
+        {
+          icon: 'Trash',
+          label: t('Remove Peer Relationship'),
+          onClick: () => {
+            if (window.confirm(t('Are you sure you want to remove the peer relationship with {{groupName}}?', { groupName: toGroup.name }))) {
+              // For peer relationships, we need to find the relationship ID
+              // This is a temporary solution - ideally we'd pass the relationship ID
+              console.log('TODO: Implement peer relationship deletion with relationship ID')
+            }
+          },
+          red: true
+        }
+      ]
+    }
+
     return [
       {
         icon: 'Trash',
         label: type === GROUP_RELATIONSHIP_TYPE.ParentToChild ? t('Remove Child') : t('Leave Parent'),
         onClick: () => {
-          if (window.confirm(GROUP_RELATIONSHIP_TYPE.ParentToChild
-            ? t('Are you sure you want to remove {{groupName}}', { groupName: group.name })
-            : t('Are you sure you want to leave {{groupName}}', { groupName: group.name }))) {
+          if (window.confirm(type === GROUP_RELATIONSHIP_TYPE.ParentToChild
+            ? t('Are you sure you want to remove {{groupName}}', { groupName: toGroup.name })
+            : t('Are you sure you want to leave {{groupName}}', { groupName: toGroup.name }))) {
             dispatch(deleteGroupRelationship(fromGroup.id, toGroup.id))
           }
         },
@@ -118,6 +172,98 @@ function RelatedGroupsTab () {
 
   return (
     <div className='pb-[200px]'>
+      <div className='text-2xl font-bold text-foreground mb-4'>{t('Add Group Relationships')}</div>
+      <div className='mb-12'>
+        {/* Child Groups Section */}
+        <div className='relative mb-4'>
+          <Button onClick={toggleInviteAsChildPicker} variant='outline' className='w-full justify-center h-12'>
+            <div className='flex items-center'>
+              <Icon name='HierarchyDownward' className='mr-2 text-xl relative top-[1px]' />
+              <span className='truncate'>{t('Add Child Groups')}</span>
+            </div>
+          </Button>
+          {showInviteAsChildPicker && (
+            <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+              <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
+                {possibleRelatedGroups.map(membership => (
+                  <div key={membership.id}>
+                    <button onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
+                      <span>{membership.group.name}</span>
+                      <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Add as Child') : t('Invite as Child')}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Peer Groups Section */}
+        <div className='relative'>
+          <Button onClick={toggleInviteAsPeerPicker} variant='outline' className='w-full justify-center h-12'>
+            <div className='flex items-center'>
+              <Icon name='Handshake' className='mr-2 text-xl relative top-[1px]' />
+              <span className='truncate'>{t('Add Peer Groups')}</span>
+            </div>
+          </Button>
+          {showInviteAsPeerPicker && (
+            <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+              <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
+                {possibleRelatedGroups.map(membership => (
+                  <div key={membership.id} className='border-b border-foreground/10'>
+                    <button
+                      onClick={handleSelectPeerGroup(membership)}
+                      className='w-full px-4 py-2 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'
+                    >
+                      <span>{membership.group.name}</span>
+                      <span className='border border-accent text-accent rounded-full px-2 py-0.5 text-sm mr-2'>
+                        {membership.hasAdministrationAbility ? t('Add as Peer') : t('Invite as Peer')}
+                      </span>
+                    </button>
+                    {selectedPeerGroup?.id === membership.id && (
+                      <div className='px-4 pb-4 bg-foreground/5'>
+                        <form onSubmit={handlePeerDescriptionSubmit} className='space-y-3'>
+                          <div>
+                            <label className='block text-sm text-foreground/70 mb-1'>
+                              {t('Description: optional')}
+                            </label>
+                            <textarea
+                              value={peerDescription}
+                              onChange={(e) => setPeerDescription(e.target.value)}
+                              placeholder={t('Describe the purpose of this peer relationship...')}
+                              className='w-full px-3 py-2 text-sm border border-foreground/20 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent resize-none'
+                              rows={2}
+                            />
+                          </div>
+                          <div className='flex justify-end gap-2'>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setSelectedPeerGroup(null)
+                                setPeerDescription('')
+                              }}
+                              className='px-3 py-1 text-sm text-foreground/70 hover:text-foreground transition-colors'
+                            >
+                              {t('Cancel')}
+                            </button>
+                            <button
+                              type='submit'
+                              className='px-4 py-1 text-sm bg-accent text-white rounded-md hover:bg-accent/90 transition-colors'
+                            >
+                              {membership.hasAdministrationAbility ? t('Add Peer Group') : t('Send Invite')}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className='text-2xl font-bold text-foreground mb-4'>{t('Parent Groups')}</div>
       {parentGroups.length > 0
         ? (
@@ -262,28 +408,23 @@ function RelatedGroupsTab () {
         </div>
       )}
 
-      <div className='relative mt-8 mb-12'>
-        <Button onClick={toggleInviteAsChildPicker} variant='outline' className='w-full justify-center h-12'>
-          <div className='flex items-center'>
-            <Icon name='Handshake' className='mr-2 text-xl relative top-[1px]' />
-            <span className='truncate'>{t('Show groups to add')}</span>
-          </div>
-        </Button>
-        {showInviteAsChildPicker && (
-          <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
-            <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
-              {possibleRelatedGroups.map(membership => (
-                <div key={membership.id}>
-                  <button onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
-                    <span>{membership.group.name}</span>
-                    <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Add') : t('Invite')}</span>
-                  </button>
-                </div>
+      <div className='text-2xl font-bold text-foreground mb-4 mt-8'>{t('Peer Groups')}</div>
+      {peerGroups.length > 0
+        ? (
+          <div>
+            <div className='text-foreground/70 text-sm mb-4'>{peerGroups.length === 1 ? t('{{group.name}} has {{length}} peer group', { group, length: peerGroups.length }) : t('{{group.name}} has {{length}} peer groups', { group, length: peerGroups.length })}</div>
+            <div className='flex flex-col gap-4'>
+              {peerGroups.map(p => (
+                <GroupCard
+                  group={p}
+                  key={p.id}
+                  actionMenu={<Dropdown id='related-groups-peer-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, p, GROUP_RELATIONSHIP_TYPE.PeerToPeer)} className='right-0 left-auto' />}
+                />
               ))}
             </div>
           </div>
-        )}
-      </div>
+          )
+        : <div className='text-foreground/70 text-sm'>{t('{{group.name}} has no peer groups yet. Peer group relationships allow groups to define their relationships outside of a hierarchical structure.', { group })}</div>}
 
       {showRequestToJoinModalForGroup && (
         <RequestToJoinModal

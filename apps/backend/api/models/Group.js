@@ -300,17 +300,20 @@ module.exports = bookshelf.Model.extend(merge({
 
   peerGroups () {
     // For peer relationships, we need to get groups connected to this one in either direction
+    // Since peer relationships are bidirectional, we can't use the normal belongsToMany().through() pattern
+    // Instead, we create a collection query that gets the related groups
     const groupId = this.id
-    return Group.query(qb => {
-      qb.join('group_relationships', function () {
-        this.on(function () {
-          this.on('groups.id', '=', 'group_relationships.parent_group_id')
-            .andOn('group_relationships.child_group_id', '=', groupId)
-        }).orOn(function () {
-          this.on('groups.id', '=', 'group_relationships.child_group_id')
-            .andOn('group_relationships.parent_group_id', '=', groupId)
+    return Group.collection().query(qb => {
+      qb.distinct('groups.*')
+        .join('group_relationships', function () {
+          this.on(function () {
+            this.on('groups.id', '=', 'group_relationships.parent_group_id')
+              .andOn('group_relationships.child_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          }).orOn(function () {
+            this.on('groups.id', '=', 'group_relationships.child_group_id')
+              .andOn('group_relationships.parent_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          })
         })
-      })
         .where('group_relationships.active', true)
         .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
         .where('groups.active', true)

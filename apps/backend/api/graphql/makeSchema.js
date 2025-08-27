@@ -53,6 +53,7 @@ import {
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
@@ -67,6 +68,7 @@ import {
   flagInappropriateContent,
   fulfillPost,
   inviteGroupToGroup,
+  invitePeerRelationship,
   invitePeopleToEvent,
   joinGroup,
   joinProject,
@@ -126,6 +128,7 @@ import {
   updateTrackActionOrder,
   updateMe,
   updateMembership,
+  updatePeerRelationship,
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
@@ -416,6 +419,8 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
 
+    deletePeerRelationship: (root, { relationshipId }, context) => deletePeerRelationship(context.currentUserId, relationshipId, context),
+
     deleteGroupResponsibility: (root, { responsibilityId, groupId }, context) => deleteGroupResponsibility({ userId: context.currentUserId, responsibilityId, groupId }),
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
@@ -449,6 +454,8 @@ export function makeMutations ({ fetchOne }) {
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
+
+    invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
 
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
 
@@ -557,6 +564,8 @@ export function makeMutations ({ fetchOne }) {
     updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
+
+    updatePeerRelationship: (root, { relationshipId, description }, context) => updatePeerRelationship(context.currentUserId, relationshipId, description, context),
 
     updatePost: (root, args, context) => updatePost(context.currentUserId, args),
 
