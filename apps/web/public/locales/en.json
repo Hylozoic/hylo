@@ -281,6 +281,7 @@
   "Create a request or offer!": "Create a request or offer!",
   "Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!": "Create a specific view of your group limited by post type, topic, or sort order, or link to external content. A collection of resources to guide your group, a calendar of events limited to a specific topic, or a list of posts limited to a specific type - the possibilities are endless!",
   "Create a track to get started": "Create a track to get started",
+  "Create account": "Create account",
   "Create additional roles or badges for the group": "Create additional roles or badges for the group",
   "Create additional roles or badges for your group": "Create additional roles or badges for your group",
   "Create new custom view": "Create new custom view",
@@ -934,6 +935,7 @@
   "Sign in": "Sign in",
   "Sign in to Hylo": "Sign in to Hylo",
   "Sign up": "Sign up",
+  "Sign up for Hylo": "Sign up for Hylo",
   "Signup": "Signup",
   "Signup or Login to connect with": "Signup or Login to connect with",
   "Single vote per person": "Single vote per person",
@@ -1497,7 +1499,7 @@
   "{{personOne}}, {{personTwo}} and {{othersTotal}} other_plural": "{{personOne}}, {{personTwo}} and {{othersTotal}} others",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total Topics",
   "~ Mixed ~": "~ Mixed ~",
-  "agreementChunk1": "You are warmly invited to be a part of this community! Our invitation to you is to come to the platform and its communities as a contributor and co-creator. We know you have a unique role to play in making this place more enjoyable and more useful for everyone. We ask all Hylo participants to commit to upholding our {{codeOfConductLink}} and {{termsOfUseLink}} by consenting to the Hylo Platform Agreements. We are so happy you are with us on this journey. Welcome to Hylo!",
+  "agreementChunk1": "You are warmly invited to be a part of this community! Our invitation to you is to come to the platform and its communities as a contributor and co-creator. We know you have a unique role to play in making this place more enjoyable and more useful for everyone. We ask all Hylo participants to commit to upholding our {{codeOfConductLink}} and {{termsOfUseLink}} by consenting to the {{fullAgreementsLink}}. We are so happy you are with us on this journey. Welcome to Hylo!",
   "agreementChunk2": "I pledge to behave on Hylo in ways that contribute to an open, welcoming, and healthy community, and to support other members in feeling respected and appreciated.",
   "agreementChunk3": "I will respect differing viewpoints and experiences, and work to find common ground and shared values with other Hylo members.",
   "agreementChunk4": "I commit to learning from every interaction. I will listen to feedback, adapt, and embrace responsibility for mistakes as opportunities for growth.",
@@ -1509,5 +1511,5 @@
   "agreementTitle": "Hylo Platform Agreements",
   "agreementSubtitle": "Please review and accept our community agreements to continue",
   "acceptAgreements": "I accept the agreements",
-  "viewFullAgreements": "View full agreements"
+  "viewDetailedAgreements": "View detailed agreements"
 }

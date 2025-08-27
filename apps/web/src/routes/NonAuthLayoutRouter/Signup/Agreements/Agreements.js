@@ -35,17 +35,19 @@ export default function Agreements () {
   const renderAgreementText = (key) => {
     const codeOfConductLink = `<a href="https://www.hylo.com/agreements/#code-of-conduct" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('codeOfConductText')}</a>`
     const termsOfUseLink = `<a href="https://www.hylo.com/terms/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('termsOfUseText')}</a>`
+    const fullAgreementsLink = `<a href="https://www.hylo.com/agreements/#hylo-platform-agreements" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('agreementTitle')}</a>`
 
     const text = t(key, {
       codeOfConductLink,
-      termsOfUseLink
+      termsOfUseLink,
+      fullAgreementsLink
     })
 
     return <span dangerouslySetInnerHTML={{ __html: text }} />
   }
 
   return (
-    <div className='bg-background shadow-lg rounded-lg w-[320px] md:w-[640px] max-h-[80vh] flex flex-col'>
+    <div className='bg-background shadow-lg rounded-lg w-[320px] md:w-[640px] max-h-[70vh] flex flex-col mt-20'>
       <div className='relative flex-1 overflow-y-auto'>
         <Icon
           name='Ex'
@@ -83,6 +85,11 @@ export default function Agreements () {
                 <span className='text-blue-600'>•</span>
                 <span>{renderAgreementText('agreementChunk7')}</span>
               </p>
+              <p>
+                <a href='https://www.hylo.com/agreements/#hylo-platform-agreements' target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:text-blue-800 hover:underline font-medium'>
+                  {t('viewDetailedAgreements')}
+                </a>
+              </p>
             </div>
           </div>
         </div>
@@ -96,22 +103,11 @@ export default function Agreements () {
               id='accept-agreements'
               checked={accepted}
               onChange={handleCheckboxChange}
-              className='mt-1 w-4 h-4 text-primary bg-input border-foreground/20 rounded focus:ring-primary focus:ring-2'
+              className='w-4 h-4 text-primary bg-input border-foreground/20 rounded focus:ring-primary focus:ring-2'
             />
             <label htmlFor='accept-agreements' className='text-sm text-foreground/80 leading-relaxed'>
               {t('acceptAgreements')}
             </label>
-          </div>
-
-          <div className='text-center'>
-            <a
-              href='https://www.hylo.com/agreements/#hylo-platform-agreements'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium'
-            >
-              {t('viewFullAgreements')}
-            </a>
           </div>
 
           <Button
