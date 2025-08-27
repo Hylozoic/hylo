@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.17] - 2025-08-27
+
+### Changed
+- If somehow trying to log in as a different user while already logged in, log out as current user andlog in as the new user
+- Much improved dummy data when setting up new dev/test environment
+
+### Fixed
+- Correct time for user's timezone in display of individual chats in chat digest emails
+- Fix group names in push notifications for group to group join requests/invites
+
 ## [6.1.16] - 2025-08-23
 
 ### Added

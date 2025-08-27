@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.17] - 2025-08-27
+
+### Added
+- Explicit consent to platform agreements while signing up
+
+### Changed
+- Tweak spacing of comments. Mainly so that when a comment is highlighted it looks better. Also in general make them a little tighter together.
+
+### Fixed
+- Display of current day sticky header in chat rooms
+- Fix announcements showing public posts that are not in any of your groups
+
 ## [6.1.16] - 2025-08-23
 
 ### Added
