@@ -124,8 +124,8 @@ const createMainWindow = () => {
   const sendNavigationState = () => {
     if (!mainWindow) return
     mainWindow.webContents.send('navigation-state', {
-      canGoBack: mainWindow.webContents.canGoBack(),
-      canGoForward: mainWindow.webContents.canGoForward()
+      canGoBack: mainWindow.webContents.navigationHistory.canGoBack(),
+      canGoForward: mainWindow.webContents.navigationHistory.canGoForward()
     })
   }
 
@@ -148,10 +148,10 @@ ipcMain.on('set-badge-count', (event, count) => app.setBadgeCount(count))
 ipcMain.on('set-title', (event, title) => handleSetTitle(event, title))
 ipcMain.on('show-notification', (event, notification) => handleShowNotification(event, notification))
 ipcMain.on('go-back', () => {
-  if (mainWindow && mainWindow.webContents.canGoBack()) mainWindow.webContents.goBack()
+  if (mainWindow && mainWindow.webContents.navigationHistory.canGoBack()) mainWindow.webContents.navigationHistory.goBack()
 })
 ipcMain.on('go-forward', () => {
-  if (mainWindow && mainWindow.webContents.canGoForward()) mainWindow.webContents.goForward()
+  if (mainWindow && mainWindow.webContents.navigationHistory.canGoForward()) mainWindow.webContents.navigationHistory.goForward()
 })
 ipcMain.on('reload-page', () => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.reload()
