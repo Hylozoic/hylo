@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { DateTime } from 'luxon'
 
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
@@ -50,7 +49,7 @@ const PostListRow = (props) => {
         unread && styles.unread,
         expanded && styles.expanded
       ]}
-      onPress={() => navigation.navigate(modalScreenName('Post Details'), { id: post.id })}
+      onPress={() => navigation.navigate('Post Details', { id: post.id })}
     >
       <View style={styles.contentSummary}>
         <View style={styles.typeAuthor}>

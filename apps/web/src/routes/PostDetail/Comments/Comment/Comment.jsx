@@ -116,7 +116,7 @@ function Comment ({
   return (
     <div
       ref={commentRef}
-      className={cn('commentContainer px-4 pb-2', { [styles.selectedComment]: selectedCommentId === comment.id })}
+      className={cn('CommentContainer px-4 py-1 mb-1', { [styles.selectedComment]: selectedCommentId === comment.id })}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { if (!isEmojiPickerOpen) { setShowActions(false) } }}
     >
@@ -150,6 +150,7 @@ function Comment ({
                 </div>
               ))}
               <EmojiRow
+                alignLeft
                 className={cn(styles.emojis, styles.hiddenReactions)}
                 comment={comment}
                 currentUser={currentUser}
@@ -244,7 +245,7 @@ export default function CommentWithReplies (props) {
   }
 
   return (
-    <div className='commentContainer px-4 pb-2'>
+    <div className='CommentOuterContainer px-4 pb-1'>
       <Comment {...props} onReplyComment={onReplyComment} />
       {childComments && (
         <div className='ml-6'>

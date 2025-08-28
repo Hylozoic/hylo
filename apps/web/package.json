@@ -1,7 +1,7 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.1.13",
+  "version": "6.1.17",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
@@ -117,7 +117,7 @@
     "@turf/centroid": "^7.1.0",
     "@turf/combine": "^7.1.0",
     "@turf/helpers": "^7.1.0",
-    "@virtuoso.dev/message-list": "^1.13.2",
+    "@virtuoso.dev/message-list": "^1.13.3",
     "@vitejs/plugin-react": "^4.3.3",
     "bootstrap": "4.0.0-alpha.6",
     "browserslist": "^4.23.3",

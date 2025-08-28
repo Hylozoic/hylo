@@ -4,6 +4,7 @@ import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import getAuthState, { AuthState } from 'store/selectors/getAuthState'
 import Signup from './Signup'
 import VerifyEmail from './VerifyEmail'
+import Agreements from './Agreements'
 import FinishRegistration from './FinishRegistration'
 import Loading from 'components/Loading'
 
@@ -37,7 +38,14 @@ export default function SignupRouter (props) {
         break
       }
       case AuthState.Registration: {
-        redirectTo('/signup/finish')
+        // If user is on agreements page, let them stay there
+        if (location.pathname === '/signup/agreements') {
+          break
+        }
+        // Otherwise redirect to agreements first, then they can proceed to finish
+        if (location.pathname !== '/signup/finish') {
+          redirectTo('/signup/agreements')
+        }
         break
       }
       // Should never be true as SignupRouter is not active at this state,
@@ -62,6 +70,10 @@ export default function SignupRouter (props) {
       <Route
         path='verify-email'
         element={<VerifyEmail {...props} />}
+      />
+      <Route
+        path='agreements'
+        element={<Agreements {...props} />}
       />
       <Route
         path='finish'

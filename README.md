@@ -1,8 +1,55 @@
 # Hylo Monorepo
 
-**THIS REPOS IN ITS CURRENT STATE WAS THE RESULT OF THESE COMMANDS:**
+Thanks for checking out our code. The documentation below may be incomplete or incorrect. We welcome pull requests! But we're a very small team, so we can't guarantee timely responses.
 
-~~ Is that even true? ~~
+:heart:, [Tibet](https://github.com/tibetsprague), [Loren](https://github.com/lorenjohnson), [Tom](https://github.com/thomasgwatson)
+
+[![Code Climate](https://codeclimate.com/github/Hylozoic/hylo-node/badges/gpa.svg)](https://codeclimate.com/github/Hylozoic/hylo-node) [![Test Coverage](https://codeclimate.com/github/Hylozoic/hylo-node/badges/coverage.svg)](https://codeclimate.com/github/Hylozoic/hylo-node/coverage)
+
+## Quick Start
+
+1. Use nvm to install the correct version of node. Once installed you can just do `nvm install` to ensure the correct version is installed and then `nvm use`
+
+2. Install yarn and foreman
+
+```shell
+npm install -g yarn foreman
+```
+
+3. Install dependencies
+
+```shell
+yarn install
+```
+
+4. Build shared packages
+
+```shell
+yarn build-packages
+```
+
+5. Backend specific setup [here](./apps/backend/README.md)
+
+6. Web/frontend specific setup [here](./apps/web/README.md)
+
+7. Once the back-end and front-end are setup you can run the app locally with:
+Terminal 1:
+```shell
+yarn backend:dev
+```
+
+Terminal 2:
+```shell
+yarn web:dev
+```
+
+8. Mobile specific setup [here](./apps/mobile/README.md)
+
+9. Desktop specific setup [here](./apps/desktop/README.md)
+
+## Details on the setup of this Monorepo
+
+How we got here:
 
 1. Created bare nx monorepo:
 
@@ -47,14 +94,10 @@ git merge <backend|web|mobile|shared>/monorepo-setup --allow-unrelated-histories
 * Question: pnpm is somewhat the new hotness and shouldn't be difficult to switch to, also pnpm+nx is said to be a great combination. Do we switch to this?
 
 Remaining work:
-* Get apps/backend (hylo-node) working in a modules environment as it is a blended CommonJS and ESM project currently
-* Get apps/mobile issues resolved around babel parsing emoji data, etc
 * Update CircleCI configuration for web and backend, including getting yarn berry working there
 * CircleCI and Bitrise triggers, etc configuration update for new paths
 
 ----
-
-# WILL THE REAL README PLEASE STAND UP?
 
 ### Linting
 

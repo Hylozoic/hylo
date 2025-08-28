@@ -208,13 +208,17 @@ export default async function makeSchema ({ req }) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
       Query: makeApiQueries({ fetchOne, fetchMany }),
-      Mutation: makeApiMutations()
+      Mutation: makeApiMutations(),
+      // Provide Subscription resolvers even for API clients; resolvers self-guard on auth
+      Subscription: makeSubscriptions()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
       Query: makePublicQueries({ fetchOne, fetchMany }),
-      Mutation: makePublicMutations({ fetchOne })
+      Mutation: makePublicMutations({ fetchOne }),
+      // Supply Subscription resolvers. They handle unauthenticated requests gracefully
+      Subscription: makeSubscriptions()
     }
   }
 

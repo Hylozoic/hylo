@@ -4081,15 +4081,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@expo/react-native-action-sheet@npm:^4.1.0":
-  version: 4.1.0
-  resolution: "@expo/react-native-action-sheet@npm:4.1.0"
+"@expo/react-native-action-sheet@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "@expo/react-native-action-sheet@npm:4.1.1"
   dependencies:
     "@types/hoist-non-react-statics": "npm:^3.3.1"
     hoist-non-react-statics: "npm:^3.3.0"
   peerDependencies:
     react: ">=18.0.0"
-  checksum: 10/c082526d44e9699887ab4db62d0041abbdb78176ba679e23de5497a8976ae89a098fde71f278cbeee9af27439adc2dde987ad9a4dbf0b5382d6ed44e31c7b08c
+  checksum: 10/a1e936aff124e587c9be3c66ba8cbca5afdec23e591601c1ad59e95f8f9e595aedbe9f34ef506867e957b691a27af61627997f15a245b961f13a11952a3ef1cd
   languageName: node
   linkType: hard
 
@@ -7920,6 +7920,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-community/geolocation@npm:^3.4.0":
+  version: 3.4.0
+  resolution: "@react-native-community/geolocation@npm:3.4.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/e8f9c487dbea6ae0540185f07d92aca68a1efc823ef572492776b7533be9eebe0234374b9a34f1837899a15e98dbd7673e906380442c19313405bccf7f3e42b1
+  languageName: node
+  linkType: hard
+
 "@react-native-community/hooks@npm:^3.0.0":
   version: 3.0.0
   resolution: "@react-native-community/hooks@npm:3.0.0"
@@ -7927,6 +7937,15 @@ __metadata:
     react: ">=17.0.2"
     react-native: ">=0.65"
   checksum: 10/6fb10326338c341f9f2fbf066e84082ea6b7ac9d16470b55df7d2e30242cd408f4bc043ec6dbdd75df02fd6f29ca27239bf371d9ed84604ae3b97ab565218a06
+  languageName: node
+  linkType: hard
+
+"@react-native-community/netinfo@npm:^11.2.1":
+  version: 11.4.1
+  resolution: "@react-native-community/netinfo@npm:11.4.1"
+  peerDependencies:
+    react-native: ">=0.59"
+  checksum: 10/47f0d61072ca04a545784daaa44a5b1927eb788a3521dce5462184855733485c3b58c52d2a9b790b5c784e806fb342c83bc14e348cc7e55263b63d31e1862f9d
   languageName: node
   linkType: hard
 
@@ -11201,6 +11220,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@urql/storage-rn@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@urql/storage-rn@npm:1.1.1"
+  peerDependencies:
+    "@react-native-async-storage/async-storage": ^1.15.5
+    "@react-native-community/netinfo": ^6.0.0 || ^7.0.0 || ^8.0.0 || ^9.0.0 || ^11.0.0
+    "@urql/exchange-graphcache": ">=5.0.0"
+  checksum: 10/2d945c394a5542df689c602f1c7dbfe43ec8ce65f97225a6c34ffe8dbd95116fa2c45e295d8670f371ad61793d62a14a7f31a81eac381f4b6e28cddc3844ca6d
+  languageName: node
+  linkType: hard
+
 "@virtuoso.dev/gurx@npm:1.1.0":
   version: 1.1.0
   resolution: "@virtuoso.dev/gurx@npm:1.1.0"
@@ -11211,15 +11241,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virtuoso.dev/message-list@npm:^1.13.2":
-  version: 1.13.2
-  resolution: "@virtuoso.dev/message-list@npm:1.13.2"
+"@virtuoso.dev/message-list@npm:^1.13.3":
+  version: 1.13.3
+  resolution: "@virtuoso.dev/message-list@npm:1.13.3"
   dependencies:
     "@virtuoso.dev/gurx": "npm:1.1.0"
   peerDependencies:
     react: ">= 16 || >= 17 || >= 18 || >= 19"
     react-dom: ">= 16 || >= 17 || >= 18 || >= 19"
-  checksum: 10/6cee5d8b86ad0c7ffd1cd8ace4246f7e3745563a7fe3a5fef5dd06ccb9695e6bac068a4681edce6b0cf8421a23c4635fec718429fa97a457965ad10b3836efef
+  checksum: 10/d23b07e76c9490e49c3e15d745086b8233c679543bb9f78e16e1cb32062419904aaf3b808237a98dced70f0a0017a147b6ea7647e10ea5cd8872ba67de8928fc
   languageName: node
   linkType: hard
 
@@ -27757,7 +27787,7 @@ __metadata:
     "@babel/plugin-transform-export-namespace-from": "npm:^7.22.11"
     "@babel/preset-env": "npm:^7.26.8"
     "@babel/runtime": "npm:^7.26.7"
-    "@expo/react-native-action-sheet": "npm:^4.1.0"
+    "@expo/react-native-action-sheet": "npm:^4.1.1"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"
@@ -27776,7 +27806,9 @@ __metadata:
     "@react-native-community/cli": "npm:15.0.1"
     "@react-native-community/cli-platform-android": "npm:15.0.1"
     "@react-native-community/cli-platform-ios": "npm:15.0.1"
+    "@react-native-community/geolocation": "npm:^3.4.0"
     "@react-native-community/hooks": "npm:^3.0.0"
+    "@react-native-community/netinfo": "npm:^11.2.1"
     "@react-native-google-signin/google-signin": "npm:^11.0.0"
     "@react-native-picker/picker": "npm:^2.11.0"
     "@react-native/babel-preset": "npm:0.77.3"
@@ -27801,6 +27833,7 @@ __metadata:
     "@types/validator": "npm:^13"
     "@urql/devtools": "npm:^2.0.3"
     "@urql/exchange-graphcache": "npm:^7.2.1"
+    "@urql/storage-rn": "npm:^1.1.1"
     babel-jest: "npm:^29.6.3"
     babel-plugin-import-graphql: "npm:^2.8.1"
     babel-plugin-module-resolver: "npm:^5.0.2"
@@ -27856,9 +27889,8 @@ __metadata:
     react-native-date-picker: "npm:^5.0.8"
     react-native-device-info: "npm:^14.0.2"
     react-native-document-picker: "npm:^8.1.2"
-    react-native-emoji-popup: "npm:0.3.1"
+    react-native-emoji-popup: "npm:0.3.3"
     react-native-fast-image: "npm:^8.6.3"
-    react-native-geolocation-service: "npm:^5.3.1"
     react-native-gesture-handler: "npm:^2.22.0"
     react-native-image-picker: "npm:^8.2.0"
     react-native-image-viewing: "npm:^0.2.2"
@@ -32604,13 +32636,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-emoji-popup@npm:0.3.1":
-  version: 0.3.1
-  resolution: "react-native-emoji-popup@npm:0.3.1"
+"react-native-emoji-popup@npm:0.3.3":
+  version: 0.3.3
+  resolution: "react-native-emoji-popup@npm:0.3.3"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/2e8d5c47db77993b06e1817da63aeebd4a9db4636be0cf54eb468dcda08a02a58d0f303f7fedcdd36ef9ba59952f861ac1a01867a62c2ff35639a6c22d32745e
+  checksum: 10/cf02e57446c73a000ed46eabafdd5d08dc6ce5536775637df35a2306a64066338a12ee6252db2837e0af3593d1d6fda3a3beb03b2e76c3f9b22e28195e71bf27
   languageName: node
   linkType: hard
 
@@ -32621,13 +32653,6 @@ __metadata:
     react: ^17 || ^18
     react-native: ">=0.60.0"
   checksum: 10/ed340c2b6c2e76658fa0a899a45132871017018bec0a03423b7456610810e79b2844dfa16063c05d98b89a7613eeb0de2fdf3ad978cdfa4d488a4e01228a7349
-  languageName: node
-  linkType: hard
-
-"react-native-geolocation-service@npm:^5.3.1":
-  version: 5.3.1
-  resolution: "react-native-geolocation-service@npm:5.3.1"
-  checksum: 10/429c09dd245ef5b21f4fc98632224972c42f19041c48052be3bcba44e750ca2b75c210efc0036df3b822802d437b7f68530e4925f41138af435efbce5d71eae2
   languageName: node
   linkType: hard
 
@@ -39432,7 +39457,7 @@ __metadata:
     "@types/react-css-modules": "npm:^4.6.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.18.2"
     "@typescript-eslint/parser": "npm:^8.18.2"
-    "@virtuoso.dev/message-list": "npm:^1.13.2"
+    "@virtuoso.dev/message-list": "npm:^1.13.3"
     "@vitejs/plugin-react": "npm:^4.3.3"
     autoprefixer: "npm:10.4.20"
     babel-jest: "npm:^29.7.0"

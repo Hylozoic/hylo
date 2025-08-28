@@ -3,7 +3,6 @@ import EventSource from 'react-native-sse'
 import { URL } from 'react-native-url-polyfill'
 import { Platform } from 'react-native'
 import { GRAPHQL_ENDPOINT_URL } from '@hylo/urql/makeUrqlClient'
-import { getSessionCookie } from 'util/session'
 
 // Set to 0 for infinite retries, or a number to limit attempts
 const MAX_RETRIES = 0
@@ -31,30 +30,11 @@ const connectSubscription = async (url, sink) => {
   }
 
   const createConnection = async () => {
-    // Get session cookie for authentication
-    const sessionCookie = await getSessionCookie()
-    
-    if (!sessionCookie) {
-      console.warn(`📱 [${Platform.OS.toUpperCase()}] No session cookie found, cannot establish subscription connection`)
-      // Don't retry if there's no session - this will cause authentication issues
-      handleConnectionError({ 
-        message: 'No session cookie - authentication required',
-        isAuthError: true
-      })
-      return
-    }
-    
-    const headers = {}
-    if (sessionCookie) {
-      headers.Cookie = sessionCookie
-    }
-
     eventSource = new EventSource(url.toString(), {
       withCredentials: true,
       credentials: 'include',
       method: 'GET',
       lineEndingCharacter: '\n',
-      headers
     })
 
     eventSource.addEventListener('open', () => {
@@ -79,15 +59,6 @@ const connectSubscription = async (url, sink) => {
           
           if (data?.data?.allUpdates?.__typename === 'Post') {
             console.log(`📱 [${Platform.OS.toUpperCase()}] SSE received Post update:`, data.data.allUpdates.id)
-          }
-          
-          // Handle Heartbeat type to keep connection alive
-          if (data?.data?.allUpdates?.__typename === 'Heartbeat') {
-            if (subscriptionLoggingOn) {
-              console.log(`📱 [${Platform.OS.toUpperCase()}] SSE received Heartbeat:`, data.data.allUpdates.timestamp)
-            }
-            // Don't forward heartbeat to sink, just keep connection alive
-            return
           }
         }
 

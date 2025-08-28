@@ -2,6 +2,7 @@ import { trim, pick, keys, omit, find, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
@@ -11,6 +12,7 @@ import ModalDialog from 'components/ModalDialog'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import { Switch } from 'components/ui/switch'
 import SettingsSection from '../../GroupSettings/SettingsSection/SettingsSection'
+import { exportUserAccount } from '../UserSettings.store'
 
 function AccountSettingsTab ({
   currentUser,
@@ -26,10 +28,12 @@ function AccountSettingsTab ({
     edits: {},
     changed: {},
     showDeleteModal: false,
-    showDeactivateModal: false
+    showDeactivateModal: false,
+    exportStatus: null
   })
 
   const { t } = useTranslation()
+  const dispatch = useDispatch()
 
   const setEditState = () => {
     if (!currentUser) return
@@ -154,6 +158,26 @@ function AccountSettingsTab ({
     await updateCookieConsent(newSettings)
   }
 
+  const handleExportProfile = async () => {
+    try {
+      setState(prev => ({ ...prev, exportStatus: 'exporting' }))
+
+      const result = await dispatch(exportUserAccount())
+
+      if (result.error) {
+        setState(prev => ({ ...prev, exportStatus: 'error' }))
+      } else {
+        setState(prev => ({ ...prev, exportStatus: 'success' }))
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setState(prev => ({ ...prev, exportStatus: null }))
+        }, 3000)
+      }
+    } catch (error) {
+      setState(prev => ({ ...prev, exportStatus: 'error' }))
+    }
+  }
+
   if (!currentUser) return <Loading />
 
   const { edits, showDeactivateModal, showDeleteModal } = state
@@ -198,6 +222,13 @@ function AccountSettingsTab ({
 
       <div className='pt-4 flex flex-row gap-4 items-center'>
         <Button
+          onClick={handleExportProfile}
+          disabled={state.exportStatus === 'exporting'}
+          className='bg-accent hover:bg-accent/80 text-white px-6 py-2 rounded-lg transition-all disabled:opacity-50'
+        >
+          {state.exportStatus === 'exporting' ? t('Exporting...') : t('Export Profile Data')}
+        </Button>
+        <Button
           onClick={() => setState(prev => ({ ...prev, showDeactivateModal: true }))}
           className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
         >
@@ -210,6 +241,24 @@ function AccountSettingsTab ({
           {t('Delete Account')}
         </Button>
       </div>
+
+      {state.exportStatus === 'exporting' && (
+        <div className='flex items-center justify-center pt-4'>
+          <Loading />
+        </div>
+      )}
+
+      {state.exportStatus === 'success' && (
+        <div className='flex items-center justify-center pt-4 text-green-500 text-sm'>
+          {t('Profile data exported successfully!')}
+        </div>
+      )}
+
+      {state.exportStatus === 'error' && (
+        <div className='flex items-center justify-center pt-4 text-red-500 text-sm'>
+          {t('Failed to export profile data.')}
+        </div>
+      )}
 
       {showDeactivateModal && (
         <ModalDialog
