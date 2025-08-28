@@ -153,6 +153,9 @@ ipcMain.on('go-back', () => {
 ipcMain.on('go-forward', () => {
   if (mainWindow && mainWindow.webContents.canGoForward()) mainWindow.webContents.goForward()
 })
+ipcMain.on('reload-page', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.reload()
+})
 ipcMain.handle('get-locale', () => app.getLocale())
 ipcMain.handle('request-notification-permission', async () => {
   if (process.platform === 'darwin') {

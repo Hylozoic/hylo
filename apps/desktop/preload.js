@@ -47,17 +47,21 @@ window.addEventListener('DOMContentLoaded', () => {
     center.style.webkitAppRegion = 'no-drag'
     center.style.pointerEvents = 'auto'
 
-    const makeButton = (label, onClick) => {
+    const makeButton = (label, onClick, fontSize = '22px') => {
       const btn = document.createElement('button')
       btn.textContent = label
       btn.style.webkitAppRegion = 'no-drag'
-      btn.style.height = '28px'
-      btn.style.minWidth = '28px'
-      btn.style.padding = '0 4px'
+      btn.style.height = '32px'
+      btn.style.minWidth = '32px'
+      btn.style.padding = '0 6px'
       btn.style.border = 'none'
       btn.style.background = 'transparent'
+      btn.style.display = 'inline-flex'
+      btn.style.alignItems = 'center'
+      btn.style.justifyContent = 'center'
+      btn.style.lineHeight = '32px'
       btn.style.cursor = 'pointer'
-      btn.style.fontSize = '18px'
+      btn.style.fontSize = fontSize
       btn.style.fontWeight = '600'
       btn.addEventListener('click', onClick)
       return btn
@@ -65,9 +69,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const backBtn = makeButton('<', () => ipcRenderer.send('go-back'))
     const forwardBtn = makeButton('>', () => ipcRenderer.send('go-forward'))
+    const refreshBtn = makeButton('↻', () => ipcRenderer.send('reload-page'))
 
     const titleText = document.createElement('div')
-    titleText.style.fontSize = '12px'
+    titleText.style.fontSize = '16px'
     titleText.style.fontWeight = '600'
     titleText.style.color = '#000'
     titleText.style.whiteSpace = 'nowrap'
@@ -91,6 +96,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     center.appendChild(backBtn)
     center.appendChild(forwardBtn)
+    center.appendChild(refreshBtn)
     center.appendChild(titleText)
     titlebar.appendChild(center)
     document.body.appendChild(titlebar)
