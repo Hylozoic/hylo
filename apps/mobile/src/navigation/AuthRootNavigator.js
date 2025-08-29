@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
-import Intercom from '@intercom/intercom-react-native'
+// import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { useMutation, useQuery } from 'urql'
 import mixpanel from 'services/mixpanel'
@@ -98,11 +98,11 @@ export default function AuthRootNavigator () {
         // Intercom setup
         // TODO: URQL - does  setUserHash need to happen? Test. It stopped working.
         // Intercom.setUserHash(user.hash)
-        Intercom.loginUserWithUserAttributes({
-          userId: currentUser?.id,
-          name: currentUser?.name,
-          email: currentUser?.email
-        })
+        // Intercom.loginUserWithUserAttributes({
+        //   userId: currentUser?.id,
+        //   name: currentUser?.name,
+        //   email: currentUser?.email
+        // })
 
         // MixPanel setup
         mixpanel.identify(currentUser?.id)

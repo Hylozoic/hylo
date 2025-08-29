@@ -7,7 +7,7 @@
 // Added libraries
 #import "RNBootSplash.h"
 #import <RNGoogleSignin/RNGoogleSignin.h>
-#import <IntercomModule.h>
+// #import <IntercomModule.h>
 #import "RNCConfig.h"
 
 @implementation AppDelegate
@@ -25,11 +25,11 @@
   self.initialProps = @{};
 
 
-  // Intercom
-  [IntercomModule
-    initialize:[RNCConfig envFor:@"INTERCOM_IOS_API_KEY"]
-    withAppId:[RNCConfig envFor:@"INTERCOM_APP_ID"]
-  ];
+  // // Intercom
+  // [IntercomModule
+  //   initialize:[RNCConfig envFor:@"INTERCOM_IOS_API_KEY"]
+  //   withAppId:[RNCConfig envFor:@"INTERCOM_APP_ID"]
+  // ];
 
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
 }

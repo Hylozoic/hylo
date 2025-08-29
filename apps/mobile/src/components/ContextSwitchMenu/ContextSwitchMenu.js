@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { Text, FlatList, View, TouchableOpacity } from 'react-native'
 import FastImage from 'react-native-fast-image'
-import Intercom from '@intercom/intercom-react-native'
+// import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
@@ -107,7 +107,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
         bottomItem
         context={{ name: 'Support', iconName: 'CircleHelp' }}
         isExpanded={isExpanded}
-        onPress={() => Intercom.present()}
+        // onPress={() => Intercom.present()}
       />
     </View>
   )
