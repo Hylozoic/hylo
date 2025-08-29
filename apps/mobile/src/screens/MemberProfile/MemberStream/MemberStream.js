@@ -6,6 +6,7 @@ import { useMutation } from 'urql'
 import { useNavigation } from '@react-navigation/native'
 import useRecentActivity, { isPost, isComment, isReaction } from '@hylo/hooks/useRecentActivity'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
+import { modalScreenName } from 'hooks/useIsModalScreen'
 import PostCard from 'components/PostCard'
 import Comment from 'components/Comment'
 import Loading from 'components/Loading'
@@ -57,7 +58,7 @@ export default function MemberStream ({ id, header }) {
   }, [hasMore, fetching, first])
 
   const showMember = id => navigation.navigate('Member', { id })
-  const showPost = id => navigation.navigate('Post Details', { id })
+  const showPost = id => navigation.navigate(modalScreenName('Post Details'), { id })
   const showTopic = topicName => navigation.navigate('Stream', { topicName })
 
   if (error) {

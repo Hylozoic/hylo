@@ -121,7 +121,7 @@ export default function SearchPage () {
 
   // TODO: Fix back links on Home Tab when navigating this way,
   // currently causes a crash if trying to go back from Post Details or Member
-  const goToPost = useCallback(id => navigation.navigate('Post Details', { id }), [navigation])
+  const goToPost = useCallback(id => navigation.navigate(modalScreenName('Post Details'), { id }), [navigation])
   const goToPerson = useCallback(id => navigation.navigate(modalScreenName('Member'), { id }), [navigation])
 
   const renderItem = useCallback(
