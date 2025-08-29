@@ -70,7 +70,7 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       <HomeTab.Screen name='Web View' component={HyloWebView} />
       {/* Other screens */}
-      <HomeTab.Screen name='Stream' component={Stream} options={{ lazy: false }} />
+      <HomeTab.Screen name='Stream' component={Stream} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Tracks' component={Tracks} />
       <HomeTab.Screen name='My Tracks' component={MyTracks} />

@@ -57,8 +57,8 @@ export default function TabsNavigator () {
 
   return (
     <Tabs.Navigator {...navigatorProps}>
-      <Tabs.Screen name='Home Tab' component={HomeNavigator} options={{ lazy: false }} />
-      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount, lazy: false }} />
+      <Tabs.Screen name='Home Tab' component={HomeNavigator} />
+      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} />
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen
         name='Notifications Tab'
