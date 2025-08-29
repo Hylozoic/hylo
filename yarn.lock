@@ -4081,15 +4081,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@expo/react-native-action-sheet@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "@expo/react-native-action-sheet@npm:4.1.1"
+"@expo/react-native-action-sheet@npm:^4.1.0":
+  version: 4.1.0
+  resolution: "@expo/react-native-action-sheet@npm:4.1.0"
   dependencies:
     "@types/hoist-non-react-statics": "npm:^3.3.1"
     hoist-non-react-statics: "npm:^3.3.0"
   peerDependencies:
     react: ">=18.0.0"
-  checksum: 10/a1e936aff124e587c9be3c66ba8cbca5afdec23e591601c1ad59e95f8f9e595aedbe9f34ef506867e957b691a27af61627997f15a245b961f13a11952a3ef1cd
+  checksum: 10/c082526d44e9699887ab4db62d0041abbdb78176ba679e23de5497a8976ae89a098fde71f278cbeee9af27439adc2dde987ad9a4dbf0b5382d6ed44e31c7b08c
   languageName: node
   linkType: hard
 
@@ -27787,7 +27787,7 @@ __metadata:
     "@babel/plugin-transform-export-namespace-from": "npm:^7.22.11"
     "@babel/preset-env": "npm:^7.26.8"
     "@babel/runtime": "npm:^7.26.7"
-    "@expo/react-native-action-sheet": "npm:^4.1.1"
+    "@expo/react-native-action-sheet": "npm:^4.1.0"
     "@hylo/contexts": "workspace:*"
     "@hylo/graphql": "workspace:*"
     "@hylo/hooks": "workspace:*"

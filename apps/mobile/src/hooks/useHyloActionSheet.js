@@ -40,7 +40,8 @@ export default function useHyloActionSheet () {
       // Add "Cancel" item at the end
       actions = [
         ...actions,
-        [t('Cancel'), () => {}]
+        // <Icon name='Ex' key='cancel' style={{ fontSize: 18, margin: 0, padding: 0, color: pictonBlue }} />
+        [t('Cancel'), null]
       ]
 
       const options = actions.map(action => action[0])
