@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
-import { View, TouchableOpacity, Dimensions, Text } from 'react-native'
+import { View, TouchableOpacity, Dimensions } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { FlashList } from '@shopify/flash-list'
 import { useMutation, useQuery } from 'urql'
@@ -294,15 +294,6 @@ export default function Stream () {
         onEndReached={fetchMorePosts}
         ListFooterComponent={
           fetching ? <Loading className='py-5' /> : null
-        }
-        ListEmptyComponent={
-          !fetching && hasMore === false ? (
-            <View className='flex-1 justify-center items-center p-6'>
-              <Text className='text-center text-base text-foreground-muted font-circular-book'>
-                {t('No posts to display')}
-              </Text>
-            </View>
-          ) : null
         }
       />
     </View>
