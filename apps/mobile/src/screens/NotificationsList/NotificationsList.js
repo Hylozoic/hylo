@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useMutation, useQuery } from 'urql'
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
@@ -53,10 +53,6 @@ export default function NotificationsList (props) {
   const currentUserHasMemberships = !isEmpty(memberships)
 
   const goToCreateGroup = () => navigation.navigate('Create Group')
-
-  useEffect(() => {
-    fetchNotifications({ requestPolicy: 'cache-and-network' })
-  }, [fetchNotifications])
 
   useFocusEffect(
     useCallback(() => {
