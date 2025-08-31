@@ -5,29 +5,36 @@ import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
 import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from '@hylo/presenters/colors'
+import ThreadDataDiagnostic from './ThreadDataDiagnostic'
 
 const MAX_THREAD_PREVIEW_LENGTH = 55
 
-export default function ThreadCard ({ message, currentUser, onPress, participants, isLast, unreadCount }) {
-  if (!message) return null
+export default function ThreadCard ({ message, currentUser, onPress, participants = [], isLast, unreadCount, threadId }) {
+  if (!message || !currentUser) return null
 
   const latestMessagePreview = TextHelpers.presentHTMLToText(message?.text, {
     truncate: MAX_THREAD_PREVIEW_LENGTH
   })
-  const otherParticipants = filter(p => p.id !== get('id', currentUser), participants)
+  const otherParticipants = filter(p => p?.id && p.id !== currentUser?.id, participants)
   const names = threadNames(map('name', otherParticipants))
   const messageCreatorPrepend = lastMessageCreator(message, currentUser, participants)
   const avatarUrls = isEmpty(otherParticipants)
-    ? [get('avatarUrl', currentUser)]
-    : map('avatarUrl', otherParticipants)
+    ? [currentUser?.avatarUrl].filter(Boolean)
+    : map('avatarUrl', otherParticipants).filter(Boolean)
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.threadCard}>
+      <ThreadDataDiagnostic 
+        message={message} 
+        currentUser={currentUser} 
+        participants={participants} 
+        threadId={threadId} 
+      />
       <ThreadAvatars avatarUrls={avatarUrls} />
       <View style={[styles.messageContent, isLast && styles.lastCard]}>
-        <Text style={styles.header}>{names}</Text>
-        <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend}{latestMessagePreview}</Text>
-        <Text style={styles.date}>{TextHelpers.humanDate(message?.createdAt)}</Text>
+        <Text style={styles.header}>{names || ''}</Text>
+        <Text style={styles.body} numberOfLines={2}>{messageCreatorPrepend || ''}{latestMessagePreview || ''}</Text>
+        <Text style={styles.date}>{message?.createdAt ? TextHelpers.humanDate(message.createdAt) : ''}</Text>
       </View>
       {!!unreadCount && (
         <View style={styles.badge}>
@@ -38,42 +45,60 @@ export default function ThreadCard ({ message, currentUser, onPress, participant
   )
 }
 
-export function lastMessageCreator (message, currentUser, participants) {
+export function lastMessageCreator (message, currentUser, participants = []) {
   const { t } = useTranslation()
-  if (get('id', message.creator) === currentUser.id) return `${t('You')}: `
+  
+  if (!message?.creator?.id || !currentUser?.id) return ''
+  
+  if (message.creator.id === currentUser.id) return `${t('You')}: `
   if (participants.length <= 2) return ''
-  return (find(p => p.id === get('id', message.creator), participants)?.name || t('Deleted User')) + ': '
+  
+  const creator = find(p => p?.id === message.creator.id, participants)
+  return (creator?.name || t('Deleted User')) + ': '
 }
 
-export function threadNames (names) {
+export function threadNames (names = []) {
   const { t } = useTranslation()
-  const l = names.length
+  
+  const validNames = names.filter(name => name && typeof name === 'string')
+  const l = validNames.length
+  
   switch (l) {
     case 0:
       return t('You')
     case 1:
     case 2:
-      return names.join(', ')
+      return validNames.join(', ')
     default:
-      return `${names.slice(0, 1).join(', ')} ${t('and')} ${l - 1} ${t('other')}${l > 2 ? 's' : ''}`
+      return `${validNames.slice(0, 1).join(', ')} ${t('and')} ${l - 1} ${t('other')}${l > 2 ? 's' : ''}`
   }
 }
 
-export function ThreadAvatars ({ avatarUrls }) {
-  const count = avatarUrls.length
+export function ThreadAvatars ({ avatarUrls = [] }) {
+  const validAvatarUrls = avatarUrls.filter(Boolean)
+  const count = validAvatarUrls.length
+  
+  if (count === 0) {
+    return (
+      <View style={styles.threadAvatars}>
+        <Avatar avatarUrl={null} style={styles.firstThreadAvatar} />
+      </View>
+    )
+  }
+  
   return (
     <View style={styles.threadAvatars}>
       {count <= 2 && (
-        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
+        <Avatar avatarUrl={validAvatarUrls[0]} style={styles.firstThreadAvatar} />
       )}
       {count === 2 && (
-        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
+        <Avatar avatarUrl={validAvatarUrls[1]} style={styles.restThreadAvatars} />
       )}
       {count > 2 && (
-        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
+        <Avatar avatarUrl={validAvatarUrls[0]} style={styles.firstThreadAvatar} />
       )}
-      {count > 2 && (
-        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
+      {count > 2 && validAvatarUrls[1] && (
+        <Avatar avatarUrl={validAvatarUrls[1]} style={styles.restThreadAvatars} />
       )}
       {count > 3 && (
         <View style={styles.count}><Text style={styles.countText}>+{count - 2}</Text></View>
@@ -165,3 +190,4 @@ const styles = StyleSheet.create({
     marginRight: 8
   }
 })
+
