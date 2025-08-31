@@ -61,6 +61,8 @@ const createMainWindow = () => {
     title: 'Hylo',
     backgroundColor: 'white',
     icon: iconPath,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+    titleBarOverlay: process.platform === 'darwin' ? { color: '#ffffff', symbolColor: '#000000', height: 36 } : undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -117,6 +119,19 @@ const createMainWindow = () => {
       shell.openExternal(navigationUrl)
     }
   })
+
+  // Broadcast navigation state for enabling/disabling back/forward buttons
+  const sendNavigationState = () => {
+    if (!mainWindow) return
+    mainWindow.webContents.send('navigation-state', {
+      canGoBack: mainWindow.webContents.navigationHistory.canGoBack(),
+      canGoForward: mainWindow.webContents.navigationHistory.canGoForward()
+    })
+  }
+
+  mainWindow.webContents.on('did-finish-load', sendNavigationState)
+  mainWindow.webContents.on('did-navigate', sendNavigationState)
+  mainWindow.webContents.on('did-navigate-in-page', sendNavigationState)
 }
 
 // Needed for notifications to open the app using a hylo:// link
@@ -132,6 +147,15 @@ if (process.defaultApp) {
 ipcMain.on('set-badge-count', (event, count) => app.setBadgeCount(count))
 ipcMain.on('set-title', (event, title) => handleSetTitle(event, title))
 ipcMain.on('show-notification', (event, notification) => handleShowNotification(event, notification))
+ipcMain.on('go-back', () => {
+  if (mainWindow && mainWindow.webContents.navigationHistory.canGoBack()) mainWindow.webContents.navigationHistory.goBack()
+})
+ipcMain.on('go-forward', () => {
+  if (mainWindow && mainWindow.webContents.navigationHistory.canGoForward()) mainWindow.webContents.navigationHistory.goForward()
+})
+ipcMain.on('reload-page', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.reload()
+})
 ipcMain.handle('get-locale', () => app.getLocale())
 ipcMain.handle('request-notification-permission', async () => {
   if (process.platform === 'darwin') {
