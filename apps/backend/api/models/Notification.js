@@ -1119,7 +1119,7 @@ module.exports = bookshelf.Model.extend({
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

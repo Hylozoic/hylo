@@ -85,6 +85,7 @@ export function runForceGraph (
 
   const defs = svg.append('defs')
 
+  // Standard arrowhead for parent-child relationships
   defs.append('marker')
     .attr('id', 'arrowhead')
     .attr('viewBox', '-0 -5 10 10')
@@ -99,6 +100,20 @@ export function runForceGraph (
     .attr('fill', '#BBB')
     .style('stroke', 'none')
 
+  // Different marker for peer relationships (bidirectional circle)
+  defs.append('marker')
+    .attr('id', 'peer-marker')
+    .attr('viewBox', '-6 -6 12 12')
+    .attr('refX', 0)
+    .attr('refY', 0)
+    .attr('markerWidth', 8)
+    .attr('markerHeight', 8)
+    .append('circle')
+    .attr('r', 3)
+    .attr('fill', '#10B981')
+    .style('stroke', '#065F46')
+    .style('stroke-width', 1)
+
   defs.append('clipPath')
     .attr('id', 'group-avatar-clip')
     .append('circle')
@@ -108,13 +123,14 @@ export function runForceGraph (
 
   const link = svg
     .append('g')
-    .attr('stroke', '#BBB')
-    .attr('stroke-opacity', 0.5)
     .selectAll('polyline')
     .data(links)
     .join('polyline')
-    .attr('stroke-width', 2)
-    .attr('marker-mid', 'url(#arrowhead)')
+    .attr('stroke', d => d.type === 'peer' ? '#10B981' : '#BBB')
+    .attr('stroke-opacity', d => d.type === 'peer' ? 0.8 : 0.5)
+    .attr('stroke-width', d => d.type === 'peer' ? 3 : 2)
+    .attr('stroke-dasharray', d => d.type === 'peer' ? '5,5' : 'none')
+    .attr('marker-mid', d => d.type === 'peer' ? 'url(#peer-marker)' : 'url(#arrowhead)')
 
   const images = svg.append('g')
     .selectAll('circle')

@@ -24,6 +24,7 @@ export function acceptGroupRelationshipInvite (groupRelationshipInviteId) {
             parentGroup {
               id
             }
+            relationshipType
           }
         }
       }`,

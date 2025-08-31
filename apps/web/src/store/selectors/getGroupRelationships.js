@@ -74,6 +74,22 @@ export const getGroupRequestsToJoinThem = ormCreateSelector(
   }
 )
 
+export const getPeerGroupInvitesToUs = ormCreateSelector(
+  orm,
+  getGroupInvitesTo,
+  (session, invites) => {
+    return invites.filter(i => i.type === GROUP_RELATIONSHIP_TYPE.PeerToPeer)
+  }
+)
+
+export const getPeerGroupInvitesFromUs = ormCreateSelector(
+  orm,
+  getGroupInvitesFrom,
+  (session, invites) => {
+    return invites.filter(i => i.type === GROUP_RELATIONSHIP_TYPE.PeerToPeer)
+  }
+)
+
 export const getCurrentlyRelatedGroupIds = ormCreateSelector(
   orm,
   getParentGroups,

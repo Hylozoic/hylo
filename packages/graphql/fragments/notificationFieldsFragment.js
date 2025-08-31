@@ -29,6 +29,11 @@ export default gql`
         name
         slug
       }
+      otherGroup {
+        id
+        name
+        slug
+      }
       track {
         id
         name

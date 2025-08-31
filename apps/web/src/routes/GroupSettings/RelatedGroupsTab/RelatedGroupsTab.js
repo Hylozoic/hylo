@@ -29,6 +29,8 @@ import {
   getGroupInvitesToJoinUs,
   getParentGroups,
   getPeerGroups,
+  getPeerGroupInvitesToUs,
+  getPeerGroupInvitesFromUs,
   getGroupRequestsToJoinThem,
   getGroupRequestsToJoinUs
 } from 'store/selectors/getGroupRelationships'
@@ -53,6 +55,8 @@ function RelatedGroupsTab () {
   const groupRequestsToJoinUs = useMemo(() => _groupRequestsToJoinUs.map(i => presentGroupRelationshipInvite(i)), [_groupRequestsToJoinUs])
   const groupInvitesToJoinThem = useSelector(state => getGroupInvitesToJoinThem(state, group))
   const groupRequestsToJoinThem = useSelector(state => getGroupRequestsToJoinThem(state, group))
+  const peerGroupInvitesToUs = useSelector(state => getPeerGroupInvitesToUs(state, group))
+  const peerGroupInvitesFromUs = useSelector(state => getPeerGroupInvitesFromUs(state, group))
 
   const [showInviteAsChildPicker, setShowInviteAsChildPicker] = useState(false)
   const [showInviteAsPeerPicker, setShowInviteAsPeerPicker] = useState(false)
@@ -425,6 +429,50 @@ function RelatedGroupsTab () {
           </div>
           )
         : <div className='text-foreground/70 text-sm'>{t('{{group.name}} has no peer groups yet. Peer group relationships allow groups to define their relationships outside of a hierarchical structure.', { group })}</div>}
+
+      {peerGroupInvitesToUs.length > 0 && (
+        <div className='mt-8'>
+          <div className='text-2xl font-bold text-foreground mb-4'>{t('Peer Group Invitations')}</div>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Groups that want to form a peer relationship with {{group.name}}', { group })}</div>
+          <div className='flex flex-col gap-4'>
+            {peerGroupInvitesToUs.map(invite => {
+              return (
+                <GroupCard
+                  group={invite.fromGroup}
+                  key={invite.id}
+                  actionMenu={(
+                    <div className='flex items-center gap-2'>
+                      <button onClick={() => dispatch(rejectGroupRelationshipInvite(invite.id))} className='text-red-500 hover:text-red-600'><Icon name='Ex' /></button>
+                      <button onClick={() => dispatch(acceptGroupRelationshipInvite(invite.id))} className='flex items-center gap-1 text-green-500 hover:text-green-600'><Icon name='Heart' /> <span>{t('Accept')}</span></button>
+                    </div>
+                  )}
+                  type={GROUP_RELATIONSHIP_TYPE.PeerToPeer}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {peerGroupInvitesFromUs.length > 0 && (
+        <div className='mt-8'>
+          <div className='text-2xl font-bold text-foreground mb-4'>{t('Pending Peer Group Invitations')}</div>
+          <div className='text-foreground/70 text-sm mb-4'>{t('Peer relationship invitations sent by {{group.name}}', { group })}</div>
+          <div className='flex flex-col gap-4'>
+            {peerGroupInvitesFromUs.map(invite => {
+              return (
+                <GroupCard
+                  group={invite.toGroup}
+                  key={invite.id}
+                  actionMenu={(
+                    <Button variant='outline' onClick={() => dispatch(cancelGroupRelationshipInvite(invite.id))} className='text-accent border-accent/20 hover:border-accent/100'>{t('Cancel Invite')}</Button>
+                  )}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {showRequestToJoinModalForGroup && (
         <RequestToJoinModal

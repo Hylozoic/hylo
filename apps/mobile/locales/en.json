@@ -494,6 +494,18 @@
   "wrote": "wrote:",
   "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}": "{{childGroupsLength}} Group(s) are a part of {{currentGroupName}}",
   "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)": "{{currentGroupName}} is a part of {{parentGroupsLength}} Group(s)",
+  "{{currentGroupName}} is connected to {{peerGroupsLength}} peer Group(s)": "{{currentGroupName}} is connected to {{peerGroupsLength}} peer Group(s)",
+  "{{name}} invited your group to join {{groupName}}": "{{name}} invited your group to join {{groupName}}",
+  "Group Invitation": "Group Invitation",
+  "{{name}} accepted your invitation": "{{name}} accepted your invitation",
+  "Group Joined": "Group Joined",
+  "{{name}} requested to join {{groupName}}": "{{name}} requested to join {{groupName}}",
+  "Group Join Request": "Group Join Request",
+  "{{name}} accepted your request": "{{name}} accepted your request",
+  "{{name}} invited your group to form a peer relationship with {{groupName}}": "{{name}} invited your group to form a peer relationship with {{groupName}}",
+  "Peer Group Invitation": "Peer Group Invitation",
+  "{{name}} accepted your peer group invitation": "{{name}} accepted your peer group invitation",
+  "Peer Groups Connected": "Peer Groups Connected",
   "{{name}} joined your group": "{{name}} joined your group",
   "{{numPeopleEnrolled}} people enrolled": "{{numPeopleEnrolled}} people enrolled"
 }
