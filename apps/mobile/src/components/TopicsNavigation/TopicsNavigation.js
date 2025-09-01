@@ -1,10 +1,14 @@
+import React from 'react'
 import { Text, View, TouchableOpacity } from 'react-native'
+import { useTranslation } from 'react-i18next'
+import { useCurrentGroup } from '@hylo/hooks/useCurrentGroup'
+import { useCurrentUser } from '@hylo/hooks/useCurrentUser'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading/Loading'
 import useEnsureGroupTopics from 'hooks/useEnsureGroupTopics'
 import useGoToTopic from 'hooks/useGoToTopic'
-import { rhino05, slateGrey80 } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function TopicsNavigation ({ group }) {
   const { pending, topics } = useEnsureGroupTopics({ groupId: group?.id, groupSlug: group?.slug })
@@ -42,15 +46,15 @@ const TopicItem = ({ label, iconName, onPress, topic }) => (
 
 const styles = {
   topicItemLabel: {
-    color: rhino05,
+    color: Colors.foreground05,
     fontSize: 16
   },
   topicItemIcon: {
-    color: rhino05,
+    color: Colors.foreground05,
     fontSize: 16
   },
   topicItem: {
-    color: slateGrey80,
+    color: Colors.mutedForeground,
     flexDirection: 'row',
     alignItems: 'center',
     paddingBottom: 8,

@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native'
-import { nevada, ghost, rhino50, rhino30, caribbeanGreen, rhino60 } from '@hylo/presenters/colors'
 import headerStyles from '../MemberHeader.styles.js'
+import Colors from '../../../style/theme-colors'
 
 const screenMargin = 16
 
@@ -15,7 +15,7 @@ export default {
     position: 'relative'
   },
   sectionLabel: {
-    color: rhino60,
+    color: Colors.foreground60,
     fontSize: 14,
     marginTop: 10,
     marginBottom: 8
@@ -25,7 +25,7 @@ export default {
     // marginBottom: 10
   },
   bio: {
-    color: nevada,
+    color: Colors.foreground,
     fontFamily: 'Circular-Book',
     fontSize: 16,
     marginBottom: 10
@@ -45,9 +45,9 @@ export default {
     height: 24,
     fontFamily: 'Circular-Book',
     fontSize: 10,
-    color: rhino50,
+    color: Colors.foreground50,
     borderWidth: 1,
-    borderColor: ghost,
+    borderColor: Colors.primary,
     lineHeight: 22,
     textAlignVertical: 'top',
     textAlign: 'center'
@@ -57,44 +57,44 @@ export default {
   groupRow: {
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: rhino60,
+    borderTopColor: Colors.foreground60,
     flexDirection: 'row',
     alignItems: 'center'
   },
   groupName: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontSize: 16,
     fontFamily: 'Circular-Book',
     letterSpacing: 0.22
   },
   affiliationRole: {
     fontWeight: 'bold',
-    color: nevada
+    color: Colors.foreground
   },
   affiliationPreposition: {
-    color: nevada
+    color: Colors.foreground
   },
   affiliationOrgName: {
     fontWeight: 'bold',
-    color: nevada
+    color: Colors.foreground
   },
   affiliationOrgNameLink: {
-    color: caribbeanGreen
+    color: Colors.selected
   },
   starIcon: {
     alignSelf: 'center',
-    color: caribbeanGreen,
+    color: Colors.selected,
     marginLeft: 5
   },
   memberCount: {
     marginLeft: 'auto',
-    color: rhino50,
+    color: Colors.foreground50,
     fontSize: 16,
     marginRight: 3
   },
   memberIcon: {
     fontSize: 16,
-    color: rhino30
+    color: Colors.foreground30
   },
   editIcon: {
     ...headerStyles.editIcon,

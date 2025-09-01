@@ -30,7 +30,7 @@ import PostEditor from 'screens/PostEditor'
 import NotificationsList from 'screens/NotificationsList'
 import Thread from 'screens/Thread'
 import UploadAction from 'screens/UploadAction'
-import { twBackground } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
 
 const AuthRoot = createStackNavigator()
@@ -123,7 +123,7 @@ export default function AuthRootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: twBackground }
+      cardStyle: { backgroundColor: Colors.background20 }
     }
   }
 

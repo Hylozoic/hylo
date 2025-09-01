@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native'
-import { persimmon } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default StyleSheet.create({
   badge: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     height: 20,
     width: 20,
     borderRadius: 100,

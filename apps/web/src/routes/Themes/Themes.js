@@ -136,6 +136,472 @@ function ThemeColumn ({ title, isDark = false }) {
             </div>
           </div>
         </div>
+
+        {/* Mobile Color Migration Guide */}
+        {!isDark && (
+          <div className='mb-6'>
+            <h3 className='text-lg font-semibold mb-3'>Mobile Color Migration</h3>
+            <p className='text-sm text-muted-foreground mb-3'>
+              Colors currently used in mobile app → Suggested theme replacements
+            </p>
+
+            <div className='space-y-3'>
+            {/* High Priority - Most Used */}
+            <div className='p-3 bg-destructive/10 rounded border border-destructive/20'>
+              <div className='text-xs font-medium text-destructive mb-2'>🔥 High Priority (20+ files)</div>
+              <div className='grid grid-cols-2 gap-3 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#F4F4F2] border border-border' title='#F4F4F2' />
+                  <span>twBackground</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-background border border-border' title='background' />
+                  <span>→ background</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Rhino Variants - Very Common */}
+            <div className='p-3 bg-accent/10 rounded border border-accent/20'>
+              <div className='text-xs font-medium text-accent mb-2'>🦏 Rhino Variants (15+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#2C4059] border border-border' title='#2C4059' />
+                  <span>rhino</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-2 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#1A2435] border border-border' title='rhino80' />
+                  <span>rhino80</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground80</span>
+                </div>
+              </div>
+              <div className='text-xs text-muted-foreground mt-2'>
+                <strong>NEW:</strong> Use transparency variants like Colors.foreground80, Colors.foreground30, etc.
+                <br />
+                rhino05 → Colors.foreground05, rhino10 → Colors.foreground10, rhino30 → Colors.foreground30
+              </div>
+            </div>
+
+            {/* Caribbean Green Family */}
+            <div className='p-3 bg-accent/10 rounded border border-accent/20'>
+              <div className='text-xs font-medium text-accent mb-2'>🌿 Caribbean Green (10+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#0DC39F] border border-border' title='#0DC39F' />
+                  <span>caribbeanGreen</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-selected border border-border' title='selected' />
+                  <span>→ selected</span>
+                </div>
+              </div>
+              <div className='text-xs text-muted-foreground mt-2'>
+                white*onCaribbeanGreen → accent variants, black10OnCaribbeanGreen → accent/10
+              </div>
+            </div>
+
+            {/* Cape Cod Variants */}
+            <div className='p-3 bg-muted/10 rounded border border-muted/20'>
+              <div className='text-xs font-medium text-muted-foreground mb-2'>🏗️ Cape Cod Variants (8+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#363D3C] border border-border' title='#363D3C' />
+                  <span>capeCod</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground</span>
+                </div>
+              </div>
+              <div className='text-xs text-muted-foreground mt-2'>
+                capeCod05-40 → muted/background variants
+              </div>
+            </div>
+
+            {/* Athens Gray Family */}
+            <div className='p-3 bg-muted/10 rounded border border-muted/20'>
+              <div className='text-xs font-medium text-muted-foreground mb-2'>⚪ Athens Gray (6+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FAFBFC] border border-border' title='#FAFBFC' />
+                  <span>athensGray</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted border border-border' title='muted' />
+                  <span>→ muted</span>
+                </div>
+              </div>
+              <div className='text-xs text-muted-foreground mt-2'>
+                athensGrayDark/Medium → muted variants
+              </div>
+            </div>
+
+            {/* Error/Destructive Colors */}
+            <div className='p-3 bg-destructive/10 rounded border border-destructive/20'>
+              <div className='text-xs font-medium text-destructive mb-2'>⚠️ Error Colors (6+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#EE4266] border border-border' title='#EE4266' />
+                  <span>amaranth</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-destructive border border-border' title='destructive' />
+                  <span>→ destructive</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-2 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FE6848] border border-border' title='#FE6848' />
+                  <span>persimmon</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-accent border border-border' title='accent' />
+                  <span>→ accent</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation Colors */}
+            <div className='p-3 bg-primary/10 rounded border border-primary/20'>
+              <div className='text-xs font-medium text-primary mb-2'>🧭 Navigation Colors (5+ files)</div>
+              <div className='grid grid-cols-2 gap-2 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#818A88] border border-border' title='#818A88' />
+                  <span>gunsmoke</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-2 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#DCDCDC] border border-border' title='#DCDCDC' />
+                  <span>gainsboro</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-primary border border-border' title='primary' />
+                  <span>→ primary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-2 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#0DC39F] border border-border' title='#0DC39F' />
+                  <span>black10OnCaribbeanGreen</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-selected border border-border' title='selected' />
+                  <span>→ selected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Reference */}
+            <div className='p-3 bg-border/10 rounded border border-border'>
+              <div className='text-xs font-medium mb-2'>📋 Quick Reference</div>
+              <div className='grid grid-cols-2 gap-3 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FFFFFF] border border-border' title='#FFFFFF' />
+                  <span>white</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted border border-border' title='muted' />
+                  <span>→ muted</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#000000] border border-border' title='#000000' />
+                  <span>black</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-black border border-border' title='black' />
+                  <span>→ black</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#CCD1D7] border border-border' title='#CCD1D7' />
+                  <span>ghost</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted border border-border' title='muted' />
+                  <span>→ muted</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#F8F8F8] border border-border' title='#F8F8F8' />
+                  <span>alabaster</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-background border border-border' title='background' />
+                  <span>→ background</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FF9D21] border border-border' title='#FF9D21' />
+                  <span>treePoppy</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-accent border border-border' title='accent' />
+                  <span>→ accent</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FDD549] border border-border' title='#FDD549' />
+                  <span>mangoYellow</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-accent border border-border' title='accent' />
+                  <span>→ accent</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#41A1DC] border border-border' title='#41A1DC' />
+                  <span>havelockBlue</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-secondary border border-border' title='secondary' />
+                  <span>→ secondary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#40A1DD] border border-border' title='#40A1DD' />
+                  <span>pictonBlue</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-secondary border border-border' title='secondary' />
+                  <span>→ secondary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#9883E5] border border-border' title='#9883E5' />
+                  <span>mediumPurple</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-secondary border border-border' title='secondary' />
+                  <span>→ secondary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#664BA5] border border-border' title='#664BA5' />
+                  <span>butterflyBush</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-secondary border border-border' title='secondary' />
+                  <span>→ secondary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#8490a1] border border-border' title='#8490a1' />
+                  <span>slateGrey80</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#808C9B] border border-border' title='#808C9B' />
+                  <span>regent</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stray Hex Codes Found */}
+            <div className='p-3 bg-destructive/10 rounded border border-destructive/20'>
+              <div className='text-xs font-medium text-destructive mb-2'>🚨 Stray Hex Codes Found (Need Migration)</div>
+              <div className='grid grid-cols-2 gap-3 text-xs'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#8C9DAE] border border-border' title='#8C9DAE' />
+                  <span>#8C9DAE</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#2F3D4C] border border-border' title='#2F3D4C' />
+                  <span>#2F3D4C</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#5F6C7D] border border-border' title='#5F6C7D' />
+                  <span>#5F6C7D</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#00BF8F] border border-border' title='#00BF8F' />
+                  <span>#00BF8F</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-selected border border-border' title='selected' />
+                  <span>→ selected</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#ED5653] border border-border' title='#ED5653' />
+                  <span>#ED5653</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-destructive border border-border' title='destructive' />
+                  <span>→ destructive</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#2C405A] border border-border' title='#2C405A' />
+                  <span>#2C405A</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#CCD1D7] border border-border' title='#CCD1D7' />
+                  <span>#CCD1D7</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#0DC39F] border border-border' title='#0DC39F' />
+                  <span>#0DC39F</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-selected border border-border' title='selected' />
+                  <span>→ selected</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#0074D8] border border-border' title='#0074D8' />
+                  <span>#0074D8</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-secondary border border-border' title='secondary' />
+                  <span>→ secondary</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#EE4266] border border-border' title='#EE4266' />
+                  <span>#EE4266</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-destructive border border-border' title='destructive' />
+                  <span>→ destructive</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#33D089] border border-border' title='#33D089' />
+                  <span>#33D089</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-selected border border-border' title='selected' />
+                  <span>→ selected</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#ccc] border border-border' title='#ccc' />
+                  <span>#ccc</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#FFF] border border-border' title='#FFF' />
+                  <span>#FFF</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted border border-border' title='muted' />
+                  <span>→ muted</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#666] border border-border' title='#666' />
+                  <span>#666</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#5D757A] border border-border' title='#5D757A' />
+                  <span>#5D757A</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-muted-foreground border border-border' title='muted-foreground' />
+                  <span>→ muted-foreground</span>
+                </div>
+              </div>
+              <div className='grid grid-cols-2 gap-3 text-xs mt-2'>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-[#363D3C] border border-border' title='#363D3C' />
+                  <span>#363D3C</span>
+                </div>
+                <div className='flex items-center space-x-2'>
+                  <div className='w-6 h-6 rounded bg-foreground border border-border' title='foreground' />
+                  <span>→ foreground</span>
+                </div>
+              </div>
+              <div className='text-xs text-muted-foreground mt-2'>
+                <strong>Note:</strong> These hex codes were found scattered throughout the mobile codebase and need to be migrated to semantic colors.
+                <br />
+                <strong>Common patterns:</strong> #ccc → muted-foreground, #FFF → muted, #666 → muted-foreground
+              </div>
+            </div>
+          </div>
+        </div>
+        )}
       </div>
     </div>
   )

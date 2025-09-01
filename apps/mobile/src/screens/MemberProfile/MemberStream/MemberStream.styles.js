@@ -1,9 +1,9 @@
-import { rhino, rhino50, twBackground } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 const screenMargin = 16
 
 const option = {
-  color: rhino50,
+  color: Colors.foreground50,
   fontSize: 15,
   paddingVertical: 10,
   paddingHorizontal: 15
@@ -26,8 +26,8 @@ export default {
   option,
   chosenOption: {
     ...option,
-    color: rhino,
-    backgroundColor: twBackground,
+    color: Colors.foreground,
+    backgroundColor: Colors.background20,
     fontFamily: 'Circular-Bold'
   },
   contentRow: {

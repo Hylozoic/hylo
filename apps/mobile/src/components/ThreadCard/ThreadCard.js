@@ -4,7 +4,8 @@ import { filter, get, map, find, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import { useTranslation } from 'react-i18next'
-import { rhino30, limedSpruce, nevada, rhino60, rhino, rhino10, persimmon, twBackground } from '@hylo/presenters/colors'
+import { limedSpruce, nevada } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const MAX_THREAD_PREVIEW_LENGTH = 55
 
@@ -88,12 +89,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 8,
-    backgroundColor: twBackground, // flag-messages-background-color
+    backgroundColor: Colors.background20, // flag-messages-background-color
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: rhino30
+    borderColor: Colors.foreground30
   },
   lastCard: {
-    borderColor: '#FFF'
+    borderColor: Colors.muted
   },
   messageContent: {
     flex: 1,
@@ -114,11 +115,11 @@ const styles = StyleSheet.create({
   },
   date: {
     fontFamily: 'Circular-Book',
-    color: rhino60,
+    color: Colors.foreground60,
     fontSize: 12
   },
   badge: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     marginRight: 10,
     height: 26,
     width: 26,
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     marginRight: 3
   },
   count: {
-    backgroundColor: rhino,
+    backgroundColor: Colors.foreground,
     borderRadius: 100,
     height: 34,
     width: 34,
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   countText: {
-    color: rhino10, // flag-messages-background-color
+    color: Colors.foreground10, // flag-messages-background-color
     textAlign: 'center',
     fontFamily: 'Circular-Bold',
     overflow: 'hidden',

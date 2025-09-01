@@ -1,6 +1,8 @@
-import { TouchableOpacity, StyleSheet } from 'react-native'
+import React from 'react'
+import { View, StyleSheet, TouchableOpacity } from 'react-native'
 import { X } from 'lucide-react-native'
-import { suvaGrey, white } from '@hylo/presenters/colors'
+import { suvaGrey } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function ModalHeaderTransparent ({ navigation, ...params }) {
   return {
@@ -20,7 +22,7 @@ export default function ModalHeaderTransparent ({ navigation, ...params }) {
 const styles = StyleSheet.create({
   iconBackground: {
     width: 30,
-    backgroundColor: white,
+    backgroundColor: Colors.muted,
     opacity: 0.8,
     height: 30,
     borderRadius: 30 / 2,

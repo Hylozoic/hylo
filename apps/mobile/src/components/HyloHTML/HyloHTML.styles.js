@@ -1,4 +1,5 @@
-import { nevada, rhino, white80 } from '@hylo/presenters'
+import { nevada, white80 } from '@hylo/presenters'
+import Colors from '../../style/theme-colors'
 
 export const baseStyle = {
   color: nevada,
@@ -58,7 +59,7 @@ export const tagsStyles = {
     marginBottom: '0.8em'
   },
   a: {
-    color: '#0275d8',
+    color: Colors.secondary,
     textDecorationLine: 'none'
   },
   ul: {
@@ -72,7 +73,7 @@ export const tagsStyles = {
   },
   code: {
     color: white80,
-    backgroundColor: rhino,
+    backgroundColor: Colors.foreground,
     fontSize: 12
   },
   pre: {
@@ -80,7 +81,7 @@ export const tagsStyles = {
     display: 'block',
     overflow: 'scroll',
     fontSize: 12,
-    backgroundColor: rhino,
+    backgroundColor: Colors.foreground,
     padding: 12,
     marginTop: 0,
     marginBottom: 0
@@ -89,17 +90,17 @@ export const tagsStyles = {
 
 export const classesStyles = {
   'hylo-link': {
-    color: '#0DC39F'
+    color: Colors.selected
   },
   mention: {
-    color: '#0DC39F',
+    color: Colors.selected,
     textDecorationLine: 'none'
   },
   'mention-current-user': {
-    color: '#FFB949'
+    color: Colors.accent
   },
   topic: {
-    color: '#0DC39F',
+    color: Colors.selected,
     textDecorationLine: 'none'
   }
 }

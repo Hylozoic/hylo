@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native'
-import { rhino40, caribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 export default StyleSheet.create({
   topicRow: {
@@ -8,14 +8,14 @@ export default StyleSheet.create({
     flexDirection: 'column'
   },
   hashtag: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book',
     fontSize: 18,
     fontStyle: 'italic',
     paddingRight: 2
   },
   topicName: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontFamily: 'Circular-Book',
     fontSize: 18
   },
@@ -30,11 +30,11 @@ export default StyleSheet.create({
     paddingTop: 7
   },
   detailIcon: {
-    color: rhino40,
+    color: Colors.foreground40,
     marginRight: 5
   },
   detailText: {
-    color: rhino40,
+    color: Colors.foreground40,
     fontFamily: 'Circular-Book',
     fontSize: 16,
     marginRight: 10

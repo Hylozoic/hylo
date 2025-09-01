@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import CheckBox from '@react-native-community/checkbox'
 import PropTypes from 'prop-types'
+import Colors from '../../style/theme-colors'
 
 // TODO: Consider adopting ItemSelector to replace this component's use
 const MultiSelect = ({ items, selected = [], hideAfter, handleSelect }) => {
@@ -67,17 +68,20 @@ const styles = StyleSheet.create({
   multiSelect: {},
   item: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.mutedForeground,
     marginVertical: 5,
     padding: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     overflow: 'hidden',
-    flex: 1
+    flex: 1,
+    backgroundColor: Colors.muted
   },
   itemText: {
-    fontSize: 14
+    fontSize: 16,
+    color: Colors.selected,
+    fontFamily: 'Circular-Book'
   },
   selectedItem: {
     backgroundColor: '#f0f0f0'
@@ -85,11 +89,11 @@ const styles = StyleSheet.create({
   showMore: {
     alignItems: 'center',
     borderTopWidth: 2,
-    borderTopColor: '#ccc',
+    borderTopColor: Colors.mutedForeground,
     borderStyle: 'dashed'
   },
   showMoreText: {
-    color: '#1abc9c'
+    color: Colors.selected
   }
 })
 

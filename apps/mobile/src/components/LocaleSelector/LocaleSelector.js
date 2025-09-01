@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
 
 const LocaleSelector = ({ small, dark }) => {
@@ -27,7 +27,7 @@ const LocaleSelector = ({ small, dark }) => {
   const styles = StyleSheet.create({
     container: {
       padding: 4,
-      backgroundColor: dark ? null : white80onCaribbeanGreen,
+      backgroundColor: dark ? null : Colors.selected20,
       borderRadius: 4,
       alignItems: 'center'
     },
@@ -36,13 +36,13 @@ const LocaleSelector = ({ small, dark }) => {
       borderRadius: 5,
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: dark ? null : '#ccc',
-      backgroundColor: dark ? '#aaa' : '#fff',
+      borderColor: dark ? null : Colors.mutedForeground,
+      backgroundColor: dark ? Colors.mutedForeground : Colors.muted,
       width: '100%'
     },
     selectorButtonText: {
       fontSize: 12,
-      color: dark ? 'white' : '#333'
+      color: dark ? 'white' : Colors.foreground
     },
     dropdown: {
       marginTop: 10,
@@ -50,24 +50,25 @@ const LocaleSelector = ({ small, dark }) => {
       top: 12,
       position: 'absolute',
       width: '100%',
-      backgroundColor: '#fff',
+      backgroundColor: Colors.muted,
       borderRadius: 5,
       borderWidth: 1,
-      borderColor: '#ccc'
+      borderColor: Colors.mutedForeground
     },
     optionButton: {
       padding: 12,
       alignItems: 'center',
       borderBottomWidth: 1,
-      borderBottomColor: '#ccc'
+      borderBottomColor: Colors.mutedForeground,
+      backgroundColor: Colors.muted
     },
     selectedOption: {
-      backgroundColor: '#007bff',
-      borderColor: '#007bff'
+      backgroundColor: Colors.secondary,
+      borderColor: Colors.secondary
     },
     optionText: {
       fontSize: 16,
-      color: '#333'
+      color: Colors.foreground
     },
     selectedOptionText: {
       color: 'white'

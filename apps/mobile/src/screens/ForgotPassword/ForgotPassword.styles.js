@@ -1,5 +1,5 @@
-import { Dimensions, StyleSheet } from 'react-native'
-import { caribbeanGreen, rhino, rhino80 } from '@hylo/presenters/colors'
+import { StyleSheet, Dimensions } from 'react-native'
+import Colors from '../../style/theme-colors'
 import { isIOS } from 'util/platform'
 
 const screenHeight = Dimensions.get('window').height
@@ -26,9 +26,9 @@ const mixins = {
     borderStyle: 'solid',
     borderRightWidth: 15,
     borderLeftWidth: 15,
-    borderTopColor: '#EE4266',
+    borderTopColor: Colors.destructive,
     borderRightColor: 'transparent',
-    borderBottomColor: '#EE4266',
+    borderBottomColor: Colors.destructive,
     borderLeftColor: 'transparent',
     paddingBottom: -10,
     marginTop: 12,
@@ -55,14 +55,14 @@ export default {
   },
   title: {
     fontSize: 24,
-    color: caribbeanGreen,
+    color: Colors.selected,
     marginBottom: 20 * smallScreenFudge,
     fontFamily: 'Circular-Bold'
   },
   messageText: {
     fontFamily: 'Circular-Book',
     fontSize: 16,
-    color: rhino,
+    color: Colors.foreground,
     textAlign: 'left'
   },
   iconOpaque: {
@@ -71,7 +71,7 @@ export default {
   },
   iconGreen: {
     ...mixins.icon,
-    color: caribbeanGreen
+    color: Colors.selected
   },
   forgotPassword: {
     backgroundColor: 'white',
@@ -107,7 +107,7 @@ export default {
   forgotPasswordButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: caribbeanGreen,
+    backgroundColor: Colors.selected,
     height: 36,
     borderRadius: 50,
     justifyContent: 'center'
@@ -118,7 +118,7 @@ export default {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 5,
     minHeight: 40,
-    borderColor: caribbeanGreen
+    borderColor: Colors.selected
   },
   leftInputView: {
     height: 40,
@@ -133,7 +133,7 @@ export default {
     alignSelf: 'stretch',
     marginLeft: 5,
     marginRight: 5,
-    backgroundColor: '#EE4266',
+    backgroundColor: Colors.destructive,
     padding: 10,
     marginBottom: 3,
     marginTop: -21,
@@ -145,11 +145,11 @@ export default {
   },
   errorBanner: {
     ...mixins.banner,
-    backgroundColor: '#EE4266'
+    backgroundColor: Colors.destructive
   },
   banner: {
     ...mixins.banner,
-    backgroundColor: '#33D089'
+    backgroundColor: Colors.selected
   },
   textInput: {
     height: 38,
@@ -158,7 +158,7 @@ export default {
   labelText: {
     fontFamily: 'Circular-Book',
     textAlign: 'left',
-    color: rhino80,
+    color: Colors.foreground80,
     flex: 1
   },
   rightIconView: {

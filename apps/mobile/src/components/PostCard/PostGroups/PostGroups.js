@@ -6,7 +6,7 @@ import useStaticContexts from '@hylo/hooks/useStaticContexts'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
-import { caribbeanGreen, rhino40 } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 export default function PostGroups ({
   groups: providedGroups,
@@ -89,17 +89,17 @@ const styles = {
     justifyContent: 'flex-start'
   },
   linkText: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontSize: 12,
     fontFamily: 'Circular-Book'
   },
   arrowIcon: {
-    color: rhino40,
+    color: Colors.foreground40,
     marginLeft: 7,
     fontSize: 16
   },
   reminderText: {
-    color: rhino40,
+    color: Colors.foreground40,
     fontSize: 12,
     fontFamily: 'Circular-Book'
   }

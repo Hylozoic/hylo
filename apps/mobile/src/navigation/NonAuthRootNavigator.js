@@ -7,7 +7,7 @@ import ModalHeader from 'navigation/headers/ModalHeader'
 import Login from 'screens/Login'
 import ForgotPassword from 'screens/ForgotPassword'
 import SignupNavigator from 'navigation/SignupNavigator'
-import { white } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const NonAuthRoot = createStackNavigator()
 export default function NonAuthRootNavigator () {
@@ -27,7 +27,7 @@ export default function NonAuthRootNavigator () {
 
   const navigatorProps = {
     screenOptions: {
-      cardStyle: { backgroundColor: white },
+      cardStyle: { backgroundColor: Colors.muted },
       headerShown: false,
       header: headerProps => <ModalHeader {...headerProps} />
     }

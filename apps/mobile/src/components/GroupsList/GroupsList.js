@@ -1,9 +1,9 @@
 import React from 'react'
 import { chunk } from 'lodash/fp'
-import { TouchableOpacity, Text, View } from 'react-native'
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native'
 import FastImage from 'react-native-fast-image'
 import { DEFAULT_AVATAR } from '@hylo/presenters/GroupPresenter'
-import { caribbeanGreen } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function GroupsList ({
   groups = [],
@@ -53,7 +53,7 @@ const styles = {
     paddingVertical: 8
   },
   linkText: {
-    color: caribbeanGreen,
+    color: Colors.selected,
     fontSize: 14,
     paddingRight: 10,
     fontFamily: 'Circular-Book'

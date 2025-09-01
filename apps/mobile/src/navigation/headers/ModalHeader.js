@@ -6,7 +6,7 @@ import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import useRouteParams from 'hooks/useRouteParams'
 import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
-import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function ModalHeader ({
   navigation,
@@ -26,7 +26,7 @@ export default function ModalHeader ({
   headerRightButtonStyle,
   headerTransparent = false,
   statusBarOptions = {
-    backgroundColor: rhino05,
+    backgroundColor: Colors.foreground05,
     barStyle: 'dark-content'
   },
   ...otherProps
@@ -53,18 +53,18 @@ export default function ModalHeader ({
   })()
 
   const headerLeftCloseIcon = options.headerLeftCloseIcon ?? providedHeaderLeftCloseIcon
-  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || black10onRhino
-  const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || rhino
+  const headerTitleStyleColor = otherProps.headerTitleStyle?.color || options.headerTitleStyle?.color || Colors.foreground10
+  const headerLeftStyleColor = options?.headerLeftStyle?.color || headerLeftStyle?.color || Colors.foreground
   const props = {
     headerTransparent: typeof options.headerTransparent !== 'undefined' ? options.headerTransparent : headerTransparent,
     headerStatusBarHeight: options.headerStatusBarHeight ?? (options.presentation ? 0 : undefined),
     headerStyle: {
-      backgroundColor: rhino10,
+      backgroundColor: Colors.foreground10,
       ...options.headerStyle
     },
     headerTitle: options.headerTitle,
     title: getHeaderTitle(options, route.name),
-    headerTintColor: rhino80,
+    headerTintColor: Colors.foreground80,
     headerTitleAlign: 'center',
     headerTitleStyle: {
       color: headerTitleStyleColor,
@@ -125,11 +125,11 @@ const styles = StyleSheet.create({
   button: {
     fontFamily: 'Circular-Book',
     fontSize: 17,
-    color: havelockBlue,
+    color: Colors.secondary,
     fontWeight: 'bold'
   },
   disabled: {
-    color: ghost,
+    color: Colors.primary,
     fontWeight: 'normal'
   }
 })

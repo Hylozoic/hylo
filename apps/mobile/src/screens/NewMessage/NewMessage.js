@@ -16,7 +16,8 @@ import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
-import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost, twBackground } from '@hylo/presenters/colors'
+import { pictonBlue } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export const recentContactsQuery = gql`
   query RecentContactsQuery ($first: Int = 20) {
@@ -117,7 +118,7 @@ export default function NewMessage () {
   }, [participantsFetching, recentContactsFetching])
 
   useEffect(() => {
-    navigation.setOptions({ headerLeftStyle: { color: caribbeanGreen } })
+    navigation.setOptions({ headerLeftStyle: { color: Colors.selected } })
   }, [])
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function NewMessage () {
   return (
     <KeyboardFriendlyView style={styles.container}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
-        <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
+        <Text style={{ fontSize: 16, color: Colors.foreground10, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
           <Participant participant={participant} onPress={handleRemoveParticipant} key={index} />
         ))}
@@ -184,7 +185,7 @@ export default function NewMessage () {
             variables: { autocomplete: searchTerm }
           }
         }}
-        colors={{ text: rhino80, border: ghost }}
+        colors={{ text: Colors.foreground80, border: Colors.primary }}
         style={{ paddingHorizontal: 10 }}
         itemsUseQuerySelector={data => data?.people?.items}
       />
@@ -217,9 +218,9 @@ export function Participant ({ participant, onPress }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: twBackground,
-    position: 'relative',
-    flex: 1
+    flex: 1,
+    backgroundColor: Colors.background20,
+    paddingTop: 20
   },
   // participants
   addParticipantButtonWrapper: {
@@ -228,14 +229,14 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   addParticipantButton: {
-    backgroundColor: pictonBlue,
+    backgroundColor: Colors.secondary,
     width: 150,
     fontSize: 14,
     height: 36
   },
   participants: {
     borderTopWidth: isIOS ? 0 : 1,
-    borderTopColor: capeCod20,
+    borderTopColor: Colors.foreground20,
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
   },
   participant: {
     borderWidth: 1,
-    borderColor: capeCod20,
+    borderColor: Colors.foreground20,
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
   participantRemoveIcon: {
     paddingLeft: 5,
     fontSize: 20,
-    color: amaranth,
+    color: Colors.destructive,
     marginRight: 'auto'
   }
 })

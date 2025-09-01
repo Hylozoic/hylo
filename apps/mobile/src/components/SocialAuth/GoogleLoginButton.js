@@ -3,6 +3,8 @@ import Config from 'react-native-config'
 import { useTranslation } from 'react-i18next'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import Button from 'components/Button'
+import { StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 GoogleSignin.configure({
   iosClientId: Config.IOS_GOOGLE_CLIENT_ID,
@@ -36,7 +38,7 @@ export default function GoogleLoginButton ({
     width: 160,
     height: 40,
     borderRadius: 5,
-    backgroundColor: '#dd4b39',
+    backgroundColor: Colors.destructive,
     ...providedStyle,
     icon: {
       fontSize: 16,

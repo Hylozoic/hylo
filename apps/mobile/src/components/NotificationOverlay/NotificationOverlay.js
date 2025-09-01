@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { StyleSheet, Text, TouchableOpacity } from 'react-native'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay } from 'react-native-reanimated'
 import { isEmpty } from 'lodash/fp'
-import { amaranth, persimmon } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 const fontSize = 13
 const lineHeight = 14
@@ -43,7 +43,7 @@ const NotificationOverlay = ({ message, onPress, onComplete, position = 'top', t
 
 const styles = StyleSheet.create({
   message: {
-    backgroundColor: persimmon,
+    backgroundColor: Colors.accent,
     color: 'white',
     fontFamily: 'Circular-Bold',
     fontSize,
@@ -52,10 +52,10 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   error: {
-    backgroundColor: amaranth
+    backgroundColor: Colors.destructive
   },
   info: {
-    backgroundColor: persimmon
+    backgroundColor: Colors.accent
   },
   container: {
     position: 'absolute',

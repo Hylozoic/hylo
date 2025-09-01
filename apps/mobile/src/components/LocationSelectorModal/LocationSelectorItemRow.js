@@ -1,9 +1,10 @@
 import React from 'react'
-import { Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationObject'
 import { PLAIN_TEXT_LOCATION_ID } from './LocationSelectorModal'
 import Icon from 'components/Icon'
-import { rhino80, rhino20, caribbeanGreen, alabaster } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 export default function LocationSelectorItemRow ({ item, onPress, colors = {} }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()
@@ -22,13 +23,13 @@ export default function LocationSelectorItemRow ({ item, onPress, colors = {} })
     <TouchableOpacity style={[styles.locationRow, { borderTopColor: colors?.border }]} onPress={() => selectLocation(item)}>
       {!isGeocoded && (
         <>
-          <Icon name='Back' color={colors?.border || rhino80} style={styles.locationIcon} />
+          <Icon name='Back' color={colors?.border || Colors.foreground80} style={styles.locationIcon} />
           <Text style={[styles.locationText, styles.notGeocodedRow, { color: colors?.text }]}>Use "{item.fullText}" (without mapping)</Text>
         </>
       )}
       {isGeocoded && (
         <>
-          <Icon name='Location' color={caribbeanGreen} style={styles.locationIcon} size={18} />
+          <Icon name='Location' color={Colors.selected} style={styles.locationIcon} size={18} />
           <Text style={[styles.locationText, { color: colors?.text }]}>{item.fullText}</Text>
         </>
       )}
@@ -43,16 +44,16 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'flex-start',
     borderTopWidth: 1,
-    borderTopColor: rhino80
+    borderTopColor: Colors.foreground80
   },
   notGeocodedRow: {
-    color: rhino20
+    color: Colors.foreground20
   },
   locationIcon: {
     marginRight: 10
   },
   locationText: {
-    color: alabaster,
+    color: Colors.muted,
     fontWeight: 'normal',
     fontFamily: 'Circular-Bold',
     flex: 1

@@ -8,7 +8,7 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from '@hylo/presenters/colors'
+import Colors from '../style/theme-colors'
 
 const DummyComponent = () => {}
 
@@ -28,17 +28,16 @@ export default function TabsNavigator () {
       // Set only for Android as it makes undesirable animation in iOS
       tabBarHideOnKeyboard: !isIOS,
       tabBarShowLabel: true,
-      tabBarPressColor: gainsboro,
-      tabBarIndicatorStyle: { backgroundColor: twBackground },
+      tabBarPressColor: Colors.primary,
+      tabBarIndicatorStyle: { backgroundColor: Colors.background20 },
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: twBackground,
-            paddingBottom: 0
+            backgroundColor: Colors.background20
           }
         : {
             display: 'flex',
-            backgroundColor: twBackground,
+            backgroundColor: Colors.background20,
             borderTopWidth: StyleSheet.hairlineWidth,
             paddingBottom: 0
           },
@@ -46,7 +45,7 @@ export default function TabsNavigator () {
         <Icon
           name={route.name.split(' Tab')[0]}
           size={28}
-          color={focused ? black10OnCaribbeanGreen : gunsmoke}
+          color={focused ? Colors.selected : Colors.foreground}
           style={{ paddingTop: isIOS ? 0 : 1, marginBottom: 2 }}
         />
       ),

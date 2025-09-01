@@ -1,4 +1,5 @@
-import { capeCod, rhino, rhino50, ghost } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../style/theme-colors'
 
 export default {
   badgeRow: {
@@ -21,12 +22,12 @@ export default {
     flexDirection: 'row',
     borderWidth: 1,
     padding: 3,
-    borderColor: rhino50,
+    borderColor: Colors.foreground50,
     borderRadius: 32
   },
   searchIcon: {
     marginLeft: 2,
-    color: rhino50,
+    color: Colors.foreground50,
     backgroundColor: 'transparent'
   },
   searchInput: {
@@ -39,14 +40,14 @@ export default {
     flexDirection: 'row'
   },
   sortByText: {
-    color: rhino,
+    color: Colors.foreground,
     fontFamily: 'Circular-Book'
   },
   downArrow: {
     top: 4,
     marginLeft: 4,
     fontSize: 12,
-    color: capeCod
+    color: Colors.foreground
   },
   // Member cells/cards
   cell: {
@@ -55,8 +56,8 @@ export default {
     alignItems: 'center'
   },
   memberCell: {
-    backgroundColor: '#FFF',
-    borderColor: '#EAEBEB',
+    backgroundColor: Colors.muted,
+    borderColor: Colors.mutedForeground,
     borderStyle: 'solid',
     borderWidth: 1,
     borderRadius: 4
@@ -67,7 +68,7 @@ export default {
   memberName: {
     fontSize: 18,
     marginTop: 14,
-    color: rhino,
+    color: Colors.foreground,
     fontFamily: 'Circular-Black',
     textAlign: 'center'
   },
@@ -75,11 +76,11 @@ export default {
     fontFamily: 'Circular-Book',
     fontSize: 14,
     textAlign: 'center',
-    color: ghost
+    color: Colors.primary
   },
   memberBio: {
     fontFamily: 'Circular-Book',
-    color: rhino50,
+    color: Colors.foreground50,
     textAlign: 'center',
     padding: 4
   }

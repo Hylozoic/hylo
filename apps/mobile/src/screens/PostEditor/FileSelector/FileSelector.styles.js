@@ -1,4 +1,5 @@
-import { caribbeanGreen, rhino, treePoppy } from '@hylo/presenters/colors'
+import { StyleSheet } from 'react-native'
+import Colors from '../../../style/theme-colors'
 
 export default {
   addButton: {
@@ -8,7 +9,7 @@ export default {
     fontSize: 24,
     marginLeft: -3,
     marginRight: 1,
-    color: caribbeanGreen
+    color: Colors.selected
   },
   fileLabel: {
     borderRadius: 10,
@@ -17,13 +18,13 @@ export default {
     alignItems: 'center'
   },
   fileLabelText: {
-    color: rhino,
+    color: Colors.foreground,
     fontFamily: 'Circular-Book',
     fontSize: 16
   },
   fileIcon: {
     fontSize: 24,
-    color: treePoppy,
+    color: Colors.accent,
     marginRight: 4
   }
 }

@@ -7,7 +7,8 @@ import LinearGradient from 'react-native-linear-gradient'
 import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { postCardLinearGradientColors, rhino40 } from '@hylo/presenters/colors'
+import { postCardLinearGradientColors } from '@hylo/presenters/colors'
+import Colors from '../../../style/theme-colors'
 
 export default function PostFooter ({
   commenters,
@@ -177,7 +178,7 @@ const styles = {
     alignItems: 'center'
   },
   commentsText: {
-    color: rhino40,
+    color: Colors.foreground40,
     fontSize: 13,
     fontFamily: 'Circular-Book'
   },

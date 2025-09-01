@@ -1,9 +1,10 @@
 import React from 'react'
 import { View } from 'react-native'
 import {
-  rhino80, linkWater
+  linkWater
 } from '@hylo/presenters/colors'
 import Icon from 'components/Icon'
+import Colors from '../../style/theme-colors'
 
 export default function StarIcon ({ style, theme = {} }) {
   return (
@@ -22,7 +23,7 @@ const styles = {
     borderRadius: 100,
     width: 13,
     height: 13,
-    backgroundColor: rhino80,
+    backgroundColor: Colors.foreground80,
     position: 'absolute',
     top: 3,
     right: 4

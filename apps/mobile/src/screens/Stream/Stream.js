@@ -21,7 +21,7 @@ import ListControl from 'components/ListControl'
 import Loading from 'components/Loading'
 import PostRow from './PostRow'
 import StreamHeader from './StreamHeader'
-import { twBackground } from '@hylo/presenters/colors'
+import Colors from '../../style/theme-colors'
 
 /* === CONSTANTS === */
 
@@ -217,7 +217,7 @@ export default function Stream () {
           shadowRadius: 6,
           shadowOpacity: 0.1,
           elevation: 6,
-          backgroundColor: twBackground,
+          backgroundColor: Colors.background20,
           zIndex: 10
         }}
       >
@@ -231,7 +231,7 @@ export default function Stream () {
           postPrompt
         />
         {!streamType && (
-          <View className='flex-row justify-between items-center px-2.5 py-2'>
+          <View className='flex-row justify-between items-center px-2.5 py-2 bg-muted'>
             <ListControl selected={sortBy} onChange={handleSortChange} options={sortOptions} />
             <View className='flex-row items-center gap-2'>
               {![MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG].includes(streamQueryVariables?.context) &&

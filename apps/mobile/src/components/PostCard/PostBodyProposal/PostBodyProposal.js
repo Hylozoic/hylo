@@ -13,6 +13,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from '@hylo/presenters/PostPresenter'
+import Colors from '../../../style/theme-colors'
 
 const calcNumberOfVoters = (votes) => {
   return votes.reduce((acc, vote) => {
@@ -274,23 +275,23 @@ export default function PostBodyProposal ({
 
 const styles = {
   casual: {
-    borderColor: '#0DC39F',
-    color: '#0DC39F'
+    borderColor: Colors.selected,
+    color: Colors.selected
   },
   voting: {
-    borderColor: '#0DC39F',
-    color: '#0DC39F'
+    borderColor: Colors.selected,
+    color: Colors.selected
   },
   completed: {
-    borderColor: '#C0C5CD',
-    color: '#C0C5CD'
+    borderColor: Colors.mutedForeground,
+    color: Colors.mutedForeground
   },
   selected: {
-    backgroundColor: '#0DC39F',
+    backgroundColor: Colors.selected,
     color: 'white'
   },
   highestVote: {
-    backgroundColor: '#0074D8',
+    backgroundColor: Colors.secondary,
     color: 'white'
   },
   people: {
@@ -338,8 +339,8 @@ const styles = {
   },
   proposalOutcome: {
     padding: 6,
-    backgroundColor: '#F2F2F2',
-    color: '#0074D8',
+    backgroundColor: Colors.muted,
+    color: Colors.secondary,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -349,8 +350,8 @@ const styles = {
     borderRadius: 5
   },
   discussion: {
-    borderColor: '#C0C5CD',
-    color: '#C0C5CD'
+    borderColor: Colors.mutedForeground,
+    color: Colors.mutedForeground
   },
   proposalOptionEmoji: {
     fontSize: 24
