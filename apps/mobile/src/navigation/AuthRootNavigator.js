@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { useMutation, useQuery } from 'urql'
@@ -40,6 +41,7 @@ export default function AuthRootNavigator () {
   // to cache-and-network or cache-first (default). It may be fine here, but it is
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
+  const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
@@ -142,7 +144,22 @@ export default function AuthRootNavigator () {
         */}
         <AuthRoot.Screen name='Notifications' component={NotificationsList} />
 
-        <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
+        <AuthRoot.Group screenOptions={{ 
+          presentation: 'modal', 
+          header: ModalHeader,
+          cardStyle: { 
+            backgroundColor: twBackground,
+            // Add safe area insets to the card style
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right
+          },
+          // Let React Navigation handle safe areas naturally
+          cardOverlayEnabled: false,
+          // Ensure proper safe area handling for modals
+          headerStatusBarHeight: undefined
+        }}>
           <AuthRoot.Screen
             name='Creation'
             component={CreationOptions}
