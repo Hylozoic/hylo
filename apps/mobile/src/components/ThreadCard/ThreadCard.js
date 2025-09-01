@@ -75,8 +75,7 @@ export function threadNames (names = []) {
 }
 
 export function ThreadAvatars ({ avatarUrls = [] }) {
-  const validAvatarUrls = avatarUrls.filter(Boolean)
-  const count = validAvatarUrls.length
+  const count = avatarUrls.length
   
   if (count === 0) {
     return (
@@ -89,16 +88,16 @@ export function ThreadAvatars ({ avatarUrls = [] }) {
   return (
     <View style={styles.threadAvatars}>
       {count <= 2 && (
-        <Avatar avatarUrl={validAvatarUrls[0]} style={styles.firstThreadAvatar} />
+        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
       )}
       {count === 2 && (
-        <Avatar avatarUrl={validAvatarUrls[1]} style={styles.restThreadAvatars} />
+        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
       )}
       {count > 2 && (
-        <Avatar avatarUrl={validAvatarUrls[0]} style={styles.firstThreadAvatar} />
+        <Avatar avatarUrl={avatarUrls[0]} style={styles.firstThreadAvatar} />
       )}
-      {count > 2 && validAvatarUrls[1] && (
-        <Avatar avatarUrl={validAvatarUrls[1]} style={styles.restThreadAvatars} />
+      {count > 2 && avatarUrls[1] && (
+        <Avatar avatarUrl={avatarUrls[1]} style={styles.restThreadAvatars} />
       )}
       {count > 3 && (
         <View style={styles.count}><Text style={styles.countText}>+{count - 2}</Text></View>
