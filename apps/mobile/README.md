@@ -51,6 +51,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
 - Update and commit `CHANGELOG`:
   - Ensure version numbers across the mobile rep actually MATCH the version you are putting out
     - Often I do this with a search for the prior version number; it should only exist in the changelog
+    - AS PART OF DOING THIS, the android `versionCode` and the iOS `CFBundleVersion` needs to be incremented by 1, or build chaos ensues
   - Review git history and Github Milestone for the release and existing entries in `CHANGELOG` for the current pre-release
 - Go into Bitrise, into our app, and find an hit the 'start build' button.
   - select the branch you want to build
