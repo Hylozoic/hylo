@@ -152,7 +152,7 @@ export function GroupRow ({ group, memberships, goToGroupExplore }) {
           <Text style={styles.groupStatusText}>{statusText}</Text>
         </View>
         <Text style={[styles.groupRowCounts]}>
-          {memberCount} {t('Member', { count: memberCount })} {childGroupsCount > 0 ? ` | ${childGroupsCount} ${t('Group', { childGroupsCount })}` : ''}
+          {t('{{count}} Members', { count: memberCount })} {childGroupsCount > 0 ? ` | ${t('{{count}} Groups', { count: childGroupsCount })}` : ''}
         </Text>
         {!!description && (
           <Text style={[styles.groupRowDescription]} ellipsizeMode='tail' numberOfLines={1}>{description}</Text>

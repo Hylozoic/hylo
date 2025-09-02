@@ -56,10 +56,19 @@ function Groups () {
   const peerGroups = useSelector(
     createSelector(
       state => getPeerGroups(state, group),
-      (peerGroups) => peerGroups.map(g => ({
-        ...g.ref,
-        memberStatus: memberships.find(m => m.group.id === g.id) ? 'member' : joinRequests.find(jr => jr.group.id === g.id) ? 'requested' : 'not'
-      }))
+      (peerGroups) => peerGroups.map(g => {
+        // Find the peer relationship description
+        const relationship = peerGroupRelationships.find(rel => {
+          return (rel.parentGroup.id === group?.id && rel.childGroup.id === g.id) ||
+                 (rel.childGroup.id === group?.id && rel.parentGroup.id === g.id)
+        })
+
+        return {
+          ...g.ref,
+          memberStatus: memberships.find(m => m.group.id === g.id) ? 'member' : joinRequests.find(jr => jr.group.id === g.id) ? 'requested' : 'not',
+          peerRelationshipDescription: relationship?.description
+        }
+      })
     )
   )
 

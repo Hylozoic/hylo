@@ -202,6 +202,30 @@ function RelatedGroupsTab () {
           )}
         </div>
 
+        {/* Parent Groups Section */}
+        <div className='relative mb-4'>
+          <Button onClick={toggleRequestToJoinPicker} variant='outline' className='w-full justify-center h-12'>
+            <div className='flex items-center'>
+              <Icon name='HierarchyUpward' className='mr-2 text-xl relative top-[1px]' />
+              <span className='truncate'>{t('Request Parent Groups')}</span>
+            </div>
+          </Button>
+          {showRequestToJoinPicker && (
+            <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+              <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
+                {possibleRelatedGroups.map(membership => (
+                  <div key={membership.id}>
+                    <button onClick={handleRequestToAddGroupToParent(membership.group, group)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
+                      <span className='truncate'>{membership.group.name}</span>
+                      <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Peer Groups Section */}
         <div className='relative'>
           <Button onClick={toggleInviteAsPeerPicker} variant='outline' className='w-full justify-center h-12'>
@@ -268,7 +292,7 @@ function RelatedGroupsTab () {
         </div>
       </div>
 
-      <div className='text-2xl font-bold text-foreground mb-4'>{t('Parent Groups')}</div>
+      <div className='text-2xl font-bold text-foreground mb-4 mt-12'>{t('Parent Groups')}</div>
       {parentGroups.length > 0
         ? (
           <div>
@@ -327,30 +351,7 @@ function RelatedGroupsTab () {
         </div>
       )}
 
-      <div className='relative mt-8 mb-12'>
-        <Button onClick={toggleRequestToJoinPicker} variant='outline' className='w-full h-12 justify-between'>
-          <div className='flex items-center'>
-            <Icon name='Handshake' className='mr-2 text-xl relative top-[1px]' />
-            <span className='truncate'>{t('Show joinable groups')}</span>
-          </div>
-        </Button>
-        {showRequestToJoinPicker && (
-          <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
-            <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
-              {possibleRelatedGroups.map(membership => (
-                <div key={membership.id}>
-                  <button onClick={handleRequestToAddGroupToParent(membership.group, group)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
-                    <span className='truncate'>{membership.group.name}</span>
-                    <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className='text-2xl font-bold text-foreground mb-4'>{t('Child Groups')}</div>
+      <div className='text-2xl font-bold text-foreground mb-4 mt-12'>{t('Child Groups')}</div>
       {childGroups.length > 0
         ? (
           <div>
