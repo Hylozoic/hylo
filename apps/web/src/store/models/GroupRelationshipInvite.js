@@ -2,7 +2,8 @@ import { attr, fk, many, Model } from 'redux-orm'
 
 export const GROUP_RELATIONSHIP_TYPE = {
   ParentToChild: 0,
-  ChildToParent: 1
+  ChildToParent: 1,
+  PeerToPeer: 2
 }
 
 class GroupRelationshipInvite extends Model {

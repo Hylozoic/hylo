@@ -134,10 +134,23 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
       const newGroupRelationship = payload.data.acceptGroupRelationshipInvite.groupRelationship
       if (newGroupRelationship) {
-        childGroup = Group.withId(newGroupRelationship.childGroup.id)
-        Group.withId(newGroupRelationship.parentGroup.id).updateAppending({ childGroups: [childGroup] })
+        const { childGroup: childGroupData, parentGroup: parentGroupData, relationshipType } = newGroupRelationship
+        const childGroupModel = Group.withId(childGroupData.id)
+        const parentGroupModel = Group.withId(parentGroupData.id)
+        
+        if (relationshipType === 1) {
+          // Peer-to-peer relationship: add each group to the other's peerGroups
+          parentGroupModel.updateAppending({ peerGroups: [childGroupModel] })
+          childGroupModel.updateAppending({ peerGroups: [parentGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+          clearCacheFor(Group, parentGroupData.id)
+        } else {
+          // Parent-child relationship (relationshipType === 0): existing behavior
+          parentGroupModel.updateAppending({ childGroups: [childGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+        }
+        
         GroupRelationshipInvite.withId(meta.id).delete()
-        clearCacheFor(Group, childGroup.id)
       }
       break
     }

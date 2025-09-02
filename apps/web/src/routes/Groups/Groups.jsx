@@ -9,7 +9,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
 import useRouteParams from 'hooks/useRouteParams'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import { getChildGroups, getParentGroups } from 'store/selectors/getGroupRelationships'
+import { getChildGroups, getParentGroups, getPeerGroups } from 'store/selectors/getGroupRelationships'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { mapNodesAndLinks } from 'util/networkMap'
 import GroupCard from 'components/GroupCard'
@@ -29,6 +29,9 @@ function Groups () {
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const memberships = useSelector(getMyMemberships)
   const joinRequests = useGetJoinRequests()
+
+  // Get peer group relationships for descriptions
+  const peerGroupRelationships = group?.peerGroupRelationships?.items || []
 
   const childGroups = useSelector(
     createSelector(
@@ -50,6 +53,25 @@ function Groups () {
     )
   )
 
+  const peerGroups = useSelector(
+    createSelector(
+      state => getPeerGroups(state, group),
+      (peerGroups) => peerGroups.map(g => {
+        // Find the peer relationship description
+        const relationship = peerGroupRelationships.find(rel => {
+          return (rel.parentGroup.id === group?.id && rel.childGroup.id === g.id) ||
+                 (rel.childGroup.id === group?.id && rel.parentGroup.id === g.id)
+        })
+
+        return {
+          ...g.ref,
+          memberStatus: memberships.find(m => m.group.id === g.id) ? 'member' : joinRequests.find(jr => jr.group.id === g.id) ? 'requested' : 'not',
+          peerRelationshipDescription: relationship?.description
+        }
+      })
+    )
+  )
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
@@ -59,8 +81,8 @@ function Groups () {
     })
   }, [])
 
-  const networkData = mapNodesAndLinks(parentGroups, childGroups, group)
-  const groupRelationshipCount = childGroups.length + parentGroups.length
+  const networkData = mapNodesAndLinks(parentGroups, childGroups, group, peerGroups, peerGroupRelationships)
+  const groupRelationshipCount = childGroups.length + parentGroups.length + peerGroups.length
 
   return (
     <div className='w-full pt-8 pb-8 overflow-y-auto h-full'>
@@ -103,6 +125,19 @@ function Groups () {
             </div>
             <GroupsList
               groups={childGroups}
+              routeParams={routeParams}
+            />
+          </div>
+        )}
+
+        {peerGroups.length > 0 && (
+          <div className='text-foreground border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2 flex-col'>
+            <div className='text-center'>
+              {peerGroups.length === 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is connected to 1 peer group', { group })}</h3> : ''}
+              {peerGroups.length > 1 ? <h3 className='text-foreground text-lg font-bold'>{t('{{group.name}} is connected to {{peerGroups.length}} peer groups', { group, peerGroups })}</h3> : ''}
+            </div>
+            <GroupsList
+              groups={peerGroups}
               routeParams={routeParams}
             />
           </div>

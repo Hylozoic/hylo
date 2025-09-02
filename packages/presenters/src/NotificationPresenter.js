@@ -54,6 +54,8 @@ export const ACTION_GROUP_CHILD_GROUP_INVITE = 'groupChildGroupInvite'
 export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAccepted'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
+export const ACTION_GROUP_PEER_GROUP_INVITE = 'groupPeerGroupInvite'
+export const ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED = 'groupPeerGroupInviteAccepted'
 export const ACTION_JOIN_REQUEST = 'joinRequest'
 export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
@@ -116,6 +118,10 @@ export function titleForNotification (notification, t) {
       return t('Group Requesting to Join')
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED:
       return t('New Group Joined')
+    case ACTION_GROUP_PEER_GROUP_INVITE:
+      return t('Your group has been invited to form a peer relationship')
+    case ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED:
+      return t('Peer Groups Connected')
     case ACTION_MEMBER_JOINED_GROUP:
       return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
     case ACTION_TRACK_COMPLETED:
@@ -163,6 +169,10 @@ export function bodyForNotification (notification, t) {
       return t('<strong>{{groupName}}</strong> has joined <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST:
       return t('<strong>{{groupName}}</strong> has requested to join <strong>{{otherGroupName}}</strong>', { groupName: group.name, otherGroupName: otherGroup.name })
+    case ACTION_GROUP_PEER_GROUP_INVITE:
+      return t('<strong>{{groupName}}</strong> has invited <strong>{{otherGroupName}}</strong> to form a peer relationship', { groupName: group.name, otherGroupName: otherGroup.name })
+    case ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED:
+      return t('<strong>{{groupName}}</strong> has connected with <strong>{{otherGroupName}}</strong> as peer groups', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_MEMBER_JOINED_GROUP:
       return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
     case ACTION_TRACK_COMPLETED:
@@ -201,6 +211,10 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST:
       return groupUrl(otherGroupSlug, 'settings/relationships')
     case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED:
+      return groupUrl(groupSlug)
+    case ACTION_GROUP_PEER_GROUP_INVITE:
+      return groupUrl(otherGroupSlug, 'settings/relationships')
+    case ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED:
       return groupUrl(groupSlug)
     case ACTION_JOIN_REQUEST:
       return groupUrl(groupSlug, 'settings/requests')

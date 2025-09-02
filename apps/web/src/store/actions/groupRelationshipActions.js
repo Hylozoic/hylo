@@ -4,6 +4,7 @@ import {
   CANCEL_GROUP_RELATIONSHIP_INVITE,
   DELETE_GROUP_RELATIONSHIP,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
+  INVITE_PEER_RELATIONSHIP,
   REJECT_GROUP_RELATIONSHIP_INVITE,
   REQUEST_FOR_CHILD_TO_JOIN_PARENT_GROUP
 } from 'store/constants'
@@ -23,6 +24,7 @@ export function acceptGroupRelationshipInvite (groupRelationshipInviteId) {
             parentGroup {
               id
             }
+            relationshipType
           }
         }
       }`,
@@ -198,6 +200,61 @@ export function requestToAddGroupToParent (parentId, childId, questionAnswers) {
         },
         {
           getRoot: get('requestToAddGroupToParent.groupRelationshipInvite'),
+          modelName: 'GroupRelationshipInvite',
+          append: true
+        }
+      ]
+    }
+  }
+}
+
+export function invitePeerRelationship (fromGroupId, toGroupId, description = null) {
+  return {
+    type: INVITE_PEER_RELATIONSHIP,
+    graphql: {
+      query: `mutation ($fromGroupId: ID, $toGroupId: ID, $description: String) {
+        invitePeerRelationship(fromGroupId: $fromGroupId, toGroupId: $toGroupId, description: $description) {
+          success
+          groupRelationship {
+            id
+            parentGroup {
+              id
+            }
+            childGroup {
+              id
+            }
+            relationshipType
+            description
+          }
+          groupRelationshipInvite {
+            id
+            fromGroup {
+              id
+            }
+            toGroup {
+              id
+            }
+            type
+            status
+            createdBy {
+              id
+            }
+          }
+        }
+      }`,
+      variables: { fromGroupId, toGroupId, description }
+    },
+    meta: {
+      fromGroupId,
+      toGroupId,
+      extractModel: [
+        {
+          getRoot: get('invitePeerRelationship.groupRelationship'),
+          modelName: 'GroupRelationship',
+          append: true
+        },
+        {
+          getRoot: get('invitePeerRelationship.groupRelationshipInvite'),
           modelName: 'GroupRelationshipInvite',
           append: true
         }

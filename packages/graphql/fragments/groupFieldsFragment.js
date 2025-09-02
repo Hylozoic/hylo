@@ -145,5 +145,18 @@ export default gql`
         visibility
       }
     }
+    peerGroups {
+      items {
+        id
+        accessibility
+        avatarUrl
+        bannerUrl
+        geoShape
+        memberCount
+        name
+        slug
+        visibility
+      }
+    }
   }
 `
