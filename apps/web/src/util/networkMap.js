@@ -11,10 +11,10 @@ export function mapNodesAndLinks (parentGroups, childGroups, currentGroup, peerG
   })
 
   const links = parentGroups.map(group => {
-    return { source: group.id, target: currentGroup.id, value: 120 }
+    return { source: group.id, target: currentGroup.id, value: 120, type: 'parent' }
   })
   childGroups.forEach(group => {
-    links.push({ source: currentGroup.id, target: group.id, value: 120 })
+    links.push({ source: currentGroup.id, target: group.id, value: 120, type: 'child' })
   })
   // Peer relationships are bidirectional, so we'll use a different visual style (value: 80)
   peerGroups.forEach(group => {

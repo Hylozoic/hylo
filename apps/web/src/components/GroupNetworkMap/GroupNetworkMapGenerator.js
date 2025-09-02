@@ -85,9 +85,14 @@ export function runForceGraph (
 
   const defs = svg.append('defs')
 
-  // Standard arrowhead for parent-child relationships
+  // Get HSL values from CSS variables 
+  const accentHSL = 'hsl(var(--accent))'
+  const focusHSL = 'hsl(var(--focus))'
+  const peerHSL = '#10B981'
+
+  // Parent relationship arrowhead (accent color)
   defs.append('marker')
-    .attr('id', 'arrowhead')
+    .attr('id', 'parent-marker')
     .attr('viewBox', '-0 -5 10 10')
     .attr('refX', 13)
     .attr('refY', 0)
@@ -97,10 +102,25 @@ export function runForceGraph (
     .attr('xoverflow', 'visible')
     .append('svg:path')
     .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-    .attr('fill', '#BBB')
+    .attr('fill', accentHSL)
     .style('stroke', 'none')
 
-  // Different marker for peer relationships (bidirectional circle)
+  // Child relationship arrowhead (focus color)
+  defs.append('marker')
+    .attr('id', 'child-marker')
+    .attr('viewBox', '-0 -5 10 10')
+    .attr('refX', 13)
+    .attr('refY', 0)
+    .attr('orient', 'auto')
+    .attr('markerWidth', 5)
+    .attr('markerHeight', 8)
+    .attr('xoverflow', 'visible')
+    .append('svg:path')
+    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+    .attr('fill', focusHSL)
+    .style('stroke', 'none')
+
+  // Peer relationship marker (bidirectional circle)
   defs.append('marker')
     .attr('id', 'peer-marker')
     .attr('viewBox', '-6 -6 12 12')
@@ -110,7 +130,7 @@ export function runForceGraph (
     .attr('markerHeight', 8)
     .append('circle')
     .attr('r', 3)
-    .attr('fill', '#10B981')
+    .attr('fill', peerHSL)
     .style('stroke', '#065F46')
     .style('stroke-width', 1)
 
@@ -126,11 +146,25 @@ export function runForceGraph (
     .selectAll('polyline')
     .data(links)
     .join('polyline')
-    .attr('stroke', d => d.type === 'peer' ? '#10B981' : '#BBB')
-    .attr('stroke-opacity', d => d.type === 'peer' ? 0.8 : 0.5)
+    .attr('stroke', d => {
+      switch (d.type) {
+        case 'parent': return accentHSL
+        case 'child': return focusHSL
+        case 'peer': return peerHSL
+        default: return '#BBB'
+      }
+    })
+    .attr('stroke-opacity', d => d.type === 'peer' ? 0.8 : 0.7)
     .attr('stroke-width', d => d.type === 'peer' ? 3 : 2)
     .attr('stroke-dasharray', d => d.type === 'peer' ? '5,5' : 'none')
-    .attr('marker-mid', d => d.type === 'peer' ? 'url(#peer-marker)' : 'url(#arrowhead)')
+    .attr('marker-mid', d => {
+      switch (d.type) {
+        case 'parent': return 'url(#parent-marker)'
+        case 'child': return 'url(#child-marker)'
+        case 'peer': return 'url(#peer-marker)'
+        default: return 'url(#parent-marker)'
+      }
+    })
 
   const images = svg.append('g')
     .selectAll('circle')
@@ -159,9 +193,12 @@ export function runForceGraph (
     return color
   }
 
-  // Get the foreground colors
+  // Get the colors for styling
   const foregroundColor = getComputedColor('text-foreground')
   const foregroundColorMuted = getComputedColor('text-foreground/50')
+  const accentColor = getComputedColor('text-accent')
+  const focusColor = getComputedColor('text-focus')
+  const peerColor = '#10B981' // Keep existing green for peer relationships
 
   const label = svg.append('g')
     .selectAll('text')
@@ -209,6 +246,57 @@ export function runForceGraph (
     label
       .attr('transform', d => `translate(${d.x}, ${d.y})`)
   })
+
+  // Add legend in bottom left corner
+  const legend = svg.append('g')
+    .attr('class', 'legend')
+    .attr('transform', `translate(${-width / 2 + 20}, ${height / 2 - 100})`)
+
+  const legendData = [
+    { type: 'parent', label: 'Parent Group', color: accentHSL, marker: 'parent-marker' },
+    { type: 'child', label: 'Child Group', color: focusHSL, marker: 'child-marker' },
+    { type: 'peer', label: 'Peer Group', color: peerHSL, marker: 'peer-marker' }
+  ]
+
+  // Legend background
+  legend.append('rect')
+    .attr('x', -10)
+    .attr('y', -10)
+    .attr('width', 140)
+    .attr('height', 80)
+    .attr('fill', 'hsl(var(--background))')
+    .attr('stroke', 'hsl(var(--border))')
+    .attr('stroke-width', 1)
+    .attr('rx', 4)
+    .attr('opacity', 0.9)
+
+  // Legend items
+  const legendItem = legend.selectAll('.legend-item')
+    .data(legendData)
+    .enter()
+    .append('g')
+    .attr('class', 'legend-item')
+    .attr('transform', (d, i) => `translate(0, ${i * 20})`)
+
+  // Legend lines
+  legendItem.append('line')
+    .attr('x1', 0)
+    .attr('y1', 10)
+    .attr('x2', 20)
+    .attr('y2', 10)
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', d => d.type === 'peer' ? 3 : 2)
+    .attr('stroke-dasharray', d => d.type === 'peer' ? '3,3' : 'none')
+    .attr('marker-end', d => `url(#${d.marker})`)
+
+  // Legend text
+  legendItem.append('text')
+    .attr('x', 30)
+    .attr('y', 10)
+    .attr('dy', '0.35em')
+    .style('font-size', '12px')
+    .style('fill', 'hsl(var(--foreground))')
+    .text(d => d.label)
 
   return {
     destroy: () => {
