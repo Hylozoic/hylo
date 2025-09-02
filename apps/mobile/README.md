@@ -79,6 +79,9 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   - If you don't do this, iOS builds will fail on upload to test flight
 - Open a new Milestone with the current pre-release version:
 
+###### In-between release testings and ongoing dev
+Now, you might have cut a release branch, then the next day merged a big new mobile feature to dev, AND THEN you get some bug feedback. Those bugs need to be reflected in both dev AND the release branch, so its best to do the bug fixes on the release branch and update the release tag, and then merge those changes from the release branch into dev (aka, don't add the fixes branched off dev and then accidentally deploy a whole new untested feature). 
+
 ### Enabling Sentry exception tracking in dev
 
 Sentry error reporting is always on in production, and optionally enabled in dev. To enable it in dev you need to set `SENTRY_DEV_DSN_URL` to be the DSN URL for the Sentry "hyloreactnative-dev" project. This can be found by logging into Sentry and is also available in the Hylo password vault under the Sentry record.
