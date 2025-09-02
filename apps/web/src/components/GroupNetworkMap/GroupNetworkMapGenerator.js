@@ -141,11 +141,31 @@ export function runForceGraph (
     .attr('cx', 20)
     .attr('cy', 20)
 
-  const link = svg
-    .append('g')
-    .selectAll('polyline')
+  // Create tooltip element for peer relationships
+  const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'network-map-tooltip')
+    .style('position', 'absolute')
+    .style('visibility', 'hidden')
+    .style('background', 'hsl(var(--background))')
+    .style('border', '1px solid hsl(var(--border))')
+    .style('border-radius', '4px')
+    .style('padding', '8px 12px')
+    .style('font-size', '12px')
+    .style('color', 'hsl(var(--foreground))')
+    .style('box-shadow', '0 2px 8px rgba(0,0,0,0.15)')
+    .style('z-index', '1000')
+    .style('max-width', '200px')
+    .style('word-wrap', 'break-word')
+
+  const linkGroup = svg.append('g')
+
+  // Create visible links
+  const link = linkGroup
+    .selectAll('polyline.visible-link')
     .data(links)
     .join('polyline')
+    .attr('class', 'visible-link')
     .attr('stroke', d => {
       switch (d.type) {
         case 'parent': return accentHSL
@@ -164,6 +184,38 @@ export function runForceGraph (
         case 'peer': return 'url(#peer-marker)'
         default: return 'url(#parent-marker)'
       }
+    })
+    .attr('fill', 'none')
+    .style('pointer-events', 'none') // Disable mouse events on visible links
+
+  // Create invisible wider links for better hover detection
+  const hoverLink = linkGroup
+    .selectAll('polyline.hover-link')
+    .data(links)
+    .join('polyline')
+    .attr('class', 'hover-link')
+    .attr('stroke', 'transparent')
+    .attr('stroke-width', 12) // Much wider hitbox
+    .attr('fill', 'none')
+    .style('cursor', d => d.type === 'peer' && d.description ? 'help' : 'default')
+    .on('mouseover', function(event, d) {
+      if (d.type === 'peer' && d.description) {
+        tooltip
+          .style('visibility', 'visible')
+          .html(`<strong>Peer Relationship:</strong><br/>${d.description}`)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+      }
+    })
+    .on('mousemove', function(event, d) {
+      if (d.type === 'peer' && d.description) {
+        tooltip
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px')
+      }
+    })
+    .on('mouseout', function() {
+      tooltip.style('visibility', 'hidden')
     })
 
   const images = svg.append('g')
@@ -232,11 +284,14 @@ export function runForceGraph (
     nodes[0].y = 0
 
     // update link positions
-    link.attr('points', function (d) {
+    const updateLinkPositions = function (d) {
       return d.source.x + ',' + d.source.y + ' ' +
         (d.source.x + d.target.x) / 2 + ',' + (d.source.y + d.target.y) / 2 + ' ' +
         d.target.x + ',' + d.target.y
-    })
+    }
+    
+    link.attr('points', updateLinkPositions)
+    hoverLink.attr('points', updateLinkPositions)
 
     // update image positions
     images
@@ -301,6 +356,8 @@ export function runForceGraph (
   return {
     destroy: () => {
       simulation.stop()
+      // Clean up tooltip
+      tooltip.remove()
     },
     nodes: () => {
       return svg.node()

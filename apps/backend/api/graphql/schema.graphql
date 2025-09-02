@@ -975,6 +975,18 @@ type Group {
     search: String
   ): GroupQuerySet
 
+  # Peer Group Relationships with descriptions for this Group
+  peerGroupRelationships(
+    # Number of relationships to return
+    first: Int,
+    # For pagination, return only results after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+    # Description of the relationship
+    description: String
+  ): GroupRelationshipQuerySet
+
   # Pending invitations to people to join this group
   pendingInvitations(
     # For pagination, return results after this ID
@@ -1239,6 +1251,13 @@ type GroupRelationshipInvite {
   # 0 = ParentToChild, 1 = ChildToParent
   type: Int
   updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupRelationshipQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupRelationship]
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set

@@ -324,7 +324,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   peerGroupRelationships () {
     const groupId = this.id
-    return GroupRelationship.query(qb => {
+    const collection = GroupRelationship.collection().query(qb => {
       qb.where('group_relationships.active', true)
         .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
         .where(function () {
@@ -332,6 +332,10 @@ module.exports = bookshelf.Model.extend(merge({
             .orWhere('child_group_id', groupId)
         })
     })
+    
+    // Add tableName method for GraphQL bridge compatibility
+    collection.tableName = () => 'group_relationships'
+    return collection
   },
 
   // Get peer groups visible to a specific user (respects visibility rules)

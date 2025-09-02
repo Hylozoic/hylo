@@ -30,6 +30,9 @@ function Groups () {
   const memberships = useSelector(getMyMemberships)
   const joinRequests = useGetJoinRequests()
 
+  // Get peer group relationships for descriptions
+  const peerGroupRelationships = group?.peerGroupRelationships?.items || []
+
   const childGroups = useSelector(
     createSelector(
       state => getChildGroups(state, group),
@@ -69,7 +72,7 @@ function Groups () {
     })
   }, [])
 
-  const networkData = mapNodesAndLinks(parentGroups, childGroups, group, peerGroups)
+  const networkData = mapNodesAndLinks(parentGroups, childGroups, group, peerGroups, peerGroupRelationships)
   const groupRelationshipCount = childGroups.length + parentGroups.length + peerGroups.length
 
   return (

@@ -49,6 +49,23 @@ export function fetchRelatedGroups (slug) {
             type
           }
         }
+        peerGroupRelationships {
+          items {
+            id
+            description
+            relationshipType
+            parentGroup {
+              id
+              slug
+              name
+            }
+            childGroup {
+              id
+              slug
+              name
+            }
+          }
+        }
       }
     }`
 

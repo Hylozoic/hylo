@@ -650,6 +650,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { parentGroups: { querySet: true } },
         { peerGroups: { querySet: true } },
+        { peerGroupRelationships: { querySet: true } },
         {
           posts: {
             querySet: true,
@@ -892,6 +893,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupRelationship,
       attributes: [
         'created_at',
+        'description',
+        'relationship_type',
         'role',
         'updated_at'
       ],
