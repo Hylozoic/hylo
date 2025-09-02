@@ -10,6 +10,7 @@ import messageThreadsQuery from '@hylo/graphql/queries/messageThreadsQuery'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Loading from 'components/Loading'
 import ThreadCard from 'components/ThreadCard'
+import UrqlCacheDiagnostic from 'components/ThreadCard/UrqlCacheDiagnostic'
 import styles from './ThreadList.styles'
 
 export default function ThreadList () {
@@ -48,11 +49,18 @@ export default function ThreadList () {
   })
 
   const getLatestMessage = useCallback(messageThread => {
+    if (!messageThread?.messages?.items || messageThread.messages.items.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('ThreadList: Missing messages data for thread:', messageThread?.id)
+      }
+      return null
+    }
     return messageThread.messages.items[0]
   }, [])
 
   return (
     <View style={styles.threadList}>
+      <UrqlCacheDiagnostic />
       {!fetching && threads && !threads.length === 0 && (
         <Text style={styles.center}>{t('No active conversations')}</Text>
       )}
@@ -64,17 +72,34 @@ export default function ThreadList () {
         onEndReached={fetchMoreThreads}
         onRefresh={refreshThreads}
         refreshing={fetching}
-        renderItem={({ item, index }) => (
-          item && <ThreadCard
-            currentUser={currentUser}
-            isLast={index === threads.length - 1}
-            message={getLatestMessage(item)}
-            onPress={() => showThread(item.id)}
-            participants={item.participants}
-            threadId={item.id}
-            unreadCount={item.unreadCount}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          if (!item) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('ThreadList: Null thread item at index:', index)
+            }
+            return null
+          }
+          
+          const latestMessage = getLatestMessage(item)
+          if (!latestMessage) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('ThreadList: No latest message for thread:', item.id)
+            }
+            return null
+          }
+          
+          return (
+            <ThreadCard
+              currentUser={currentUser}
+              isLast={index === threads.length - 1}
+              message={latestMessage}
+              onPress={() => showThread(item.id)}
+              participants={item.participants}
+              threadId={item.id}
+              unreadCount={item.unreadCount}
+            />
+          )
+        }}
       />
       {fetching && (
         <Loading />
