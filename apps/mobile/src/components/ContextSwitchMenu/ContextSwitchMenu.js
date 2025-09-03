@@ -161,7 +161,7 @@ function ContextRow ({
             // (selected || bottomItem) && 'text-foreground'
           )}
         >
-          {context?.name || 'No Name'}
+          {context?.name}
         </Text>
       )}
     </TouchableOpacity>
