@@ -4,7 +4,7 @@ import { DEFAULT_ACCESSIBILITY_OPTION, DEFAULT_VISIBILITY_OPTION } from './Creat
 const initialState = {
   groupData: {
     name: '',
-    slug: '',
+    slug: null,
     purpose: '',
     visibility: DEFAULT_VISIBILITY_OPTION,
     accessibility: DEFAULT_ACCESSIBILITY_OPTION,
