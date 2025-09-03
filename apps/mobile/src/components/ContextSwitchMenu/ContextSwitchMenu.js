@@ -33,10 +33,13 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
   // Sort pinned by navOrder, unpinned by group name
   const sortedPinnedGroups = pinnedMemberships
     .sort((a, b) => a.navOrder - b.navOrder)
-    .map(m => GroupPresenter(m.group))
+    .map(m => m.group ? GroupPresenter(m.group) : null)
+    .filter(Boolean) // Remove null entries
+    
   const sortedUnpinnedGroups = unpinnedMemberships
-    .sort((a, b) => (a.group.name || '').localeCompare(b.group.name || ''))
-    .map(m => GroupPresenter(m.group))
+    .sort((a, b) => (a.group?.name || '').localeCompare(b.group?.name || ''))
+    .map(m => m.group ? GroupPresenter(m.group) : null)
+    .filter(Boolean) // Remove null entries
 
   // Compose the final list with a divider marker
   const myGroups = [
@@ -158,7 +161,7 @@ function ContextRow ({
             // (selected || bottomItem) && 'text-foreground'
           )}
         >
-          {context?.name}
+          {context?.name || 'No Name'}
         </Text>
       )}
     </TouchableOpacity>

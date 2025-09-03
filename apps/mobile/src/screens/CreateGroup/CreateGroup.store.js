@@ -13,7 +13,8 @@ const initialState = {
   disableContinue: false,
   edited: false,
   currentStep: 0,
-  submit: false
+  submit: false,
+  isSubmitting: false
 }
 
 export const useCreateGroupStore = create((set, get) => ({
@@ -63,5 +64,7 @@ export const useCreateGroupStore = create((set, get) => ({
 
   clearStore: () => set(() => ({ ...initialState })),
 
-  setSubmit: submit => set({ submit })
+  setSubmit: submit => set({ submit }),
+
+  setIsSubmitting: isSubmitting => set({ isSubmitting })
 }))
