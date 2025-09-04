@@ -53,6 +53,7 @@ import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
 
 import classes from './ContextMenu.module.scss'
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -523,8 +524,20 @@ function ActionMenu ({ widget }) {
   return (
     <span className='text-sm font-bold cursor-pointer flex items-center'>
       {widget.isEditable && <Pencil onClick={handleEditWidget} />}
-      <Trash onClick={handleRemoveWidget} />
-      {widget.isValidHomeWidget && <House onClick={handleWidgetHomePromotion} />}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Trash onClick={handleRemoveWidget} />
+        </TooltipTrigger>
+        <TooltipContent>{t('Remove from Menu')}</TooltipContent>
+      </Tooltip>
+      {widget.isValidHomeWidget && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <House onClick={handleWidgetHomePromotion} />
+          </TooltipTrigger>
+          <TooltipContent>{t('Set as Home View')}</TooltipContent>
+        </Tooltip>
+      )}
     </span>
   )
 }
