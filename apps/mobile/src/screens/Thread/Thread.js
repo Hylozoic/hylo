@@ -28,6 +28,12 @@ const markThreadReadMutation = gql`
     markThreadRead(messageThreadId: $messageThreadId) {
       id
       unreadCount
+      lastReadAt
+      participants {
+        id
+        name
+        avatarUrl
+      }
     }
   }
 `
@@ -73,7 +79,8 @@ export default function Thread () {
   const [cursor, setCursor] = useState(null)
   const [{ data, fetching }] = useQuery({
     query: messageThreadMessagesQuery,
-    variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
+    variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor },
+    requestPolicy: 'cache-first'
   })
   const messages = data?.messageThread?.messages?.items || []
   const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
