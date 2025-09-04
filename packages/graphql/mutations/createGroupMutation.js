@@ -14,6 +14,16 @@ export default gql`
           person {
             id
           }
+          group {
+            id
+            name
+            slug
+            avatarUrl
+            bannerUrl
+            memberCount
+            accessibility
+            visibility
+          }
           settings {
             agreementsAcceptedAt
             joinQuestionsAnsweredAt
