@@ -81,7 +81,7 @@ export default function Thread () {
   const [{ data, fetching }] = useQuery({
     query: messageThreadMessagesQuery,
     variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor },
-    requestPolicy: 'cache-first'
+    requestPolicy: 'cache-and-network'
   })
   const messages = data?.messageThread?.messages?.items || []
   const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
