@@ -32,7 +32,6 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
   const [, createGroup] = useMutation(createGroupMutation)
   const [error, setError] = useState(null)
   const [{ currentUser }] = useCurrentUser()
-  const clearStoreTimeoutRef = useRef(null)
 
   useEffect(() => {
     if (submit) {
@@ -49,9 +48,6 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
           if (data?.group) {
             trackWithConsent(AnalyticsEvents.GROUP_CREATED, {}, currentUser, !currentUser)
             changeToGroup(data.group.slug, { skipCanViewCheck: true })
-            clearStoreTimeoutRef.current = setTimeout(() => {
-              clearStore()
-            }, 5000)
           } else {
             setIsSubmitting(false)
             setError('Group may have been created, but there was an error. Please contact Hylo support.', error)
@@ -66,9 +62,6 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
 
   useEffect(() => {
     return () => {
-      if (clearStoreTimeoutRef.current) {
-        clearTimeout(clearStoreTimeoutRef.current)
-      }
       if (isSubmitting) {
         clearStore()
       }
@@ -87,9 +80,6 @@ export const CreateGroupReview = React.forwardRef((_props, ref) => {
         </View>
         <TouchableOpacity 
           onPress={() => {
-            if (clearStoreTimeoutRef.current) {
-              clearTimeout(clearStoreTimeoutRef.current)
-            }
             setIsSubmitting(false)
             clearStore()
           }}
