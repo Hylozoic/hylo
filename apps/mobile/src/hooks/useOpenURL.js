@@ -22,6 +22,15 @@ export async function openURL (
   options = {},
   navigation = navigationRef
 ) {
+  // Debug logging for notification navigation
+  if (__DEV__ && providedPathOrURL.includes('/settings/')) {
+    console.log('🔍 openURL Notification Debug:', {
+      providedPathOrURL,
+      options,
+      DEFAULT_APP_HOST
+    })
+  }
+
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
 
   if (
@@ -30,6 +39,19 @@ export async function openURL (
   ) {
     const linkingPath = linkingURL.pathname + linkingURL.search
     const stateForPath = getStateFromPath(linkingPath)
+
+    // Debug logging for settings navigation
+    if (__DEV__ && linkingPath.includes('/settings/')) {
+      console.log('🔍 openURL Settings Navigation Debug:', {
+        linkingPath,
+        stateForPath,
+        linkingURL: {
+          origin: linkingURL.origin,
+          pathname: linkingURL.pathname,
+          search: linkingURL.search
+        }
+      })
+    }
 
     if (stateForPath) {
       DEBUG && console.log(`!!! openURL: ${linkingPath} stateForPath:`)

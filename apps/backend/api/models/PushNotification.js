@@ -148,6 +148,14 @@ module.exports = bookshelf.Model.extend({
     return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildMember({ parentGroup, childGroup })
   },
 
+  textForGroupPeerGroupInvite: function (fromGroup, toGroup, actor, locale) {
+    return locales[locale].textForGroupPeerGroupInvite({ actor, fromGroup, toGroup })
+  },
+
+  textForGroupPeerGroupInviteAccepted: function (fromGroup, toGroup, actor, locale) {
+    return locales[locale].textForGroupPeerGroupInviteAccepted({ actor, fromGroup, toGroup })
+  },
+
   textForDonationTo: function (contribution, locale) {
     const project = contribution.relations.project
     const postName = decode(project.summary())

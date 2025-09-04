@@ -204,5 +204,103 @@ export default function groupQueryFragment () {
       }
     }
     ${groupTopicsQueryFragment}
+    parentGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    childGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    peerGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    groupRelationshipInvitesFrom {
+      items {
+        id
+        fromGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        toGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        type
+        status
+        createdBy {
+          id
+          name
+        }
+      }
+    }
+    groupRelationshipInvitesTo {
+      items {
+        id
+        fromGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        toGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        type
+        status
+        createdBy {
+          id
+          name
+        }
+      }
+    }
   }`
 }

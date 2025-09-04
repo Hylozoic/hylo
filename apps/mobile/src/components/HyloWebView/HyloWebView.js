@@ -121,6 +121,19 @@ const HyloWebView = React.forwardRef(({
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
 
+  // Debug logging for webview URI construction
+  if (__DEV__) {
+    console.log('🔍 HyloWebView URI Debug:', {
+      pathProp,
+      routePath,
+      originalLinkingPath,
+      resolvedPath: path,
+      baseUrl: Config.HYLO_WEB_BASE_URL,
+      finalUri: uri,
+      postId
+    })
+  }
+
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
   useFocusEffect(

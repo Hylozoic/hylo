@@ -15,6 +15,8 @@ export const ACTION_GROUP_CHILD_GROUP_INVITE = 'groupChildGroupInvite'
 export const ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED = 'groupChildGroupInviteAccepted'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST = 'groupParentGroupJoinRequest'
 export const ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED = 'groupParentGroupJoinRequestAccepted'
+export const ACTION_GROUP_PEER_GROUP_INVITE = 'groupPeerGroupInvite'
+export const ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED = 'groupPeerGroupInviteAccepted'
 export const ACTION_JOIN_REQUEST = 'joinRequest'
 export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
 export const ACTION_MENTION = 'mention'
@@ -35,7 +37,13 @@ export const NOTIFICATIONS_WHITELIST = [
   ACTION_ANNOUNCEMENT,
   ACTION_NEW_POST,
   ACTION_TRACK_COMPLETED,
-  ACTION_TRACK_ENROLLMENT
+  ACTION_TRACK_ENROLLMENT,
+  ACTION_GROUP_CHILD_GROUP_INVITE,
+  ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED,
+  ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST,
+  ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED,
+  ACTION_GROUP_PEER_GROUP_INVITE,
+  ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED
 ]
 
 export const NOTIFICATION_TEXT_MAX = 76
@@ -61,7 +69,18 @@ export const truncateHTML = html => TextHelpers.presentHTMLToText(html, { trunca
 
 export const truncateText = text => TextHelpers.truncateText(text, NOTIFICATION_TEXT_MAX)
 
-export function refineActivity ({ action, actor, comment, group, post, track, meta }, t) {
+export function refineActivity ({ action, actor, comment, group, post, track, meta, otherGroup }, t) {
+  // Debug logging for notification data
+  if (__DEV__ && (action === 'groupPeerGroupInvite' || action === 'groupPeerGroupInviteAccepted')) {
+    console.log('🔍 Mobile Notification Data Debug:', {
+      action,
+      actor: actor ? { id: actor.id, name: actor.name } : 'undefined',
+      group: group ? { id: group.id, name: group.name, slug: group.slug } : 'undefined',
+      otherGroup: otherGroup ? { id: otherGroup.id, name: otherGroup.name, slug: otherGroup.slug } : 'undefined',
+      meta: meta ? meta.reasons : 'undefined'
+    })
+  }
+
   switch (action) {
     case ACTION_CHAT: {
       const topicReason = find(r => r.startsWith('chat: '), meta.reasons)
@@ -160,6 +179,42 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: t('{{name}} enrolled in track {{trackName}}', { name: actor.name, trackName: track.name }),
         header: t('Track Enrollment'),
         onPress: () => openURL(`${groupUrl(group?.slug, 'tracks')}/${track.id}`)
+      }
+    case ACTION_GROUP_CHILD_GROUP_INVITE:
+      return {
+        body: t('{{name}} invited your group to join {{groupName}}', { name: actor.name, groupName: group.name }),
+        header: t('Group Invitation'),
+        onPress: () => openURL(`/groups/${otherGroup?.slug}/settings/relationships`, { replace: true })
+      }
+    case ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED:
+      return {
+        body: t('{{name}} accepted your invitation', { name: otherGroup.name }),
+        header: t('Group Joined'),
+        onPress: () => openURL(`/groups/${otherGroup?.slug}`, { replace: true })
+      }
+    case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST:
+      return {
+        body: t('{{name}} requested to join {{groupName}}', { name: group.name, groupName: otherGroup.name }),
+        header: t('Group Join Request'),
+        onPress: () => openURL(`/groups/${otherGroup?.slug}/settings/relationships`, { replace: true })
+      }
+    case ACTION_GROUP_PARENT_GROUP_JOIN_REQUEST_ACCEPTED:
+      return {
+        body: t('{{name}} accepted your request', { name: actor.name }),
+        header: t('Group Joined'),
+        onPress: () => openURL(`/groups/${group?.slug}`, { replace: true })
+      }
+    case ACTION_GROUP_PEER_GROUP_INVITE:
+      return {
+        body: t('{{name}} invited your group to form a peer relationship with {{groupName}}', { name: actor.name, groupName: group.name }),
+        header: t('Peer Group Invitation'),
+        onPress: () => openURL(`/groups/${otherGroup?.slug}/settings/relationships`, { replace: true })
+      }
+    case ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED:
+      return {
+        body: t('{{name}} accepted your peer group invitation', { name: otherGroup.name }),
+        header: t('Peer Groups Connected'),
+        onPress: () => openURL(`/groups/${otherGroup?.slug}`, { replace: true })
       }
   }
 }
