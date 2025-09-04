@@ -31,6 +31,7 @@ import {
   createCollection,
   createComment,
   createContextWidget,
+  createFundingRound,
   createGroup,
   createInvitation,
   createJoinRequest,
@@ -49,6 +50,7 @@ import {
   declineJoinRequest,
   deleteAffiliation,
   deleteComment,
+  deleteFundingRound,
   deleteGroup,
   deleteGroupRelationship,
   deleteGroupResponsibility,
@@ -118,6 +120,7 @@ import {
   updateAllMemberships,
   updateComment,
   updateContextWidget,
+  updateFundingRound,
   updateGroup,
   updateGroupResponsibility,
   updateGroupRole,
@@ -379,6 +382,8 @@ export function makeMutations ({ fetchOne }) {
 
     createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data }),
 
+    createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
+
     createGroup: (root, { data }, context) => createGroup(context.currentUserId, data),
 
     createInvitation: (root, { groupId, data }, context) => createInvitation(context.currentUserId, groupId, data), // consider sending locale from the frontend here
@@ -414,6 +419,8 @@ export function makeMutations ({ fetchOne }) {
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
+
+    deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
     deleteGroup: (root, { id }, context) => deleteGroup(context.currentUserId, id),
 
@@ -546,6 +553,8 @@ export function makeMutations ({ fetchOne }) {
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
     updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data }),
+
+    updateFundingRound: (root, { id, data }, context) => updateFundingRound(context.currentUserId, id, data),
 
     updateGroupResponsibility: (root, { groupId, responsibilityId, title, description }, context) =>
       updateGroupResponsibility({ userId: context.currentUserId, groupId, responsibilityId, title, description }),

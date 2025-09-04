@@ -1,3 +1,4 @@
+/* global FundingRound */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -747,6 +748,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         {
+          fundingRounds: {
+            querySet: true,
+            filter: (relation, { sortBy, order }) =>
+              relation.query(q => {
+                q.orderBy(sortBy || 'id', order || 'asc')
+              })
+          }
+        },
+        {
           viewPosts: {
             querySet: true,
             arguments: () => [userId],
@@ -1292,6 +1302,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'updated_at'
       ],
       relations: ['track', 'group', 'user']
+    },
+
+    FundingRound: {
+      model: FundingRound,
+      attributes: [
+        'created_at',
+        'updated_at',
+        'title',
+        'description',
+        'criteria',
+        'require_budget',
+        'voting_method',
+        'token_type',
+        'total_tokens',
+        'min_token_allocation',
+        'max_token_allocation'
+      ],
+      relations: ['group']
     },
 
     Notification: {

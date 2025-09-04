@@ -1083,6 +1083,18 @@ type Group {
     sortBy: String
   ): TrackQuerySet
 
+  # Funding rounds in this group
+  fundingRounds(
+    # Number of funding rounds to return
+    first: Int,
+    # For pagination, return results after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'id' or 'created_at'
+    sortBy: String
+  ): FundingRoundQuerySet
+
   # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
@@ -1125,6 +1137,12 @@ type Group {
 
   # Widgets used on the Explore page
   widgets: GroupWidgetQuerySet
+}
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type FundingRoundQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [FundingRound]
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -2545,6 +2563,33 @@ type TrackUser {
   user: Person
 }
 
+# A participatory funding round
+type FundingRound {
+  id: ID
+  createdAt: Date
+  # Criteria for submitting projects/submissions
+  criteria: String
+  # Description of the round
+  description: String
+  # The group that the funding round belongs to
+  group: Group
+  # Maximum tokens a voter can allocate
+  maxTokenAllocation: Int
+  # Minimum tokens a voter can allocate
+  minTokenAllocation: Int
+  # Whether a budget is required for submissions
+  requireBudget: Boolean
+  # The title of the funding round
+  title: String
+  # Total tokens available to allocate
+  totalTokens: Int
+  # Token type used for voting/allocation
+  tokenType: String
+  updatedAt: Date
+  # Voting method to be used (e.g., quadratic, approval)
+  votingMethod: String
+}
+
 # Current user's personal settings
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
@@ -2689,6 +2734,8 @@ type Mutation {
   createComment(data: CommentInput): Comment
   # Create a new context widget
   createContextWidget(data: ContextWidgetInput, groupId: ID): ContextWidget
+  # Create a new funding round
+  createFundingRound(data: FundingRoundInput): FundingRound
   # Create a new Group
   createGroup(
     data: GroupInput,
@@ -2727,6 +2774,8 @@ type Mutation {
   deleteAffiliation(id: ID): ID
   # Delete a comment
   deleteComment(id: ID): GenericResult
+  # Delete a funding round
+  deleteFundingRound(id: ID): GenericResult
   # Delete a group that you are a steward of
   deleteGroup(id: ID): GenericResult
   # Remove the relationship between two groups if you are a steward of one of them
@@ -2907,6 +2956,8 @@ type Mutation {
   updateComment(id: ID, data: CommentInput): Comment
   # Update a context widget
   updateContextWidget(contextWidgetId: ID, data: ContextWidgetInput): ContextWidget
+  # Update a funding round
+  updateFundingRound(id: ID, data: FundingRoundInput): FundingRound
   # Update a Group's settings. Only a group steward can call this.
   updateGroupSettings(id: ID, changes: GroupInput): Group
   # Update a Group's settings. Only can be called via API key.
@@ -3656,6 +3707,29 @@ input TrackInput {
   publishedAt: Date
   # The welcome message for the track
   welcomeMessage: String
+}
+
+input FundingRoundInput {
+  # Criteria for submitting projects/submissions
+  criteria: String
+  # Description of the round
+  description: String
+  # The group that this funding round belongs to
+  groupId: ID
+  # Maximum tokens a voter can allocate
+  maxTokenAllocation: Int
+  # Minimum tokens a voter can allocate
+  minTokenAllocation: Int
+  # Whether a budget is required for submissions
+  requireBudget: Boolean
+  # The title of the funding round
+  title: String
+  # Total tokens available to allocate
+  totalTokens: Int
+  # Token type used for voting/allocation
+  tokenType: String
+  # Voting method to be used (e.g., quadratic, approval)
+  votingMethod: String
 }
 
 input UserSettingsInput {
