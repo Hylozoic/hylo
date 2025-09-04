@@ -4,6 +4,7 @@ const RESP_ADD_MEMBERS = 'Add Members'
 const RESP_REMOVE_MEMBERS = 'Remove Members'
 const RESP_MANAGE_CONTENT = 'Manage Content'
 const RESP_MANAGE_TRACKS = 'Manage Tracks'
+const RESP_MANAGE_ROUNDS = 'Manage Rounds'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'responsibilities',
@@ -24,6 +25,7 @@ module.exports = bookshelf.Model.extend({
     RESP_ADMINISTRATION,
     RESP_MANAGE_CONTENT,
     RESP_REMOVE_MEMBERS,
+    RESP_MANAGE_ROUNDS,
     RESP_MANAGE_TRACKS
   },
 
@@ -35,7 +37,8 @@ module.exports = bookshelf.Model.extend({
     RESP_ADD_MEMBERS: 2,
     RESP_REMOVE_MEMBERS: 3,
     RESP_MANAGE_CONTENT: 4,
-    RESP_MANAGE_TRACKS: null // XXX: since this was added later we can't know the id for it
+    RESP_MANAGE_TRACKS: null, // XXX: since this was added later we can't know the id for it
+    RESP_MANAGE_ROUNDS: null // since added later we can't know id
   },
 
   fetchAll: function ({ groupId = 0, groupRoleId, commonRoleId }) {

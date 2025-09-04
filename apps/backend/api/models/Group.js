@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget */
+/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -122,6 +122,10 @@ module.exports = bookshelf.Model.extend(merge({
 
   customViews () {
     return this.hasMany(CustomView)
+  },
+
+  fundingRounds () {
+    return this.hasMany(FundingRound, 'group_id')
   },
 
   groupAgreements () {

@@ -126,6 +126,11 @@ export {
   updateTrackActionOrder
 } from './track'
 export {
+  createFundingRound,
+  updateFundingRound,
+  deleteFundingRound
+} from './fundingRound'
+export {
   blockUser,
   deactivateUser,
   deleteUser,
