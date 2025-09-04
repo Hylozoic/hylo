@@ -30,11 +30,6 @@ const markThreadReadMutation = gql`
       id
       unreadCount
       lastReadAt
-      participants {
-        id
-        name
-        avatarUrl
-      }
     }
   }
 `
