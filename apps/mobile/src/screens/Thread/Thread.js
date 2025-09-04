@@ -5,10 +5,11 @@ import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { trackWithConsent } from 'services/mixpanel'
 import useRouteParams from 'hooks/useRouteParams'
 import Loading from 'components/Loading'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
@@ -109,10 +110,19 @@ export default function Thread () {
   const handleSendTyping = () => peopleTypingRef?.current?.sendTyping()
 
   const handleSubmit = (text) => {
+    const messageText = TextHelpers.markdown(text)
+    
     createMessage({
       messageThreadId: threadId,
-      text: TextHelpers.markdown(text)
+      text: messageText
     })
+
+    // Track analytics for direct message sent
+    trackWithConsent(AnalyticsEvents.DIRECT_MESSAGE_SENT, {
+      messageLength: TextHelpers.textLengthHTML(messageText),
+      messageThreadId: threadId,
+      userId: currentUser?.id
+    }, currentUser)
   }
 
   useFocusEffect(

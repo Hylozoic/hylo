@@ -1,7 +1,5 @@
 import { gql } from 'urql'
 
-// TODO: URQL - analytics: AnalyticsEvents.DIRECT_MESSAGE_SENT
-
 // This mutation uses makeAppendToPaginatedSetResolver in the updates to add new messages
 // to the messages list without overwriting existing messages. The messageThread data
 // provides participant info needed for ThreadCard display without interfering with message pagination.
