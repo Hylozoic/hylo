@@ -121,7 +121,6 @@ const HyloWebView = React.forwardRef(({
   const [cookie, setCookie] = useState()
   const [loadError, setLoadError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [sessionRecoveryAttempted, setSessionRecoveryAttempted] = useState(false)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
   const retryCountRef = useRef(0)
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
@@ -133,16 +132,13 @@ const HyloWebView = React.forwardRef(({
 
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
-  // Component-level debugging removed for production
-
   // Monitor auth state changes and reset recovery state when auth is restored
   useEffect(() => {
-    if (isAuthenticated && sessionRecoveryAttempted) {
-      setSessionRecoveryAttempted(false)
+    if (isAuthenticated) {
       setLoadError(null)
       setShowSessionRecovery(false)
     }
-  }, [isAuthenticated, sessionRecoveryAttempted])
+  }, [isAuthenticated])
 
   // Only show session recovery after a delay to prevent flashing
   useEffect(() => {
@@ -176,35 +172,6 @@ const HyloWebView = React.forwardRef(({
     }, [])
   )
 
-  // Session recovery function - attempts to refresh authentication
-  const attemptSessionRecovery = useCallback(async () => {
-    if (sessionRecoveryAttempted) {
-      return false
-    }
-
-    setSessionRecoveryAttempted(true)
-
-    try {
-      // First, check if user is still authenticated
-      await checkAuth()
-      
-      // Wait a moment for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Try to get session cookie again
-      const newCookie = await getSessionCookie()
-      
-      if (newCookie) {
-        setCookie(newCookie)
-        setLoadError(null)
-        return true
-      } else {
-        return false
-      }
-    } catch (error) {
-      return false
-    }
-  }, [sessionRecoveryAttempted, checkAuth])
 
   // WebView recovery function
   const attemptRecovery = useCallback(async () => {
@@ -375,7 +342,7 @@ const HyloWebView = React.forwardRef(({
 
   if (!cookie || !uri) {
     if (showSessionRecovery) {
-      // Show session recovery interface
+      // Show simple session recovery interface
       return (
         <View className="flex-1 bg-background p-5 justify-center">
           <View className="bg-card p-5 rounded-lg shadow-sm border border-border">
@@ -384,114 +351,27 @@ const HyloWebView = React.forwardRef(({
             </Text>
             
             <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
-              This content requires authentication. Your session may have expired or been reset.
+              Your session has expired. Please log out and log back in to continue.
             </Text>
             
-            {!sessionRecoveryAttempted && (
-              <>
-                <TouchableOpacity 
-                  onPress={async () => {
-                    const success = await attemptSessionRecovery()
-                    if (success) {
-                      // Cookie will be set and component will re-render
-                      return
-                    }
-                  }}
-                  className="bg-secondary p-4 rounded-md items-center mb-3"
-                >
-                  <Text className="text-secondary-foreground font-bold text-base">
-                    🔄 Refresh Session
-                  </Text>
-                </TouchableOpacity>
-                
-                <Text className="text-sm text-center text-muted-foreground mb-4">
-                  Try refreshing your authentication first
-                </Text>
-              </>
-            )}
-            
-            {sessionRecoveryAttempted && (
-              <>
-                <Text className="text-sm text-center text-destructive mb-4">
-                  Session refresh failed. You need to log in again :(
-                </Text>
-                
-                <TouchableOpacity 
-                  onPress={async () => {
-                    try {
-                      // Clear the session and trigger logout
-                      await clearSessionCookie() 
-                      await logout()
-                      // The auth state change will automatically navigate to login
-                    } catch (error) {
-                      // Fallback: try direct navigation to login without reset
-                      openURL('/login')
-                    }
-                  }}
-                  className="bg-accent p-4 rounded-md items-center mb-3"
-                >
-                  <Text className="text-accent-foreground font-bold text-base">
-                    🔑 Log Out & Re-authenticate
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-            
-            {__DEV__ && (
-              <>
-                <View className="h-px bg-border my-4" />
-                <Text className="text-xs text-center text-muted-foreground mb-3">
-                  Developer Tools
-                </Text>
-                
-                <TouchableOpacity 
-                  onPress={() => {
-                    if (global.webViewDebugUtils) {
-                      global.webViewDebugUtils.testCookieSystem()
-                    }
-                  }}
-                  className="bg-yellow-500 p-2.5 rounded items-center mb-2"
-                >
-                  <Text className="text-yellow-900 font-bold text-xs">
-                    🔍 Debug Session State
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  onPress={async () => {
-                    if (global.webViewDebugUtils) {
-                      await global.webViewDebugUtils.clearWebViewState()
-                      // Attempt to refresh the session after clearing
-                      setTimeout(async () => {
-                        const newCookie = await getSessionCookie()
-                        setCookie(newCookie)
-                      }, 500)
-                    }
-                  }}
-                  className="bg-destructive p-2.5 rounded items-center mb-2"
-                >
-                  <Text className="text-destructive-foreground font-bold text-xs">
-                    🗑️ Clear Session Data
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  onPress={async () => {
-                    try {
-                      await clearSessionCookie()
-                      await logout()
-                    } catch (error) {
-                      // Force logout failed - handled silently
-                    }
-                  }}
-                  className="bg-purple-600 p-2.5 rounded items-center"
-                >
-                  <Text className="text-white font-bold text-xs">
-                    🚪 Force Logout (Debug)
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <TouchableOpacity 
+              onPress={async () => {
+                try {
+                  // Clear the session and trigger logout
+                  await clearSessionCookie() 
+                  await logout()
+                  // The auth state change will automatically navigate to login
+                } catch (error) {
+                  // Fallback: try direct navigation to login without reset
+                  openURL('/login')
+                }
+              }}
+              className="bg-accent p-4 rounded-md items-center"
+            >
+              <Text className="text-accent-foreground font-bold text-base">
+                🔑 Log Out & Log Back In
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )
