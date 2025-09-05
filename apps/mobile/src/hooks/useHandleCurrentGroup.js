@@ -26,7 +26,12 @@ export function useHandleCurrentGroupSlug () {
     }
     // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (sets myContext) and then logs back in
     if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
-      changeToGroup(currentGroupSlug)
+      const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
+      if (lastViewedGroupSlug) {
+        changeToGroup(lastViewedGroupSlug)
+      } else {
+        changeToGroup(currentGroupSlug)
+      }
     }
   }, [currentUser?.memberships, currentGroupSlug])
 
@@ -70,7 +75,6 @@ export function useHandleCurrentGroup () {
         setNavigateHome(false)
         navigation.replace('Group Welcome')
       } else if (currentGroup?.homeWidget && navigateHome) {
-        console.log('useHandleCurrentGroup DOES IT GO TO THIS LOFIC', currentGroup?.slug)
         setNavigateHome(false)
         // Only "replace" current HomeNavigator stack if there are mounted screens,
         // otherwise begins loading the default HomeNavigator screen then replaces

@@ -30,7 +30,7 @@ export async function fetchGraphqlSchema (endpoint) {
 
 export default async function makeUrqlClient ({
   subscriptionExchange: providedSubscriptionExchange,
-  schemaAwareness = true, // Enable by default to fix union type warnings
+  schemaAwareness = false, // Off for now, creates lots of unexpected gaps in the app
   storage: providedStorageAdapter // this is platform dependent, so we need to pass it in
 } = {}) {
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
