@@ -111,7 +111,7 @@ export default function Groups () {
 
   if (loading) return <Loading />
 
-  const memberships = currentUser?.memberships
+  const memberships = currentUser?.memberships || []
   const joinRequests = currentUser?.joinRequests?.items || []
   const childGroups = currentGroup?.childGroups?.items?.map(g => {
     g.memberStatus = memberships.find(m => m.group.id === g.id)
@@ -120,15 +120,15 @@ export default function Groups () {
         ? 'requested'
         : 'not'
     return g
-  })
-  const parentGroups = currentGroup?.parentGroups?.items.map(g => {
+  }) || []
+  const parentGroups = currentGroup?.parentGroups?.items?.map(g => {
     g.memberStatus = memberships.find(m => m.group.id === g.id)
       ? 'member'
       : joinRequests.find(jr => jr.group.id === g.id)
         ? 'requested'
         : 'not'
     return g
-  })
+  }) || []
 
   const listSections = []
   const renderItem = ({ item }) => (
