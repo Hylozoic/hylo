@@ -20,10 +20,13 @@ export function useHandleCurrentGroupSlug () {
   const pathMatches = originalLinkingPath?.match(/\/groups\/([^\/]+)(.*$)/)
   const groupSlugFromPath = pathMatches?.[1] ?? null
   const pathAfterMatch = pathMatches?.[2] ?? null
-
   useEffect(() => {
     if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
+    }
+    // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (sets myContext) and then logs back in
+    if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
+      changeToGroup(currentGroupSlug)
     }
   }, [currentUser?.memberships, currentGroupSlug])
 
@@ -67,6 +70,7 @@ export function useHandleCurrentGroup () {
         setNavigateHome(false)
         navigation.replace('Group Welcome')
       } else if (currentGroup?.homeWidget && navigateHome) {
+        console.log('useHandleCurrentGroup DOES IT GO TO THIS LOFIC', currentGroup?.slug)
         setNavigateHome(false)
         // Only "replace" current HomeNavigator stack if there are mounted screens,
         // otherwise begins loading the default HomeNavigator screen then replaces
