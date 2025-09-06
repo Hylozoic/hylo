@@ -132,7 +132,6 @@ const HyloWebView = React.forwardRef(({
   // Monitor auth state changes and reset recovery state when auth is restored
   useEffect(() => {
     if (isAuthenticated) {
-      setLoadError(null)
       setShowSessionRecovery(false)
     }
   }, [isAuthenticated])
@@ -160,9 +159,8 @@ const HyloWebView = React.forwardRef(({
         try {
         const newCookie = await getSessionCookie()
         setCookie(newCookie)
-          setLoadError(null) // Clear any previous error
         } catch (error) {
-          setLoadError({ type: 'COOKIE_ERROR', message: 'Failed to retrieve session cookie' })
+          // Cookie retrieval failed - will trigger session recovery UI
         }
       }
       getCookieAsync()
