@@ -37,7 +37,6 @@ export default function NoContextFallbackScreen () {
       }
     }
   }, [currentGroup?.slug, changeToGroup])
-
   if (fetching || currentGroup?.slug) {
     return <LoadingScreen />
   } 

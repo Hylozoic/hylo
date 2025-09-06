@@ -12,6 +12,8 @@ import { getSessionCookie, clearSessionCookie } from 'util/session'
 import { match, pathToRegexp } from 'path-to-regexp'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
 
 export const useNativeRouteHandler = () => {
   const navigation = useNavigation()
@@ -126,6 +128,8 @@ const HyloWebView = React.forwardRef(({
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
   const { isAuthenticated, isAuthorized, checkAuth, logout } = useAuth()
   const openURL = useOpenURL()
+  const [, queryCurrentUser] = useCurrentUser()
+  const { setCurrentGroupSlug } = useCurrentGroupStore()
 
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
@@ -206,6 +210,22 @@ const HyloWebView = React.forwardRef(({
               }
             }
           }
+        }
+        break
+      }
+      case WebViewMessageTypes.GROUP_DELETED: {
+        // Handle group deletion from webview
+        if (data?.groupSlug) {
+          console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
+          
+          // Set current group to 'my' to clear the deleted group slug
+          setCurrentGroupSlug('my')
+          
+          // Refresh current user data to update memberships
+          queryCurrentUser({ requestPolicy: 'network-only' })
+          
+          // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
+          openURL('/groups/my/no-context-fallback')
         }
         break
       }
