@@ -367,6 +367,7 @@ function PostEditor ({
    */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
+    setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))
