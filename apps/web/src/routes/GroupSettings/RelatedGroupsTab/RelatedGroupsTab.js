@@ -207,7 +207,7 @@ function RelatedGroupsTab () {
           <Button onClick={toggleRequestToJoinPicker} variant='outline' className='w-full justify-center h-12'>
             <div className='flex items-center'>
               <Icon name='HierarchyUpward' className='mr-2 text-xl relative top-[1px]' />
-              <span className='truncate'>{t('Request Parent Groups')}</span>
+              <span className='truncate'>{t('Join Parent Groups')}</span>
             </div>
           </Button>
           {showRequestToJoinPicker && (
