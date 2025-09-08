@@ -37,14 +37,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
 }, HasSettings), {
 
-  forPair (parentGroup, childGroup, relationshipType = Group.RelationshipType.PARENT_CHILD) {
+  forPair (parentGroup, childGroup) {
     const parentId = parentGroup instanceof Group ? parentGroup.id : parentGroup
     const childId = childGroup instanceof Group ? childGroup.id : childGroup
     if (!parentId || !childId) return null
     return GroupRelationship.where({
       parent_group_id: parentId,
       child_group_id: childId,
-      relationship_type: relationshipType,
       active: true
     })
   },

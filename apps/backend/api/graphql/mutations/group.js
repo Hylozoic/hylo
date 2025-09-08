@@ -314,7 +314,7 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
   const existingParentChild = await GroupRelationship.forPair(fromGroup, toGroup).fetch(opts)
   const existingChildParent = await GroupRelationship.forPair(toGroup, fromGroup).fetch(opts)
   const existingPeer = await GroupRelationship.forPair(fromGroup, toGroup, Group.RelationshipType.PEER_TO_PEER).fetch(opts)
-  
+
   console.log('🔍 Existing relationships check:', {
     existingParentChild: !!existingParentChild,
     existingChildParent: !!existingChildParent,
@@ -339,8 +339,8 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       active: true
     }).save(null, opts)
 
-    console.log('✅ Peer relationship created:', { 
-      id: relationship.id, 
+    console.log('✅ Peer relationship created:', {
+      id: relationship.id,
       parentGroupId: relationship.get('parent_group_id'),
       childGroupId: relationship.get('child_group_id'),
       relationshipType: relationship.get('relationship_type'),
@@ -360,7 +360,7 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
     return { success: true, groupRelationship: relationship }
   } else {
     console.log('📬 Creating peer relationship invitation (user is not admin of target group)')
-    
+
     // Create an invitation
     const existingInvite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch(opts)
 
@@ -377,7 +377,7 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       message: description
     }, opts)
 
-    console.log('✅ Peer relationship invitation created:', { 
+    console.log('✅ Peer relationship invitation created:', {
       id: invite.id,
       type: invite.get('type'),
       status: invite.get('status')
@@ -401,17 +401,17 @@ export async function updatePeerRelationship (userId, relationshipId, descriptio
   // Check that user is an admin of one of the groups
   const parentGroupId = relationship.get('parent_group_id')
   const childGroupId = relationship.get('child_group_id')
-  
+
   const hasPermissionA = await GroupMembership.hasResponsibility(userId, parentGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
   const hasPermissionB = await GroupMembership.hasResponsibility(userId, childGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
-  
+
   if (!hasPermissionA && !hasPermissionB) {
     throw new GraphQLError('You must be an administrator of one of the groups to update this relationship')
   }
 
   // Update both directions of the peer relationship
   await relationship.save({ description }, opts)
-  
+
   // Find and update the reciprocal relationship
   const reciprocalRelationship = await GroupRelationship.where({
     parent_group_id: childGroupId,
@@ -419,7 +419,7 @@ export async function updatePeerRelationship (userId, relationshipId, descriptio
     relationship_type: Group.RelationshipType.PEER_TO_PEER,
     active: true
   }).fetch(opts)
-  
+
   if (reciprocalRelationship) {
     await reciprocalRelationship.save({ description }, opts)
   }
@@ -441,10 +441,10 @@ export async function deletePeerRelationship (userId, relationshipId, opts = {})
   // Check that user is an admin of one of the groups
   const parentGroupId = relationship.get('parent_group_id')
   const childGroupId = relationship.get('child_group_id')
-  
+
   const hasPermissionA = await GroupMembership.hasResponsibility(userId, parentGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
   const hasPermissionB = await GroupMembership.hasResponsibility(userId, childGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
-  
+
   if (!hasPermissionA && !hasPermissionB) {
     throw new GraphQLError('You must be an administrator of one of the groups to delete this relationship')
   }
