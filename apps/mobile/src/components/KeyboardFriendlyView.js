@@ -1,12 +1,12 @@
 import React from 'react'
-import { KeyboardAvoidingView } from 'react-native'
-import { isIOS } from 'util/platform'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
+import { Platform } from 'react-native'
 
-export default function KeyboardFriendlyView ({ children, ...props }) {
+export default function KeyboardFriendlyView ({ children, keyboardVerticalOffset, ...props }) {
   const allProps = {
     ...props,
-    behavior: isIOS ? 'padding' : '',
-    keyboardVerticalOffset: isIOS ? 94 : 64,
+    behavior: Platform.OS === 'ios' ? 'padding' : 'height',
+    keyboardVerticalOffset: keyboardVerticalOffset || 0,
     enabled: true
   }
   return (

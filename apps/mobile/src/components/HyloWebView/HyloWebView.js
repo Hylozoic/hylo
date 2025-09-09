@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useState, useRef, useEffect } from 'react'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
@@ -7,9 +8,12 @@ import queryString from 'query-string'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { getSessionCookie } from 'util/session'
+import { getSessionCookie, clearSessionCookie } from 'util/session'
 import { match, pathToRegexp } from 'path-to-regexp'
 import { parseWebViewMessage } from '.'
+import { useAuth } from '@hylo/contexts/AuthContext'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
 
 export const useNativeRouteHandler = () => {
   const navigation = useNavigation()
@@ -116,10 +120,16 @@ const HyloWebView = React.forwardRef(({
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
+  const [isLoading, setIsLoading] = useState(true)
+  const [showSessionRecovery, setShowSessionRecovery] = useState(false)
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
+  const { isAuthenticated, isAuthorized, checkAuth, logout } = useAuth()
+  const openURL = useOpenURL()
+  const [, queryCurrentUser] = useCurrentUser()
+  const { setCurrentGroupSlug } = useCurrentGroupStore()
 
   // Debug logging for webview URI construction
   if (__DEV__) {
@@ -136,15 +146,56 @@ const HyloWebView = React.forwardRef(({
 
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
+  // Monitor auth state changes and reset recovery state when auth is restored
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowSessionRecovery(false)
+    }
+  }, [isAuthenticated])
+
+  // Only show session recovery after a delay to prevent flashing
+  useEffect(() => {
+    let timer
+    if (!cookie && !isLoading) {
+      timer = setTimeout(() => {
+        setShowSessionRecovery(true)
+      }, 2000) // Wait 2 seconds before showing recovery UI
+    } else {
+      setShowSessionRecovery(false)
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [cookie, isLoading])
+
+  // Clear error state when component re-focuses
   useFocusEffect(
     useCallback(() => {
       const getCookieAsync = async () => {
-        const newCookie = await getSessionCookie()
-        setCookie(newCookie)
+        try {
+          const newCookie = await getSessionCookie()
+          setCookie(newCookie)
+        } catch (error) {
+          // Cookie retrieval failed - will trigger session recovery UI
+          console.error('Cookie retrieval failed', error)
+        }
       }
       getCookieAsync()
     }, [])
   )
+
+
+
+  // WebView event handlers
+  const handleLoadStart = useCallback(() => {
+    setIsLoading(true)
+  }, [])
+
+  const handleLoadEnd = useCallback((event) => {
+    setIsLoading(false)
+  }, [])
+
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -174,26 +225,83 @@ const HyloWebView = React.forwardRef(({
             }
           }
         }
+        break
+      }
+      case WebViewMessageTypes.GROUP_DELETED: {
+        // Handle group deletion from webview
+        if (data?.groupSlug) {
+          console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
+          
+          // Set current group to 'my' to clear the deleted group slug
+          setCurrentGroupSlug('my')
+          
+          // Refresh current user data to update memberships
+          queryCurrentUser({ requestPolicy: 'network-only' })
+          
+          // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
+          openURL('/groups/my/no-context-fallback')
+        }
+        break
       }
     }
 
     messageHandler && messageHandler(parsedMessage)
   }
 
-  if (!cookie || !uri) return null
+
+  if (!cookie || !uri) {
+    if (showSessionRecovery) {
+      // Show simple session recovery interface
+      return (
+        <View className="flex-1 bg-background p-5 justify-center">
+          <View className="bg-card p-5 rounded-lg shadow-sm border border-border">
+            <Text className="text-xl font-bold mb-4 text-center text-card-foreground">
+              🔐 Session Required
+            </Text>
+            
+            <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
+              Your session has expired. Please log out and log back in to continue.
+            </Text>
+            
+            <TouchableOpacity 
+              onPress={async () => {
+                try {
+                  // Clear the session and trigger logout
+                  await clearSessionCookie() 
+                  await logout()
+                  // The auth state change will automatically navigate to login
+                } catch (error) {
+                  // Fallback: try direct navigation to login without reset
+                  openURL('/login')
+                }
+              }}
+              className="bg-accent p-4 rounded-md items-center"
+            >
+              <Text className="text-accent-foreground font-bold text-base">
+                🔑 Log Out & Log Back In
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )
+    }
+    return null
+  }
 
   return (
     <AutoHeightWebView
       customScript={`
         window.HyloWebView = true;
         ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
+        
       `}
       customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}
       nestedScrollEnabled
       hideKeyboardAccessoryView
-      webviewDebuggingEnabled
+      onLoadStart={handleLoadStart}
+      onLoadEnd={handleLoadEnd}
       /*
 
       // NOTE: The following is deprecated in favor of listening for the WebView

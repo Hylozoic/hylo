@@ -32,21 +32,7 @@ export default function Groups () {
 
   if (loading) return <Loading />
 
-  // Debug: Log currentGroup to see what data we have
-  if (currentGroup && __DEV__) {
-    console.log('🔍 Groups Screen - currentGroup:', JSON.stringify({
-      id: currentGroup.id,
-      name: currentGroup.name,
-      hasChildGroups: !!currentGroup.childGroups,
-      hasParentGroups: !!currentGroup.parentGroups,
-      hasPeerGroups: !!currentGroup.peerGroups,
-      childGroupsCount: currentGroup.childGroups?.items?.length || 0,
-      parentGroupsCount: currentGroup.parentGroups?.items?.length || 0,
-      peerGroupsCount: currentGroup.peerGroups?.items?.length || 0
-    }, null, 2))
-  }
-
-  const memberships = currentUser?.memberships
+  const memberships = currentUser?.memberships || []
   const joinRequests = currentUser?.joinRequests?.items || []
   const childGroups = currentGroup?.childGroups?.items?.map(g => {
     g.memberStatus = memberships.find(m => m.group.id === g.id)

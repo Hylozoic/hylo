@@ -1,14 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Alert, Linking, Platform, PermissionsAndroid, ToastAndroid } from 'react-native'
 import Geolocation from '@react-native-community/geolocation'
 
 export default function useCurrentLocation () {
   const [loading, setLoading] = useState(false)
-  const [forceLocation] = useState(true)
   const [highAccuracy] = useState(true)
-  const [locationDialog] = useState(true)
-  const [useLocationManager] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
+
+  // Configure geolocation settings once when hook is initialized
+  useEffect(() => {
+    Geolocation.setRNConfiguration({
+      skipPermissionRequests: false, // Let the library handle permission requests
+      authorizationLevel: 'whenInUse', // iOS: Request "when in use" permission
+      locationProvider: 'auto' // Android: Auto-select best provider (Play Services preferred)
+    })
+  }, [])
 
   const hasPermissionIOS = async () => {
     const openSetting = () => {
@@ -16,28 +22,31 @@ export default function useCurrentLocation () {
         Alert.alert('Unable to open settings')
       })
     }
-    const status = await Geolocation.requestAuthorization('whenInUse')
 
-    if (status === 'granted') {
-      return true
-    }
-
-    if (status === 'denied') {
-      Alert.alert('Location permission denied')
-    }
-
-    if (status === 'disabled') {
-      Alert.alert(
-        'Turn on Location Services to allow "Hylo" to determine your location.',
-        '',
-        [
-          { text: 'Go to Settings', onPress: openSetting },
-          { text: "Don't Use Location", onPress: () => {} }
-        ]
+    return new Promise((resolve) => {
+      Geolocation.requestAuthorization(
+        () => {
+          // Success callback
+          resolve(true)
+        },
+        (error) => {
+          // Error callback
+          if (error.code === 1) { // PERMISSION_DENIED
+            Alert.alert('Location permission denied')
+          } else if (error.code === 2) { // POSITION_UNAVAILABLE
+            Alert.alert(
+              'Turn on Location Services to allow "Hylo" to determine your location.',
+              '',
+              [
+                { text: 'Go to Settings', onPress: openSetting },
+                { text: "Don't Use Location", onPress: () => {} }
+              ]
+            )
+          }
+          resolve(false)
+        }
       )
-    }
-
-    return false
+    })
   }
 
   const hasLocationPermission = async () => {
@@ -108,17 +117,9 @@ export default function useCurrentLocation () {
         resolvePosition(null)
       },
       {
-        accuracy: {
-          android: 'high',
-          ios: 'best'
-        },
         enableHighAccuracy: highAccuracy,
         timeout: 15000,
-        maximumAge: 10000,
-        distanceFilter: 0,
-        forceRequestLocation: forceLocation,
-        forceLocationManager: useLocationManager,
-        showLocationDialog: locationDialog
+        maximumAge: 10000
       }
     )
 
