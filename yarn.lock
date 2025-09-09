@@ -27894,6 +27894,7 @@ __metadata:
     react-native-gesture-handler: "npm:^2.22.0"
     react-native-image-picker: "npm:^8.2.0"
     react-native-image-viewing: "npm:^0.2.2"
+    react-native-keyboard-controller: "npm:^1.18.6"
     react-native-keyboard-manager: "npm:^6.5.16-0"
     react-native-linear-gradient: "npm:^2.8.3"
     react-native-localization: "npm:^2.3.2"
@@ -32697,6 +32698,29 @@ __metadata:
     react: ">=18.2.0"
     react-native: ">=0.73.0"
   checksum: 10/4e07c1e34c01c8d50fd7c1d0460db06f6f0515197405230386a8ffb950cb724b10743af032310d1384df0a90059bfb8992ba2d93344ce86315315f0493feccc2
+  languageName: node
+  linkType: hard
+
+"react-native-is-edge-to-edge@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "react-native-is-edge-to-edge@npm:1.2.1"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/8fb6d8ab7b953c7d7cec8c987cef24f1c5348a293a85cb49c7c53b54ef110c0ca746736ae730e297603c8c76020df912e93915fb17518c4f2f91143757177aba
+  languageName: node
+  linkType: hard
+
+"react-native-keyboard-controller@npm:^1.18.6":
+  version: 1.18.6
+  resolution: "react-native-keyboard-controller@npm:1.18.6"
+  dependencies:
+    react-native-is-edge-to-edge: "npm:^1.2.1"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-reanimated: ">=3.0.0"
+  checksum: 10/7967c2f39102c966f745fb1c10a5e1793167c7de0e99a0df32e9374fc0f06991991dd7884a3561efa149443dec916466d436d4be26cbfbf2cb725c2f9d25decb
   languageName: node
   linkType: hard
 
