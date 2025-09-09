@@ -161,10 +161,11 @@ const HyloWebView = React.forwardRef(({
     useCallback(() => {
       const getCookieAsync = async () => {
         try {
-        const newCookie = await getSessionCookie()
-        setCookie(newCookie)
+          const newCookie = await getSessionCookie()
+          setCookie(newCookie)
         } catch (error) {
           // Cookie retrieval failed - will trigger session recovery UI
+          console.error('Cookie retrieval failed', error)
         }
       }
       getCookieAsync()

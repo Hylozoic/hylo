@@ -24,7 +24,7 @@ export function useHandleCurrentGroupSlug () {
     if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
-    // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (sets myContext) and then logs back in
+    // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (which they access via the 'my' context) and then logs back in
     if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
       const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
       if (lastViewedGroupSlug) {
