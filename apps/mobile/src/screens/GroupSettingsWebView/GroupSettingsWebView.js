@@ -14,6 +14,16 @@ export default function GroupSettingsWebView () {
     navigation.push('Group Settings', { originalLinkingPath: `/groups/${groupSlug}/settings/${settingsArea}` })
   }, [groupSlug])
 
+  // Debug logging for notification navigation
+  if (__DEV__) {
+    console.log('🔍 GroupSettingsWebView Debug:', {
+      groupSlug,
+      settingsArea: routeSettingsArea,
+      originalLinkingPath,
+      allRouteParams: useRouteParams()
+    })
+  }
+
   // Always re-queries group onBlur
   useFocusEffect(
     useCallback(() => {

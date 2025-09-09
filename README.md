@@ -8,7 +8,7 @@ Thanks for checking out our code. The documentation below may be incomplete or i
 
 ## Quick Start
 
-1. Use nvm to install the correct version of node. Once installed you can just do `nvm install` to ensure the correct version is installed and then `nvm use`
+1. Install and use nvm to install the correct version of node. You can just do `nvm install` to ensure the correct version is installed and then `nvm use`
 
 2. Install yarn and foreman
 
@@ -43,9 +43,9 @@ Terminal 2:
 yarn web:dev
 ```
 
-8. Mobile specific setup [here](./apps/mobile/README.md)
+8. Mobile app specific setup [here](./apps/mobile/README.md)
 
-9. Desktop specific setup [here](./apps/desktop/README.md)
+9. Desktop app specific setup [here](./apps/desktop/README.md)
 
 ## Details on the setup of this Monorepo
 

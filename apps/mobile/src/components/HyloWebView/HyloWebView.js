@@ -131,6 +131,19 @@ const HyloWebView = React.forwardRef(({
   const [, queryCurrentUser] = useCurrentUser()
   const { setCurrentGroupSlug } = useCurrentGroupStore()
 
+  // Debug logging for webview URI construction
+  if (__DEV__) {
+    console.log('🔍 HyloWebView URI Debug:', {
+      pathProp,
+      routePath,
+      originalLinkingPath,
+      resolvedPath: path,
+      baseUrl: Config.HYLO_WEB_BASE_URL,
+      finalUri: uri,
+      postId
+    })
+  }
+
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
 
   // Monitor auth state changes and reset recovery state when auth is restored

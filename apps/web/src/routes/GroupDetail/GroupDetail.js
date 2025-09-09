@@ -151,7 +151,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                       <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
                     </div>
                   </span>
-                  <span className={g.memberCount}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</span>
+                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
                 </div>
                 <span className='text-white/70 text-sm'>{group.location}</span>
               </div>

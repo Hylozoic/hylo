@@ -51,6 +51,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
 - Update and commit `CHANGELOG`:
   - Ensure version numbers across the mobile rep actually MATCH the version you are putting out
     - Often I do this with a search for the prior version number; it should only exist in the changelog
+    - AS PART OF DOING THIS, the android `versionCode` and the iOS `CFBundleVersion` needs to be incremented by 1, or build chaos ensues.
   - Review git history and Github Milestone for the release and existing entries in `CHANGELOG` for the current pre-release
 - Go into Bitrise, into our app, and find an hit the 'start build' button.
   - select the branch you want to build
@@ -74,8 +75,12 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   - Add release notes
   - Submit the draft release for review
 - Once the release is accepted by both the stores update the version numbers to the next patch version x.x.10 => x.x.11
+  - An example of this step [can be seen here](https://github.com/Hylozoic/hylo/commit/27ff587c72c6699220816afad4614f2d1cc07b27)
   - If you don't do this, iOS builds will fail on upload to test flight
 - Open a new Milestone with the current pre-release version:
+
+###### In-between release testings and ongoing dev
+Now, you might have cut a release branch, then the next day merged a big new mobile feature to dev, AND THEN you get some bug feedback. Those bugs need to be reflected in both dev AND the release branch, so its best to do the bug fixes on the release branch and update the release tag, and then merge those changes from the release branch into dev (aka, don't add the fixes branched off dev and then accidentally deploy a whole new untested feature). 
 
 ### Enabling Sentry exception tracking in dev
 

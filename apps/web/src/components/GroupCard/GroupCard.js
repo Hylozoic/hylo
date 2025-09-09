@@ -47,7 +47,12 @@ export default function GroupCard ({ group }) {
             <div className={cn('flex flex-row gap-2', classes.groupDetails)}>
               <div className='flex flex-col gap-0'>
                 <span className='w-full text-white font-bold'>{group.name}</span>
-                {group.memberCount ? <span className='text-xs text-white/80'>{group.memberCount} {t('Members')}</span> : ''}
+                {group.memberCount ? <span className='text-xs text-white/80'>{t('{{count}} Members', { count: group.memberCount })}</span> : ''}
+                {group.peerRelationshipDescription && (
+                  <div className='mt-1 text-xs text-white/70 bg-white/10 backdrop-blur-sm rounded px-2 py-1 max-w-xs'>
+                    <span className='font-medium text-white/90'>{t('Peer Relationship')}:</span> {group.peerRelationshipDescription.length > 50 ? `${group.peerRelationshipDescription.substring(0, 50)}...` : group.peerRelationshipDescription}
+                  </div>
+                )}
               </div>
             </div>
           </div>

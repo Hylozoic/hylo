@@ -13,6 +13,9 @@ const TOGGLE_DRAWER = `${MODULE_NAME}/TOGGLE_DRAWER`
 
 const TOGGLE_NAV_MENU = `${MODULE_NAME}/TOGGLE_NAV_MENU`
 
+// Action to set a membership's lastViewedAt value
+export const SET_MEMBERSHIP_LAST_VIEWED_AT = `${MODULE_NAME}/SET_MEMBERSHIP_LAST_VIEWED_AT`
+
 export const initialState = {
   isDrawerOpen: false,
   isNavOpen: false
@@ -81,6 +84,14 @@ export function ormSessionReducer (
       if (!membership) return
       return membership.update({ newPostCount: 0 })
     }
+    case SET_MEMBERSHIP_LAST_VIEWED_AT: {
+      const { groupId, personId, lastViewedAt } = meta || {}
+      if (!groupId || !personId || !lastViewedAt) return
+      const membership = Membership.safeGet({ group: groupId, person: personId })
+      if (!membership) return
+      membership.update({ lastViewedAt })
+      break
+    }
     case FETCH_FOR_CURRENT_USER: {
       const me = payload.data?.me
       if (me && !Person.idExists(me.id)) {
@@ -88,5 +99,12 @@ export function ormSessionReducer (
       }
       break
     }
+  }
+}
+
+export function setMembershipLastViewedAt (groupId, personId, lastViewedAt) {
+  return {
+    type: SET_MEMBERSHIP_LAST_VIEWED_AT,
+    meta: { groupId, personId, lastViewedAt }
   }
 }

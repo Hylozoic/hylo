@@ -248,7 +248,7 @@ function PostEditor ({
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
             .map((cr) => ({
-              id: cr?.groupTopic?.id,
+              id: cr?.id,
               group: g,
               name: g.name + ' #' + cr?.groupTopic?.topic?.name,
               topic: cr?.groupTopic?.topic,
