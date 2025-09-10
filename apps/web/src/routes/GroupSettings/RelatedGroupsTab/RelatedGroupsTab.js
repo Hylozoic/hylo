@@ -136,9 +136,8 @@ function RelatedGroupsTab () {
           label: t('Remove Peer Relationship'),
           onClick: () => {
             if (window.confirm(t('Are you sure you want to remove the peer relationship with {{groupName}}?', { groupName: toGroup.name }))) {
-              // For peer relationships, we need to find the relationship ID
-              // This is a temporary solution - ideally we'd pass the relationship ID
-              console.log('TODO: Implement peer relationship deletion with relationship ID')
+              // TODO: This is a temporary solution - ideally we'd pass the relationship ID. Tibet: Why?
+              dispatch(deleteGroupRelationship(fromGroup.id, toGroup.id))
             }
           },
           red: true
@@ -178,30 +177,6 @@ function RelatedGroupsTab () {
     <div className='pb-[200px]'>
       <div className='text-2xl font-bold text-foreground mb-4'>{t('Add Group Relationships')}</div>
       <div className='mb-12'>
-        {/* Child Groups Section */}
-        <div className='relative mb-4'>
-          <Button onClick={toggleInviteAsChildPicker} variant='outline' className='w-full justify-center h-12'>
-            <div className='flex items-center'>
-              <Icon name='HierarchyDownward' className='mr-2 text-xl relative top-[1px]' />
-              <span className='truncate'>{t('Add Child Groups')}</span>
-            </div>
-          </Button>
-          {showInviteAsChildPicker && (
-            <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
-              <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
-                {possibleRelatedGroups.map(membership => (
-                  <div key={membership.id}>
-                    <button onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
-                      <span>{membership.group.name}</span>
-                      <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Add as Child') : t('Invite as Child')}</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Parent Groups Section */}
         <div className='relative mb-4'>
           <Button onClick={toggleRequestToJoinPicker} variant='outline' className='w-full justify-center h-12'>
@@ -218,6 +193,30 @@ function RelatedGroupsTab () {
                     <button onClick={handleRequestToAddGroupToParent(membership.group, group)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
                       <span className='truncate'>{membership.group.name}</span>
                       <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Join') : t('Request')}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Child Groups Section */}
+        <div className='relative mb-4'>
+          <Button onClick={toggleInviteAsChildPicker} variant='outline' className='w-full justify-center h-12'>
+            <div className='flex items-center'>
+              <Icon name='HierarchyDownward' className='mr-2 text-xl relative top-[1px]' />
+              <span className='truncate'>{t('Add Child Groups')}</span>
+            </div>
+          </Button>
+          {showInviteAsChildPicker && (
+            <div className='absolute w-full bg-background rounded-b-lg z-10 overflow-hidden top-12 shadow-lg'>
+              <div className='h-[150px] sm:h-[300px] overflow-y-auto'>
+                {possibleRelatedGroups.map(membership => (
+                  <div key={membership.id}>
+                    <button onClick={handleInviteGroupToJoinParent(group.id, membership.group.id)} className='w-full px-4 py-2 border-b border-foreground/10 text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-between'>
+                      <span>{membership.group.name}</span>
+                      <span className='border border-selected text-selected rounded-full px-2 py-0.5 text-sm mr-2'>{membership.hasAdministrationAbility ? t('Add as Child') : t('Invite as Child')}</span>
                     </button>
                   </div>
                 ))}
@@ -302,7 +301,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown id='related-groups-parent-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
+                  actionMenu={<Dropdown id='related-groups-parent-dropdown' alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(p, group, GROUP_RELATIONSHIP_TYPE.ChildToParent)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
@@ -361,7 +360,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={c}
                   key={c.id}
-                  actionMenu={<Dropdown id='related-groups-child-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className='right-0 left-auto' />}
+                  actionMenu={<Dropdown id='related-groups-child-dropdown' alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, c, GROUP_RELATIONSHIP_TYPE.ParentToChild)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
@@ -423,7 +422,7 @@ function RelatedGroupsTab () {
                 <GroupCard
                   group={p}
                   key={p.id}
-                  actionMenu={<Dropdown id='related-groups-peer-dropdown' toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, p, GROUP_RELATIONSHIP_TYPE.PeerToPeer)} className='right-0 left-auto' />}
+                  actionMenu={<Dropdown id='related-groups-peer-dropdown' alignRight toggleChildren={<Icon name='More' />} items={relationshipDropdownItems(group, p, GROUP_RELATIONSHIP_TYPE.PeerToPeer)} className='right-0 left-auto' />}
                 />
               ))}
             </div>
