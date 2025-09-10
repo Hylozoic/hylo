@@ -547,7 +547,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         search,
         topic,
         topics,
-        types
+        types,
+        useH3Search
       }) =>
         searchQuerySet('posts', {
           activePostsOnly,
@@ -576,6 +577,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           topics,
           type: filter,
           types,
+          useH3Search,
           users: createdBy
         })
     },

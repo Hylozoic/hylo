@@ -217,6 +217,8 @@ type Query {
     boundingBox: [PointInput],
     # Only return posts that are not in this collection
     collectionToFilterOut: ID,
+    # Use H3-based indexing for boundingBox searches (experimental)
+    useH3Search: Boolean,
     # If 'all' only return posts from groups the current logged in user is a member of. If 'public' only return pubic posts
     context: String,
     # Return posts from these users

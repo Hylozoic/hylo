@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { chain, curry, includes, isEmpty, values } from 'lodash'
 import { DateTime } from 'luxon'
+import { generateH3BoundingBoxWhereClause } from '../../../lib/h3Utils'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
 export const filterAndSortPosts = curry((opts, q) => {
@@ -8,6 +9,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     activePostsOnly = false,
     afterTime,
     beforeTime,
+    useH3Search = false,
     boundingBox,
     collectionToFilterOut,
     cursor,
@@ -136,7 +138,21 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   if (boundingBox) {
     q.join('locations', 'locations.id', '=', 'posts.location_id')
-    q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', [boundingBox[0].lng, boundingBox[0].lat, boundingBox[1].lng, boundingBox[1].lat])
+    
+    if (useH3Search) {
+      // Use H3-based indexing for bounding box search with h3-pg
+      try {
+        const whereClause = generateH3BoundingBoxWhereClause(boundingBox, 'locations.search_h3_r7', 7)
+        q.whereRaw(whereClause.sql, whereClause.bindings)
+      } catch (error) {
+        // Fall back to PostGIS if H3 fails
+        console.warn('H3 search failed, falling back to PostGIS:', error)
+        q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', [boundingBox[0].lng, boundingBox[0].lat, boundingBox[1].lng, boundingBox[1].lat])
+      }
+    } else {
+      // Use traditional PostGIS bounding box search
+      q.whereRaw('locations.center && ST_MakeEnvelope(?, ?, ?, ?, 4326)', [boundingBox[0].lng, boundingBox[0].lat, boundingBox[1].lng, boundingBox[1].lat])
+    }
   }
 
   // This is used to make sure that when viewing posts from child groups too, only pin ones from the parent group
