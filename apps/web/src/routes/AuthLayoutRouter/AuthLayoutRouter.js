@@ -65,6 +65,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
+import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -221,7 +222,8 @@ export default function AuthLayoutRouter (props) {
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+    const lastViewedAt = (new Date()).toISOString()
+    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {

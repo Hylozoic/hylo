@@ -156,6 +156,7 @@ export const routingConfig = {
   // Miscellaneous Routes
   '/notifications':                                                       `${AUTH_ROOT_SCREEN_NAME}/Notifications`,
   '/search':                                                              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Search Tab`,
+  '/:context(groups)/:groupSlug/no-context-fallback':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/No Context Fallback`,
 
   // Catch-Alls and Safeties
   // TODO: Routing -- We may want some or all of these to go away

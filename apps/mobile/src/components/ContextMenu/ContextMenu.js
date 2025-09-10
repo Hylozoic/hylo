@@ -23,7 +23,7 @@ import HyloHTML from 'components/HyloHTML'
 import { isIOS } from 'util/platform'
 import packageJson from '../../../package.json'
 
-export default function ContextMenu () {
+export default function ContextMenu ({ nonDrawer }) {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [{ currentUser }] = useCurrentUser()
@@ -41,7 +41,7 @@ export default function ContextMenu () {
           <GroupMenuHeader group={currentGroup} />
         )}
         {currentGroup.isStaticContext && (
-          <View className='flex-col p-2' style={{ paddingTop: insets.top + (isIOS ? 0 : 20) }}>
+          <View className='flex-col p-2' style={{ paddingTop: nonDrawer ? (isIOS ? 5 : 20) : insets.top + (isIOS ? 0 : 20) }}>
             <Text className='text-foreground font-bold text-lg'>
               {t(currentGroup.name)}
             </Text>

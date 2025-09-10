@@ -1,4 +1,5 @@
 import { useQuery } from 'urql'
+import { useMemo } from 'react'
 import meQuery from '@hylo/graphql/queries/meQuery'
 
 export default function useCurrentUser (useQueryArgs = {}) {
@@ -9,5 +10,18 @@ export default function useCurrentUser (useQueryArgs = {}) {
     return null
   }
 
-  return [{ currentUser: data?.me, fetching, error, stale }, queryCurrentUser]
+  // Memoized validation of memberships to ensure group property is always an object
+  const validatedCurrentUser = useMemo(() => {
+    if (!data?.me) return data?.me
+
+    return {
+      ...data.me,
+      memberships: data.me.memberships?.map(membership => ({
+        ...membership,
+        group: membership.group || {}
+      }))
+    }
+  }, [data?.me])
+
+  return [{ currentUser: validatedCurrentUser, fetching, error, stale }, queryCurrentUser]
 }

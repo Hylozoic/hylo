@@ -25,6 +25,8 @@ const TYPE = {
   GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
   GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest', // A child group is requesting to join a parent group
   GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted',
+  GroupPeerGroupInvite: 'groupPeerGroupInvite',
+  GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
   Message: 'message',
   Announcement: 'announcement',
   DonationTo: 'donation to',
@@ -125,6 +127,10 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestPush()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedPush()
+      case 'groupPeerGroupInvite':
+        return this.sendGroupPeerGroupInvitePush()
+      case 'groupPeerGroupInviteAccepted':
+        return this.sendGroupPeerGroupInviteAcceptedPush()
       case 'joinRequest':
         return this.sendJoinRequestPush()
       case 'memberJoinedGroup':
@@ -328,6 +334,28 @@ module.exports = bookshelf.Model.extend({
     return this.reader().sendPushNotification(alertText, alertPath)
   },
 
+  sendGroupPeerGroupInvitePush: async function () {
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const locale = this.locale()
+    if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
+    const path = new URL(Frontend.Route.groupRelationshipInvites(toGroup)).pathname
+    const alertText = PushNotification.textForGroupPeerGroupInvite(fromGroup, toGroup, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendGroupPeerGroupInviteAcceptedPush: async function () {
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const locale = this.locale()
+    if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
+
+    // Only moderators get peer relationship acceptance notifications
+    const alertPath = new URL(Frontend.Route.group(toGroup)).pathname
+    const alertText = PushNotification.textForGroupPeerGroupInviteAccepted(fromGroup, toGroup, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, alertPath)
+  },
+
   sendPushDonationTo: async function () {
     await this.load(['activity.projectContribution', 'activity.projectContribution.project', 'activity.projectContribution.user'])
     const projectContribution = this.projectContribution()
@@ -375,6 +403,10 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestEmail()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedEmail()
+      case 'groupPeerGroupInvite':
+        return this.sendGroupPeerGroupInviteEmail()
+      case 'groupPeerGroupInviteAccepted':
+        return this.sendGroupPeerGroupInviteAcceptedEmail()
       case 'joinRequest':
         return this.sendJoinRequestEmail()
       case 'memberJoinedGroup':
@@ -496,6 +528,85 @@ module.exports = bookshelf.Model.extend({
         group_name: group.get('name'),
         post: post.presentForEmail({ group, clickthroughParams, locale }),
         tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
+      }
+    })
+  },
+
+  sendGroupPeerGroupInviteEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const invite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch()
+    const locale = this.locale()
+
+    if (!fromGroup || !toGroup || !invite) throw new Error('Missing group in activity')
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'group_peer_group_invite_email',
+      cti: reader.id
+    }).toString()
+
+    return Email.sendGroupPeerGroupInviteNotification({
+      email: reader.get('email'),
+      locale,
+      sender: {
+        name: `${actor.get('name')} from ${fromGroup.get('name')}`,
+        address: process.env.EMAIL_SENDER
+      },
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        description: invite.get('message'),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
+      }
+    })
+  },
+
+  sendGroupPeerGroupInviteAcceptedEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    if (!fromGroup || !toGroup) throw new Error('Missing group in activity')
+
+    const locale = this.locale()
+    const reason = this.relations.activity.get('meta').reasons[0]
+    const memberOf = reason.split(':')[1]
+    const memberType = reason.split(':')[2]
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'group_peer_group_invite_accepted_email',
+      cti: reader.id
+    }).toString()
+
+    return Email.sendGroupPeerGroupInviteAcceptedNotification({
+      email: reader.get('email'),
+      locale,
+      sender: {
+        name: 'The Team at Hylo',
+        address: process.env.EMAIL_SENDER
+      },
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        memberOf,
+        memberType,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
       }
     })
   },
@@ -949,7 +1060,7 @@ module.exports = bookshelf.Model.extend({
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)
-    return Notification.where({ id: id }).fetch(options)
+    return Notification.where({ id }).fetch(options)
   },
 
   findUnsent: function (options = {}) {
@@ -1016,7 +1127,7 @@ module.exports = bookshelf.Model.extend({
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

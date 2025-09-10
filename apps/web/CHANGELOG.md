@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.18] - 2025-09-05
+
+### Added
+- Support for peer to peer group relationships. You can invite.add these in the Related Groups tab and they will appear on the Groups view. Each peer relationship can have a description of what the relationship is.
+- Tooltips to menu items on context widgets when editing menu.
+
+### Changed
+- Allow spaces and other special characterswhen searching in post To field
+
+### Fixed
+- Accidental creation of empty chats when pressing option-enter after creating a post
+- Errors causing incorrect rows to appear while filtering the groups in the post To field
+- Fix issue when joining a new group with a welcome page where you would get bounced back to the welcome page when a notification came in.
+- Handle long context widget names better. Dont overflow, show ellipsis, make sure action menu still appears.
+- Prevent trying to create chat room with > 40 characters in topic which was breaking silently.
+- Fix text overflow for proposal status at small widths
+
 ## [6.1.17] - 2025-08-27
 
 ### Added

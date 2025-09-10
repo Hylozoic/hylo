@@ -158,6 +158,7 @@ Group.fields = {
     through: 'GroupRelationship',
     throughFields: ['childGroup', 'parentGroup']
   }),
+  peerGroups: many('Group'),
   commonRoles: many('CommonRole'),
   customViews: many('CustomView'),
   feedOrder: attr(),

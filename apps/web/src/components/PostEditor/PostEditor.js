@@ -248,7 +248,7 @@ function PostEditor ({
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
             .map((cr) => ({
-              id: cr?.groupTopic?.id,
+              id: cr?.id,
               group: g,
               name: g.name + ' #' + cr?.groupTopic?.topic?.name,
               topic: cr?.groupTopic?.topic,
@@ -367,6 +367,7 @@ function PostEditor ({
    */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
+    setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))

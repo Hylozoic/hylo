@@ -34,6 +34,38 @@ export function fetchRelatedGroups (slug) {
             type
           }
         }
+        peerGroups {
+          items {
+            id
+            accessibility
+            avatarUrl
+            bannerUrl
+            description
+            geoShape
+            name
+            purpose
+            slug
+            visibility
+            type
+          }
+        }
+        peerGroupRelationships {
+          items {
+            id
+            description
+            relationshipType
+            parentGroup {
+              id
+              slug
+              name
+            }
+            childGroup {
+              id
+              slug
+              name
+            }
+          }
+        }
       }
     }`
 

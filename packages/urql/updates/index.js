@@ -393,6 +393,24 @@ export default {
       }
     },
 
+    markThreadRead: (result, args, cache, info) => {
+      const updatedThread = result?.markThreadRead
+      if (updatedThread?.id) {
+        // Only update the Me query, don't invalidate the thread
+        // The mutation should return the updated data directly
+        cache.updateQuery({ query: meQuery }, ({ me }) => {
+          if (!me) return null
+          const newUnseenCount = Math.max(0, me.unseenThreadCount - 1)
+          return {
+            me: {
+              ...me,
+              unseenThreadCount: newUnseenCount
+            }
+          }
+        })
+      }
+    },
+
     recordClickthrough: (result, args, cache, info) => {
       if (result[info.fieldName].success) {
         const postId = args?.postId

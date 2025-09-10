@@ -119,7 +119,7 @@ export default function PostBodyProposal ({
       'blur-sm pointer-events-none': isFlagged
     })}
     >
-      <div className={cn('text-shadow-lg rounded-lg px-2 absolute -top-3 text-sm font-bold text-foreground left-1/2 -translate-x-1/2', {
+      <div className={cn('text-shadow-lg rounded-lg px-2 absolute -top-3 text-sm font-bold text-foreground left-1/2 -translate-x-1/2 whitespace-nowrap', {
         'bg-focus/90': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
         'bg-selected/90': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
         'bg-background': votingComplete

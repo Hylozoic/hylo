@@ -29,6 +29,7 @@ export const AnalyticsEvents = {
 export const WebViewMessageTypes = {
   JOINED_GROUP: 'JOINED_GROUP',
   LEFT_GROUP: 'LEFT_GROUP',
+  GROUP_DELETED: 'GROUP_DELETED',
   NAVIGATION: 'NAVIGATION',
   EDITOR: {
     BLUR: 'BLUR',

@@ -31,6 +31,7 @@ class TagInput extends Component {
     addLeadingHashtag: bool,
     renderSuggestion: func,
     tabChooses: bool,
+    spaceChooses: bool,
     backgroundClassName: string
   }
 
@@ -213,6 +214,7 @@ class TagInput extends Component {
                   }}
                   ref={this.list}
                   tabChooses={this.props.tabChooses}
+                  spaceChooses={this.props.spaceChooses}
                   backgroundClassName={this.props.backgroundClassName || 'bg-primary'}
                 />
               </div>}

@@ -6,7 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.1.17] - 2025-08-27
+## [6.1.18] - 2025-09-05
+
+### Added
+- Support for peer to peer group relationships.
+
+s## [6.1.17] - 2025-08-27
 
 ### Changed
 - If somehow trying to log in as a different user while already logged in, log out as current user andlog in as the new user

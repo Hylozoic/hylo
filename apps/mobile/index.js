@@ -19,6 +19,7 @@ import store from 'store'
 import { name as appName } from './app.json'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-html'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
@@ -154,32 +155,34 @@ export default function App () {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <UrqlProvider value={urqlClient}>
-          <AuthProvider>
-            <ActionSheetProvider>
-              {/*
-                `TRenderEngineProvider` is the react-native-render-html rendering engine.
-                It is app-wide for performance reasons. The styles applied are global and
-                not readily overridden. For more details see: https://bit.ly/3MeJCIR
-              */}
-              <TRenderEngineProvider
-                baseStyle={baseStyle}
-                tagsStyles={tagsStyles}
-                classesStyles={classesStyles}
-                systemFonts={[...defaultSystemFonts, 'Circular-Book']}
-              >
-                <Provider store={store}>
-                  <ToastProvider>
-                    <VersionCheck />
-                    <RootNavigator />
-                  </ToastProvider>
-                </Provider>
-              </TRenderEngineProvider>
-            </ActionSheetProvider>
-          </AuthProvider>
-        </UrqlProvider>
-      </ErrorBoundary>
+      <KeyboardProvider>
+        <ErrorBoundary>
+          <UrqlProvider value={urqlClient}>
+            <AuthProvider>
+              <ActionSheetProvider>
+                {/*
+                  `TRenderEngineProvider` is the react-native-render-html rendering engine.
+                  It is app-wide for performance reasons. The styles applied are global and
+                  not readily overridden. For more details see: https://bit.ly/3MeJCIR
+                */}
+                <TRenderEngineProvider
+                  baseStyle={baseStyle}
+                  tagsStyles={tagsStyles}
+                  classesStyles={classesStyles}
+                  systemFonts={[...defaultSystemFonts, 'Circular-Book']}
+                >
+                  <Provider store={store}>
+                    <ToastProvider>
+                      <VersionCheck />
+                      <RootNavigator />
+                    </ToastProvider>
+                  </Provider>
+                </TRenderEngineProvider>
+              </ActionSheetProvider>
+            </AuthProvider>
+          </UrqlProvider>
+        </ErrorBoundary>
+      </KeyboardProvider>
     </SafeAreaProvider>
   )
 }

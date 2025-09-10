@@ -198,7 +198,6 @@ module.exports = {
           }
         ]
       })
-
     } catch (error) {
       console.error('Error exporting user account:', error)
       throw error
@@ -244,7 +243,7 @@ function output (data, columns, email, groupName, questions) {
     const base64output = buff.toString('base64')
 
     Queue.classMethod('Email', 'sendExportMembersList', {
-      email: email,
+      email,
       files: [
         {
           id: `members-export-${groupName}-${formattedDate}.csv`,
