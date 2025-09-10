@@ -131,7 +131,12 @@ export const CommentEditor = React.forwardRef(({
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (event) => {
-        setKeyboardHeight(event.endCoordinates.height)
+        // On iOS, reduce the keyboard height to account for safe areas and avoid over-adjustment
+        // On Android, use more of the keyboard height as the layout behavior is different
+        const adjustedHeight = isIOS 
+          ? Math.max(0, event.endCoordinates.height - safeAreaInsets.bottom - 60)
+          : event.endCoordinates.height - 40
+        setKeyboardHeight(adjustedHeight)
       }
     )
     const keyboardDidHideListener = Keyboard.addListener(
@@ -145,7 +150,7 @@ export const CommentEditor = React.forwardRef(({
       keyboardDidShowListener.remove()
       keyboardDidHideListener.remove()
     }
-  }, [])
+  }, [safeAreaInsets.bottom])
 
   // This is what is causing the bouncing
   useEffect(() => {
