@@ -245,9 +245,9 @@ function MapExplorer (props) {
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
-  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
+  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'satellite-streets-v12')
   if (!MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)) {
-    setBaseLayerStyle('light-v11')
+    setBaseLayerStyle('satellite-streets-v12')
   }
 
   const possibleFeatureTypes = useMemo(() => context === 'public'
