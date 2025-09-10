@@ -103,6 +103,8 @@ module.exports = {
   sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
   sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
   sendGroupParentGroupJoinRequestAcceptedNotification: sendEmailWithOptions('tem_KcSfYRQCh4pgTGF7pcPjStqP'),
+  sendGroupPeerGroupInviteNotification: sendEmailWithOptions('tem_Rg6cVCt6GSgp7dR6YK833wb3'),
+  sendGroupPeerGroupInviteAcceptedNotification: sendEmailWithOptions('tem_X6RtW9pDgGYYGtPQDfppQd9T'),
   sendExportMembersList: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
   sendExportUserAccount: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
   sendTrackCompletedEmail: sendEmailWithOptions('tem_cbYqGkw78DtXwF88v64MY4v3'),

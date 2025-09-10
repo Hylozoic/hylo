@@ -294,58 +294,46 @@ export async function addMember (userId, groupId, role) {
 }
 
 export async function invitePeerRelationship (userId, fromGroupId, toGroupId, description = null, opts = {}) {
-  console.log('🔄 invitePeerRelationship called:', { userId, fromGroupId, toGroupId, description })
-
   if (fromGroupId === toGroupId) {
     throw new GraphQLError('Cannot create peer relationship between the same group')
   }
 
   const fromGroup = await getStewardedGroup(userId, fromGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
-  console.log('✅ fromGroup found:', { id: fromGroup.id, name: fromGroup.get('name') })
-
   const toGroup = await Group.find(toGroupId, opts)
-  console.log('✅ toGroup found:', { id: toGroup?.id, name: toGroup?.get('name') })
 
   if (!toGroup) {
     throw new GraphQLError('Target group not found')
   }
 
-  // Check if relationship already exists (any type)
-  const existingParentChild = await GroupRelationship.forPair(fromGroup, toGroup).fetch(opts)
-  const existingChildParent = await GroupRelationship.forPair(toGroup, fromGroup).fetch(opts)
-  const existingPeer = await GroupRelationship.forPair(fromGroup, toGroup, Group.RelationshipType.PEER_TO_PEER).fetch(opts)
+  let relationship
 
-  console.log('🔍 Existing relationships check:', {
-    existingParentChild: !!existingParentChild,
-    existingChildParent: !!existingChildParent,
-    existingPeer: !!existingPeer
-  })
-  if (existingParentChild || existingChildParent || existingPeer) {
-    console.log('❌ Groups are already related')
-    throw new GraphQLError('Groups are already related')
+  // Look for existing parent-child or peer to peer
+  relationship = await GroupRelationship.forPair(fromGroup, toGroup, false).fetch(opts)
+  if (!relationship) {
+    // Look for existing child to parent
+    relationship = await GroupRelationship.forPair(toGroup, fromGroup, false).fetch(opts)
+  }
+
+  if (relationship && relationship.get('active')) {
+    throw new GraphQLError('Group relationship already exists')
   }
 
   // Check if current user is an administrator of both groups
   const isAdminOfToGroup = await GroupMembership.hasResponsibility(userId, toGroup, Responsibility.constants.RESP_ADMINISTRATION, opts)
-  console.log('🔑 Permission check:', { isAdminOfToGroup })
 
   if (isAdminOfToGroup) {
-    console.log('🚀 Creating peer relationship directly (user is admin of both groups)')
-    const relationship = await GroupRelationship.forge({
-      parent_group_id: fromGroup.id,
-      child_group_id: toGroup.id,
-      relationship_type: Group.RelationshipType.PEER_TO_PEER,
-      description,
-      active: true
-    }).save(null, opts)
-
-    console.log('✅ Peer relationship created:', {
-      id: relationship.id,
-      parentGroupId: relationship.get('parent_group_id'),
-      childGroupId: relationship.get('child_group_id'),
-      relationshipType: relationship.get('relationship_type'),
-      description: relationship.get('description')
-    })
+    if (relationship) {
+      // If relationship already exists (any type) and is not active, make it active and set to be peer to peer
+      relationship.save({ parent_group_id: fromGroup, child_group_id: toGroup, active: true }, opts)
+    } else {
+      relationship = await GroupRelationship.forge({
+        parent_group_id: fromGroup.id,
+        child_group_id: toGroup.id,
+        relationship_type: Group.RelationshipType.PEER_TO_PEER,
+        description,
+        active: true
+      }).save(null, opts)
+    }
 
     await publishAsync({
       type: 'groupRelationshipUpdate',
@@ -359,13 +347,10 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
 
     return { success: true, groupRelationship: relationship }
   } else {
-    console.log('📬 Creating peer relationship invitation (user is not admin of target group)')
-
     // Create an invitation
     const existingInvite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch(opts)
 
     if (existingInvite && existingInvite.get('status') === GroupRelationshipInvite.STATUS.Pending) {
-      console.log('⚠️ Existing pending invite found')
       return { success: false, groupRelationshipInvite: existingInvite }
     }
 
@@ -376,12 +361,6 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       type: GroupRelationshipInvite.TYPE.PeerToPeer,
       message: description
     }, opts)
-
-    console.log('✅ Peer relationship invitation created:', {
-      id: invite.id,
-      type: invite.get('type'),
-      status: invite.get('status')
-    })
 
     return { success: true, groupRelationshipInvite: invite }
   }

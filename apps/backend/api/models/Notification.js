@@ -25,6 +25,8 @@ const TYPE = {
   GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
   GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest', // A child group is requesting to join a parent group
   GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted',
+  GroupPeerGroupInvite: 'groupPeerGroupInvite',
+  GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
   Message: 'message',
   Announcement: 'announcement',
   DonationTo: 'donation to',
@@ -535,34 +537,35 @@ module.exports = bookshelf.Model.extend({
     const reader = this.reader()
     const fromGroup = await this.relations.activity.group().fetch()
     const toGroup = await this.relations.activity.otherGroup().fetch()
+    const invite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch()
     const locale = this.locale()
 
-    if (!fromGroup || !toGroup) throw new Error('Missing group in activity')
+    if (!fromGroup || !toGroup || !invite) throw new Error('Missing group in activity')
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'group_peer_group_invite_email',
       cti: reader.id
     }).toString()
 
-    return Email.sendRawEmail({
+    return Email.sendGroupPeerGroupInviteNotification({
       email: reader.get('email'),
-      data: {
-        subject: locales[locale].groupPeerGroupInviteSubject({ fromGroup, toGroup }),
-        body: locales[locale].groupPeerGroupInviteBody({
-          actor,
-          fromGroup,
-          toGroup,
-          fromGroupUrl: Frontend.Route.group(fromGroup) + clickthroughParams,
-          toGroupSettingsUrl: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
-          emailSettingsUrl: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-          inviterProfileUrl: Frontend.Route.profile(actor) + clickthroughParams
-        }).replace(/\n/g, '<br/>\n')
+      locale,
+      sender: {
+        name: `${actor.get('name')} from ${fromGroup.get('name')}`,
+        address: process.env.EMAIL_SENDER
       },
-      extraOptions: {
-        sender: {
-          name: `${actor.get('name')} from ${fromGroup.get('name')}`,
-          address: process.env.EMAIL_SENDER
-        }
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        description: invite.get('message'),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
       }
     })
   },
@@ -573,32 +576,37 @@ module.exports = bookshelf.Model.extend({
     const fromGroup = await this.relations.activity.group().fetch()
     const toGroup = await this.relations.activity.otherGroup().fetch()
     if (!fromGroup || !toGroup) throw new Error('Missing group in activity')
+
     const locale = this.locale()
+    const reason = this.relations.activity.get('meta').reasons[0]
+    const memberOf = reason.split(':')[1]
+    const memberType = reason.split(':')[2]
 
     const clickthroughParams = '?' + new URLSearchParams({
       ctt: 'group_peer_group_invite_accepted_email',
       cti: reader.id
     }).toString()
 
-    return Email.sendRawEmail({
+    return Email.sendGroupPeerGroupInviteAcceptedNotification({
       email: reader.get('email'),
-      data: {
-        subject: locales[locale].groupPeerGroupInviteAcceptedSubject({ fromGroup, toGroup }),
-        body: locales[locale].groupPeerGroupInviteAcceptedBody({
-          actor,
-          fromGroup,
-          toGroup,
-          fromGroupUrl: Frontend.Route.group(fromGroup) + clickthroughParams,
-          toGroupUrl: Frontend.Route.group(toGroup) + clickthroughParams,
-          emailSettingsUrl: Frontend.Route.notificationsSettings(clickthroughParams, reader),
-          accepterProfileUrl: Frontend.Route.profile(actor) + clickthroughParams
-        }).replace(/\n/g, '<br/>\n')
+      locale,
+      sender: {
+        name: 'The Team at Hylo',
+        address: process.env.EMAIL_SENDER
       },
-      extraOptions: {
-        sender: {
-          name: 'The Team at Hylo',
-          address: process.env.EMAIL_SENDER
-        }
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        memberOf,
+        memberType,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
       }
     })
   },

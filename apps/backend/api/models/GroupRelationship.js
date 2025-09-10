@@ -37,15 +37,18 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
 }, HasSettings), {
 
-  forPair (parentGroup, childGroup) {
+  forPair (parentGroup, childGroup, onlyActive = true) {
     const parentId = parentGroup instanceof Group ? parentGroup.id : parentGroup
     const childId = childGroup instanceof Group ? childGroup.id : childGroup
     if (!parentId || !childId) return null
-    return GroupRelationship.where({
+    const where = {
       parent_group_id: parentId,
-      child_group_id: childId,
-      active: true
-    })
+      child_group_id: childId
+    }
+    if (onlyActive) {
+      where.active = true
+    }
+    return GroupRelationship.where(where)
   },
 
   childIdsFor (groupIds) {

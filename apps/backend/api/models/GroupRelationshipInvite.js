@@ -27,7 +27,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.belongsTo(Group, 'to_group_id')
   },
 
-  /*** Getters ***/
+  /** Getters **/
   isCanceled: function () {
     return !!this.get('canceled_by_id')
   },
@@ -36,7 +36,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return !!this.get('processed_by_id')
   },
 
-  /*** Setters/Mutators ***/
+  /** Setters/Mutators **/
 
   // TODO: ? this should always return the GroupRelationship, regardless of whether the
   // invitation is unused or whether the GroupRelationship already exists
@@ -82,16 +82,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
       if (this.get('type') === GroupRelationshipInvite.TYPE.PeerToPeer) {
         // For peer relationships, check if one already exists
-        relationship = await GroupRelationship.forPair(fromGroup, toGroup, Group.RelationshipType.PEER_TO_PEER).fetch({ transacting })
+        relationship = await GroupRelationship.forPair(fromGroup, toGroup, false).fetch({ transacting })
         if (relationship) {
           // If an old relationship existed then just re-activate it
-          await relationship.save({ active: true }, { transacting })
+          await relationship.save({ active: true, description: this.get('message') }, { transacting })
         } else {
           // Create new peer relationship
           relationship = await GroupRelationship.forge({
             parent_group_id: fromGroup.id, // For peer relationships, parent/child are just storage - they're equal
             child_group_id: toGroup.id,
             relationship_type: Group.RelationshipType.PEER_TO_PEER,
+            description: this.get('message'),
             active: true
           }).save(null, { transacting })
         }
@@ -103,7 +104,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         relationship = await GroupRelationship.forPair(parentGroup, childGroup).fetch({ transacting })
         if (relationship) {
           // If an old relationship existed then just re-activate it
-          await relationship.save({ active: true }, { transacting })
+          await relationship.save({ active: true, description: this.get('message') }, { transacting })
         } else {
           relationship = await parentGroup.addChild(childGroup, { transacting })
         }

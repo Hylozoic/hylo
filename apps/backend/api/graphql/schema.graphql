@@ -356,7 +356,7 @@ type Subscription {
   groupRelationshipUpdates: GroupRelationshipUpdate
   # Post updates subscription for real-time post changes
   postUpdates: Post
-  
+
   # UNIFIED: Single subscription that combines all user-specific updates
   # Reduces Android SSE connection limit issues by using only one connection
   allUpdates: SubscriptionUpdate
@@ -379,6 +379,8 @@ type ActivityMeta {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+      'groupPeerGroupInvite' = a peer group requested to connect to your group
+      'groupPeerGroupInviteAccepted' = a peer group accepted an invite to connect to one of your groups
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
@@ -404,6 +406,8 @@ type Activity {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+      'groupPeerGroupInvite' = a peer group requested to connect to your group
+      'groupPeerGroupInviteAccepted' = a peer group accepted an invite to connect to one of your groups
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
