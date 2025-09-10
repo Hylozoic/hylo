@@ -19,7 +19,7 @@ export default function EmojiRow (props) {
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
 
   const entityType = comment ? 'comment' : 'post'
-  const myReactions = useMemo(() => (comment ? comment.commentReactions?.filter(reaction => reaction.user.id === currentUser.id) : post.postReactions?.filter(reaction => reaction.user.id === currentUser.id)) || [], [comment, post, currentUser])
+  const myReactions = useMemo(() => (comment ? comment.commentReactions?.filter(reaction => reaction.user.id === currentUser.id) : post.postReactions?.filter(reaction => reaction.user.id === currentUser?.id)) || [], [comment, post, currentUser])
   const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
   const entityReactions = useMemo(() => (comment ? comment.commentReactions : post.postReactions) || [], [comment, post])
   const groupIds = useMemo(() => post.groups.map(g => g.id), [post])
