@@ -75,11 +75,9 @@ class ModalDialog extends Component {
 
   componentDidMount () {
     if (this.modalRef.current) { // for testing via shallow render
-      // XXX: what is this doing? Ask Kevin
+      // focus the nav buttons for slick-slide image carrousel
       const element = this.modalRef.current.querySelector("[tabindex='-1']")
-      if (element) {
-        element.focus()
-      }
+      element && element.focus()
       this.modalRef.current.addEventListener('keydown', this.handleKeydown)
     }
     document.addEventListener('mousedown', this.handleMousedown)
@@ -132,7 +130,7 @@ class ModalDialog extends Component {
     const showControls = showCancelButton || showSubmitButton
 
     return (
-      <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-black/50 pointer-events-auto' tabIndex='-1'>
+      <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-black/50 pointer-events-auto'>
         <div className='w-full max-w-[750px] bg-midground rounded-xl p-4' style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
           <span onClick={this.cancel} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
