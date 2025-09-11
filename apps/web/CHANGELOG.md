@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Allow spaces and other special characterswhen searching in post To field
+- Default map base layer is now satellite with streets
+- Prevent create post popup from appearing when dragging on the map
 
 ### Fixed
 - Accidental creation of empty chats when pressing option-enter after creating a post
@@ -22,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handle long context widget names better. Dont overflow, show ellipsis, make sure action menu still appears.
 - Prevent trying to create chat room with > 40 characters in topic which was breaking silently.
 - Fix text overflow for proposal status at small widths
+- Public map crashing for non logged in users
+- Fix display of posts and groups layers of the map at far out zooms
 
 ## [6.1.17] - 2025-08-27
 
