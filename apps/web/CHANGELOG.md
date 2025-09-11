@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow spaces and other special characterswhen searching in post To field
 - Default map base layer is now satellite with streets
 - Prevent create post popup from appearing when dragging on the map
+- Regularly check if sockets are connected and reconnect if they are not. Should help with old browser tabs no longer updating after a while.
 
 ### Fixed
 - Accidental creation of empty chats when pressing option-enter after creating a post
