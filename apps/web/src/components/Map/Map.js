@@ -20,6 +20,7 @@ const Map = forwardRef(({
   hyloLayers,
   isAddingItemToMap,
   layers = [],
+  onDragStart,
   onMouseDown,
   onMouseUp,
   onLoad,
@@ -67,8 +68,9 @@ const Map = forwardRef(({
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
-      onTouchStart={onMouseDown}
       onMouseMove={onMouseMove}
+      onTouchStart={onMouseDown}
+      onDragStart={onDragStart}
       onMouseLeave={() => { setHoveredLayerFeatures([]) }}
       onMouseOut={() => { setHoveredLayerFeatures([]) }}
       onMouseUp={onMouseUp}
