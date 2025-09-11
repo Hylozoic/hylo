@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.19] - 2025-09-11
+
+### Fixed
+- Don't show create post popup when clicking on public map while not logged in
+
 ## [6.1.18] - 2025-09-05
 
 ### Added
