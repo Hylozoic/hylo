@@ -245,9 +245,9 @@ function MapExplorer (props) {
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
-  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
+  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'satellite-streets-v12')
   if (!MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)) {
-    setBaseLayerStyle('light-v11')
+    setBaseLayerStyle('satellite-streets-v12')
   }
 
   const possibleFeatureTypes = useMemo(() => context === 'public'
@@ -487,14 +487,14 @@ function MapExplorer (props) {
     setShowFeatureFilters(false)
     setShowLayersSelector(false)
     setShowSavedSearches(false)
-    const oneSecondInMs = 1000
     setCreatePopupVisible(false)
-    creatingPostRef.current = true
+    creatingPostRef.current = e.point
     setTimeout(() => {
-      if (creatingPostRef.current) {
+      // Make sure the point is still the same as the one we clicked on
+      if (creatingPostRef.current === e.point) {
         showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
       }
-    }, isAddingItemToMap ? 0 : oneSecondInMs)
+    }, isAddingItemToMap ? 0 : 1000)
   }, [isAddingItemToMap, showCreatePopup])
 
   const onMapMouseUp = useCallback(() => {
@@ -502,6 +502,11 @@ function MapExplorer (props) {
       creatingPostRef.current = false
       setIsAddingItemToMap(false)
     }
+  }, [])
+
+  const onDragStart = useCallback((e) => {
+    // Stop the create popup from appearing when dragging
+    creatingPostRef.current = false
   }, [])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
@@ -792,6 +797,7 @@ function MapExplorer (props) {
           ref={mapRef}
           onMouseDown={onMapMouseDown}
           onMouseUp={onMapMouseUp}
+          onDragStart={onDragStart}
           onLoad={onMapLoad}
           afterViewportUpdate={afterViewportUpdate}
           setViewport={setViewport}

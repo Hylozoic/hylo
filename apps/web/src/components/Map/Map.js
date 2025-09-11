@@ -13,13 +13,14 @@ function DeckGLOverlay (props) {
 
 const Map = forwardRef(({
   afterViewportUpdate = () => {},
-  baseLayerStyle = 'light-v11',
+  baseLayerStyle = 'satellite-streets-v12',
   darkLayerStyle = 'dark-v11',
   isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
   children = {},
   hyloLayers,
   isAddingItemToMap,
   layers = [],
+  onDragStart,
   onMouseDown,
   onMouseUp,
   onLoad,
@@ -64,11 +65,13 @@ const Map = forwardRef(({
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
       mapStyle={`mapbox://styles/mapbox/${isDarkMode ? darkLayerStyle : baseLayerStyle}`}
+      projection='mercator'
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
-      onTouchStart={onMouseDown}
       onMouseMove={onMouseMove}
+      onTouchStart={onMouseDown}
+      onDragStart={onDragStart}
       onMouseLeave={() => { setHoveredLayerFeatures([]) }}
       onMouseOut={() => { setHoveredLayerFeatures([]) }}
       onMouseUp={onMouseUp}
