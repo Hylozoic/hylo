@@ -13,7 +13,7 @@ function DeckGLOverlay (props) {
 
 const Map = forwardRef(({
   afterViewportUpdate = () => {},
-  baseLayerStyle = 'light-v11',
+  baseLayerStyle = 'satellite-streets-v12',
   darkLayerStyle = 'dark-v11',
   isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
   children = {},
