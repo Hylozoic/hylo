@@ -65,6 +65,7 @@ const Map = forwardRef(({
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
       mapStyle={`mapbox://styles/mapbox/${isDarkMode ? darkLayerStyle : baseLayerStyle}`}
+      projection='mercator'
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
