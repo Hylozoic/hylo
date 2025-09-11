@@ -75,6 +75,9 @@ class ModalDialog extends Component {
 
   componentDidMount () {
     if (this.modalRef.current) { // for testing via shallow render
+      // focus the nav buttons for slick-slide image carrousel
+      const element = this.modalRef.current.querySelector("[tabindex='-1']")
+      element && element.focus()
       this.modalRef.current.addEventListener('keydown', this.handleKeydown)
     }
     document.addEventListener('mousedown', this.handleMousedown)
