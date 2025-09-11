@@ -85,7 +85,7 @@ export function runForceGraph (
 
   const defs = svg.append('defs')
 
-  // Get HSL values from CSS variables 
+  // Get HSL values from CSS variables
   const accentHSL = 'hsl(var(--accent))'
   const focusHSL = 'hsl(var(--focus))'
   const peerHSL = '#10B981'
@@ -198,7 +198,7 @@ export function runForceGraph (
     .attr('stroke-width', 12) // Much wider hitbox
     .attr('fill', 'none')
     .style('cursor', d => d.type === 'peer' && d.description ? 'help' : 'default')
-    .on('mouseover', function(event, d) {
+    .on('mouseover', function (event, d) {
       if (d.type === 'peer' && d.description) {
         tooltip
           .style('visibility', 'visible')
@@ -207,14 +207,14 @@ export function runForceGraph (
           .style('top', (event.pageY - 10) + 'px')
       }
     })
-    .on('mousemove', function(event, d) {
+    .on('mousemove', function (event, d) {
       if (d.type === 'peer' && d.description) {
         tooltip
           .style('left', (event.pageX + 10) + 'px')
           .style('top', (event.pageY - 10) + 'px')
       }
     })
-    .on('mouseout', function() {
+    .on('mouseout', function () {
       tooltip.style('visibility', 'hidden')
     })
 
@@ -248,9 +248,6 @@ export function runForceGraph (
   // Get the colors for styling
   const foregroundColor = getComputedColor('text-foreground')
   const foregroundColorMuted = getComputedColor('text-foreground/50')
-  const accentColor = getComputedColor('text-accent')
-  const focusColor = getComputedColor('text-focus')
-  const peerColor = '#10B981' // Keep existing green for peer relationships
 
   const label = svg.append('g')
     .selectAll('text')
@@ -289,7 +286,7 @@ export function runForceGraph (
         (d.source.x + d.target.x) / 2 + ',' + (d.source.y + d.target.y) / 2 + ' ' +
         d.target.x + ',' + d.target.y
     }
-    
+
     link.attr('points', updateLinkPositions)
     hoverLink.attr('points', updateLinkPositions)
 
