@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View, Keyboard, Dimensions } from 'react-native'
-import { useKeyboardController } from 'react-native-keyboard-controller'
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
@@ -15,6 +14,7 @@ import mixpanel from 'services/mixpanel'
 import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
 import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
@@ -36,8 +36,7 @@ export const CommentEditor = React.forwardRef(({
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
-  const { setEnabled } = useKeyboardController()
+  const keyboardHeight = useKeyboardHeight()
   const showToast = useToast()
   const { originalLinkingPath } = useRouteParams()
   const trackId = getTrackIdFromPath(originalLinkingPath)
@@ -126,31 +125,6 @@ export const CommentEditor = React.forwardRef(({
     editorRef.current = newEditorRef
   }, [])
 
-  // Handle keyboard events for WebView-based editor
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      (event) => {
-        // On iOS, reduce the keyboard height to account for safe areas and avoid over-adjustment
-        // On Android, use more of the keyboard height as the layout behavior is different
-        const adjustedHeight = isIOS 
-          ? Math.max(0, event.endCoordinates.height - safeAreaInsets.bottom - 60)
-          : event.endCoordinates.height - 40
-        setKeyboardHeight(adjustedHeight)
-      }
-    )
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0)
-      }
-    )
-
-    return () => {
-      keyboardDidShowListener.remove()
-      keyboardDidHideListener.remove()
-    }
-  }, [safeAreaInsets.bottom])
 
   // This is what is causing the bouncing
   useEffect(() => {

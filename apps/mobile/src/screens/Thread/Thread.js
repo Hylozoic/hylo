@@ -1,9 +1,8 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react'
-import { Dimensions, StyleSheet, View, Keyboard } from 'react-native'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { Dimensions, StyleSheet, View } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
@@ -12,7 +11,7 @@ import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { trackWithConsent } from 'services/mixpanel'
 import useRouteParams from 'hooks/useRouteParams'
-import { isIOS } from 'util/platform'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
 import Loading from 'components/Loading'
 import NotificationOverlay from 'components/NotificationOverlay'
 import MessageCard from 'components/MessageCard'
@@ -71,8 +70,7 @@ export default function Thread () {
   const peopleTypingRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
-  const safeAreaInsets = useSafeAreaInsets()
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const keyboardHeight = useKeyboardHeight({ androidOffset: 0 })
 
   const [, createMessage] = useMutation(createMessageMutation)
   const [cursor, setCursor] = useState(null)
@@ -123,31 +121,6 @@ export default function Thread () {
     }, currentUser)
   }
 
-  // Handle keyboard events for message input
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      (event) => {
-        // Apply similar platform-specific adjustments as CommentEditor
-        // Android needs more lift for the message input to clear the keyboard properly
-        const adjustedHeight = isIOS 
-          ? Math.max(0, event.endCoordinates.height - safeAreaInsets.bottom - 60)
-          : event.endCoordinates.height
-        setKeyboardHeight(adjustedHeight)
-      }
-    )
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0)
-      }
-    )
-
-    return () => {
-      keyboardDidShowListener.remove()
-      keyboardDidHideListener.remove()
-    }
-  }, [safeAreaInsets.bottom])
 
   useFocusEffect(
     useCallback(() => {
