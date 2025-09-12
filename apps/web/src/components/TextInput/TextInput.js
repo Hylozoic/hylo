@@ -71,7 +71,7 @@ const TextInput = forwardRef(({
 
     <div
       className={cn(
-        'flex items-center relative rounded bg-input h-fit',
+        'flex items-center relative rounded bg-input text-foreground h-fit',
         theme.wrapper,
         className
       )}
@@ -81,7 +81,7 @@ const TextInput = forwardRef(({
         value={value}
         type={props.type || 'text'}
         className={cn(
-          inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base'),
+          inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base placeholder:text-muted-foreground'),
           theme.input
         )}
         onAnimationStart={handleAnimation}

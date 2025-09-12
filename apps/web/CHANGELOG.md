@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.19] - 2025-09-12
+
+### Fixed
+- Don't show create post popup when clicking on public map while not logged in
+- Searching members in event invite and attending dialogs. Also improve styling of event invite dialog.
+- Display of post datetimepicker in chatroom webview on android
+- Display of post people dialog in dark mode - for event attendees and project members
+- Adding location to chat post on Android.
+- In chat post editor have location results appear above input box so they dont go below the screen.
+
 ## [6.1.18] - 2025-09-05
 
 ### Added

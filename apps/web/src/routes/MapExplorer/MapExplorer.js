@@ -488,14 +488,16 @@ function MapExplorer (props) {
     setShowLayersSelector(false)
     setShowSavedSearches(false)
     setCreatePopupVisible(false)
-    creatingPostRef.current = e.point
-    setTimeout(() => {
-      // Make sure the point is still the same as the one we clicked on
-      if (creatingPostRef.current === e.point) {
-        showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
-      }
-    }, isAddingItemToMap ? 0 : 1000)
-  }, [isAddingItemToMap, showCreatePopup])
+    if (currentUser) {
+      creatingPostRef.current = e.point
+      setTimeout(() => {
+        // Make sure the point is still the same as the one we clicked on
+        if (creatingPostRef.current === e.point) {
+          showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+        }
+      }, isAddingItemToMap ? 0 : 1000)
+    }
+  }, [isAddingItemToMap, showCreatePopup, currentUser])
 
   const onMapMouseUp = useCallback(() => {
     if (creatingPostRef.current) {

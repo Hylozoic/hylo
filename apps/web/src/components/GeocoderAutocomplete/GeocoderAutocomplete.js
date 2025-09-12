@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import FlipMove from 'react-flip-move'
 import PropTypes from 'prop-types'
 import xhr from 'xhr'
 
@@ -235,46 +234,38 @@ const GeocoderAutocomplete = ({
   )
 
   return (
-    <div>
+    <div className='relative'>
       {inputPosition === 'top' && input}
-      <FlipMove
-        delay={0}
-        duration={200}
-        enterAnimation='accordionVertical'
-        leaveAnimation='accordionVertical'
-        maintainContainerHeight
-      >
-        {state.results.length > 0 &&
-          state.showList &&
-            <ul
-              key='needed-for-flip-move'
-              id='react-geo-list'
-              className={
-                (showLoader && state.loading ? 'loading' : '') +
-                ' ' +
-                resultsClass
-              }
-            >
-              {state.results.map((result, i) => (
-                <li key={result.id}>
-                  <a
-                    href='#'
-                    onClick={(e) => clickOption(result, i, e)}
-                    tabIndex='-1'
-                    className={
-                      resultClass +
-                      ' ' +
-                      (i === state.focus
-                        ? resultFocusClass
-                        : '')
-                    }
-                  >
-                    {result.place_name}
-                  </a>
-                </li>
-              ))}
-            </ul>}
-      </FlipMove>
+      {state.results.length > 0 &&
+        state.showList &&
+          <ul
+            key='needed-for-flip-move'
+            id='react-geo-list'
+            className={
+              (showLoader && state.loading ? 'loading' : '') +
+              ' ' +
+              resultsClass
+            }
+          >
+            {state.results.map((result, i) => (
+              <li key={result.id}>
+                <a
+                  href='#'
+                  onClick={(e) => clickOption(result, i, e)}
+                  tabIndex='-1'
+                  className={
+                    resultClass +
+                    ' ' +
+                    (i === state.focus
+                      ? resultFocusClass
+                      : '')
+                  }
+                >
+                  {result.place_name}
+                </a>
+              </li>
+            ))}
+          </ul>}
       {inputPosition === 'bottom' && input}
     </div>
   )

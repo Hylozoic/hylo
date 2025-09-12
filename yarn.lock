@@ -32263,16 +32263,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-flip-move@npm:^3.0.5":
-  version: 3.0.5
-  resolution: "react-flip-move@npm:3.0.5"
-  peerDependencies:
-    react: ">=16.3.x"
-    react-dom: ">=16.3.x"
-  checksum: 10/7f1e807c4377422c3eca8a21b6ed0bf1ba8c9d5c1fbd0b97f9c8b97333e960e86d9c362e5d4a1b1597b90806df202f312a151b703e3e0cf2a6e9a1a1bc843e97
-  languageName: node
-  linkType: hard
-
 "react-floater@npm:^0.7.9":
   version: 0.7.9
   resolution: "react-floater@npm:0.7.9"
@@ -39582,7 +39572,6 @@ __metadata:
     react-day-picker: "npm:^9"
     react-div-100vh: "npm:^0.7.0"
     react-dom: "npm:^18.3.1"
-    react-flip-move: "npm:^3.0.5"
     react-helmet: "npm:^6.1.0"
     react-i18next: "npm:^15.1.1"
     react-intersection-observer: "npm:^9.13.1"

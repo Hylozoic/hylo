@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import ModalDialog from 'components/ModalDialog'
-import CheckBox from 'components/CheckBox'
-import Button from 'components/Button'
-import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
-import TextInput from 'components/TextInput'
 import { useInView } from 'react-cool-inview'
+import { useTranslation } from 'react-i18next'
+import * as Dialog from '@radix-ui/react-dialog'
+import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
+import Button from 'components/Button'
+import CheckBox from 'components/CheckBox'
 import Loading from 'components/Loading'
+import TextInput from 'components/TextInput'
 import { bgImageStyle, cn } from 'util/index'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
 
 import styles from './EventInviteDialog.module.scss'
 
 const pageSize = 30
 
 const EventInviteDialog = ({
+  eventTitle,
   fetchPeople,
   forGroups,
   eventInvitations,
@@ -75,49 +77,51 @@ const EventInviteDialog = ({
       : t('Invite {{invitedIds.length}} people', { invitedIds })
 
   return (
-    <ModalDialog
-      key='event-invite-dialog'
-      closeModal={onClose}
-      modalTitle='Invite'
-      showCancelButton={false}
-      showSubmitButton={false}
-      style={{ width: '100%', maxWidth: '620px' }}
-    >
-      <div className={styles.container}>
-        <Search onChange={onSearchChange} />
-        <div className={styles.inviteSuggestions}>
-          {filteredInviteSuggestions.map((invitee, idx) => <InviteeRow
-            key={invitee.id}
-            person={invitee}
-            ref={idx === filteredInviteSuggestions.length - 10 ? observe : null}
-            selected={invitedIds.includes(invitee.id)}
-            onClick={() => toggleInvite(invitee.id)}
-                                                           />)}
-          <div className={cn(styles.row)}>
-            <div className={cn(styles.col)} style={{ height: '40px' }}>
-              {pending && <div><Loading /></div>}
-            </div>
-          </div>
-        </div>
+    <Dialog.Root defaultOpen onOpenChange={onClose}>
+      <Dialog.Portal container={document.getElementById(CENTER_COLUMN_ID)}>
+        <Dialog.Overlay className='EventInviteDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'>
+          <Dialog.Content className='EventInviteDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none relative'>
+            <Dialog.Title className='text-xl font-semibold leading-none tracking-tight'>Invite to event: {eventTitle}</Dialog.Title>
+            <Dialog.Description className='sr-only'>Invite group members to event: {eventTitle}</Dialog.Description>
+            <div className={styles.container}>
+              <Search onChange={onSearchChange} />
+              <div className={styles.inviteSuggestions}>
+                {filteredInviteSuggestions.map((invitee, idx) => (
+                  <InviteeRow
+                    key={invitee.id}
+                    person={invitee}
+                    ref={idx === filteredInviteSuggestions.length - 10 ? observe : null}
+                    selected={invitedIds.includes(invitee.id)}
+                    onClick={() => toggleInvite(invitee.id)}
+                  />))}
+                <div className={cn(styles.row)}>
+                  <div className={cn(styles.col)} style={{ height: '40px' }}>
+                    {pending && <div><Loading /></div>}
+                  </div>
+                </div>
+              </div>
 
-        <div className={styles.alreadyInvitedLabel}>{t('Already Invited')}</div>
-        <div className={styles.alreadyInvited}>
-          {eventInvitations.map(eventInvitation =>
-            <InviteeRow
-              person={eventInvitation}
-              showResponse
-              key={eventInvitation.id}
-            />)}
-        </div>
-        <Button
-          small
-          className={styles.inviteButton}
-          label={inviteButtonLabel}
-          onClick={submit}
-          disabled={invitedIds.length === 0}
-        />
-      </div>
-    </ModalDialog>
+              <div className='font-bold pb-2 mt-6'>{t('Already Invited')}</div>
+              <div className={styles.alreadyInvited}>
+                {eventInvitations.map(eventInvitation =>
+                  <InviteeRow
+                    person={eventInvitation}
+                    showResponse
+                    key={eventInvitation.id}
+                  />)}
+              </div>
+              <Button
+                small
+                className={styles.inviteButton}
+                label={inviteButtonLabel}
+                onClick={submit}
+                disabled={invitedIds.length === 0}
+              />
+            </div>
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

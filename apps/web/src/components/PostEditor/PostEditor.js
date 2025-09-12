@@ -1142,6 +1142,7 @@ function PostEditor ({
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
+            inputPosition={modal ? 'top' : 'bottom'}
             locationObject={currentPost.locationObject}
             location={postLocation}
             onChange={handleLocationChange}

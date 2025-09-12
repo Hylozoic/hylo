@@ -11,11 +11,6 @@ $avatar-size: 20px;
   overflow-y: auto;
 }
 
-.alreadyInvitedLabel {
-  composes: bdy-lt-lg from 'css/typography.scss';
-  margin-top: 10px;
-}
-
 .alreadyInvited {
   height: 240px;
   overflow-y: auto;
@@ -73,7 +68,7 @@ $avatar-size: 20px;
 
 .input {
   color: hsl(var(--foreground));
-  font-size: 34px;
+  font-size: 18px;
 
   &::placeholder {
     color: hsl(var(--foreground) / 0.6);

@@ -105,6 +105,7 @@ function EventBody (props) {
         {showInviteDialog && (
           <EventInviteDialog
             eventId={id}
+            eventTitle={event.title}
             eventInvitations={eventInvitations}
             forGroups={groups}
             onClose={toggleInviteDialog}
