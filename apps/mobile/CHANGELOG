@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### [6.1.11] - 2025-09-02
 - Stop stale cache from crashing direct messages
 - Add safe area insets to modals, fixing some UI bugs
+- Fixed ios location related crash bug
+- Fixed keyboard-being-hidden bug
+- Fixed group deletion app-state
 
 ### [6.1.10] - 2025-08-25
 - Fix blocking UI
