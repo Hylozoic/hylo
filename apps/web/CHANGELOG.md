@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.20] - 2025-09-15
+
+### Changed
+- Search results now load more recent posts and comments first higher up in the list.
+
+### Fixed
+- Scrolling search results to load more
+- Viewing public posts that have comment reactions when not logged in
+
+
 ## [6.1.19] - 2025-09-12
 
 ### Fixed
@@ -19,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.1.18] - 2025-09-05
 
 ### Added
-- Support for peer to peer group relationships. You can invite.add these in the Related Groups tab and they will appear on the Groups view. Each peer relationship can have a description of what the relationship is.
+- Support for peer to peer group relationships. You can invite/add these in the Related Groups tab and they will appear on the Groups view. Each peer relationship can have a description of what the relationship is.
 - Tooltips to menu items on context widgets when editing menu.
 
 ### Changed

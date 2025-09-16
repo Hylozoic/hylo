@@ -24,10 +24,9 @@ import { personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { cn } from 'util/index'
+import { CENTER_COLUMN_ID } from 'util/scrolling'
 
 import classes from './Search.module.scss'
-
-const SEARCH_RESULTS_ID = 'search-results'
 
 export default function Search (props) {
   const dispatch = useDispatch()
@@ -109,10 +108,7 @@ export default function Search (props) {
   return (
     <div className='w-full flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
       <TabBar setSearchFilter={setFilter} filter={filter} />
-      <div
-        className='w-full'
-        id={SEARCH_RESULTS_ID}
-      >
+      <div className='w-full'>
         {searchResults.map(sr =>
           <SearchResult
             key={sr.id}
@@ -121,7 +117,7 @@ export default function Search (props) {
             showPerson={showPerson}
           />)}
         {pending && <Loading type='bottom' />}
-        <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={SEARCH_RESULTS_ID} />
+        <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={CENTER_COLUMN_ID} />
       </div>
     </div>
   )
