@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Scrolling search results to load more
 - Viewing public posts that have comment reactions when not logged in
+- Importing posts from a CSV file
 
 ## [6.1.19] - 2025-09-12
 

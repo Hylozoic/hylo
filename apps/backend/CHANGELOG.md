@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.20] - 2025-09-16
+
+### Fixed
+- Creating a peer group relationship when formerly they groups had a parent-child relationship.
+
 ## [6.1.19] - 2025-09-15
 
 ### Changed
