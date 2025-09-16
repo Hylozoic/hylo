@@ -322,18 +322,19 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
   const isAdminOfToGroup = await GroupMembership.hasResponsibility(userId, toGroup, Responsibility.constants.RESP_ADMINISTRATION, opts)
 
   if (isAdminOfToGroup) {
-    if (relationship) {
-      // If relationship already exists (any type) and is not active, make it active and set to be peer to peer
-      relationship.save({ parent_group_id: fromGroup, child_group_id: toGroup, active: true }, opts)
-    } else {
-      relationship = await GroupRelationship.forge({
-        parent_group_id: fromGroup.id,
-        child_group_id: toGroup.id,
-        relationship_type: Group.RelationshipType.PEER_TO_PEER,
-        description,
-        active: true
-      }).save(null, opts)
+    // If relationship doesn't exist, create it
+    if (!relationship) {
+      relationship = new GroupRelationship()
     }
+
+    // If relationship already exists (any type) and is not active, make it active and set to be peer to peer
+    await relationship.save({
+      parent_group_id: fromGroup.id,
+      child_group_id: toGroup.id,
+      active: true,
+      relationship_type: Group.RelationshipType.PEER_TO_PEER,
+      description
+    }, opts)
 
     await publishAsync({
       type: 'groupRelationshipUpdate',
