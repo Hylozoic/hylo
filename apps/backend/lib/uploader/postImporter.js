@@ -1,19 +1,17 @@
 import parse from 'csv-parse'
 import request from 'request'
-import { PassThrough } from 'stream'
 import createPost from '../../api/models/post/createPost'
 import { findOrCreateLocation } from '../../api/graphql/mutations/location'
 
-function createObjectFrom(record, userId, groupId) {
-  return new Promise(async (resolve, reject) => {
+function createObjectFrom (record, userId, groupId) {
+  return async () => {
     let location
     try {
       const locationData = await geocode(record.location)
-      location = await findOrCreateLocation(locationData)
+      location = locationData ? await findOrCreateLocation(locationData) : null
     } catch (e) {
-      sails.log.error("Error finding post location: " + e)
-      reject(e)
-      return
+      sails.log.error('Error finding post location: ' + e)
+      throw e
     }
 
     const postParams = {
@@ -32,13 +30,13 @@ function createObjectFrom(record, userId, groupId) {
 
     try {
       const post = await createPost(userId, postParams)
-      sails.log.info("Finished creating post", postParams)
-      resolve(post)
-    } catch(e) {
-      sails.log.error("Error importing post: " + e.message)
-      reject(e)
+      sails.log.info('Finished creating post', postParams)
+      return post
+    } catch (e) {
+      sails.log.error('Error importing post: ' + e.message)
+      throw e
     }
-  })
+  }
 }
 
 export function createPostImporter (userId, groupId) {
@@ -49,19 +47,17 @@ export function createPostImporter (userId, groupId) {
   const promiseFactories = []
 
   parser.on('readable', () => {
-    let record = parser.read();
-
-    if (record === null) {
-      return
+    let record
+    while ((record = parser.read()) !== null) {
+      const promiseFactory = createObjectFrom(record, userId, groupId)
+      promiseFactories.push(promiseFactory)
     }
-    const promiseFactory = () => createObjectFrom(record, userId, groupId);
-    promiseFactories.push( promiseFactory );
   })
 
-  parser.on('error', (err) => { sails.log.error("Weird parser error, check out " + err)})
+  parser.on('error', (err) => { sails.log.error('Weird parser error, check out ' + err) })
 
   parser.on('end', () => {
-    var sequence = Promise.resolve();
+    let sequence = Promise.resolve()
 
     // Loop over each promise factory and add on a promise to the end of the 'sequence' promise.
     promiseFactories.forEach(promiseFactory => {
@@ -72,25 +68,25 @@ export function createPostImporter (userId, groupId) {
     })
 
     // This will resolve after the entire chain is resolved
-    sequence.then(() => { sails.log.info("Succesfully imported " + parser.numPostsCreated + " posts.\n Errors: " + parser.errors.join("\n"))})
+    sequence.then(() => { sails.log.info('Succesfully imported ' + parser.numPostsCreated + ' posts.\n Errors: ' + parser.errors.join('\n')) })
   })
 
   return parser
 }
 
-function geocode(address) {
+function geocode (address) {
   if (!process.env.MAPBOX_TOKEN) return false
 
-  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
-    + encodeURIComponent(address) + '.json?access_token='
-    + process.env.MAPBOX_TOKEN + '&limit=1';
+  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
+    encodeURIComponent(address) + '.json?access_token=' +
+    process.env.MAPBOX_TOKEN + '&limit=1'
 
   return new Promise((resolve, reject) => {
     request({ url, json: true }, (err, response, body) => {
       if (err) {
-        reject('Error when geocoding "' + address + '": ' + err.message)
-      } else if (!body.features || body.features.length == 0) {
-        reject('Unable to find location "' + address + '"')
+        reject(new Error('Error when geocoding "' + address + '": ' + err.message))
+      } else if (!body.features || body.features.length === 0) {
+        reject(new Error('Unable to find location "' + address + '"'))
       } else {
         const result = body.features[0]
         resolve(convertMapboxToLocation(result))
@@ -107,7 +103,7 @@ function convertMapboxToLocation (mapboxResult) {
   const regionObject = context && context.find(c => c.id.includes('region'))
   const countryObject = context && context.find(c => c.id.includes('country'))
 
-  let city = placeObject ? placeObject.text : mapboxResult.place_type[0] === 'place' ? mapboxResult.text : ''
+  const city = placeObject ? placeObject.text : mapboxResult.place_type[0] === 'place' ? mapboxResult.text : ''
 
   let address_number = ''
   let address_street = ''
