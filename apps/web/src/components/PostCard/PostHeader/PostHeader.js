@@ -149,7 +149,7 @@ class PostHeader extends PureComponent {
     }
 
     return (
-      <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
+      <div className={cn('relative', { 'mb-0 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
           <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
