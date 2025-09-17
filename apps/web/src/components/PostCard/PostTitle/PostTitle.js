@@ -23,8 +23,8 @@ export default function PostTitle ({
       <>
         <div onClick={onClick} className={cn('text-xl font-bold', { [classes.constrained]: constrained, 'mb-2': type !== 'event' }, 'hdr-headline')}>{title}</div>
         {type !== 'event' && location && (
-          <div className={cn('text-xs text-foreground/50 flex items-center gap-0', { [classes.constrained]: constrained })}>
-            <Icon name='Location' className='w-4 h-4 text-foreground/50' dataTestId='icon-Location' />
+          <div className={cn('text-xs text-foreground/50 flex items-center gap-1', { [classes.constrained]: constrained })}>
+            <Icon name='Location' className='w-4 h-4 text-foreground/50 text-xs' dataTestId='icon-Location' />
             {generalLocation}
           </div>
         )}

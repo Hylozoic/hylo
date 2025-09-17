@@ -131,6 +131,7 @@ const membersFragment = `
           lat
           lng
         }
+        fullText
       }
       skills {
         hasMore
@@ -244,6 +245,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
             lat
             lng
           }
+          fullText
         }
         topics {
           id
