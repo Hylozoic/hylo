@@ -268,6 +268,8 @@ type Query {
 
   # Full text search for posts, people and comments
   search(
+    # Only search in these groups ids. If not set will search across all the logged in user's groups
+    groupIds: [ID]
     # Number of results to return
     first: Int,
     # For pagination, return results after this offset

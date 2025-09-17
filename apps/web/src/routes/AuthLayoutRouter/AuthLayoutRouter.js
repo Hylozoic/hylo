@@ -314,6 +314,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/search/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/search/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
               <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
@@ -362,6 +364,9 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/topics' element={<AllTopics />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                <Route path='all/search/*' element={<Search context='all' />} />
+                <Route path='public/search/*' element={<Search context='public' />} />
+                <Route path='my/search/*' element={<Search context='public' />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
@@ -404,6 +409,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
+                            <Route path='search/*' element={<Search context='groups' />} />
                             <Route path='*' element={homeRoute} />
                           </Routes>
                           )
@@ -424,7 +430,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
-                <Route path='search' element={<Search />} />
+                <Route path='search' element={<Navigate to='/all/search' replace />} />
                 <Route path='themes' element={<Themes />} />
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                 {/* **** Default Route (404) **** */}
