@@ -104,6 +104,15 @@ const GeocoderAutocomplete = ({
         loading: false,
         showList: false
       }))
+    } else if (value.match(/^(https?:\/\/|www\.)/i)) {
+      // Don't show search results for URLs
+      setState(prevState => ({
+        ...prevState,
+        results: [],
+        focus: null,
+        loading: false,
+        showList: false
+      }))
     } else {
       search(
         endpoint,
