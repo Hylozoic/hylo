@@ -54,16 +54,13 @@ export function parseCoordinate (coordinate) {
 }
 
 export function convertCoordinateToLocation (coordinate) {
-  let city = ''
-  let addressNumber = ''
-  let addressStreet = ''
   return {
     accuracy: null,
-    addressNumber,
-    addressStreet,
+    addressNumber: '',
+    addressStreet: '',
     bbox: null,
     center: { lng: coordinate.lng, lat: coordinate.lat },
-    city,
+    city: '',
     country: '',
     fullText: coordinate.string,
     // geometry: [Point]
