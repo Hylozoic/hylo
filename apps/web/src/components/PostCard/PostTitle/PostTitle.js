@@ -17,15 +17,31 @@ export default function PostTitle ({
 }) {
   // Formatting location to display in stream view
   const generalLocation = LocationHelpers.generalLocationString(locationObject, location || '')
+  const trimmedLocation = (generalLocation || '').toString().trim()
+  const looksLikeUrl = /^https?:\/\/\S+$/i.test(trimmedLocation) || /^www\./i.test(trimmedLocation)
+  const normalizedUrl = looksLikeUrl
+    ? (trimmedLocation.startsWith('http') ? trimmedLocation : `https://${trimmedLocation}`)
+    : null
 
   return (
     <Highlight {...highlightProps}>
       <>
-        <div onClick={onClick} className={cn('text-xl font-bold', { [classes.constrained]: constrained, 'mb-2': type !== 'event' }, 'hdr-headline')}>{title}</div>
-        {type !== 'event' && location && (
-          <div className={cn('text-xs text-foreground/50 flex items-center gap-1', { [classes.constrained]: constrained })}>
+        <div onClick={onClick} className={cn('text-xl font-bold', { [classes.constrained]: constrained, 'mb-1': type !== 'event' }, 'hdr-headline')}>{title}</div>
+        {location && (
+          <div className={cn('text-xs text-foreground/50 flex items-center gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
             <Icon name='Location' className='w-4 h-4 text-foreground/50 text-xs' dataTestId='icon-Location' />
-            {generalLocation}
+            {looksLikeUrl
+              ? (
+                <a
+                  href={normalizedUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {generalLocation}
+                </a>
+                )
+              : generalLocation}
           </div>
         )}
       </>

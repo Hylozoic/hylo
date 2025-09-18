@@ -79,7 +79,7 @@ export function convertCoordinateToLocation (coordinate) {
 export function generalLocationString (locationObject, defaultString = '') {
   if (locationObject) {
     if (locationObject.addressNumber) {
-      return `${locationObject.addressNumber} ${locationObject.addressStreet}, ${locationObject.city}, ${locationObject.region}`
+      return `${locationObject.addressNumber} ${locationObject.addressStreet}, ${locationObject.city}${locationObject.region ? `, ${locationObject.region}` : ''}, ${locationObject.country}`
     } else if (locationObject.city) {
       return `${locationObject.city}, ${locationObject.region}`
     } else if (locationObject.fullText) {
