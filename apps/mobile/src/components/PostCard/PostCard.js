@@ -123,8 +123,8 @@ export default function PostCard ({
         {!!locationText && (
           <View className='flex-row items-center mx-4 mt-2'>
             <Icon className='text-foreground/50 mr-2' name='Location' />
-            <ClickableLocationText 
-              text={locationText} 
+            <ClickableLocationText
+              text={locationText}
               className='text-foreground/70'
               selectable
             />
