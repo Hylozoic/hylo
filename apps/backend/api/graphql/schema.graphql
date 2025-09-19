@@ -31,6 +31,10 @@ type Query {
     offset: Int
   ): PersonConnectionQuerySet
 
+
+  # Query for a FundingRound by ID
+  fundingRound(id: ID): FundingRound
+
   # Read a group by id or by slug
   group(
     id: ID,

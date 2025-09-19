@@ -4,21 +4,19 @@ import React from 'react'
 
 import Icon from 'components/Icon'
 
-import classes from './CheckBox.module.scss'
-
 const { bool, string, func } = PropTypes
 
 export default function CheckBox ({ checked, onChange, className, label, labelClass, labelLeft = false, noInput, disabled = false }) {
   const iconName = checked ? 'Checkmark' : 'Empty'
 
   return (
-    <label className={cn(classes.label, labelClass)}>
+    <label className={cn('cursor-pointer mb-0 align-middle', labelClass)}>
       {labelLeft && label}
-      <Icon name={iconName} className={cn(classes.icon, { [classes.labelLeft]: labelLeft })} dataTestId={`icon-${iconName}`} />
+      <Icon name={iconName} className={cn('align-middle pr-2 text-selected border-primary-foreground/80', { 'pl-2': labelLeft, 'text-primary-foreground/50': !checked })} dataTestId={`icon-${iconName}`} />
       {!noInput &&
         <input
           type='checkbox'
-          className={cn(classes.checkbox, className)}
+          className={cn('hidden w-0', className)}
           checked={!!checked}
           onChange={e => onChange(e.target.checked)}
           disabled={disabled}

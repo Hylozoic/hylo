@@ -31,6 +31,7 @@ import Skill from './Skill'
 import Topic from './Topic'
 import TopicFollow from './TopicFollow'
 import Track, { Role } from './Track'
+import FundingRound from './FundingRound'
 import Widget from './Widget'
 
 export const orm = new ORM({ stateSelector: state => state.orm })
@@ -46,6 +47,7 @@ orm.register(
   CommonRole,
   CustomView,
   EventInvitation,
+  FundingRound,
   Group,
   GroupJoinQuestion,
   GroupJoinQuestionAnswer,

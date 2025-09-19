@@ -9,4 +9,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Group, 'group_id')
   }
 }, {
+  create: function (attrs) {
+    attrs.voting_method = attrs.voting_method || 'token_allocation'
+
+    const round = this.forge({ created_at: new Date(), updated_at: new Date(), ...attrs })
+    return round.save()
+  }
 })

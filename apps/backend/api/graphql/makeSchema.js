@@ -258,6 +258,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     comment: (root, { id }) => fetchOne('Comment', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
+    fundingRound: (root, { id }) => fetchOne('FundingRound', id),
     group: async (root, { id, slug, updateLastViewed }, context) => {
       // you can specify id or slug, but not both
       const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')

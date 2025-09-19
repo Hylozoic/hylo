@@ -7,7 +7,6 @@ export async function createFundingRound (userId, data) {
   const attrs = convertGraphqlData(data)
   // Required fields
   if (!attrs.title) throw new GraphQLError('title is required')
-  if (!attrs.voting_method) throw new GraphQLError('votingMethod is required')
   if (!attrs.group_id) throw new GraphQLError('groupId is required')
 
   const group = await Group.find(attrs.group_id)
@@ -16,7 +15,7 @@ export async function createFundingRound (userId, data) {
   const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
   if (!canManage) throw new GraphQLError('You do not have permission to create funding rounds')
 
-  const round = await FundingRound.forge({ created_at: new Date(), updated_at: new Date(), ...attrs }).save()
+  const round = await FundingRound.create(attrs)
   return round
 }
 
