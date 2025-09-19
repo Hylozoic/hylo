@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.21] - 2025-09-19
+
+### Changed
+- Add support for Node concurrency. Shoud improve performance on production
+
 ## [6.1.20] - 2025-09-16
 
 ### Fixed
