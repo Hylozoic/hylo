@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.21] - 2025-09-18
+
+### Changed
+- Allow for clicking on URLs in the post location field. For opening zoom links in events mostly
+- Don't show geocoder suggestions when putting a URL in the location field
+- Tweak styling of map drawer, to take up less horizontal space
+
+### Fixed
+- Android mobile webview: Location input box causing horizontal scroll jump when focused
+- Missed a spot where #home should be #general. When joining a new group
+- Fix display of post location in map drawer
+
 ## [6.1.20] - 2025-09-15
 
 ### Fixed
