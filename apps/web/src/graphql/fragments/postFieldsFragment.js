@@ -8,30 +8,6 @@ const CommentFieldsFragment = `
     id
     name
     avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-         groupId
-         responsibilities {
-          items {
-            id
-            title
-            description
-          }
-         }
-       }
-     }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
   }
   attachments {
     id
@@ -64,30 +40,6 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     id
     name
     avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
   }
   createdAt
   clickthrough
