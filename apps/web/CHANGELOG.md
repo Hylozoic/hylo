@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.22] - 2025-09-19
+
+### Fixed
+- Don't remove chat post from chat room when editing it
+
 ## [6.1.21] - 2025-09-18
 
 ### Changed
