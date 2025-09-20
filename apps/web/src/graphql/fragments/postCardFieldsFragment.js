@@ -114,6 +114,10 @@ const postCardFieldsFragment = `
       name
     }
   }
+  topics {
+    id
+    name
+  }
 `
 
 export default postCardFieldsFragment

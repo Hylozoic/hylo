@@ -129,7 +129,7 @@ export default function ChatRoom (props) {
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
   // The number of posts that should fill a screen plus a few more to make sure we have enough posts to scroll through
-  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 18 : 30
+  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
