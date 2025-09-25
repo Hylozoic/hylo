@@ -1,14 +1,33 @@
 {
-  "type": "module",
   "name": "@hylo/presenters",
-  "installConfig": {
-    "hoistingLimits": "none"
+  "version": "0.0.1",
+  "scripts": {
+    "build:cjs": "babel src --out-dir dist/cjs --env-name cjs --extensions .js",
+    "build:esm": "babel src --out-dir dist/esm --env-name esm --extensions .js",
+    "build": "yarn build:cjs && yarn build:esm"
   },
   "exports": {
-    "./*": "./*.js",
-    "./*/*": "./*/index.js"
+    ".": {
+      "import": "./src/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./*": {
+      "import": "./src/*.js",
+      "require": "./dist/cjs/*.js"
+    }
+  },
+  "dependencies": {
+    "@hylo/navigation": "workspace:*",
+    "html-to-text": "^8.1.0",
+    "lodash": "^4.17.21",
+    "tinycolor2": "^1.6.0",
+    "trunc-text": "^1.0.2"
   },
   "devDependencies": {
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.0",
+    "@babel/plugin-transform-export-namespace-from": "^7.22.11",
+    "@babel/preset-env": "^7.16.11",
     "@babel/runtime": "^7.25.0"
   }
 }

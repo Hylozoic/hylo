@@ -1,14 +1,14 @@
 import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
 import JoinGroup from 'routes/JoinGroup'
 import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
-import OAuthLogin from 'routes/OAuth/Login'
+import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
@@ -23,6 +23,7 @@ export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   // This should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
@@ -32,7 +33,24 @@ export default function RootRouter () {
       await dispatch(checkLogin())
       setLoading(false)
     }())
-  }, [dispatch, setLoading])
+
+    // For navigation to work from notifactions in the electron app
+    if (window.electron && window.electron.onNavigateTo) {
+      window.electron.onNavigateTo((url) => {
+        // Optionally, strip the host if present
+        // For example, if url is '/groups/123', just navigate(url)
+        // If url is 'https://hylo.com/groups/123', extract the path
+        let path = url
+        try {
+          const u = new URL(url)
+          path = u.pathname + u.search + u.hash
+        } catch (e) {
+          // url is likely already a path
+        }
+        navigate(path)
+      })
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -43,14 +61,8 @@ export default function RootRouter () {
   if (isAuthorized) {
     return (
       <Routes>
-        {/* If authenticated and trying to do an oAuth login we need to still get an auth code from the server and redirect to redirect_url */}
-        <Route path='/oauth/login/:uid' element={<OAuthLogin authenticated />} />
-        {/* If authenticated and need to ask for oAuth consent again do so */}
-        <Route
-          path='/oauth/consent/:uid'
-          element={<NonAuthLayoutRouter skipAuthCheck />}
-        />
-
+        {/* If authenticated we still need to do oauth stuff when requested */}
+        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
         <Route path='*' element={<AuthLayoutRouter />} />
       </Routes>
     )
@@ -62,6 +74,8 @@ export default function RootRouter () {
           path='/public/*'
           element={<PublicLayoutRouter />}
         />
+
+        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
 
         <Route path='/post/:postId/*' element={<PublicPostDetail />} />
 

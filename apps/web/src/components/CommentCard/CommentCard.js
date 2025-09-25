@@ -41,9 +41,9 @@ export default function CommentCard ({
               <RoundImage url={creator.avatarUrl} medium />
               <Highlight {...highlightProps}>
                 <div className='ml-2 flex gap-1'>
-                  <span className='font-bold font-md text-base'>{creator.name}</span>
-                  <span className='text-base opacity-50'>{t('commented on')}{' '}</span>
-                  <span className='text-base font-bold'>{postTitle}</span>
+                  <span className='hidden sm:block text-sm sm:text-base font-bold whitespace-nowrap'>{creator.name}</span>
+                  <span className='text-sm sm:text-base opacity-50 sm:opacity-100 whitespace-nowrap'>{t('commented on')}{' '}</span>
+                  <span className='text-sm sm:text-base truncate font-bold whitespace-nowrap'>{postTitle}</span>
                 </div>
               </Highlight>
             </div>

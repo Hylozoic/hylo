@@ -8,7 +8,7 @@ import HomeNavigator from 'navigation/HomeNavigator'
 import Icon from 'components/Icon'
 import MessagesNavigator from 'navigation/MessagesNavigator'
 import SearchNavigator from 'navigation/SearchNavigator'
-import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from 'style/colors'
+import { black10OnCaribbeanGreen, gainsboro, gunsmoke, twBackground } from '@hylo/presenters/colors'
 
 const DummyComponent = () => {}
 
@@ -33,19 +33,21 @@ export default function TabsNavigator () {
       tabBarStyle: isIOS
         ? {
             display: 'flex',
-            backgroundColor: twBackground
+            backgroundColor: twBackground,
+            paddingBottom: 0
           }
         : {
             display: 'flex',
             backgroundColor: twBackground,
-            borderTopWidth: StyleSheet.hairlineWidth
+            borderTopWidth: StyleSheet.hairlineWidth,
+            paddingBottom: 0
           },
       tabBarIcon: ({ focused }) => (
         <Icon
           name={route.name.split(' Tab')[0]}
-          size={32}
+          size={28}
           color={focused ? black10OnCaribbeanGreen : gunsmoke}
-          style={{ paddingTop: isIOS ? 0 : 5 }}
+          style={{ paddingTop: isIOS ? 0 : 1, marginBottom: 2 }}
         />
       ),
       tabBarLabel: () => null,
@@ -55,8 +57,8 @@ export default function TabsNavigator () {
 
   return (
     <Tabs.Navigator {...navigatorProps}>
-      <Tabs.Screen name='Home Tab' component={HomeNavigator} />
-      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount }} />
+      <Tabs.Screen name='Home Tab' component={HomeNavigator} options={{ lazy: false }} />
+      <Tabs.Screen name='Messages Tab' component={MessagesNavigator} options={{ tabBarBadge: messagesBadgeCount, lazy: false }} />
       <Tabs.Screen name='Search Tab' component={SearchNavigator} />
       <Tabs.Screen
         name='Notifications Tab'

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { Text, View, Alert, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
@@ -37,7 +37,6 @@ export default function Comment ({
   const [, deleteComment] = useMutation(deleteCommentMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const { reactOnEntity, deleteReactionFromEntity } = useReactOnEntity()
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [{ currentUser }] = useCurrentUser()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: !groupId, forCurrentUser: true, groupId })
 
@@ -45,24 +44,27 @@ export default function Comment ({
   const isCreator = currentUser && (comment.creator.id === currentUser.id)
   const { creator, text, createdAt, post: postId } = comment
   const postTitle = useMemo(() => providedPostTitle && TextHelpers.truncateText(providedPostTitle, 40), [providedPostTitle])
-  const myReactions = useMemo(() => (comment && comment.myReactions) || [], [comment?.myReactions])
-  const myEmojis = myReactions.map((reaction) => reaction.emojiFull)
+  const myReactions = useMemo(() => (comment && comment.commentReactions.filter(reaction => reaction.user.id === currentUser.id)) || [], [comment?.commentReactions, currentUser])
+  const myEmojis = useMemo(() => myReactions.map((reaction) => reaction.emojiFull), [myReactions])
 
-  const handleReaction = (emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId)
-  const handleRemoveReaction = (emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId)
-  const handleReply = onReply && (() => onReply(comment))
-  const handleRemove = (!isCreator && canModerate) && (
-    () => Alert.alert(
-      t('Moderator: Confirm Delete'),
-      t('Are you sure you want to remove this comment?'),
-      [
-        { text: t('Yes'), onPress: async () => deleteComment({ id: comment.id }) },
-        { text: t('Cancel'), style: 'cancel' }
-      ]
-    )
-  )
-  const handleDelete = (isCreator) && (
-    () => {
+  const handleReaction = useCallback((emojiFull) => reactOnEntity('comment', comment?.id, emojiFull, postId), [comment, postId, reactOnEntity])
+  const handleRemoveReaction = useCallback((emojiFull) => deleteReactionFromEntity('comment', comment?.id, emojiFull, postId), [comment, postId, deleteReactionFromEntity])
+  const handleReply = useCallback(() => onReply && onReply(comment), [onReply, comment])
+  const handleRemove = useCallback(() => {
+    if (!isCreator && canModerate) {
+      Alert.alert(
+        t('Moderator: Confirm Delete'),
+        t('Are you sure you want to remove this comment?'),
+        [
+          { text: t('Yes'), onPress: async () => deleteComment({ id: comment.id }) },
+          { text: t('Cancel'), style: 'cancel' }
+        ]
+      )
+    }
+  }, [isCreator, canModerate, t, deleteComment, comment])
+
+  const handleDelete = useCallback(() => {
+    if (isCreator) {
       Alert.alert(
         t('Confirm Delete'),
         t('Are you sure you want to delete this comment?'),
@@ -72,15 +74,13 @@ export default function Comment ({
         ]
       )
     }
-  )
-  const handleCopy = () => Clipboard.setString(TextHelpers.presentHTMLToText(comment.text))
+  }, [isCreator, t, deleteComment, comment])
+
+  const handleCopy = useCallback(() => Clipboard.setString(TextHelpers.presentHTMLToText(comment.text)), [comment])
 
   const commentMenuActions = [
     [t('Reply'), handleReply, {
       icon: <Icon name='Replies' style={styles.actionSheetIcon} />
-    }],
-    [t('React'), () => setShowEmojiPicker(!showEmojiPicker), {
-      icon: <Icon name='Smiley' style={styles.actionSheetIcon} />
     }],
     [t('Copy'), handleCopy, {
       icon: <FontAwesome5Icon name='copy' style={styles.actionSheetIcon} />
@@ -95,7 +95,7 @@ export default function Comment ({
     }]
   ]
 
-  const showActionSheet = () => {
+  const showActionSheet = useCallback(() => {
     setHighlighted()
     scrollTo(0.9)
     showHyloActionSheet(
@@ -104,16 +104,18 @@ export default function Comment ({
         if (action[0] !== t('Reply')) clearHighlighted()
       }
     )
-  }
+  }, [commentMenuActions, t, clearHighlighted, scrollTo, showHyloActionSheet])
 
   // TODO: URQL - Make CommentPresenter
-  const images = filter({ type: 'image' }, comment?.attachments)
-    .map(image => ({ uri: image.url }))
+  const images = useMemo(() => filter({ type: 'image' }, comment?.attachments).map(image => ({ uri: image.url })), [comment?.attachments])
 
-  const handleOnPress = () => {
-    if (onPress) return onPress()
-    // return handleReply()
-  }
+  const handleOnPress = useCallback(() => {
+    if (onPress) {
+      onPress()
+    } else {
+      handleReply()
+    }
+  }, [onPress, handleReply])
 
   return (
     <TouchableOpacity onPress={handleOnPress} onLongPress={showActionSheet}>
@@ -133,13 +135,14 @@ export default function Comment ({
           </View>
           <View style={styles.headerMiddle} />
           <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.replyLink}
-              hitSlop={{ top: 15, left: 10, bottom: 20, right: 10 }}
-              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+            <EmojiPicker
+              myEmojis={myEmojis}
+              includePicker
+              handleReaction={handleReaction}
+              handleRemoveReaction={handleRemoveReaction}
             >
               <Icon style={styles.replyLinkIcon} name='Smiley' />
-            </TouchableOpacity>
+            </EmojiPicker>
             {handleReply && (
               <TouchableOpacity
                 style={styles.replyLink}
@@ -172,16 +175,6 @@ export default function Comment ({
             currentUser={currentUser}
             comment={comment}
           />
-          {showEmojiPicker && (
-            <EmojiPicker
-              useModal
-              myEmojis={myEmojis}
-              modalOpened={showEmojiPicker}
-              handleReaction={handleReaction}
-              onRequestClose={() => setShowEmojiPicker(!showEmojiPicker)}
-              handleRemoveReaction={handleRemoveReaction}
-            />
-          )}
         </View>
       </View>
     </TouchableOpacity>

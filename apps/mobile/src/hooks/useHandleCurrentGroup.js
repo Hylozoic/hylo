@@ -1,16 +1,15 @@
 import { useCallback, useEffect } from 'react'
-import { useNavigation, useNavigationState } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
 import { useMutation } from 'urql'
-import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { getLastViewedGroupSlug, useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
-import { widgetUrl } from 'util/navigation'
-import mixpanel from 'services/mixpanel'
+import { widgetUrl } from '@hylo/navigation'
 import useOpenURL from 'hooks/useOpenURL'
+import mixpanel from 'services/mixpanel'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import useRouteParams from 'hooks/useRouteParams'
-import { modalScreenName } from 'hooks/useIsModalScreen'
 import getActiveRoute from 'navigation/getActiveRoute'
 
 export function useHandleCurrentGroupSlug () {
@@ -18,13 +17,23 @@ export function useHandleCurrentGroupSlug () {
   const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
-  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
-
+  const pathMatches = originalLinkingPath?.match(/\/groups\/([^\/]+)(.*$)/)
+  const groupSlugFromPath = pathMatches?.[1] ?? null
+  const pathAfterMatch = pathMatches?.[2] ?? null
   useEffect(() => {
-    if (currentUser && !currentGroupSlug && !groupSlugFromPath) {
-      changeToGroup(getLastViewedGroupSlug(currentUser))
+    if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
+      changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
-  }, [currentUser, currentGroupSlug])
+    // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (which they access via the 'my' context) and then logs back in
+    if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
+      const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
+      if (lastViewedGroupSlug) {
+        changeToGroup(lastViewedGroupSlug)
+      } else {
+        changeToGroup(currentGroupSlug)
+      }
+    }
+  }, [currentUser?.memberships, currentGroupSlug])
 
   useEffect(() => {
     if (context) {
@@ -37,24 +46,23 @@ export function useHandleCurrentGroupSlug () {
       }
 
       if (newGroupSlug) {
-        changeToGroup(newGroupSlug, { navigateHome: false })
+        const shouldNavigateHome = !pathAfterMatch && !isStaticContext(newGroupSlug)
+        changeToGroup(newGroupSlug, { navigateHome: shouldNavigateHome })
       }
     }
   }, [context, groupSlugFromPath])
+  // explicitly no use of groupSlug in the dependency array
 }
 
 export function useHandleCurrentGroup () {
   const { setNavigateHome, navigateHome } = useCurrentGroupStore()
   const openURL = useOpenURL()
   const navigation = useNavigation()
-  const navigationState = useNavigationState(state => state)
   const [{ currentUser, fetching: fetchingCurrentUser }] = useCurrentUser()
   const [{ currentGroup, fetching: fetchingCurrentGroup }] = useCurrentGroup()
   const loading = fetchingCurrentUser && fetchingCurrentGroup
 
   const { context, groupSlug, originalLinkingPath } = useRouteParams()
-  const groupSlugFromPath = originalLinkingPath?.match(/\/groups\/([^\/]+)(?:\/|$)/)?.[1] ?? null
-
   useEffect(() => {
     if (!loading && currentUser && currentGroup) {
       mixpanel.getGroup('groupId', currentGroup.id).set({
@@ -66,13 +74,21 @@ export function useHandleCurrentGroup () {
       if (currentGroup?.getShouldWelcome(currentUser)) {
         setNavigateHome(false)
         navigation.replace('Group Welcome')
-      } else if (currentGroup?.homeWidget && navigateHome && !groupSlugFromPath) {
+      } else if (currentGroup?.homeWidget && navigateHome) {
         setNavigateHome(false)
         // Only "replace" current HomeNavigator stack if there are mounted screens,
         // otherwise begins loading the default HomeNavigator screen then replaces
-        // it the homWidget which  creates tow navigation animations
-        const hasMountedScreens = !!navigationState?.routes[0].params
-        openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: hasMountedScreens })
+        // it the homeWidget which creates two navigation animations
+        const hasMountedScreens = !!navigation.getState()?.routes[0].params
+        if (currentGroup?.slug === 'my') {
+          // reset replaces the existing stack with a new one. This help avoid the 'my' context having stale/buggy screens from a prior stack in its history
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Context Menu' }]
+          })
+        } else {
+          openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: hasMountedScreens, reset: true })
+        }
       }
     }
   }, [currentGroup, currentUser])
@@ -91,9 +107,10 @@ export function useHandleCurrentGroup () {
 export function useChangeToGroup () {
   const navigation = useNavigation()
   const confirmAlert = useConfirmAlert()
+  const openURL = useOpenURL()
   const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
   const [{ currentUser }] = useCurrentUser()
-  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, updateMembership] = useMutation(updateMembershipMutation)
 
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
@@ -105,10 +122,14 @@ export function useChangeToGroup () {
       skipCanViewCheck
 
     if (canViewGroup) {
-      const goToGroup = () => {
-        if (navigateHome) setNavigateHome(navigateHome)
+        const goToGroup = () => {
+        setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
-        updateUserSettings({ changes: { settings: { lastViewedAt: (new Date()).toISOString() } } })
+          const membership = currentUser?.memberships?.find(m => m.group.slug === groupSlug)
+          const groupId = membership?.group?.id
+          if (groupId) {
+            updateMembership({ groupId, data: { lastViewedAt: new Date().toISOString() } })
+          }
       }
       if (confirm) {
         confirmAlert({
@@ -121,10 +142,12 @@ export function useChangeToGroup () {
       } else {
         goToGroup()
       }
-    } else {
-      navigation.navigate(modalScreenName('Group Explore'), { groupSlug })
-    }
-  }, [setNavigateHome, setCurrentGroupSlug, currentUser?.memberships])
+        } else {
+        // Use URL-based navigation which is more reliable during cold boot
+        // This navigates to the non-modal Group Explore screen
+        openURL(`/groups/${groupSlug}/explore`)
+      }
+  }, [setNavigateHome, setCurrentGroupSlug, currentUser?.memberships, confirmAlert, openURL])
 
   return changeToGroup
 }

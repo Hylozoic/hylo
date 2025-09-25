@@ -86,7 +86,7 @@
   padding: 0;
   border: 0;
   outline: none;
-  color: $color-rhino-80;
+  color: hsl(var(--text-foreground));
   /* match the font styles */
   font-size: inherit;
   line-height: inherit;

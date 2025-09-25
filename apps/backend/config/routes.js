@@ -53,6 +53,7 @@ module.exports.routes = {
   // 'DELETE /noo/access-token/revoke':                      'AccessTokenController.destroy',
 
   'POST    /noo/subscription':                            'SubscriptionController.create',
+  'POST   /noo/cookie-consent':                           'CookieConsentController.upsert',
 
   'GET     /noo/mobile/check-should-update':              'MobileAppController.checkShouldUpdate',
   'GET     /noo/mobile/auto-update-info':                 'MobileAppController.updateInfo',
@@ -74,5 +75,6 @@ module.exports.routes = {
 
   'POST   /noo/upload':                                   'UploadController.create',
 
-  'GET    /noo/export/group':                             'ExportController.groupData'
+  'GET    /noo/export/group':                             'ExportController.groupData',
+  'POST   /noo/export/user-account':                      'ExportController.userAccountData'
 }

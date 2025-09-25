@@ -1,3 +1,5 @@
+import { get } from 'lodash/fp'
+
 export const MODULE_NAME = 'GroupSettings'
 
 export const ADD_POST_TO_COLLECTION = `${MODULE_NAME}/ADD_POST_TO_COLLECTION`
@@ -106,6 +108,50 @@ export function fetchGroupSettings (slug) {
               type
             }
           }
+          groupRelationshipInvitesFrom {
+            items {
+              id
+              toGroup {
+                id
+                name
+                slug
+              }
+              fromGroup {
+                id
+              }
+              type
+              createdBy {
+                id
+                name
+              }
+            }
+          }
+          groupRelationshipInvitesTo {
+            items {
+              id
+              fromGroup {
+                id
+                name
+                slug
+              }
+              toGroup {
+                id
+              }
+              type
+              createdBy {
+                id
+                name
+              }
+              questionAnswers {
+                id
+                question {
+                  id
+                  text
+                }
+                answer
+              }
+            }
+          }
           groupRoles {
             items {
               active
@@ -174,7 +220,24 @@ export function fetchGroupSettings (slug) {
       }
     },
     meta: {
-      extractModel: 'Group'
+      extractModel: [
+        {
+          getRoot: get('group'),
+          modelName: 'Group',
+          append: true
+        },
+        // XXX: have to do this because i cant figure out how to specify these relationships on the Group model and have them picked up by the ModelExtractor
+        {
+          getRoot: get('group.groupRelationshipInvitesFrom'),
+          modelName: 'GroupRelationshipInvite',
+          append: true
+        },
+        {
+          getRoot: get('group.groupRelationshipInvitesTo'),
+          modelName: 'GroupRelationshipInvite',
+          append: true
+        }
+      ]
     }
   }
 }

@@ -1,8 +1,9 @@
 import { gql, useMutation } from 'urql'
 import { AnalyticsEvents } from '@hylo/shared'
-import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
-const reactOnMutation = gql` 
+const reactOnMutation = gql`
   mutation ReactOnMutation($entityId: ID, $data: ReactionInput) {
     reactOn(entityId: $entityId, data: $data) {
       id
@@ -14,10 +15,6 @@ const reactOnMutation = gql`
           name
           avatarUrl
         }
-      }
-      myReactions {
-        id
-        emojiFull
       }
       peopleReactedTotal
     }
@@ -37,10 +34,6 @@ const deletePostReactionMutation = gql`
           avatarUrl
         }
       }
-      myReactions {
-        id
-        emojiFull
-      }
       peopleReactedTotal
     }
   }
@@ -54,19 +47,20 @@ const deleteCommentReactionMutation = gql`
   }
 `
 
-export default function useReactOnEntity () {
+export default function useReactOnEntity (entity, entityType, group, onReacted) {
   const [, reactOn] = useMutation(reactOnMutation)
   const [, deletePostReaction] = useMutation(deletePostReactionMutation)
   const [, deleteCommentReaction] = useMutation(deleteCommentReactionMutation)
+  const [{ currentUser }] = useCurrentUser()
   const reactOnEntity = async (entityType, entityId, emojiFull) => {
     reactOn({ entityId, data: { emojiFull, entityType, entityId } })
-    mixpanel.track(
+    trackWithConsent(
       entityType === 'post' ? AnalyticsEvents.POST_REACTION : AnalyticsEvents.COMMENT_REACTION, {
         commentId: entityType === 'comment' && entityId,
         emoji: emojiFull,
         postId: entityType === 'post' && entityId,
         type: entityType === 'post' ? 'post' : 'comment'
-      }
+      }, currentUser, !currentUser
     )
   }
 

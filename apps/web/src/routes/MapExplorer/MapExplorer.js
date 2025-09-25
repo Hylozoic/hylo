@@ -39,7 +39,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -52,7 +52,7 @@ import {
   fetchMembers,
   fetchPostsForDrawer,
   fetchPostsForMap,
-  fetchGroups,
+  fetchGroupsForMap,
   formatBoundingBox,
   getCurrentTopics,
   getGroupsFilteredByTopics,
@@ -150,6 +150,7 @@ function MapExplorer (props) {
     slug: groupSlug,
     groupSlugs,
     ...filters,
+    topics: filters.topics.map(t => t.id),
     types: !isEmpty(filters.featureTypes) ? Object.keys(filters.featureTypes).filter(ft => filters.featureTypes[ft]) : null,
     currentBoundingBox: filters.currentBoundingBox || totalBoundingBoxLoaded
   }), [childPostInclusion, context, groupSlug, groupSlugs, filters, totalBoundingBoxLoaded])
@@ -244,9 +245,9 @@ function MapExplorer (props) {
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
-  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
+  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'satellite-streets-v12')
   if (!MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)) {
-    setBaseLayerStyle('light-v11')
+    setBaseLayerStyle('satellite-streets-v12')
   }
 
   const possibleFeatureTypes = useMemo(() => context === 'public'
@@ -486,23 +487,28 @@ function MapExplorer (props) {
     setShowFeatureFilters(false)
     setShowLayersSelector(false)
     setShowSavedSearches(false)
-    const oneSecondInMs = 1000
     setCreatePopupVisible(false)
-    creatingPostRef.current = true
-    setTimeout(() => {
-      console.log('creatingPost', creatingPostRef.current)
-      if (creatingPostRef.current) {
-        showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
-        console.log('showCreatePopup', e.point, e.lngLat)
-      }
-    }, isAddingItemToMap ? 0 : oneSecondInMs)
-  }, [isAddingItemToMap, showCreatePopup])
+    if (currentUser) {
+      creatingPostRef.current = e.point
+      setTimeout(() => {
+        // Make sure the point is still the same as the one we clicked on
+        if (creatingPostRef.current === e.point) {
+          showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+        }
+      }, isAddingItemToMap ? 0 : 1000)
+    }
+  }, [isAddingItemToMap, showCreatePopup, currentUser])
 
   const onMapMouseUp = useCallback(() => {
     if (creatingPostRef.current) {
       creatingPostRef.current = false
       setIsAddingItemToMap(false)
     }
+  }, [])
+
+  const onDragStart = useCallback((e) => {
+    // Stop the create popup from appearing when dragging
+    creatingPostRef.current = false
   }, [])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
@@ -632,7 +638,7 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      dispatch(fetchGroups({ ...fetchGroupParams }))
+      dispatch(fetchGroupsForMap({ ...fetchGroupParams }))
     }
   }, [fetchGroupParams])
 
@@ -793,6 +799,7 @@ function MapExplorer (props) {
           ref={mapRef}
           onMouseDown={onMapMouseDown}
           onMouseUp={onMapMouseUp}
+          onDragStart={onDragStart}
           onLoad={onMapLoad}
           afterViewportUpdate={afterViewportUpdate}
           setViewport={setViewport}
@@ -830,7 +837,7 @@ function MapExplorer (props) {
           posts={postsForDrawer}
           queryParams={queryParams}
           routeParams={routeParams}
-          topics={filters.topics}
+          topics={topicsFromPosts}
         />
       )}
       <div className='absolute top-5 left-[74px]'>
@@ -895,6 +902,7 @@ function MapExplorer (props) {
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
+            id='map-explorer-base-layer-dropdown'
             className={classes.layersDropdown}
             menuAbove
             toggleChildren={(

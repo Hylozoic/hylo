@@ -1,6 +1,7 @@
 .container {
   height: 100%;
-  width: 500px;
+  width: 40%;
+  max-width: 400px;
   transition: all .25s ease;
   overflow-y: auto;
   z-index: 20;
@@ -194,7 +195,7 @@
 .postsHeader {
   width: 100%;
   text-align: right;
-  composes: caption-lt-lg from 'css/typography.scss';
+  color: hsl(var(--foreground));
 
   > span {
     margin-right: 10px;
@@ -213,7 +214,7 @@
 }
 
 .sorter-label {
-  color: gray;
+  color: hsl(var(--foreground));
 }
 
 .sorterIcon {

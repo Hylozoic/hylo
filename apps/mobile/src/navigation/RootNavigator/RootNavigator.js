@@ -18,29 +18,13 @@ import LoginByTokenHandler from 'screens/LoginByTokenHandler'
 import AuthRootNavigator from 'navigation/AuthRootNavigator'
 import NonAuthRootNavigator from 'navigation/NonAuthRootNavigator'
 import Unknown from 'screens/Unknown'
-import { white } from 'style/colors'
+import { white } from '@hylo/presenters/colors'
 
 const Root = createStackNavigator()
 export default function RootNavigator () {
   // Here and `JoinGroup` should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
   const { isAuthorized, fetching } = useAuth()
-
-  // Handle Push Notifications opened
-  // DEPRECATED: links from notifications should open without this
-  // useEffect(() => {
-  //   const notificationClickHandler = ({ notification }) => {
-  //     const path = notification?.additionalData?.path
-  //     if (path) {
-  //       openURL(path)
-  //     }
-  //   }
-  //   OneSignal.Notifications.addEventListener('click', notificationClickHandler)
-
-  //   return () => {
-  //     OneSignal.Notifications.removeEventListener('click', notificationClickHandler)
-  //   }
-  // }, [])
 
   if (fetching) return null
 
@@ -55,11 +39,11 @@ export default function RootNavigator () {
       <NavigationContainer
         linking={customLinking}
         ref={navigationRef}
+        navigationInChildEnabled
         onReady={() => {
           RNBootSplash.hide({ fade: true })
         }}
         // To get a map of the current navigation state:
-        // onStateChange={state => console.log('!!! onStateChange:', JSON.stringify(state.routes, null, 2))}
       >
         <Root.Navigator {...navigatorProps}>
           {isAuthorized && (

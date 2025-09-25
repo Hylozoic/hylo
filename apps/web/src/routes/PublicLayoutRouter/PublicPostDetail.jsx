@@ -37,8 +37,8 @@ export default function PublicPostDetail (props) {
   return (
     <Div100vh className='bg-background'>
       <PublicPageHeader />
-      <div className='bg-midground w-full max-w-[750px] mx-auto mt-4' id={DETAIL_COLUMN_ID}>
-        <div className='w-full h-full overflow-y-auto'>
+      <div className='bg-midground w-full h-full overflow-y-auto'>
+        <div className='w-full h-full max-w-[750px] mx-auto mt-4' id={DETAIL_COLUMN_ID}>
           <PostDetail {...props} />
         </div>
       </div>

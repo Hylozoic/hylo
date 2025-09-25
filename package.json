@@ -5,28 +5,33 @@
     "packages/*"
   ],
   "scripts": {
-    "backend:dev": "yarn workspace backend run dev",
-    "web:dev": "yarn workspace web run dev",
+    "build-packages": "yarn workspaces foreach --recursive --from='packages/*' --topological --verbose run build",
+    "shared:build": "yarn workspace @hylo/shared build",
+    "backend:dev": "yarn build-packages && yarn workspace backend run dev",
     "cron": "yarn workspace backend cron",
+    "worker": "yarn workspace backend worker",
     "migrate": "yarn workspace backend migrate",
     "migrate-up": "yarn workspace backend migrate-up",
-    "worker": "yarn workspace backend worker",
-    "mobile:dev": "yarn workspace mobile start",
+    "web:dev": "yarn build-packages && yarn workspace web run dev",
+    "mobile:dev": "yarn build-packages && yarn workspace mobile start",
     "mobile:pod-install": "yarn workspace mobile pod-install",
-    "mobile:android": "yarn workspace mobile run android",
+    "mobile:android": "yarn build-packages && yarn workspace mobile run android",
     "mobile:clean": "yarn workspace mobile run clean",
-    "mobile:ios": "yarn workspace mobile run ios",
-    "shared:build": "yarn workspace @hylo/shared build",
+    "mobile:ios": "yarn build-packages && yarn workspace mobile run ios",
+    "desktop": "yarn workspace desktop start",
+    "desktop:build": "yarn workspace desktop make",
     "reset": "rm -rf **/node_modules **/.yarn/cache **/yarn.lock && yarn install",
     "heroku-postbuild": "./heroku-postbuild.sh"
   },
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.2",
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "standard": "^17.1.2",
+    "ts-jest": "^29.4.0",
     "typescript": "5.0.4"
   },
   "resolutions": {

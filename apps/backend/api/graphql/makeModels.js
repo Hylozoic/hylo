@@ -47,6 +47,25 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
+    CookieConsent: {
+      model: CookieConsent,
+      attributes: [
+        'id',
+        'consent_id',
+        'user_id',
+        'settings',
+        'version',
+        'updated_at'
+      ],
+      relations: [
+        'user'
+      ],
+      getters: {
+        userId: c => c.get('user_id'),
+        consentId: c => c.get('consent_id')
+      }
+    },
+
     CommonRole: {
       model: CommonRole,
       attributes: [
@@ -164,7 +183,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { messageThreads: { typename: 'MessageThread', querySet: true } },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
-        { tracksEnrolledIn: { querySet: true } }
+        { tracksEnrolledIn: { querySet: true } },
+        { cookieConsent: { alias: 'cookieConsentPreferences' } }
       ],
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
@@ -178,7 +198,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupMembership,
       attributes: [
         'created_at',
-        'group_id'
+        'group_id',
+        'nav_order'
       ],
       relations: [
         { agreements: { querySet: true } },
@@ -325,7 +346,61 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { commonRoles: { querySet: true } },
         { affiliations: { querySet: true } },
         { eventsAttending: { querySet: true } },
-        { posts: { querySet: true } },
+        // This fix is required for web and mobile, to avoid action posts showing up in member profiles
+        {
+          posts: {
+            querySet: true,
+            filter: (relation, {
+              activePostsOnly = false,
+              afterTime,
+              announcementsOnly,
+              beforeTime,
+              boundingBox,
+              collectionToFilterOut,
+              context,
+              createdBy,
+              cursor,
+              filter,
+              forCollection,
+              groupSlugs,
+              interactedWithBy,
+              isFulfilled,
+              mentionsOf,
+              offset,
+              order,
+              search,
+              sortBy,
+              topic,
+              topics,
+              types
+            }) =>
+              relation.query(filterAndSortPosts({
+                activePostsOnly,
+                afterTime,
+                announcementsOnly,
+                beforeTime,
+                boundingBox,
+                collectionToFilterOut,
+                context,
+                createdBy,
+                cursor,
+                forCollection,
+                groupSlugs,
+                interactedWithBy,
+                isFulfilled,
+                mentionsOf,
+                offset,
+                order,
+                search,
+                showPinnedFirst: false,
+                sortBy,
+                topic,
+                topics,
+                type: filter,
+                types
+              }))
+          }
+        },
         { projects: { querySet: true } },
         { comments: { querySet: true } },
         { skills: { querySet: true } },
@@ -490,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           limit: first,
           mentionsOf,
           offset,
-          onlyMyGroups: context === 'all',
+          onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
           proposalOutcome,
@@ -574,6 +649,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { parentGroups: { querySet: true } },
+        { peerGroups: { querySet: true } },
+        { peerGroupRelationships: { querySet: true } },
         {
           posts: {
             querySet: true,
@@ -816,6 +893,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupRelationship,
       attributes: [
         'created_at',
+        'description',
+        'relationship_type',
         'role',
         'updated_at'
       ],
@@ -1193,9 +1272,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
-        isEnrolled: t => t && t.isEnrolled(userId),
-        didComplete: t => t && t.didComplete(userId),
-        userSettings: t => t ? t.userSettings(userId) : null
+        isEnrolled: t => t && userId && t.isEnrolled(userId),
+        didComplete: t => t && userId && t.didComplete(userId),
+        userSettings: t => t && userId ? t.userSettings(userId) : null
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {

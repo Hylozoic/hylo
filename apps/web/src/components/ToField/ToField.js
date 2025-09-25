@@ -4,6 +4,9 @@ import { differenceBy } from 'lodash'
 import TagInput from 'components/TagInput'
 import styles from './ToField.module.scss'
 
+// Escape user input for use in a RegExp
+const escapeRegExp = (text) => text?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') ?? ''
+
 const ToField = forwardRef(({
   placeholder: placeholderProp,
   selected = [],
@@ -30,8 +33,10 @@ const ToField = forwardRef(({
   const findSuggestions = (searchText) => {
     let newSuggestions
     if (searchText && searchText.trim().length > 0) {
+      const safe = escapeRegExp(searchText)
+      const pattern = new RegExp(safe, 'i')
       newSuggestions = differenceBy(options, selected, 'id')
-        .filter(o => o.name.match(new RegExp(searchText, 'i')))
+        .filter(o => pattern.test(o.name))
       setSuggestions(newSuggestions)
     } else {
       newSuggestions = differenceBy(options, selected, 'id')
@@ -79,6 +84,7 @@ const ToField = forwardRef(({
       onFocus={onFocus} // Pass through to parent
       onBlur={onBlur} // Pass through to parent
       tabChooses={false}
+      spaceChooses={false}
     />
   )
 })

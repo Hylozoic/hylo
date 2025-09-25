@@ -66,77 +66,6 @@ export default function groupQueryFragment () {
     visibility
     websiteUrl
     welcomePage
-    childGroups {
-      items {
-        id
-        accessibility
-        avatarUrl
-        type
-        bannerUrl
-        description
-        geoShape
-        memberCount
-        name
-        purpose
-        slug
-        visibility
-        settings {
-          agreementsLastUpdatedAt
-          allowGroupInvites
-          askGroupToGroupJoinQuestions
-          askJoinQuestions
-          hideExtensionData
-          locationDisplayPrecision
-          publicMemberDirectory
-          showSuggestedSkills
-          showWelcomePage
-        }
-      }
-    }
-    groupRelationshipInvitesFrom {
-      items {
-        id
-        toGroup {
-          id
-          name
-          slug
-        }
-        fromGroup {
-          id
-        }
-        type
-        createdBy {
-          id
-          name
-        }
-      }
-    }
-    groupRelationshipInvitesTo {
-      items {
-        id
-        fromGroup {
-          id
-          name
-          slug
-        }
-        toGroup {
-          id
-        }
-        type
-        createdBy {
-          id
-          name
-        }
-        questionAnswers {
-          id
-          question {
-            id
-            text
-          }
-          answer
-        }
-      }
-    }
     groupRoles {
       items {
         id
@@ -203,32 +132,6 @@ export default function groupQueryFragment () {
             }
           }
         }
-      }
-    }
-    parentGroups {
-      items {
-        id
-        accessibility
-        avatarUrl
-        bannerUrl
-        description
-        geoShape
-        name
-        purpose
-        slug
-        visibility
-        settings {
-          agreementsLastUpdatedAt
-          allowGroupInvites
-          askGroupToGroupJoinQuestions
-          askJoinQuestions
-          hideExtensionData
-          locationDisplayPrecision
-          publicMemberDirectory
-          showSuggestedSkills
-          showWelcomePage
-        }
-        type
       }
     }
     contextWidgets {
@@ -301,5 +204,103 @@ export default function groupQueryFragment () {
       }
     }
     ${groupTopicsQueryFragment}
+    parentGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    childGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    peerGroups {
+      items {
+        id
+        name
+        avatarUrl
+        bannerUrl
+        memberCount
+        visibility
+        accessibility
+        slug
+      }
+    }
+    groupRelationshipInvitesFrom {
+      items {
+        id
+        fromGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        toGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        type
+        status
+        createdBy {
+          id
+          name
+        }
+      }
+    }
+    groupRelationshipInvitesTo {
+      items {
+        id
+        fromGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        toGroup {
+          id
+          name
+          avatarUrl
+          bannerUrl
+          memberCount
+          visibility
+          accessibility
+          slug
+        }
+        type
+        status
+        createdBy {
+          id
+          name
+        }
+      }
+    }
   }`
 }

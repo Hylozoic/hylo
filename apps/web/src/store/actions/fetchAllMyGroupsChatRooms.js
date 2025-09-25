@@ -10,6 +10,7 @@ export default function fetchAllMyGroupsChatRooms () {
           me {
             memberships {
               id
+              lastViewedAt
               group {
                 id
                 chatRooms {

@@ -177,8 +177,8 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the future posts in a chat room (future because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room (past because of order: 'asc')
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 

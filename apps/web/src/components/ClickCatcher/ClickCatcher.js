@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PathHelpers, HYLO_URL_REGEX } from '@hylo/shared'
+import { HYLO_URL_REGEX, mentionPath, topicPath } from '@hylo/navigation'
 
 export default function ClickCatcher ({ handleMouseOver, groupSlug = 'all', onClick, ...props }) {
   const navigate = useNavigate()
@@ -14,11 +14,11 @@ export const handleClick = (navigate, groupSlug, onClick) => event => {
   switch (element?.nodeName.toLowerCase()) {
     case 'span': {
       if (element.classList.contains('mention')) {
-        return navigate(PathHelpers.mentionPath(element.getAttribute('data-id'), groupSlug))
+        return navigate(mentionPath(element.getAttribute('data-id'), groupSlug))
       }
 
       if (element.classList.contains('topic')) {
-        return navigate(PathHelpers.topicPath(element.getAttribute('data-id'), groupSlug))
+        return navigate(topicPath(element.getAttribute('data-id'), groupSlug))
       }
 
       break

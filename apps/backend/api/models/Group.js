@@ -21,7 +21,7 @@ import { en } from '../../lib/i18n/en'
 
 const locales = { es, en }
 
-export const GROUP_ATTR_UPDATE_WHITELIST = [
+export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
   'project_role_id',
   'following',
@@ -84,13 +84,21 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   chatRooms () {
-    return this.hasMany(ContextWidget).where('type', 'chat')
+    return this.hasMany(ContextWidget).query(q => {
+      q.whereNotNull('view_chat_id')
+    })
   },
 
   childGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'parent_group_id', 'child_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .orderBy('groups.name', 'asc')
   },
 
@@ -274,14 +282,104 @@ module.exports = bookshelf.Model.extend(merge({
   parentGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'child_group_id', 'parent_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .withPivot(['settings'])
       .orderBy('groups.name', 'asc')
   },
 
   parentGroupRelationships () {
     return this.hasMany(GroupRelationship, 'child_group_id')
-      .query({ where: { active: true } })
+      .query({ where: { active: true, relationship_type: 0 } }) // PARENT_CHILD only
+  },
+
+  peerGroups () {
+    // For peer relationships, we need to get groups connected to this one in either direction
+    // Since peer relationships are bidirectional, we can't use the normal belongsToMany().through() pattern
+    // Instead, we create a collection query that gets the related groups
+    const groupId = this.id
+    return Group.collection().query(qb => {
+      qb.distinct('groups.*')
+        .join('group_relationships', function () {
+          this.on(function () {
+            this.on('groups.id', '=', 'group_relationships.parent_group_id')
+              .andOn('group_relationships.child_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          }).orOn(function () {
+            this.on('groups.id', '=', 'group_relationships.child_group_id')
+              .andOn('group_relationships.parent_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          })
+        })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .orderBy('groups.name', 'asc')
+    })
+  },
+
+  peerGroupRelationships () {
+    const groupId = this.id
+    const collection = GroupRelationship.collection().query(qb => {
+      qb.where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where(function () {
+          this.where('parent_group_id', groupId)
+            .orWhere('child_group_id', groupId)
+        })
+    })
+    
+    // Add tableName method for GraphQL bridge compatibility
+    collection.tableName = () => 'group_relationships'
+    return collection
+  },
+
+  // Get peer groups visible to a specific user (respects visibility rules)
+  visiblePeerGroups (userId) {
+    if (!userId) {
+      // Non-authenticated users can only see public peer groups
+      return this.peerGroups().query(qb => {
+        qb.where('groups.visibility', Group.Visibility.PUBLIC)
+      })
+    }
+
+    const groupId = this.id
+    return Group.query(qb => {
+      qb.join('group_relationships', function () {
+        this.on(function () {
+          this.on('groups.id', '=', 'group_relationships.parent_group_id')
+            .andOn('group_relationships.child_group_id', '=', groupId)
+        }).orOn(function () {
+          this.on('groups.id', '=', 'group_relationships.child_group_id')
+            .andOn('group_relationships.parent_group_id', '=', groupId)
+        })
+      })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .where(qb2 => {
+          // Can see public peer groups
+          qb2.where('groups.visibility', Group.Visibility.PUBLIC)
+          // Can see protected peer groups if user is member of this group
+          const selectIdsForMember = Group.selectIdsForMember(userId)
+          qb2.orWhere(qb3 => {
+            qb3.where('groups.visibility', Group.Visibility.PROTECTED)
+            qb3.andWhere(groupId, 'in', selectIdsForMember)
+          })
+          // Stewards of this group can see hidden peer groups
+          const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
+          qb2.orWhere(qb4 => {
+            qb4.where('groups.visibility', Group.Visibility.HIDDEN)
+            qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
+          })
+        })
+        .orderBy('groups.name', 'asc')
+    })
   },
 
   prerequisiteGroups () {
@@ -388,10 +486,11 @@ module.exports = bookshelf.Model.extend(merge({
           postNotifications: 'all',
           digestFrequency: 'daily',
           sendEmail: true,
-          sendPushNotifications: true
+          sendPushNotifications: true,
+          lastReadAt: attrs.lastReadAt || null
         }
       },
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST)
+      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     )
 
     const userIds = usersOrIds.map(x => x instanceof User ? x.id : x)
@@ -529,7 +628,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     const updatedAttribs = Object.assign(
       {},
-      pick(omitBy(attrs, isUndefined), GROUP_ATTR_UPDATE_WHITELIST),
+      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST),
       { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
     )
 
@@ -566,7 +665,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Create general chat widget as child of home widget
     await ContextWidget.forge({
       group_id: this.id,
-      type: 'chat',
+      type: 'viewChat',
       view_chat_id: generalTag.id,
       parent_id: homeWidget.id,
       order: 1,
@@ -808,6 +907,11 @@ module.exports = bookshelf.Model.extend(merge({
     OPEN: 2
   },
 
+  RelationshipType: {
+    PARENT_CHILD: 0,
+    PEER_TO_PEER: 1
+  },
+
   // ******* Class methods ******** //
 
   // Background task to do additional work/tasks when new members are added to a group
@@ -815,9 +919,34 @@ module.exports = bookshelf.Model.extend(merge({
     const zapierTriggers = await ZapierTrigger.forTypeAndGroups('new_member', groupId).fetchAll()
 
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
+    const group = await Group.find(groupId)
+
+    // Publish group membership updates for new and reactivated members
+    if (group && members.length > 0) {
+      const { publishGroupMembershipUpdate } = require('../../lib/groupSubscriptionPublisher')
+
+      for (const member of members.models) {
+        const action = reactivatedUserIds.includes(member.id) ? 'rejoined' : 'joined'
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📡 Background job: Publishing membership update for ${member.get('name')} (${action})`)
+        }
+
+        try {
+          await publishGroupMembershipUpdate(null, group, {
+            group,
+            member,
+            action
+          }, {
+            additionalUserIds: [member.id] // Notify the new member
+          })
+        } catch (error) {
+          console.error('❌ Error publishing membership update in afterAddMembers:', error)
+        }
+      }
+    }
 
     if (zapierTriggers && zapierTriggers.length > 0) {
-      const group = await Group.find(groupId)
       for (const trigger of zapierTriggers) {
         await fetch(trigger.get('target_url'), {
           method: 'post',
@@ -927,7 +1056,8 @@ module.exports = bookshelf.Model.extend(merge({
 
       await group.setupContextWidgets(trx)
 
-      await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR }, { transacting: trx })
+      // Set lastReadAt when creating a new group to mark creator as having viewed the group already
+      await group.addMembers([userId], { role: GroupMembership.Role.MODERATOR, lastReadAt: new Date() }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {

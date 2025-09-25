@@ -122,7 +122,7 @@ export const routingConfig = {
   // TODO: Routing - should probably go to Post Modal for now, or let it through and it will go to PostDetail in Webview, same for topics variant below
   '/:context(groups)/:groupSlug/chat/:topicName/post/:id':                `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Chat Room`,
   '/:context(groups)/:groupSlug/create':                                  `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
-  '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Explore`,
+  '/:context(groups)/:groupSlug/explore':                                 `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   '/:context(groups)/:groupSlug/groups':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Relationships`,
   '/:context(groups)/:groupSlug/map':                                     `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Map`,
   '/:context(groups)/:groupSlug/map/create':                              `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
@@ -144,6 +144,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/:streamType(proposals)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/:streamType(requests-and-offers)':        `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/:streamType(resources)':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
+  '/:context(groups)/:groupSlug/stream/post/:id':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   '/:context(groups)/:groupSlug/welcome':                                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Welcome Page`,
   '/:context(groups)/:groupSlug':                                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab`,
 
@@ -155,6 +156,7 @@ export const routingConfig = {
   // Miscellaneous Routes
   '/notifications':                                                       `${AUTH_ROOT_SCREEN_NAME}/Notifications`,
   '/search':                                                              `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Search Tab`,
+  '/:context(groups)/:groupSlug/no-context-fallback':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/No Context Fallback`,
 
   // Catch-Alls and Safeties
   // TODO: Routing -- We may want some or all of these to go away
@@ -162,8 +164,8 @@ export const routingConfig = {
   ':unmatchedBasePath(.*)/group/:groupSlug/explore':                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Group Explore')}`,
   ':unmatchedBasePath(.*)/members/:id':                                   `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Member')}`,
   ':unmatchedBasePath(.*)/upload-action/:id':                             `${AUTH_ROOT_SCREEN_NAME}/Upload Action`,
-  ':unmatchedBasePath(.*)/post/:id':                                      `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
-  ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/${modalScreenName('Post Details')}`,
+  ':unmatchedBasePath(.*)/post/:id':                                      `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
+  ':unmatchedBasePath(.*)/post/:id/comments/:commentId':                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`,
   ':unmatchedBasePath(.*)/create/group':                                  `${AUTH_ROOT_SCREEN_NAME}/Create Group`,
   ':unmatchedBasePath(.*)/create/post':                                   `${AUTH_ROOT_SCREEN_NAME}/Edit Post`,
   ':unmatchedBasePath(.*)/create':                                        `${AUTH_ROOT_SCREEN_NAME}/Creation`,

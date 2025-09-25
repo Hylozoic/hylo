@@ -1,10 +1,229 @@
 # Changelog
-All notable changes to Hylo Evo (the Hylo front-end) will be documented in this file.
+All notable changes to the Hylo Web app (the Hylo front-end) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [6.1.22] - 2025-09-19
+
+### Fixed
+- Don't remove chat post from chat room when editing it
+
+## [6.1.21] - 2025-09-18
+
+### Changed
+- Allow for clicking on URLs in the post location field. For opening zoom links in events mostly
+- Don't show geocoder suggestions when putting a URL in the location field
+- Tweak styling of map drawer, to take up less horizontal space
+
+### Fixed
+- Android mobile webview: Location input box causing horizontal scroll jump when focused
+- Missed a spot where #home should be #general. When joining a new group
+- Fix display of post location in map drawer
+
+## [6.1.20] - 2025-09-15
+
+### Fixed
+- Scrolling search results to load more
+- Viewing public posts that have comment reactions when not logged in
+- Importing posts from a CSV file
+
+## [6.1.19] - 2025-09-12
+
+### Fixed
+- Don't show create post popup when clicking on public map while not logged in
+- Searching members in event invite and attending dialogs. Also improve styling of event invite dialog.
+- Display of post datetimepicker in chatroom webview on android
+- Display of post people dialog in dark mode - for event attendees and project members
+- Adding location to chat post on Android.
+- In chat post editor have location results appear above input box so they dont go below the screen.
+
+## [6.1.18] - 2025-09-05
+
+### Added
+- Support for peer to peer group relationships. You can invite/add these in the Related Groups tab and they will appear on the Groups view. Each peer relationship can have a description of what the relationship is.
+- Tooltips to menu items on context widgets when editing menu.
+
+### Changed
+- Allow spaces and other special characterswhen searching in post To field
+- Default map base layer is now satellite with streets
+- Prevent create post popup from appearing when dragging on the map
+- Regularly check if sockets are connected and reconnect if they are not. Should help with old browser tabs no longer updating after a while.
+
+### Fixed
+- Accidental creation of empty chats when pressing option-enter after creating a post
+- Errors causing incorrect rows to appear while filtering the groups in the post To field
+- Fix issue when joining a new group with a welcome page where you would get bounced back to the welcome page when a notification came in.
+- Handle long context widget names better. Dont overflow, show ellipsis, make sure action menu still appears.
+- Prevent trying to create chat room with > 40 characters in topic which was breaking silently.
+- Fix text overflow for proposal status at small widths
+- Public map crashing for non logged in users
+- Fix display of posts and groups layers of the map at far out zooms
+
+## [6.1.17] - 2025-08-27
+
+### Added
+- Explicit consent to platform agreements while signing up
+
+### Changed
+- Tweak spacing of comments. Mainly so that when a comment is highlighted it looks better. Also in general make them a little tighter together.
+
+### Fixed
+- Display of current day sticky header in chat rooms
+- Fix announcements showing public posts that are not in any of your groups
+
+## [6.1.16] - 2025-08-23
+
+### Added
+- Allow users to export their profile and content. This actually, truly, completes GDPR support!
+
+### Changed
+- Make text bold for current view in group menu
+
+### Fixed
+- Display of parent groups in related groups view
+- Make sure as you move between chat rooms that new chat posts dont get added to multiple chat rooms at the same time. They should only appear in the current chat room.
+- Make sure new chat posts get added optimistically to the chat room even as you navigate around. They were disappearing when you navigated to a new chat room.
+- Fix jump to bottom button appearing when at bottom in chat rooms
+- Fix bug where you see no posts when viewing a chat room you have not followed
+- UI issues in blocked users tab. Show no blocked users instead of empty page for people who have no blocked users. Show loading spinner correctly
+- UI of flagged posts in grid views
+- Double display of login errors
+
+## [6.1.15] - 2025-08-21
+
+### Changed
+- Update chat posts in real time when they are edited in the post editor, or when reactions or comments are added.
+- Display group names as you scroll global nav menu on mobile browser.
+- Center track title on track home page
+
+### Fixed
+- Hover state of global nav menu no longer lingers on mobile browser.
+- Correct display of enrolled and completed dates for tracks
+- Growing comment box in android app
+- Map going below the bottom of the screen on mobile
+- Don't double update last read post when creating a new chat
+- Make sure New Posts text always appears with new posts line in chat room
+- Fix extra scroll bar when a chat room has no posts
+- Display of emoji button on comments
+- Adding text to flagging of group content dialog
+
+## [6.1.14] - 2025-08-14
+
+### Changed
+- Line up emojis and replies with chat post content
+- Tweak padding of chat posts
+- Use newPostCount to determine how many past and future posts we actually need to load - improving performance.
+- When loading chat room the new posts now start at the top of the screen instead of below the bottom of the screen.
+- Load less posts at a time as you scroll so that should be faster
+- Loading spinner in the middle of the chat room.
+- Add "New posts" text to new post line in chat room
+- Don't need to load group location when loading posts
+
+### Fixed
+- UI fixes to display of post groups in post details. Width not overlapping. Don't show multiple Public groups sometimes. Spacing improved.
+- Scroll jumping while scrolling up in chat room
+- Emoji picker doesnt jump around when hovering over it for chat post
+- Clicking to right of emoji or replies row opens post as expected.
+- Button to jump to latest post in chat room actually does so when there are lots of new posts
+- Small spacing fix of post datetimes in post details header, don't overlap post content
+- Focusing on the chat box in chat room doesn't do a big scroll jump and add a bunch of extra whitespace below it in safari on ios. This does require a change where trying to scroll while the chat box will now remove focus from it.
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Performance improvements
+- Remove focus from post editor when scrolling on a mobile device. This may fix issue of extra whitespace below chat box in safari on ios.
+
+### Fixed
+- Make sure comment notifications link to the right group
+- Copying post link from a post page
+- Don't change desktop app title on new notification
+- Display of Track action completion responses
+- Display of enrolled members of a track
+- Scroll events in notifications dropdown when a post dialog is open
+- Inviting people to events from an open post details dialog
+
+## [6.1.12] - 2025-07-31
+
+### Aded
+- Tweaks to get notifications working for the desktop app
+
+## [6.1.11] - 2025-07-25
+
+### Added
+- Completed GDPR support! You can now fully opt out of non-essentia cookies (which are Mixpanel for analytics and Intercom for support), and this is now tracked and stored on your device and in the database. You can update your GDPR settings in the Account Settings page.
+
+### Changed
+- Only fetch all your group's chat rooms when opening up post editor for a a non chat post This will remove a ton of extra database queries from loading chat rooms.
+
+### Fixed
+- Issue where new group members couldn't navigate away from welcome page to the #general chat room
+
+## [6.1.10] - 2025-07-15
+
+### Added
+- Add ability to pin groups to the top of the global nav. Pinned groups can be reordered by dragging and dropping.
+
+## [6.1.9] - 2025-07-08
+
+### Changed
+- Removed some data loading on initial group load, to improve performance
+
+### Fixed
+- Content flagging/moderation in dark mode
+
+## [6.1.8] - 2025-07-05
+
+### Fixed
+- Inability to scroll post editor when creating a post from the chat box when the post gets too tall for the screen.
+- Joining groups from the group card in the group explorer
+
+## [6.1.7] - 2025-07-04
+
+### Changed
+- Can now interact with the nav menus while a post is open
+- Added a nicer UI when a group has no posts
+
+### Fixed
+- Viewing action completion responses for a long action that requires scrolling down
+- Stacking of event RSVP dropdown
+- Project post UI in dark mode
+
+## [6.1.6] - 2025-07-02
+
+### Changed
+- Group Welcome Page is now centered and has a max width
+
+### Fixed
+- Filtering by topics in map drawer
+- Map drawer styling in dark mode
+- #topic links in Group Welcome Page
+- Setting up prerequisite groups that must be joined before your group can be joined
+- Fix flash of [Object] in page titles
+- Remove action as a post type option for custom views
+- Remove extra weird star on proposal options
+- Topic selector text color in dark mode
+- OAuth login and consent flow
+- Ability to view posts at URL of /post/:postId when logged in
+- Bug when viewing track action of Select One type
+- Text color of featured groups in group explorer
+- Scrolling of long public posts when not logged in
+
+## [6.1.5] - 2025-07-01
+
+### Changed
+- Many improvements to UI/UX of the Group Explorer. Added featured groups to the top of it.
+- Many improvements to styling of the My Home pages, including My Groups, My Invites, Account and more
+- Many improvements to UI/UX when using Hylo in a mobile browser
+- Many improvements to styling of welcome modals
+- Topics load much faster when typing a # in the post editor
+
+### Fixed
+- Display of login/signup flow in dark mode
+- Display of dropdowns at the top of the stream
 
 ## [6.1.4] - 2025-06-25
 

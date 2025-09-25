@@ -2,7 +2,7 @@ import { Pencil, PartyPopper } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import { FileManager } from 'components/AttachmentManager/FileManager'
 import CardFileAttachments from 'components/CardFileAttachments'
 import ClickCatcher from 'components/ClickCatcher'
@@ -53,7 +53,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
 
   if (!completionAction) return null
 
-  const completedAt = post.completedAt ? TextHelpers.formatDatePair(post.completedAt) : null
+  const completedAt = post.completedAt ? DateTimeHelpers.formatDatePair({ start: post.completedAt }) : null
   let completionControls, completionButtonText, alreadyCompletedMessage
   let completionResponseText = completionResponse?.length > 0 ? completionResponse.map((r, i) => <p key={i}><HyloHTML html={r} /></p>) : null
   switch (completionAction) {
@@ -63,7 +63,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
       break
     case 'selectOne':
       completionControls = (
-        <RadioGroup onValueChange={(value) => setCompletionResponse([value])} value={completionResponse[0]}>
+        <RadioGroup onValueChange={(value) => setCompletionResponse([value])} value={completionResponse?.[0] || ''}>
           {options.map((option) => (
             <div key={option} className='flex items-center gap-2 mb-2 cursor-pointer'>
               <RadioGroupItem value={option} id={`radio-${option}`} />
@@ -131,7 +131,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           </UploadAttachmentButton>
           <Button
             className='ml-2'
-            disabled={completionResponse.length === 0}
+            disabled={completionResponse?.length === 0}
             onClick={handleSubmitCompletion}
           >
             {t('Submit Attachments and Complete')}
@@ -163,7 +163,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           <h3>Complete this action</h3>
           <p className='font-bold'>{instructions}</p>
           {completionControls}
-          {completionButtonText && <Button onClick={handleSubmitCompletion}>{completionButtonText}</Button>}
+          {completionButtonText && <Button onClick={handleSubmitCompletion} disabled={completionResponse?.length === 0 && completionAction !== 'button'}>{completionButtonText}</Button>}
         </>
       )}
       <Dialog.Root open={showTrackCompletionDialog} onOpenChange={setShowTrackCompletionDialog}>

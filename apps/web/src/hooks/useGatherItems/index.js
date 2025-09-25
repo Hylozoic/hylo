@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { wrapItemInWidget } from '@hylo/presenters/ContextWidgetPresenter'
+import { wrapItemInWidget } from '@hylo/presenters'
 import { fetchGroupMembers } from 'routes/Members/Members.store'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'

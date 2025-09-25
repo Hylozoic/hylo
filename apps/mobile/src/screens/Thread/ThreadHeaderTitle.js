@@ -6,7 +6,7 @@ import { modalScreenName } from 'hooks/useIsModalScreen'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
-import { rhino } from 'style/colors'
+import { rhino } from '@hylo/presenters/colors'
 
 export default function ThreadHeaderTitle ({ thread, currentUserId }) {
   const navigation = useNavigation()

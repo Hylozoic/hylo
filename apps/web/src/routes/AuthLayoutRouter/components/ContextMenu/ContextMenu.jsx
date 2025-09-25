@@ -17,7 +17,18 @@ import ContextWidgetPresenter, {
   translateTitle,
   allViewsWidget
 } from '@hylo/presenters/ContextWidgetPresenter'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG, TextHelpers } from '@hylo/shared'
+import {
+  ALL_GROUPS_CONTEXT_SLUG,
+  MY_CONTEXT_SLUG,
+  PUBLIC_CONTEXT_SLUG,
+  widgetUrl,
+  baseUrl,
+  groupUrl,
+  groupInviteUrl,
+  addQuerystringToPath,
+  personUrl
+} from '@hylo/navigation'
+import { TextHelpers } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -37,12 +48,12 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { widgetUrl, baseUrl, groupUrl, groupInviteUrl, addQuerystringToPath, personUrl } from 'util/navigation'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
 
 import classes from './ContextMenu.module.scss'
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 
 let previousWidgetIds = []
 let isAddingChildWidget = false
@@ -189,6 +200,12 @@ export default function ContextMenu (props) {
     setActiveWidget(null)
   }
 
+  // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
+  useEffect(() => {
+    const menu = document.querySelector('.ContextMenu')
+    menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -200,7 +217,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 overflow-y-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
@@ -217,8 +234,12 @@ export default function ContextMenu (props) {
                 )
               : isMyContext
                 ? (
-                  <div className='flex flex-col p-2'>
-                    <h2 className='text-foreground font-bold leading-3 text-lg'>{t('My Home')}</h2>
+                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                    <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                    </div>
                   </div>
                   )
                 : null}
@@ -390,9 +411,9 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                 externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
                 className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 group'
               >
-                <div className='flex-1 flex items-center'>
+                <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={widget} />
-                  <span className='text-base font-normal ml-2 flex-1'>{title}</span>
+                  <span className='text-base font-normal ml-2 flex-1 overflow-hidden text-ellipsis'>{title}</span>
                   {!widget.viewTrack?.didComplete && widget.viewTrack?.isEnrolled ? <span className='text-sm ml-2'>{t('Enrolled')}</span> : null}
                   {widget.viewTrack?.didComplete ? <span className='text-sm ml-2'>{t('Completed')}</span> : null}
                 </div>
@@ -503,8 +524,20 @@ function ActionMenu ({ widget }) {
   return (
     <span className='text-sm font-bold cursor-pointer flex items-center'>
       {widget.isEditable && <Pencil onClick={handleEditWidget} />}
-      <Trash onClick={handleRemoveWidget} />
-      {widget.isValidHomeWidget && <House onClick={handleWidgetHomePromotion} />}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Trash onClick={handleRemoveWidget} />
+        </TooltipTrigger>
+        <TooltipContent>{t('Remove from Menu')}</TooltipContent>
+      </Tooltip>
+      {widget.isValidHomeWidget && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <House onClick={handleWidgetHomePromotion} />
+          </TooltipTrigger>
+          <TooltipContent>{t('Set as Home View')}</TooltipContent>
+        </Tooltip>
+      )}
     </span>
   )
 }
@@ -570,9 +603,9 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
       <DropZone droppableParams={{ id: item.id, data: { widget: item, parentWidget: widget, isOverlay } }}>
         &nbsp;
       </DropZone>
-      <li ref={setItemDraggableNodeRef} style={itemStyle} className='flex justify items-center content-center animate-slide-up invisible'>
+      <li ref={setItemDraggableNodeRef} style={itemStyle} className='ListItemRendererer flex justify items-center content-center animate-slide-up invisible'>
         {(() => {
-          if (item.type === 'chat') {
+          if (item.type === 'viewChat') {
             return (
               <MenuLink
                 badgeCount={item.highlightNumber}
@@ -580,9 +613,9 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='ContextWidgetMenuItemChat flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
-                <div className='flex-1 flex items-center'>
+                <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
-                  <span className='text-base ml-1'>{itemTitle}</span>
+                  <span className='text-base ml-1 overflow-hidden text-ellipsis'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <div className='hidden group-hover:block'><ActionMenu widget={item} className={cn('ml-2')} /></div>}
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}
@@ -595,9 +628,9 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between group'
               >
-                <div className='flex items-center'>
+                <div className='flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
-                  <span className='text-base ml-2'>
+                  <span className='text-base ml-2 overflow-hidden text-ellipsis'>
                     {itemTitle}
                     {isActive && <span className='w-2 h-2 ml-2 inline-block rounded-full bg-green-500' />}
                   </span>
@@ -606,16 +639,16 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 {isItemDraggable && <div className='hidden group-hover:block'><GrabMe {...itemListeners} {...itemAttributes} /></div>}
               </MenuLink>
             )
-          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'chat')) {
+          } else if (rootPath === '/my' || rootPath === '/all' || rootPath !== '/members' || (item.title && item.type !== 'viewChat')) {
             return (
               <MenuLink
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='ContextWidgetMenuItem flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
-                <div className='flex-1 flex items-center'>
+                <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
-                  <span className='text-base ml-2'>{itemTitle}</span>
+                  <span className='text-base ml-2 overflow-hidden text-ellipsis'>{itemTitle}</span>
                 </div>
                 {isItemDraggable && <div className='hidden group-hover:block'><ActionMenu widget={item} className={cn('ml-2')} /></div>}
                 {isItemDraggable && <GrabMe {...itemListeners} {...itemAttributes} />}

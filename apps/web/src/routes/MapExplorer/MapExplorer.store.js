@@ -131,6 +131,7 @@ const membersFragment = `
           lat
           lng
         }
+        fullText
       }
       skills {
         hasMore
@@ -244,6 +245,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
             lat
             lng
           }
+          fullText
         }
         topics {
           id
@@ -368,7 +370,7 @@ export function fetchPostsForDrawer ({ activePostsOnly, childPostInclusion = 'ye
         sortBy,
         search,
         topic: null,
-        topics: !isEmpty(topics) ? topics.map(t => t.id) : [],
+        topics,
         types
       }
     },
@@ -424,7 +426,7 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
   }
 }
 
-export function fetchGroups ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
+export function fetchGroupsForMap ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
   return {
     type: FETCH_GROUPS_MAP,
     graphql: {

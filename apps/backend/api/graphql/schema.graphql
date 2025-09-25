@@ -319,6 +319,27 @@ type Query {
 
 union Update = Message | MessageThread | Notification
 
+# Group membership update payload for subscriptions
+type GroupMembershipUpdate {
+  group: Group
+  member: Person
+  # Action type: 'joined', 'left', 'role_changed', 'moderator_added', 'moderator_removed'
+  action: String
+  role: String
+}
+
+# Group relationship update payload for subscriptions
+type GroupRelationshipUpdate {
+  parentGroup: Group
+  childGroup: Group
+  # Action type: 'relationship_created', 'relationship_removed', 'invite_sent', 'invite_accepted', 'invite_rejected', 'invite_cancelled'
+  action: String
+  relationship: GroupRelationship
+}
+
+# Union type for all possible subscription updates
+union SubscriptionUpdate = Notification | Group | GroupMembershipUpdate | GroupRelationshipUpdate | Post | Comment | Person
+
 type Subscription {
   # Pushes new comments on the comments key for the given postId or parentCommentId
   comments(postId: ID, parentCommentId: ID): Comment,
@@ -329,6 +350,16 @@ type Subscription {
   # requested in the subscription query it is also where new messages and messageThreads can be received in the UI. See
   # example usage of this in Mobile.
   updates: Update
+  # Group-specific subscriptions for membership and relationship updates
+  groupUpdates: Group
+  groupMembershipUpdates: GroupMembershipUpdate
+  groupRelationshipUpdates: GroupRelationshipUpdate
+  # Post updates subscription for real-time post changes
+  postUpdates: Post
+
+  # UNIFIED: Single subscription that combines all user-specific updates
+  # Reduces Android SSE connection limit issues by using only one connection
+  allUpdates: SubscriptionUpdate
 }
 
 # The meta data associated with an Activity
@@ -348,6 +379,8 @@ type ActivityMeta {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+      'groupPeerGroupInvite' = a peer group requested to connect to your group
+      'groupPeerGroupInviteAccepted' = a peer group accepted an invite to connect to one of your groups
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
@@ -373,6 +406,8 @@ type Activity {
       'groupChildGroupInviteAccepted' = a child group accepted the invite to join one of your groups
       'groupParentGroupJoinRequest' = someone requested to join one of your groups to a new parent group
       'groupParentGroupJoinRequestAccepted' = a parent group accepted one of your groups into it
+      'groupPeerGroupInvite' = a peer group requested to connect to your group
+      'groupPeerGroupInviteAccepted' = a peer group accepted an invite to connect to one of your groups
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
@@ -538,6 +573,23 @@ type Comment {
   commentReactions: [Reaction]
   # The reactions of the logged-in user to this
   myReactions: [Reaction]
+}
+
+# Cookie consent preferences for a user
+type CookieConsent {
+  id: ID
+  # The unique consent identifier
+  consentId: ID
+  # The user this consent belongs to (null for anonymous users)
+  userId: ID
+  # The consent settings
+  settings: JSON
+  # Version of the consent structure
+  version: String
+  # When this consent was last updated
+  updatedAt: Date
+  # The user this consent belongs to
+  user: Person
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -909,6 +961,36 @@ type Group {
     search: String
   ): GroupQuerySet
 
+  # Peer Groups of this Group (peer-to-peer relationships)
+  peerGroups(
+    # Return groups whose names start with the autocomplete string
+    autocomplete: String,
+    # Return only groups in the geographic bounding box
+    boundingBox: [PointInput],
+    # Number of groups to return
+    first: Int,
+    # For pagination, return only results after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # 'name' or 'size'
+    sortBy: String,
+    # Return groups where the search text matches in the name, description or location
+    search: String
+  ): GroupQuerySet
+
+  # Peer Group Relationships with descriptions for this Group
+  peerGroupRelationships(
+    # Number of relationships to return
+    first: Int,
+    # For pagination, return only results after this offset in the query results
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String
+    # Description of the relationship
+    description: String
+  ): GroupRelationshipQuerySet
+
   # Pending invitations to people to join this group
   pendingInvitations(
     # For pagination, return results after this ID
@@ -1140,7 +1222,11 @@ type GroupRelationship {
   id: ID
   childGroup: Group
   createdAt: Date
+  # Description of what this relationship represents (e.g., "Alliance", "Partnership", etc.)
+  description: String
   parentGroup: Group
+  # 0 = parent-child relationship, 1 = peer-to-peer relationship
+  relationshipType: Int
   # NOT CURRENTLY USED
   role: Int
   settings: GroupRelationshipSettings
@@ -1169,6 +1255,13 @@ type GroupRelationshipInvite {
   # 0 = ParentToChild, 1 = ChildToParent
   type: Int
   updatedAt: Date
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type GroupRelationshipQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [GroupRelationship]
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1585,6 +1678,9 @@ type Me {
     # 'enrolled_at', 'name'
     sortBy: String
   ): TrackQuerySet
+
+  # Cookie consent preferences for the current user
+  cookieConsentPreferences: CookieConsent
 }
 
 # A user's group membership
@@ -1607,6 +1703,8 @@ type Membership {
   membershipCommonRoles: MembershipCommonRoleQuerySet
   # The group defined roles this members has in this group - just the join table data
   membershipGroupRoles: MembershipGroupRoleQuerySet
+  # The order of this group membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new posts in this group since the current logged in user viewed it (if they are a member of it)
   newPostCount: Int
   person: Person
@@ -2007,10 +2105,10 @@ type Post {
   createdAt: Date
   # The body of the post
   details: String
+  # When the text was last edited
+  editedAt: Date
   # Link to a donation page, only used for projects only right now
   donationsLink: String
-  # When this post was last significantly edited (such as title and details)
-  editedAt: Date
   # When this post "ends". Used for events, resources, projects, requests and offers right now
   endTime: Date
   # List of group ids for groups that have flagged this post
@@ -2632,7 +2730,9 @@ type Mutation {
   # Delete a group that you are a steward of
   deleteGroup(id: ID): GenericResult
   # Remove the relationship between two groups if you are a steward of one of them
-  deleteGroupRelationship(parentId: ID, childId: ID): GenericResult
+  deleteGroupRelationship(parentId: ID, childId: ID, relationshipType: Int): GenericResult
+  # Remove a peer-to-peer relationship between two groups by relationship ID. Only a group steward can call this.
+  deletePeerRelationship(relationshipId: ID): GenericResult
   # Delete a group responsibility from a group
   deleteGroupResponsibility(
     responsibilityId: ID,
@@ -2669,6 +2769,10 @@ type Mutation {
   fulfillPost(postId: ID): GenericResult
   # Invite a group to join one of your groups as a child of it. Only a group steward can call this.
   inviteGroupToJoinParent(parentId: ID, childId: ID): CreatedGroupRelationshipInvite
+  # Invite a group to form a peer-to-peer relationship. Only a group steward can call this.
+  invitePeerRelationship(fromGroupId: ID, toGroupId: ID, description: String): CreatedGroupRelationshipInvite
+  # Update the description of a peer-to-peer relationship. Only a group steward can call this.
+  updatePeerRelationship(relationshipId: ID, description: String): GroupRelationship
   # Invite one or more people to an event Post
   invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
   # Join a group. Will fail if the person does not have permission to join this group.
@@ -3340,6 +3444,8 @@ input MembershipInput {
   acceptAgreements: Boolean
   # update the lastViewedAt
   lastViewedAt: Date
+  # The order of this membership in the global nav drawer - having a value means it is pinned to the top in order, null means it is not pinned
+  navOrder: Int
   # Number of new Posts in the Group since you last looked at it
   newPostCount: Int
   # Answers to the join questions for this Group

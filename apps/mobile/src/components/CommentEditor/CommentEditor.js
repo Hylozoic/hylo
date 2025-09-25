@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View, Keyboard, Dimensions } from 'react-native'
+import { useKeyboardController } from 'react-native-keyboard-controller'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
@@ -11,14 +12,15 @@ import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import { firstName } from '@hylo/presenters/PersonPresenter'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import mixpanel from 'services/mixpanel'
+import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
 import { getTrackIdFromPath } from '@hylo/navigation'
 import useRouteParams from 'hooks/useRouteParams'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 
 export const CommentEditor = React.forwardRef(({
   isModal,
@@ -34,10 +36,13 @@ export const CommentEditor = React.forwardRef(({
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const { setEnabled } = useKeyboardController()
   const showToast = useToast()
   const { originalLinkingPath } = useRouteParams()
   const trackId = getTrackIdFromPath(originalLinkingPath)
   const [currentTrack, trackQueryInfo, refetchTrack] = useTrack({ trackId })
+  const [{ currentUser }] = useCurrentUser()
 
   const handleDone = useCallback(() => {
     clearReplyingTo()
@@ -53,10 +58,10 @@ export const CommentEditor = React.forwardRef(({
       const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
       const postId = post.id
       const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
-      
+
       // Required check for action posts
       if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
-        const { error: completionError, data } = await completePost({ 
+        const { error: completionError, data } = await completePost({
           postId: post.id,
           completionResponse: ['comment']
         })
@@ -97,13 +102,14 @@ export const CommentEditor = React.forwardRef(({
         }
       }
 
-      mixpanel.track(AnalyticsEvents.COMMENT_CREATED, {
+      trackWithConsent(AnalyticsEvents.COMMENT_CREATED, {
         commentLength: TextHelpers.textLengthHTML(commentHTML),
         groupId: post.groups.map(g => g.id),
         hasAttachments: false,
         parentCommentId,
-        postId
-      })
+        postId,
+        userId: currentUser?.id
+      }, currentUser, !currentUser)
 
       setSubmitting(false)
       if (error) {
@@ -113,11 +119,32 @@ export const CommentEditor = React.forwardRef(({
         })
       } else handleDone()
     }
-  }, [handleDone, post, replyingTo, completePost, currentTrack, showToast])
+  }, [handleDone, post, replyingTo, completePost, currentTrack, showToast, t, currentUser])
 
   const setEditorRef = useCallback(newEditorRef => {
     setHasContent(!newEditorRef?.isEmpty)
     editorRef.current = newEditorRef
+  }, [])
+
+  // Handle keyboard events for WebView-based editor
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height)
+      }
+    )
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0)
+      }
+    )
+
+    return () => {
+      keyboardDidShowListener.remove()
+      keyboardDidHideListener.remove()
+    }
   }, [])
 
   // This is what is causing the bouncing
@@ -138,7 +165,7 @@ export const CommentEditor = React.forwardRef(({
   }))
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <View style={[styles.container, { marginBottom: keyboardHeight }]}>
       {replyingTo?.creator?.name && (
         <View style={styles.prompt}>
           <TouchableOpacity onPress={handleDone}>
@@ -170,7 +197,7 @@ export const CommentEditor = React.forwardRef(({
               )}
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardFriendlyView>
+    </View>
   )
 })
 

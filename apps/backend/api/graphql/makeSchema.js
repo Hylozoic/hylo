@@ -53,6 +53,7 @@ import {
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
@@ -67,6 +68,7 @@ import {
   flagInappropriateContent,
   fulfillPost,
   inviteGroupToGroup,
+  invitePeerRelationship,
   invitePeopleToEvent,
   joinGroup,
   joinProject,
@@ -126,6 +128,7 @@ import {
   updateTrackActionOrder,
   updateMe,
   updateMembership,
+  updatePeerRelationship,
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
@@ -186,9 +189,21 @@ export default async function makeSchema ({ req }) {
           // in makeModels, and there is apparently no other way to infer the types, so the
           // correct type is set on makeModelsType by the subscription resolver to be used here
           if (data?.makeModelsType) return data.makeModelsType
+
           const foundType = getTypeForInstance(data, models)
           if (foundType) return foundType
           throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
+        }
+      },
+      // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
+      SubscriptionUpdate: {
+        __resolveType (data, context, info) {
+          // Use makeModelsType if set by the subscription resolver
+          if (data?.makeModelsType) return data.makeModelsType
+
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
         }
       }
     }
@@ -196,13 +211,17 @@ export default async function makeSchema ({ req }) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
       Query: makeApiQueries({ fetchOne, fetchMany }),
-      Mutation: makeApiMutations()
+      Mutation: makeApiMutations(),
+      // Provide Subscription resolvers even for API clients; resolvers self-guard on auth
+      Subscription: makeSubscriptions()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
       Query: makePublicQueries({ fetchOne, fetchMany }),
-      Mutation: makePublicMutations({ fetchOne })
+      Mutation: makePublicMutations({ fetchOne }),
+      // Supply Subscription resolvers. They handle unauthenticated requests gracefully
+      Subscription: makeSubscriptions()
     }
   }
 
@@ -314,7 +333,7 @@ export function makeMutations ({ fetchOne }) {
     // available between auth'd and non-auth'd sessions
     ...makePublicMutations({ fetchOne }),
 
-    acceptGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => acceptGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
+    acceptGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => acceptGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId, context),
 
     acceptJoinRequest: (root, { joinRequestId }, context) => acceptJoinRequest(context.currentUserId, joinRequestId),
 
@@ -322,7 +341,7 @@ export function makeMutations ({ fetchOne }) {
 
     addGroupRole: (root, { groupId, color, name, description, emoji }, context) => addGroupRole({ userId: context.currentUserId, groupId, color, name, description, emoji }),
 
-    addModerator: (root, { personId, groupId }, context) => addModerator(context.currentUserId, personId, groupId),
+    addModerator: (root, { personId, groupId }, context) => addModerator(context.currentUserId, personId, groupId, context),
 
     addPeopleToProjectRole: (root, { peopleIds, projectRoleId }, context) => addPeopleToProjectRole(context.currentUserId, peopleIds, projectRoleId),
 
@@ -382,7 +401,7 @@ export function makeMutations ({ fetchOne }) {
 
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers),
+    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
@@ -398,7 +417,9 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroup: (root, { id }, context) => deleteGroup(context.currentUserId, id),
 
-    deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId),
+    deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
+
+    deletePeerRelationship: (root, { relationshipId }, context) => deletePeerRelationship(context.currentUserId, relationshipId, context),
 
     deleteGroupResponsibility: (root, { responsibilityId, groupId }, context) => deleteGroupResponsibility({ userId: context.currentUserId, responsibilityId, groupId }),
 
@@ -410,7 +431,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteProjectRole: (root, { id }, context) => deleteProjectRole(context.currentUserId, id),
 
-    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data),
+    deleteReaction: (root, { entityId, data }, context) => deleteReaction(context.currentUserId, entityId, data, context),
 
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
@@ -434,6 +455,8 @@ export function makeMutations ({ fetchOne }) {
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
 
+    invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
+
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
@@ -456,7 +479,7 @@ export function makeMutations ({ fetchOne }) {
 
     processStripeToken: (root, { postId, token, amount }, context) => processStripeToken(context.currentUserId, postId, token, amount),
 
-    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data),
+    reactOn: (root, { entityId, data }, context) => reactOn(context.currentUserId, entityId, data, context),
 
     reactivateMe: (root, context) => reactivateUser({ userId: context.currentUserId }),
 
@@ -475,9 +498,9 @@ export function makeMutations ({ fetchOne }) {
 
     removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId }),
 
-    removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId),
+    removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
-    removeModerator: (root, { personId, groupId, isRemoveFromGroup }, context) => removeModerator(context.currentUserId, personId, groupId, isRemoveFromGroup),
+    removeModerator: (root, { personId, groupId, isRemoveFromGroup }, context) => removeModerator(context.currentUserId, personId, groupId, isRemoveFromGroup, context),
 
     removePost: (root, { postId, groupId, slug }, context) => removePost(context.currentUserId, postId, groupId || slug),
 
@@ -530,7 +553,7 @@ export function makeMutations ({ fetchOne }) {
     updateGroupRole: (root, { groupRoleId, color, name, description, emoji, active, groupId }, context) =>
       updateGroupRole({ userId: context.currentUserId, groupRoleId, color, name, description, emoji, active, groupId }),
 
-    updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes),
+    updateGroupSettings: (root, { id, changes }, context) => updateGroup(context.currentUserId, id, changes, context),
 
     updateGroupTopic: (root, { id, data }, context) => updateGroupTopic(id, data),
 
@@ -541,6 +564,8 @@ export function makeMutations ({ fetchOne }) {
     updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
+
+    updatePeerRelationship: (root, { relationshipId, description }, context) => updatePeerRelationship(context.currentUserId, relationshipId, description, context),
 
     updatePost: (root, args, context) => updatePost(context.currentUserId, args),
 
@@ -594,15 +619,4 @@ export function getTypeForInstance (instance, models) {
   }
 
   return modelToTypeMap[instance.tableName]
-}
-
-function logError (error) {
-  console.error(error.stack)
-
-  return {
-    message: error.message,
-    locations: error.locations,
-    stack: error.stack,
-    path: error.path
-  }
 }

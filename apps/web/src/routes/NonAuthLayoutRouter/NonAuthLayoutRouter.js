@@ -11,15 +11,12 @@ import { getAuthenticated } from 'store/selectors/getAuthState'
 import particlesjsConfig from './particlesjsConfig'
 import LocaleDropdown from 'routes/AuthLayoutRouter/components/GlobalNav/LocaleDropdown/LocaleDropdown'
 import Button from 'components/ui/button'
-import HyloCookieConsent from 'components/HyloCookieConsent'
 import JoinGroup from 'routes/JoinGroup'
 import Login from 'routes/NonAuthLayoutRouter/Login'
 import ManageNotifications from 'routes/NonAuthLayoutRouter/ManageNotifications'
 import PasswordReset from 'routes/NonAuthLayoutRouter/PasswordReset'
 import SignupRouter from 'routes/NonAuthLayoutRouter/Signup/SignupRouter'
-import OAuthConsent from 'routes/OAuth/Consent'
-import OAuthLogin from 'routes/OAuth/Login'
-import { localeLocalStorageSync, localeToFlagEmoji } from 'util/locale'
+import { getLocaleFromLocalStorage, localeToFlagEmoji } from 'util/locale'
 
 import classes from './NonAuthLayoutRouter.module.scss'
 
@@ -42,8 +39,7 @@ export default function NonAuthLayoutRouter (props) {
   const returnToPath = returnToNavigationState
     ? returnToNavigationState.pathname + returnToNavigationState.search
     : returnToPathFromQueryString
-  const thisApplicationText = t('this application')
-  const locale = localeLocalStorageSync()
+  const locale = getLocaleFromLocalStorage()
   const localeDisplay = localeToFlagEmoji(locale)
   const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   const logoSrc = isDarkMode ? '/hylo-logo-light-horizontal.svg' : '/hylo-logo-dark-horizontal.svg'
@@ -55,9 +51,7 @@ export default function NonAuthLayoutRouter (props) {
       dispatch(setReturnToPath(returnToPath))
     }
 
-    // XXX: skipAuthCheck is kind of a hack for when we are doing the oAuth login flow
-    //      and we want to still show the oAuth login/consent pages even when someone is logged into Hylo
-    if (!props.skipAuthCheck && isAuthenticated) {
+    if (isAuthenticated) {
       navigate('/signup', { replace: true })
     }
   }, [dispatch, setReturnToPath, returnToPath])
@@ -103,11 +97,6 @@ export default function NonAuthLayoutRouter (props) {
             <Route
               path='h/use-invitation'
               element={<JoinGroup />}
-            />
-            <Route path='oauth/login/:uid' element={<OAuthLogin className={classes.form} />} />
-            <Route
-              path='oauth/consent/:uid'
-              element={<OAuthConsent {...props} className={classes.form} />}
             />
             {/*
               Default route
@@ -159,29 +148,12 @@ export default function NonAuthLayoutRouter (props) {
               </div>
             }
           />
-          <Route
-            path='oauth/login'
-            element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4'>
-                <p>{t('Use your Hylo account to access {{name}}.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
-              </div>
-            }
-          />
-          <Route
-            path='oauth/consent'
-            element={
-              <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4'>
-                <p>{t('Make sure you trust {{name}} with your information.', { name: getQuerystringParam('name', location) || thisApplicationText })}</p>
-              </div>
-            }
-          />
         </Routes>
         <div className='bg-background/100 rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
           <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
           <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
         </div>
       </div>
-      <HyloCookieConsent />
     </Div100vh>
   )
 }

@@ -112,7 +112,7 @@ const KeyControlledList = forwardRef(({
   return (
     <div className={cn('KeyControlledList w-full')} ref={ref}>
       {tagType && tagType === 'groups' && <div className={classes.keyListLabel}>{t('Groups')}</div>}
-      <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list w-full max-h-[200px] overflow-scroll', backgroundClassName)}>
+      <ul {...omit(propsToOmit, props)} tabIndex='-1' className={cn('KeyControlledList-list w-full pl-1 max-h-[200px] overflow-scroll', backgroundClassName)}>
         {childrenWithRefs}
       </ul>
     </div>

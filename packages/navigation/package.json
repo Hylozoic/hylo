@@ -1,14 +1,33 @@
 {
-  "type": "module",
   "name": "@hylo/navigation",
+  "version": "0.0.1",
   "installConfig": {
     "hoistingLimits": "none"
   },
+  "scripts": {
+    "build:cjs": "babel src --out-dir dist/cjs --env-name cjs --extensions .js",
+    "build:esm": "babel src --out-dir dist/esm --env-name esm --extensions .js",
+    "build": "yarn build:cjs && yarn build:esm"
+  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
   "exports": {
-    "./*": "./*.js",
-    "./*/*": "./*/index.js"
+    ".": {
+      "import": "./src/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./*": {
+      "import": "./src/*.js",
+      "require": "./dist/cjs/*.js"
+    }
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
     "@babel/runtime": "^7.25.0"
   }
 }

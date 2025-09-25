@@ -36,6 +36,7 @@ import { sanitizeURL } from 'util/url'
 
 import styles from './CustomViewsTab.module.scss'
 
+const POST_TYPE_OPTIONS = Object.keys(POST_TYPES).filter(type => type !== 'chat' && type !== 'action')
 const emptyCustomView = {
   activePostsOnly: false,
   collectionId: null,
@@ -305,6 +306,7 @@ export function CustomViewRow ({
           label={t('Type')} controlClass={styles.settingsControl} renderControl={(props) => {
             return (
               <Dropdown
+                id='custom-view-type-dropdown'
                 className='text-foreground bg-background p-2 rounded-md'
                 toggleChildren={
                   <span className='flex flex-row gap-1 items-center'>
@@ -334,6 +336,7 @@ export function CustomViewRow ({
                 label={t('Default Style')} controlClass={styles.settingsControl} renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-style-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -355,6 +358,7 @@ export function CustomViewRow ({
                 renderControl={(props) => {
                   return (
                     <Dropdown
+                      id='custom-view-default-sort-dropdown'
                       className={styles.dropdown}
                       toggleChildren={
                         <span className={styles.dropdownLabel}>
@@ -382,10 +386,7 @@ export function CustomViewRow ({
                       </span>
                       <div className={cn(styles.postTypesSelector, { [styles.open]: postTypesModalOpen })}>
                         <Icon name='Ex' className={styles.closeButton} onClick={() => setPostTypesModalOpen(!postTypesModalOpen)} />
-                        {Object.keys(POST_TYPES).map(postType => {
-                          if (postType === 'chat') {
-                            return null
-                          }
+                        {POST_TYPE_OPTIONS.map(postType => {
                           const color = POST_TYPES[postType].primaryColor
                           return (
                             <div

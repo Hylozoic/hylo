@@ -42,6 +42,8 @@ class ModalDialog extends Component {
 
     submitButtonText: string,
 
+    submitButtonClassName: string,
+
     // Uses alternate format with green bolded text, +/- an icon
     useNotificationFormat: bool,
 
@@ -130,7 +132,7 @@ class ModalDialog extends Component {
     const showControls = showCancelButton || showSubmitButton
 
     return (
-      <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-black/50' tabIndex='-1'>
+      <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-black/50 pointer-events-auto' tabIndex='-1'>
         <div className='w-full max-w-[750px] bg-midground rounded-xl p-4' style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
           <span onClick={this.cancel} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
@@ -163,7 +165,7 @@ class ModalDialog extends Component {
               {showSubmitButton &&
                 <Button
                   variant='secondary'
-                  className={classes.submitBtn}
+                  className={cn(classes.submitBtn, this.props.submitButtonClassName)}
                   onClick={this.submit}
                   disabled={submitButtonIsDisabled()}
                 >

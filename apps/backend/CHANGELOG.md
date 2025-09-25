@@ -6,6 +6,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.21] - 2025-09-19
+
+### Changed
+- Add support for Node concurrency. Shoud improve performance on production
+
+## [6.1.20] - 2025-09-16
+
+### Fixed
+- Creating a peer group relationship when formerly the groups had a parent-child relationship.
+
+## [6.1.19] - 2025-09-15
+
+### Changed
+- Search results now load more recent posts and comments first higher up in the list.
+
+## [6.1.18] - 2025-09-05
+
+### Added
+- Support for peer to peer group relationships.
+
+s## [6.1.17] - 2025-08-27
+
+### Changed
+- If somehow trying to log in as a different user while already logged in, log out as current user andlog in as the new user
+- Much improved dummy data when setting up new dev/test environment
+
+### Fixed
+- Correct time for user's timezone in display of individual chats in chat digest emails
+- Fix group names in push notifications for group to group join requests/invites
+
+## [6.1.16] - 2025-08-23
+
+### Added
+- Send an email with event changes to folks RSVP'd to an event. Also updates the calendar attachement with the new event details.
+- Allow users to export their profile and content
+
+### Fixed
+- Not all chat rooms were appearing in the post editor's list.
+- Subscribing to chat rooms was not always working
+
+## [6.1.15] - 2025-08-21
+
+### Fixed
+- Display of times for upcoming events in digest emails
+- Times for event RSPV ical attachements
+- Bug where deleting a comment would remove the tag froms the parent post!
+
+## [6.1.14] - 2025-08-14
+
+### Fixed
+- Push notifications get sent right away after a post is created
+- Fixed bugs that were preventing some digest emails and comment digest emails from being sent
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Chat digest emails come from the group name, instead of the Team from Hylo
+
+## [6.1.12] - 2025-07-31
+
+### Added
+- Tweaks to get notifications working in the desktop app
+
+## [6.1.11] - 2025-07-23
+
+### Added
+- Show last active at date in exported member data
+- Support tracking cookie consent for GDPR compliance
+
+## [6.1.10] - 2025-07-15
+
+### Added
+- Ability to pin groups to the top of the global nav with an ordering.
+
+## [6.1.6] - 2025-07-08
+
+### Changed
+- New database indexes to improve performance when loading posts and other data
+
+### Fixed
+- When creating a group set creator's lastViewedAt correctly, so that when trying to create a new post in a new group doesn't redirect to home view
+
+## [6.1.5] - 2025-07-04
+
+### Changed
+- Only send RSVP email when switching event RSVP from not going to interested/going or visa versa. Also send a correct update or cancel ical attachement when changing RSVP.
+
 ## [6.1.4] - 2025-06-26
 
 ### Fixed

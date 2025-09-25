@@ -3,11 +3,11 @@ import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 're
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
-import Div100vh from 'react-div-100vh'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
 import config, { isTest } from 'config/index'
+import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
@@ -31,7 +31,7 @@ import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
   groupHomeUrl
-} from 'util/navigation'
+} from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
@@ -63,8 +63,9 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
-import { localeLocalStorageSync } from 'util/locale'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
+import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -146,7 +147,7 @@ export default function AuthLayoutRouter (props) {
         $location: currentUser.location
       })
 
-      if (currentUser?.settings?.locale) localeLocalStorageSync(currentUser?.settings?.locale)
+      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
@@ -221,7 +222,8 @@ export default function AuthLayoutRouter (props) {
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+    const lastViewedAt = (new Date()).toISOString()
+    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
@@ -262,7 +264,7 @@ export default function AuthLayoutRouter (props) {
         )}
       </Routes>
 
-      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-[100vh] h-[100dvh]', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
@@ -333,9 +335,11 @@ export default function AuthLayoutRouter (props) {
               <Route path='all/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
               <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+              <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
+              <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('p-0 sm:p-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -417,6 +421,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
+                <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />
                 <Route path='search' element={<Search />} />
@@ -427,7 +432,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </div>
 
-            <div className={cn(classes.detail, 'bg-midground', { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
@@ -461,7 +466,8 @@ export default function AuthLayoutRouter (props) {
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />
           </div>
         </div>
-      </Div100vh>
+        <CookieConsentLinker />
+      </div>
     </IntercomProvider>
   )
 }

@@ -21,6 +21,7 @@ import {
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
+  INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
   LEAVE_PROJECT_PENDING,
@@ -51,6 +52,7 @@ import {
   UPDATE_WIDGET,
   USE_INVITATION,
   UPDATE_PROPOSAL_OUTCOME_PENDING,
+  UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_CONTEXT_WIDGET_PENDING
 } from 'store/constants'
 import {
@@ -127,16 +129,29 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
+  let me, membership, group, person, post, comment, groupTopic, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
       const newGroupRelationship = payload.data.acceptGroupRelationshipInvite.groupRelationship
       if (newGroupRelationship) {
-        childGroup = Group.withId(newGroupRelationship.childGroup.id)
-        Group.withId(newGroupRelationship.parentGroup.id).updateAppending({ childGroups: [childGroup] })
+        const { childGroup: childGroupData, parentGroup: parentGroupData, relationshipType } = newGroupRelationship
+        const childGroupModel = Group.withId(childGroupData.id)
+        const parentGroupModel = Group.withId(parentGroupData.id)
+
+        if (relationshipType === 1) {
+          // Peer-to-peer relationship: add each group to the other's peerGroups
+          parentGroupModel.updateAppending({ peerGroups: [childGroupModel] })
+          childGroupModel.updateAppending({ peerGroups: [parentGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+          clearCacheFor(Group, parentGroupData.id)
+        } else {
+          // Parent-child relationship (relationshipType === 0): existing behavior
+          parentGroupModel.updateAppending({ childGroups: [childGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+        }
+
         GroupRelationshipInvite.withId(meta.id).delete()
-        clearCacheFor(Group, childGroup.id)
       }
       break
     }
@@ -362,6 +377,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           gr.delete()
           clearCacheFor(Group, meta.parentId)
           clearCacheFor(Group, meta.childId)
+        } else {
+          // Peer-to-peer relationship
+          const parentGroup = Group.withId(meta.parentId)
+          const childGroup = Group.withId(meta.childId)
+          parentGroup.peerGroups.remove(childGroup.id)
+          clearCacheFor(Group, parentGroup.id)
         }
       }
       break
@@ -432,6 +453,23 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         clearCacheFor(Group, newGroupRelationship.childGroup.id)
       } else {
         const newGroupRelationshipInvite = payload.data.inviteGroupToJoinParent.groupRelationshipInvite
+        if (newGroupRelationshipInvite) {
+          clearCacheFor(Group, newGroupRelationshipInvite.toGroup.id)
+          clearCacheFor(Group, newGroupRelationshipInvite.fromGroup.id)
+        }
+      }
+      break
+    }
+
+    case INVITE_PEER_RELATIONSHIP: {
+      const newGroupRelationship = payload.data.invitePeerRelationship.groupRelationship
+      if (newGroupRelationship) {
+        const childGroup = Group.withId(newGroupRelationship.childGroup.id)
+        const parentGroup = Group.withId(newGroupRelationship.parentGroup.id)
+        parentGroup.update({ peerGroups: [...parentGroup.peerGroups.toModelArray(), childGroup.id] })
+        clearCacheFor(Group, parentGroup.id)
+      } else {
+        const newGroupRelationshipInvite = payload.data.invitePeerRelationship.groupRelationshipInvite
         if (newGroupRelationshipInvite) {
           clearCacheFor(Group, newGroupRelationshipInvite.toGroup.id)
           clearCacheFor(Group, newGroupRelationshipInvite.fromGroup.id)
@@ -743,7 +781,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const contextWidgets = group.contextWidgets?.items
         if (contextWidgets) {
           const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            if (cw.viewChat?.id === data.topic.id) {
               return { ...cw, highlightNumber: data.newPostCount }
             }
             return cw
@@ -773,6 +811,88 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       membership.update({
         settings: newSettings
       })
+      break
+    }
+
+    case UPDATE_MEMBERSHIP_NAV_ORDER_PENDING: {
+      me = Me.first()
+      membership = Membership.safeGet({ group: meta.groupId, person: me.id })
+
+      if (!membership) break
+
+      const newNavOrder = meta.navOrder
+
+      if (newNavOrder === null) {
+        // Unpinning - just update this membership
+        membership.update({
+          navOrder: null
+        })
+      } else {
+        // Check if this is a new pin or reorder
+        const currentNavOrder = membership.navOrder
+        const isNewPin = currentNavOrder === null
+
+        if (isNewPin) {
+          // Pinning a new group - increment all other pinned memberships
+          const allMemberships = session.Membership.all().toModelArray()
+          const otherPinnedMemberships = allMemberships.filter(m =>
+            m.group.id !== meta.groupId && m.navOrder !== null
+          )
+
+          // Increment navOrder of all other pinned groups
+          otherPinnedMemberships.forEach(m => {
+            m.update({
+              navOrder: m.navOrder + 1
+            })
+          })
+
+          // Set this group's navOrder to 0
+          membership.update({
+            navOrder: 0
+          })
+        } else {
+          // Reordering - handle moving up or down
+          const currentNavOrder = membership.navOrder
+
+          if (newNavOrder > currentNavOrder) {
+            // Moving down - decrement groups between current+1 and newNavOrder
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToDecrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder > currentNavOrder &&
+              m.navOrder <= newNavOrder
+            )
+
+            groupsToDecrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder - 1
+              })
+            })
+          } else if (newNavOrder < currentNavOrder) {
+            // Moving up - increment groups between newNavOrder and current-1
+            const allMemberships = session.Membership.all().toModelArray()
+            const groupsToIncrement = allMemberships.filter(m =>
+              m.group.id !== meta.groupId &&
+              m.navOrder !== null &&
+              m.navOrder >= newNavOrder &&
+              m.navOrder < currentNavOrder
+            )
+
+            groupsToIncrement.forEach(m => {
+              m.update({
+                navOrder: m.navOrder + 1
+              })
+            })
+          }
+          // If newNavOrder === currentNavOrder, no changes needed
+
+          // Set this group's navOrder
+          membership.update({
+            navOrder: newNavOrder
+          })
+        }
+      }
       break
     }
 
@@ -845,7 +965,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       me = Me.first()
 
       const optimisticUpdate = {
-        myReactions: [...(comment.myReactions || []), { emojiFull }],
         commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
       }
 
@@ -862,7 +981,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      comment.update({ myReactions: comment.myReactions.filter(react => react.emojiFull !== emojiFull), commentReactions })
+      comment.update({ commentReactions })
       break
     }
 
@@ -871,7 +990,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
+      const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
 
@@ -891,7 +1010,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      post.update({ myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions })
+      post.update({ postReactions })
       break
     }
   }

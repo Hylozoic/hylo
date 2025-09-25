@@ -16,8 +16,28 @@ module.exports = bookshelf.Model.extend({
 
   event: function () {
     return this.belongsTo(Post, 'event_id')
-  }
+  },
 
+  getIcalSequence: function () {
+    return this.get('ical_sequence') || 0
+  },
+
+  incrementIcalSequence: function () {
+    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+  },
+
+  notGoing: function () {
+    return this.get('response') === EventInvitation.RESPONSE.NO
+  },
+
+  getHumanResponse: function () {
+    const responseMap = {
+      [EventInvitation.RESPONSE.YES]: 'Going to',
+      [EventInvitation.RESPONSE.NO]: 'Not Going to',
+      [EventInvitation.RESPONSE.INTERESTED]: 'Interested in'
+    }
+    return responseMap[this.get('response')]
+  }
 }, {
 
   RESPONSE: {
@@ -26,13 +46,9 @@ module.exports = bookshelf.Model.extend({
     INTERESTED: 'interested'
   },
 
-  getHumanResponse: function (response) {
-    const responseMap = {
-      [this.RESPONSE.YES]: 'Going to',
-      [this.RESPONSE.NO]: 'Not Going to',
-      [this.RESPONSE.INTERESTED]: 'Interested in'
-    }
-    return responseMap[response]
+  going: function (eventInvitationOrResponse) {
+    const response = eventInvitationOrResponse.get?.('response') || eventInvitationOrResponse
+    return response === EventInvitation.RESPONSE.YES || response === EventInvitation.RESPONSE.INTERESTED
   },
 
   create: function ({ userId, inviterId, eventId, response }, trxOpts) {

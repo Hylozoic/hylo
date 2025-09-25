@@ -37,8 +37,10 @@ export {
   addModerator,
   cancelGroupRelationshipInvite,
   createGroup,
+  invitePeerRelationship,
   deleteGroup,
   deleteGroupRelationship,
+  deletePeerRelationship,
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
@@ -46,7 +48,8 @@ export {
   rejectGroupRelationshipInvite,
   removeModerator,
   removeMember,
-  updateGroup
+  updateGroup,
+  updatePeerRelationship
 } from './group'
 export {
   createInvitation,
@@ -374,7 +377,7 @@ export function messageGroupStewards (userId, groupId) {
   return Group.messageStewards(userId, groupId)
 }
 
-export function reactOn (userId, entityId, data) {
+export function reactOn (userId, entityId, data, context) {
   const lookUp = {
     post: Post,
     comment: Comment
@@ -384,10 +387,34 @@ export function reactOn (userId, entityId, data) {
     throw new Error('entityType invalid: you need to say its a post or a comment')
   }
   return lookUp[entityType].find(entityId)
-    .then(entity => entity.addReaction(userId, data.emojiFull))
+    .then(async entity => {
+      const result = await entity.addReaction(userId, data.emojiFull)
+
+      // Note subscriptions for reactions on posts are handled by the postUpdates subscription
+
+      // If reacting to a comment, publish to comments subscription
+      if (entityType === 'comment' && context?.pubSub) {
+        const comment = await Comment.find(entityId, { withRelated: ['post'] })
+        const postId = comment.get('post_id')
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📡 Publishing comment reaction update for comment ${entityId} on post ${postId}`)
+        }
+
+        context.pubSub.publish(`comments:postId:${postId}`, { comment })
+
+        // Also publish to parent comment if this is a threaded comment
+        const parentCommentId = comment.get('comment_id')
+        if (parentCommentId) {
+          context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
+        }
+      }
+
+      return result
+    })
 }
 
-export function deleteReaction (userId, entityId, data) {
+export function deleteReaction (userId, entityId, data, context) {
   const lookUp = {
     post: Post,
     comment: Comment
@@ -397,7 +424,31 @@ export function deleteReaction (userId, entityId, data) {
     throw new Error('entityType invalid: you need to say its a post or a comment')
   }
   return lookUp[entityType].find(entityId)
-    .then(entity => entity.deleteReaction(userId, data.emojiFull))
+    .then(async entity => {
+      const result = await entity.deleteReaction(userId, data.emojiFull)
+
+      // Note subscriptions for reactions on posts are handled by the postUpdates subscription
+
+      // If deleting reaction from a comment, publish to comments subscription
+      if (entityType === 'comment' && context?.pubSub) {
+        const comment = await Comment.find(entityId, { withRelated: ['post'] })
+        const postId = comment.get('post_id')
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📡 Publishing comment reaction deletion for comment ${entityId} on post ${postId}`)
+        }
+
+        context.pubSub.publish(`comments:postId:${postId}`, { comment })
+
+        // Also publish to parent comment if this is a threaded comment
+        const parentCommentId = comment.get('comment_id')
+        if (parentCommentId) {
+          context.pubSub.publish(`comments:commentId:${parentCommentId}`, { comment })
+        }
+      }
+
+      return result
+    })
 }
 
 export async function removePost (userId, postId, groupIdOrSlug) {

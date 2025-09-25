@@ -31,30 +31,29 @@ module.exports = {
 
 const doUpload = (res, args, resolve) =>
   upload(args)
-  .then(({ type, id, url, mimetype }) => {
-    const uploadResponse = {
-      type,
-      id,
-      url,
-      // Roughly, the frontend and graphql implemenations use
-      // 'attachment' and 'attachmentType' for what we call
-      // Media and Media.type here on in the backend.
-      attachmentType: getMediaTypeFromMimetype(mimetype)
-    }
+    .then(({ type, id, url, mimetype }) => {
+      const uploadResponse = {
+        type,
+        id,
+        url,
+        // Roughly, the frontend and graphql implemenations use
+        // 'attachment' and 'attachmentType' for what we call
+        // Media and Media.type here on in the backend.
+        attachmentType: getMediaTypeFromMimetype(mimetype)
+      }
+      return resolve(res.ok(uploadResponse))
+    })
+    .catch(err => {
+      if (err.message.startsWith('Validation error')) {
+        return resolve(res.status(422).send({ error: err.message }))
+      }
 
-    return resolve(res.ok(uploadResponse))
-  })
-  .catch(err => {
-    if (err.message.startsWith('Validation error')) {
-      return resolve(res.status(422).send({error: err.message}))
-    }
+      if (err.message.includes('unsupported image format')) {
+        return resolve(res.status(422).send({ error: 'Unsupported image format' }))
+      }
 
-    if (err.message.includes('unsupported image format')) {
-      return resolve(res.status(422).send({error: 'Unsupported image format'}))
-    }
-
-    resolve(res.serverError(err))
-  })
+      resolve(res.serverError(err))
+    })
 
 function setupBusboy (req, res, args, resolve) {
   let busboy, gotFile

@@ -2,7 +2,7 @@ import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import SearchPage from 'screens/SearchPage'
-import { alabaster, black10OnCaribbeanGreen } from 'style/colors'
+import { alabaster, black10OnCaribbeanGreen } from '@hylo/presenters/colors'
 
 const Search = createStackNavigator()
 export default function SearchNavigator () {

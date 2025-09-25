@@ -1,6 +1,6 @@
 import React from 'react'
 import ModalHeader from './ModalHeader'
-import { white, white60onCaribbeanGreen, rhino } from 'style/colors'
+import { white, white60onCaribbeanGreen, rhino } from '@hylo/presenters/colors'
 
 export default function WorkflowModalHeader (props) {
   return (

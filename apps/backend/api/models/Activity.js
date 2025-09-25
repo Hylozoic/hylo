@@ -163,6 +163,8 @@ module.exports = bookshelf.Model.extend({
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
     GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest',
     GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted',
+    GroupPeerGroupInvite: 'groupPeerGroupInvite',
+    GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
     TrackCompleted: 'trackCompleted',
     TrackEnrollment: 'trackEnrollment'
   },

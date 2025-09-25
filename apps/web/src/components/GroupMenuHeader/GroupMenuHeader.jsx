@@ -7,7 +7,7 @@ import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle } from 'util/index'
-import { groupUrl, currentUserSettingsUrl } from 'util/navigation'
+import { groupUrl, currentUserSettingsUrl } from '@hylo/navigation'
 
 export default function GroupMenuHeader ({
   group
@@ -75,8 +75,8 @@ export default function GroupMenuHeader ({
 
   return (
     <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
-      <div className='absolute z-10 inset-0 bg-cover' style={{ ...bgImageStyle(bannerUrl), opacity: 0.4 }} />
-      <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+      <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
+      <div className='absolute top-0 left-0 w-full h-full bg-black z-0 opacity-80' />
       <div className='absolute top-2 left-2 z-20'>
         <button onClick={() => { navigate(currentUserSettingsUrl('notifications?group=' + group.id)) }}>
           <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />

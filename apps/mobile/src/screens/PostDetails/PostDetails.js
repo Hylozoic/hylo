@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
+import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import postFieldsFragment from '@hylo/graphql/fragments/postFieldsFragment'
 import { postWithCompletionFragment } from '@hylo/graphql/fragments/postFieldsFragment'
 import commentFieldsFragment from '@hylo/graphql/fragments/commentFieldsFragment'
@@ -22,6 +23,7 @@ import Loading from 'components/Loading'
 import PostCardForDetails from 'components/PostCard/PostCardForDetails'
 import ActionCompletionSection from 'components/ActionCompletionSection'
 import { isIOS } from 'util/platform'
+import { trackWithConsent } from 'services/mixpanel'
 
 export const postDetailsQuery = gql`
   query PostDetailsQuery ($id: ID) {
@@ -55,6 +57,8 @@ export default function PostDetails () {
   const commentsRef = React.useRef()
   const goToMember = useGoToMember()
   const trackId = post?.type === 'action' ? getTrackIdFromPath(originalLinkingPath) : null
+  const [{ currentUser }] = useCurrentUser()
+
   useSubscription({
     query: commentsSubscription,
     variables: { postId: post?.id },
@@ -75,13 +79,13 @@ export default function PostDetails () {
 
   useEffect(() => {
     if (!fetching && !error && post) {
-      mixpanel.track(AnalyticsEvents.POST_OPENED, {
+      trackWithConsent(AnalyticsEvents.POST_OPENED, {
         postId: post?.id,
         groupId: post.groups.map(g => g.id),
         isPublic: post.isPublic,
         topics: post.topics?.map(t => t.name),
         type: post.type
-      })
+      }, currentUser, !currentUser)
     }
   }, [fetching, error, post])
 

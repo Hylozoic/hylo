@@ -1,4 +1,4 @@
-import { limedSpruce, slateGrey80, rhino50 } from 'style/colors'
+import { limedSpruce, slateGrey80, rhino50 } from '@hylo/presenters/colors'
 
 export default {
   container: {

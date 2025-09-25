@@ -17,7 +17,7 @@ exports.up = async function (knex) {
 }
 
 exports.down = async function (knex) {
-  await knex.schema.table('tracks', table => {
+  await knex.schema.table('posts', table => {
     table.dropColumn('num_commenters')
   })
 }

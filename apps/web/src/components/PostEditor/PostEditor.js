@@ -1,7 +1,8 @@
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
-import { TriangleAlert, X, Star } from 'lucide-react'
-import { DateTime } from 'luxon'
+import { TriangleAlert, X } from 'lucide-react'
+import { DateTimeHelpers } from '@hylo/shared'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
@@ -76,7 +77,7 @@ import {
 } from './PostEditor.store'
 import { MAX_POST_TOPICS } from 'util/constants'
 import generateTempID from 'util/generateTempId'
-import { setQuerystringParam } from 'util/navigation'
+import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 
@@ -177,6 +178,10 @@ function PostEditor ({
   const toFieldRef = useRef()
   const endTimeRef = useRef()
 
+  // Track the topic that was injected from the current route so we can
+  // replace it when the route changes without touching user-added topics
+  const routeTopicIdRef = useRef(topic?.id || null)
+
   const initialPost = useMemo(() => ({
     acceptContributions: false,
     completionAction: 'button',
@@ -190,7 +195,7 @@ function PostEditor ({
     locationId: null,
     proposalOptions: [],
     quorum: 0,
-    timezone: DateTime.now().zoneName,
+    timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
     topics: topic ? [topic] : [],
     type: postType || (modal ? 'discussion' : 'chat'),
@@ -243,7 +248,7 @@ function PostEditor ({
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
             .map((cr) => ({
-              id: cr?.groupTopic?.id,
+              id: cr?.id,
               group: g,
               name: g.name + ' #' + cr?.groupTopic?.topic?.name,
               topic: cr?.groupTopic?.topic,
@@ -294,16 +299,29 @@ function PostEditor ({
 
   useEffect(() => {
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-    dispatch(fetchAllMyGroupsChatRooms())
     return () => {
       dispatch(clearLinkPreview())
       dispatch(clearAttachments('post', 'new', 'image'))
     }
   }, [])
+
+  // Fetch chat rooms if we're not in a chat and we haven't fetched them yet
+  const hasFetchedChatRoomsRef = useRef(false)
+  useEffect(() => {
+    if (
+      currentPost.type !== 'chat' &&
+      !hasFetchedChatRoomsRef.current
+    ) {
+      dispatch(fetchAllMyGroupsChatRooms())
+      hasFetchedChatRoomsRef.current = true
+    }
+  }, [currentPost.type])
 
   useEffect(() => {
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -318,11 +336,30 @@ function PostEditor ({
   }, [linkPreview])
 
   useEffect(() => {
-    // XXX: to make sure the topic gets included in the selectedToOptions once its loaded
-    // TODO: we may want to just make sure all the necessary stuff is loaded from the server before we display the editor
-    if (!topic || currentPost.topics.some(t => t.id === topic.id)) return
-    setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
-  }, [topic])
+    // Ensure the route-derived topic is present and unique:
+    // - remove the previously injected route topic (if any)
+    // - add the new route topic (if present)
+    // User-added topics remain untouched.
+    setCurrentPost(prev => {
+      let nextTopics = prev.topics || []
+
+      // Remove the prior route topic if it exists
+      if (routeTopicIdRef.current) {
+        nextTopics = nextTopics.filter(t => t && t.id !== routeTopicIdRef.current)
+      }
+
+      // Add the new route topic if present and not already included
+      if (topic?.id) {
+        const exists = nextTopics.some(t => t && t.id === topic.id)
+        if (!exists) nextTopics = [...nextTopics, topic]
+        routeTopicIdRef.current = topic.id
+      } else {
+        routeTopicIdRef.current = null
+      }
+
+      return { ...prev, topics: nextTopics }
+    })
+  }, [topic?.id])
 
   /**
    * Resets the editor to its initial state
@@ -330,6 +367,7 @@ function PostEditor ({
    */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
+    setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))
@@ -338,7 +376,9 @@ function PostEditor ({
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
@@ -353,11 +393,11 @@ function PostEditor ({
   const calcEndTime = useCallback((startTime) => {
     let msDiff = 3600000 // ms in one hour
     if (currentPost.startTime && currentPost.endTime) {
-      const start = DateTime.fromJSDate(currentPost.startTime)
-      const end = DateTime.fromJSDate(currentPost.endTime)
+      const start = DateTimeHelpers.toDateTime(currentPost.startTime, { locale: getLocaleFromLocalStorage() })
+      const end = DateTimeHelpers.toDateTime(currentPost.endTime, { locale: getLocaleFromLocalStorage() })
       msDiff = end.diff(start)
     }
-    return DateTime.fromJSDate(startTime).plus({ milliseconds: msDiff }).toJSDate()
+    return DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).plus({ milliseconds: msDiff }).toJSDate()
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
@@ -370,7 +410,7 @@ function PostEditor ({
         search: setQuerystringParam('newPostType', type, urlLocation)
       }, { replace: true })
     } else {
-      dispatch(changeQuerystringParam(location, 'newPostType', null, null, true))
+      dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
     }
 
     setCurrentPost({ ...currentPost, type })
@@ -624,7 +664,7 @@ function PostEditor ({
       id,
       acceptContributions,
       commenters: [], // For optimistic display of the new post
-      createdAt: DateTime.now().toISO(), // For optimistic display of the new post
+      createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
       completionAction,
       completionActionSettings,
@@ -978,9 +1018,6 @@ function PostEditor ({
                   }}
                   disabled={loading}
                 />
-                <div className='flex flex-row gap-2 items-center'>
-                  <Star className='w-4 h-4 text-foreground' />
-                </div>
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
@@ -996,9 +1033,9 @@ function PostEditor ({
                 </div>
               </div>
             ))}
-            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2' onClick={() => handleAddOption()}>
+            <div className='border-2 border-foreground/30 rounded-md p-2 flex items-center gap-2 cursor-pointer' onClick={() => handleAddOption()}>
               <Icon name='Plus' className='text-foreground' />
-              <span className='border-2 border-foreground/30 rounded-md p-2'>{t('Add an option to vote on...')}</span>
+              <span className='rounded-md'>{t('Add an option to vote on...')}</span>
             </div>
             {isEditing && currentPost && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions) && (
               <div className='text-accent text-xs flex items-center gap-2'>
@@ -1066,7 +1103,7 @@ function PostEditor ({
       {canHaveTimes && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground/50'>{currentPost.type === 'proposal' ? t('Voting window') : t('Timeframe')}</div>
-          <div className='flex items-center gap-1'>
+          <div className='flex items-center gap-1 sm:flex-row flex-col justify-start items-center sm:justify-center'>
             <DateTimePicker
               hourCycle={hourCycle}
               granularity='minute'
@@ -1105,6 +1142,7 @@ function PostEditor ({
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
+            inputPosition={modal ? 'top' : 'bottom'}
             locationObject={currentPost.locationObject}
             location={postLocation}
             onChange={handleLocationChange}

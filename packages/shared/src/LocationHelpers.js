@@ -54,16 +54,13 @@ export function parseCoordinate (coordinate) {
 }
 
 export function convertCoordinateToLocation (coordinate) {
-  let city = ''
-  let addressNumber = ''
-  let addressStreet = ''
   return {
     accuracy: null,
-    addressNumber,
-    addressStreet,
+    addressNumber: '',
+    addressStreet: '',
     bbox: null,
     center: { lng: coordinate.lng, lat: coordinate.lat },
-    city,
+    city: '',
     country: '',
     fullText: coordinate.string,
     // geometry: [Point]
@@ -79,7 +76,7 @@ export function convertCoordinateToLocation (coordinate) {
 export function generalLocationString (locationObject, defaultString = '') {
   if (locationObject) {
     if (locationObject.addressNumber) {
-      return `${locationObject.addressNumber} ${locationObject.addressStreet}, ${locationObject.city}, ${locationObject.region}`
+      return `${locationObject.addressNumber} ${locationObject.addressStreet}, ${locationObject.city}${locationObject.region ? `, ${locationObject.region}` : ''}, ${locationObject.country}`
     } else if (locationObject.city) {
       return `${locationObject.city}, ${locationObject.region}`
     } else if (locationObject.fullText) {

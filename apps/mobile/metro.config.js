@@ -7,7 +7,7 @@ const { withSentryConfig } = require('@sentry/react-native/metro')
  * Metro configuration
  * https://reactnative.dev/docs/metro
  *
- * @type {import('metro-config').MetroConfig}
+ * @type {import('@react-native/metro-config').MetroConfig}
  */
 const config = {
   transformer: {
@@ -28,7 +28,25 @@ const config = {
     nodeModulesPaths: [
       path.resolve(__dirname, '../../node_modules'),
       path.resolve(__dirname, 'node_modules')
-    ]
+    ],
+    resolveRequest: (context, moduleName, platform) => {
+      // Handle @hylo/presenters subpath imports
+      if (moduleName.startsWith('@hylo/presenters/')) {
+        const subpath = moduleName.replace('@hylo/presenters/', '')
+        const filePath = path.resolve(__dirname, `../../packages/presenters/dist/cjs/${subpath}.js`)
+
+        // Check if the file exists
+        const fs = require('fs')
+        if (fs.existsSync(filePath)) {
+          return {
+            filePath,
+            type: 'sourceFile'
+          }
+        }
+      }
+      // Let Metro handle other modules
+      return context.resolveRequest(context, moduleName, platform)
+    }
   },
   // Hoisted monorepo deps, and shared packages
   // Look into https://github.com/mmazzarolo/react-native-monorepo-tools for other another ways to handle this

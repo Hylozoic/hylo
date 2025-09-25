@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { DateTime } from 'luxon'
+import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
@@ -30,7 +30,8 @@ import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from 'util/navigation'
+import { groupUrl, personUrl } from '@hylo/navigation'
+import { getLocaleFromLocalStorage } from 'util/locale'
 import { cn } from 'util/index'
 
 import styles from './ChatPost.module.scss'
@@ -59,7 +60,6 @@ export default function ChatPost ({
     id,
     linkPreview,
     linkPreviewFeatured,
-    myReactions,
     postReactions
   } = post
 
@@ -196,7 +196,7 @@ export default function ChatPost ({
     { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
   ])
 
-  const myEmojis = useMemo(() => myReactions ? myReactions.map((reaction) => reaction.emojiFull) : [], [myReactions])
+  const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
 
   const commenterAvatarUrls = commenters.map(p => p.avatarUrl)
 
@@ -226,12 +226,13 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] relative hover:bg-background transition-all group hover:shadow-lg hover:cursor-pointer mb-1',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] mb-1 relative transition-all group cursor-pointer',
           className,
           styles.container,
           {
             [styles.longPressed]: isLongPress,
             [styles.hovered]: isHovered,
+            'bg-background shadow-lg': isHovered,
             'bg-accent/30': highlighted
           }
         )}
@@ -240,7 +241,15 @@ export default function ChatPost ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className='flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 group-hover:opacity-100 delay-300 scale-0 group-hover:scale-100'>
+        <div className={
+          cn(
+            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 delay-100 scale-0',
+            {
+              'opacity-100 scale-100 scale-100': isHovered
+            }
+          )
+          }
+        >
           {actionItems.map(item => (
             <button
               key={item.label}
@@ -251,7 +260,7 @@ export default function ChatPost ({
             </button>
           ))}
           <EmojiPicker
-            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
@@ -274,8 +283,8 @@ export default function ChatPost ({
               <div className='w-full font-bold'>{creator.name}</div>
             </div>
             <div className='text-xs text-foreground/50'>
-              {DateTime.fromISO(createdAt).toFormat('t')}
-              {editedAt && <span>&nbsp;({t('edited')} {DateTime.fromISO(editedAt).toFormat('t')})</span>}
+              {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')}
+              {editedAt && <span>&nbsp;({t('edited')} {DateTimeHelpers.toDateTime(editedAt, { locale: getLocaleFromLocalStorage() }).toFormat('t')})</span>}
             </div>
           </div>
         )}
@@ -314,20 +323,24 @@ export default function ChatPost ({
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
-        <EmojiRow
-          className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
-          post={post}
-          currentUser={currentUser}
-          onAddReaction={onAddReaction}
-          onRemoveReaction={onRemoveReaction}
-        />
+        <div className='w-full' onClick={handleClick}>
+          <EmojiRow
+            className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+            post={post}
+            currentUser={currentUser}
+            onAddReaction={onAddReaction}
+            onRemoveReaction={onRemoveReaction}
+          />
+        </div>
         {commentsTotal > 0 && (
-          <span className='bg-black/10 rounded-lg py-2 px-2 h-[40px] items-center justify-center flex w-[120px]'>
-            <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-            <span className='text-sm text-foreground' onClick={handleClick}>
-              {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+          <div className='w-full' onClick={handleClick}>
+            <span className='ChatPost_commenters bg-black/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
+              <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
+              <span className='text-sm text-foreground' onClick={handleClick}>
+                {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+              </span>
             </span>
-          </span>
+          </div>
         )}
       </div>
     </Highlight>

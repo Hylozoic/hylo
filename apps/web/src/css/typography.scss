@@ -106,7 +106,7 @@ a.hylo-link,
   font-size: 32px;
   letter-spacing: -0.5;
   line-height: 36px;
-  color: $color-rhino;
+  color: hsl(var(--foreground));
 }
 
 h1,
@@ -125,7 +125,7 @@ h2,
   font-size: 18px;
   letter-spacing: 0;
   line-height: 22px;
-  color: $color-rhino;
+  color: hsl(var(--foreground));
 }
 
 h3,
@@ -134,7 +134,7 @@ h3,
   font-size: 16px;
   letter-spacing: 0;
   line-height: 20px;
-  color: $color-rhino;
+  color: hsl(var(--foreground));
 }
 
 /* Body */

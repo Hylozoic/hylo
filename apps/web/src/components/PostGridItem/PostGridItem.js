@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'

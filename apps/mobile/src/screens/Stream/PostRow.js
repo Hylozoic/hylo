@@ -1,7 +1,7 @@
 import React from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useMutation } from 'urql'
-import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/shared'
+import { ALL_GROUPS_CONTEXT_SLUG, MY_CONTEXT_SLUG, PUBLIC_CONTEXT_SLUG } from '@hylo/navigation'
 import respondToEventMutation from '@hylo/graphql/mutations/respondToEventMutation'
 import PostCard from 'components/PostCard'
 import { useNavigation } from '@react-navigation/native'

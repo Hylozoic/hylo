@@ -15,6 +15,7 @@ import ImageAttachments from 'components/ImageAttachments'
 import Files from 'components/Files'
 import Icon from 'components/Icon'
 import Topics from 'components/Topics'
+import ClickableLocationText from 'components/ClickableLocationText'
 import { useNavigation } from '@react-navigation/native'
 
 export default function PostCard ({
@@ -122,7 +123,11 @@ export default function PostCard ({
         {!!locationText && (
           <View className='flex-row items-center mx-4 mt-2'>
             <Icon className='text-foreground/50 mr-2' name='Location' />
-            <Text className='text-foreground/70' selectable>{locationText}</Text>
+            <ClickableLocationText
+              text={locationText}
+              className='text-foreground/70'
+              selectable
+            />
           </View>
         )}
         <PostBody
@@ -138,6 +143,7 @@ export default function PostCard ({
           respondToEvent={respondToEvent}
           shouldTruncate
           startTime={post.startTimeRaw}
+          timezone={post.timezone}
           title={post.title}
           type={post.type}
         />
