@@ -29,13 +29,13 @@ i18n
     fallbackLng: 'en',
     keySeparator: false,
     nsSeparator: false,
-    supportedLngs: ['en', 'es'],
+    supportedLngs: ['en', 'es', 'fr', 'hi'],
     nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false // not needed for react as it escapes by default
     },
     defaultNS: false,
-    preload: ['en', 'es']
+    preload: ['en', 'es', 'fr', 'hi']
   })
 
 export default i18n

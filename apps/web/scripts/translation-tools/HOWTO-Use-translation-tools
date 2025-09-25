@@ -1,0 +1,15 @@
+There are a number of scripts in this directory to help make creating and managing translations easier. Here are some prompts in Cursor with Claude 3.5 Sonnet that work:
+
+"Can you add a new keypair to public/locales/en.json and translate it to all languages using the tools in scripts/translation-tools? Here is the key:
+
+'All thriving, in a symphony of life'"
+
+Or
+
+"There are a number of new keys in en.json. Using the tools in scripts/translation-tools/, can you translate them to all other languages?"
+
+Or
+
+"Using the tools in scripts/translation-tools/, make sure that each language has all of the keys found in en.json"
+
+There are two other howtos, with instructions for anyone who wants to help translate.
