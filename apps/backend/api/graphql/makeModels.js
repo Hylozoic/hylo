@@ -1308,18 +1308,27 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: FundingRound,
       attributes: [
         'created_at',
-        'updated_at',
-        'title',
-        'description',
         'criteria',
+        'description',
+        'max_token_allocation',
+        'min_token_allocation',
+        'published_at',
         'require_budget',
-        'voting_method',
+        'submission_descriptor_plural',
+        'submission_descriptor',
+        'submissions_close_at',
+        'submissions_open_at',
+        'submitter_role_type',
+        'title',
         'token_type',
         'total_tokens',
-        'min_token_allocation',
-        'max_token_allocation'
+        'updated_at',
+        'voter_role_type',
+        'voting_closes_at',
+        'voting_method',
+        'voting_opens_at'
       ],
-      relations: ['group']
+      relations: ['group', 'submitterRole', 'voterRole']
     },
 
     Notification: {

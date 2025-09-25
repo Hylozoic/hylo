@@ -59,6 +59,8 @@ import Search from 'routes/Search'
 import Stream from 'routes/Stream'
 import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
+import FundingRounds from 'routes/FundingRounds'
+import FundingRoundHome from 'routes/FundingRoundHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -399,6 +401,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />
                             <Route path='tracks/*' element={<Tracks />} />
+                            <Route path='funding-rounds/:roundId/*' element={<FundingRoundHome />} />
+                            <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />

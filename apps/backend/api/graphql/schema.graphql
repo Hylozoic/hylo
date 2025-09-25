@@ -31,6 +31,10 @@ type Query {
     offset: Int
   ): PersonConnectionQuerySet
 
+
+  # Query for a FundingRound by ID
+  fundingRound(id: ID): FundingRound
+
   # Read a group by id or by slug
   group(
     id: ID,
@@ -2577,8 +2581,22 @@ type FundingRound {
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate
   minTokenAllocation: Int
+  # When the round was published
+  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # The term used to describe a submission to the round
+  submissionDescriptor: String
+  # # The plural term used to describe submissions to the round
+  submissionDescriptorPlural: String
+  # The date submissions close (optional)
+  submissionsCloseAt: Date
+  # The date submissions open (optional)
+  submissionsOpenAt: Date
+  # The role or badge required to add a submission to the round
+  submitterRole: Role
+  # The type of role/badge that is required to add a submission to the round. Either 'common' or 'group'
+  submitterRoleType: String
   # The title of the funding round
   title: String
   # Total tokens available to allocate
@@ -2586,7 +2604,15 @@ type FundingRound {
   # Token type used for voting/allocation
   tokenType: String
   updatedAt: Date
-  # Voting method to be used (e.g., quadratic, approval)
+  # The role/badge required to vote on submissions
+  voterRole: Role
+  # The type of role/badge required to vote on submissions. Either 'common' or 'group'
+  voterRoleType: String
+  # When voting opens (optional)
+  votingClosesAt: Date
+  # When voting closes (optional)
+  votingOpensAt: Date
+  # Voting method to be used (current options: token_allocation_constant, token_allocation_divide)
   votingMethod: String
 }
 
@@ -3720,15 +3746,37 @@ input FundingRoundInput {
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate
   minTokenAllocation: Int
+  # When the round was or will be published, null if not published
+  publishedAt: Date
   # Whether a budget is required for submissions
   requireBudget: Boolean
+  # The term used to describe a submission to the round
+  submissionDescriptor: String
+  # # The plural term used to describe submissions to the round
+  submissionDescriptorPlural: String
+  # The date submissions close (optional)
+  submissionsCloseAt: Date
+  # The date submissions open (optional)
+  submissionsOpenAt: Date
+  # The role or badge required to add a submission to the round
+  submitterRoleId: ID
+  # The type of role/badge that is required to add a submission to the round. Either 'common' or 'group'
+  submitterRoleType: String
   # The title of the funding round
   title: String
   # Total tokens available to allocate
   totalTokens: Int
   # Token type used for voting/allocation
   tokenType: String
-  # Voting method to be used (e.g., quadratic, approval)
+  # The role/badge required to vote on submissions
+  voterRoleId: ID
+  # The type of role/badge required to vote on submissions. Either 'common' or 'group'
+  voterRoleType: String
+  # When voting opens (optional)
+  votingClosesAt: Date
+  # When voting closes (optional)
+  votingOpensAt: Date
+  # Voting method to be used (current options: token_allocation_constant, token_allocation_divide)
   votingMethod: String
 }
 

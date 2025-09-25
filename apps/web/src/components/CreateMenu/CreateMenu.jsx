@@ -1,4 +1,4 @@
-import { Shapes } from 'lucide-react'
+import { BadgeDollarSign, Shapes } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
@@ -6,7 +6,7 @@ import Icon from 'components/Icon'
 import { useSelector } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
 import { POST_TYPES } from 'store/models/Post'
-import { RESP_MANAGE_TRACKS } from 'store/constants'
+import { RESP_MANAGE_TRACKS, RESP_MANAGE_ROUNDS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { createTrackUrl } from '@hylo/navigation'
@@ -23,6 +23,7 @@ export default function CreateMenu ({ coordinates }) {
   // Check whether currentUser has responsibility of administration for the current group
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
+  const hasRoundsResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
   // These need to be invoked here so that they get picked up by the translation extractor
   t('request')
@@ -63,6 +64,15 @@ export default function CreateMenu ({ coordinates }) {
             <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
               <Shapes className='mr-2' />
               <span className='text-base'>{t('Track')}</span>
+              <CreateButton />
+            </div>
+          </Link>
+        )}
+        {hasRoundsResponsibility && (
+          <Link to={`${location.pathname}/create/funding-round`} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
+              <BadgeDollarSign className='mr-2' />
+              <span className='text-base'>{t('Funding Round')}</span>
               <CreateButton />
             </div>
           </Link>

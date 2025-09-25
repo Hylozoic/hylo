@@ -6,6 +6,7 @@ import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
+import FundingRoundEditor from 'components/FundingRoundEditor'
 import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
@@ -85,6 +86,7 @@ const CreateModal = (props) => {
                   />
                   <Route path='group' element={<CreateGroup {...props} />} />
                   <Route path='track' element={<TrackEditor {...props} />} />
+                  <Route path='funding-round' element={<FundingRoundEditor {...props} />} />
                   <Route path='*' element={<CreateModalChooser {...props} />} />
                 </Routes>
                 )}
