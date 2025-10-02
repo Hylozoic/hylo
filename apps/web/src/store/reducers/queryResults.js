@@ -334,6 +334,7 @@ export const queryParamWhitelist = [
   'order',
   'page',
   'parentSlugs',
+  'savedBy',
   'search',
   'slug',
   'sortBy',

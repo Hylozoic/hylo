@@ -85,6 +85,10 @@ export {
   pinPost
 } from './post'
 export {
+  savePost,
+  unsavePost
+} from './savePost'
+export {
   createModerationAction,
   clearModerationAction,
   recordClickthrough
