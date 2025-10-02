@@ -104,6 +104,7 @@ module.exports = {
       q.join('groups', 'groups.id', '=', 'groups_tags.group_id')
       q.whereIn('groups.id', Group.selectIdsForMember(opts.userId))
       q.where('groups.active', true)
+      q.where('tags.name not ilike ?', '‡%') // Don't return special system tags like the ones used for funding round chat rooms
 
       if (opts.groupSlug) {
         q.where('groups.slug', '=', opts.groupSlug)

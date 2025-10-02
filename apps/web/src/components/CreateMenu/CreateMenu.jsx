@@ -12,7 +12,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { createTrackUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
 
-const postTypes = Object.keys(POST_TYPES).filter(t => t !== 'chat' && t !== 'action')
+const postTypes = Object.keys(POST_TYPES).filter(t => !['action', 'chat', 'submission'].includes(t))
 
 export default function CreateMenu ({ coordinates }) {
   const routeParams = useRouteParams()

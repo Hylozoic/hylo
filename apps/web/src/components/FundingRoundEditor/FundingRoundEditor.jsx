@@ -1,12 +1,12 @@
-import { trim } from 'lodash'
-import { isEqual } from 'lodash/fp'
+import { isEqual, trim } from 'lodash'
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { Plus, EyeOff, Eye } from 'lucide-react'
+import { ImagePlus, Plus, EyeOff, Eye } from 'lucide-react'
 import TextInput from 'components/TextInput'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
   Popover,
   PopoverContent,
@@ -97,6 +97,7 @@ function FundingRoundEditor (props) {
   const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
   const [fundingRoundState, setFundingRoundState] = useState(Object.assign({
+    bannerUrl: null,
     criteria: '',
     description: '',
     maxTokenAllocation: 1,
@@ -120,6 +121,7 @@ function FundingRoundEditor (props) {
   }, editingRound))
 
   const {
+    bannerUrl,
     criteria,
     description,
     maxTokenAllocation,
@@ -249,6 +251,22 @@ function FundingRoundEditor (props) {
       <div className='p-0'>
         <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-2'>{t('Create Funding Round')}</h1>
       </div>
+
+      <UploadAttachmentButton
+        type='trackBanner'
+        onInitialUpload={({ url }) => updateFundingRoundState('bannerUrl')(url)}
+        className='w-full group'
+      >
+        <div
+          className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+          style={{ backgroundImage: `url(${bannerUrl})` }}
+        >
+          <div className='flex flex-col items-center justify-center gap-1'>
+            <ImagePlus className='inline-block' />
+            <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set round banner')}</span>
+          </div>
+        </div>
+      </UploadAttachmentButton>
 
       <div className='mt-0 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
         <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Title')}*</div>

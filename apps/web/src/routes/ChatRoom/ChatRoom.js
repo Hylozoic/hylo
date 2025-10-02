@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
@@ -92,13 +93,16 @@ const getDisplayDay = (date) => {
 
 export default function ChatRoom (props) {
   const dispatch = useDispatch()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
-  const { context } = props
-  const { groupSlug, topicName, postId: selectedPostId } = routeParams
+  const { customTopicName } = props
+  const { groupSlug, postId: selectedPostId } = routeParams
+
+  const context = props.context || routeParams.context
+  const topicName = customTopicName || routeParams.topicName
 
   const socket = useMemo(() => getSocket(), [])
 
@@ -534,7 +538,7 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({
+    !customTopicName && setHeaderDetails({
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
@@ -560,7 +564,7 @@ export default function ChatRoom (props) {
       info: '',
       search: !isWebView()
     })
-  }, [topicName, notificationsSetting])
+  }, [customTopicName, topicName, notificationsSetting])
 
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
@@ -618,6 +622,7 @@ export default function ChatRoom (props) {
       <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
+          customTopicName={customTopicName}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}

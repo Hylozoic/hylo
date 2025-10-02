@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grid3x3, Shapes } from 'lucide-react'
+import { Grid3x3, Shapes, BadgeDollarSign } from 'lucide-react'
 import { ContextWidgetPresenter } from '@hylo/presenters'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -18,7 +18,9 @@ export function WidgetIconResolver ({ widget: providedWidget, style, className }
       ? <Grid3x3 className='h-[16px] inline-block' />
       : widget.iconName === 'Shapes'
         ? <Shapes className='h-[16px] w-[16px] inline-block' />
-        : <Icon name={widget.iconName} style={style} className={className} />
+        : widget.iconName === 'BadgeDollarSign'
+          ? <BadgeDollarSign className='h-[16px] w-[16px] inline-block' />
+          : <Icon name={widget.iconName} style={style} className={className} />
   }
 
   return null

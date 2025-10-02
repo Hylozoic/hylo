@@ -48,6 +48,7 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
+import getFundingRound from 'store/selectors/getFundingRound'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -114,6 +115,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditor ({
   context,
+  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   modal = true,
   post: propsPost,
   editing = false,
@@ -133,12 +135,13 @@ function PostEditor ({
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const topicName = routeParams.topicName
+  const topicName = customTopicName || routeParams.topicName
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
@@ -771,7 +774,7 @@ function PostEditor ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -780,12 +783,13 @@ function PostEditor ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat' && currentPost.type !== 'action'
+  const canHaveTimes = !['discussion', 'chat', 'action', 'submission'].includes(currentPost.type)
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
   const isAction = currentPost.type === 'action'
+  const isSubmission = currentPost.type === 'submission'
 
   /**
    * Handles the To field container click, focusing the actual ToField
@@ -805,21 +809,26 @@ function PostEditor ({
         }}
       />
       <div className={cn('PostEditorHeader relative')}>
-        {!isAction
+        {isAction
           ? (
-            <PostTypeSelect
-              disabled={loading}
-              includeChat={!modal}
-              postType={currentPost.type}
-              setPostType={handlePostTypeSelection}
-              className={cn({ 'absolute top-3 right-1 z-10': isChat })}
-            />
-            )
-          : (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
-            )}
+            )
+          : isSubmission
+            ? (
+              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              )
+            : (
+              <PostTypeSelect
+                disabled={loading}
+                includeChat={!modal}
+                postType={currentPost.type}
+                setPostType={handlePostTypeSelection}
+                className={cn({ 'absolute top-3 right-1 z-10': isChat })}
+              />
+              )
+        }
       </div>
-      {!isChat && !isAction && (
+      {!isChat && !isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
@@ -873,7 +882,7 @@ function PostEditor ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: customTopicName ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
@@ -937,7 +946,7 @@ function PostEditor ({
           />
         </div>
       </div> */}
-      {!isChat && !isAction && (
+      {!isChat && !isAction && !isSubmission && (
         <div className={cn('PostEditorPublic', styles.section)}>
           <PublicToggle
             togglePublic={togglePublic}

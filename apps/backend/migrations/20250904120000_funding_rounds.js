@@ -3,6 +3,7 @@ exports.up = async function (knex) {
     table.increments().primary()
     table.bigInteger('group_id').references('id').inTable('groups').index().notNullable()
     table.string('title').notNullable()
+    table.text('banner_url')
     table.text('description')
     table.text('criteria')
     table.boolean('require_budget').defaultTo(false)
@@ -22,13 +23,73 @@ exports.up = async function (knex) {
     table.string('submitter_role_type')
     table.bigInteger('voter_role_id')
     table.string('voter_role_type')
+    table.integer('num_submissions').defaultTo(0)
+    table.integer('num_participants').defaultTo(0)
     table.timestamp('created_at')
     table.timestamp('updated_at')
   })
 
   await knex.raw('alter table funding_rounds alter constraint funding_rounds_group_id_foreign deferrable initially deferred')
+
+  await knex.schema.createTable('funding_rounds_posts', table => {
+    table.increments().primary()
+    table.bigInteger('funding_round_id').references('id').inTable('funding_rounds').index().notNullable()
+    table.bigInteger('post_id').references('id').inTable('posts').notNullable()
+    table.timestamp('created_at')
+    table.timestamp('updated_at')
+  })
+
+  await knex.raw('alter table funding_rounds_posts alter constraint funding_rounds_posts_funding_round_id_foreign deferrable initially deferred')
+  await knex.raw('alter table funding_rounds_posts alter constraint funding_rounds_posts_post_id_foreign deferrable initially deferred')
+
+  await knex.schema.createTable('funding_rounds_users', table => {
+    table.increments().primary()
+    table.bigInteger('funding_round_id').references('id').inTable('funding_rounds').index().notNullable()
+    table.bigInteger('user_id').references('id').inTable('users').index().notNullable()
+    table.jsonb('settings').defaultTo('{ }')
+    table.timestamp('created_at')
+    table.timestamp('updated_at')
+  })
+
+  await knex.raw('alter table funding_rounds_users alter constraint funding_rounds_users_funding_round_id_foreign deferrable initially deferred')
+  await knex.raw('alter table funding_rounds_users alter constraint funding_rounds_users_user_id_foreign deferrable initially deferred')
+
+  await knex.schema.alterTable('posts', table => {
+    table.string('budget')
+  })
+
+  const [responsibility] = await knex('responsibilities').insert({
+    title: 'Manage Rounds',
+    description: 'The ability to create, edit, and delete funding rounds.',
+    type: 'system'
+  }).returning('*')
+
+  await knex('common_roles_responsibilities').insert({
+    common_role_id: 1,
+    responsibility_id: responsibility.id
+  })
+
+  await knex.schema.table('activities', table => {
+    table.bigInteger('funding_round_id').references('id').inTable('funding_rounds')
+  })
 }
 
 exports.down = async function (knex) {
+  await knex.schema.dropTable('funding_rounds_posts')
+  await knex.schema.dropTable('funding_rounds_users')
   await knex.schema.dropTable('funding_rounds')
+
+  await knex.schema.alterTable('posts', table => {
+    table.dropColumn('budget')
+  })
+
+  const responsibility = await knex('responsibilities').where('title', 'Manage Rounds').first()
+  if (responsibility) {
+    await knex('common_roles_responsibilities').where('responsibility_id', responsibility.id).delete()
+    await knex('responsibilities').where('id', responsibility.id).delete()
+  }
+
+  await knex.schema.table('activities', table => {
+    table.dropColumn('funding_round_id')
+  })
 }

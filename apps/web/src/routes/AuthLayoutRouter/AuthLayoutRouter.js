@@ -304,6 +304,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+              <Route path='groups/:groupSlug/funding-rounds/:fundingRoundId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
               <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
@@ -401,7 +402,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />
                             <Route path='tracks/*' element={<Tracks />} />
-                            <Route path='funding-rounds/:roundId/*' element={<FundingRoundHome />} />
+                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />

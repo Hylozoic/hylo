@@ -30,15 +30,18 @@ export async function createFundingRound (userId, data) {
   })
 
   const round = await FundingRound.create(attrs)
+  Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, fundingRound: round })
   return round
 }
 
 export async function updateFundingRound (userId, id, data) {
   const round = await FundingRound.where({ id }).fetch()
   if (!round) throw new GraphQLError('FundingRound not found')
+
   const group = await round.group().fetch()
   const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
   if (!canManage) throw new GraphQLError('You do not have permission to update funding rounds')
+
   const attrs = convertGraphqlData(data)
   await round.save({ updated_at: new Date(), ...attrs })
   return round
@@ -52,4 +55,15 @@ export async function deleteFundingRound (userId, id) {
   if (!canManage) throw new GraphQLError('You do not have permission to delete funding rounds')
   await round.destroy()
   return { success: true }
+}
+
+export async function joinFundingRound (userId, roundId) {
+  // TODO: check if the user can see the round?
+  await FundingRound.join(roundId, userId)
+  return FundingRound.find(roundId)
+}
+
+export async function leaveFundingRound (userId, roundId) {
+  await FundingRound.leave(roundId, userId)
+  return FundingRound.find(roundId)
 }

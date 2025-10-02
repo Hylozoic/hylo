@@ -54,7 +54,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  // Method to load and cache tagFollow data
   _loadTrackUser: function (userId) {
     if (!this._trackUserCache[userId]) {
       this._trackUserCache[userId] = this.trackUser(userId).fetch()

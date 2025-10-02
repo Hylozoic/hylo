@@ -15,17 +15,21 @@ query (
     fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy) {
       items {
         id
-        title
-        description
+        bannerUrl
+        createdAt
         criteria
+        description
+        isParticipating
+        maxTokenAllocation
+        minTokenAllocation
+        numParticipants
+        numSubmissions
         requireBudget
-        votingMethod
+        title
         tokenType
         totalTokens
-        minTokenAllocation
-        maxTokenAllocation
-        createdAt
         updatedAt
+        votingMethod
       }
     }
   }

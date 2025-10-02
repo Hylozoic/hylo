@@ -1,7 +1,7 @@
+import { BadgeDollarSign, Plus } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { Plus } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -25,7 +25,7 @@ function FundingRounds () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('Funding Rounds') })
+    setHeaderDetails({ icon: <BadgeDollarSign />, title: t('Funding Rounds') })
   }, [])
 
   return (

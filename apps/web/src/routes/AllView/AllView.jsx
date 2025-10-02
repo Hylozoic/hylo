@@ -1,4 +1,4 @@
-import { House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
+import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -51,6 +51,7 @@ const GROUP = types.GROUP
 const CUSTOM_VIEW = types.CUSTOM_VIEW
 const CONTAINER = types.CONTAINER
 const TRACK = types.TRACK
+const FUNDING_ROUND = types.FUNDING_ROUND
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -327,6 +328,12 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 title={t('Add Track')}
                 onClick={() => setAddChoice(TRACK)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewTrack: { id: 'fake-id' } } })}
+              />
+              <AddOption
+                icon={<BadgeDollarSign />}
+                title={t('Add Funding Round')}
+                onClick={() => setAddChoice(FUNDING_ROUND)}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewFundingRound: { id: 'fake-id' } } })}
               />
             </div>}
           {addChoice && [CHAT, POST, GROUP, USER, TRACK].includes(addChoice) && (

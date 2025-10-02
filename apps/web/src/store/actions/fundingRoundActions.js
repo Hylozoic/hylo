@@ -1,6 +1,175 @@
+import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
+
 export const MODULE_NAME = 'FundingRounds'
 export const CREATE_FUNDING_ROUND = `${MODULE_NAME}/CREATE_FUNDING_ROUND`
 export const FETCH_FUNDING_ROUND = `${MODULE_NAME}/FETCH_FUNDING_ROUND`
+export const JOIN_FUNDING_ROUND = `${MODULE_NAME}/JOIN_FUNDING_ROUND`
+export const JOIN_FUNDING_ROUND_PENDING = `${MODULE_NAME}/JOIN_FUNDING_ROUND_PENDING`
+export const LEAVE_FUNDING_ROUND = `${MODULE_NAME}/LEAVE_FUNDING_ROUND`
+export const LEAVE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/LEAVE_FUNDING_ROUND_PENDING`
+export const UPDATE_FUNDING_ROUND = `${MODULE_NAME}/UPDATE_FUNDING_ROUND`
+export const UPDATE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/UPDATE_FUNDING_ROUND_PENDING`
+
+const PostFieldsFragment = `
+  id
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
+  linkPreviewFeatured
+  location
+  peopleReactedTotal
+  title
+  type
+  updatedAt
+  attachments {
+    type
+    url
+    position
+    id
+  }
+  comments(first: 10, order: "desc") {
+    items {
+      ${CommentFieldsFragment}
+      childComments(first: 3, order: "desc") {
+        items {
+          ${CommentFieldsFragment}
+          post {
+            id
+          }
+        }
+        total
+        hasMore
+      }
+    }
+    total
+    hasMore
+  }
+  linkPreview {
+    description
+    id
+    imageUrl
+    title
+    url
+  }
+  locationObject {
+    id
+    addressNumber
+    addressStreet
+    bbox {
+      lat
+      lng
+    }
+    center {
+      lat
+      lng
+    }
+    city
+    country
+    fullText
+    locality
+    neighborhood
+    region
+  }
+  postReactions {
+    emojiFull
+    id
+    user {
+      id
+      name
+    }
+  }
+  topics {
+    id
+    name
+  }
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
+    }
+  }
+`
+
+export function fetchFundingRound (id) {
+  return {
+    type: FETCH_FUNDING_ROUND,
+    graphql: {
+      query: `query ($id: ID) {
+        fundingRound (id: $id) {
+          id
+          bannerUrl
+          createdAt,
+          criteria,
+          description,
+          group { id name slug }
+          isParticipating
+          maxTokenAllocation,
+          minTokenAllocation,
+          numParticipants,
+          numSubmissions,
+          publishedAt,
+          requireBudget,
+          submissionDescriptor,
+          submissionDescriptorPlural,
+          submissions {
+            items {
+              ${PostFieldsFragment}
+            }
+          }
+          submitterRole {
+            ... on CommonRole {
+              id
+              emoji
+              name
+            }
+            ... on GroupRole {
+              id
+              emoji
+              name
+            }
+          }
+          submissionsCloseAt,
+          submissionsOpenAt,
+          title,
+          tokenType,
+          totalTokens,
+          updatedAt,
+          users {
+            items {
+              id
+              avatarUrl
+              name
+            }
+          }
+          voterRole {
+            ... on CommonRole {
+              id
+              emoji
+              name
+            }
+            ... on GroupRole {
+              id
+              emoji
+              name
+            }
+          }
+          votingMethod,
+          votingClosesAt,
+          votingOpensAt
+        }
+      }`,
+      variables: { id }
+    },
+    meta: { extractModel: 'FundingRound' }
+  }
+}
 
 export function createFundingRound (data) {
   // We need the full role in the data for the optimistic update, but only the id in the mutation
@@ -14,6 +183,7 @@ export function createFundingRound (data) {
       query: `mutation CreateFundingRound($data: FundingRoundInput) {
         createFundingRound(data: $data) {
           id,
+          bannerUrl,
           createdAt,
           criteria,
           description,
@@ -24,6 +194,8 @@ export function createFundingRound (data) {
           }
           maxTokenAllocation,
           minTokenAllocation,
+          numParticipants,
+          numSubmissions,
           publishedAt,
           requireBudget,
           submissionDescriptor,
@@ -71,59 +243,83 @@ export function createFundingRound (data) {
   }
 }
 
-export function fetchFundingRound (id) {
+export function updateFundingRound (data) {
+  const { roundId, ...rest } = data
+
+  // We need the full roles in the data for the optimistic update, but only the role id in the mutation
+  const dataForUpdate = rest
+  if (rest.submitterRole) {
+    dataForUpdate.submitterRoleId = rest.submitterRole.id
+  }
+  if (rest.voterRole) {
+    dataForUpdate.voterRoleId = rest.voterRole.id
+  }
+  delete dataForUpdate.submitterRole // outside the if in case completionRole is null
+  delete dataForUpdate.voterRole // outside the if in case completionRole is null
+
   return {
-    type: FETCH_FUNDING_ROUND,
+    type: UPDATE_FUNDING_ROUND,
     graphql: {
-      query: `query ($id: ID) {
-        fundingRound (id: $id) {
-          createdAt,
-          criteria,
-          description,
-          maxTokenAllocation,
-          minTokenAllocation,
-          publishedAt,
-          requireBudget,
-          submissionDescriptor,
-          submissionDescriptorPlural,
-          submitterRole {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
+      query: `
+        mutation UpdateFundingRound($roundId: ID, $data: FundingRoundInput) {
+          updateFundingRound(roundId: $roundId, data: $data) {
+            id
           }
-          submissionsCloseAt,
-          submissionsOpenAt,
-          title,
-          tokenType,
-          totalTokens,
-          updatedAt,
-          voterRole {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
-          }
-          votingMethod,
-          votingClosesAt,
-          votingOpensAt
-          group { id name slug }
         }
-      }`,
-      variables: { id }
+      `,
+      variables: {
+        roundId,
+        data: dataForUpdate
+      }
     },
-    meta: { extractModel: 'FundingRound' }
+    meta: {
+      roundId,
+      data: rest,
+      optimistic: true
+    }
+  }
+}
+
+export function joinFundingRound (roundId) {
+  return {
+    type: JOIN_FUNDING_ROUND,
+    graphql: {
+      query: `
+        mutation JoinFundingRound($roundId: ID) {
+          joinFundingRound(roundId: $roundId) {
+            id
+            isParticipating
+          }
+        }
+      `,
+      variables: {
+        roundId
+      }
+    },
+    meta: {
+      roundId
+    }
+  }
+}
+
+export function leaveFundingRound (roundId) {
+  return {
+    type: LEAVE_FUNDING_ROUND,
+    graphql: {
+      query: `
+        mutation LeaveFundingRound($roundId: ID) {
+          leaveFundingRound(roundId: $roundId) {
+            id
+            isParticipating
+          }
+        }
+      `,
+      variables: {
+        roundId
+      }
+    },
+    meta: {
+      roundId
+    }
   }
 }

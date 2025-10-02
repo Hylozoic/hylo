@@ -54,6 +54,7 @@ export function baseUrl ({
   context,
   customViewId,
   defaultUrl = allGroupsUrl(),
+  fundingRoundId,
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
   topicName,
@@ -70,6 +71,8 @@ export function baseUrl ({
     return topicUrl(topicName, { context, groupSlug })
   } else if (trackId) {
     return trackUrl(trackId, { context, groupSlug })
+  } else if (fundingRoundId) {
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug })
   } else if (view) {
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
@@ -269,6 +272,10 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
 
 export function trackUrl (trackId, opts) {
   return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
+}
+
+export function fundingRoundUrl (fundingRoundId, opts) {
+  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}`
 }
 
 // URL utility functions

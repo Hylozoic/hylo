@@ -1312,6 +1312,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'description',
         'max_token_allocation',
         'min_token_allocation',
+        'num_participants',
+        'num_submissions',
         'published_at',
         'require_budget',
         'submission_descriptor_plural',
@@ -1328,7 +1330,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_method',
         'voting_opens_at'
       ],
-      relations: ['group', 'submitterRole', 'voterRole']
+      getters: {
+        isParticipating: r => r && userId && r.isParticipating(userId),
+        userSettings: r => r && userId ? r.userSettings(userId) : null
+      },
+      relations: [
+        'group',
+        { submissions: { querySet: true } },
+        'submitterRole',
+        { users: { querySet: true } },
+        'voterRole'
+      ]
     },
 
     Notification: {

@@ -127,8 +127,10 @@ export {
 } from './track'
 export {
   createFundingRound,
-  updateFundingRound,
-  deleteFundingRound
+  deleteFundingRound,
+  joinFundingRound,
+  leaveFundingRound,
+  updateFundingRound
 } from './fundingRound'
 export {
   blockUser,

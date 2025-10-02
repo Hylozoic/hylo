@@ -72,8 +72,10 @@ import {
   inviteGroupToGroup,
   invitePeerRelationship,
   invitePeopleToEvent,
+  joinFundingRound,
   joinGroup,
   joinProject,
+  leaveFundingRound,
   leaveGroup,
   leaveProject,
   leaveTrack,
@@ -407,10 +409,6 @@ export function makeMutations ({ fetchOne }) {
 
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
-
-    joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
-
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
     deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
@@ -466,6 +464,14 @@ export function makeMutations ({ fetchOne }) {
     invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
 
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
+
+    joinFundingRound: (root, { roundId }, context) => joinFundingRound(context.currentUserId, roundId),
+
+    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
+
+    joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
+
+    leaveFundingRound: (root, { roundId }, context) => leaveFundingRound(context.currentUserId, roundId),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 
