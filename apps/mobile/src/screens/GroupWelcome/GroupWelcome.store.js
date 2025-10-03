@@ -18,8 +18,11 @@ export const GROUP_WELCOME_SUGGESTED_SKILLS = 'Suggested Skills'
 
 export function getRouteNames (group, currentMembership) {
   const routeNames = [GROUP_WELCOME_LANDING]
+
+  if (!group) return routeNames
+
   const { agreements, settings } = group
-  // TODO redesign: have run into instances of group being null here, so need to guard against that...
+
   if (!isEmpty(agreements?.items)) {
     routeNames.push(GROUP_WELCOME_AGREEMENTS)
   }
