@@ -13,6 +13,7 @@
 		<string>applinks:hylo.com</string>
 		<string>applinks:www.hylo.com</string>
 		<string>applinks:staging.hylo.com</string>
+		<string>applinks:localhost</string>
 	</array>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>

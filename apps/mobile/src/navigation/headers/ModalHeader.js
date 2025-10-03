@@ -3,10 +3,16 @@ import { Header, getHeaderTitle } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
-import useRouteParams from 'hooks/useRouteParams'
 import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from '@hylo/presenters/colors'
+
+ // Safely get params from the provided `route` prop instead of useRoute (headers aren't screens)
+ const getLastParams = (state) => {
+  let current = state
+  while (current?.params?.params) current = current.params
+  return current?.params || {}
+}
 
 export default function ModalHeader ({
   navigation,
@@ -32,8 +38,13 @@ export default function ModalHeader ({
   ...otherProps
 }) {
   const confirmAlert = useConfirmAlert()
+
+  // Respect linking path for *back* navigation, when the app view is set by a notification
+  // When the app is opened from a link/notification, it will open the content in a modal but not open the containing screen
+  // This function ensures that the user is returned to the original path when the modal is closed
   const openURL = useOpenURL()
-  const { originalLinkingPath, id, commentId } = useRouteParams()
+
+  const { originalLinkingPath, id } = getLastParams(route)
 
   // Based on the current linking table setup, when the app is opened from a link/notification,
   // It will open the content in a modal but not open the containing screeen
@@ -73,9 +84,17 @@ export default function ModalHeader ({
     headerLeft: headerLeft || options.headerLeft || (props => {
       // Based on the navigation context (the stack of screens and the path),
       // we need to determine how to handle the closing of modals
+      const defaultHeaderLeftOnPress = () => {
+        if (navigation.canGoBack()) {
+          navigation.goBack()
+        } else {
+          // Safe fallback when not in a normal stack (e.g., JoinGroup)
+          openURL('/groups/my/no-context-fallback', { reset: true })
+        }
+      }
       const headerLeftOnPress = options.headerLeftOnPress ||
         providedHeaderLeftOnPress || respectOriginalPath ||
-        navigation.goBack
+        defaultHeaderLeftOnPress
       const onPress = headerLeftConfirm
         ? () => confirmAlert({ onConfirm: headerLeftOnPress })
         : headerLeftOnPress

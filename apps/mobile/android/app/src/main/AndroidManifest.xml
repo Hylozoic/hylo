@@ -17,6 +17,8 @@
     android:allowBackup="false"
     android:theme="@style/AppTheme"
     tools:replace="android:allowBackup"
+    android:usesCleartextTraffic="true"
+    android:networkSecurityConfig="@xml/network_security_config"
     android:supportsRtl="true">
     <meta-data
       android:name="com.facebook.sdk.ApplicationId"
@@ -64,6 +66,14 @@
         <category android:name="android.intent.category.BROWSABLE" />
         <data android:scheme="https" android:host="www.hylo.com" />
         <data android:scheme="https" android:host="staging.hylo.com" />
+      </intent-filter>
+      <!-- Intent filter for HTTP URLs -->
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="http" android:host="localhost" port="3000" />
+        <data android:scheme="http" android:host="10.0.2.2" port="3000" />
       </intent-filter>
       <!-- Intent filter for custom scheme -->
       <intent-filter>
