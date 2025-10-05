@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Config from 'react-native-config'
@@ -80,8 +80,8 @@ const handledWebRoutesJavascriptCreator = (handledWebRoutes) => {
   `
 }
 
-/* Should probably just be applied to Hylo Web stylesheet 
-  as what this solves is not necessarily WebView specific, 
+/* Should probably just be applied to Hylo Web stylesheet
+  as what this solves is not necessarily WebView specific,
   but putting here for now to limit possible untested impact
   on Hylo Web generally */
 const baseCustomStyle = `
@@ -90,7 +90,7 @@ const baseCustomStyle = `
     width: 0 !important;
     height: 0 !important;
   }
-  
+
   html, body {
     overflow: hidden;
     overflow-y: hidden;
@@ -99,7 +99,7 @@ const baseCustomStyle = `
     margin: 0;
     padding: 0;
   }
-  
+
   body {
     width: 100vw !important;
     position: fixed !important;
@@ -163,7 +163,7 @@ const HyloWebView = React.forwardRef(({
     } else {
       setShowSessionRecovery(false)
     }
-    
+
     return () => {
       if (timer) clearTimeout(timer)
     }
@@ -185,8 +185,6 @@ const HyloWebView = React.forwardRef(({
     }, [])
   )
 
-
-
   // WebView event handlers
   const handleLoadStart = useCallback(() => {
     setIsLoading(true)
@@ -195,7 +193,6 @@ const HyloWebView = React.forwardRef(({
   const handleLoadEnd = useCallback((event) => {
     setIsLoading(false)
   }, [])
-
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -231,13 +228,13 @@ const HyloWebView = React.forwardRef(({
         // Handle group deletion from webview
         if (data?.groupSlug) {
           console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
-          
+
           // Set current group to 'my' to clear the deleted group slug
           setCurrentGroupSlug('my')
-          
+
           // Refresh current user data to update memberships
           queryCurrentUser({ requestPolicy: 'network-only' })
-          
+
           // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
           openURL('/groups/my/no-context-fallback')
         }
@@ -248,26 +245,25 @@ const HyloWebView = React.forwardRef(({
     messageHandler && messageHandler(parsedMessage)
   }
 
-
   if (!cookie || !uri) {
     if (showSessionRecovery) {
       // Show simple session recovery interface
       return (
-        <View className="flex-1 bg-background p-5 justify-center">
-          <View className="bg-card p-5 rounded-lg shadow-sm border border-border">
-            <Text className="text-xl font-bold mb-4 text-center text-card-foreground">
+        <View className='flex-1 bg-background p-5 justify-center'>
+          <View className='bg-card p-5 rounded-lg shadow-sm border border-border'>
+            <Text className='text-xl font-bold mb-4 text-center text-card-foreground'>
               🔐 Session Required
             </Text>
-            
-            <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
+
+            <Text className='text-base mb-5 text-center text-muted-foreground leading-6'>
               Your session has expired. Please log out and log back in to continue.
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={async () => {
                 try {
                   // Clear the session and trigger logout
-                  await clearSessionCookie() 
+                  await clearSessionCookie()
                   await logout()
                   // The auth state change will automatically navigate to login
                 } catch (error) {
@@ -275,9 +271,9 @@ const HyloWebView = React.forwardRef(({
                   openURL('/login')
                 }
               }}
-              className="bg-accent p-4 rounded-md items-center"
+              className='bg-accent p-4 rounded-md items-center'
             >
-              <Text className="text-accent-foreground font-bold text-base">
+              <Text className='text-accent-foreground font-bold text-base'>
                 🔑 Log Out & Log Back In
               </Text>
             </TouchableOpacity>
@@ -293,7 +289,7 @@ const HyloWebView = React.forwardRef(({
       customScript={`
         window.HyloWebView = true;
         ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
-        
+
       `}
       customStyle={customStyle}
       geolocationEnabled

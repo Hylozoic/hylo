@@ -25,9 +25,9 @@ module.exports.session = {
   ***************************************************************************/
   secret: process.env.COOKIE_SECRET,
 
-  genid: function(req) {
+  genid: function (req) {
     // use UUIDs for session IDs prefixed by userId so we can find and clear all sessions for this user on password change
-    return (req.userId || 'anon') + ":" + uuidv4()
+    return (req.userId || 'anon') + ':' + uuidv4()
   },
 
   /***************************************************************************
@@ -95,4 +95,4 @@ module.exports.session = {
   // ssl: false,
   // stringify: true
 
-};
+}

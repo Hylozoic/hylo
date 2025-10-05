@@ -122,14 +122,14 @@ export function useChangeToGroup () {
       skipCanViewCheck
 
     if (canViewGroup) {
-        const goToGroup = () => {
+      const goToGroup = () => {
         setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
-          const membership = currentUser?.memberships?.find(m => m.group.slug === groupSlug)
-          const groupId = membership?.group?.id
-          if (groupId) {
-            updateMembership({ groupId, data: { lastViewedAt: new Date().toISOString() } })
-          }
+        const membership = currentUser?.memberships?.find(m => m.group.slug === groupSlug)
+        const groupId = membership?.group?.id
+        if (groupId) {
+          updateMembership({ groupId, data: { lastViewedAt: new Date().toISOString() } })
+        }
       }
       if (confirm) {
         confirmAlert({
@@ -142,11 +142,11 @@ export function useChangeToGroup () {
       } else {
         goToGroup()
       }
-        } else {
-        // Use URL-based navigation which is more reliable during cold boot
-        // This navigates to the non-modal Group Explore screen
-        openURL(`/groups/${groupSlug}/explore`)
-      }
+    } else {
+      // Use URL-based navigation which is more reliable during cold boot
+      // This navigates to the non-modal Group Explore screen
+      openURL(`/groups/${groupSlug}/explore`)
+    }
   }, [setNavigateHome, setCurrentGroupSlug, currentUser?.memberships, confirmAlert, openURL])
 
   return changeToGroup
