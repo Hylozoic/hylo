@@ -59,7 +59,7 @@ function FundingRoundHome () {
 
   const handlePublishRound = useCallback((publishedAt) => {
     if (confirm(publishedAt ? t('Are you sure you want to publish this round?') : t('Are you sure you want to unpublish this round?'))) {
-      dispatch(updateFundingRound({ roundId: fundingRound.id, publishedAt }))
+      dispatch(updateFundingRound({ id: fundingRound.id, publishedAt }))
     }
   }, [fundingRound?.id])
 
@@ -117,7 +117,7 @@ function FundingRoundHome () {
             </div>)}
 
           <Routes>
-            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} />} />
+            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canEdit={canEdit}/>} />
             <Route path='participants/*' element={<PeopleTab round={fundingRound} />} />
             <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
             <Route path='edit/*' element={<EditTab round={fundingRound} />} />
@@ -205,7 +205,7 @@ function AboutTab ({ round }) {
   )
 }
 
-function SubmissionsTab ({ round }) {
+function SubmissionsTab ({ canEdit, round }) {
   const posts = useSelector(state => getPosts(state, round))
   const { isParticipating } = round
   const { t } = useTranslation()
@@ -250,7 +250,7 @@ function SubmissionsTab ({ round }) {
           + {t('Add {{submissionDescriptor}}', { submissionDescriptor: round?.submissionDescriptor })}
         </button>
       )}
-      {['completed', 'voting', 'discussion'].includes(currentPhase) && posts.map(post => (
+      {(['completed', 'voting', 'discussion'].includes(currentPhase) || canEdit) && posts.map(post => (
         <PostCard key={post.id} post={post} />
       ))}
     </div>

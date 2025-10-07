@@ -677,6 +677,7 @@ function PostEditor ({
       eventInviteeIds,
       fileAttachments, // For optimistic display of the new post
       fileUrls,
+      fundingRoundId: currentFundingRound?.id,
       groups,
       imageAttachments, // For optimistic display of the new post
       imageUrls,
@@ -711,7 +712,7 @@ function PostEditor ({
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-  }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+  }, [afterSave, announcementSelected, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   /**
    * Initiates the save process with validation and confirmation checks

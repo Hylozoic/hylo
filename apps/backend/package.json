@@ -198,6 +198,7 @@
       "Frontend",
       "FullTextSearch",
       "FundingRound",
+      "FundingRoundPost",
       "FundingRoundUser",
       "Group",
       "GroupAgreement",

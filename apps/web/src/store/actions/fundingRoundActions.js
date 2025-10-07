@@ -244,7 +244,7 @@ export function createFundingRound (data) {
 }
 
 export function updateFundingRound (data) {
-  const { roundId, ...rest } = data
+  const { id, ...rest } = data
 
   // We need the full roles in the data for the optimistic update, but only the role id in the mutation
   const dataForUpdate = rest
@@ -261,65 +261,65 @@ export function updateFundingRound (data) {
     type: UPDATE_FUNDING_ROUND,
     graphql: {
       query: `
-        mutation UpdateFundingRound($roundId: ID, $data: FundingRoundInput) {
-          updateFundingRound(roundId: $roundId, data: $data) {
+        mutation UpdateFundingRound($id: ID, $data: FundingRoundInput) {
+          updateFundingRound(id: $id, data: $data) {
             id
           }
         }
       `,
       variables: {
-        roundId,
+        id,
         data: dataForUpdate
       }
     },
     meta: {
-      roundId,
+      id,
       data: rest,
       optimistic: true
     }
   }
 }
 
-export function joinFundingRound (roundId) {
+export function joinFundingRound (id) {
   return {
     type: JOIN_FUNDING_ROUND,
     graphql: {
       query: `
-        mutation JoinFundingRound($roundId: ID) {
-          joinFundingRound(roundId: $roundId) {
+        mutation JoinFundingRound($id: ID) {
+          joinFundingRound(id: $id) {
             id
             isParticipating
           }
         }
       `,
       variables: {
-        roundId
+        id
       }
     },
     meta: {
-      roundId
+      id
     }
   }
 }
 
-export function leaveFundingRound (roundId) {
+export function leaveFundingRound (id) {
   return {
     type: LEAVE_FUNDING_ROUND,
     graphql: {
       query: `
-        mutation LeaveFundingRound($roundId: ID) {
-          leaveFundingRound(roundId: $roundId) {
+        mutation LeaveFundingRound($id: ID) {
+          leaveFundingRound(id: $id) {
             id
             isParticipating
           }
         }
       `,
       variables: {
-        roundId
+        id
       }
     },
     meta: {
-      roundId
+      id
     }
   }
 }

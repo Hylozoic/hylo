@@ -2869,13 +2869,13 @@ type Mutation {
   # Invite one or more people to an event Post
   invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
   # Join a funding round
-  joinFundingRound(roundId: ID): FundingRound
+  joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
-  leaveFundingRound(roundId: ID): FundingRound
+  leaveFundingRound(id: ID): FundingRound
   # Leave a group
   leaveGroup(id: ID): ID
   # Remove yourself as a member of a project Post
@@ -3621,6 +3621,8 @@ input PostInput {
   eventInviteeIds: [ID]
   # URLs for file attachments
   fileUrls: [String]
+  # The FundingRound this post is a submission to
+  fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
   # URLs of images in the post

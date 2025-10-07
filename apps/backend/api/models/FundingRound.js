@@ -67,6 +67,21 @@ module.exports = bookshelf.Model.extend({
     }
   }
 }, {
+  addPost: async function (postOrId, fundingRoundOrId, { transacting } = {}) {
+    const postId = typeof postOrId === 'number' ? postOrId : postOrId.get('id')
+    const fundingRound = await (typeof fundingRoundOrId === 'object' ? fundingRoundOrId : FundingRound.find(fundingRoundOrId))
+    if (!fundingRound) {
+      throw new GraphQLError('Funding Round not found')
+    }
+
+    await fundingRound.save({ num_submissions: fundingRound.get('num_submissions') + 1 }, { transacting })
+
+    return FundingRoundPost.create({
+      funding_round_id: fundingRound.get('id'),
+      post_id: postId
+    }, { transacting })
+  },
+
   create: async function (attrs) {
     attrs.voting_method = attrs.voting_method || 'token_allocation_constant'
 

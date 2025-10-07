@@ -465,13 +465,13 @@ export function makeMutations ({ fetchOne }) {
 
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
 
-    joinFundingRound: (root, { roundId }, context) => joinFundingRound(context.currentUserId, roundId),
+    joinFundingRound: (root, { id }, context) => joinFundingRound(context.currentUserId, id),
 
     joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
-    leaveFundingRound: (root, { roundId }, context) => leaveFundingRound(context.currentUserId, roundId),
+    leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 

@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -76,7 +76,9 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts)
+    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+
+    opts.fundingRoundId && FundingRound.addPost(post, opts.fundingRoundId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
     .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))
