@@ -170,28 +170,30 @@ module.exports = {
     const user = await User.find(userId)
     if (accessCode) {
       return Group.queryByAccessCode(accessCode)
-      .fetch()
-      .then(group => {
-        return GroupMembership.forPair(user, group, {includeInactive: true}).fetch()
-        .then(existingMembership => {
-          if (existingMembership) {
-            return existingMembership.get('active')
-              ? existingMembership
-              : existingMembership.save({active: true}, {patch: true}).then(membership => {
-                Queue.classMethod('Group', 'afterAddMembers', {
-                  groupId: group.id,
-                  newUserIds: [userId],
-                  reactivatedUserIds: [userId]
-                })
-                return membership
-              })
-          }
-          if (!!group) return user.joinGroup(group, { role: GroupMembership.Role.DEFAULT, fromInvitation: true }).then(membership => membership)
+        .fetch()
+        .then(group => {
+          return GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
+            .then(existingMembership => {
+              if (existingMembership) {
+                return existingMembership.get('active')
+                  ? existingMembership
+                  : existingMembership.save({ active: true }, { patch: true }).then(membership => {
+                    // TODO: just use group.addMembers?
+                    group.save({ num_members: group.get('num_members') + 1 }, { patch: true })
+                    Queue.classMethod('Group', 'afterAddMembers', {
+                      groupId: group.id,
+                      newUserIds: [userId],
+                      reactivatedUserIds: [userId]
+                    })
+                    return membership
+                  })
+              }
+              if (group) return user.joinGroup(group, { role: GroupMembership.Role.DEFAULT, fromInvitation: true }).then(membership => membership)
+            })
+            .catch(err => {
+              throw new Error(err.message)
+            })
         })
-        .catch(err => {
-          throw new Error(err.message)
-        })
-      })
     }
 
     if (token) {
