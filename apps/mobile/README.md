@@ -47,7 +47,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
 
 ### Release checklist
 
-- Merge desired changes to a release branch (release-6.1.12 for example) 
+- Merge desired changes to a release branch (release-6.1.12 for example)
 - Update and commit `CHANGELOG`:
   - Ensure version numbers across the mobile rep actually MATCH the version you are putting out
     - Often I do this with a search for the prior version number; it should only exist in the changelog
@@ -62,7 +62,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
   - For Android manually install APK file on physical device (or emulator if no physical device available)
   - Android APK is available in BITRISE under ARTIFACTS, for successful builds
 - for STAGING BUILDS: you have to manually get the android APK file to android test users. I usually attach in a gmail mail, so that the apk attachment creates a google drive link. iOS will be available on testers testFlight app
-- For PROD BUILDS: Go into EACH app store and start a new draft release. 
+- For PROD BUILDS: Go into EACH app store and start a new draft release.
   - Prepare release notes appropriate for stores by reviewing `CHANGELOG` and the related issues and PRs on the release Github Milestone
   - The iOS release build is available once its been uploaded to the test flight servers. Be sure you select the correct BUILD, cross check the build number to the bitrise build you are actually intending to release.
   - Google play console need you to download the APK from BITRISE under ARTIFACTS for the build, and then upload that APK to the specific draft release
@@ -80,7 +80,7 @@ yarn react-native generate-bootsplash ./bootsplash_logo.png \
 - Open a new Milestone with the current pre-release version:
 
 ###### In-between release testings and ongoing dev
-Now, you might have cut a release branch, then the next day merged a big new mobile feature to dev, AND THEN you get some bug feedback. Those bugs need to be reflected in both dev AND the release branch, so its best to do the bug fixes on the release branch and update the release tag, and then merge those changes from the release branch into dev (aka, don't add the fixes branched off dev and then accidentally deploy a whole new untested feature). 
+Now, you might have cut a release branch, then the next day merged a big new mobile feature to dev, AND THEN you get some bug feedback. Those bugs need to be reflected in both dev AND the release branch, so its best to do the bug fixes on the release branch and update the release tag, and then merge those changes from the release branch into dev (aka, don't add the fixes branched off dev and then accidentally deploy a whole new untested feature).
 
 ### Enabling Sentry exception tracking in dev
 

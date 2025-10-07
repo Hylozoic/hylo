@@ -47,9 +47,9 @@ PODS:
   - hermes-engine (0.77.3):
     - hermes-engine/Pre-built (= 0.77.3)
   - hermes-engine/Pre-built (0.77.3)
-  - Intercom (18.5.0)
-  - intercom-react-native (8.2.0):
-    - Intercom (~> 18.5.0)
+  - Intercom (18.7.3)
+  - intercom-react-native (8.8.0):
+    - Intercom (~> 18.7.3)
     - React-Core
   - IQKeyboardManagerSwift (6.5.16)
   - libwebp (1.5.0):
@@ -2593,8 +2593,8 @@ SPEC CHECKSUMS:
   GTMAppAuth: 99fb010047ba3973b7026e45393f51f27ab965ae
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: b2187dbe13edb0db8fcb2a93a69c1987a30d98a4
-  Intercom: d745ef2351c8c5d90c2c86756bdf32ca58059b23
-  intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
+  Intercom: 93c6f5d9815b34bf2a7e5f03bcf7b6e08c1a4788
+  intercom-react-native: d496047d19b9f2e45c97feb5897d82b53036fc1b
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
