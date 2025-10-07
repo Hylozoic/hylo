@@ -8,6 +8,7 @@ export default function (models) {
   return {
     resolvers,
     fetchOne: fetcher.fetchOne.bind(fetcher),
-    fetchMany: fetcher.fetchMany.bind(fetcher)
+    fetchMany: fetcher.fetchMany.bind(fetcher),
+    loaders: fetcher.loaders
   }
 }

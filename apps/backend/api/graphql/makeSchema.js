@@ -148,7 +148,58 @@ export default async function makeSchema ({ req }) {
   const userId = req.session.userId
   const isAdmin = Admin.isSignedIn(req)
   const models = makeModels(userId, isAdmin, req.api_client)
-  const { resolvers, fetchOne, fetchMany } = setupBridge(models)
+  const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
+
+  // Override Track and GroupTopic resolvers to use DataLoaders for caching
+  if (userId && loaders) {
+    if (resolvers.Track) {
+      resolvers.Track.isEnrolled = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('enrolled_at') !== null
+      }
+      resolvers.Track.didComplete = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('completed_at') !== null
+      }
+      resolvers.Track.userSettings = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser ? trackUser.get('settings') : null
+      }
+    }
+
+    if (resolvers.GroupTopic) {
+      resolvers.GroupTopic.isSubscribed = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow !== null
+      }
+      resolvers.GroupTopic.lastReadPostId = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('last_read_post_id') : null
+      }
+      resolvers.GroupTopic.newPostCount = async (groupTag) => {
+        if (!groupTag || !userId) return 0
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('new_post_count') : 0
+      }
+    }
+  }
 
   let allResolvers
   if (userId) {

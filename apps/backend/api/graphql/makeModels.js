@@ -1159,7 +1159,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         followersTotal: gt => gt.followerCount(),
         isSubscribed: gt => userId ? gt.isFollowed(userId) : null,
         lastReadPostId: gt => userId ? gt.lastReadPostId(userId) : null,
-        newPostCount: gt => gt.newPostCount(userId)
+        newPostCount: gt => userId ? gt.newPostCount(userId) : null
       },
       relations: [
         'group',
