@@ -139,8 +139,13 @@ export function groupHomeUrl ({ group, routeParams }) {
 // Post URLS
 export function postUrl (id, opts = {}, querystringParams = {}) {
   const action = get('action', opts)
-  let result = baseUrl(opts)
-  result = `${result}/post/${id}`
+  let result
+  if (opts.context === '') {
+    result = `/post/${id}`
+  } else {
+    result = baseUrl(opts)
+    result = `${result}/post/${id}`
+  }
   if (action) result = `${result}/${action}`
 
   return addQuerystringToPath(result, querystringParams)

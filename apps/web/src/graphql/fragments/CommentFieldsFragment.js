@@ -7,10 +7,6 @@ export default
     name
     avatarUrl
   }
-  myReactions {
-    emojiFull
-    id
-  }
   commentReactions {
     emojiFull
     id

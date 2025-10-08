@@ -613,6 +613,7 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
             placeholder={textOptions[addChoice].searchPlaceholder}
             value={searchTerm}
             onValueChange={handleSearchChange}
+            maxLength={addChoice === CHAT ? 40 : null}
           />
           {showWhitespaceWarning && (
             <div className='px-3 py-2 text-sm text-destructive'>

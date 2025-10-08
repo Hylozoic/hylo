@@ -1,10 +1,12 @@
 {
   "env": {
     "cjs": {
-      "presets": [["@babel/preset-env", { "modules": "commonjs" }]]
+      "presets": [["@babel/preset-env", { "modules": "commonjs" }]],
+      "plugins": ["@babel/plugin-transform-export-namespace-from"]
     },
     "esm": {
-      "presets": [["@babel/preset-env", { "modules": false }]]
+      "presets": [["@babel/preset-env", { "modules": false }]],
+      "plugins": ["@babel/plugin-transform-export-namespace-from"]
     }
   }
 }

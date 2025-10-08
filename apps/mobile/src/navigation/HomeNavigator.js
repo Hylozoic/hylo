@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Header } from '@react-navigation/elements'
+import { useNavigation } from '@react-navigation/native'
+import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import { useHandleCurrentGroup, useHandleCurrentGroupSlug } from 'hooks/useHandleCurrentGroup'
 // Helper Components
 import TabStackHeader from 'navigation/headers/TabStackHeader'
@@ -68,7 +70,7 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       <HomeTab.Screen name='Web View' component={HyloWebView} />
       {/* Other screens */}
-      <HomeTab.Screen name='Stream' component={Stream} />
+      <HomeTab.Screen name='Stream' component={Stream} options={{ lazy: false }} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Tracks' component={Tracks} />
       <HomeTab.Screen name='My Tracks' component={MyTracks} />

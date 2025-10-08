@@ -53,6 +53,7 @@ import {
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
@@ -67,6 +68,7 @@ import {
   flagInappropriateContent,
   fulfillPost,
   inviteGroupToGroup,
+  invitePeerRelationship,
   invitePeopleToEvent,
   joinGroup,
   joinProject,
@@ -126,6 +128,7 @@ import {
   updateTrackActionOrder,
   updateMe,
   updateMembership,
+  updatePeerRelationship,
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
@@ -145,7 +148,58 @@ export default async function makeSchema ({ req }) {
   const userId = req.session.userId
   const isAdmin = Admin.isSignedIn(req)
   const models = makeModels(userId, isAdmin, req.api_client)
-  const { resolvers, fetchOne, fetchMany } = setupBridge(models)
+  const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
+
+  // Override Track and GroupTopic resolvers to use DataLoaders for caching
+  if (userId && loaders) {
+    if (resolvers.Track) {
+      resolvers.Track.isEnrolled = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('enrolled_at') !== null
+      }
+      resolvers.Track.didComplete = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('completed_at') !== null
+      }
+      resolvers.Track.userSettings = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser ? trackUser.get('settings') : null
+      }
+    }
+
+    if (resolvers.GroupTopic) {
+      resolvers.GroupTopic.isSubscribed = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow !== null
+      }
+      resolvers.GroupTopic.lastReadPostId = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('last_read_post_id') : null
+      }
+      resolvers.GroupTopic.newPostCount = async (groupTag) => {
+        if (!groupTag || !userId) return 0
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('new_post_count') : 0
+      }
+    }
+  }
 
   let allResolvers
   if (userId) {
@@ -208,13 +262,17 @@ export default async function makeSchema ({ req }) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
       Query: makeApiQueries({ fetchOne, fetchMany }),
-      Mutation: makeApiMutations()
+      Mutation: makeApiMutations(),
+      // Provide Subscription resolvers even for API clients; resolvers self-guard on auth
+      Subscription: makeSubscriptions()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
       Query: makePublicQueries({ fetchOne, fetchMany }),
-      Mutation: makePublicMutations({ fetchOne })
+      Mutation: makePublicMutations({ fetchOne }),
+      // Supply Subscription resolvers. They handle unauthenticated requests gracefully
+      Subscription: makeSubscriptions()
     }
   }
 
@@ -412,6 +470,8 @@ export function makeMutations ({ fetchOne }) {
 
     deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
 
+    deletePeerRelationship: (root, { relationshipId }, context) => deletePeerRelationship(context.currentUserId, relationshipId, context),
+
     deleteGroupResponsibility: (root, { responsibilityId, groupId }, context) => deleteGroupResponsibility({ userId: context.currentUserId, responsibilityId, groupId }),
 
     deleteGroupTopic: (root, { id }, context) => deleteGroupTopic(context.currentUserId, id),
@@ -445,6 +505,8 @@ export function makeMutations ({ fetchOne }) {
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
+
+    invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
 
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
 
@@ -553,6 +615,8 @@ export function makeMutations ({ fetchOne }) {
     updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
+
+    updatePeerRelationship: (root, { relationshipId, description }, context) => updatePeerRelationship(context.currentUserId, relationshipId, description, context),
 
     updatePost: (root, args, context) => updatePost(context.currentUserId, args),
 

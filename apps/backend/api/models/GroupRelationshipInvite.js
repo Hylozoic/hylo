@@ -27,7 +27,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.belongsTo(Group, 'to_group_id')
   },
 
-  /*** Getters ***/
+  /** Getters **/
   isCanceled: function () {
     return !!this.get('canceled_by_id')
   },
@@ -36,7 +36,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return !!this.get('processed_by_id')
   },
 
-  /*** Setters/Mutators ***/
+  /** Setters/Mutators **/
 
   // TODO: ? this should always return the GroupRelationship, regardless of whether the
   // invitation is unused or whether the GroupRelationship already exists
@@ -73,20 +73,43 @@ module.exports = bookshelf.Model.extend(Object.assign({
       throw new GraphQLError('Not permitted to do this')
     }
     const fromGroup = await this.fromGroup().fetch({ transacting })
-    const parentGroup = (this.get('type') === GroupRelationshipInvite.TYPE.ParentToChild) ? fromGroup : toGroup
-    const childGroup = (this.get('type') === GroupRelationshipInvite.TYPE.ParentToChild) ? toGroup : fromGroup
 
-    await this.save({ processed_by_id: userId, processed_at: new Date(), status: status },
+    await this.save({ processed_by_id: userId, processed_at: new Date(), status },
       { patch: true, transacting })
 
     if (status === GroupRelationshipInvite.STATUS.Accepted) {
-      let relationship = await GroupRelationship.forPair(parentGroup, childGroup).fetch({ transacting })
-      if (relationship) {
-        // If an old relationship existed then just re-activate it
-        await relationship.save({ active: true }, { transacting })
+      let relationship
+
+      if (this.get('type') === GroupRelationshipInvite.TYPE.PeerToPeer) {
+        // For peer relationships, check if one already exists
+        relationship = await GroupRelationship.forPair(fromGroup, toGroup, false).fetch({ transacting })
+        if (relationship) {
+          // If an old relationship existed then just re-activate it
+          await relationship.save({ active: true, description: this.get('message') }, { transacting })
+        } else {
+          // Create new peer relationship
+          relationship = await GroupRelationship.forge({
+            parent_group_id: fromGroup.id, // For peer relationships, parent/child are just storage - they're equal
+            child_group_id: toGroup.id,
+            relationship_type: Group.RelationshipType.PEER_TO_PEER,
+            description: this.get('message'),
+            active: true
+          }).save(null, { transacting })
+        }
       } else {
-        relationship = await parentGroup.addChild(childGroup, { transacting })
+        // Handle parent-child relationships
+        const parentGroup = (this.get('type') === GroupRelationshipInvite.TYPE.ParentToChild) ? fromGroup : toGroup
+        const childGroup = (this.get('type') === GroupRelationshipInvite.TYPE.ParentToChild) ? toGroup : fromGroup
+
+        relationship = await GroupRelationship.forPair(parentGroup, childGroup).fetch({ transacting })
+        if (relationship) {
+          // If an old relationship existed then just re-activate it
+          await relationship.save({ active: true, description: this.get('message') }, { transacting })
+        } else {
+          relationship = await parentGroup.addChild(childGroup, { transacting })
+        }
       }
+
       await Queue.classMethod('GroupRelationshipInvite', 'createAcceptNotifications', { inviteId: this.id, actorId: userId })
 
       return relationship
@@ -106,7 +129,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   TYPE: {
     ParentToChild: 0,
-    ChildToParent: 1
+    ChildToParent: 1,
+    PeerToPeer: 2
   },
 
   create: async function (attrs, opts) {
@@ -131,7 +155,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
       reader_id: moderator.id,
       group_id: fromGroup.id,
       other_group_id: toGroup.id,
-      reason: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild ? Activity.Reason.GroupChildGroupInvite : Activity.Reason.GroupParentGroupJoinRequest
+      reason: invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild
+        ? Activity.Reason.GroupChildGroupInvite
+        : invite.get('type') === GroupRelationshipInvite.TYPE.PeerToPeer
+          ? Activity.Reason.GroupPeerGroupInvite
+          : Activity.Reason.GroupParentGroupJoinRequest
     }))
 
     await Activity.saveForReasons(notifications, opts.transacting)
@@ -139,39 +167,55 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return invite
   },
 
-  createAcceptNotifications: function({ inviteId, actorId }) {
+  createAcceptNotifications: function ({ inviteId, actorId }) {
     return GroupRelationshipInvite.find(inviteId).then(invite => invite &&
       bookshelf.transaction(async (transacting) => {
         await invite.load(['fromGroup', 'toGroup'], { transacting })
         const { fromGroup, toGroup } = invite.relations
         const parentToChild = invite.get('type') === GroupRelationshipInvite.TYPE.ParentToChild
         const childToParent = invite.get('type') === GroupRelationshipInvite.TYPE.ChildToParent
+        const peerToPeer = invite.get('type') === GroupRelationshipInvite.TYPE.PeerToPeer
 
-        // If child group is hidden then only tell administrators of the parent about it joining the parent, otherwise tell all the parent's members about it
-        // TODO: RESP. check if this is what we want
-        const fromMembers = (childToParent && fromGroup.isHidden()) ? await fromGroup.stewards().fetch({ transacting }) : await fromGroup.members().fetch({ transacting })
-        const toMembers = (parentToChild && toGroup.isHidden()) ? await toGroup.stewards().fetch({ transacting }) : await toGroup.members().fetch({ transacting })
+        // For peer relationships, only notify moderators (not members)
+        // For parent-child, notify members (respecting visibility for hidden groups)
+        let fromMembers, toMembers
+
+        if (peerToPeer) {
+          fromMembers = await fromGroup.stewards().fetch({ transacting })
+          toMembers = await toGroup.stewards().fetch({ transacting })
+        } else {
+          fromMembers = (childToParent && fromGroup.isHidden()) ? await fromGroup.stewards().fetch({ transacting }) : await fromGroup.members().fetch({ transacting })
+          toMembers = (parentToChild && toGroup.isHidden()) ? await toGroup.stewards().fetch({ transacting }) : await toGroup.members().fetch({ transacting })
+        }
 
         // TODO: don't send a notification to the actorId...
 
         // TODO: fix hasRole
-        const reason = parentToChild ? Activity.Reason.GroupChildGroupInviteAccepted : Activity.Reason.GroupParentGroupJoinRequestAccepted
+        const reason = parentToChild
+          ? Activity.Reason.GroupChildGroupInviteAccepted
+          : peerToPeer
+            ? Activity.Reason.GroupPeerGroupInviteAccepted
+            : Activity.Reason.GroupParentGroupJoinRequestAccepted
         const fromGroupActivities = fromMembers.map(member => {
+          const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'parent' : 'child')
+          const memberType = peerToPeer ? 'moderator' : (member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member')
           return {
             reader_id: member.id,
             actor_id: actorId,
             group_id: fromGroup.id,
             other_group_id: toGroup.id,
-            reason: `${reason}:${parentToChild ? 'parent' : 'child'}:${member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member'}`
+            reason: `${reason}:${relationshipContext}:${memberType}`
           }
         })
         const toGroupActivities = toMembers.map(member => {
+          const relationshipContext = peerToPeer ? 'peer' : (parentToChild ? 'child' : 'parent')
+          const memberType = peerToPeer ? 'moderator' : (member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member')
           return {
             reader_id: member.id,
             actor_id: actorId,
             group_id: fromGroup.id,
             other_group_id: toGroup.id,
-            reason: `${reason}:${parentToChild ? 'child' : 'parent'}:${member.hasRole(GroupMembership.Role.MODERATOR) ? 'moderator' : 'member'}`
+            reason: `${reason}:${relationshipContext}:${memberType}`
           }
         })
         return Activity.saveForReasons(fromGroupActivities.concat(toGroupActivities), transacting)

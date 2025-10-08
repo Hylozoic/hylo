@@ -19,7 +19,7 @@ export function fetchRelatedGroups (slug) {
             type
           }
         }
-        childGroups {
+        parentGroups {
           items {
             id
             accessibility
@@ -32,6 +32,38 @@ export function fetchRelatedGroups (slug) {
             slug
             visibility
             type
+          }
+        }
+        peerGroups {
+          items {
+            id
+            accessibility
+            avatarUrl
+            bannerUrl
+            description
+            geoShape
+            name
+            purpose
+            slug
+            visibility
+            type
+          }
+        }
+        peerGroupRelationships {
+          items {
+            id
+            description
+            relationshipType
+            parentGroup {
+              id
+              slug
+              name
+            }
+            childGroup {
+              id
+              slug
+              name
+            }
           }
         }
       }

@@ -1,16 +1,16 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.1.11",
+  "version": "6.1.22",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.2",
   "browserslist": [
     "defaults"
   ],
@@ -117,7 +117,7 @@
     "@turf/centroid": "^7.1.0",
     "@turf/combine": "^7.1.0",
     "@turf/helpers": "^7.1.0",
-    "@virtuoso.dev/message-list": "^1.12.2",
+    "@virtuoso.dev/message-list": "^1.13.3",
     "@vitejs/plugin-react": "^4.3.3",
     "bootstrap": "4.0.0-alpha.6",
     "browserslist": "^4.23.3",
@@ -172,7 +172,6 @@
     "react-day-picker": "^9",
     "react-div-100vh": "^0.7.0",
     "react-dom": "^18.3.1",
-    "react-flip-move": "^3.0.5",
     "react-helmet": "^6.1.0",
     "react-i18next": "^15.1.1",
     "react-intersection-observer": "^9.13.1",

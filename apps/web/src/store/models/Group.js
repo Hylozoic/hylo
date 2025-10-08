@@ -158,6 +158,7 @@ Group.fields = {
     through: 'GroupRelationship',
     throughFields: ['childGroup', 'parentGroup']
   }),
+  peerGroups: many('Group'),
   commonRoles: many('CommonRole'),
   customViews: many('CustomView'),
   feedOrder: attr(),
@@ -226,4 +227,4 @@ export const PUBLIC_CONTEXT_AVATAR_PATH = '/public.svg'
 export const MY_HOME_ID = 'my-home'
 export const MY_HOME_AVATAR_PATH = '/my-home.svg'
 
-export const DEFAULT_CHAT_TOPIC = 'home'
+export const DEFAULT_CHAT_TOPIC = 'general'

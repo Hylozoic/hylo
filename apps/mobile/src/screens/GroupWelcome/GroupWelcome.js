@@ -50,7 +50,7 @@ export default function GroupWelcome () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const currentMemberships = currentUser?.memberships
-  const currentMembership = currentMemberships.find(m => m.group.id === currentGroup?.id)
+  const currentMembership = currentMemberships?.find(m => m.group.id === currentGroup?.id)
   const routeNames = getRouteNames(currentGroup, currentMembership)
 
   const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions, settings, welcomePage } = currentGroup

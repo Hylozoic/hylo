@@ -178,6 +178,10 @@ function PostEditor ({
   const toFieldRef = useRef()
   const endTimeRef = useRef()
 
+  // Track the topic that was injected from the current route so we can
+  // replace it when the route changes without touching user-added topics
+  const routeTopicIdRef = useRef(topic?.id || null)
+
   const initialPost = useMemo(() => ({
     acceptContributions: false,
     completionAction: 'button',
@@ -244,7 +248,7 @@ function PostEditor ({
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
             .map((cr) => ({
-              id: cr?.groupTopic?.id,
+              id: cr?.id,
               group: g,
               name: g.name + ' #' + cr?.groupTopic?.topic?.name,
               topic: cr?.groupTopic?.topic,
@@ -295,7 +299,9 @@ function PostEditor ({
 
   useEffect(() => {
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
@@ -330,11 +336,30 @@ function PostEditor ({
   }, [linkPreview])
 
   useEffect(() => {
-    // XXX: to make sure the topic gets included in the selectedToOptions once its loaded
-    // TODO: we may want to just make sure all the necessary stuff is loaded from the server before we display the editor
-    if (!topic || currentPost.topics.some(t => t.id === topic.id)) return
-    setCurrentPost({ ...currentPost, topics: [...currentPost.topics, topic] })
-  }, [topic])
+    // Ensure the route-derived topic is present and unique:
+    // - remove the previously injected route topic (if any)
+    // - add the new route topic (if present)
+    // User-added topics remain untouched.
+    setCurrentPost(prev => {
+      let nextTopics = prev.topics || []
+
+      // Remove the prior route topic if it exists
+      if (routeTopicIdRef.current) {
+        nextTopics = nextTopics.filter(t => t && t.id !== routeTopicIdRef.current)
+      }
+
+      // Add the new route topic if present and not already included
+      if (topic?.id) {
+        const exists = nextTopics.some(t => t && t.id === topic.id)
+        if (!exists) nextTopics = [...nextTopics, topic]
+        routeTopicIdRef.current = topic.id
+      } else {
+        routeTopicIdRef.current = null
+      }
+
+      return { ...prev, topics: nextTopics }
+    })
+  }, [topic?.id])
 
   /**
    * Resets the editor to its initial state
@@ -342,6 +367,7 @@ function PostEditor ({
    */
   const reset = useCallback(() => {
     editorRef.current?.setContent(initialPost.details)
+    setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
     setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
     dispatch(clearAttachments('post', 'new', 'image'))
@@ -350,7 +376,9 @@ function PostEditor ({
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
     if (isChat) {
-      setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
+      setTimeout(() => {
+        editorRef.current && editorRef.current.focus()
+      }, 500)
     } else {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
@@ -1114,6 +1142,7 @@ function PostEditor ({
           <div className='text-xs text-foreground/50'>{t('Location')}</div>
           <LocationInput
             saveLocationToDB
+            inputPosition={modal ? 'top' : 'bottom'}
             locationObject={currentPost.locationObject}
             location={postLocation}
             onChange={handleLocationChange}

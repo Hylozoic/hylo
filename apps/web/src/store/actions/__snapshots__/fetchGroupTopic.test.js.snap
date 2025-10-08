@@ -7,7 +7,6 @@ Object {
         groupTopic(groupSlug: $groupSlug, topicName: $topicName) {
           id
           followersTotal
-          lastReadPostId
           postsTotal
           group {
             id

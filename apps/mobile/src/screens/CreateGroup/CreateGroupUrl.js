@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useEffect } from 'react'
 import { Text, View, TextInput } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from 'urql'
@@ -12,11 +12,23 @@ export const BASE_STRING = 'hylo.com/groups/'
 export const slugValidatorRegex = /^[0-9a-z-]{2,40}$/
 export const invalidSlugMessage = 'URLs must have between 2 and 40 characters, and can only have lower case letters, numbers, and dashes.'
 
+// Function to convert group name to URL-safe slug
+function nameToSlug(name) {
+  if (!name) return ''
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+    .substring(0, 40) // Limit to 40 characters
+}
+
 export default function CreateGroupUrl ({ navigation }) {
   const { t } = useTranslation()
   const { groupData, updateGroupData, setDisableContinue } = useCreateGroupStore()
   const [error, providedSetError] = useState()
-  const [groupSlug, setGroupSlug] = useState(groupData?.slug)
+  const [groupSlug, setGroupSlug] = useState(groupData?.slug || nameToSlug(groupData?.name || ''))
   const [groupExistsCheckResult] = useQuery({ query: groupExistsQuery, variables: { slug: groupSlug } })
 
   const setError = error => {

@@ -21,8 +21,9 @@ import GroupMenuHeader from 'components/GroupMenuHeader'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import HyloHTML from 'components/HyloHTML'
 import { isIOS } from 'util/platform'
+import packageJson from '../../../package.json'
 
-export default function ContextMenu () {
+export default function ContextMenu ({ nonDrawer }) {
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [{ currentUser }] = useCurrentUser()
@@ -40,7 +41,7 @@ export default function ContextMenu () {
           <GroupMenuHeader group={currentGroup} />
         )}
         {currentGroup.isStaticContext && (
-          <View className='flex-col p-2' style={{ paddingTop: insets.top + (isIOS ? 0 : 20) }}>
+          <View className='flex-col p-2' style={{ paddingTop: nonDrawer ? (isIOS ? 5 : 20) : insets.top + (isIOS ? 0 : 20) }}>
             <Text className='text-foreground font-bold text-lg'>
               {t(currentGroup.name)}
             </Text>
@@ -102,6 +103,27 @@ function ContextWidget ({ widget, groupSlug }) {
   }
 
   if (widgetPath && (widget.childWidgets.length === 0 && !['members', 'about'].includes(widget.type))) {
+    // Special handling for logout widget to show version number
+    if (widget.type === 'logout') {
+      return (
+        <View className='rounded-md p-2 bg-background mb-0.5'>
+          <TouchableOpacity
+            onPress={() => handleWidgetPress(widget)}
+            className={`
+              flex-row items-center justify-between p-3 bg-background border-2 rounded-md mb-2
+              ${isActive ? 'border-selected opacity-100' : 'border-foreground/20'}
+            `}
+          >
+            <View className='flex-row items-center gap-2'>
+              <WidgetIconResolver widget={widget} />
+              <Text className='text-base font-normal text-foreground'>{title}</Text>
+            </View>
+            <Text className='text-sm text-foreground/60'>v{packageJson.version}</Text>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+    
     return (
       <View className='rounded-md p-2 bg-background mb-0.5'>
         <TouchableOpacity

@@ -292,3 +292,156 @@ export async function addMember (userId, groupId, role) {
   }
   return { success: true }
 }
+
+export async function invitePeerRelationship (userId, fromGroupId, toGroupId, description = null, opts = {}) {
+  if (fromGroupId === toGroupId) {
+    throw new GraphQLError('Cannot create peer relationship between the same group')
+  }
+
+  const fromGroup = await getStewardedGroup(userId, fromGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+  const toGroup = await Group.find(toGroupId, opts)
+
+  if (!toGroup) {
+    throw new GraphQLError('Target group not found')
+  }
+
+  let relationship
+
+  // Look for existing parent-child or peer to peer
+  relationship = await GroupRelationship.forPair(fromGroup, toGroup, false).fetch(opts)
+  if (!relationship) {
+    // Look for existing child to parent
+    relationship = await GroupRelationship.forPair(toGroup, fromGroup, false).fetch(opts)
+  }
+
+  if (relationship && relationship.get('active')) {
+    throw new GraphQLError('Group relationship already exists')
+  }
+
+  // Check if current user is an administrator of both groups
+  const isAdminOfToGroup = await GroupMembership.hasResponsibility(userId, toGroup, Responsibility.constants.RESP_ADMINISTRATION, opts)
+
+  if (isAdminOfToGroup) {
+    // If relationship doesn't exist, create it
+    if (!relationship) {
+      relationship = new GroupRelationship()
+    }
+
+    // If relationship already exists (any type) and is not active, make it active and set to be peer to peer
+    await relationship.save({
+      parent_group_id: fromGroup.id,
+      child_group_id: toGroup.id,
+      active: true,
+      relationship_type: Group.RelationshipType.PEER_TO_PEER,
+      description
+    }, opts)
+
+    await publishAsync({
+      type: 'groupRelationshipUpdate',
+      data: {
+        action: 'peer_relationship_created',
+        parentGroup: fromGroup,
+        childGroup: toGroup,
+        relationship
+      }
+    })
+
+    return { success: true, groupRelationship: relationship }
+  } else {
+    // Create an invitation
+    const existingInvite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch(opts)
+
+    if (existingInvite && existingInvite.get('status') === GroupRelationshipInvite.STATUS.Pending) {
+      return { success: false, groupRelationshipInvite: existingInvite }
+    }
+
+    const invite = await GroupRelationshipInvite.create({
+      userId,
+      fromGroupId,
+      toGroupId,
+      type: GroupRelationshipInvite.TYPE.PeerToPeer,
+      message: description
+    }, opts)
+
+    return { success: true, groupRelationshipInvite: invite }
+  }
+}
+
+export async function updatePeerRelationship (userId, relationshipId, description, opts = {}) {
+  console.log('🔄 updatePeerRelationship called:', { userId, relationshipId, description })
+  const relationship = await GroupRelationship.where({ id: relationshipId, active: true }).fetch(opts)
+  if (!relationship) {
+    throw new GraphQLError('Relationship not found')
+  }
+
+  if (relationship.get('relationship_type') !== Group.RelationshipType.PEER_TO_PEER) {
+    throw new GraphQLError('Can only update peer-to-peer relationships')
+  }
+
+  // Check that user is an admin of one of the groups
+  const parentGroupId = relationship.get('parent_group_id')
+  const childGroupId = relationship.get('child_group_id')
+
+  const hasPermissionA = await GroupMembership.hasResponsibility(userId, parentGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+  const hasPermissionB = await GroupMembership.hasResponsibility(userId, childGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+
+  if (!hasPermissionA && !hasPermissionB) {
+    throw new GraphQLError('You must be an administrator of one of the groups to update this relationship')
+  }
+
+  // Update both directions of the peer relationship
+  await relationship.save({ description }, opts)
+
+  // Find and update the reciprocal relationship
+  const reciprocalRelationship = await GroupRelationship.where({
+    parent_group_id: childGroupId,
+    child_group_id: parentGroupId,
+    relationship_type: Group.RelationshipType.PEER_TO_PEER,
+    active: true
+  }).fetch(opts)
+
+  if (reciprocalRelationship) {
+    await reciprocalRelationship.save({ description }, opts)
+  }
+
+  return relationship
+}
+
+export async function deletePeerRelationship (userId, relationshipId, opts = {}) {
+  console.log('🔄 deletePeerRelationship called:', { userId, relationshipId })
+  const relationship = await GroupRelationship.where({ id: relationshipId, active: true }).fetch(opts)
+  if (!relationship) {
+    throw new GraphQLError('Relationship not found')
+  }
+
+  if (relationship.get('relationship_type') !== Group.RelationshipType.PEER_TO_PEER) {
+    throw new GraphQLError('Can only delete peer-to-peer relationships')
+  }
+
+  // Check that user is an admin of one of the groups
+  const parentGroupId = relationship.get('parent_group_id')
+  const childGroupId = relationship.get('child_group_id')
+
+  const hasPermissionA = await GroupMembership.hasResponsibility(userId, parentGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+  const hasPermissionB = await GroupMembership.hasResponsibility(userId, childGroupId, Responsibility.constants.RESP_ADMINISTRATION, opts)
+
+  if (!hasPermissionA && !hasPermissionB) {
+    throw new GraphQLError('You must be an administrator of one of the groups to delete this relationship')
+  }
+
+  // Delete the peer relationship
+  await relationship.save({ active: false }, opts)
+
+  // Publish relationship update
+  await publishAsync({
+    type: 'groupRelationshipUpdate',
+    data: {
+      action: 'peer_relationship_removed',
+      parentGroup: { id: parentGroupId },
+      childGroup: { id: childGroupId },
+      relationship
+    }
+  })
+
+  return { success: true }
+}

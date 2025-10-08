@@ -565,7 +565,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           limit: first,
           mentionsOf,
           offset,
-          onlyMyGroups: context === 'all',
+          onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
           proposalOutcome,
@@ -649,6 +649,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { parentGroups: { querySet: true } },
+        { peerGroups: { querySet: true } },
+        { peerGroupRelationships: { querySet: true } },
         {
           posts: {
             querySet: true,
@@ -891,6 +893,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupRelationship,
       attributes: [
         'created_at',
+        'description',
+        'relationship_type',
         'role',
         'updated_at'
       ],
@@ -1155,7 +1159,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         followersTotal: gt => gt.followerCount(),
         isSubscribed: gt => userId ? gt.isFollowed(userId) : null,
         lastReadPostId: gt => userId ? gt.lastReadPostId(userId) : null,
-        newPostCount: gt => gt.newPostCount(userId)
+        newPostCount: gt => userId ? gt.newPostCount(userId) : null
       },
       relations: [
         'group',

@@ -38,10 +38,14 @@ export default {
     })
   },
 
-  updateEventInvitees: async function (userIds, inviterId, opts) {
+  updateEventInvitees: async function ({ userIds, inviterId, eventChanges = {}, opts }) {
     const eventInviteeIds = (await this.eventInvitees().fetch()).pluck('id')
     const toRemove = difference(eventInviteeIds, userIds)
     const toAdd = difference(userIds, eventInviteeIds)
+
+    if (eventChanges.start_time || eventChanges.end_time || eventChanges.location) {
+      Queue.classMethod('Post', 'sendEventUpdateRsvps', { postId: this.id, eventChanges })
+    }
 
     await this.removeEventInvitees(toRemove, opts)
     return this.addEventInvitees(toAdd, inviterId, opts)

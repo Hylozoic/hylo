@@ -1,6 +1,7 @@
 .container {
   height: 100%;
-  width: 500px;
+  width: 40%;
+  max-width: 400px;
   transition: all .25s ease;
   overflow-y: auto;
   z-index: 20;

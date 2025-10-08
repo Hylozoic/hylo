@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
+import { DateTimeHelpers } from '@hylo/shared'
 
 import Avatar from 'components/Avatar'
 import CardFileAttachments from 'components/CardFileAttachments'
@@ -48,7 +48,7 @@ export default function ActionCompletionResponsesDialog ({ portalTarget, post, o
               <div key={response.id} className='flex flex-col gap-2 bg-midground rounded p-4 border-b-2 border-dashed border-foreground/20'>
                 <div className='w-full flex flex-row justify-between'>
                   <span><Avatar url={personUrl(response.user.id)} avatarUrl={response.user.avatarUrl} small /> {response.user.name}</span>
-                  <span>{TextHelpers.formatDatePair(response.completedAt)}</span>
+                  <span>{DateTimeHelpers.formatDatePair({ start: response.completedAt })}</span>
                 </div>
                 <div className='text-sm'><CompletionResponse action={post.completionAction} response={response.completionResponse} /></div>
               </div>

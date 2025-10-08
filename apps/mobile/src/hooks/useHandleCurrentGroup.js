@@ -1,13 +1,13 @@
 import { useCallback, useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import { useMutation } from 'urql'
-import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
+import updateMembershipMutation from '@hylo/graphql/mutations/updateMembershipMutation'
 import { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup, { getLastViewedGroupSlug, useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
 import { widgetUrl } from '@hylo/navigation'
-import mixpanel from 'services/mixpanel'
 import useOpenURL from 'hooks/useOpenURL'
+import mixpanel from 'services/mixpanel'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import useRouteParams from 'hooks/useRouteParams'
 import getActiveRoute from 'navigation/getActiveRoute'
@@ -20,12 +20,20 @@ export function useHandleCurrentGroupSlug () {
   const pathMatches = originalLinkingPath?.match(/\/groups\/([^\/]+)(.*$)/)
   const groupSlugFromPath = pathMatches?.[1] ?? null
   const pathAfterMatch = pathMatches?.[2] ?? null
-
   useEffect(() => {
-    if (currentUser && !currentGroupSlug && !groupSlugFromPath) {
+    if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
-  }, [currentUser, currentGroupSlug])
+    // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (which they access via the 'my' context) and then logs back in
+    if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
+      const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
+      if (lastViewedGroupSlug) {
+        changeToGroup(lastViewedGroupSlug)
+      } else {
+        changeToGroup(currentGroupSlug)
+      }
+    }
+  }, [currentUser?.memberships, currentGroupSlug])
 
   useEffect(() => {
     if (context) {
@@ -102,7 +110,7 @@ export function useChangeToGroup () {
   const openURL = useOpenURL()
   const { setCurrentGroupSlug, setNavigateHome } = useCurrentGroupStore()
   const [{ currentUser }] = useCurrentUser()
-  const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
+  const [, updateMembership] = useMutation(updateMembershipMutation)
 
   const changeToGroup = useCallback((groupSlug, {
     confirm = false,
@@ -114,10 +122,14 @@ export function useChangeToGroup () {
       skipCanViewCheck
 
     if (canViewGroup) {
-      const goToGroup = () => {
+        const goToGroup = () => {
         setNavigateHome(navigateHome)
         setCurrentGroupSlug(groupSlug)
-        updateUserSettings({ changes: { settings: { lastViewedAt: (new Date()).toISOString() } } })
+          const membership = currentUser?.memberships?.find(m => m.group.slug === groupSlug)
+          const groupId = membership?.group?.id
+          if (groupId) {
+            updateMembership({ groupId, data: { lastViewedAt: new Date().toISOString() } })
+          }
       }
       if (confirm) {
         confirmAlert({

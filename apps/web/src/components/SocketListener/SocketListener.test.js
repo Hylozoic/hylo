@@ -53,7 +53,7 @@ it.skip('sets up event handlers and subscribes', () => {
 
   // Check if the component subscribes to the socket
   expect(mockSocket.post).toHaveBeenCalledWith(
-    `${process.env.SOCKET_HOST}/noo/user/subscribe`,
+    `${process.env.VITE_SOCKET_HOST}/noo/user/subscribe`,
     expect.any(Function)
   )
 })
@@ -64,7 +64,7 @@ it.skip('unsubscribes and removes event handlers on unmount', () => {
   unmount()
 
   expect(mockSocket.post).toHaveBeenCalledWith(
-    `${process.env.SOCKET_HOST}/noo/user/unsubscribe`
+    `${process.env.VITE_SOCKET_HOST}/noo/user/unsubscribe`
   )
 
   // Check if all event handlers are removed

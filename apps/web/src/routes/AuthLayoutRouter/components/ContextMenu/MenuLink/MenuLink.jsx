@@ -25,7 +25,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
   }
 
   return (
-    <Link to={to} onClick={handleClick} className={cn('text-foreground text-sm focus:text-foreground relative', className, { 'opacity-100 border-selected': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
+    <Link to={to} onClick={handleClick} className={cn('text-foreground text-sm focus:text-foreground relative', className, { 'opacity-100 border-selected font-bold': isCurrentLocation }, { 'border-accent': badgeCount > 0 })}>
       {children}
       {badgeCount && badgeCount > 0
         ? (

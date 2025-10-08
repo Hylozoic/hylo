@@ -1,20 +1,22 @@
 {
   "name": "desktop",
   "productName": "Hylo",
-  "version": "0.0.1",
+  "version": "1.0.0-beta.2",
   "description": "The Desktop version of Hylo",
   "main": "main.js",
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
   "scripts": {
-    "start": "electron-forge start",
+    "prebuild": "yarn copy-shared-packages",
+    "copy-shared-packages": "node scripts/copy-shared-packages.js",
+    "start": "yarn copy-shared-packages && electron-forge start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "package": "yarn copy-shared-packages && electron-forge package",
+    "make": "yarn copy-shared-packages && electron-forge make"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -29,10 +31,14 @@
     "electron": "^37.2.4"
   },
   "dependencies": {
-    "@hylo/navigation": "file:.yalc/@hylo/navigation",
-    "@hylo/presenters": "file:.yalc/@hylo/presenters",
+    "@hylo/navigation": "workspace:*",
+    "@hylo/presenters": "workspace:*",
     "electron-squirrel-startup": "^1.0.1",
+    "html-to-text": "^8.1.0",
     "i18next": "^23.0.0",
-    "i18next-http-backend": "^2.0.0"
+    "i18next-http-backend": "^2.0.0",
+    "lodash": "^4.17.21",
+    "tinycolor2": "^1.6.0",
+    "trunc-text": "^1.0.2"
   }
 }

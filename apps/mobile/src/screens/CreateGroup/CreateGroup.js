@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -22,7 +22,7 @@ export default function CreateGroup ({ navigation }) {
   const insets = useSafeAreaInsets()
   const keyboardVisible = useKeyboardVisible()
   const confirmAlert = useConfirmAlert()
-  const { currentStep, goNext, goBack, disableContinue, clearStore, setSubmit } = useCreateGroupStore()
+  const { currentStep, goNext, goBack, disableContinue, clearStore, setSubmit, isSubmitting } = useCreateGroupStore()
   const [{ currentUser }] = useCurrentUser()
   const memberships = currentUser?.memberships
 
@@ -51,6 +51,16 @@ export default function CreateGroup ({ navigation }) {
     })
   }
 
+  // Cleanup effect - clear store if component unmounts while submitting
+  useEffect(() => {
+    return () => {
+      // If we're unmounting while submitting, clear the store immediately
+      if (isSubmitting) {
+        clearStore()
+      }
+    }
+  }, [isSubmitting, clearStore])
+
   return (
     <KeyboardAvoidingView
       behavior={isIOS ? 'padding' : ''}
@@ -69,45 +79,48 @@ export default function CreateGroup ({ navigation }) {
       >
         <CurrentScreen />
       </ScrollView>
-      <View
-        style={[
-          styles.workflowNav,
-          {
-            paddingBottom: keyboardVisible ? 10 : insets.bottom + (isIOS ? 0 : 20),
-            paddingLeft: insets.left + 10,
-            paddingRight: insets.right + 10
-          }
-        ]}
-      >
-        <View>
-          {currentStep > 0 && (
-            <ButtonNW
-              text={t('< Back')}
-              onPress={() => goBack(navigation)}
-              className='border-2 border-foreground/50'
-              textClassName='text-foreground'
-            />
-          )}
-        </View>
-        {currentStep < totalSteps - 1
-          ? (
-            <ButtonNW
-              text={t('Continue')}
-              onPress={() => goNext(totalSteps)}
-              disabled={disableContinue}
-              className='border-2 border-foreground/50'
-              textClassName='text-foreground'
-            />
-            )
-          : (
-            <ButtonNW
-              text={t('Lets Do This!')}
-              onPress={() => setSubmit(true)}
-              className='border-2 border-foreground/50'
-              textClassName='text-foreground'
-            />
+      {!isSubmitting && (
+        <View
+          style={[
+            styles.workflowNav,
+            {
+              paddingBottom: keyboardVisible ? 10 : insets.bottom + (isIOS ? 0 : 20),
+              paddingLeft: insets.left + 10,
+              paddingRight: insets.right + 10
+            }
+          ]}
+        >
+          <View>
+            {currentStep > 0 && (
+              <ButtonNW
+                text={t('< Back')}
+                onPress={() => goBack(navigation)}
+                className='border-2 border-foreground/50'
+                textClassName='text-foreground'
+              />
             )}
-      </View>
+          </View>
+          {currentStep < totalSteps - 1
+            ? (
+              <ButtonNW
+                text={t('Continue')}
+                onPress={() => goNext(totalSteps)}
+                disabled={disableContinue}
+                className='border-2 border-foreground/50'
+                textClassName='text-foreground'
+              />
+              )
+            : (
+              <ButtonNW
+                text={t('Lets Do This!')}
+                onPress={() => setSubmit(true)}
+                disabled={isSubmitting}
+                className='border-2 border-foreground/50'
+                textClassName='text-foreground'
+              />
+              )}
+        </View>
+      )}
     </KeyboardAvoidingView>
   )
 }

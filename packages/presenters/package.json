@@ -26,6 +26,7 @@
   "devDependencies": {
     "@babel/cli": "^7.17.6",
     "@babel/core": "^7.17.0",
+    "@babel/plugin-transform-export-namespace-from": "^7.22.11",
     "@babel/preset-env": "^7.16.11",
     "@babel/runtime": "^7.25.0"
   }

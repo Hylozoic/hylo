@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Intercom from '@intercom/intercom-react-native'
 import { LogLevel, OneSignal } from 'react-native-onesignal'
 import { useMutation, useQuery } from 'urql'
@@ -40,6 +41,7 @@ export default function AuthRootNavigator () {
   // to cache-and-network or cache-first (default). It may be fine here, but it is
   // the only place we should do this with useCurrentUser as it would be expensive
   // lower in the stack where it may get called in any loops and such.
+  const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,8 @@ export default function AuthRootNavigator () {
 
   // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
   // This stays within Android's 4 concurrent SSE connection limit
-  useUnifiedSubscription()
+  // Pause until we have a currentUser to avoid unauthenticated subscription attempts
+  useUnifiedSubscription({ pause: !currentUser })
 
   useQuery({ query: notificationsQuery })
   useQuery({ query: commonRolesQuery })
@@ -139,7 +142,24 @@ export default function AuthRootNavigator () {
           in views which have different behavior when opened as a modal. Don't use it if there is no non-modal
           counterpart to a modal screen.
         */}
-        <AuthRoot.Group screenOptions={{ presentation: 'modal', header: ModalHeader }}>
+        <AuthRoot.Screen name='Notifications' component={NotificationsList} />
+
+        <AuthRoot.Group screenOptions={{ 
+          presentation: 'modal', 
+          header: ModalHeader,
+          cardStyle: { 
+            backgroundColor: twBackground,
+            // Add safe area insets to the card style
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right
+          },
+          // Let React Navigation handle safe areas naturally
+          cardOverlayEnabled: false,
+          // Ensure proper safe area handling for modals
+          headerStatusBarHeight: undefined
+        }}>
           <AuthRoot.Screen
             name='Creation'
             component={CreationOptions}
@@ -153,7 +173,6 @@ export default function AuthRootNavigator () {
           <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
           <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
           <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
-          <AuthRoot.Screen name='Notifications' component={NotificationsList} />
           <AuthRoot.Screen name='Upload Action' component={UploadAction} />
           <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
           <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />

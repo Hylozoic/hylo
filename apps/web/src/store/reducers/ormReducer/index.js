@@ -21,6 +21,7 @@ import {
   FETCH_MESSAGES_PENDING,
   FETCH_GROUP_CHAT_ROOMS,
   INVITE_CHILD_TO_JOIN_PARENT_GROUP,
+  INVITE_PEER_RELATIONSHIP,
   JOIN_PROJECT_PENDING,
   LEAVE_GROUP,
   LEAVE_PROJECT_PENDING,
@@ -128,16 +129,29 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     extractModelsFromAction(action, session)
   }
 
-  let me, membership, group, person, post, comment, groupTopic, childGroup, topicFollow
+  let me, membership, group, person, post, comment, groupTopic, topicFollow
 
   switch (type) {
     case ACCEPT_GROUP_RELATIONSHIP_INVITE: {
       const newGroupRelationship = payload.data.acceptGroupRelationshipInvite.groupRelationship
       if (newGroupRelationship) {
-        childGroup = Group.withId(newGroupRelationship.childGroup.id)
-        Group.withId(newGroupRelationship.parentGroup.id).updateAppending({ childGroups: [childGroup] })
+        const { childGroup: childGroupData, parentGroup: parentGroupData, relationshipType } = newGroupRelationship
+        const childGroupModel = Group.withId(childGroupData.id)
+        const parentGroupModel = Group.withId(parentGroupData.id)
+
+        if (relationshipType === 1) {
+          // Peer-to-peer relationship: add each group to the other's peerGroups
+          parentGroupModel.updateAppending({ peerGroups: [childGroupModel] })
+          childGroupModel.updateAppending({ peerGroups: [parentGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+          clearCacheFor(Group, parentGroupData.id)
+        } else {
+          // Parent-child relationship (relationshipType === 0): existing behavior
+          parentGroupModel.updateAppending({ childGroups: [childGroupModel] })
+          clearCacheFor(Group, childGroupData.id)
+        }
+
         GroupRelationshipInvite.withId(meta.id).delete()
-        clearCacheFor(Group, childGroup.id)
       }
       break
     }
@@ -363,6 +377,12 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           gr.delete()
           clearCacheFor(Group, meta.parentId)
           clearCacheFor(Group, meta.childId)
+        } else {
+          // Peer-to-peer relationship
+          const parentGroup = Group.withId(meta.parentId)
+          const childGroup = Group.withId(meta.childId)
+          parentGroup.peerGroups.remove(childGroup.id)
+          clearCacheFor(Group, parentGroup.id)
         }
       }
       break
@@ -433,6 +453,23 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         clearCacheFor(Group, newGroupRelationship.childGroup.id)
       } else {
         const newGroupRelationshipInvite = payload.data.inviteGroupToJoinParent.groupRelationshipInvite
+        if (newGroupRelationshipInvite) {
+          clearCacheFor(Group, newGroupRelationshipInvite.toGroup.id)
+          clearCacheFor(Group, newGroupRelationshipInvite.fromGroup.id)
+        }
+      }
+      break
+    }
+
+    case INVITE_PEER_RELATIONSHIP: {
+      const newGroupRelationship = payload.data.invitePeerRelationship.groupRelationship
+      if (newGroupRelationship) {
+        const childGroup = Group.withId(newGroupRelationship.childGroup.id)
+        const parentGroup = Group.withId(newGroupRelationship.parentGroup.id)
+        parentGroup.update({ peerGroups: [...parentGroup.peerGroups.toModelArray(), childGroup.id] })
+        clearCacheFor(Group, parentGroup.id)
+      } else {
+        const newGroupRelationshipInvite = payload.data.invitePeerRelationship.groupRelationshipInvite
         if (newGroupRelationshipInvite) {
           clearCacheFor(Group, newGroupRelationshipInvite.toGroup.id)
           clearCacheFor(Group, newGroupRelationshipInvite.fromGroup.id)
@@ -744,7 +781,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         const contextWidgets = group.contextWidgets?.items
         if (contextWidgets) {
           const newContextWidgets = contextWidgets.map(cw => {
-            if (cw.type === 'chat' && cw.viewChat?.id === data.topic.id) {
+            if (cw.viewChat?.id === data.topic.id) {
               return { ...cw, highlightNumber: data.newPostCount }
             }
             return cw
@@ -928,7 +965,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       me = Me.first()
 
       const optimisticUpdate = {
-        myReactions: [...(comment.myReactions || []), { emojiFull }],
         commentReactions: [...(comment.commentReactions || []), { emojiFull, user: { name: me.name, id: me.id } }]
       }
 
@@ -945,7 +981,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      comment.update({ myReactions: comment.myReactions.filter(react => react.emojiFull !== emojiFull), commentReactions })
+      comment.update({ commentReactions })
       break
     }
 
@@ -954,7 +990,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
 
-      const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
+      const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: me.name, id: me.id } }] }
 
       post.update(optimisticUpdate)
 
@@ -974,7 +1010,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
         return true
       })
-      post.update({ myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions })
+      post.update({ postReactions })
       break
     }
   }

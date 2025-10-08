@@ -33,9 +33,11 @@ export const groupFilter = userId => relation => {
         const selectIdsForMember = Group.selectIdsForMember(userId)
         const parentGroupIds = GroupRelationship.parentIdsFor(selectIdsForMember)
         const childGroupIds = GroupRelationship.childIdsFor(selectIdsForMember)
+        const peerGroupIds = GroupRelationship.peerIdsFor(selectIdsForMember)
         // You can see all related groups, even hidden ones, if you are a group Administrator
         const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
         const childrenOfStewardedGroupIds = GroupRelationship.childIdsFor(selectStewardedGroupIds)
+        const peerGroupsOfStewardedGroupIds = GroupRelationship.peerIdsFor(selectStewardedGroupIds)
 
         // Can see groups you are a member of...
         q2.whereIn('groups.id', selectIdsForMember)
@@ -48,6 +50,14 @@ export const groupFilter = userId => relation => {
             q4.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
           })
           q3.orWhereIn('groups.id', childrenOfStewardedGroupIds)
+        })
+        // + peer groups that are not hidden, except Administrators of a group can see its hidden peer groups
+        q2.orWhere(q6 => {
+          q6.where(q7 => {
+            q7.whereIn('groups.id', peerGroupIds)
+            q7.andWhere('groups.visibility', '!=', Group.Visibility.HIDDEN)
+          })
+          q6.orWhereIn('groups.id', peerGroupsOfStewardedGroupIds)
         })
         // + all public groups
         q2.orWhere(q5 => {

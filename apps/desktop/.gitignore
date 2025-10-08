@@ -130,3 +130,6 @@ dist
 .pnp.*
 
 .yalc
+
+# Copied shared packages for Electron builds
+shared-packages/

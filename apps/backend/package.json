@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "6.1.11",
+  "version": "6.1.21",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -16,9 +16,9 @@
   "main": "app.js",
   "engines": {
     "node": "^20",
-    "yarn": "^4.5.0"
+    "yarn": "^4.9.2"
   },
-  "packageManager": "yarn@4.5.0",
+  "packageManager": "yarn@4.9.2",
   "scripts": {
     "start": "node --optimize_for_size --gc_interval=100 app.js",
     "console": "node console.js",
