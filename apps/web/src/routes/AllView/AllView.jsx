@@ -23,7 +23,7 @@ import {
   reorderPostInCollection
 } from '../GroupSettings/GroupSettings.store'
 import useDebounce from 'hooks/useDebounce'
-
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 import Icon from 'components/Icon'
 import PostSelector from 'components/PostSelector'
 import WidgetIconResolver from 'components/WidgetIconResolver'
@@ -147,20 +147,32 @@ export default function AllViews () {
             </span>
           )}
           {isEditing && widget.isValidHomeWidget && (
-            <span
-              className='text-sm inline-block text-foreground'
-              onClick={(evt) => {
-                evt.stopPropagation()
-                handleWidgetHomePromotion(widget)
-              }}
-            >
-              <House />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleWidgetHomePromotion(widget)
+                  }}
+                >
+                  <House />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('Set as Home View')}</TooltipContent>
+            </Tooltip>
           )}
+
           {isEditing && !widget.order && (
-            <span className='text-sm text-foreground inline-block'>
-              <Plus />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='text-sm text-foreground inline-block hover:text-selected'>
+                  <Plus />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('Add to Group Menu')}</TooltipContent>
+            </Tooltip>
+
           )}
         </div>
       )
