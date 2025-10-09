@@ -20,6 +20,7 @@
     "@hylo/navigation": "workspace:*",
     "html-to-text": "^8.1.0",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.453.0",
     "tinycolor2": "^1.6.0",
     "trunc-text": "^1.0.2"
   },
