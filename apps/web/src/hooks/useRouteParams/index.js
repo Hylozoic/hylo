@@ -60,6 +60,7 @@ export default function useRouteParams () {
     // Set trackId
     if (params.view === 'tracks') {
       params.trackId = pathParts[4]
+      params.tab = pathParts[5]
     }
 
     // Set fundingRoundId
