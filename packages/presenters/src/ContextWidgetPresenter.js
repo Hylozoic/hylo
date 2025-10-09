@@ -61,6 +61,8 @@ function titleResolver (widget) {
 function isValidHomeWidgetResolver (widget) {
   return !!(
     widget?.viewChat?.id ||
+    widget?.viewTrack?.id ||
+    widget?.viewFundingRound?.id ||
     widget?.customView?.id ||
     widget?.view
   )

@@ -1,12 +1,13 @@
 import { capitalize, isEmpty } from 'lodash/fp'
-import { BadgeDollarSign, Check, ChevronsRight, DoorOpen, Eye } from 'lucide-react'
+import { BadgeDollarSign, Check, ChevronsRight, DoorOpen, Eye, Settings } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, Routes, Route, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { createPostUrl, personUrl } from '@hylo/navigation'
+import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 import { DateTimeHelpers } from '@hylo/shared'
+import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import HyloHTML from 'components/HyloHTML'
 import NotFound from 'components/NotFound'
@@ -50,7 +51,7 @@ function FundingRoundHome () {
   const currentTab = routeParams['*'] || 'about'
 
   useEffect(() => {
-    if (!fundingRound && routeParams.fundingRoundId) dispatch(fetchFundingRound(routeParams.fundingRoundId))
+    if (routeParams.fundingRoundId) dispatch(fetchFundingRound(routeParams.fundingRoundId))
   }, [routeParams.fundingRoundId])
 
   const handleJoinFundingRound = useCallback(() => {
@@ -109,19 +110,21 @@ function FundingRoundHome () {
               {canEdit && (
                 <Link
                   className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                  to='edit'
+                  to='manage'
                 >
-                  {t('Edit')}
+                  {t('Manage')}
                 </Link>
               )}
             </div>)}
 
           <Routes>
-            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canEdit={canEdit}/>} />
+            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canEdit={canEdit} />} />
             <Route path='participants/*' element={<PeopleTab round={fundingRound} />} />
             <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
-            <Route path='edit/*' element={<EditTab round={fundingRound} />} />
+            <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
+            <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
             <Route path='post/:postId' element={<PostDialog container={container} />} />
+            <Route path='post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
             <Route path='*' element={<AboutTab round={fundingRound} />} />
           </Routes>
 
@@ -299,12 +302,21 @@ function ChatTab ({ fundingRound }) {
   )
 }
 
-function EditTab () {
+function ManageTab ({ round }) {
   const { t } = useTranslation()
+  const routeParams = useRouteParams()
+  const navigate = useNavigate()
+
   return (
-    <div>
-      <div className='text-foreground/70'>{t('Editing coming soon')}</div>
-    </div>
+    <>
+      <button
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
+        onClick={() => navigate(groupUrl(routeParams.groupSlug, `funding-rounds/${round?.id}/edit`))}
+      >
+        <Settings className='w-4 h-4' />
+        <span>{t('Edit Funding Round')}</span>
+      </button>
+    </>
   )
 }
 

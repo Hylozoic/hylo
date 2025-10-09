@@ -3,6 +3,23 @@ import { } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
+// XXX: because convertGraphqlData messes up dates
+const fixDateFields = (attrs, data) => {
+  const dateFields = [
+    { from: 'publishedAt', to: 'published_at' },
+    { from: 'votingOpensAt', to: 'voting_opens_at' },
+    { from: 'votingClosesAt', to: 'voting_closes_at' },
+    { from: 'submissionsOpenAt', to: 'submissions_open_at' },
+    { from: 'submissionsCloseAt', to: 'submissions_close_at' }
+  ]
+  dateFields.forEach(({ from, to }) => {
+    if (data[from]) {
+      attrs[to] = new Date(Number(data[from]))
+    }
+  })
+  return attrs
+}
+
 export async function createFundingRound (userId, data) {
   const attrs = convertGraphqlData(data)
   // Required fields
@@ -15,21 +32,7 @@ export async function createFundingRound (userId, data) {
   const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
   if (!canManage) throw new GraphQLError('You do not have permission to create funding rounds')
 
-  const dateFields = [
-    { from: 'publishedAt', to: 'published_at' },
-    { from: 'votingOpensAt', to: 'voting_opens_at' },
-    { from: 'votingClosesAt', to: 'voting_closes_at' },
-    { from: 'submissionsOpenAt', to: 'submissions_open_at' },
-    { from: 'submissionsCloseAt', to: 'submissions_close_at' }
-  ]
-
-  dateFields.forEach(({ from, to }) => {
-    if (data[from]) {
-      attrs[to] = new Date(Number(data[from])) // XXX: because convertGraphqlData messes up dates
-    }
-  })
-
-  const round = await FundingRound.create(attrs)
+  const round = await FundingRound.create(fixDateFields(attrs, data))
   Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, fundingRound: round })
   return round
 }
@@ -43,7 +46,7 @@ export async function updateFundingRound (userId, id, data) {
   if (!canManage) throw new GraphQLError('You do not have permission to update funding rounds')
 
   const attrs = convertGraphqlData(data)
-  await round.save({ updated_at: new Date(), ...attrs })
+  await round.save({ updated_at: new Date(), ...fixDateFields(attrs, data) })
   return round
 }
 

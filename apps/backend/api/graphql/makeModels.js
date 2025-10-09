@@ -106,6 +106,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewPost',
         'viewUser',
         'viewChat',
+        'viewFundingRound',
         'viewTrack'
       ],
       getters: {
@@ -1340,7 +1341,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'submitterRole',
         { users: { querySet: true } },
         'voterRole'
-      ]
+      ],
+      fetchMany: ({ first, order, offset = 0, published, search }) =>
+        searchQuerySet('funding_rounds', {
+          first, order, offset, published, search
+        })
     },
 
     Notification: {

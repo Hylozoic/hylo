@@ -29,7 +29,7 @@ import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import HyloEditor from 'components/HyloEditor'
-import { createFundingRound } from 'store/actions/fundingRoundActions'
+import { createFundingRound, updateFundingRound } from 'store/actions/fundingRoundActions'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -162,6 +162,17 @@ function FundingRoundEditor (props) {
   const groupRoles = useMemo(() => currentGroup?.groupRoles?.items || [], [currentGroup?.groupRoles?.items])
   const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
 
+  // Get the selected role object from the roles array to display
+  const selectedSubmitterRole = useMemo(() => {
+    if (!fundingRoundState.submitterRole?.id) return null
+    return roles.find(role => role.id === fundingRoundState.submitterRole.id)
+  }, [fundingRoundState.submitterRole, roles])
+
+  const selectedVoterRole = useMemo(() => {
+    if (!fundingRoundState.voterRole?.id) return null
+    return roles.find(role => role.id === fundingRoundState.voterRole.id)
+  }, [fundingRoundState.voterRole, roles])
+
   useEffect(() => {
     if (!canManage && currentGroup) {
       dispatch(push(groupUrl(currentGroup.slug)))
@@ -202,7 +213,7 @@ function FundingRoundEditor (props) {
       votingClosesAt: (key === 'votingClosesAt' && votingOpensAt && value <= votingOpensAt) || (key === 'votingOpensAt' && votingClosesAt && value > votingClosesAt) ? t('Voting must close after it opens') : null
     }))
 
-    if (key === 'submitteRole' || key === 'voterRole') {
+    if (key === 'submitterRole' || key === 'voterRole') {
       setFundingRoundState(prev => ({ ...prev, [key]: value, [key + 'Type']: value.type }))
     } else if (['submissionsOpenAt', 'submissionsCloseAt', 'votingOpensAt', 'votingClosesAt'].includes(key)) {
       setFundingRoundState(prev => ({ ...prev, [key]: value.toISOString() }))
@@ -225,31 +236,46 @@ function FundingRoundEditor (props) {
     const descriptionHTML = descriptionEditorRef.current?.getHTML?.() || description
     const criteriaHTML = criteriaEditorRef.current?.getHTML?.() || criteria
 
-    const result = await dispatch(createFundingRound({
-      ...fundingRoundState,
+    const save = editingRound ? updateFundingRound : createFundingRound
+
+    const result = await dispatch(save({
+      id: editingRound?.id,
+      bannerUrl,
       criteria: criteriaHTML,
       description: descriptionHTML,
       groupId: currentGroup.id,
       maxTokenAllocation: maxTokenAllocation ? Number(maxTokenAllocation) : null,
       minTokenAllocation: minTokenAllocation ? Number(minTokenAllocation) : null,
+      publishedAt,
+      requireBudget,
+      submissionDescriptor,
+      submissionDescriptorPlural,
+      submitterRole,
+      submissionsCloseAt,
+      submissionsOpenAt,
       title: trim(title),
-      totalTokens: totalTokens ? Number(totalTokens) : null
+      tokenType,
+      totalTokens: totalTokens ? Number(totalTokens) : null,
+      voterRole,
+      votingMethod,
+      votingClosesAt,
+      votingOpensAt
     }))
 
-    const created = result?.payload?.data?.createFundingRound
+    const savedRound = result?.payload?.data?.createFundingRound || result?.payload?.data?.updateFundingRound
     setSaving(false)
-    if (created?.id) {
+    if (savedRound?.id) {
       setEdited(false)
-      dispatch(push(groupUrl(currentGroup.slug, `funding-rounds/${created.id}`)))
+      dispatch(push(groupUrl(currentGroup.slug, `funding-rounds/${savedRound.id}/manage`)))
     } else if (result?.error) {
       setErrors({ ...errors, general: t('There was an error, please try again.') })
     }
-  }, [fundingRoundState, isValid])
+  }, [fundingRoundState, isValid, editingRound])
 
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-2'>
       <div className='p-0'>
-        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-2'>{t('Create Funding Round')}</h1>
+        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-2'>{props.editingRound ? t('Edit Funding Round') : t('Create Funding Round')}</h1>
       </div>
 
       <UploadAttachmentButton
@@ -358,7 +384,7 @@ function FundingRoundEditor (props) {
         <div className='flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-md'>
           <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Token Type')}</div>
           <Popover open={tokenPopoverOpen} onOpenChange={setTokenPopoverOpen}>
-            <PopoverTrigger className='flex-1'>
+            <PopoverTrigger className='flex-1' asChild>
               <button type='button' className='w-full text-left border-none outline-none bg-transparent placeholder:text-foreground/50 p-2'>
                 {customTokenMode ? t('Other') : (tokenType || 'Votes')}
                 {/* TODO: add icon indicating its a select box */}
@@ -378,7 +404,7 @@ function FundingRoundEditor (props) {
                         className='w-full text-left p-2 rounded hover:bg-accent hover:text-accent-foreground'
                         onClick={() => handleSelectToken(tokenSearch)}
                       >
-                        {t('Use')} "{tokenSearch}"
+                        {t('Use {{tokenType}}', { tokenType: tokenSearch })}
                       </button>
                     </div>
                   </CommandEmpty>
@@ -468,17 +494,17 @@ function FundingRoundEditor (props) {
         <h3>{t('Badge or Role required to add a {{submissionDescriptor}}. If not set any member can add.', { submissionDescriptor })}</h3>
         <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus rounded-md'>
           <Select
-            onValueChange={updateFundingRoundState('submitterRole')}
-            value={submitterRole}
+            onValueChange={roleId => updateFundingRoundState('submitterRole')(roles.find(role => role.id === roleId))}
+            value={selectedSubmitterRole?.id || ''}
           >
             <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
               <SelectValue>
-                {submitterRole ? submitterRole.emoji + ' ' + submitterRole.name : t('Select badge or role')}
+                {selectedSubmitterRole ? selectedSubmitterRole.emoji + ' ' + selectedSubmitterRole.name : t('Select badge or role')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {roles.map((role) => (
-                <SelectItem key={role.id} value={role}>
+                <SelectItem key={role.id} value={role.id}>
                   {role.emoji} {role.name}
                 </SelectItem>
               ))}
@@ -491,17 +517,17 @@ function FundingRoundEditor (props) {
         <h3>{t('Badge or Role required to vote. If not set any member can vote.')}</h3>
         <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
           <Select
-            onValueChange={updateFundingRoundState('voterRole')}
-            value={voterRole}
+            onValueChange={roleId => updateFundingRoundState('voterRole')(roles.find(role => role.id === roleId))}
+            value={selectedVoterRole?.id || ''}
           >
             <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
               <SelectValue>
-                {voterRole ? voterRole.emoji + ' ' + voterRole.name : t('Select a badge or role')}
+                {selectedVoterRole ? selectedVoterRole.emoji + ' ' + selectedVoterRole.name : t('Select a badge or role')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {roles.map((role) => (
-                <SelectItem key={role.id} value={role}>
+                <SelectItem key={role.id} value={role.id}>
                   {role.emoji} {role.name}
                 </SelectItem>
               ))}
@@ -600,7 +626,7 @@ function FundingRoundEditor (props) {
           onClick={handleSave}
           tooltip={Object.values(errors).filter(v => !!v).reduce((result, e) => [...result, <div key={e}>{e}</div>], [])}
         >
-          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{t('Create Funding Round')}
+          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{props.editingRound ? t('Update Funding Round') : t('Create Funding Round')}
         </Button>
       </div>
     </div>

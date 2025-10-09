@@ -265,6 +265,8 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   } else if (widget.viewTrack) {
     url = trackUrl(widget.viewTrack.id, { context, groupSlug })
+  } else if (widget.viewFundingRound) {
+    url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
   }
 
   return url

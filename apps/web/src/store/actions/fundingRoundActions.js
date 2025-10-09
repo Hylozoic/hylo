@@ -247,11 +247,11 @@ export function updateFundingRound (data) {
   const { id, ...rest } = data
 
   // We need the full roles in the data for the optimistic update, but only the role id in the mutation
-  const dataForUpdate = rest
-  if (rest.submitterRole) {
+  const dataForUpdate = { ...rest }
+  if (dataForUpdate.submitterRole) {
     dataForUpdate.submitterRoleId = rest.submitterRole.id
   }
-  if (rest.voterRole) {
+  if (dataForUpdate.voterRole) {
     dataForUpdate.voterRoleId = rest.voterRole.id
   }
   delete dataForUpdate.submitterRole // outside the if in case completionRole is null

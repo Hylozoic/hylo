@@ -660,6 +660,8 @@ type ContextWidget {
   topicFollow: TopicFollow
   # Chat this widget is pointing at
   viewChat: Topic
+  # Funding round this widget is pointing at
+  viewFundingRound: FundingRound
   # Group this widget is pointing at
   viewGroup: Group
   # Post this widget is pointing at
@@ -1091,10 +1093,14 @@ type Group {
   fundingRounds(
     # Number of funding rounds to return
     first: Int,
+    # Only return funding rounds that are published
+    published: Boolean,
     # For pagination, return results after this offset
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Filter funding rounds by a search string
+    search: String,
     # Sort by 'id' or 'created_at'
     sortBy: String
   ): FundingRoundQuerySet
@@ -3235,6 +3241,9 @@ input ContextWidgetInput {
 
   # Chat this widget is pointing at
   viewChatId: ID
+
+  # Funding round this widget is pointing at
+  viewFundingRoundId: ID
 
   # Group this widget is pointing at
   viewGroupId: ID

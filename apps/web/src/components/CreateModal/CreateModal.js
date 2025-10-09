@@ -35,7 +35,7 @@ const CreateModal = (props) => {
   }
 
   const confirmClose = () => {
-    const confirmed = !isDirty || window.confirm(t('Changes won\'t be saved. Are you sure you want to cancel?'))
+    const confirmed = !isDirty || window.confirm(t('Changes wont be saved. Are you sure you want to cancel?'))
 
     if (confirmed) {
       closeModal()
@@ -70,26 +70,30 @@ const CreateModal = (props) => {
               ? (
                 <TrackEditor {...props} />
                 )
-              : (
-                <Routes>
-                  <Route
-                    path='post'
-                    element={(
-                      <PostEditor
-                        {...props}
-                        selectedLocation={mapLocation}
-                        afterSave={closeModal}
-                        onCancel={confirmClose}
-                        setIsDirty={setIsDirty}
-                      />
-                    )}
-                  />
-                  <Route path='group' element={<CreateGroup {...props} />} />
-                  <Route path='track' element={<TrackEditor {...props} />} />
-                  <Route path='funding-round' element={<FundingRoundEditor {...props} />} />
-                  <Route path='*' element={<CreateModalChooser {...props} />} />
-                </Routes>
-                )}
+              : props.editingFundingRound
+                ? (
+                  <FundingRoundEditor {...props} editingRound />
+                  )
+                : (
+                  <Routes>
+                    <Route
+                      path='post'
+                      element={(
+                        <PostEditor
+                          {...props}
+                          selectedLocation={mapLocation}
+                          afterSave={closeModal}
+                          onCancel={confirmClose}
+                          setIsDirty={setIsDirty}
+                        />
+                      )}
+                    />
+                    <Route path='group' element={<CreateGroup {...props} />} />
+                    <Route path='track' element={<TrackEditor {...props} />} />
+                    <Route path='funding-round' element={<FundingRoundEditor {...props} />} />
+                    <Route path='*' element={<CreateModalChooser {...props} />} />
+                  </Routes>
+                  )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
       </div>

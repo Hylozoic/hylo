@@ -1,5 +1,9 @@
 exports.up = async function (knex) {
-  // Fetch all group IDs
+  await knex.schema.alterTable('context_widgets', function (table) {
+    table.bigInteger('view_funding_round_id').references('id').inTable('funding_rounds')
+  })
+
+  // Add Funding Rounds View widget to all groups
   const groups = await knex('groups').select('id')
   const groupIds = groups.map(group => parseInt(group.id))
 
@@ -31,6 +35,10 @@ exports.up = async function (knex) {
 }
 
 exports.down = async function (knex) {
+  await knex.schema.alterTable('context_widgets', function (table) {
+    table.dropColumn('view_funding_round_id')
+  })
+
   await knex('context_widgets')
     .where('title', 'widget-funding-rounds')
     .delete()

@@ -8,11 +8,13 @@ query (
   $first: Int,
   $offset: Int,
   $order: String,
+  $published: Boolean,
+  $search: String,
   $sortBy: String,
 ) {
   group (id: $id) {
     id
-    fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy) {
+    fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy, published: $published, search: $search) {
       items {
         id
         bannerUrl
@@ -25,6 +27,8 @@ query (
         numParticipants
         numSubmissions
         requireBudget
+        submissionDescriptor
+        submissionDescriptorPlural
         title
         tokenType
         totalTokens
