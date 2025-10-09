@@ -9,10 +9,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
   requireFetch: false,
   hasTimestamps: true,
 
-  initialize: function () {
-    this._trackUserCache = {}
-  },
-
   completionRole: function () {
     if (this.get('completion_role_type') === 'common') {
       return this.belongsTo(CommonRole, 'completion_role_id')
@@ -54,21 +50,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  // Method to load and cache tagFollow data
-  _loadTrackUser: function (userId) {
-    if (!this._trackUserCache[userId]) {
-      this._trackUserCache[userId] = this.trackUser(userId).fetch()
-    }
-    return this._trackUserCache[userId]
-  },
-
   // Getter to override access to the completion_message attribute and sanitize the HTML
   completionMessage: function () {
     return RichText.processHTML(this.get('completion_message'))
   },
 
   didComplete: function (userId) {
-    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('completed_at') !== null)
+    return this.trackUser(userId).fetch().then(trackUser => trackUser && trackUser.get('completed_at') !== null)
   },
 
   enrolledCount: function () {
@@ -76,11 +64,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   isEnrolled: function (userId) {
-    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('enrolled_at') !== null)
+    return this.trackUser(userId).fetch().then(trackUser => trackUser && trackUser.get('enrolled_at') !== null)
   },
 
   userSettings: function (userId) {
-    return this._loadTrackUser(userId).then(trackUser => trackUser && trackUser.get('settings'))
+    return this.trackUser(userId).fetch().then(trackUser => trackUser && trackUser.get('settings'))
   },
 
   // Getter to override access to the welcome_message attribute and sanitize the HTML
