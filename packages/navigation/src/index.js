@@ -73,7 +73,7 @@ export function baseUrl ({
   } else if (trackId) {
     return trackUrl(trackId, { context, groupSlug, tab })
   } else if (fundingRoundId) {
-    return fundingRoundUrl(fundingRoundId, { context, groupSlug })
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
   } else if (view) {
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
   } else if (groupSlug) {
@@ -278,7 +278,7 @@ export function trackUrl (trackId, opts) {
 }
 
 export function fundingRoundUrl (fundingRoundId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}`
+  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
 }
 
 // URL utility functions
