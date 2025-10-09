@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { ImagePlus, Plus, EyeOff, Eye } from 'lucide-react'
+import { ImagePlus, Plus, EyeOff, Eye, X } from 'lucide-react'
 import TextInput from 'components/TextInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
@@ -96,7 +96,7 @@ function FundingRoundEditor (props) {
   const editingRound = useSelector(state => props.editingRound ? getFundingRound(state, routeParams.fundingRoundId) : null)
   const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
-  const [fundingRoundState, setFundingRoundState] = useState(Object.assign({
+  const [fundingRoundState, setFundingRoundState] = useState({
     bannerUrl: null,
     criteria: '',
     description: '',
@@ -106,19 +106,20 @@ function FundingRoundEditor (props) {
     requireBudget: false,
     submissionDescriptor: 'Submission',
     submissionDescriptorPlural: 'Submissions',
-    submissionsOpenAt: null,
-    submissionsCloseAt: null,
     submitterRole: null,
     submitterRoleType: '',
     title: '',
     tokenType: 'Votes',
     totalTokens: '',
-    votingOpensAt: null,
-    votingClosesAt: null,
     votingMethod: 'token_allocation_constant',
     voterRole: null,
-    voterRoleType: ''
-  }, editingRound))
+    voterRoleType: '',
+    ...editingRound,
+    submissionsOpenAt: typeof editingRound?.submissionsOpenAt === 'string' ? new Date(editingRound?.submissionsOpenAt) : editingRound?.submissionsOpenAt,
+    submissionsCloseAt: typeof editingRound?.submissionsCloseAt === 'string' ? new Date(editingRound?.submissionsCloseAt) : editingRound?.submissionsCloseAt,
+    votingOpensAt: typeof editingRound?.votingOpensAt === 'string' ? new Date(editingRound?.votingOpensAt) : editingRound?.votingOpensAt,
+    votingClosesAt: typeof editingRound?.votingClosesAt === 'string' ? new Date(editingRound?.votingClosesAt) : editingRound?.votingClosesAt
+  })
 
   const {
     bannerUrl,
@@ -215,8 +216,6 @@ function FundingRoundEditor (props) {
 
     if (key === 'submitterRole' || key === 'voterRole') {
       setFundingRoundState(prev => ({ ...prev, [key]: value, [key + 'Type']: value.type }))
-    } else if (['submissionsOpenAt', 'submissionsCloseAt', 'votingOpensAt', 'votingClosesAt'].includes(key)) {
-      setFundingRoundState(prev => ({ ...prev, [key]: value.toISOString() }))
     } else {
       setFundingRoundState(prev => ({ ...prev, [key]: value }))
     }
@@ -251,15 +250,15 @@ function FundingRoundEditor (props) {
       submissionDescriptor,
       submissionDescriptorPlural,
       submitterRole,
-      submissionsCloseAt,
-      submissionsOpenAt,
+      submissionsCloseAt: submissionsCloseAt instanceof Date ? submissionsCloseAt.toISOString() : submissionsCloseAt || null,
+      submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
       title: trim(title),
       tokenType,
       totalTokens: totalTokens ? Number(totalTokens) : null,
       voterRole,
       votingMethod,
-      votingClosesAt,
-      votingOpensAt
+      votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
+      votingOpensAt: votingOpensAt instanceof Date ? votingOpensAt.toISOString() : votingOpensAt || null
     }))
 
     const savedRound = result?.payload?.data?.createFundingRound || result?.payload?.data?.updateFundingRound
@@ -303,7 +302,7 @@ function FundingRoundEditor (props) {
           name='name'
           onChange={e => { updateFundingRoundState('title')(e.target.value); setTitleCharacterCount(e.target.value.length) }}
           value={title}
-          placeholder={t('Your funding round\'s name')}
+          placeholder={t('Your funding rounds name')}
           type='text'
         />
         <span className='absolute right-3 text-sm text-gray-500'>{titleCharacterCount} / 120</span>
@@ -539,6 +538,7 @@ function FundingRoundEditor (props) {
       <div className='flex items-center gap-2'>
         <label>Submisions open: </label>
         <DateTimePicker
+          key={submissionsOpenAt ? submissionsOpenAt.toString() : 'empty-submissionsOpenAt'}
           granularity='minute'
           hourCycle={getHourCycle()}
           onChange={updateFundingRoundState('submissionsOpenAt')}
@@ -546,11 +546,22 @@ function FundingRoundEditor (props) {
           placeholder={t('Manually')}
           value={submissionsOpenAt}
         />
+        {submissionsOpenAt && (
+          <button
+            type='button'
+            onClick={() => updateFundingRoundState('submissionsOpenAt')(null)}
+            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+            title={t('Clear date')}
+          >
+            <X className='w-4 h-4' />
+          </button>
+        )}
       </div>
 
       <div className='flex items-center gap-2'>
         <label>Submisions close: </label>
         <DateTimePicker
+          key={submissionsCloseAt ? submissionsCloseAt.toString() : 'empty-submissionsCloseAt'}
           className={cn({ 'text-error border-error': errors.submissionsCloseAt })}
           granularity='minute'
           hourCycle={getHourCycle()}
@@ -559,11 +570,22 @@ function FundingRoundEditor (props) {
           placeholder={t('Manually')}
           value={submissionsCloseAt}
         />
+        {submissionsCloseAt && (
+          <button
+            type='button'
+            onClick={() => updateFundingRoundState('submissionsCloseAt')(null)}
+            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+            title={t('Clear date')}
+          >
+            <X className='w-4 h-4' />
+          </button>
+        )}
       </div>
 
       <div className='flex items-center gap-2'>
         <label>Voting opens: </label>
         <DateTimePicker
+          key={votingOpensAt ? votingOpensAt.toString() : 'empty-votingOpensAt'}
           granularity='minute'
           hourCycle={getHourCycle()}
           onChange={updateFundingRoundState('votingOpensAt')}
@@ -571,11 +593,22 @@ function FundingRoundEditor (props) {
           placeholder={t('Manually')}
           value={votingOpensAt}
         />
+        {votingOpensAt && (
+          <button
+            type='button'
+            onClick={() => updateFundingRoundState('votingOpensAt')(null)}
+            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+            title={t('Clear date')}
+          >
+            <X className='w-4 h-4' />
+          </button>
+        )}
       </div>
 
       <div className='flex items-center gap-2'>
         <label>Voting closes: </label>
         <DateTimePicker
+          key={votingClosesAt ? votingClosesAt.toString() : 'empty-votingClosesAt'}
           className={cn({ 'text-error border-error': errors.votingClosesAt })}
           granularity='minute'
           hourCycle={getHourCycle()}
@@ -584,6 +617,16 @@ function FundingRoundEditor (props) {
           placeholder={t('Manually')}
           value={votingClosesAt}
         />
+        {votingClosesAt && (
+          <button
+            type='button'
+            onClick={() => updateFundingRoundState('votingClosesAt')(null)}
+            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+            title={t('Clear date')}
+          >
+            <X className='w-4 h-4' />
+          </button>
+        )}
       </div>
 
       <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
