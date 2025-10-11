@@ -1,6 +1,6 @@
 import { useRoute } from '@react-navigation/native'
 
-const getLastParams = (state) => {
+export const getLastParams = (state) => {
   let current = state
 
   while (current?.params?.params) {

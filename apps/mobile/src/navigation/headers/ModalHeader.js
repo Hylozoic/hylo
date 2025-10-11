@@ -6,13 +6,7 @@ import HeaderLeftCloseIcon from 'navigation/headers/HeaderLeftCloseIcon'
 import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from '@hylo/presenters/colors'
-
- // Safely get params from the provided `route` prop instead of useRoute (headers aren't screens)
- const getLastParams = (state) => {
-  let current = state
-  while (current?.params?.params) current = current.params
-  return current?.params || {}
-}
+import { getLastParams } from 'hooks/useRouteParams'
 
 export default function ModalHeader ({
   navigation,
@@ -44,7 +38,8 @@ export default function ModalHeader ({
   // This function ensures that the user is returned to the original path when the modal is closed
   const openURL = useOpenURL()
 
-  const { originalLinkingPath, id } = getLastParams(route)
+  // Safely get params from the provided `route` prop instead of useRoute (headers aren't screens)
+  const { originalLinkingPath, id } = getLastParams(route) || {}
 
   // Based on the current linking table setup, when the app is opened from a link/notification,
   // It will open the content in a modal but not open the containing screeen
