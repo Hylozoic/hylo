@@ -75,10 +75,6 @@ exports.up = async function (knex) {
 }
 
 exports.down = async function (knex) {
-  await knex.schema.dropTable('funding_rounds_posts')
-  await knex.schema.dropTable('funding_rounds_users')
-  await knex.schema.dropTable('funding_rounds')
-
   await knex.schema.alterTable('posts', table => {
     table.dropColumn('budget')
   })
@@ -92,4 +88,8 @@ exports.down = async function (knex) {
   await knex.schema.table('activities', table => {
     table.dropColumn('funding_round_id')
   })
+
+  await knex.schema.dropTable('funding_rounds_posts')
+  await knex.schema.dropTable('funding_rounds_users')
+  await knex.schema.dropTable('funding_rounds')
 }
