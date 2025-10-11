@@ -1,5 +1,3 @@
-import { Bookmark, Grid3x3, Shapes } from 'lucide-react'
-
 export default function ContextWidgetPresenter (widget) {
   if (!widget || widget?._presented) return widget
 
@@ -84,7 +82,7 @@ const WIDGET_TYPE_TO_ICON_NAME_MAP = {
   viewChat: 'Topics',
   viewPost: 'Posticon',
   about: 'Info',
-  viewTrack: <Shapes />
+  viewTrack: 'Shapes'
 }
 function iconNameResolver (widget, type) {
   if (widget?.iconName) return widget.iconName
@@ -289,8 +287,8 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 2, parentId: 'widget-my-content' },
   { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 3, parentId: 'widget-my-content' },
   { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 4, parentId: 'widget-my-content' },
-  { context: 'my', view: 'saved-posts', iconName: <Bookmark />, title: 'widget-my-saved-posts', id: 'widget-my-saved-posts', order: 5, parentId: 'widget-my-content' },
-  { context: 'my', view: 'tracks', iconName: <Shapes />, title: 'widget-my-tracks', id: 'widget-my-tracks', order: 6, parentId: 'widget-my-content' },
+  { context: 'my', view: 'saved-posts', iconName: 'Bookmark', title: 'widget-my-saved-posts', id: 'widget-my-saved-posts', order: 5, parentId: 'widget-my-content' },
+  { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 6, parentId: 'widget-my-content' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
   { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
   { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
@@ -305,7 +303,7 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
 ]
 
-export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: <Grid3x3 />, childWidgets: [] })
+export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
 
 export const COMMON_VIEWS = {
   proposals: {

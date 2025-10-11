@@ -1,3 +1,4 @@
+import { Bookmark, Grid3x3, Shapes } from 'lucide-react'
 import React from 'react'
 import { ContextWidgetPresenter } from '@hylo/presenters'
 import Avatar from 'components/Avatar'
@@ -13,13 +14,13 @@ export function WidgetIconResolver ({ widget: providedWidget, style, className }
   }
 
   if (widget?.iconName) {
-    if (typeof widget.iconName === 'function' || React.isValidElement(widget.iconName)) {
-      const IconComponent = widget.iconName
-      return typeof IconComponent === 'function'
-        ? <IconComponent className='h-[16px] w-[16px] inline-block' />
-        : React.cloneElement(IconComponent, { className: 'h-[16px] w-[16px] inline-block' })
-    }
-    return <Icon name={widget.iconName} style={style} className={className} />
+    return widget.iconName === 'Grid3x3'
+      ? <Grid3x3 className='h-[16px] inline-block' />
+      : widget.iconName === 'Shapes'
+        ? <Shapes className='h-[16px] w-[16px] inline-block' />
+        : widget.iconName === 'Bookmark'
+          ? <Bookmark className='h-[16px] w-[16px] inline-block' />
+          : <Icon name={widget.iconName} style={style} className={className} />
   }
 
   return null
