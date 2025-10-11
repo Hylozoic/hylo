@@ -1,14 +1,23 @@
 {
     "applinks": {
-        "apps": [],
         "details": [
             {
-                "appID": "L4KZBPS2F3.com.hylo.HyloA",
-                "paths": [
-                    "/noo/login/token",
-                    "/noo/login/jwt",
-                    "NOT /noo/*",
-                    "*"
+                "appIDs": ["L4KZBPS2F3.com.hylo.HyloA"],
+                "components": [
+                    {
+                        "/": "/noo/login/token"
+                    },
+                    {
+                        "/": "/noo/login/jwt"
+                    },
+                    {
+                        "/": "/noo/*",
+                        "exclude": true,
+                        "comment": "Exclude all other /noo/* paths"
+                    },
+                    {
+                        "/": "*"
+                    }
                 ]
             }
         ]

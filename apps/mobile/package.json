@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "6.1.12",
+  "version": "6.1.13",
   "private": true,
   "scripts": {
     "android": "adb reverse tcp:3001 tcp:3001 && adb reverse tcp:3000 tcp:3000 && react-native run-android",
@@ -33,7 +33,7 @@
     "@hylo/presenters": "workspace:*",
     "@hylo/shared": "workspace:*",
     "@hylo/urql": "workspace:*",
-    "@intercom/intercom-react-native": "^8.1.0",
+    "@intercom/intercom-react-native": "^8.8.0",
     "@invertase/react-native-apple-authentication": "^2.4.0",
     "@native-html/iframe-plugin": "^2.6.1",
     "@react-native-async-storage/async-storage": "^2.1.0",

@@ -4602,15 +4602,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@intercom/intercom-react-native@npm:^8.1.0":
-  version: 8.2.0
-  resolution: "@intercom/intercom-react-native@npm:8.2.0"
+"@intercom/intercom-react-native@npm:^8.8.0":
+  version: 8.8.0
+  resolution: "@intercom/intercom-react-native@npm:8.8.0"
   dependencies:
     node-fetch: "npm:^2.6.1"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/7924ebea7b1b4f6c6e2351e4d4ef03fa223e19a05d82266db69e6386b2b1e85c1cdecdf321ee17edc70da8c4af73c28067d6f1774c03fc375d5713555433f44d
+  checksum: 10/e8371eaf2223d9f719bee989c166389bc1c32dddbc1626470737195044dbad9627e399319d0fef05e74563bbecb2029b9ccaed6a2504ebfea38c218efb0024c3
   languageName: node
   linkType: hard
 
@@ -27795,7 +27795,7 @@ __metadata:
     "@hylo/presenters": "workspace:*"
     "@hylo/shared": "workspace:*"
     "@hylo/urql": "workspace:*"
-    "@intercom/intercom-react-native": "npm:^8.1.0"
+    "@intercom/intercom-react-native": "npm:^8.8.0"
     "@invertase/react-native-apple-authentication": "npm:^2.4.0"
     "@jest/globals": "npm:^29.7.0"
     "@mswjs/interceptors": "npm:^0.37.6"

@@ -186,7 +186,8 @@ export const DEFAULT_APP_HOST = 'https://www.hylo.com'
 export const prefixes = [
   DEFAULT_APP_HOST,
   'https://staging.hylo.com',
-  'hyloapp://'
+  'hyloapp://',
+  'http://10.0.2.2:3000'
 ]
 
 // flag-shared
