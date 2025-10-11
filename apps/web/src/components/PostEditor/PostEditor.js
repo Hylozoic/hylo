@@ -718,7 +718,7 @@ function PostEditor ({
     if (!isValid || loading) return
 
     const _save = announcementSelected ? toggleAnnouncementModal : save
-    if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
+    if (currentPost.type === 'proposal' && isEditing) {
       if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
         _save()
       }
