@@ -53,16 +53,16 @@ function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescrip
     }
   }, [post.id, routeParams.fundingRoundId, t])
 
-  const flagPostFunc = useCallback(() => post.creatorId !== currentUser.id ? () => { setFlaggingVisible(true) } : undefined, [post.creatorId, currentUser.id])
+  const flagPostFunc = useCallback(() => { setFlaggingVisible(true) })
   const moderationActionsGroupUrl = groupUrl(routeParams.groupSlug, 'moderation')
 
   const dropdownItems = useMemo(() => filter([
-    { icon: <Pencil />, label: t('Edit'), onClick: currentUser?.id === post.creatorId ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
+    { icon: <Pencil />, label: t('Edit'), onClick: currentUser?.id === post.creator.id ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
     { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${trackUrl(routeParams.trackId, { groupSlug: routeParams.groupSlug })}funding-rounds/${routeParams.fundingRoundId}/submissions/${post.id}`) },
-    { icon: <Flag />, label: t('Flag'), onClick: flagPostFunc() },
+    { icon: <Flag />, label: t('Flag'), onClick: currentUser?.id === post.creator.id ? undefined : flagPostFunc },
     { icon: <Trash />, label: t('Delete'), onClick: currentUser?.id === post.creator.id ? deletePostWithConfirm : undefined, red: true },
     { icon: <Trash />, label: t('Remove from Round'), onClick: canManageRound && currentUser?.id !== post.creator.id ? removePostWithConfirm : undefined, red: true }
-  ], item => isFunction(item.onClick)), [post.id, post.creatorId, post.creator.id, routeParams, querystringParams, flagPostFunc, currentUser?.id, deletePostWithConfirm, canManageRound, removePostWithConfirm, navigate, t])
+  ], item => isFunction(item.onClick)), [post.id, post.creator.id, routeParams, querystringParams, flagPostFunc, currentUser?.id, deletePostWithConfirm, canManageRound, removePostWithConfirm, navigate, t])
 
   const { createdTimestamp, creator, exactCreatedTimestamp } = post
   const creatorUrl = useMemo(() => personUrl(creator.id, routeParams.groupSlug), [creator.id, routeParams.groupSlug])
