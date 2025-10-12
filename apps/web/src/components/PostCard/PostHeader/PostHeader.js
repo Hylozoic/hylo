@@ -165,10 +165,11 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
-                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
-                  {t(type)}
-                </div>
+                {type !== 'submission' && (
+                  <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                    <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                    {t(type)}
+                  </div>)}
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>

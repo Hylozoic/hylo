@@ -826,8 +826,7 @@ function PostEditor ({
                 setPostType={handlePostTypeSelection}
                 className={cn({ 'absolute top-3 right-1 z-10': isChat })}
               />
-              )
-        }
+              )}
       </div>
       {!isChat && !isAction && !isSubmission && (
         <div
@@ -1189,9 +1188,7 @@ function PostEditor ({
               />
               {!currentPost.acceptContributions && (
                 <div className={styles.acceptContributionsHelp}>
-                  {t(`If you turn 'Accept Contributions' on, people will be able
-                  to send money to your Stripe connected account to support
-                  this project.`)}
+                  {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
                 </div>
               )}
             </div>

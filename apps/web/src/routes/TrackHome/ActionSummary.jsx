@@ -49,7 +49,7 @@ function ActionSummary ({ post }) {
 
   return (
     <div
-      className='PostSummary flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 cursor-pointer'
+      className='ActionSummary flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 cursor-pointer'
       ref={setNodeRef}
       style={style}
     >

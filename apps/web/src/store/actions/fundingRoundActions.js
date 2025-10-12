@@ -45,6 +45,13 @@ const PostFieldsFragment = `
     total
     hasMore
   }
+  creator {
+    id
+    name
+    avatarUrl
+    tagline
+  }
+  flaggedGroups
   linkPreview {
     description
     id

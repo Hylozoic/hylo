@@ -11,9 +11,9 @@ import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import HyloHTML from 'components/HyloHTML'
 import NotFound from 'components/NotFound'
-import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Button from 'components/ui/button'
+import SubmissionCard from './SubmissionCard'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatRoom from 'routes/ChatRoom'
 import { FETCH_FUNDING_ROUND, fetchFundingRound, leaveFundingRound, joinFundingRound, updateFundingRound } from 'store/actions/fundingRoundActions'
@@ -45,10 +45,10 @@ function FundingRoundHome () {
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const fundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
   const isLoading = useSelector(state => state.pending && state.pending[FETCH_FUNDING_ROUND])
-  const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
+  const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
   const [container, setContainer] = useState(null)
 
-  const currentTab = routeParams['*'] || 'about'
+  const currentTab = routeParams.tab || 'about'
 
   useEffect(() => {
     if (routeParams.fundingRoundId) dispatch(fetchFundingRound(routeParams.fundingRoundId))
@@ -76,7 +76,7 @@ function FundingRoundHome () {
     <div className='w-full h-full' ref={setContainer}>
       <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
-          {(fundingRound.isParticipating || canEdit) && (
+          {(fundingRound.isParticipating || canManageRound) && (
             <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
               <Link
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
@@ -107,9 +107,9 @@ function FundingRoundHome () {
               >
                 {t('Chat')}
               </Link>
-              {canEdit && (
+              {canManageRound && (
                 <Link
-                  className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                  className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                   to='manage'
                 >
                   {t('Manage')}
@@ -118,13 +118,14 @@ function FundingRoundHome () {
             </div>)}
 
           <Routes>
-            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canEdit={canEdit} />} />
+            <Route path='submissions/create/*' element={<CreateModal context='groups' />} />
+            <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
+            <Route path='submissions/post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
+            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} />} />
             <Route path='participants/*' element={<PeopleTab round={fundingRound} />} />
             <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
             <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
             <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
-            <Route path='post/:postId' element={<PostDialog container={container} />} />
-            <Route path='post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
             <Route path='*' element={<AboutTab round={fundingRound} />} />
           </Routes>
 
@@ -208,7 +209,7 @@ function AboutTab ({ round }) {
   )
 }
 
-function SubmissionsTab ({ canEdit, round }) {
+function SubmissionsTab ({ canManageRound, round }) {
   const posts = useSelector(state => getPosts(state, round))
   const { isParticipating } = round
   const { t } = useTranslation()
@@ -283,8 +284,8 @@ function SubmissionsTab ({ canEdit, round }) {
           + {t('Add {{submissionDescriptor}}', { submissionDescriptor: round?.submissionDescriptor })}
         </button>
       )}
-      {(['completed', 'voting', 'discussion'].includes(currentPhase) || canEdit) && posts.map(post => (
-        <PostCard key={post.id} post={post} />
+      {(['completed', 'voting', 'discussion'].includes(currentPhase) || canManageRound) && posts.map(post => (
+        <SubmissionCard key={post.id} post={post} canManageRound={canManageRound} currentPhase={currentPhase} submissionDescriptor={round?.submissionDescriptor} />
       ))}
     </div>
   )

@@ -8,7 +8,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
