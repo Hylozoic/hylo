@@ -479,7 +479,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
-        sortOrder: p => p.pivot && p.pivot.get('sort_order') // For loading posts in order in a track
+        sortOrder: p => p.pivot && p.pivot.get('sort_order'), // For loading posts in order in a track
+        tokensAllocated: async p => {
+          if (!userId) return null
+          const postUser = await PostUser.find(p.get('id'), userId)
+          return postUser ? postUser.get('tokens_allocated_to') || 0 : 0
+        }
       },
       relations: [
         { comments: { querySet: true } },
@@ -1324,6 +1329,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'submitter_role_type',
         'title',
         'token_type',
+        'tokens_distributed_at',
         'total_tokens',
         'updated_at',
         'voter_role_type',
@@ -1333,6 +1339,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         isParticipating: r => r && userId && r.isParticipating(userId),
+        tokensRemaining: async r => {
+          if (!r || !userId) return null
+          const roundUser = await FundingRoundUser.where({
+            funding_round_id: r.get('id'),
+            user_id: userId
+          }).fetch()
+          return roundUser ? roundUser.get('tokens_remaining') : null
+        },
         userSettings: r => r && userId ? r.userSettings(userId) : null
       },
       relations: [

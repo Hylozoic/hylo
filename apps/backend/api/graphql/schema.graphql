@@ -2195,6 +2195,8 @@ type Post {
   timezone: String
   # The title text for the post
   title: String
+  # Number of tokens allocated to this post by the current user (for funding round submissions)
+  tokensAllocated: Int
   # Number of topics added to the post
   topicsTotal: Int
   # NOT USED RIGHT NOW
@@ -2617,6 +2619,10 @@ type FundingRound {
   submitterRoleType: String
   # The title of the funding round
   title: String
+  # When tokens were distributed to users
+  tokensDistributedAt: Date
+  # The number of tokens remaining for the current user to allocate
+  tokensRemaining: Int
   # Total tokens available to allocate
   totalTokens: Int
   # Token type used for voting/allocation
@@ -2764,6 +2770,8 @@ type Mutation {
   addSkillToLearn(name: String): Skill
   # Add a suggested skill to a Group. Only a group steward can do this.
   addSuggestedSkillToGroup(groupId: ID, name: String): Skill
+  # Allocate tokens from the current user to a submission post
+  allocateTokensToSubmission(postId: ID, tokens: Int): Post
   # NOT USED RIGHT NOW. Toggle whether a Group allows non-hosts to invite new people to the Group. Only a group steward can call this.
   allowGroupInvites(groupId: ID, data: Boolean): Group
   # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
@@ -2850,6 +2858,8 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
+  # Distribute tokens to all participants in a funding round
+  distributeFundingRoundTokens(id: ID): FundingRound
   # Duplicate a track
   duplicateTrack(trackId: ID): Track
   # Enroll in a track

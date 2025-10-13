@@ -56,14 +56,37 @@ const hourly = now => {
   return tasks
 }
 
+const distributeFundingRoundTokens = async () => {
+  // Find all funding rounds where voting has opened but tokens haven't been distributed yet
+  const rounds = await FundingRound.query(q => {
+    q.whereNotNull('voting_opens_at')
+    q.whereNull('tokens_distributed_at')
+    q.where('voting_opens_at', '<=', new Date())
+  }).fetchAll()
+
+  let distributed = 0
+  for (const round of rounds.models) {
+    try {
+      await FundingRound.distributeTokens(round.id)
+      distributed++
+      sails.log.debug(`Distributed tokens for funding round ${round.id}`)
+    } catch (err) {
+      sails.log.error(`Error distributing tokens for funding round ${round.id}: ${err.message}`)
+    }
+  }
+
+  return distributed
+}
+
 const every10minutes = now => {
-  sails.log.debug('Refreshing full-text search index, sending comment digests, updating member counts, and updating proposal statuses')
+  sails.log.debug('Refreshing full-text search index, sending comment digests, updating member counts, updating proposal statuses, and distributing funding round tokens')
   return [
     FullTextSearch.refreshView(),
     Comment.sendDigests().then(count => sails.log.debug(`Sent ${count} comment/message digests`)),
     TagFollow.sendDigests().then(count => sails.log.debug(`Sent ${count} chat room digests`)),
     Group.updateAllMemberCounts(),
-    Post.updateProposalStatuses()
+    Post.updateProposalStatuses(),
+    distributeFundingRoundTokens().then(count => sails.log.debug(`Distributed tokens for ${count} funding rounds`))
   ]
 }
 

@@ -1,7 +1,11 @@
 import CommentFieldsFragment from '@graphql/fragments/CommentFieldsFragment'
 
 export const MODULE_NAME = 'FundingRounds'
+export const ALLOCATE_TOKENS_TO_SUBMISSION = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION`
+export const ALLOCATE_TOKENS_TO_SUBMISSION_PENDING = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION_PENDING`
 export const CREATE_FUNDING_ROUND = `${MODULE_NAME}/CREATE_FUNDING_ROUND`
+export const DISTRIBUTE_FUNDING_ROUND_TOKENS = `${MODULE_NAME}/DISTRIBUTE_FUNDING_ROUND_TOKENS`
+export const DISTRIBUTE_FUNDING_ROUND_TOKENS_PENDING = `${MODULE_NAME}/DISTRIBUTE_FUNDING_ROUND_TOKENS_PENDING`
 export const FETCH_FUNDING_ROUND = `${MODULE_NAME}/FETCH_FUNDING_ROUND`
 export const JOIN_FUNDING_ROUND = `${MODULE_NAME}/JOIN_FUNDING_ROUND`
 export const JOIN_FUNDING_ROUND_PENDING = `${MODULE_NAME}/JOIN_FUNDING_ROUND_PENDING`
@@ -20,6 +24,7 @@ const PostFieldsFragment = `
   location
   peopleReactedTotal
   title
+  tokensAllocated
   type
   updatedAt
   attachments {
@@ -146,6 +151,8 @@ export function fetchFundingRound (id) {
           submissionsOpenAt,
           title,
           tokenType,
+          tokensDistributedAt,
+          tokensRemaining,
           totalTokens,
           updatedAt,
           users {
@@ -327,6 +334,55 @@ export function leaveFundingRound (id) {
     },
     meta: {
       id
+    }
+  }
+}
+
+export function distributeFundingRoundTokens (id) {
+  return {
+    type: DISTRIBUTE_FUNDING_ROUND_TOKENS,
+    graphql: {
+      query: `
+        mutation DistributeFundingRoundTokens($id: ID) {
+          distributeFundingRoundTokens(id: $id) {
+            id
+            tokensDistributedAt
+            tokensRemaining
+          }
+        }
+      `,
+      variables: {
+        id
+      }
+    },
+    meta: {
+      id
+    }
+  }
+}
+
+export function allocateTokensToSubmission (postId, tokens, fundingRoundId) {
+  return {
+    type: ALLOCATE_TOKENS_TO_SUBMISSION,
+    graphql: {
+      query: `
+        mutation AllocateTokensToSubmission($postId: ID, $tokens: Int) {
+          allocateTokensToSubmission(postId: $postId, tokens: $tokens) {
+            id
+            tokensAllocated
+          }
+        }
+      `,
+      variables: {
+        postId,
+        tokens
+      }
+    },
+    meta: {
+      postId,
+      tokens,
+      fundingRoundId,
+      optimistic: true
     }
   }
 }

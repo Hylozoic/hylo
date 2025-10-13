@@ -21,6 +21,7 @@ import {
   addSkill,
   addSkillToLearn,
   addSuggestedSkillToGroup,
+  allocateTokensToSubmission,
   allowGroupInvites,
   blockUser,
   cancelGroupRelationshipInvite,
@@ -61,6 +62,7 @@ import {
   deleteReaction,
   deleteSavedSearch,
   deleteZapierTrigger,
+  distributeFundingRoundTokens,
   duplicateTrack,
   enrollInTrack,
   expireInvitation,
@@ -365,6 +367,8 @@ export function makeMutations ({ fetchOne }) {
 
     addSuggestedSkillToGroup: (root, { groupId, name }, context) => addSuggestedSkillToGroup(context.currentUserId, groupId, name),
 
+    allocateTokensToSubmission: (root, { postId, tokens }, context) => allocateTokensToSubmission(context.currentUserId, postId, tokens),
+
     allowGroupInvites: (root, { groupId, data }) => allowGroupInvites(groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
@@ -442,6 +446,8 @@ export function makeMutations ({ fetchOne }) {
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
+
+    distributeFundingRoundTokens: (root, { id }, context) => distributeFundingRoundTokens(context.currentUserId, id),
 
     duplicateTrack: (root, { trackId }, context) => duplicateTrack(context.currentUserId, trackId),
 

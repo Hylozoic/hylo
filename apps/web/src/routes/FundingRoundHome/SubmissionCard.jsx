@@ -9,6 +9,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
+import { allocateTokensToSubmission } from 'store/actions/fundingRoundActions'
 import { editPostUrl, groupUrl, personUrl, postUrl, trackUrl } from '@hylo/navigation'
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ import PostFooter from 'components/PostCard/PostFooter'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 
-function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescriptor }) {
+function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteAmount, setLocalVoteAmount, currentTokensRemaining }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
@@ -31,8 +32,8 @@ function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescrip
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
 
-  const [voteAmount, setVoteAmount] = useState(0)
   const [flaggingVisible, setFlaggingVisible] = useState(false)
+  const [validationError, setValidationError] = useState('')
 
   const isFlagged = useMemo(() => post.flaggedGroups?.length > 0, [post.flaggedGroups])
   const flagPostData = useMemo(() => ({
@@ -41,14 +42,19 @@ function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescrip
     type: 'post'
   }), [routeParams.groupSlug, post.id])
 
+  // Calculate available tokens including currently allocated tokens for this submission
+  const availableTokens = useMemo(() => {
+    return (currentTokensRemaining || 0) + (localVoteAmount || 0)
+  }, [currentTokensRemaining, localVoteAmount])
+
   const deletePostWithConfirm = useCallback(() => {
-    if (window.confirm(t('Are you sure you want to delete this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor }))) {
+    if (window.confirm(t('Are you sure you want to delete this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
       dispatch(deletePost(post.id, null, routeParams.fundingRoundId))
     }
   }, [post.id, routeParams.fundingRoundId, t])
 
   const removePostWithConfirm = useCallback(() => {
-    if (window.confirm(t('Are you sure you want to remove this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor }))) {
+    if (window.confirm(t('Are you sure you want to remove this {{submissionDescriptor}}? You cannot undo this.', { submissionDescriptor: round?.submissionDescriptor }))) {
       dispatch(removePost(post.id, null, routeParams.fundingRoundId))
     }
   }, [post.id, routeParams.fundingRoundId, t])
@@ -67,8 +73,54 @@ function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescrip
   const { createdTimestamp, creator, exactCreatedTimestamp } = post
   const creatorUrl = useMemo(() => personUrl(creator.id, routeParams.groupSlug), [creator.id, routeParams.groupSlug])
 
+  const validateVoteAmount = useCallback((value) => {
+    // Check if exceeds available tokens
+    if (value > availableTokens) {
+      return t('Not enough tokens available')
+    }
+
+    // Check if exceeds max allocation per submission
+    if (round.maxTokenAllocation && value > round.maxTokenAllocation) {
+      return t('Cannot allocate more than {{max}} tokens per submission', { max: round.maxTokenAllocation })
+    }
+
+    // Check if below minimum allocation (when value > 0)
+    if (value > 0 && round.minTokenAllocation && value < round.minTokenAllocation) {
+      return t('Must allocate at least {{min}} tokens or 0', { min: round.minTokenAllocation })
+    }
+
+    return ''
+  }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, t])
+
   const handleVoteAmountChange = useCallback((e) => {
-    setVoteAmount(e.target.value)
+    let newValue = parseInt(e.target.value) || 0
+    if (newValue < 0) newValue = 0
+
+    // Enforce maximum constraints
+    if (round.maxTokenAllocation && newValue > round.maxTokenAllocation) {
+      newValue = round.maxTokenAllocation
+    }
+    if (newValue > availableTokens) {
+      newValue = availableTokens
+    }
+
+    setLocalVoteAmount(newValue)
+
+    // Validate and set error message
+    const error = validateVoteAmount(newValue)
+    setValidationError(error)
+  }, [availableTokens, round.maxTokenAllocation, validateVoteAmount, setLocalVoteAmount])
+
+  const handleVoteAmountBlur = useCallback(() => {
+    // Only submit if there's no validation error and the value changed
+    if (!validationError && localVoteAmount !== post.tokensAllocated) {
+      dispatch(allocateTokensToSubmission(post.id, localVoteAmount, routeParams.fundingRoundId))
+    }
+  }, [validationError, localVoteAmount, post.tokensAllocated, post.id, routeParams.fundingRoundId, dispatch])
+
+  const handleVoteAmountFocus = useCallback((e) => {
+    // Select all text when focusing to avoid the "01" issue
+    e.target.select()
   }, [])
 
   const openPostDetails = useCallback(() => navigate(postUrl(post.id, routeParams, querystringParams)), [post.id, routeParams, querystringParams])
@@ -125,8 +177,28 @@ function SubmissionCard ({ currentPhase, post, canManageRound, submissionDescrip
         />
       </div>
       {currentPhase === 'voting' && (
-        <div className='flex flex-col justify-center gap-2 bg-foreground/10 p-2 rounded-r-lg'>
-          <input type='number' value={voteAmount} onChange={handleVoteAmountChange} />
+        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/10 p-4 rounded-r-lg min-w-[120px]'>
+          <label className='text-xs font-bold text-foreground/60 uppercase'>
+            {t('Your {{tokenType}}', { tokenType: round?.tokenType || t('Votes') })}
+          </label>
+          <input
+            type='number'
+            min='0'
+            value={localVoteAmount}
+            onChange={handleVoteAmountChange}
+            onBlur={handleVoteAmountBlur}
+            onFocus={handleVoteAmountFocus}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              'w-20 h-12 text-center text-2xl font-bold bg-background border-2 rounded-md focus:outline-none',
+              validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected'
+            )}
+          />
+          {validationError && (
+            <span className='text-xs text-red-500 text-center max-w-[120px] leading-tight'>
+              {validationError}
+            </span>
+          )}
         </div>
       )}
       {flaggingVisible &&

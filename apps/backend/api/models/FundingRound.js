@@ -20,7 +20,7 @@ module.exports = bookshelf.Model.extend({
         q.where('posts.active', true)
         q.where('posts.type', Post.Type.SUBMISSION)
       })
-      .orderBy('funding_rounds_posts.id', 'asc')
+      .orderBy('posts.id', 'asc')
   },
 
   submitterRole: function () {
@@ -147,5 +147,93 @@ module.exports = bookshelf.Model.extend({
         }
         return null
       })
+  },
+
+  // Distribute tokens to all users in a funding round
+  distributeTokens: async function (roundOrId, { transacting } = {}) {
+    const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
+
+    if (!round) {
+      throw new GraphQLError('Funding Round not found')
+    }
+
+    const roundId = round.id
+
+    // Check if tokens have already been distributed
+    if (round.get('tokens_distributed_at')) {
+      return round
+    }
+
+    // Check if voting has opened
+    const votingOpensAt = round.get('voting_opens_at')
+    if (!votingOpensAt || new Date(votingOpensAt) > new Date()) {
+      throw new GraphQLError('Voting has not opened yet')
+    }
+
+    const votingMethod = round.get('voting_method')
+    const totalTokens = round.get('total_tokens')
+
+    if (!totalTokens) {
+      throw new GraphQLError('Total tokens not set for this round')
+    }
+
+    // Get all users in the round
+    const roundUsers = await FundingRoundUser.query(q => {
+      q.where({ funding_round_id: roundId })
+    }).fetchAll({ transacting })
+
+    if (roundUsers.length === 0) {
+      throw new GraphQLError('No users in this round')
+    }
+
+    let tokensPerUser = totalTokens
+
+    // Calculate tokens per user based on voting method
+    if (votingMethod === 'token_allocation_divide') {
+      tokensPerUser = Math.floor(totalTokens / roundUsers.length)
+    }
+
+    // Distribute tokens to each user
+    await Promise.all(roundUsers.map(async (roundUser) => {
+      await roundUser.save({ tokens_remaining: tokensPerUser }, { transacting })
+    }))
+
+    // Mark tokens as distributed
+    await round.save({ tokens_distributed_at: new Date().toISOString() }, { transacting })
+
+    return round
+  },
+
+  // Clear all token allocations and reset distribution status
+  clearTokenDistribution: async function (roundOrId, { transacting } = {}) {
+    const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
+
+    if (!round) {
+      throw new GraphQLError('Funding Round not found')
+    }
+
+    const roundId = round.id
+
+    // Clear tokens_distributed_at
+    await round.save({ tokens_distributed_at: null }, { transacting })
+
+    // Reset all user token balances
+    await bookshelf.knex('funding_rounds_users')
+      .where({ funding_round_id: roundId })
+      .update({ tokens_remaining: 0 })
+      .transacting(transacting)
+
+    // Clear all token allocations on submissions
+    const submissions = await round.submissions().fetch({ transacting })
+    const submissionIds = submissions.pluck('id')
+
+    if (submissionIds.length > 0) {
+      await bookshelf.knex('posts_users')
+        .whereIn('post_id', submissionIds)
+        .update({ tokens_allocated_to: 0 })
+        .transacting(transacting)
+    }
+
+    return round
   }
 })
