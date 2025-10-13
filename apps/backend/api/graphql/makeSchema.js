@@ -157,7 +157,7 @@ export default async function makeSchema ({ req }) {
   const models = makeModels(userId, isAdmin, req.api_client)
   const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
 
-  // Override Track and GroupTopic resolvers to use DataLoaders for caching
+  // Override Track, GroupTopic, and FundingRound resolvers to use DataLoaders for caching
   if (userId && loaders) {
     if (resolvers.Track) {
       resolvers.Track.isEnrolled = async (track) => {
@@ -204,6 +204,24 @@ export default async function makeSchema ({ req }) {
           userId
         })
         return tagFollow ? tagFollow.get('new_post_count') : 0
+      }
+    }
+
+    if (resolvers.FundingRound) {
+      resolvers.FundingRound.isParticipating = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return !!roundUser
+      }
+      resolvers.FundingRound.userSettings = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return roundUser ? roundUser.get('settings') : null
+      }
+      resolvers.FundingRound.tokensRemaining = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return roundUser ? roundUser.get('tokens_remaining') : null
       }
     }
   }

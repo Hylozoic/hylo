@@ -6,10 +6,6 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
-  initialize: function () {
-    this._roundUserCache = {}
-  },
-
   group: function () {
     return this.belongsTo(Group, 'group_id')
   },
@@ -44,19 +40,12 @@ module.exports = bookshelf.Model.extend({
     return this.belongsToMany(User, 'funding_rounds_users', 'funding_round_id', 'user_id')
   },
 
-  _loadRoundUser: function (userId) {
-    if (!this._roundUserCache[userId]) {
-      this._roundUserCache[userId] = this.roundUser(userId).fetch()
-    }
-    return this._roundUserCache[userId]
-  },
-
   isParticipating: function (userId) {
-    return this._loadRoundUser(userId).then(roundUser => !!roundUser)
+    return this.roundUser(userId).fetch().then(roundUser => !!roundUser)
   },
 
   userSettings: function (userId) {
-    return this._loadRoundUser(userId).then(roundUser => roundUser && roundUser.get('settings'))
+    return this.roundUser(userId).fetch().then(roundUser => roundUser && roundUser.get('settings'))
   },
 
   voterRole: function () {

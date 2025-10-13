@@ -28,4 +28,3 @@ exports.down = async function (knex) {
     table.dropColumn('tokens_allocated_to')
   })
 }
-
