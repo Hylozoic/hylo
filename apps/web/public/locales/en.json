@@ -162,6 +162,7 @@
   "Are you sure you want to ": "Are you sure you want to ",
   "Are you sure you want to cancel your request to join {{groupName}}?": "Are you sure you want to cancel your request to join {{groupName}}?",
   "Are you sure you want to create a new join link? The current link won't work anymore if you do.": "Are you sure you want to create a new join link? The current link won't work anymore if you do.",
+  "Are you sure you want to decline the agreements and leave this group?": "Are you sure you want to decline the agreements and leave this group?",
   "Are you sure you want to decline the invitation to join {{groupName}}?": "Are you sure you want to decline the invitation to join {{groupName}}?",
   "Are you sure you want to delete the group {{name}}?": "Are you sure you want to delete the group {{name}}?",
   "Are you sure you want to delete this agreement?": "Are you sure you want to delete this agreement?",

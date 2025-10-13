@@ -532,8 +532,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Increment num_members
     // XXX: num_members is updated every 10 minutes via cron, we are doing this here too for the case that someone joins a group and moderator looks immediately at member count after that
-    if (newUserIds.length > 0) {
-      await this.save({ num_members: this.get('num_members') + newUserIds.length }, { transacting })
+    if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
+      await this.save({ num_members: this.get('num_members') + newUserIds.length + reactivatedUserIds.length }, { transacting })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {

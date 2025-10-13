@@ -5,10 +5,6 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
-  initialize: function () {
-    this._tagFollowCache = {}
-  },
-
   owner: function () {
     return this.belongsTo(User, 'user_id')
   },
@@ -31,24 +27,16 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
-  // Method to load and cache tagFollow data
-  _loadTagFollow: function (userId) {
-    if (!this._tagFollowCache[userId]) {
-      this._tagFollowCache[userId] = this.tagFollow(userId).fetch()
-    }
-    return this._tagFollowCache[userId]
-  },
-
   isFollowed: function (userId) {
-    return this._loadTagFollow(userId).then(tagFollow => tagFollow !== null)
+    return this.tagFollow(userId).fetch().then(tagFollow => tagFollow !== null)
   },
 
   lastReadPostId: function (userId) {
-    return this._loadTagFollow(userId).then(tagFollow => tagFollow ? tagFollow.get('last_read_post_id') : null)
+    return this.tagFollow(userId).fetch().then(tagFollow => tagFollow ? tagFollow.get('last_read_post_id') : null)
   },
 
   newPostCount: function (userId) {
-    return this._loadTagFollow(userId).then(tagFollow => tagFollow ? tagFollow.get('new_post_count') : 0)
+    return this.tagFollow(userId).fetch().then(tagFollow => tagFollow ? tagFollow.get('new_post_count') : 0)
   },
 
   postCount: function () {

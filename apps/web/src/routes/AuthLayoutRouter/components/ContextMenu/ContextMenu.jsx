@@ -217,7 +217,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-lvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-screen h-dvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
