@@ -231,12 +231,7 @@ export function refineNotification (t) {
     const avatarSeparator = i !== notifications.length - 1
       ? unread !== notifications[i + 1].activity.unread
       : false
-    if (ACTION_CHAT === activity.action) {
-      console.log('🔍 Mobile Notification WUCKACUCACKCU:', {
-      activity,
-      createdAt,
-      id
-    })}
+
     return {
       id,
       activityId: activity.id,
