@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import HyloHTML from 'components/HyloHTML'
+import { bgImageStyle } from 'util/index'
 
 function Info ({ label, value }) {
   return (
@@ -15,6 +16,11 @@ export default function AboutTab ({ round }) {
   const { t } = useTranslation()
   return (
     <div className='flex flex-col gap-3'>
+      {round.bannerUrl && (
+        <div
+          className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-2 pb-2 relative overflow-hidden'
+          style={bgImageStyle(round.bannerUrl)}
+        />)}
       <h1 className='text-2xl font-bold'>{round.title}</h1>
       {round.description && (
         <HyloHTML html={round.description} />
