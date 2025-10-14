@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Group member count issue when someone leaves and then rejoins a group
+- URL for chat rooms in digest emails
 
 ## [6.1.21] - 2025-09-19
 
