@@ -4507,7 +4507,6 @@ __metadata:
     "@hylo/navigation": "workspace:*"
     html-to-text: "npm:^8.1.0"
     lodash: "npm:^4.17.21"
-    lucide-react: "npm:^0.453.0"
     tinycolor2: "npm:^1.6.0"
     trunc-text: "npm:^1.0.2"
   languageName: unknown
