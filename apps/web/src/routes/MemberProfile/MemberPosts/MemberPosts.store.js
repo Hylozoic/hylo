@@ -25,6 +25,7 @@ const memberPostsQuery =
   $mentionsOf: [ID],
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
