@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.23] - 2025-10-13
+
+### Added
+- Saving of posts! You can now save posts in the three dot menu on a post and view them in the My Home -> Saved Posts page
+
+### Changed
+- How we do some caching to improve performance, see if this fixes memory leaks
+
+### Fixed
+- Group member count issue when someone leaves and then rejoins a group
+
 ## [6.1.21] - 2025-09-19
 
 ### Changed
