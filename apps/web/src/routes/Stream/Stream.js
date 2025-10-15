@@ -211,6 +211,7 @@ export default function Stream (props) {
       case VIEW_DRAFTS:
         name = t('Drafts')
         icon = 'FilePenLine'
+        break
       case VIEW_SAVED_POSTS:
         name = t('Saved Posts')
         icon = <Bookmark />
