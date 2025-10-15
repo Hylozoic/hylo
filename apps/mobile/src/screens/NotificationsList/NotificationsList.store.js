@@ -71,7 +71,11 @@ export const truncateText = text => TextHelpers.truncateText(text, NOTIFICATION_
 
 export function refineActivity ({ action, actor, comment, group, post, track, meta, otherGroup }, t) {
   // Debug logging for notification data
-  if (__DEV__ && (action === 'groupPeerGroupInvite' || action === 'groupPeerGroupInviteAccepted')) {
+  if (__DEV__ && (
+      // action === ACTION_GROUP_PEER_GROUP_INVITE ||
+      // action === ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED ||
+      action === ACTION_CHAT
+    )) {
     console.log('🔍 Mobile Notification Data Debug:', {
       action,
       actor: actor ? { id: actor.id, name: actor.name } : 'undefined',
@@ -89,7 +93,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Chat')+':',
         objectName: group.name,
-        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }))
+        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
       }
     }
 
@@ -132,7 +136,7 @@ export function refineActivity ({ action, actor, comment, group, post, track, me
         body: `${t('wrote:')} "${truncateHTML(post.details)}"`,
         header: t('New Post in'),
         objectName: topic,
-        onPress: () => openURL(`/groups/${group?.slug}/chat/${topic}?postId=${post.id}`)
+        onPress: () => openURL(chatUrl(topic, { context: 'group', groupSlug: group?.slug }) + `?postId=${post.id}`)
       }
     }
 

@@ -10,11 +10,11 @@ import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation
 import { isIOS } from 'util/platform'
 import useConfirmAlert from 'hooks/useConfirmAlert'
 import useRouteParams from 'hooks/useRouteParams'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
 import ItemSelector from 'components/ItemSelector'
 import MessageInput from 'components/MessageInput'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import { capeCod20, pictonBlue, amaranth, rhino80, caribbeanGreen, black10onRhino, ghost, twBackground } from '@hylo/presenters/colors'
 
@@ -91,6 +91,7 @@ export default function NewMessage () {
   const messageInputRef = useRef()
   const [participants, setParticipants] = useState([])
   const [loading, setLoading] = useState()
+  const keyboardHeight = useKeyboardHeight()
   const { prompt, participants: routeParticipants } = useRouteParams()
   const initialParticipantIds = !isArray(routeParticipants)
     ? routeParticipants?.split(',')
@@ -115,6 +116,7 @@ export default function NewMessage () {
   useEffect(() => {
     setLoading(participantsFetching || recentContactsFetching)
   }, [participantsFetching, recentContactsFetching])
+
 
   useEffect(() => {
     navigation.setOptions({ headerLeftStyle: { color: caribbeanGreen } })
@@ -164,7 +166,7 @@ export default function NewMessage () {
   const emptyParticipantsList = participants.length === 0
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <View style={[styles.container, { marginBottom: keyboardHeight }]}>
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.participants}>
         <Text style={{ fontSize: 16, color: black10onRhino, fontWeight: 'bold', marginRight: 10 }}>To:</Text>
         {participants.length > 0 && participants.map((participant, index) => (
@@ -197,7 +199,7 @@ export default function NewMessage () {
         emptyParticipants={emptyParticipantsList}
         ref={messageInputRef}
       />
-    </KeyboardFriendlyView>
+    </View>
   )
 }
 

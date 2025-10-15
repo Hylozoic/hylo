@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
+import { Bookmark } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
@@ -31,7 +32,7 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_DRAFTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -210,6 +211,11 @@ export default function Stream (props) {
       case VIEW_DRAFTS:
         name = t('Drafts')
         icon = 'FilePenLine'
+      case VIEW_SAVED_POSTS:
+        name = t('Saved Posts')
+        icon = <Bookmark />
+        fetchPostsParam.savedBy = [currentUser.id]
+        fetchPostsParam.sortBy = 'saved'
         break
     }
   }

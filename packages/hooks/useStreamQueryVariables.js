@@ -42,6 +42,9 @@ export default function useStreamQueryVariables ({
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
       : null,
+    savedBy: view === 'saved-posts'
+      ? [currentUser.id]
+      : null,
     slug,
     sortBy,
     topic,

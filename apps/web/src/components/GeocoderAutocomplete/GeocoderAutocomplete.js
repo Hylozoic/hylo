@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import isMobile from 'ismobilejs'
 import PropTypes from 'prop-types'
 import xhr from 'xhr'
 
@@ -104,6 +105,15 @@ const GeocoderAutocomplete = ({
         loading: false,
         showList: false
       }))
+    } else if (value.match(/^(https?:\/\/|www\.)/i)) {
+      // Don't show search results for URLs
+      setState(prevState => ({
+        ...prevState,
+        results: [],
+        focus: null,
+        loading: false,
+        showList: false
+      }))
     } else {
       search(
         endpoint,
@@ -199,7 +209,8 @@ const GeocoderAutocomplete = ({
       showList: false,
       inputValue: place.place_name
     }))
-    if (inputRef.current) {
+    // An android this focus causes a horizontal scroll jump if location is longer than input width
+    if (inputRef.current && !isMobile.android.device) {
       inputRef.current.focus()
     }
     if (e) {

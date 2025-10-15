@@ -86,6 +86,7 @@ const postsQuery = (postsFragment) => `query (
   $mentionsOf: [ID]
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
@@ -275,6 +276,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
       mentionsOf: $mentionsOf
       offset: $offset,
       order: $order,
+      savedBy: $savedBy,
       sortBy: $sortBy,
       search: $search,
       topic: $topic,

@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.23] - 2025-10-13
+
+### Added
+- Saving of posts! You can now save posts in the three dot menu on a post and view them in the My Home -> Saved Posts page
+
+### Changed
+- Update to latest version oaf apple-app-site-association format for ios app linking
+- Allow for declining group agreements, which leaves the group
+
+### Fixed
+- Show confirm dialog when editing any field of a proposal, so people will know they are resetting the votes
+- Fix height of global nav and context menus in mobile browser. So ? button appears always and Logout button too
+
+## [6.1.22] - 2025-09-19
+
+## [6.1.22] - 2025-09-19
+
+### Fixed
+- Don't remove chat post from chat room when editing it
+
+## [6.1.21] - 2025-09-18
+
+### Changed
+- Allow for clicking on URLs in the post location field. For opening zoom links in events mostly
+- Don't show geocoder suggestions when putting a URL in the location field
+- Tweak styling of map drawer, to take up less horizontal space
+
+### Fixed
+- Android mobile webview: Location input box causing horizontal scroll jump when focused
+- Missed a spot where #home should be #general. When joining a new group
+- Fix display of post location in map drawer
+
 ## [6.1.20] - 2025-09-15
 
 ### Fixed

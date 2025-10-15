@@ -6,10 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.1.23] - 2025-10-13
+
+### Added
+- Saving of posts! You can now save posts in the three dot menu on a post and view them in the My Home -> Saved Posts page
+
+### Changed
+- How we do some caching to improve performance, see if this fixes memory leaks
+
+### Fixed
+- Group member count issue when someone leaves and then rejoins a group
+- URL for chat rooms in digest emails
+
+## [6.1.21] - 2025-09-19
+
+### Changed
+- Add support for Node concurrency. Shoud improve performance on production
+
 ## [6.1.20] - 2025-09-16
 
 ### Fixed
-- Creating a peer group relationship when formerly they groups had a parent-child relationship.
+- Creating a peer group relationship when formerly the groups had a parent-child relationship.
 
 ## [6.1.19] - 2025-09-15
 
