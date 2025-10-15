@@ -201,6 +201,24 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
           )}
         </div>
       )}
+      {currentPhase === 'completed' && (
+        <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-4 rounded-r-lg min-w-[160px]'>
+          <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+            {t('Total {{tokenType}}', { tokenType: round?.tokenType || t('Votes') })}
+          </label>
+          <div
+            className={cn(
+              'text-5xl font-bold',
+              (post.tokensAllocated || 0) > 0 ? 'text-green-500' : 'text-foreground'
+            )}
+          >
+            {post.totalTokensAllocated || 0}
+          </div>
+          <div className='text-sm font-semibold text-foreground/80 mt-1'>
+            {t('You: {{tokens}}', { tokens: post.tokensAllocated || 0 })}
+          </div>
+        </div>
+      )}
       {flaggingVisible &&
         ReactDOM.createPortal(
           <FlagGroupContent

@@ -55,7 +55,7 @@ export async function updateFundingRound (userId, id, data) {
       await FundingRound.clearTokenDistribution(round, { transacting })
     }
 
-    if (data.votingOpensAt !== null && !round.get('tokens_distributed_at')) {
+    if (data.votingOpensAt && !round.get('tokens_distributed_at')) {
       await FundingRound.distributeTokens(round, { transacting })
     }
     return round

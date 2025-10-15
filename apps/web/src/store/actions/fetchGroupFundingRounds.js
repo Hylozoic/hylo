@@ -32,6 +32,7 @@ query (
         title
         tokenType
         totalTokens
+        totalTokensAllocated
         updatedAt
         votingMethod
       }

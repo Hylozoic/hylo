@@ -1,4 +1,4 @@
-import { MessageSquare, Vote } from 'lucide-react'
+import { CheckCircle2, MessageSquare, Vote } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -16,22 +16,47 @@ import SubmissionCard from './SubmissionCard'
 
 const getPosts = ormCreateSelector(
   orm,
-  (session, round) => round.submissions,
-  (session, posts) => {
+  (session, round, sortByTokens) => round.submissions,
+  (session, posts, sortByTokens) => {
     if (isEmpty(posts)) return []
-    return posts
-      .sort((a, b) => a.id - b.id)
-      .map(p => presentPost(p))
+    const sorted = posts.sort((a, b) => {
+      if (sortByTokens) {
+        // Sort by total tokens allocated (descending), then by ID
+        return (b.totalTokensAllocated || 0) - (a.totalTokensAllocated || 0) || a.id - b.id
+      }
+      return a.id - b.id
+    })
+    return sorted.map(p => presentPost(p))
   }
 )
 
 export default function SubmissionsTab ({ canManageRound, round }) {
-  const posts = useSelector(state => getPosts(state, round))
   const { isParticipating } = round
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
+
+  // Determine current phase first to know if we should sort by tokens
+  const now = new Date()
+  const submissionsOpenAt = DateTimeHelpers.toDateTime(round.submissionsOpenAt, { locale: getLocaleFromLocalStorage() })
+  const submissionsCloseAt = DateTimeHelpers.toDateTime(round.submissionsCloseAt, { locale: getLocaleFromLocalStorage() })
+  const votingOpensAt = DateTimeHelpers.toDateTime(round.votingOpensAt, { locale: getLocaleFromLocalStorage() })
+  const votingClosesAt = DateTimeHelpers.toDateTime(round.votingClosesAt, { locale: getLocaleFromLocalStorage() })
+  let currentPhase = 'draft'
+  if (round.votingClosesAt && votingClosesAt <= now) {
+    currentPhase = 'completed'
+  } else if (round.votingOpensAt && votingOpensAt <= now) {
+    currentPhase = 'voting'
+  } else if (round.submissionsCloseAt && submissionsCloseAt <= now) {
+    currentPhase = 'discussion'
+  } else if (round.submissionsOpenAt && submissionsOpenAt <= now) {
+    currentPhase = 'submissions'
+  } else if (round.publishedAt && round.publishedAt <= now) {
+    currentPhase = 'open'
+  }
+
+  const posts = useSelector(state => getPosts(state, round, currentPhase === 'completed'))
 
   // Initialize local vote amounts when posts change
   React.useEffect(() => {
@@ -61,24 +86,6 @@ export default function SubmissionsTab ({ canManageRound, round }) {
 
     return remaining
   }, [round.tokensRemaining, posts, localVoteAmounts])
-
-  const now = new Date()
-  const submissionsOpenAt = DateTimeHelpers.toDateTime(round.submissionsOpenAt, { locale: getLocaleFromLocalStorage() })
-  const submissionsCloseAt = DateTimeHelpers.toDateTime(round.submissionsCloseAt, { locale: getLocaleFromLocalStorage() })
-  const votingOpensAt = DateTimeHelpers.toDateTime(round.votingOpensAt, { locale: getLocaleFromLocalStorage() })
-  const votingClosesAt = DateTimeHelpers.toDateTime(round.votingClosesAt, { locale: getLocaleFromLocalStorage() })
-  let currentPhase = 'draft'
-  if (round.votingClosesAt && votingClosesAt <= now) {
-    currentPhase = 'completed'
-  } else if (round.votingOpensAt && votingOpensAt <= now) {
-    currentPhase = 'voting'
-  } else if (round.submissionsCloseAt && submissionsCloseAt <= now) {
-    currentPhase = 'discussion'
-  } else if (round.submissionsOpenAt && submissionsOpenAt <= now) {
-    currentPhase = 'submissions'
-  } else if (round.publishedAt && round.publishedAt <= now) {
-    currentPhase = 'open'
-  }
 
   return (
     <div className={cn({ 'pointer-events-none opacity-50': !isParticipating })}>
@@ -147,7 +154,23 @@ export default function SubmissionsTab ({ canManageRound, round }) {
             </div>
           </div>
         )}
-        {currentPhase === 'completed' && <h2>{t('Voting closed. See results below.')}</h2>}
+        {currentPhase === 'completed' && (
+          <div className='flex flex-row items-center justify-between gap-4 py-2'>
+            <div className='flex items-center gap-3'>
+              <CheckCircle2 className='w-8 h-8 text-selected flex-shrink-0' />
+              <h2 className='text-xl font-bold text-selected'>{t('Round Complete!')}</h2>
+            </div>
+            <div className='text-right'>
+              <span className='text-base font-semibold text-foreground/80'>
+                {t('{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!', {
+                  numParticipants: round.numParticipants || 0,
+                  totalTokens: round.totalTokensAllocated || 0,
+                  tokenType: round.tokenType || t('votes')
+                })}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
       {currentPhase === 'submissions' && (
         <button

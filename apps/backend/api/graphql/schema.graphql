@@ -2197,6 +2197,8 @@ type Post {
   title: String
   # Number of tokens allocated to this post by the current user (for funding round submissions)
   tokensAllocated: Int
+  # Total number of tokens allocated to this post by all users (for funding round submissions)
+  totalTokensAllocated: Int
   # Number of topics added to the post
   topicsTotal: Int
   # NOT USED RIGHT NOW
@@ -2625,6 +2627,8 @@ type FundingRound {
   tokensRemaining: Int
   # Total tokens available to allocate
   totalTokens: Int
+  # Total number of tokens allocated across all submissions in this round
+  totalTokensAllocated: Int
   # Token type used for voting/allocation
   tokenType: String
   updatedAt: Date

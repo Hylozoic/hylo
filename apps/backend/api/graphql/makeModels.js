@@ -484,6 +484,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (!userId) return null
           const postUser = await PostUser.find(p.get('id'), userId)
           return postUser ? postUser.get('tokens_allocated_to') || 0 : 0
+        },
+        totalTokensAllocated: async p => {
+          const result = await bookshelf.knex('posts_users')
+            .where('post_id', p.get('id'))
+            .sum('tokens_allocated_to as total')
+            .first()
+          return result?.total ? parseInt(result.total) : 0
         }
       },
       relations: [
@@ -1346,6 +1353,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
             user_id: userId
           }).fetch()
           return roundUser ? roundUser.get('tokens_remaining') : null
+        },
+        totalTokensAllocated: async r => {
+          if (!r) return null
+          const result = await bookshelf.knex('posts_users')
+            .join('funding_rounds_posts', 'posts_users.post_id', 'funding_rounds_posts.post_id')
+            .where('funding_rounds_posts.funding_round_id', r.get('id'))
+            .sum('posts_users.tokens_allocated_to as total')
+            .first()
+          return result?.total ? parseInt(result.total) : 0
         },
         userSettings: r => r && userId ? r.userSettings(userId) : null
       },

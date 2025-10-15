@@ -25,6 +25,7 @@ const PostFieldsFragment = `
   peopleReactedTotal
   title
   tokensAllocated
+  totalTokensAllocated
   type
   updatedAt
   attachments {
@@ -154,6 +155,7 @@ export function fetchFundingRound (id) {
           tokensDistributedAt,
           tokensRemaining,
           totalTokens,
+          totalTokensAllocated,
           updatedAt,
           users {
             items {
@@ -231,6 +233,7 @@ export function createFundingRound (data) {
           title,
           tokenType,
           totalTokens,
+          totalTokensAllocated,
           updatedAt,
           voterRole {
             ... on CommonRole {
