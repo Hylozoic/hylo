@@ -20,6 +20,7 @@ export function useHandleCurrentGroupSlug () {
   const pathMatches = originalLinkingPath?.match(/\/groups\/([^\/]+)(.*$)/)
   const groupSlugFromPath = pathMatches?.[1] ?? null
   const pathAfterMatch = pathMatches?.[2] ?? null
+
   useEffect(() => {
     if (currentUser?.memberships && !currentGroupSlug && !groupSlugFromPath) {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
@@ -27,11 +28,8 @@ export function useHandleCurrentGroupSlug () {
     // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (which they access via the 'my' context) and then logs back in
     if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
       const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
-      if (lastViewedGroupSlug) {
-        changeToGroup(lastViewedGroupSlug)
-      } else {
-        changeToGroup(currentGroupSlug)
-      }
+        const slug = currentGroupSlug || lastViewedGroupSlug
+        changeToGroup(slug)
     }
   }, [currentUser?.memberships, currentGroupSlug])
 
@@ -65,6 +63,7 @@ export function useHandleCurrentGroup () {
   const { context, groupSlug, originalLinkingPath } = useRouteParams()
   useEffect(() => {
     if (!loading && currentUser && currentGroup) {
+      
       mixpanel.getGroup('groupId', currentGroup.id).set({
         $location: currentGroup.location,
         $name: currentGroup.name,
@@ -80,14 +79,15 @@ export function useHandleCurrentGroup () {
         // otherwise begins loading the default HomeNavigator screen then replaces
         // it the homeWidget which creates two navigation animations
         const hasMountedScreens = !!navigation.getState()?.routes[0].params
-        if (currentGroup?.slug === 'my') {
+        if (currentGroup?.slug === 'my' || currentGroup?.slug === 'public') {
           // reset replaces the existing stack with a new one. This help avoid the 'my' context having stale/buggy screens from a prior stack in its history
           navigation.reset({
             index: 0,
             routes: [{ name: 'Context Menu' }]
           })
         } else {
-          openURL(widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug }), { replace: hasMountedScreens, reset: true })
+          const url = widgetUrl({ widget: currentGroup.homeWidget, groupSlug: currentGroup.slug })
+          openURL(url, { replace: hasMountedScreens, reset: true })
         }
       }
     }
