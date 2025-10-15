@@ -71,7 +71,6 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    console.log('&&&&&&&&&&&&&&& handleOnPress &&&&&&&&&&&&&&&&', context)
     
     // Use openURL for static contexts (public, my) to generate the correct path
     if (isStaticContext(context?.slug)) {
