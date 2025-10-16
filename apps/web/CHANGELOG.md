@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update to latest version oaf apple-app-site-association format for ios app linking
 - Allow for declining group agreements, which leaves the group
+- Show spinner on Tracks page while tracks are loading
 
 ### Fixed
 - Show confirm dialog when editing any field of a proposal, so people will know they are resetting the votes
 - Fix height of global nav and context menus in mobile browser. So ? button appears always and Logout button too
+- Opening group details of a group you are not a member of from the Group view of another group.
 
 ## [6.1.22] - 2025-09-19
 
