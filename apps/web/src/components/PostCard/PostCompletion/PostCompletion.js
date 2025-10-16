@@ -42,7 +42,7 @@ export default function PostCompletion ({ type, startTime, endTime, isFulfilled,
   const choices = messages[type]
 
   return (
-    <div className={classes.postCompletion}>
+    <div className='border-2 border-dashed border-selected/30 rounded-lg p-2'>
       <div>{prompt}</div>
       <DropdownButton
         label={label}

@@ -177,7 +177,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
         </Helmet>
         <div className='flex flex-col items-center w-full'>
           {isCurrentUser &&
-            <button className='absolute top-2 right-5 z-50 bg-black/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-foreground placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-black/80' onClick={() => push(currentUserSettingsUrl())}>
+            <button className='absolute top-2 right-5 z-50 bg-darkening/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-foreground placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-darkening/80' onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </button>}
           <div className='w-full h-[40vh] mt-4 relative flex flex-col items-center items-end justify-end pb-10 bg-cover'>
@@ -190,7 +190,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               </div>
             )}
             <div
-              className='w-[96%] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center opacity-100 bg-black/80 left-[50%] translate-x-[-50%]'
+              className='w-[96%] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center opacity-100 bg-darkening/80 left-[50%] translate-x-[-50%]'
             >
               <div style={{ backgroundImage: `url(${person.bannerUrl || '/default-user-banner.svg'})` }} className='w-full h-full opacity-70 bg-cover bg-center rounded-xl absolute top-0 left-0 z-1' />
               <div className='w-full h-full bg-gradient-to-b absolute top-0 left-0 from-transparent to-black/90 opacity-60 rounded-xl z-2' />
