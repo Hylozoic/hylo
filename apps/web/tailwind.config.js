@@ -85,6 +85,7 @@ export default {
       },
       colors: {
         black: 'hsl(var(--black) / <alpha-value>)',
+        darkening: 'hsl(var(--darkening) / <alpha-value>)',
         background: 'hsl(var(--background) / <alpha-value>)',
         midground: 'hsl(var(--midground) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',

@@ -262,13 +262,14 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-theme-background h-[100vh] h-[100dvh] z-[50] items-center pb-0 pointer-events-auto')}
+      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/15 to-theme-background/30 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-[100vh] h-[100dvh] z-[50] items-center pb-0 pointer-events-auto relative')}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
       onTouchStart={handleContainerTouchStart}
       onTouchEnd={handleContainerTouchEnd}
     >
+      <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
         ref={navContainerRef}
         className={cn(
@@ -370,7 +371,7 @@ export default function GlobalNav (props) {
             </RightClickMenu>
           )
         })}
-        <div className='sticky bottom-0 w-full bg-gradient-to-t from-theme-background/100 to-theme-background/0 h-[40px] z-20'>&nbsp;</div>
+        <div className='sticky bottom-0 dark:-bottom-2 w-full bg-gradient-to-t from-theme-background/30 dark:from-theme-background/90 to-theme-background/0 h-[40px] z-20 blur-sm '>&nbsp;</div>
 
       </div>
 

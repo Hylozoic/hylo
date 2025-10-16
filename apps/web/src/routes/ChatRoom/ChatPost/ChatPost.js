@@ -243,7 +243,7 @@ export default function ChatPost ({
       >
         <div className={
           cn(
-            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 delay-100 scale-0',
+            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-card dark:bg-theme-background/100 opacity-0 delay-100 scale-0',
             {
               'opacity-100 scale-100 scale-100': isHovered
             }

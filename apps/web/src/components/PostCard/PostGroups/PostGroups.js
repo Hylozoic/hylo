@@ -25,7 +25,7 @@ function PostGroups ({ groups = [], isPublic, constrained, slug, showBottomBorde
   if (isEmpty(groupsWithPublic) || (groupsWithPublic.length === 1 && get('0.slug', groupsWithPublic) === slug)) return null
 
   return (
-    <div className={cn('bg-darkening/10 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })}>
+    <div className={cn('rounded-t-lg bg-darkening/10 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })}>
       <div className={classes.row}>
         <span className={classes.label}>{`${t('To')}:`}&nbsp;</span>
         {!expanded &&
