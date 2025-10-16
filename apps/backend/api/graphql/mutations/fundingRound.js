@@ -75,6 +75,9 @@ export async function updateFundingRound (userId, id, data) {
     if (data.votingOpensAt && !round.get('tokens_distributed_at')) {
       await FundingRound.distributeTokens(round, { transacting })
     }
+
+    Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: [group.id], fundingRound: round })
+
     return round
   })
 }

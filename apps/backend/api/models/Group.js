@@ -1106,7 +1106,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async doesMenuUpdate ({ groupIds, post, customView, track, fundingRound, groupRelation = false }) {
-    if (!post && !customView && !groupRelation && !track) return
+    if (!post && !customView && !groupRelation && !track && !fundingRound) return
     const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
     if (postType === 'chat' && !customView && !groupRelation && !track && !fundingRound) return
