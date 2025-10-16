@@ -26,7 +26,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
   'following',
   'active',
-  'clickthrough'
+  'clickthrough',
+  'saved_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -438,6 +439,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (!userId || this.get('type') !== Post.Type.ACTION) return null
     const pu = await this.loadPostInfoForUser(userId)
     return (pu && pu.get('completion_response')) || null
+  },
+
+  async savedAtForUser (userId) {
+    if (!userId) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('saved_at')) || null
   },
 
   presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {

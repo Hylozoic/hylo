@@ -297,6 +297,7 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'interactions', iconName: 'Support', title: 'widget-my-interactions', id: 'widget-my-interactions', order: 2, parentId: 'widget-my-content' },
   { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 3, parentId: 'widget-my-content' },
   { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 4, parentId: 'widget-my-content' },
+  { context: 'my', view: 'saved-posts', iconName: 'Bookmark', title: 'widget-my-saved-posts', id: 'widget-my-saved-posts', order: 5, parentId: 'widget-my-content' },
   { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 5, parentId: 'widget-my-content' },
   { context: 'my', view: 'funding-rounds', iconName: 'BadgeDollarSign', title: 'widget-my-funding-rounds', id: 'widget-my-funding-rounds', order: 6, parentId: 'widget-my-content' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },

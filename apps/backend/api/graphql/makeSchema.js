@@ -112,6 +112,7 @@ import {
   reorderPostInCollection,
   resendInvitation,
   respondToEvent,
+  savePost,
   sendEmailVerification,
   sendPasswordReset,
   setProposalOptions,
@@ -121,6 +122,7 @@ import {
   unblockUser,
   unfulfillPost,
   unlinkAccount,
+  unsavePost,
   updateAllMemberships,
   updateComment,
   updateContextWidget,
@@ -618,6 +620,8 @@ export function makeMutations ({ fetchOne }) {
 
     respondToEvent: (root, { id, response }, context) => respondToEvent(context.currentUserId, id, response),
 
+    savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
+
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
 
     setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId }),
@@ -631,6 +635,8 @@ export function makeMutations ({ fetchOne }) {
     unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
+
+    unsavePost: (root, { postId }, context) => unsavePost(context.currentUserId, postId),
 
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 

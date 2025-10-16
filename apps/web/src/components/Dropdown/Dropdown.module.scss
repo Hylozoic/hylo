@@ -83,6 +83,9 @@ $dropdown-border-color: $color-box-shadow;
   cursor: pointer;
   background-color: white;
   user-select: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   &:hover {
     background-color: $color-polar;
   }
@@ -90,8 +93,9 @@ $dropdown-border-color: $color-box-shadow;
 
 .icon {
   margin-right: 20px;
-  position: relative;
-  top: 4px;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
 }
 
 .headerItem {

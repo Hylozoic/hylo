@@ -55,6 +55,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   editedAt
   projectManagementLink
   myEventResponse
+  savedAt
   commenters(first: 3) {
     id
     name
