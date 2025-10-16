@@ -931,7 +931,7 @@ function PostEditor ({
               forGroups={currentPost.groups}
               readOnly={loading}
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50 pt-0'
-              backgroundClassName='bg-midground rounded-lg p-2 shadow-md'
+              backgroundClassName='bg-midground rounded-lg p-1 shadow-md'
             />
           </div>
         </div>

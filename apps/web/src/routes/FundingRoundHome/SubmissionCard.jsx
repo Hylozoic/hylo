@@ -9,7 +9,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import { allocateTokensToSubmission } from 'store/actions/fundingRoundActions'
+import { allocateTokensToSubmission } from 'routes/FundingRounds/FundingRounds.store'
 import { editPostUrl, groupUrl, personUrl, postUrl, trackUrl } from '@hylo/navigation'
 import {
   DropdownMenu,

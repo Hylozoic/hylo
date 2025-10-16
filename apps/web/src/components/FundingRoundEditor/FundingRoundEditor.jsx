@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { ImagePlus, Plus, EyeOff, Eye, X } from 'lucide-react'
 import TextInput from 'components/TextInput'
+import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import {
   Popover,
@@ -27,9 +28,8 @@ import Button from 'components/ui/button'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import HyloEditor from 'components/HyloEditor'
-import { createFundingRound, updateFundingRound } from 'store/actions/fundingRoundActions'
+import { createFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import getFundingRound from 'store/selectors/getFundingRound'
@@ -106,15 +106,13 @@ function FundingRoundEditor (props) {
     requireBudget: false,
     submissionDescriptor: 'Submission',
     submissionDescriptorPlural: 'Submissions',
-    submitterRole: null,
-    submitterRoleType: '',
     title: '',
     tokenType: 'Votes',
     totalTokens: '',
     votingMethod: 'token_allocation_constant',
-    voterRole: null,
-    voterRoleType: '',
     ...editingRound,
+    submitterRoles: editingRound?.submitterRoles || [],
+    voterRoles: editingRound?.voterRoles || [],
     submissionsOpenAt: typeof editingRound?.submissionsOpenAt === 'string' ? new Date(editingRound?.submissionsOpenAt) : editingRound?.submissionsOpenAt,
     submissionsCloseAt: typeof editingRound?.submissionsCloseAt === 'string' ? new Date(editingRound?.submissionsCloseAt) : editingRound?.submissionsCloseAt,
     votingOpensAt: typeof editingRound?.votingOpensAt === 'string' ? new Date(editingRound?.votingOpensAt) : editingRound?.votingOpensAt,
@@ -131,13 +129,13 @@ function FundingRoundEditor (props) {
     requireBudget,
     submissionDescriptor,
     submissionDescriptorPlural,
-    submitterRole,
+    submitterRoles,
     submissionsCloseAt,
     submissionsOpenAt,
     title,
     tokenType,
     totalTokens,
-    voterRole,
+    voterRoles,
     votingMethod,
     votingClosesAt,
     votingOpensAt
@@ -161,18 +159,58 @@ function FundingRoundEditor (props) {
 
   const commonRoles = useSelector(getCommonRoles)
   const groupRoles = useMemo(() => currentGroup?.groupRoles?.items || [], [currentGroup?.groupRoles?.items])
-  const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
+  const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common', label: `${role.emoji} ${role.name}` })), ...groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji} ${role.name}` }))], [commonRoles, groupRoles])
 
-  // Get the selected role object from the roles array to display
-  const selectedSubmitterRole = useMemo(() => {
-    if (!fundingRoundState.submitterRole?.id) return null
-    return roles.find(role => role.id === fundingRoundState.submitterRole.id)
-  }, [fundingRoundState.submitterRole, roles])
+  const [submitterRoleSearchTerm, setSubmitterRoleSearchTerm] = useState(null)
+  const [voterRoleSearchTerm, setVoterRoleSearchTerm] = useState(null)
+  const [submitterRoleInputFocused, setSubmitterRoleInputFocused] = useState(false)
+  const [voterRoleInputFocused, setVoterRoleInputFocused] = useState(false)
 
-  const selectedVoterRole = useMemo(() => {
-    if (!fundingRoundState.voterRole?.id) return null
-    return roles.find(role => role.id === fundingRoundState.voterRole.id)
-  }, [fundingRoundState.voterRole, roles])
+  const submitterRoleSuggestions = useMemo(() => {
+    if (submitterRoleSearchTerm === null) return []
+
+    const unselectedRoles = roles.filter(role =>
+      !submitterRoles.some(selected => selected.id === role.id)
+    )
+
+    if (!submitterRoleSearchTerm) {
+      return unselectedRoles.slice(0, 5)
+    }
+
+    const searchLower = submitterRoleSearchTerm.toLowerCase()
+    return unselectedRoles.filter(role =>
+      role.name.toLowerCase().includes(searchLower)
+    )
+  }, [submitterRoleSearchTerm, roles, submitterRoles, submitterRoleInputFocused])
+
+  const voterRoleSuggestions = useMemo(() => {
+    // Don't show suggestions if input is not focused
+    if (voterRoleSearchTerm === null) return []
+
+    const unselectedRoles = roles.filter(role =>
+      !voterRoles.some(selected => selected.id === role.id)
+    )
+
+    if (!voterRoleSearchTerm) {
+      return unselectedRoles.slice(0, 5)
+    }
+
+    const searchLower = voterRoleSearchTerm.toLowerCase()
+    return unselectedRoles.filter(role =>
+      role.name.toLowerCase().includes(searchLower)
+    )
+  }, [voterRoleSearchTerm, roles, voterRoles, voterRoleInputFocused])
+
+  const renderRoleSuggestion = useCallback(({ item, handleChoice }) => {
+    return (
+      <li key={item.id}>
+        <a onClick={event => handleChoice(item, event)} className='flex items-center gap-2 rounded-md text-foreground hover:text-foreground'>
+          <span className=''>{item.emoji}</span>
+          <span className=''>{item.name}</span>
+        </a>
+      </li>
+    )
+  }, [])
 
   useEffect(() => {
     if (!canManage && currentGroup) {
@@ -214,11 +252,7 @@ function FundingRoundEditor (props) {
       votingClosesAt: (key === 'votingClosesAt' && votingOpensAt && value <= votingOpensAt) || (key === 'votingOpensAt' && votingClosesAt && value > votingClosesAt) ? t('Voting must close after it opens') : null
     }))
 
-    if (key === 'submitterRole' || key === 'voterRole') {
-      setFundingRoundState(prev => ({ ...prev, [key]: value, [key + 'Type']: value.type }))
-    } else {
-      setFundingRoundState(prev => ({ ...prev, [key]: value }))
-    }
+    setFundingRoundState(prev => ({ ...prev, [key]: value }))
     setEdited(prev => prev || !isEqual(prev[key], value))
   }, [submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt])
 
@@ -249,13 +283,13 @@ function FundingRoundEditor (props) {
       requireBudget,
       submissionDescriptor,
       submissionDescriptorPlural,
-      submitterRole,
+      submitterRoles,
       submissionsCloseAt: submissionsCloseAt instanceof Date ? submissionsCloseAt.toISOString() : submissionsCloseAt || null,
       submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
       title: trim(title),
       tokenType,
       totalTokens: totalTokens ? Number(totalTokens) : null,
-      voterRole,
+      voterRoles,
       votingMethod,
       votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
       votingOpensAt: votingOpensAt instanceof Date ? votingOpensAt.toISOString() : votingOpensAt || null
@@ -490,48 +524,52 @@ function FundingRoundEditor (props) {
       </div>
 
       <div>
-        <h3>{t('Badge or Role required to add a {{submissionDescriptor}}. If not set any member can add.', { submissionDescriptor })}</h3>
-        <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus rounded-md'>
-          <Select
-            onValueChange={roleId => updateFundingRoundState('submitterRole')(roles.find(role => role.id === roleId))}
-            value={selectedSubmitterRole?.id || ''}
-          >
-            <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
-              <SelectValue>
-                {selectedSubmitterRole ? selectedSubmitterRole.emoji + ' ' + selectedSubmitterRole.name : t('Select badge or role')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.emoji} {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <h3>{t('Badges or Roles required to add a {{submissionDescriptor}}. If not set any member can add.', { submissionDescriptor })}</h3>
+        <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
+          <TagInput
+            tags={submitterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+            suggestions={submitterRoleSuggestions}
+            handleInputChange={setSubmitterRoleSearchTerm}
+            handleAddition={(role) => {
+              updateFundingRoundState('submitterRoles')([...submitterRoles, role])
+              setSubmitterRoleSearchTerm('')
+              setEdited(true)
+            }}
+            handleDelete={(role) => {
+              updateFundingRoundState('submitterRoles')(submitterRoles.filter(r => r.id !== role.id))
+              setEdited(true)
+            }}
+            placeholder={t('Search roles/badges')}
+            allowNewTags={false}
+            renderSuggestion={renderRoleSuggestion}
+            onFocus={() => setSubmitterRoleInputFocused(true)}
+            onBlur={() => setSubmitterRoleInputFocused(false)}
+          />
         </div>
       </div>
 
       <div>
-        <h3>{t('Badge or Role required to vote. If not set any member can vote.')}</h3>
-        <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
-          <Select
-            onValueChange={roleId => updateFundingRoundState('voterRole')(roles.find(role => role.id === roleId))}
-            value={selectedVoterRole?.id || ''}
-          >
-            <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
-              <SelectValue>
-                {selectedVoterRole ? selectedVoterRole.emoji + ' ' + selectedVoterRole.name : t('Select a badge or role')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.emoji} {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <h3>{t('Badges or Roles required to vote. If not set any member can vote.')}</h3>
+        <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
+          <TagInput
+            tags={voterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+            suggestions={voterRoleSuggestions}
+            handleInputChange={setVoterRoleSearchTerm}
+            handleAddition={(role) => {
+              updateFundingRoundState('voterRoles')([...voterRoles, role])
+              setVoterRoleSearchTerm('')
+              setEdited(true)
+            }}
+            handleDelete={(role) => {
+              updateFundingRoundState('voterRoles')(voterRoles.filter(r => r.id !== role.id))
+              setEdited(true)
+            }}
+            placeholder={t('Search roles/badges')}
+            allowNewTags={false}
+            renderSuggestion={renderRoleSuggestion}
+            onFocus={() => setVoterRoleInputFocused(true)}
+            onBlur={() => setVoterRoleInputFocused(false)}
+          />
         </div>
       </div>
 

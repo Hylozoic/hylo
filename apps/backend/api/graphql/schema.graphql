@@ -2582,6 +2582,10 @@ type FundingRound {
   id: ID
   # The URL for the banner image of the round
   bannerUrl: String
+  # Whether the current user can submit to this funding round
+  canSubmit: Boolean
+  # Whether the current user can vote in this funding round
+  canVote: Boolean
   createdAt: Date
   # Criteria for submitting projects/submissions
   criteria: String
@@ -2615,10 +2619,8 @@ type FundingRound {
   submissionsCloseAt: Date
   # The date submissions open (optional)
   submissionsOpenAt: Date
-  # The role or badge required to add a submission to the round
-  submitterRole: Role
-  # The type of role/badge that is required to add a submission to the round. Either 'common' or 'group'
-  submitterRoleType: String
+  # The roles or badges required to add a submission to the round
+  submitterRoles: [Role]
   # The title of the funding round
   title: String
   # When tokens were distributed to users
@@ -2638,10 +2640,8 @@ type FundingRound {
   usersTotal: Int
   # The settings for the current user in this track
   userSettings: JSON
-  # The role/badge required to vote on submissions
-  voterRole: Role
-  # The type of role/badge required to vote on submissions. Either 'common' or 'group'
-  voterRoleType: String
+  # The roles/badges required to vote on submissions
+  voterRoles: [Role]
   # When voting opens (optional)
   votingClosesAt: Date
   # When voting closes (optional)
@@ -3782,6 +3782,13 @@ input TrackInput {
   welcomeMessage: String
 }
 
+input RoleSelectionInput {
+  # The ID of the role
+  id: ID!
+  # The type of role: 'common' or 'group'
+  type: String!
+}
+
 input FundingRoundInput {
   # The URL for the banner image of the round
   bannerUrl: String
@@ -3807,20 +3814,16 @@ input FundingRoundInput {
   submissionsCloseAt: Date
   # The date submissions open (optional)
   submissionsOpenAt: Date
-  # The role or badge required to add a submission to the round
-  submitterRoleId: ID
-  # The type of role/badge that is required to add a submission to the round. Either 'common' or 'group'
-  submitterRoleType: String
+  # The roles or badges required to add a submission to the round
+  submitterRoles: [RoleSelectionInput]
   # The title of the funding round
   title: String
   # Total tokens available to allocate
   totalTokens: Int
   # Token type used for voting/allocation
   tokenType: String
-  # The role/badge required to vote on submissions
-  voterRoleId: ID
-  # The type of role/badge required to vote on submissions. Either 'common' or 'group'
-  voterRoleType: String
+  # The roles/badges required to vote on submissions
+  voterRoles: [RoleSelectionInput]
   # When voting opens (optional)
   votingClosesAt: Date
   # When voting closes (optional)

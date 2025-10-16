@@ -1333,19 +1333,20 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'submission_descriptor',
         'submissions_close_at',
         'submissions_open_at',
-        'submitter_role_type',
         'title',
         'token_type',
         'tokens_distributed_at',
         'total_tokens',
         'updated_at',
-        'voter_role_type',
         'voting_closes_at',
         'voting_method',
         'voting_opens_at'
       ],
       getters: {
+        canSubmit: r => r && userId ? r.canUserSubmit(userId) : false,
+        canVote: r => r && userId ? r.canUserVote(userId) : false,
         isParticipating: r => r && userId && r.isParticipating(userId),
+        submitterRoles: r => r ? r.submitterRoles() : [],
         tokensRemaining: async r => {
           if (!r || !userId) return null
           const roundUser = await FundingRoundUser.where({
@@ -1363,14 +1364,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .first()
           return result?.total ? parseInt(result.total) : 0
         },
-        userSettings: r => r && userId ? r.userSettings(userId) : null
+        userSettings: r => r && userId ? r.userSettings(userId) : null,
+        voterRoles: r => r ? r.voterRoles() : []
       },
       relations: [
         'group',
         { submissions: { querySet: true } },
-        'submitterRole',
-        { users: { querySet: true } },
-        'voterRole'
+        { users: { querySet: true } }
       ],
       fetchMany: ({ first, order, offset = 0, published, search }) =>
         searchQuerySet('funding_rounds', {

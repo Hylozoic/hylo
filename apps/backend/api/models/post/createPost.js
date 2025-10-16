@@ -78,7 +78,7 @@ export function afterCreatingPost (post, opts) {
 
     opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
 
-    opts.fundingRoundId && FundingRound.addPost(post, opts.fundingRoundId, trxOpts)
+    opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
     .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))

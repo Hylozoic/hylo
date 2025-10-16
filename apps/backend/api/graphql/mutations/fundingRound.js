@@ -32,6 +32,14 @@ export async function createFundingRound (userId, data) {
   const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
   if (!canManage) throw new GraphQLError('You do not have permission to create funding rounds')
 
+  // Convert role arrays to JSON format for storage
+  if (data.submitterRoles) {
+    attrs.submitter_roles = JSON.stringify(data.submitterRoles)
+  }
+  if (data.voterRoles) {
+    attrs.voter_roles = JSON.stringify(data.voterRoles)
+  }
+
   const round = await FundingRound.create(fixDateFields(attrs, data))
   Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, fundingRound: round })
   return round
@@ -48,7 +56,16 @@ export async function updateFundingRound (userId, id, data) {
 
     const attrs = convertGraphqlData(data)
     const updatedAttrs = fixDateFields(attrs, data)
-    await round.save({ updated_at: new Date(), ...updatedAttrs }, { transacting })
+
+    // Convert role arrays to JSON format for storage
+    if (data.submitterRoles) {
+      updatedAttrs.submitter_roles = JSON.stringify(data.submitterRoles || [])
+    }
+    if (data.voterRoles) {
+      updatedAttrs.voter_roles = JSON.stringify(data.voterRoles || [])
+    }
+
+    await round.save({ updated_at: new Date(), ...updatedAttrs }, { transacting, patch: true })
 
     // If going back from voting phase (clearing votingOpensAt), clear token distribution
     if (data.votingOpensAt === null && round.get('tokens_distributed_at')) {
@@ -118,6 +135,10 @@ export async function allocateTokensToSubmission (userId, postId, tokens) {
   // Check if user is participating in the round
   const isParticipating = await round.isParticipating(userId)
   if (!isParticipating) throw new GraphQLError('You must be participating in this round to allocate tokens')
+
+  // Check if user has permission to vote
+  const canVote = await round.canUserVote(userId)
+  if (!canVote) throw new GraphQLError('You do not have the required role to vote in this funding round')
 
   // Check if tokens have been distributed
   if (!round.get('tokens_distributed_at')) {

@@ -1,6 +1,6 @@
 import { capitalize } from 'lodash/fp'
-import { BadgeDollarSign, Check, ChevronsRight, DoorOpen, Eye } from 'lucide-react'
-import React, { useCallback, useEffect, useState } from 'react'
+import { BadgeDollarSign } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -8,10 +8,9 @@ import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PostDialog from 'components/PostDialog'
-import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatRoom from 'routes/ChatRoom'
-import { FETCH_FUNDING_ROUND, fetchFundingRound, leaveFundingRound, joinFundingRound, updateFundingRound, distributeFundingRoundTokens } from 'store/actions/fundingRoundActions'
+import { FETCH_FUNDING_ROUND, fetchFundingRound, distributeFundingRoundTokens } from 'routes/FundingRounds/FundingRounds.store'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -50,16 +49,6 @@ function FundingRoundHome () {
       dispatch(distributeFundingRoundTokens(fundingRound.id))
     }
   }, [fundingRound?.votingOpensAt, fundingRound?.tokensDistributedAt, fundingRound?.isParticipating, fundingRound?.id])
-
-  const handleJoinFundingRound = useCallback(() => {
-    dispatch(joinFundingRound(fundingRound.id))
-  }, [fundingRound?.id])
-
-  const handlePublishRound = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this round?') : t('Are you sure you want to unpublish this round?'))) {
-      dispatch(updateFundingRound({ id: fundingRound.id, publishedAt }))
-    }
-  }, [fundingRound?.id])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -119,52 +108,12 @@ function FundingRoundHome () {
             <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
             <Route path='submissions/post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
             <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} />} />
-            <Route path='participants/*' element={<PeopleTab round={fundingRound} />} />
+            <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} />} />
             <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
             <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
             <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
             <Route path='*' element={<AboutTab round={fundingRound} />} />
           </Routes>
-
-          <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
-            {!fundingRound.publishedAt
-              ? (
-                <>
-                  <span className='flex-1'>{t('This round is not yet published')}</span>
-                  <Button
-                    variant='secondary'
-                    onClick={(e) => handlePublishRound(new Date().toISOString())}
-                  >
-                    <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-                  </Button>
-                </>
-                )
-              : fundingRound.isParticipating
-                ? (
-                  <>
-                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You have joined this funding round')}</span>
-                      <button
-                        className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4'
-                        onClick={() => dispatch(leaveFundingRound(fundingRound.id))}
-                      >
-                        <DoorOpen className='w-4 h-4' /> {t('Leave Round')}
-                      </button>
-                    </div>
-                  </>
-                  )
-                : (
-                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                    <span>{t('Ready to jump in?')}</span>
-                    <button
-                      className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center'
-                      onClick={handleJoinFundingRound}
-                    >
-                      <ChevronsRight className='w-4 h-4' /> {t('Join')}
-                    </button>
-                  </div>
-                  )}
-          </div>
         </div>
       </div>
     </div>

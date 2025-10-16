@@ -1,6 +1,10 @@
-import React from 'react'
+import { Check, ChevronsRight, DoorOpen, Eye } from 'lucide-react'
+import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
+import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
+import { joinFundingRound, leaveFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { bgImageStyle } from 'util/index'
 
 function Info ({ label, value }) {
@@ -14,6 +18,32 @@ function Info ({ label, value }) {
 
 export default function AboutTab ({ round }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+
+  const renderRoles = (roles) => {
+    if (!roles || roles.length === 0) return t('Any member')
+    return (
+      <div className='flex flex-wrap gap-1'>
+        {roles.map(role => (
+          <span key={role.id} className='inline-flex items-center gap-1 px-2 py-1 bg-accent/20 rounded-md text-sm'>
+            <span className='text-base'>{role.emoji}</span>
+            <span>{role.name}</span>
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  const handleJoinFundingRound = useCallback(() => {
+    dispatch(joinFundingRound(round.id))
+  }, [round?.id])
+
+  const handlePublishRound = useCallback((publishedAt) => {
+    if (window.confirm(publishedAt ? t('Are you sure you want to publish this round?') : t('Are you sure you want to unpublish this round?'))) {
+      dispatch(updateFundingRound({ id: round.id, publishedAt }))
+    }
+  }, [round?.id])
+
   return (
     <div className='flex flex-col gap-3'>
       {round.bannerUrl && (
@@ -38,6 +68,56 @@ export default function AboutTab ({ round }) {
         {round.totalTokens != null && <Info label={t('Total Tokens')} value={round.totalTokens} />}
         {round.minTokenAllocation != null && <Info label={t('Min Token Allocation')} value={round.minTokenAllocation} />}
         {round.maxTokenAllocation != null && <Info label={t('Max Token Allocation')} value={round.maxTokenAllocation} />}
+      </div>
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2'>
+        <div className='border border-foreground/20 rounded-lg p-3'>
+          <div className='text-xs text-foreground/60 uppercase mb-2'>{t('Who Can Submit')}</div>
+          {renderRoles(round.submitterRoles)}
+        </div>
+        <div className='border border-foreground/20 rounded-lg p-3'>
+          <div className='text-xs text-foreground/60 uppercase mb-2'>{t('Who Can Vote')}</div>
+          {renderRoles(round.voterRoles)}
+        </div>
+      </div>
+
+      <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+        {!round.publishedAt
+          ? (
+            <>
+              <span className='flex-1'>{t('This round is not yet published')}</span>
+              <Button
+                variant='secondary'
+                onClick={(e) => handlePublishRound(new Date().toISOString())}
+              >
+                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+              </Button>
+            </>
+            )
+          : round.isParticipating
+            ? (
+              <>
+                <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                  <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You have joined this funding round')}</span>
+                  <button
+                    className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4'
+                    onClick={() => dispatch(leaveFundingRound(round.id))}
+                  >
+                    <DoorOpen className='w-4 h-4' /> {t('Leave Round')}
+                  </button>
+                </div>
+              </>
+              )
+            : (
+              <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                <span>{t('Ready to jump in?')}</span>
+                <button
+                  className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center'
+                  onClick={handleJoinFundingRound}
+                >
+                  <ChevronsRight className='w-4 h-4' /> {t('Join')}
+                </button>
+              </div>
+              )}
       </div>
     </div>
   )

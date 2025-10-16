@@ -7,7 +7,7 @@ import { DateTimeHelpers } from '@hylo/shared'
 import { groupUrl } from '@hylo/navigation'
 import Button from 'components/ui/button'
 import useRouteParams from 'hooks/useRouteParams'
-import { updateFundingRound } from 'store/actions/fundingRoundActions'
+import { updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
