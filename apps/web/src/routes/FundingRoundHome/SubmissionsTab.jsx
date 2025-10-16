@@ -1,15 +1,16 @@
+import { isEmpty } from 'lodash/fp'
 import { CheckCircle2, MessageSquare, Vote } from 'lucide-react'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
 import { DateTimeHelpers } from '@hylo/shared'
 import useRouteParams from 'hooks/useRouteParams'
 import orm from 'store/models'
-import { createSelector as ormCreateSelector } from 'redux-orm'
-import { isEmpty } from 'lodash/fp'
 import presentPost from 'store/presenters/presentPost'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import SubmissionCard from './SubmissionCard'
@@ -33,6 +34,7 @@ const getPosts = ormCreateSelector(
 export default function SubmissionsTab ({ canManageRound, round }) {
   const { isParticipating } = round
   const { t } = useTranslation()
+  const currentUser = useSelector(getMe)
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
@@ -57,6 +59,8 @@ export default function SubmissionsTab ({ canManageRound, round }) {
   }
 
   const posts = useSelector(state => getPosts(state, round, currentPhase === 'completed'))
+  // During submission phase, only show posts created by the current user unless you are a steward
+  const postsForDisplay = useMemo(() => ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound ? posts : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id)), [canManageRound, posts, currentPhase, currentUser.id])
 
   // Initialize local vote amounts when posts change
   React.useEffect(() => {
@@ -181,7 +185,7 @@ export default function SubmissionsTab ({ canManageRound, round }) {
         </button>
       )}
       <div className='flex flex-col mt-4'>
-        {(['completed', 'voting', 'discussion'].includes(currentPhase) || canManageRound) && posts.map(post => (
+        {postsForDisplay.map(post => (
           <SubmissionCard
             key={post.id}
             post={post}
