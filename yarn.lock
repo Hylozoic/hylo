@@ -27917,7 +27917,7 @@ __metadata:
     react-native-render-html: "patch:react-native-render-html@npm:6.3.4#.yarn/patches/react-native-render-html+6.3.4.patch"
     react-native-restart: "npm:^0.0.27"
     react-native-safe-area-context: "npm:^5.4.0"
-    react-native-screens: "npm:^4.5.0"
+    react-native-screens: "npm:4.13.1"
     react-native-share: "npm:12.0.6"
     react-native-sse: "npm:^1.2.1"
     react-native-svg: "npm:15.11.1"
@@ -32877,16 +32877,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-screens@npm:^4.5.0":
-  version: 4.6.0
-  resolution: "react-native-screens@npm:4.6.0"
+"react-native-screens@npm:4.13.1":
+  version: 4.13.1
+  resolution: "react-native-screens@npm:4.13.1"
   dependencies:
     react-freeze: "npm:^1.0.0"
+    react-native-is-edge-to-edge: "npm:^1.2.1"
     warn-once: "npm:^0.1.0"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10/c3200fb6e7962c8b7713645e8c2efd0fd6305d284c82c923fcba6cd32bf7e281c4669b8ae169dc49e3ac939429b5c1ffa4bf5d45373cb20e8094567d797fa903
+  checksum: 10/40a9c4ea67c80b4f847ec19e26df4aed9ba470b02a0806c4ef003df9005b2068f7e5002a72f144a6dc38eb2b7c33b6fa87334b9304c1d7111dde02b4a9212d32
   languageName: node
   linkType: hard
 
