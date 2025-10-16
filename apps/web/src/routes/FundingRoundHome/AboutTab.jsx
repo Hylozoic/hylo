@@ -45,10 +45,10 @@ export default function AboutTab ({ round }) {
   }, [round?.id])
 
   return (
-    <div className='flex flex-col gap-3'>
+    <div className='flex flex-col gap-3 pb-[100px]'>
       {round.bannerUrl && (
         <div
-          className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-2 pb-2 relative overflow-hidden'
+          className='w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-2 pb-2 relative overflow-hidden'
           style={bgImageStyle(round.bannerUrl)}
         />)}
       <h1 className='text-2xl font-bold'>{round.title}</h1>
@@ -57,17 +57,17 @@ export default function AboutTab ({ round }) {
       )}
       {round.criteria && (
         <div>
-          <div className='font-semibold'>{t('Criteria')}</div>
+          <h2 className='text-lg font-semibold'>{t('Submission Criteria')}</h2>
           <HyloHTML html={round.criteria} />
         </div>
       )}
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
         <Info label={t('Require Budget')} value={round.requireBudget ? t('Yes') : t('No')} />
-        <Info label={t('Voting Method')} value={round.votingMethod} />
+        <Info label={t('Voting Method')} value={round.votingMethod === 'token_allocation_constant' ? t('Equal Token Allocation') : t('Divide Total Tokens Equally')} />
         {round.tokenType && <Info label={t('Token Type')} value={round.tokenType} />}
-        {round.totalTokens != null && <Info label={t('Total Tokens')} value={round.totalTokens} />}
-        {round.minTokenAllocation != null && <Info label={t('Min Token Allocation')} value={round.minTokenAllocation} />}
-        {round.maxTokenAllocation != null && <Info label={t('Max Token Allocation')} value={round.maxTokenAllocation} />}
+        {round.totalTokens != null && <Info label={round.votingMethod === 'token_allocation_constant' ? t('Tokens per Voter') : t('Total Tokens')} value={round.totalTokens} />}
+        {round.minTokenAllocation != null && <Info label={t('Min Tokens per Submission')} value={round.minTokenAllocation} />}
+        {round.maxTokenAllocation != null && <Info label={t('Max Tokens per Submission')} value={round.maxTokenAllocation} />}
       </div>
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2'>
         <div className='border border-foreground/20 rounded-lg p-3'>
@@ -80,7 +80,7 @@ export default function AboutTab ({ round }) {
         </div>
       </div>
 
-      <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+      <div className='absolute bottom-0 left-0 right-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md z-10'>
         {!round.publishedAt
           ? (
             <>

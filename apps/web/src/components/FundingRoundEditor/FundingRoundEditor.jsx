@@ -387,7 +387,7 @@ function FundingRoundEditor (props) {
 
       <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mt-4 mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
         <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
-          {t('Criteria')}
+          {t('Submission Criteria')}
         </h3>
         <HyloEditor
           key={currentGroup.id}

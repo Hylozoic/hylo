@@ -60,10 +60,10 @@ function FundingRoundHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
+      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
           {(fundingRound.isParticipating || canManageRound) && (
-            <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
+            <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2 mb-2'>
               <Link
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to=''
@@ -103,17 +103,19 @@ function FundingRoundHome () {
               )}
             </div>)}
 
-          <Routes>
-            <Route path='submissions/create/*' element={<CreateModal context='groups' />} />
-            <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
-            <Route path='submissions/post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
-            <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} />} />
-            <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} />} />
-            <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
-            <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
-            <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
-            <Route path='*' element={<AboutTab round={fundingRound} />} />
-          </Routes>
+          <div className='flex-1 overflow-y-auto'>
+            <Routes>
+              <Route path='submissions/create/*' element={<CreateModal context='groups' />} />
+              <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
+              <Route path='submissions/post/:postId/edit/*' element={<PostDialog container={container} editingPost />} />
+              <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} />} />
+              <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} />} />
+              <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
+              <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
+              <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
+              <Route path='*' element={<AboutTab round={fundingRound} />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </div>

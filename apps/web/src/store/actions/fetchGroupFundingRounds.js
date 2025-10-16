@@ -26,6 +26,7 @@ query (
         minTokenAllocation
         numParticipants
         numSubmissions
+        publishedAt
         requireBudget
         submissionDescriptor
         submissionDescriptorPlural

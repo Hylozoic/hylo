@@ -1,11 +1,13 @@
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import orm from 'store/models'
 
-export default function getFundingRoundsForGroup (state, { groupId }) {
-  const selector = ormCreateSelector(orm, ({ Group }) => {
-    const group = Group.withId(groupId)
-    if (!group) return []
-    return group.fundingRounds.toRefArray()
-  })
-  return selector(state)
-}
+const getFundingRoundsForGroup = ormCreateSelector(
+  orm,
+  (state, props) => props.groupId,
+  (session, groupId) => {
+    const group = session.Group.withId(groupId)
+    return group.fundingRounds.toModelArray().sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+  }
+)
+
+export default getFundingRoundsForGroup

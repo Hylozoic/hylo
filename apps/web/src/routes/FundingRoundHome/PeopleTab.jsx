@@ -8,8 +8,6 @@ import useRouteParams from 'hooks/useRouteParams'
 function userHasRole (user, requiredRoles, groupId) {
   if (!requiredRoles || requiredRoles.length === 0) return true
 
-  console.log("userHasRole", requiredRoles, groupId, user)
-
   for (const requiredRole of requiredRoles) {
     if (requiredRole.type === 'common') {
       // Check if user has this common role for this group

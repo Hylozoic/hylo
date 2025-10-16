@@ -1320,6 +1320,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     FundingRound: {
       model: FundingRound,
       attributes: [
+        'banner_url',
         'created_at',
         'criteria',
         'description',
