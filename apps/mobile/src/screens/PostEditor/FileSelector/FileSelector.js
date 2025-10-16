@@ -3,7 +3,7 @@ import { last, isEmpty } from 'lodash/fp'
 import PopupMenuButton from 'components/PopupMenuButton'
 import { Text, View } from 'react-native'
 import Icon from 'components/Icon'
-import DocumentPicker from 'react-native-document-picker'
+import { pick, types, isCancel } from '@react-native-documents/picker'
 import styles from './FileSelector.styles'
 import { useTranslation } from 'react-i18next'
 
@@ -35,8 +35,8 @@ export async function showFilePicker ({
   upload
 }) {
   try {
-    const documents = await DocumentPicker.pickMultiple({
-      type: [DocumentPicker.types.allFiles],
+    const documents = await pick({
+      type: [types.allFiles],
       allowMultiSelection
     })
     let fileUploaders = []
@@ -66,7 +66,7 @@ export async function showFilePicker ({
 
     onComplete && onComplete(uploadedFiles)
   } catch (error) {
-    if (DocumentPicker.isCancel(error)) {
+    if (isCancel(error)) {
       onCancel && onCancel()
     } else {
       onComplete && onComplete(error.message)
