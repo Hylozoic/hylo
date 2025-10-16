@@ -374,7 +374,9 @@ export default function ChatRoom (props) {
       }
 
       // Remove the scroll to post from the url so we can click on a notification to scroll to it again
-      dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      if (!isWebView()) {
+        dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      }
     }
   }, [querystringParams?.postId])
 
