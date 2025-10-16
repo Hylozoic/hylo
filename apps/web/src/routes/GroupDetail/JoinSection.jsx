@@ -103,7 +103,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       )}
       <Button
         variant='secondary'
-        className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2'
+        className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2 whitespace-normal'
         disabled={!allQuestionsAnswered}
         onClick={() => joinGroup(group.id, questionAnswers)}
         data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}
