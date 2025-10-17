@@ -75,7 +75,7 @@ function FundingRoundHome () {
       <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
           {(fundingRound.isParticipating || canManageRound) && (
-            <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2 mb-2'>
+            <div className='flex gap-2 w-full justify-center items-center bg-black/10 rounded-md p-2 mb-2'>
               <Link
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to=''
