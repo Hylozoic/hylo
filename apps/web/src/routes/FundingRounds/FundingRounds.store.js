@@ -475,5 +475,18 @@ export function ormSessionReducer (
       }
       return round.update(data)
     }
+
+    case ALLOCATE_TOKENS_TO_SUBMISSION_PENDING: {
+      const post = Post.safeGet({ id: meta.postId })
+      if (!post) return
+      return post.update({ tokensAllocated: meta.tokens })
+    }
+
+    case ALLOCATE_TOKENS_TO_SUBMISSION: {
+      if (!payload?.data?.allocateTokensToSubmission) return
+      const post = Post.safeGet({ id: payload.data.allocateTokensToSubmission.id })
+      if (!post) return
+      return post.update({ tokensAllocated: payload.data.allocateTokensToSubmission.tokensAllocated })
+    }
   }
 }

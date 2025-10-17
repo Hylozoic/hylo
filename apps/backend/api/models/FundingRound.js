@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag, Responsibility, Activity */
 import { GraphQLError } from 'graphql'
 
 module.exports = bookshelf.Model.extend({
@@ -250,9 +251,15 @@ module.exports = bookshelf.Model.extend({
       return round
     }
 
-    // Check if voting has opened
+    // Check if voting has opened (allow up to 1 minute tolerance for timing issues)
     const votingOpensAt = round.get('voting_opens_at')
-    if (!votingOpensAt || new Date(votingOpensAt) > new Date()) {
+    if (!votingOpensAt) {
+      throw new GraphQLError('Voting has not been scheduled')
+    }
+    const votingDate = new Date(votingOpensAt)
+    const now = new Date()
+    const oneMinuteFromNow = new Date(now.getTime() + 60000) // 1 minute buffer
+    if (votingDate > oneMinuteFromNow) {
       throw new GraphQLError('Voting has not opened yet')
     }
 
