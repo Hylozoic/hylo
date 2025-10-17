@@ -74,7 +74,8 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
     
     // Use openURL for static contexts (public, my) to generate the correct path
     if (isStaticContext(context?.slug)) {
-      openURL(`/${context.slug}`, { reset: true })
+      const destination = context.slug === 'public' ? 'public/stream' : 'my/posts'
+      openURL(`/${destination}`, { reset: true })
     } else {
       changeToGroup(context?.slug, { navigateHome: true })
     }
