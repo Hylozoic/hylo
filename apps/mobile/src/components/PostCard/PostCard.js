@@ -80,6 +80,7 @@ export default function PostCard ({
             hideMenu={hideMenu}
             isFlagged={isFlagged}
             postId={post.id}
+            savedAt={post.savedAt}
             showMember={handleShowMember}
             title={post.title}
             type={post.type}

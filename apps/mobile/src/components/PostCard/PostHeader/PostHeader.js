@@ -23,6 +23,7 @@ export default function PostHeader ({
   isFlagged,
   hideMenu,
   postId,
+  savedAt,
   showMember,
   smallAvatar,
   style,
@@ -33,6 +34,7 @@ export default function PostHeader ({
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const { showPostActionSheet } = usePostActionSheet({
     postId,
+    savedAt,
     creator,
     title,
     closeOnDelete,
