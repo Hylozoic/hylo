@@ -35,7 +35,7 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
     .sort((a, b) => a.navOrder - b.navOrder)
     .map(m => m.group ? GroupPresenter(m.group) : null)
     .filter(Boolean) // Remove null entries
-    
+
   const sortedUnpinnedGroups = unpinnedMemberships
     .sort((a, b) => (a.group?.name || '').localeCompare(b.group?.name || ''))
     .map(m => m.group ? GroupPresenter(m.group) : null)
