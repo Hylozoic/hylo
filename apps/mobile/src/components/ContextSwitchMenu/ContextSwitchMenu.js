@@ -5,7 +5,7 @@ import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
-import GroupPresenter from '@hylo/presenters/GroupPresenter'
+import GroupPresenter, { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useStaticContexts from '@hylo/hooks/useStaticContexts'
@@ -71,7 +71,14 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug, { navigateHome: true })
+    
+    // Use openURL for static contexts (public, my) to generate the correct path
+    if (isStaticContext(context?.slug)) {
+      const destination = context.slug === 'public' ? 'public/stream' : 'my/posts'
+      openURL(`/${destination}`, { reset: true })
+    } else {
+      changeToGroup(context?.slug, { navigateHome: true })
+    }
   }
 
   return (
