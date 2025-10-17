@@ -13,10 +13,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import getActiveRoute from 'navigation/getActiveRoute'
 
 export function useHandleCurrentGroupSlug () {
+  const navigation = useNavigation()
   const { currentGroupSlug } = useCurrentGroupStore()
   const { context, groupSlug, originalLinkingPath, pathMatcher } = useRouteParams()
   const [{ currentUser }] = useCurrentUser()
   const changeToGroup = useChangeToGroup()
+  const currentRoute = getActiveRoute(navigation.getState())
   const pathMatches = originalLinkingPath?.match(/\/groups\/([^\/]+)(.*$)/)
   const groupSlugFromPath = pathMatches?.[1] ?? null
   const pathAfterMatch = pathMatches?.[2] ?? null
@@ -26,10 +28,11 @@ export function useHandleCurrentGroupSlug () {
       changeToGroup(getLastViewedGroupSlug(currentUser)) // tempting to switch this to NoContextFallbackScreen
     }
     // Yet ANOTHER edge-case that needs to be specifically handled. This is needed when a user logs out (which they access via the 'my' context) and then logs back in
-    if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath) {
+    if (currentUser?.memberships && isStaticContext(currentGroupSlug) && !groupSlugFromPath && !currentRoute?.path) {
       const lastViewedGroupSlug = getLastViewedGroupSlug(currentUser)
-        const slug = currentGroupSlug || lastViewedGroupSlug
-        changeToGroup(slug)
+      const slug = currentGroupSlug || lastViewedGroupSlug
+
+      changeToGroup(slug)
     }
   }, [currentUser?.memberships, currentGroupSlug])
 
