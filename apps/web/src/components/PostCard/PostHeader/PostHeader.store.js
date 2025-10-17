@@ -1,6 +1,6 @@
 import orm from 'store/models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { FULFILL_POST, UNFULFILL_POST, UNFULFILL_POST_PENDING, FULFILL_POST_PENDING, UPDATE_PROPOSAL_OUTCOME } from 'store/constants'
+import { FULFILL_POST, UNFULFILL_POST, UNFULFILL_POST_PENDING, FULFILL_POST_PENDING, UPDATE_PROPOSAL_OUTCOME, SAVE_POST, UNSAVE_POST, SAVE_POST_PENDING, UNSAVE_POST_PENDING } from 'store/constants'
 
 export const MODULE_NAME = 'PostHeader'
 
@@ -66,6 +66,50 @@ export function updateProposalOutcome (postId, proposalOutcome) {
   }
 }
 
+export function savePost (postId) {
+  return {
+    type: SAVE_POST,
+    graphql: {
+      query: `mutation ($postId: ID) {
+        savePost (postId: $postId) {
+          id
+          savedAt
+        }
+      }`,
+      variables: {
+        postId
+      }
+    },
+    meta: {
+      optimistic: true,
+      postId,
+      extractModel: 'Post'
+    }
+  }
+}
+
+export function unsavePost (postId) {
+  return {
+    type: UNSAVE_POST,
+    graphql: {
+      query: `mutation ($postId: ID) {
+        unsavePost (postId: $postId) {
+          id
+          savedAt
+        }
+      }`,
+      variables: {
+        postId
+      }
+    },
+    meta: {
+      optimistic: true,
+      postId,
+      extractModel: 'Post'
+    }
+  }
+}
+
 export const getGroup = ormCreateSelector(
   orm,
   (_, { routeParams }) => routeParams,
@@ -83,6 +127,16 @@ export function ormSessionReducer ({ Group, Post }, { type, meta }) {
     case UNFULFILL_POST_PENDING:
       post = Post.withId(meta.postId)
       post.update({ fulfilledAt: null })
+      break
+
+    case SAVE_POST_PENDING:
+      post = Post.withId(meta.postId)
+      post.update({ savedAt: (new Date()).toISOString() })
+      break
+
+    case UNSAVE_POST_PENDING:
+      post = Post.withId(meta.postId)
+      post.update({ savedAt: null })
       break
   }
 }

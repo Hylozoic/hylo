@@ -64,7 +64,10 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
         onClick={item.onClick}
         key={item.key || item.label}
       >
-        {item.icon && <Icon className={classes.icon} name={item.icon} />}
+        {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon.$$typeof)
+          ? React.cloneElement(item.icon, { className: classes.icon })
+          : <Icon className={classes.icon} name={item.icon} />
+        )}
         {item.label}
       </li>)
 

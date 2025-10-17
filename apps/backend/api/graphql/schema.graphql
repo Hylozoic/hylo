@@ -241,9 +241,11 @@ type Query {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Return posts that these users have saved
+    savedBy: [ID],
     # Return posts whose name or description match the search term
     search: String,
-    # One of 'created' (created datetime), 'updated' (last updated datetime), 'reactions' (number of reactions), 'start_time'
+    # One of 'created' (created datetime), 'updated' (last updated datetime), 'reactions' (number of reactions), 'start_time', 'saved' (saved datetime)
     sortBy: String,
     # Return only posts that have this topic by ID
     topic: ID,
@@ -1038,6 +1040,8 @@ type Group {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Only return posts that have been saved by these users
+    savedBy: [ID],
     # Only load posts whose content matches this search string
     search: String,
     # Sort posts by 'created', 'start_time', 'updated', 'reactions'
@@ -1111,6 +1115,8 @@ type Group {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
+    # Only return posts that have been saved by these users
+    savedBy: [ID],
     # Only load posts whose content matches this search string
     search: String,
     # Sort posts by 'created', 'start_time', 'reactions', 'updated'
@@ -2016,7 +2022,8 @@ type Person {
     offset: Int,
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
-
+    # Return posts that these users have saved
+    savedBy: [ID],
     # Only load posts whose content matches this search string
     search: String,
     # Sort posts by 'created', 'start_time', 'reactions', 'updated'
@@ -2159,6 +2166,8 @@ type Post {
   reactionsTotal: Int
   # Summary of reactions on the post
   reactionsSummary: JSON
+  # When the current user saved this post
+  savedAt: Date
   # When loading posts for a Track, this is the order of the post in the track
   sortOrder: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
@@ -2883,6 +2892,8 @@ type Mutation {
     # 'yes', 'maybe' or 'no'
     response: String
   ): GenericResult
+  # Save a post to your saved posts list
+  savePost(postId: ID): Post
   # When a new person signs up, send them an email to verify their email address so they can finish registering
   sendEmailVerification(email: String!): GenericResult,
   # Send a password reset email
@@ -2901,6 +2912,8 @@ type Mutation {
   unblockUser(blockedUserId: ID): GenericResult
   # Mark a post as unfulfilled/uncompleted
   unfulfillPost(postId: ID): GenericResult
+  # Remove a post from your saved posts list
+  unsavePost(postId: ID): Post
   # Update settings for all your group memberships at once
   updateAllMemberships(data: MembershipInput): GenericResult
   # Edit a comment
