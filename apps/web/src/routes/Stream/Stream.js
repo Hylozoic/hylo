@@ -191,6 +191,7 @@ export default function Stream (props) {
         icon = <Bookmark />
         fetchPostsParam.savedBy = [currentUser.id]
         fetchPostsParam.sortBy = 'saved'
+        fetchPostsParam.types = 'chat' // This means all posts + chat posts
         break
     }
   }
