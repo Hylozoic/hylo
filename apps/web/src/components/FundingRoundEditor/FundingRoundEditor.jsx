@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { ImagePlus, Plus, EyeOff, Eye, X } from 'lucide-react'
+import { ImagePlus, X, EyeOff, Eye } from 'lucide-react'
 import TextInput from 'components/TextInput'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -305,6 +305,92 @@ function FundingRoundEditor (props) {
     }
   }, [fundingRoundState, isValid, editingRound])
 
+  const handlePublish = useCallback(async () => {
+    if (saving || !isValid) return
+    setSaving(true)
+
+    const descriptionHTML = descriptionEditorRef.current?.getHTML?.() || description
+    const criteriaHTML = criteriaEditorRef.current?.getHTML?.() || criteria
+
+    const save = editingRound ? updateFundingRound : createFundingRound
+
+    const result = await dispatch(save({
+      id: editingRound?.id,
+      bannerUrl,
+      criteria: criteriaHTML,
+      description: descriptionHTML,
+      groupId: currentGroup.id,
+      maxTokenAllocation: maxTokenAllocation ? Number(maxTokenAllocation) : null,
+      minTokenAllocation: minTokenAllocation ? Number(minTokenAllocation) : null,
+      publishedAt: new Date().toISOString(),
+      requireBudget,
+      submissionDescriptor,
+      submissionDescriptorPlural,
+      submitterRoles,
+      submissionsCloseAt: submissionsCloseAt instanceof Date ? submissionsCloseAt.toISOString() : submissionsCloseAt || null,
+      submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
+      title: trim(title),
+      tokenType,
+      totalTokens: totalTokens ? Number(totalTokens) : null,
+      voterRoles,
+      votingMethod,
+      votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
+      votingOpensAt: votingOpensAt instanceof Date ? votingOpensAt.toISOString() : votingOpensAt || null
+    }))
+
+    const savedRound = result?.payload?.data?.createFundingRound || result?.payload?.data?.updateFundingRound
+    setSaving(false)
+    if (savedRound?.id) {
+      setEdited(false)
+      dispatch(push(groupUrl(currentGroup.slug, `funding-rounds/${savedRound.id}/manage`)))
+    } else if (result?.error) {
+      setErrors({ ...errors, general: t('There was an error, please try again.') })
+    }
+  }, [fundingRoundState, isValid, editingRound])
+
+  const handleUnpublish = useCallback(async () => {
+    if (saving) return
+    setSaving(true)
+
+    const descriptionHTML = descriptionEditorRef.current?.getHTML?.() || description
+    const criteriaHTML = criteriaEditorRef.current?.getHTML?.() || criteria
+
+    const save = editingRound ? updateFundingRound : createFundingRound
+
+    const result = await dispatch(save({
+      id: editingRound?.id,
+      bannerUrl,
+      criteria: criteriaHTML,
+      description: descriptionHTML,
+      groupId: currentGroup.id,
+      maxTokenAllocation: maxTokenAllocation ? Number(maxTokenAllocation) : null,
+      minTokenAllocation: minTokenAllocation ? Number(minTokenAllocation) : null,
+      publishedAt: null,
+      requireBudget,
+      submissionDescriptor,
+      submissionDescriptorPlural,
+      submitterRoles,
+      submissionsCloseAt: submissionsCloseAt instanceof Date ? submissionsCloseAt.toISOString() : submissionsCloseAt || null,
+      submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
+      title: trim(title),
+      tokenType,
+      totalTokens: totalTokens ? Number(totalTokens) : null,
+      voterRoles,
+      votingMethod,
+      votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
+      votingOpensAt: votingOpensAt instanceof Date ? votingOpensAt.toISOString() : votingOpensAt || null
+    }))
+
+    const savedRound = result?.payload?.data?.createFundingRound || result?.payload?.data?.updateFundingRound
+    setSaving(false)
+    if (savedRound?.id) {
+      setEdited(false)
+      dispatch(push(groupUrl(currentGroup.slug, `funding-rounds/${savedRound.id}/manage`)))
+    } else if (result?.error) {
+      setErrors({ ...errors, general: t('There was an error, please try again.') })
+    }
+  }, [fundingRoundState, editingRound])
+
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-2'>
       <div className='p-0'>
@@ -327,11 +413,11 @@ function FundingRoundEditor (props) {
         </div>
       </UploadAttachmentButton>
 
-      <div className='mt-0 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
-        <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Title')}*</div>
+      <div className='mt-4 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
+        <div className='text-xs text-foreground/50 px-2 py-1'>{t('Title')}*</div>
         <input
           autoFocus
-          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
+          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 pl-0 pr-20 w-full'
           maxLength='120'
           name='name'
           onChange={e => { updateFundingRoundState('title')(e.target.value); setTitleCharacterCount(e.target.value.length) }}
@@ -339,7 +425,7 @@ function FundingRoundEditor (props) {
           placeholder={t('Your funding rounds name')}
           type='text'
         />
-        <span className='absolute right-3 text-sm text-gray-500'>{titleCharacterCount} / 120</span>
+        <span className={cn('absolute right-3 text-sm', titleCharacterCount === 120 ? 'text-error' : 'text-foreground/50')}>{titleCharacterCount} / 120</span>
       </div>
 
       <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
@@ -348,7 +434,7 @@ function FundingRoundEditor (props) {
           key={currentGroup.id}
           contentHTML={description}
           containerClassName='mt-2'
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1 max-h-[300px] overflow-y-auto'
+          className='h-full p-2 min-h-20 mt-1 max-h-[300px] border-t-2 border-foreground/5 overflow-y-auto'
           extendedMenu
           groupIds={[currentGroup.id]}
           onUpdate={html => setEdited(prev => prev || !isEqual(html, description))}
@@ -359,12 +445,13 @@ function FundingRoundEditor (props) {
         />
       </div>
 
-      <div>
-        <h3>Term to describe submissions to the round (required)</h3>
+      <div className='border-t-2 border-foreground/10 p-2'>
+        <h2>{submissionDescriptorPlural}</h2>
+        <h3>{t('is the term used to describe submissions to the round. Alternatives include projects, initiatives, ideas, etc. Customize your terms, set your criteria, and choose who can add {{submissionDescriptorPlural}}.', { submissionDescriptorPlural })}</h3>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
+          <div className='text-xs text-foreground/50 py-1 w-[70px]'>{t('Unit term')}</div>
           <input
-            className='p-2 border-none bg-transparent w-full'
+            className='p-2 pl-0 border-none bg-transparent w-full outline-none'
             maxLength='40'
             name='submissionDescriptor'
             onChange={updateFundingRoundState('submissionDescriptor')}
@@ -372,10 +459,10 @@ function FundingRoundEditor (props) {
             type='text'
           />
         </div>
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-10'>
+          <div className='text-xs text-foreground/50 w-[70px]'>{t('Unit plural')}</div>
           <input
-            className='p-2 border-none bg-transparent w-full'
+            className='p-2 pl-0 border-none bg-transparent w-full outline-none'
             maxLength='40'
             name='submissionDescriptorPlural'
             onChange={updateFundingRoundState('submissionDescriptorPlural')}
@@ -383,37 +470,86 @@ function FundingRoundEditor (props) {
             type='text'
           />
         </div>
+
+        <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mt-4 mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
+          <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
+            {t('{{submissionDescriptor}} Criteria', { submissionDescriptor })}
+          </h3>
+          <HyloEditor
+            key={currentGroup.id}
+            contentHTML={criteria}
+            className='h-full p-2 border-t-2 border-foreground/5 min-h-20 mt-1 max-h-[300px] overflow-y-auto'
+            extendedMenu
+            groupIds={[currentGroup.id]}
+            onUpdate={html => setEdited(prev => prev || !isEqual(html, criteria))}
+            placeholder={t('Describe the evaluation criteria for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
+            showMenu
+            type='fundingRoundCriteria'
+            ref={criteriaEditorRef}
+          />
+        </div>
+
+        <div>
+          <h3>{t('Who can add a {{submissionDescriptor}} to the round? If not set anyone who joins the round can add.', { submissionDescriptor })}</h3>
+          <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
+            <TagInput
+              tags={submitterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+              suggestions={submitterRoleSuggestions}
+              handleInputChange={setSubmitterRoleSearchTerm}
+              handleAddition={(role) => {
+                updateFundingRoundState('submitterRoles')([...submitterRoles, role])
+                setSubmitterRoleSearchTerm('')
+                setEdited(true)
+              }}
+              handleDelete={(role) => {
+                updateFundingRoundState('submitterRoles')(submitterRoles.filter(r => r.id !== role.id))
+                setEdited(true)
+              }}
+              placeholder={t('Search roles/badges')}
+              allowNewTags={false}
+              renderSuggestion={renderRoleSuggestion}
+              onFocus={() => setSubmitterRoleInputFocused(true)}
+              onBlur={() => setSubmitterRoleInputFocused(false)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Checkbox
+            label={t('Require Budget for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
+            checked={requireBudget}
+            onChange={updateFundingRoundState('requireBudget')}
+          />
+        </div>
+
       </div>
 
-      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mt-4 mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
-        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
-          {t('Submission Criteria')}
-        </h3>
-        <HyloEditor
-          key={currentGroup.id}
-          contentHTML={criteria}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1 max-h-[300px] overflow-y-auto'
-          extendedMenu
-          groupIds={[currentGroup.id]}
-          onUpdate={html => setEdited(prev => prev || !isEqual(html, criteria))}
-          placeholder={t('Describe the evaluation criteria for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
-          showMenu
-          type='fundingRoundCriteria'
-          ref={criteriaEditorRef}
-        />
-      </div>
-
-      <div>
-        <Checkbox
-          label={t('Require Budget for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
-          checked={requireBudget}
-          onChange={updateFundingRoundState('requireBudget')}
-        />
-      </div>
-
-      <div className='flex flex-col gap-2 mt-1'>
-        <h3 className='font-bold'>Setup how voting happens in this round</h3>
-
+      <div className='flex flex-col gap-2 mt-1 border-t-2 border-foreground/10 p-2'>
+        <h2 className='mb-0 pb-0'>Voting</h2>
+        <div>
+          <h3>{t('Who can vote in this round? If not set, anyone who joins the round can vote.')}</h3>
+          <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
+            <TagInput
+              tags={voterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
+              suggestions={voterRoleSuggestions}
+              handleInputChange={setVoterRoleSearchTerm}
+              handleAddition={(role) => {
+                updateFundingRoundState('voterRoles')([...voterRoles, role])
+                setVoterRoleSearchTerm('')
+                setEdited(true)
+              }}
+              handleDelete={(role) => {
+                updateFundingRoundState('voterRoles')(voterRoles.filter(r => r.id !== role.id))
+                setEdited(true)
+              }}
+              placeholder={t('Search roles/badges')}
+              allowNewTags={false}
+              renderSuggestion={renderRoleSuggestion}
+              onFocus={() => setVoterRoleInputFocused(true)}
+              onBlur={() => setVoterRoleInputFocused(false)}
+            />
+          </div>
+        </div>
         <div className='flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-md'>
           <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Token Type')}</div>
           <Popover open={tokenPopoverOpen} onOpenChange={setTokenPopoverOpen}>
@@ -523,150 +659,103 @@ function FundingRoundEditor (props) {
         </div>
       </div>
 
-      <div>
-        <h3>{t('Badges or Roles required to add a {{submissionDescriptor}}. If not set any member can add.', { submissionDescriptor })}</h3>
-        <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
-          <TagInput
-            tags={submitterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
-            suggestions={submitterRoleSuggestions}
-            handleInputChange={setSubmitterRoleSearchTerm}
-            handleAddition={(role) => {
-              updateFundingRoundState('submitterRoles')([...submitterRoles, role])
-              setSubmitterRoleSearchTerm('')
-              setEdited(true)
-            }}
-            handleDelete={(role) => {
-              updateFundingRoundState('submitterRoles')(submitterRoles.filter(r => r.id !== role.id))
-              setEdited(true)
-            }}
-            placeholder={t('Search roles/badges')}
-            allowNewTags={false}
-            renderSuggestion={renderRoleSuggestion}
-            onFocus={() => setSubmitterRoleInputFocused(true)}
-            onBlur={() => setSubmitterRoleInputFocused(false)}
+      <div className='border-t-2 border-foreground/10 p-2 gap-4 flex flex-col'>
+        <h2 className='mb-0 pb-0'>Schedule</h2>
+        <h3 className='mt-0 pt-0'>Set the start and end dates for the submissions and voting phases. If no dates are set in advance, phases will start and stop by manually managing the round.</h3>
+        <div className='flex items-center gap-2'>
+          <label>Submisions open: </label>
+          <DateTimePicker
+            key={submissionsOpenAt ? submissionsOpenAt.toString() : 'empty-submissionsOpenAt'}
+            granularity='minute'
+            hourCycle={getHourCycle()}
+            onChange={updateFundingRoundState('submissionsOpenAt')}
+            onMonthChange={() => {}}
+            placeholder={t('Manually')}
+            value={submissionsOpenAt}
           />
+          {submissionsOpenAt && (
+            <button
+              type='button'
+              onClick={() => updateFundingRoundState('submissionsOpenAt')(null)}
+              className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+              title={t('Clear date')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          )}
+        </div>
+
+        <div className='flex items-center gap-2'>
+          <label>Submisions close: </label>
+          <DateTimePicker
+            key={submissionsCloseAt ? submissionsCloseAt.toString() : 'empty-submissionsCloseAt'}
+            className={cn({ 'text-error border-error': errors.submissionsCloseAt })}
+            granularity='minute'
+            hourCycle={getHourCycle()}
+            onChange={updateFundingRoundState('submissionsCloseAt')}
+            onMonthChange={() => {}}
+            placeholder={t('Manually')}
+            value={submissionsCloseAt}
+          />
+          {submissionsCloseAt && (
+            <button
+              type='button'
+              onClick={() => updateFundingRoundState('submissionsCloseAt')(null)}
+              className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+              title={t('Clear date')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          )}
+        </div>
+
+        <div className='flex items-center gap-2'>
+          <label>{t('Voting opens:')}</label>
+          <DateTimePicker
+            key={votingOpensAt ? votingOpensAt.toString() : 'empty-votingOpensAt'}
+            granularity='minute'
+            hourCycle={getHourCycle()}
+            onChange={updateFundingRoundState('votingOpensAt')}
+            onMonthChange={() => {}}
+            placeholder={t('Manually')}
+            value={votingOpensAt}
+          />
+          {votingOpensAt && (
+            <button
+              type='button'
+              onClick={() => updateFundingRoundState('votingOpensAt')(null)}
+              className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+              title={t('Clear date')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          )}
+        </div>
+
+        <div className='flex items-center gap-2'>
+          <label>{t('Voting closes:')}</label>
+          <DateTimePicker
+            key={votingClosesAt ? votingClosesAt.toString() : 'empty-votingClosesAt'}
+            className={cn({ 'text-error border-error': errors.votingClosesAt })}
+            granularity='minute'
+            hourCycle={getHourCycle()}
+            onChange={updateFundingRoundState('votingClosesAt')}
+            onMonthChange={() => {}}
+            placeholder={t('Manually')}
+            value={votingClosesAt}
+          />
+          {votingClosesAt && (
+            <button
+              type='button'
+              onClick={() => updateFundingRoundState('votingClosesAt')(null)}
+              className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+              title={t('Clear date')}
+            >
+              <X className='w-4 h-4' />
+            </button>
+          )}
         </div>
       </div>
-
-      <div>
-        <h3>{t('Badges or Roles required to vote. If not set any member can vote.')}</h3>
-        <div className='flex flex-row items-center relative border-2 border-transparent shadow-md transition-all duration-200 group focus-within:border-focus bg-input mb-4 rounded-md'>
-          <TagInput
-            tags={voterRoles.map(role => ({ ...role, name: role.label || `${role.emoji} ${role.name}` }))}
-            suggestions={voterRoleSuggestions}
-            handleInputChange={setVoterRoleSearchTerm}
-            handleAddition={(role) => {
-              updateFundingRoundState('voterRoles')([...voterRoles, role])
-              setVoterRoleSearchTerm('')
-              setEdited(true)
-            }}
-            handleDelete={(role) => {
-              updateFundingRoundState('voterRoles')(voterRoles.filter(r => r.id !== role.id))
-              setEdited(true)
-            }}
-            placeholder={t('Search roles/badges')}
-            allowNewTags={false}
-            renderSuggestion={renderRoleSuggestion}
-            onFocus={() => setVoterRoleInputFocused(true)}
-            onBlur={() => setVoterRoleInputFocused(false)}
-          />
-        </div>
-      </div>
-
-      <div className='flex items-center gap-2'>
-        <label>Submisions open: </label>
-        <DateTimePicker
-          key={submissionsOpenAt ? submissionsOpenAt.toString() : 'empty-submissionsOpenAt'}
-          granularity='minute'
-          hourCycle={getHourCycle()}
-          onChange={updateFundingRoundState('submissionsOpenAt')}
-          onMonthChange={() => {}}
-          placeholder={t('Manually')}
-          value={submissionsOpenAt}
-        />
-        {submissionsOpenAt && (
-          <button
-            type='button'
-            onClick={() => updateFundingRoundState('submissionsOpenAt')(null)}
-            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
-            title={t('Clear date')}
-          >
-            <X className='w-4 h-4' />
-          </button>
-        )}
-      </div>
-
-      <div className='flex items-center gap-2'>
-        <label>Submisions close: </label>
-        <DateTimePicker
-          key={submissionsCloseAt ? submissionsCloseAt.toString() : 'empty-submissionsCloseAt'}
-          className={cn({ 'text-error border-error': errors.submissionsCloseAt })}
-          granularity='minute'
-          hourCycle={getHourCycle()}
-          onChange={updateFundingRoundState('submissionsCloseAt')}
-          onMonthChange={() => {}}
-          placeholder={t('Manually')}
-          value={submissionsCloseAt}
-        />
-        {submissionsCloseAt && (
-          <button
-            type='button'
-            onClick={() => updateFundingRoundState('submissionsCloseAt')(null)}
-            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
-            title={t('Clear date')}
-          >
-            <X className='w-4 h-4' />
-          </button>
-        )}
-      </div>
-
-      <div className='flex items-center gap-2'>
-        <label>Voting opens: </label>
-        <DateTimePicker
-          key={votingOpensAt ? votingOpensAt.toString() : 'empty-votingOpensAt'}
-          granularity='minute'
-          hourCycle={getHourCycle()}
-          onChange={updateFundingRoundState('votingOpensAt')}
-          onMonthChange={() => {}}
-          placeholder={t('Manually')}
-          value={votingOpensAt}
-        />
-        {votingOpensAt && (
-          <button
-            type='button'
-            onClick={() => updateFundingRoundState('votingOpensAt')(null)}
-            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
-            title={t('Clear date')}
-          >
-            <X className='w-4 h-4' />
-          </button>
-        )}
-      </div>
-
-      <div className='flex items-center gap-2'>
-        <label>Voting closes: </label>
-        <DateTimePicker
-          key={votingClosesAt ? votingClosesAt.toString() : 'empty-votingClosesAt'}
-          className={cn({ 'text-error border-error': errors.votingClosesAt })}
-          granularity='minute'
-          hourCycle={getHourCycle()}
-          onChange={updateFundingRoundState('votingClosesAt')}
-          onMonthChange={() => {}}
-          placeholder={t('Manually')}
-          value={votingClosesAt}
-        />
-        {votingClosesAt && (
-          <button
-            type='button'
-            onClick={() => updateFundingRoundState('votingClosesAt')(null)}
-            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
-            title={t('Clear date')}
-          >
-            <X className='w-4 h-4' />
-          </button>
-        )}
-      </div>
-
       <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
         {/* <span className='mr-2'>Publish At</span>
         <DateTimePicker
@@ -696,19 +785,47 @@ function FundingRoundEditor (props) {
           >
             <Eye className='w-5 h-5' />
           </button>
-          <span className='mr-2'>{publishedAt ? t('Publish Now') : t('Unpublished')}</span>
+          <span className='mr-2'>{publishedAt ? t('Published. Round is visible. Click the Eye to unpublish.') : t('Unpublished. Click the Eye to publish.')}</span>
         </div>
       </div>
 
-      <div className=''>
-        <Button
-          variant='secondary'
-          disabled={!edited || !isValid || saving}
-          onClick={handleSave}
-          tooltip={Object.values(errors).filter(v => !!v).reduce((result, e) => [...result, <div key={e}>{e}</div>], [])}
-        >
-          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{props.editingRound ? t('Update Funding Round') : t('Create Funding Round')}
-        </Button>
+      <div className='flex gap-2 justify-start'>
+        {!publishedAt && (
+          <>
+            <Button
+              variant='outline'
+              disabled={saving || !isValid}
+              onClick={handleSave}
+            >
+              {t('Save Draft')}
+            </Button>
+            <Button
+              variant='secondary'
+              disabled={saving || !isValid}
+              onClick={handlePublish}
+            >
+              {t('Publish')}
+            </Button>
+          </>
+        )}
+        {publishedAt && (
+          <>
+            <Button
+              variant='outline'
+              disabled={saving}
+              onClick={handleUnpublish}
+            >
+              {t('Unpublish')}
+            </Button>
+            <Button
+              variant='secondary'
+              disabled={!edited || !isValid || saving}
+              onClick={handleSave}
+            >
+              {t('Save Changes')}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )

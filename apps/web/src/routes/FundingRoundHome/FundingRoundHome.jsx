@@ -52,8 +52,20 @@ function FundingRoundHome () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ icon: <BadgeDollarSign />, title: (fundingRound?.title || t('Funding Round')) + ' > ' + capitalize(currentTab) })
-  }, [fundingRound?.title, currentTab])
+    const titleText = (fundingRound?.title || t('Funding Round')) + ' > ' + capitalize(currentTab)
+    const isPublished = !!fundingRound?.publishedAt
+    const titleEl = (
+      <span className='flex items-center gap-2 space-between'>
+        <span>{titleText}</span>
+        {canManageRound && (
+          <span className={`px-2 py-0.5 rounded-full text-xs ${isPublished ? 'bg-selected text-foreground' : 'bg-foreground/20 text-foreground'}`}>
+            {isPublished ? t('Published') : t('Draft')}
+          </span>
+        )}
+      </span>
+    )
+    setHeaderDetails({ icon: <BadgeDollarSign />, title: titleEl })
+  }, [fundingRound?.title, fundingRound?.publishedAt, currentTab, canManageRound])
 
   if (isLoading) return <Loading />
   if (!isLoading && !fundingRound) return <NotFound />
