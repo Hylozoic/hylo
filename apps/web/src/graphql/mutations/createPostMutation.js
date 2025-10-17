@@ -4,6 +4,7 @@ export default
 `mutation CreatePost (
   $acceptContributions: Boolean,
   $announcement: Boolean,
+  $budget: String,
   $completionAction: String,
   $completionActionSettings: JSON,
   $details: String,
@@ -37,6 +38,7 @@ export default
   createPost(data: {
     acceptContributions: $acceptContributions,
     announcement: $announcement,
+    budget: $budget,
     completionAction: $completionAction,
     completionActionSettings: $completionActionSettings,
     details: $details,

@@ -2121,6 +2121,8 @@ type Post {
   announcement: Boolean
   # Number of attachments on this post
   attachmentsTotal: Int
+  # Budget for project or submission posts
+  budget: String
   # Number of people who have commented on this post
   commentersTotal: Int
   # Total number of comments on this post
@@ -3643,6 +3645,8 @@ input PostInput {
   acceptContributions: Boolean
   # Was this post marked an announcement by a group moderator?
   announcement: Boolean
+  # Budget for project or submission posts
+  budget: String
   # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', or 'uploadFile'
   completionAction: String
   # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options

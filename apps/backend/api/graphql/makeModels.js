@@ -443,6 +443,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'accept_contributions',
         'announcement',
         'anonymous_voting',
+        'budget',
         'commentersTotal',
         'commentsTotal',
         'completion_action_settings',

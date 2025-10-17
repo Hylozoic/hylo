@@ -33,6 +33,7 @@ const CommentFieldsFragment = `
 const postFieldsFragment = (withComments, withCompletion = false, withAllCompletionResponses = false) => `
   id
   announcement
+  budget
   title
   details
   type

@@ -17,6 +17,7 @@ export const UPDATE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/UPDATE_FUNDING_ROUND
 
 const PostFieldsFragment = `
   id
+  budget
   commentersTotal
   commentsTotal
   createdAt

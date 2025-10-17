@@ -8,6 +8,7 @@ export default function createPost (postParams) {
 
   const {
     acceptContributions,
+    budget,
     completionAction,
     completionActionSettings,
     details,
@@ -49,6 +50,7 @@ export default function createPost (postParams) {
       variables: {
         acceptContributions,
         announcement: sendAnnouncement,
+        budget,
         completionAction,
         completionActionSettings,
         details,

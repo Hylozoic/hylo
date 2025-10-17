@@ -472,6 +472,11 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, projectManagementLink })
   }, [currentPost])
 
+  const handleBudgetChange = useCallback((evt) => {
+    const budget = evt.target.value
+    setCurrentPost({ ...currentPost, budget })
+  }, [currentPost])
+
   /**
    * Validates time inputs to ensure end time is after start time
    * @param {Date} startTime - The start time to validate
@@ -562,7 +567,7 @@ function PostEditor ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -580,6 +585,11 @@ function PostEditor ({
       case 'proposal':
         if (proposalOptions?.length === 0) {
           errorMessages.push(t('At least one proposal option required'))
+        }
+        break
+      case 'submission':
+        if (currentFundingRound?.requireBudget && !budget) {
+          errorMessages.push(t('Budget is required for this submission'))
         }
         break
     }
@@ -603,7 +613,7 @@ function PostEditor ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -619,6 +629,7 @@ function PostEditor ({
   const save = useCallback(async () => {
     const {
       acceptContributions,
+      budget,
       completionAction,
       completionActionSettings,
       donationsLink,
@@ -666,6 +677,7 @@ function PostEditor ({
     const postToSave = {
       id,
       acceptContributions,
+      budget,
       commenters: [], // For optimistic display of the new post
       createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
@@ -1233,6 +1245,22 @@ function PostEditor ({
               placeholder={t('Add a project management link (must be valid URL)')}
               value={currentPost.projectManagementLink || ''}
               onChange={handleProjectManagementLinkChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
+            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+          </div>
+          <div className={styles.sectionGroups}>
+            <input
+              type='text'
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+              value={currentPost.budget || ''}
+              onChange={handleBudgetChange}
               disabled={loading}
             />
           </div>

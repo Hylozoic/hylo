@@ -3,7 +3,7 @@ import { EllipsisVertical, Flag, Pencil, Link as LinkIcon, Trash } from 'lucide-
 import React, { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ReactDOM from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -26,6 +26,7 @@ import { cn } from 'util/index'
 
 function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteAmount, setLocalVoteAmount, currentTokensRemaining }) {
   const { t } = useTranslation()
+  const location = useLocation()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const querystringParams = getQuerystringParam(['tab'], location)
@@ -168,6 +169,12 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
           </DropdownMenu>
         </div>
         <h1 onClick={openPostDetails}>{post.title}</h1>
+        {post.budget && (
+          <div className='text-sm text-foreground/70 mb-2'>
+            <span className='font-semibold'>{t('Budget')}: </span>
+            {post.budget}
+          </div>
+        )}
         <PostFooter
           {...post}
           currentUser={currentUser}
