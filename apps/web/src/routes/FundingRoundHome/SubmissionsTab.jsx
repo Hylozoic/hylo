@@ -64,11 +64,32 @@ export default function SubmissionsTab ({ canManageRound, round }) {
 
   // Initialize local vote amounts when posts change
   React.useEffect(() => {
-    const initialAmounts = {}
-    posts.forEach(post => {
-      initialAmounts[post.id] = post.tokensAllocated || 0
+    setLocalVoteAmounts(prev => {
+      const newAmounts = { ...prev }
+      posts.forEach(post => {
+        // Only initialize if we don't have a local value yet, or if the post is new
+        if (!(post.id in newAmounts)) {
+          newAmounts[post.id] = post.tokensAllocated || 0
+        }
+      })
+      return newAmounts
     })
-    setLocalVoteAmounts(initialAmounts)
+  }, [posts.map(p => p.id).join(',')])
+
+  // Sync local state with backend data when tokensAllocated changes
+  React.useEffect(() => {
+    setLocalVoteAmounts(prev => {
+      const updated = { ...prev }
+      let hasChanges = false
+      posts.forEach(post => {
+        // Always sync with backend value if it's different
+        if (updated[post.id] !== post.tokensAllocated) {
+          updated[post.id] = post.tokensAllocated || 0
+          hasChanges = true
+        }
+      })
+      return hasChanges ? updated : prev
+    })
   }, [posts.map(p => `${p.id}:${p.tokensAllocated}`).join(',')])
 
   // Calculate instant remaining tokens based on local vote amounts

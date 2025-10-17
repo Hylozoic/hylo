@@ -46,7 +46,10 @@ function FundingRoundHome () {
       !fundingRound.tokensDistributedAt &&
       fundingRound.isParticipating
     ) {
-      dispatch(distributeFundingRoundTokens(fundingRound.id))
+      dispatch(distributeFundingRoundTokens(fundingRound.id)).catch(error => {
+        console.error('Failed to distribute tokens:', error)
+        // Silently fail - tokens will be distributed by cron or manual action
+      })
     }
   }, [fundingRound?.votingOpensAt, fundingRound?.tokensDistributedAt, fundingRound?.isParticipating, fundingRound?.id])
 

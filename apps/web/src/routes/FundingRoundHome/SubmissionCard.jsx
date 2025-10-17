@@ -112,12 +112,18 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
     setValidationError(error)
   }, [availableTokens, round.maxTokenAllocation, validateVoteAmount, setLocalVoteAmount])
 
-  const handleVoteAmountBlur = useCallback(() => {
+  const handleVoteAmountBlur = useCallback(async () => {
     // Only submit if there's no validation error and the value changed
     if (!validationError && localVoteAmount !== post.tokensAllocated) {
-      dispatch(allocateTokensToSubmission(post.id, localVoteAmount, routeParams.fundingRoundId))
+      try {
+        await dispatch(allocateTokensToSubmission(post.id, localVoteAmount, routeParams.fundingRoundId))
+      } catch (error) {
+        console.error('Failed to allocate tokens:', error)
+        // Reset to previous value on error
+        setLocalVoteAmount(post.tokensAllocated || 0)
+      }
     }
-  }, [validationError, localVoteAmount, post.tokensAllocated, post.id, routeParams.fundingRoundId, dispatch])
+  }, [validationError, localVoteAmount, post.tokensAllocated, post.id, routeParams.fundingRoundId, dispatch, setLocalVoteAmount])
 
   const handleVoteAmountFocus = useCallback((e) => {
     // Select all text when focusing to avoid the "01" issue
@@ -184,7 +190,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
         />
       </div>
       {currentPhase === 'voting' && (
-        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/10 p-4 rounded-r-lg min-w-[120px]'>
+        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-4 rounded-r-lg min-w-[120px]'>
           <label className='text-xs font-bold text-foreground/60 uppercase'>
             {t('Your {{tokenType}}', { tokenType: round?.tokenType || t('Votes') })}
           </label>
@@ -197,7 +203,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
             onFocus={handleVoteAmountFocus}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'w-20 h-12 text-center text-2xl font-bold bg-background border-2 rounded-md focus:outline-none',
+              'w-20 h-12 text-center text-2xl font-bold bg-input border-2 rounded-md focus:outline-none',
               validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected'
             )}
           />
