@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { personUrl } from '@hylo/navigation'
 import { Link } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
+import { CircleDashed } from 'lucide-react'
 
 // Check if a user has any of the required roles
 function userHasRole (user, requiredRoles, groupId) {
@@ -35,7 +36,13 @@ export default function PeopleTab ({ group, round }) {
 
   return (
     <div>
-      {users?.length === 0 && <h1>{t('No one has joined this round')}</h1>}
+      {users?.length === 0 && (
+        <div className='flex flex-col gap-2 pt-4 items-center justify-center border-2 border-foreground/20 rounded-md border-dashed p-4 mt-4'>
+          <CircleDashed className='w-12 h-12 text-foreground/80' />
+          <h1 className='text-lg font-bold text-foreground/80 mb-0 mt-0'>{t('No one has joined this round')}</h1>
+          <p className='text-sm text-foreground/50'>{t('Let your group members know about this round and encourage them to join')}</p>
+        </div>
+      )}
       {users?.length > 0 && (
         <div className='flex flex-col gap-2 pt-4'>
           {users?.map(user => {

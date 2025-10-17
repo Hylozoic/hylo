@@ -176,7 +176,7 @@ export default function ManageTab ({ round }) {
     getPhaseData('submissions', t('Submission Phase', { submissionDescriptor }), t('Members can offer their {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'submissionsCloseAt', t('End submissions & Begin discussion', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), t('Pause submissions', { submissionDescriptorPlural }), 'submissionsOpenAt'),
     getPhaseData('discussion', t('Discussion Phase'), t('Members can discuss {{submissionDescriptorPlural}} and make modifications based on feedback', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'votingOpensAt', t('End discussion & begin voting'), t('Reopen {{submissionDescriptorPlural}}', { submissionDescriptorPlural }), 'submissionsCloseAt'),
     getPhaseData('voting', t('Voting Phase'), t('Members can vote and discuss {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'votingClosesAt', t('End Voting'), t('Re-open discussion'), 'votingOpensAt'),
-    getPhaseData('completed', t('Round complete'), t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}! View the {{submissionDescriptorPlural}} page to see the outcome.', {
+    getPhaseData('completed', t('Round complete!'), t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}! View the {{submissionDescriptorPlural}} page to see the outcome.', {
       numParticipants: round.numParticipants || 0,
       numSubmissions: round.numSubmissions || 0,
       submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase()
@@ -283,7 +283,7 @@ export default function ManageTab ({ round }) {
                 <div className='flex flex-col gap-1 flex-1'>
                   <div className='font-medium text-lg text-foreground flex items-center gap-2 flex-wrap'>
                     {phase.label}
-                    {phase.isCurrent && phase.key !== 'not-begun' && (
+                    {phase.isCurrent && phase.key !== 'not-begun' && phase.key !== 'completed' && (
                       <span className='px-2 py-0.5 text-xs text-foreground bg-selected rounded-full font-medium'>
                         {t('Current')}
                       </span>
@@ -294,7 +294,7 @@ export default function ManageTab ({ round }) {
                       </span>
                     )}
                     {phase.key === 'completed' && phase.isCurrent && (
-                      <span className='px-2 py-0.5 text-xs text-foreground bg-foreground/20 rounded-full font-medium'>
+                      <span className='px-2 py-0.5 text-xs text-foreground bg-selected rounded-full font-medium'>
                         {t('Complete')}
                       </span>
                     )}

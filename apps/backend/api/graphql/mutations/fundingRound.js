@@ -1,4 +1,4 @@
-/* global FundingRound, Group, GroupMembership, Responsibility */
+/* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, FundingRoundUser, PostUser */
 import { } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
@@ -72,8 +72,12 @@ export async function updateFundingRound (userId, id, data) {
       await FundingRound.clearTokenDistribution(round, { transacting })
     }
 
+    // Only distribute tokens if voting has actually opened (date is in the past)
     if (data.votingOpensAt && !round.get('tokens_distributed_at')) {
-      await FundingRound.distributeTokens(round, { transacting })
+      const votingOpensAt = new Date(data.votingOpensAt)
+      if (votingOpensAt <= new Date()) {
+        await FundingRound.distributeTokens(round, { transacting })
+      }
     }
 
     Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: [group.id], fundingRound: round })
