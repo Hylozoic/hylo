@@ -73,14 +73,28 @@ function TrackHome () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: currentTrack?.name || t('loading...'),
+      title: (
+        <div className='flex items-center gap-2'>
+          <span>{currentTrack?.name || t('loading...')}</span>
+          {canEdit && (
+            <span
+              className={cn(
+                'text-xs font-medium px-2 py-0.5 rounded-full',
+                currentTrack?.publishedAt ? 'bg-selected' : 'bg-foreground/20'
+              )}
+            >
+              {currentTrack?.publishedAt ? t('Published') : t('Unpublished')}
+            </span>
+          )}
+        </div>
+      ),
       search: true,
       icon: <Shapes />
     })
-  }, [currentTrack])
+  }, [currentTrack, canEdit])
 
   const handlePublishTrack = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
+    if (window.confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
       dispatch(updateTrack({ trackId: currentTrack.id, publishedAt }))
     }
   }, [currentTrack?.id])
@@ -138,7 +152,7 @@ function TrackHome () {
                   className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                   onClick={() => changeTab('edit')}
                 >
-                  {t('Edit')}
+                  {t('Manage')}
                 </button>
               )}
             </div>
@@ -181,7 +195,7 @@ function TrackHome () {
                   <span>{t('You completed this track')}</span>
                 </>
                 )
-              : isEnrolled
+              : isEnrolled && currentTab === 'about'
                 ? (
                   <>
                     <div className='flex flex-row gap-2 items-center justify-between w-full'>
@@ -299,7 +313,7 @@ function EditTab ({ currentTrack }) {
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Open Track Settings')}</span>
+        <span>{t('Edit Track Settings')}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}

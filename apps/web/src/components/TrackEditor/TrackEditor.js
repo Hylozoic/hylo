@@ -1,5 +1,5 @@
 import { isEqual, trim } from 'lodash/fp'
-import { Eye, EyeOff, ImagePlus, Plus } from 'lucide-react'
+import { Eye, EyeOff, ImagePlus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -88,56 +88,119 @@ function TrackEditor (props) {
     }
   }
 
-  const onSubmit = useCallback(() => {
-    let {
-      actionDescriptor,
-      actionDescriptorPlural,
-      bannerUrl,
-      completionRole,
-      completionRoleType,
-      name,
-      publishedAt
-    } = trackState
-
-    if (saving || !isValid) {
-      return
-    }
-
+  const handleSave = useCallback(async () => {
+    if (saving || !isValid) return
     setSaving(true)
 
     const completionMessage = completionMessageEditorRef.current?.getHTML()
     const description = descriptionEditorRef.current?.getHTML()
     const welcomeMessage = welcomeMessageEditorRef.current?.getHTML()
 
-    name = typeof name === 'string' ? trim(name) : name
+    const name = typeof trackState.name === 'string' ? trim(trackState.name) : trackState.name
 
     const save = editingTrack ? updateTrack : createTrack
 
-    dispatch(save({
-      actionDescriptor,
-      actionDescriptorPlural,
-      bannerUrl,
+    const result = await dispatch(save({
+      actionDescriptor: trackState.actionDescriptor,
+      actionDescriptorPlural: trackState.actionDescriptorPlural,
+      bannerUrl: trackState.bannerUrl,
       completionMessage,
-      completionRole,
-      completionRoleType,
+      completionRole: trackState.completionRole,
+      completionRoleType: trackState.completionRoleType,
       description,
       name,
       groupIds: [currentGroup.id],
       trackId: editingTrack?.id,
-      publishedAt,
+      publishedAt: trackState.publishedAt,
       welcomeMessage
     }))
-      .then((response) => {
-        setSaving(false)
-        if (response?.error) {
-          setErrors({ ...errors, general: t('There was an error, please try again.') })
-        } else {
-          setEdited(false)
-          setErrors({})
-          dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${response.payload.data.createTrack.id}?tab=edit`)))
-        }
-      })
-  }, [trackState, isValid])
+
+    setSaving(false)
+    if (result?.error) {
+      setErrors({ ...errors, general: t('There was an error, please try again.') })
+    } else {
+      setEdited(false)
+      setErrors({})
+      const savedTrack = result?.payload?.data?.createTrack || result?.payload?.data?.updateTrack
+      dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${savedTrack.id}?tab=edit`)))
+    }
+  }, [trackState, isValid, editingTrack])
+
+  const handlePublish = useCallback(async () => {
+    if (saving || !isValid) return
+    setSaving(true)
+
+    const completionMessage = completionMessageEditorRef.current?.getHTML()
+    const description = descriptionEditorRef.current?.getHTML()
+    const welcomeMessage = welcomeMessageEditorRef.current?.getHTML()
+
+    const name = typeof trackState.name === 'string' ? trim(trackState.name) : trackState.name
+
+    const save = editingTrack ? updateTrack : createTrack
+
+    const result = await dispatch(save({
+      actionDescriptor: trackState.actionDescriptor,
+      actionDescriptorPlural: trackState.actionDescriptorPlural,
+      bannerUrl: trackState.bannerUrl,
+      completionMessage,
+      completionRole: trackState.completionRole,
+      completionRoleType: trackState.completionRoleType,
+      description,
+      name,
+      groupIds: [currentGroup.id],
+      trackId: editingTrack?.id,
+      publishedAt: new Date().toISOString(),
+      welcomeMessage
+    }))
+
+    setSaving(false)
+    if (result?.error) {
+      setErrors({ ...errors, general: t('There was an error, please try again.') })
+    } else {
+      setEdited(false)
+      setErrors({})
+      const savedTrack = result?.payload?.data?.createTrack || result?.payload?.data?.updateTrack
+      dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${savedTrack.id}?tab=edit`)))
+    }
+  }, [trackState, isValid, editingTrack])
+
+  const handleUnpublish = useCallback(async () => {
+    if (saving) return
+    setSaving(true)
+
+    const completionMessage = completionMessageEditorRef.current?.getHTML()
+    const description = descriptionEditorRef.current?.getHTML()
+    const welcomeMessage = welcomeMessageEditorRef.current?.getHTML()
+
+    const name = typeof trackState.name === 'string' ? trim(trackState.name) : trackState.name
+
+    const save = editingTrack ? updateTrack : createTrack
+
+    const result = await dispatch(save({
+      actionDescriptor: trackState.actionDescriptor,
+      actionDescriptorPlural: trackState.actionDescriptorPlural,
+      bannerUrl: trackState.bannerUrl,
+      completionMessage,
+      completionRole: trackState.completionRole,
+      completionRoleType: trackState.completionRoleType,
+      description,
+      name,
+      groupIds: [currentGroup.id],
+      trackId: editingTrack?.id,
+      publishedAt: null,
+      welcomeMessage
+    }))
+
+    setSaving(false)
+    if (result?.error) {
+      setErrors({ ...errors, general: t('There was an error, please try again.') })
+    } else {
+      setEdited(false)
+      setErrors({})
+      const savedTrack = result?.payload?.data?.createTrack || result?.payload?.data?.updateTrack
+      dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${savedTrack.id}?tab=edit`)))
+    }
+  }, [trackState, editingTrack])
 
   if (!hasTracksResponsibility) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
@@ -188,7 +251,7 @@ function TrackEditor (props) {
           key={currentGroup.id}
           containerClassName='mt-2'
           contentHTML={description}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+          className='h-full p-2 border-border border-t-2 border-foreground/10 min-h-20 mt-1'
           extendedMenu
           groupIds={[currentGroup.id]}
           onUpdate={(html) => {
@@ -208,7 +271,7 @@ function TrackEditor (props) {
         <HyloEditor
           key={currentGroup.id}
           contentHTML={welcomeMessage}
-          className='h-full p-2 min-h-20 m-0'
+          className='h-full p-2 min-h-20 m-0 border-t-2 border-foreground/10'
           extendedMenu
           groupIds={[currentGroup.id]}
           onUpdate={(html) => {
@@ -227,7 +290,7 @@ function TrackEditor (props) {
           key={currentGroup.id}
           containerClassName='mt-2'
           contentHTML={completionMessage}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+          className='h-full p-2 border-t-2 border-foreground/10 min-h-20 mt-1'
           extendedMenu
           groupIds={[currentGroup.id]}
           onUpdate={(html) => {
@@ -308,7 +371,7 @@ function TrackEditor (props) {
               'p-2 rounded-md transition-colors',
               publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
             )}
-            onClick={() => updateField('publishedAt')(null)}
+            onClick={handleUnpublish}
           >
             <EyeOff className='w-5 h-5' />
           </button>
@@ -317,22 +380,51 @@ function TrackEditor (props) {
               'p-2 rounded-md transition-colors',
               publishedAt ? 'bg-accent text-white' : 'bg-foreground/10'
             )}
-            onClick={() => updateField('publishedAt')(new Date().toISOString())}
+            onClick={handlePublish}
           >
             <Eye className='w-5 h-5' />
           </button>
-          <span className='mr-2'>{publishedAt ? t('Publish Now') : t('Unpublished')}</span>
+          <span className='mr-2'>{publishedAt ? t('Published. Track is visible. Click the Eye to unpublish.') : t('Unpublished. Click the Eye to publish.')}</span>
         </div>
       </div>
 
-      <div className=''>
-        <Button
-          variant='secondary'
-          disabled={!edited || !isValid || saving}
-          onClick={onSubmit}
-        >
-          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{editingTrack ? t('Update Track') : t('Create Track')}
-        </Button>
+      <div className='flex gap-2 justify-start'>
+        {!publishedAt && (
+          <>
+            <Button
+              variant='outline'
+              disabled={saving || !isValid}
+              onClick={handleSave}
+            >
+              {t('Save Draft')}
+            </Button>
+            <Button
+              variant='secondary'
+              disabled={saving || !isValid}
+              onClick={handlePublish}
+            >
+              {t('Publish')}
+            </Button>
+          </>
+        )}
+        {publishedAt && (
+          <>
+            <Button
+              variant='outline'
+              disabled={saving}
+              onClick={handleUnpublish}
+            >
+              {t('Unpublish')}
+            </Button>
+            <Button
+              variant='secondary'
+              disabled={!edited || !isValid || saving}
+              onClick={handleSave}
+            >
+              {t('Save Changes')}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   )
