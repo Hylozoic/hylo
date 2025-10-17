@@ -92,11 +92,11 @@ export default function SubmissionsTab ({ canManageRound, round }) {
   }, [round.tokensRemaining, posts, localVoteAmounts])
 
   return (
-    <div className={cn({ 'pointer-events-none opacity-50': !isParticipating })}>
+    <div className={cn({ 'pointer-events-none': !isParticipating })}>
       <div className='mt-4 rounded-md border-dashed border-2 border-foreground/20 p-4 text-sm font-semibold flex flex-col gap-2'>
         {(currentPhase === 'open' || currentPhase === 'draft') && !submissionsOpenAt && (
           <div className='flex items-center flex-col pt-2 justify-center'>
-            <Lock className='w-6 h-6 text-foreground/60 flex-shrink-0' />
+            <Lock className='w-6 h-6 text-foreground flex-shrink-0' />
             <h2 className='text-lg text-foreground mt-0 mb-0'>{t('Submissions are not open yet')}</h2>
             <p className='text-sm font-normal pt-0 mt-0 text-foreground/80'>{t('Check back soon to offer your {{submissionDescriptor}}', { submissionDescriptor: round.submissionDescriptor })}</p>
           </div>

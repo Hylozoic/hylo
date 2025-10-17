@@ -756,40 +756,21 @@ function FundingRoundEditor (props) {
           )}
         </div>
       </div>
-      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-        {/* <span className='mr-2'>Publish At</span>
-        <DateTimePicker
-          hourCycle={getHourCycle()}
-          granularity='minute'
-          value={publishedAt}
-          placeholder={t('When to Publish')}
-          onChange={updateField('publishedAt')}
-          onMonthChange={() => {}}
-        /> */}
-        <div className='flex items-center gap-2'>
-          <button
-            className={cn(
-              'p-2 rounded-md transition-colors',
-              publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
-            )}
-            onClick={() => updateFundingRoundState('publishedAt')(null)}
-          >
-            <EyeOff className='w-5 h-5' />
-          </button>
-          <button
-            className={cn(
-              'p-2 rounded-md transition-colors',
-              publishedAt ? 'bg-accent text-white' : 'bg-foreground/10'
-            )}
-            onClick={() => updateFundingRoundState('publishedAt')(new Date().toISOString())}
-          >
-            <Eye className='w-5 h-5' />
-          </button>
-          <span className='mr-2'>{publishedAt ? t('Published. Round is visible. Click the Eye to unpublish.') : t('Unpublished. Click the Eye to publish.')}</span>
+      {/*
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+          <span className='mr-2'>Publish At</span>
+          <DateTimePicker
+            hourCycle={getHourCycle()}
+            granularity='minute'
+            value={publishedAt}
+            placeholder={t('When to Publish')}
+            onChange={updateField('publishedAt')}
+            onMonthChange={() => {}}
+          />
         </div>
-      </div>
+      */}
 
-      <div className='flex gap-2 justify-start'>
+      <div className='flex gap-2 justify-end p-4'>
         {!publishedAt && (
           <>
             <Button
