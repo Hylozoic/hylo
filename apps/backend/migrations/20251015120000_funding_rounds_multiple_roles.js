@@ -54,34 +54,6 @@ exports.down = async function (knex) {
     table.string('voter_role_type')
   })
 
-  // Migrate data back (taking only the first role from each array)
-  const existingRounds = await knex('funding_rounds').select('id', 'submitter_roles', 'voter_roles')
-
-  for (const round of existingRounds) {
-    const submitterRoles = JSON.parse(round.submitter_roles || '[]')
-    const voterRoles = JSON.parse(round.voter_roles || '[]')
-
-    const update = {}
-
-    // Take first submitter role if it exists
-    if (submitterRoles.length > 0) {
-      update.submitter_role_id = submitterRoles[0].id
-      update.submitter_role_type = submitterRoles[0].type
-    }
-
-    // Take first voter role if it exists
-    if (voterRoles.length > 0) {
-      update.voter_role_id = voterRoles[0].id
-      update.voter_role_type = voterRoles[0].type
-    }
-
-    if (Object.keys(update).length > 0) {
-      await knex('funding_rounds')
-        .where({ id: round.id })
-        .update(update)
-    }
-  }
-
   // Drop new columns
   await knex.schema.table('funding_rounds', table => {
     table.dropColumn('submitter_roles')
