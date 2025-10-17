@@ -20,7 +20,7 @@ class MainActivity : ReactActivity() {
   // react-native-bootsplash
   override fun onCreate(savedInstanceState: Bundle?) {
     RNBootSplash.init(this, R.style.BootTheme) // ⬅️ initialize the splash screen
-    super.onCreate(null) // super.onCreate(savedInstanceState) without react-native-screens
+    super.onCreate(null) // is the correct setup with use of react-native-screens; if we remove react-native-screens for some reason, look at bootsplash readme
   }
 
   /**

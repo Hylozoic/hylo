@@ -2,6 +2,9 @@ const path = require('path')
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config')
 const { withNativeWind } = require('nativewind/metro')
 const { withSentryConfig } = require('@sentry/react-native/metro')
+const {
+  wrapWithReanimatedMetroConfig,
+} = require('react-native-reanimated/metro-config');
 
 /**
  * Metro configuration
@@ -72,4 +75,4 @@ const withNativeWindConfig = withNativeWind(mergedConfig, {
 
 // Sentry config should always be applied last
 // https://docs.sentry.io/platforms/react-native/manual-setup/metro
-module.exports = withSentryConfig(withNativeWindConfig)
+module.exports = withSentryConfig(wrapWithReanimatedMetroConfig(withNativeWindConfig))
