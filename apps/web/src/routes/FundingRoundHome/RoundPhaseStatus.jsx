@@ -1,22 +1,25 @@
+import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { DateTimeHelpers } from '@hylo/shared'
-import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote } from 'lucide-react'
 
 export default function RoundPhaseStatus ({
   round,
   currentPhase,
   submissionCount = 0,
-  currentTokensRemaining = null
+  currentTokensRemaining = null,
+  canSubmit = true,
+  canVote = true
 }) {
   const { t } = useTranslation()
-
-  if (!round) return null
+  const { submitterRoles, voterRoles } = round || {}
 
   const submissionsOpenDate = round.submissionsOpenAt
   const submissionsCloseDate = round.submissionsCloseAt
   const votingOpensDate = round.votingOpensAt
   const votingClosesDate = round.votingClosesAt
+
+  if (!round) return null
 
   return (
     <div className='mt-4 rounded-md border-dashed border-2 border-foreground/20 p-4 text-sm font-semibold flex flex-col gap-2'>
@@ -53,6 +56,21 @@ export default function RoundPhaseStatus ({
               </span>
             </div>
           </div>
+          {!canSubmit && submitterRoles && submitterRoles.length > 0 && (
+            <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
+              <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
+              <div className='flex flex-col gap-1'>
+                <p className='text-sm font-semibold text-foreground m-0'>
+                  {t('You cannot submit to this round')}
+                </p>
+                <p className='text-xs font-normal text-foreground/70 m-0'>
+                  {t('Only participants with one of the following roles can submit: {{roles}}', {
+                    roles: submitterRoles.map(r => `${r.emoji} ${r.name}`).join(', ')
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
           {submissionsCloseDate && (
             <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
               {t('Submissions close at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: submissionsCloseDate }) })}
@@ -111,7 +129,7 @@ export default function RoundPhaseStatus ({
               </span>
               {t('Voting in progress')}
             </h2>
-            {currentTokensRemaining != null && (
+            {canVote && currentTokensRemaining != null && (
               <div className='bg-selected/20 border-2 border-selected rounded-md py-1 px-2 font-bold text-sm'>
                 {t('You have {{tokens}} {{tokenType}} remaining', {
                   tokens: currentTokensRemaining,
@@ -120,39 +138,58 @@ export default function RoundPhaseStatus ({
               </div>
             )}
           </div>
-          <div>
-            <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
-              {t('Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support', {
-                tokenType: round.tokenType || t('Votes'),
-                submissionDescriptor: round.submissionDescriptor
-              })}
-            </p>
-            {votingClosesDate && (
-              <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
-                {t('Voting closes at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: votingClosesDate }) })}
-              </span>
-            )}
-          </div>
-          <div className='flex flex-row gap-3 opacity-50'>
-            {round.minTokenAllocation && (
-              <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
-                {t('Minimum of {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
-                  minTokenAllocation: round.minTokenAllocation,
+          {!canVote && voterRoles && voterRoles.length > 0 && (
+            <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
+              <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
+              <div className='flex flex-col gap-1'>
+                <p className='text-sm font-semibold text-foreground m-0'>
+                  {t('You cannot vote in this round')}
+                </p>
+                <p className='text-xs font-normal text-foreground/70 m-0'>
+                  {t('Only participants with one of the following roles can vote: {{roles}}', {
+                    roles: voterRoles.map(r => `${r.emoji} ${r.name}`).join(', ')
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
+          {canVote && (
+            <div>
+              <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
+                {t('Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support', {
                   tokenType: round.tokenType || t('Votes'),
                   submissionDescriptor: round.submissionDescriptor
                 })}
               </p>
-            )}
-            {round.maxTokenAllocation && (
-              <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0'>
-                {t('Maximum of {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
-                  maxTokenAllocation: round.maxTokenAllocation,
-                  tokenType: round.tokenType || t('Votes'),
-                  submissionDescriptor: round.submissionDescriptor
-                })}
-              </p>
-            )}
-          </div>
+              {votingClosesDate && (
+                <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
+                  {t('Voting closes at {{date}}', { date: DateTimeHelpers.formatDatePair({ start: votingClosesDate }) })}
+                </span>
+              )}
+            </div>
+          )}
+          {canVote && (
+            <div className='flex flex-row gap-3 opacity-50'>
+              {round.minTokenAllocation && (
+                <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
+                  {t('Minimum of {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
+                    minTokenAllocation: round.minTokenAllocation,
+                    tokenType: round.tokenType || t('Votes'),
+                    submissionDescriptor: round.submissionDescriptor
+                  })}
+                </p>
+              )}
+              {round.maxTokenAllocation && (
+                <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0'>
+                  {t('Maximum of {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
+                    maxTokenAllocation: round.maxTokenAllocation,
+                    tokenType: round.tokenType || t('Votes'),
+                    submissionDescriptor: round.submissionDescriptor
+                  })}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

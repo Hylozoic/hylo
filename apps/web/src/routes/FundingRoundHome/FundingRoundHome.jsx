@@ -1,5 +1,5 @@
 import { BadgeDollarSign } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,8 @@ import { FETCH_FUNDING_ROUND, fetchFundingRound, doPhaseTransition, needsPhaseTr
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import getMe from 'store/selectors/getMe'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import AboutTab from './AboutTab'
@@ -24,6 +26,7 @@ function FundingRoundHome () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
+  const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const fundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
   const isLoading = useSelector(state => state.pending && state.pending[FETCH_FUNDING_ROUND])
@@ -31,6 +34,18 @@ function FundingRoundHome () {
   const [container, setContainer] = useState(null)
 
   const currentTab = routeParams.tab || 'about'
+
+  // Check if current user has permission to submit
+  const currentUserRoles = useSelector(state => getRolesForGroup(state, { person: currentUser, groupId: currentGroup?.id }))
+  const canSubmit = useMemo(() => {
+    if (!fundingRound?.isParticipating) return false
+    return currentUserRoles.some(r => fundingRound?.submitterRoles?.map(r => r.id).includes(r.id))
+  }, [fundingRound?.isParticipating, currentUserRoles, fundingRound?.submitterRoles])
+
+  const canVote = useMemo(() => {
+    if (!fundingRound?.isParticipating) return false
+    return currentUserRoles.some(r => fundingRound?.voterRoles?.map(r => r.id).includes(r.id))
+  }, [fundingRound?.isParticipating, currentUserRoles, fundingRound?.voterRoles])
 
   useEffect(() => {
     if (routeParams.fundingRoundId) dispatch(fetchFundingRound(routeParams.fundingRoundId))
@@ -126,12 +141,12 @@ function FundingRoundHome () {
               <Route path='submissions/create/*' element={<CreateModal context='groups' />} />
               <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
               <Route path='submissions/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} />} />
-              <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} />} />
+              <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} canVote={canVote} canSubmit={canSubmit} />} />
+              <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} canVote={canVote} canSubmit={canSubmit} />} />
               <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
               <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
               <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
-              <Route path='*' element={<AboutTab round={fundingRound} />} />
+              <Route path='*' element={<AboutTab round={fundingRound} canVote={canVote} canSubmit={canSubmit} />} />
             </Routes>
           </div>
         </div>

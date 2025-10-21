@@ -24,7 +24,7 @@ import PostFooter from 'components/PostCard/PostFooter'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 
-function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteAmount, setLocalVoteAmount, currentTokensRemaining }) {
+function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, localVoteAmount, setLocalVoteAmount, currentTokensRemaining }) {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
@@ -189,7 +189,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, round, localVoteA
           className='p-0'
         />
       </div>
-      {currentPhase === 'voting' && (
+      {currentPhase === 'voting' && canVote && (
         <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-4 rounded-r-lg min-w-[120px]'>
           <label className='text-xs font-bold text-foreground/60 uppercase'>
             {t('Your {{tokenType}}', { tokenType: round?.tokenType || t('Votes') })}

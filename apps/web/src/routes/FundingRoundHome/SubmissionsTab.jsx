@@ -30,7 +30,7 @@ const getPosts = ormCreateSelector(
   }
 )
 
-export default function SubmissionsTab ({ canManageRound, round }) {
+export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, round }) {
   const { isParticipating } = round
   const { t } = useTranslation()
   const currentUser = useSelector(getMe)
@@ -99,11 +99,14 @@ export default function SubmissionsTab ({ canManageRound, round }) {
     <div className={cn({ 'pointer-events-none': !isParticipating })}>
       <RoundPhaseStatus
         round={round}
+        canManageRound={canManageRound}
+        canSubmit={canSubmit}
+        canVote={canVote}
         currentPhase={currentPhase}
         submissionCount={posts.length}
         currentTokensRemaining={currentTokensRemaining}
       />
-      {currentPhase === 'submissions' && (
+      {currentPhase === 'submissions' && canSubmit && (
         <button
           className='my-4 w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
           onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'submission' }))}
@@ -117,6 +120,7 @@ export default function SubmissionsTab ({ canManageRound, round }) {
             key={post.id}
             post={post}
             canManageRound={canManageRound}
+            canVote={canVote}
             currentPhase={currentPhase}
             round={round}
             localVoteAmount={localVoteAmounts[post.id] || 0}

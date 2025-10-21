@@ -30,7 +30,7 @@ function userHasRole (user, requiredRoles, groupId) {
   return false
 }
 
-export default function PeopleTab ({ group, round }) {
+export default function PeopleTab ({ group, round, canSubmit, canVote }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const { users, submitterRoles, voterRoles } = round
@@ -46,6 +46,8 @@ export default function PeopleTab ({ group, round }) {
         round={round}
         currentPhase={currentPhase}
         submissionCount={submissionCount}
+        canSubmit={canSubmit}
+        canVote={canVote}
       />
       {users?.length === 0 && (
         <div className='flex flex-col gap-2 pt-4 items-center justify-center border-2 border-foreground/20 rounded-md border-dashed p-4 mt-4'>

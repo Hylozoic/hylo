@@ -18,7 +18,7 @@ function Info ({ label, value }) {
   )
 }
 
-export default function AboutTab ({ round }) {
+export default function AboutTab ({ canSubmit, canVote, round }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const { currentPhase } = getRoundPhaseMeta(round)
@@ -57,6 +57,8 @@ export default function AboutTab ({ round }) {
           round={round}
           currentPhase={currentPhase}
           submissionCount={submissionCount}
+          canSubmit={canSubmit}
+          canVote={canVote}
         />)}
       {round.bannerUrl && (
         <div
