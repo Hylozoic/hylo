@@ -2,7 +2,7 @@ import { BadgeDollarSign, Plus, UserPlus, UserMinus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
 import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
 import { DateTimeHelpers } from '@hylo/shared'
@@ -79,6 +79,7 @@ function FundingRounds () {
   const { t } = useTranslation()
   const routeParams = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const canManage = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
 
@@ -96,10 +97,11 @@ function FundingRounds () {
     setHeaderDetails({ icon: <BadgeDollarSign />, title: t('Funding Rounds') })
   }, [])
 
-  const handleJoinRound = useCallback((e, roundId) => {
+  const handleJoinRound = useCallback(async (e, roundId) => {
     e.preventDefault()
     e.stopPropagation()
-    dispatch(joinFundingRound(roundId))
+    await dispatch(joinFundingRound(roundId))
+    navigate(`${location.pathname}/${roundId}/`)
   }, [dispatch])
 
   const handleLeaveRound = useCallback((e, roundId) => {
@@ -168,11 +170,7 @@ function FundingRounds () {
                   </div>
                 )}
                 <span className='whitespace-nowrap'>
-                  {t('participant', {
-                    count: participantCount,
-                    defaultValue: '{{count}} participant',
-                    defaultValue_plural: '{{count}} participants'
-                  })}
+                  {t('participants', { count: participantCount })}
                 </span>
               </div>
               {fr.publishedAt && (
