@@ -4,6 +4,7 @@ import RNRestart from 'react-native-restart'
 import * as Sentry from '@sentry/react-native'
 import { useTranslation } from 'react-i18next'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { clearAllExceptSessionCookie } from 'util/session'
 
 const axelFretting = require('assets/Axel_Fretting.png')
 
@@ -28,19 +29,20 @@ const ErrorBoundary = ({ children, customErrorUI }) => {
 
 const DefaultErrorMessage = () => {
   const { t } = useTranslation()
-  
+
   const handleRestart = async () => {
     try {
-      await AsyncStorage.clear()
+      // Clear app cache but preserve the session cookie to keep HyloWebView working
+      await clearAllExceptSessionCookie()
       console.log('Cache cleared before restart')
     } catch (error) {
       console.error('Failed to clear cache before restart:', error)
     }
-    
+
     // Restart the app
     RNRestart.Restart()
   }
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.titleText}>{t('Oops Something Went Wrong')}</Text>

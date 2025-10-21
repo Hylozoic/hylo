@@ -155,6 +155,27 @@ export default function Stream (props) {
     if (view === 'events' || isCalendarViewMode) {
       dispatch(dropPostResults(params))
     }
+    if (context === CONTEXT_MY) {
+      switch (view) {
+        case VIEW_MENTIONS:
+          params.mentionsOf = [currentUser.id]
+          break
+        case VIEW_ANNOUNCEMENTS:
+          params.announcementsOnly = true
+          break
+        case VIEW_INTERACTIONS:
+          params.interactedWithBy = [currentUser.id]
+          break
+        case VIEW_POSTS:
+          params.createdBy = [currentUser.id]
+          break
+        case VIEW_SAVED_POSTS:
+          params.savedBy = [currentUser.id]
+          params.sortBy = 'saved'
+          params.filter = 'chat' // This means all posts + chat posts
+          break
+      }
+    }
     return params
   }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
@@ -169,28 +190,22 @@ export default function Stream (props) {
       case VIEW_MENTIONS:
         name = t('Mentions')
         icon = 'Email'
-        fetchPostsParam.mentionsOf = [currentUser.id]
         break
       case VIEW_ANNOUNCEMENTS:
         name = t('Announcements')
         icon = 'Announcement'
-        fetchPostsParam.announcementsOnly = true
         break
       case VIEW_INTERACTIONS:
         name = t('Interactions')
         icon = 'Support'
-        fetchPostsParam.interactedWithBy = [currentUser.id]
         break
       case VIEW_POSTS:
         name = t('Posts')
         icon = 'Posticon'
-        fetchPostsParam.createdBy = [currentUser.id]
         break
       case VIEW_SAVED_POSTS:
         name = t('Saved Posts')
         icon = <Bookmark />
-        fetchPostsParam.savedBy = [currentUser.id]
-        fetchPostsParam.sortBy = 'saved'
         break
     }
   }
