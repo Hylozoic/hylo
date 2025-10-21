@@ -67,18 +67,7 @@ export async function updateFundingRound (userId, id, data) {
 
     await round.save({ updated_at: new Date(), ...updatedAttrs }, { transacting, patch: true })
 
-    // If going back from voting phase (clearing votingOpensAt), clear token distribution
-    if (data.votingOpensAt === null && round.get('tokens_distributed_at')) {
-      await FundingRound.clearTokenDistribution(round, { transacting })
-    }
-
-    // Only distribute tokens if voting has actually opened (date is in the past)
-    if (data.votingOpensAt && !round.get('tokens_distributed_at')) {
-      const votingOpensAt = new Date(data.votingOpensAt)
-      if (votingOpensAt <= new Date()) {
-        await FundingRound.distributeTokens(round, { transacting })
-      }
-    }
+    await doPhaseTransition(userId, round, { transacting })
 
     Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: [group.id], fundingRound: round })
 
@@ -107,16 +96,71 @@ export async function leaveFundingRound (userId, roundId) {
   return FundingRound.find(roundId)
 }
 
-export async function distributeFundingRoundTokens (userId, roundId) {
-  const round = await FundingRound.find(roundId)
+// Perform a phase transition for a funding round
+export async function doPhaseTransition (userId, roundOrId, { transacting } = {}) {
+  if (!transacting) {
+    return bookshelf.transaction(async transacting => {
+      return await doPhaseTransition(userId, roundOrId, { transacting })
+    })
+  }
+
+  const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
   if (!round) throw new GraphQLError('FundingRound not found')
 
   // Check if user is participating in the round
   const isParticipating = await round.isParticipating(userId)
   if (!isParticipating) throw new GraphQLError('You must be participating in this round')
 
-  await FundingRound.distributeTokens(roundId)
-  return FundingRound.find(roundId)
+  const now = new Date()
+  const currentPhase = round.get('phase')
+  const publishedAt = round.get('published_at')
+  const submissionsOpenAt = round.get('submissions_open_at')
+  const submissionsCloseAt = round.get('submissions_close_at')
+  const votingOpensAt = round.get('voting_opens_at')
+  const votingClosesAt = round.get('voting_closes_at')
+
+  let newPhase = currentPhase
+
+  // Determine the next phase based on current phase and timestamps
+  if (currentPhase === FundingRound.PHASES.DRAFT && publishedAt && new Date(publishedAt) <= now) {
+    newPhase = FundingRound.PHASES.PUBLISHED
+  } else if (currentPhase === FundingRound.PHASES.PUBLISHED && submissionsOpenAt && new Date(submissionsOpenAt) <= now) {
+    newPhase = FundingRound.PHASES.SUBMISSIONS
+  } else if (currentPhase === FundingRound.PHASES.SUBMISSIONS && submissionsCloseAt && new Date(submissionsCloseAt) <= now) {
+    newPhase = FundingRound.PHASES.DISCUSSION
+  } else if ((currentPhase === FundingRound.PHASES.SUBMISSIONS || currentPhase === FundingRound.PHASES.DISCUSSION) && votingOpensAt && new Date(votingOpensAt) <= now) {
+    newPhase = FundingRound.PHASES.VOTING
+    // Distribute tokens when transitioning to voting
+    await FundingRound.distributeTokens(round, { transacting })
+  } else if (currentPhase === FundingRound.PHASES.VOTING && votingClosesAt && new Date(votingClosesAt) <= now) {
+    newPhase = FundingRound.PHASES.COMPLETED
+  // Check if any of the dates were cleared and we need to go back to a previous phase
+  } else if (votingClosesAt === null && currentPhase === FundingRound.PHASES.COMPLETED) {
+    newPhase = FundingRound.PHASES.VOTING
+  } else if (votingOpensAt === null && (currentPhase === FundingRound.PHASES.VOTING || currentPhase === FundingRound.PHASES.COMPLETED)) {
+    // If clearing votingOpensAt while in voting or completed phase, reset to discussion or submissions
+    await FundingRound.clearTokenDistribution(round, { transacting })
+    // Reset phase based on whether submissions are still open
+    newPhase = submissionsCloseAt && new Date(submissionsCloseAt) <= new Date()
+      ? FundingRound.PHASES.DISCUSSION
+      : FundingRound.PHASES.SUBMISSIONS
+  } else if (submissionsCloseAt === null && [FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
+    // If clearing submissionsCloseAt while in discussion or later, reset to submissions
+    newPhase = FundingRound.PHASES.SUBMISSIONS
+  } else if (submissionsOpenAt === null && [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
+    // If clearing submissionsOpenAt while in submissions or later, reset to published
+    newPhase = FundingRound.PHASES.PUBLISHED
+  } else if (publishedAt === null && currentPhase !== FundingRound.PHASES.DRAFT) {
+    // If clearing publishedAt while not in draft, reset to draft
+    newPhase = FundingRound.PHASES.DRAFT
+  }
+
+  if (newPhase !== currentPhase) {
+    // Save the new phase
+    await round.save({ phase: newPhase }, { transacting, patch: true })
+  }
+
+  return round
 }
 
 export async function allocateTokensToSubmission (userId, postId, tokens) {
@@ -147,9 +191,10 @@ export async function allocateTokensToSubmission (userId, postId, tokens) {
   const canVote = await round.canUserVote(userId)
   if (!canVote) throw new GraphQLError('You do not have the required role to vote in this funding round')
 
-  // Check if tokens have been distributed
-  if (!round.get('tokens_distributed_at')) {
-    throw new GraphQLError('Tokens have not been distributed yet')
+  // Check if tokens have been distributed (voting phase has started)
+  const phase = round.get('phase')
+  if (phase !== FundingRound.PHASES.VOTING && phase !== FundingRound.PHASES.COMPLETED) {
+    throw new GraphQLError('Voting has not started yet')
   }
 
   // Get user's current token balance

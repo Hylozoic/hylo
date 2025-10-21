@@ -133,7 +133,7 @@ export {
   allocateTokensToSubmission,
   createFundingRound,
   deleteFundingRound,
-  distributeFundingRoundTokens,
+  doPhaseTransition,
   joinFundingRound,
   leaveFundingRound,
   updateFundingRound

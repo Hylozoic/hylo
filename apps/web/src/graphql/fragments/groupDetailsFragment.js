@@ -259,6 +259,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
             id
             title
             isParticipating
+            phase
             publishedAt
             submissionsOpenAt
             submissionsCloseAt

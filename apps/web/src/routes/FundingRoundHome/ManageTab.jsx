@@ -1,5 +1,5 @@
 import { Settings, ChevronsRight } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -38,28 +38,16 @@ export default function ManageTab ({ round }) {
     message: ''
   })
 
-  const now = new Date()
   const submissionsOpenAt = round.submissionsOpenAt ? DateTimeHelpers.toDateTime(round.submissionsOpenAt, { locale: getLocaleFromLocalStorage() }) : null
   const submissionsCloseAt = round.submissionsCloseAt ? DateTimeHelpers.toDateTime(round.submissionsCloseAt, { locale: getLocaleFromLocalStorage() }) : null
   const votingOpensAt = round.votingOpensAt ? DateTimeHelpers.toDateTime(round.votingOpensAt, { locale: getLocaleFromLocalStorage() }) : null
   const votingClosesAt = round.votingClosesAt ? DateTimeHelpers.toDateTime(round.votingClosesAt, { locale: getLocaleFromLocalStorage() }) : null
 
   // Determine current phase
-  let currentPhase = 'not-begun'
-  if (round.votingClosesAt && votingClosesAt <= now) {
-    currentPhase = 'completed'
-  } else if (round.votingOpensAt && votingOpensAt <= now) {
-    currentPhase = 'voting'
-  } else if (round.submissionsCloseAt && submissionsCloseAt <= now) {
-    currentPhase = 'discussion'
-  } else if (round.submissionsOpenAt && submissionsOpenAt <= now) {
-    currentPhase = 'submissions'
-  } else if (round.publishedAt && round.publishedAt <= now) {
-    currentPhase = 'not-begun'
-  }
+  const currentPhase = round.phase
 
   // Helper function to get status-aware phase data
-  const getPhaseData = (phaseKey, baseLabel, baseDescription, dateField, forwardButtonText, backButtonText, backDateField) => {
+  const getPhaseData = useCallback(({ phaseKey, baseLabel, baseDescription, dateField, forwardButtonText, backButtonText, backDateField, nextPhaseKey, previousPhaseKey }) => {
     const isCurrent = currentPhase === phaseKey
     const isPast = getIsPast(phaseKey)
     const isFuture = !isCurrent && !isPast
@@ -71,7 +59,7 @@ export default function ManageTab ({ round }) {
     if (isPast) {
       // Completed phases - show completion status
       switch (phaseKey) {
-        case 'not-begun':
+        case 'published':
           label = t('Round started')
           description = ''
           endDate = submissionsOpenAt
@@ -80,7 +68,7 @@ export default function ManageTab ({ round }) {
           label = t('Submissions ended', { submissionDescriptorPlural: round.submissionDescriptorPlural || t('Submissions') })
           description = t('{{numSubmissions}} {{submissionDescriptorPlural}} received', {
             numSubmissions: round.numSubmissions || 0,
-            submissionDescriptorPlural: (round.submissionDescriptorPlural || t('submissions')).toLowerCase()
+            submissionDescriptorPlural: (round.submissionDescriptorPlural || t('Submissions')).toLowerCase()
           })
           endDate = submissionsCloseAt
           break
@@ -99,7 +87,7 @@ export default function ManageTab ({ round }) {
       // Future phases - show scheduling status
       switch (phaseKey) {
         case 'submissions':
-          label = t('Submission phase', { submissionDescriptorPlural: round.submissionDescriptorPlural || t('Submissions') })
+          label = t('Submission phase')
           description = t('When submissions open, members can offer their {{submissionDescriptorPlural}}', { submissionDescriptorPlural: (round.submissionDescriptorPlural || t('Submissions')).toLowerCase() })
           endDate = submissionsOpenAt
           break
@@ -134,26 +122,28 @@ export default function ManageTab ({ round }) {
     }
 
     return {
+      backButtonText: isCurrent ? backButtonText : null,
+      backDateField,
+      dateField,
+      description,
+      endDate,
+      forwardButtonText: isCurrent ? forwardButtonText : null,
+      isCurrent,
+      isFuture,
+      isPast,
+      isScheduled,
       key: phaseKey,
       label,
-      description,
-      isCurrent,
-      isPast,
-      isFuture,
-      isScheduled,
-      endDate,
-      dateField,
-      forwardButtonText: isCurrent ? forwardButtonText : null,
-      backButtonText: isCurrent ? backButtonText : null,
-      backDateField
+      nextPhaseKey,
+      previousPhaseKey
     }
-  }
+  }, [currentPhase, submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt])
 
   // Helper function to determine if a phase is past
   const getIsPast = (phaseKey) => {
     switch (phaseKey) {
-      case 'not-begun':
-        return currentPhase !== 'not-begun'
+      case 'published':
+        return currentPhase !== 'published'
       case 'submissions':
         return currentPhase === 'discussion' || currentPhase === 'voting' || currentPhase === 'completed'
       case 'discussion':
@@ -169,30 +159,73 @@ export default function ManageTab ({ round }) {
 
   // Define the 5 phases with status-aware data
   const submissionDescriptorPlural = round.submissionDescriptorPlural || t('Submissions')
-  const submissionDescriptor = round.submissionDescriptor || t('Submission')
 
-  const phases = [
-    getPhaseData('not-begun', t('Round has not begun'), t('The funding round is ready to start'), 'submissionsOpenAt', t('Open submissions', { submissionDescriptorPlural }), null, null),
-    getPhaseData('submissions', t('Submission Phase', { submissionDescriptor }), t('Members can offer their {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'submissionsCloseAt', t('End submissions & Begin discussion', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), t('Pause submissions', { submissionDescriptorPlural }), 'submissionsOpenAt'),
-    getPhaseData('discussion', t('Discussion Phase'), t('Members can discuss {{submissionDescriptorPlural}} and make modifications based on feedback', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'votingOpensAt', t('End discussion & begin voting'), t('Reopen {{submissionDescriptorPlural}}', { submissionDescriptorPlural }), 'submissionsCloseAt'),
-    getPhaseData('voting', t('Voting Phase'), t('Members can vote and discuss {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }), 'votingClosesAt', t('End Voting'), t('Re-open discussion'), 'votingOpensAt'),
-    getPhaseData('completed', t('Round complete!'), t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}! View the {{submissionDescriptorPlural}} page to see the outcome.', {
-      numParticipants: round.numParticipants || 0,
-      numSubmissions: round.numSubmissions || 0,
-      submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase()
-    }), null, null, null, null)
-  ]
+  const phases = useMemo(() => [
+    getPhaseData({
+      phaseKey: 'published',
+      baseLabel: t('Round has not begun'),
+      baseDescription: t('The funding round is ready to start'),
+      dateField: 'submissionsOpenAt',
+      forwardButtonText: t('Open submissions'),
+      nextPhaseKey: 'submissions',
+      previousPhaseKey: null
+    }),
+    getPhaseData({
+      phaseKey: 'submissions',
+      baseLabel: t('Submission Phase'),
+      baseDescription: t('Members can offer their {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
+      dateField: 'submissionsCloseAt',
+      forwardButtonText: t('End submissions & Begin discussion'),
+      backButtonText: t('Pause submissions'),
+      backDateField: 'submissionsOpenAt',
+      nextPhaseKey: 'discussion',
+      previousPhaseKey: 'published'
+    }),
+    getPhaseData({
+      phaseKey: 'discussion',
+      baseLabel: t('Discussion Phase'),
+      baseDescription: t('Members can discuss {{submissionDescriptorPlural}} and make modifications based on feedback', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
+      dateField: 'votingOpensAt',
+      forwardButtonText: t('End discussion & begin voting'),
+      backButtonText: t('Reopen {{submissionDescriptorPlural}}', { submissionDescriptorPlural }),
+      backDateField: 'submissionsCloseAt',
+      nextPhaseKey: 'voting',
+      previousPhaseKey: 'submissions'
+    }),
+    getPhaseData({
+      phaseKey: 'voting',
+      baseLabel: t('Voting Phase'),
+      baseDescription: t('Members can vote and discuss {{submissionDescriptorPlural}}', { submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
+      dateField: 'votingClosesAt',
+      forwardButtonText: t('End Voting'),
+      backButtonText: t('Re-open Discussion'),
+      backDateField: 'votingOpensAt',
+      nextPhaseKey: 'completed',
+      previousPhaseKey: 'discussion'
+    }),
+    getPhaseData({
+      phaseKey: 'completed',
+      baseLabel: t('Round complete!'),
+      baseDescription: t('Congratulations! {{numParticipants}} participants contributed {{numSubmissions}} {{submissionDescriptorPlural}}! View the {{submissionDescriptorPlural}} page to see the outcome.', { numParticipants: round.numParticipants || 0, numSubmissions: round.numSubmissions || 0, submissionDescriptorPlural: submissionDescriptorPlural.toLowerCase() }),
+      dateField: null,
+      forwardButtonText: null,
+      backButtonText: t('Re-open Voting'),
+      backDateField: 'votingClosesAt',
+      nextPhaseKey: null,
+      previousPhaseKey: 'voting'
+    })
+  ], [round.phase])
 
-  const handleStartPhase = (phaseLabel, dateField, buttonText) => {
+  const handleStartPhase = (phase) => {
     setConfirmDialog({
       isOpen: true,
       title: t('Confirm Action'),
-      message: t('Are you sure you want to {{action}}?', { action: buttonText.toLowerCase() }),
-      confirmButtonText: buttonText,
+      message: t('Are you sure you want to {{action}}?', { action: phase.forwardButtonText.toLowerCase() }),
+      confirmButtonText: phase.forwardButtonText,
       onConfirm: async () => {
         setConfirmDialog({ isOpen: false, title: '', message: '', confirmButtonText: '', onConfirm: null })
         try {
-          await dispatch(updateFundingRound({ id: round.id, [dateField]: new Date().toISOString() }))
+          await dispatch(updateFundingRound({ id: round.id, [phase.dateField]: new Date().toISOString(), phase: phase.nextPhaseKey }))
         } catch (error) {
           const errorMessage = error?.message || error?.toString() || t('An error occurred while updating the funding round')
           setErrorDialog({
@@ -205,24 +238,24 @@ export default function ManageTab ({ round }) {
     })
   }
 
-  const handleGoBackPhase = (phaseLabel, dateField, buttonText) => {
+  const handleGoBackPhase = (phase) => {
     // Going back means clearing the date to go back to the previous phase
-    let confirmMessage = t('Are you sure you want to {{action}}?', { action: buttonText.toLowerCase() })
+    let confirmMessage = t('Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
 
     // If going back from voting phase to discussion, warn about token reset
-    if (dateField === 'votingOpensAt' && round.tokensDistributedAt) {
-      confirmMessage = t('This will reset all token allocations. Are you sure you want to {{action}}?', { action: buttonText.toLowerCase() })
+    if (phase.dateField === 'votingOpensAt' && (round.phase === 'voting' || round.phase === 'completed')) {
+      confirmMessage = t('This will reset all token allocations. Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
     }
 
     setConfirmDialog({
       isOpen: true,
       title: t('Confirm Action'),
       message: confirmMessage,
-      confirmButtonText: buttonText,
+      confirmButtonText: phase.backButtonText,
       onConfirm: async () => {
         setConfirmDialog({ isOpen: false, title: '', message: '', confirmButtonText: '', onConfirm: null })
         try {
-          await dispatch(updateFundingRound({ id: round.id, [dateField]: null }))
+          await dispatch(updateFundingRound({ id: round.id, [phase.backDateField]: null, phase: phase.previousPhaseKey }))
         } catch (error) {
           const errorMessage = error?.message || error?.toString() || t('An error occurred while updating the funding round')
           setErrorDialog({
@@ -313,7 +346,7 @@ export default function ManageTab ({ round }) {
                     <Button
                       size='sm'
                       className='bg-transparent border-2 border-foreground/20 hover:border-foreground/40 text-foreground mt-4 mb-2'
-                      onClick={() => handleGoBackPhase(phase.label, phase.backDateField, phase.backButtonText)}
+                      onClick={() => handleGoBackPhase(phase)}
                     >
                       {phase.backButtonText}
                     </Button>
@@ -322,7 +355,7 @@ export default function ManageTab ({ round }) {
                     <Button
                       size='sm'
                       className='bg-selected hover:bg-selected/90 text-foreground border-2 border-transparent mt-4 mb-2'
-                      onClick={() => handleStartPhase(phase.label, phase.dateField, phase.forwardButtonText)}
+                      onClick={() => handleStartPhase(phase)}
                     >
                       <ChevronsRight className='w-4 h-4 mr-1' />
                       {phase.forwardButtonText}

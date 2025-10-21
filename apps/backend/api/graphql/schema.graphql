@@ -7,6 +7,15 @@ enum LocationDisplayPrecision {
   region
 }
 
+enum FundingRoundPhase {
+  draft
+  published
+  submissions
+  discussion
+  voting
+  completed
+}
+
 type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
@@ -2614,6 +2623,8 @@ type FundingRound {
   numParticipants: Int
   # Number of submissions in the round
   numSubmissions: Int
+  # The current phase of the round: draft, published, submissions, discussion, voting, completed
+  phase: FundingRoundPhase
   # When the round was published
   publishedAt: Date
   # Whether a budget is required for submissions
@@ -2873,8 +2884,8 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
-  # Distribute tokens to all participants in a funding round
-  distributeFundingRoundTokens(id: ID): FundingRound
+  # Perform a phase transition for a funding round
+  doPhaseTransition(id: ID): FundingRound
   # Duplicate a track
   duplicateTrack(trackId: ID): Track
   # Enroll in a track

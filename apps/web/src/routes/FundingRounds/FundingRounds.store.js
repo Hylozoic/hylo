@@ -5,8 +5,8 @@ export const MODULE_NAME = 'FundingRounds'
 export const ALLOCATE_TOKENS_TO_SUBMISSION = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION`
 export const ALLOCATE_TOKENS_TO_SUBMISSION_PENDING = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION_PENDING`
 export const CREATE_FUNDING_ROUND = `${MODULE_NAME}/CREATE_FUNDING_ROUND`
-export const DISTRIBUTE_FUNDING_ROUND_TOKENS = `${MODULE_NAME}/DISTRIBUTE_FUNDING_ROUND_TOKENS`
-export const DISTRIBUTE_FUNDING_ROUND_TOKENS_PENDING = `${MODULE_NAME}/DISTRIBUTE_FUNDING_ROUND_TOKENS_PENDING`
+export const DO_PHASE_TRANSITION = `${MODULE_NAME}/DO_PHASE_TRANSITION`
+export const DO_PHASE_TRANSITION_PENDING = `${MODULE_NAME}/DO_PHASE_TRANSITION_PENDING`
 export const FETCH_FUNDING_ROUND = `${MODULE_NAME}/FETCH_FUNDING_ROUND`
 export const JOIN_FUNDING_ROUND = `${MODULE_NAME}/JOIN_FUNDING_ROUND`
 export const JOIN_FUNDING_ROUND_PENDING = `${MODULE_NAME}/JOIN_FUNDING_ROUND_PENDING`
@@ -136,6 +136,7 @@ export function fetchFundingRound (id) {
           minTokenAllocation,
           numParticipants,
           numSubmissions,
+          phase,
           publishedAt,
           requireBudget,
           submissionDescriptor,
@@ -161,7 +162,6 @@ export function fetchFundingRound (id) {
           submissionsOpenAt,
           title,
           tokenType,
-          tokensDistributedAt,
           tokensRemaining,
           totalTokens,
           totalTokensAllocated,
@@ -301,6 +301,7 @@ export function updateFundingRound (data) {
   if (dataForUpdate.voterRoles) {
     dataForUpdate.voterRoles = dataForUpdate.voterRoles.map(role => ({ id: role.id, type: role.type }))
   }
+  delete dataForUpdate.phase // Only for optimistic update, backend will handle phase update
 
   return {
     type: UPDATE_FUNDING_ROUND,
@@ -309,6 +310,7 @@ export function updateFundingRound (data) {
         mutation UpdateFundingRound($id: ID, $data: FundingRoundInput) {
           updateFundingRound(id: $id, data: $data) {
             id
+            phase
           }
         }
       `,
@@ -369,15 +371,47 @@ export function leaveFundingRound (id) {
   }
 }
 
-export function distributeFundingRoundTokens (id) {
+// Determine what phase a funding round should be in based on timestamps
+export function getExpectedPhase (fundingRound) {
+  if (!fundingRound) return null
+
+  const now = new Date()
+
+  // Check phases in reverse order (most advanced to least)
+  const votingClosesAt = fundingRound.votingClosesAt ? new Date(fundingRound.votingClosesAt) : null
+  if (votingClosesAt && votingClosesAt <= now) return 'completed'
+
+  const votingOpensAt = fundingRound.votingOpensAt ? new Date(fundingRound.votingOpensAt) : null
+  if (votingOpensAt && votingOpensAt <= now) return 'voting'
+
+  const submissionsCloseAt = fundingRound.submissionsCloseAt ? new Date(fundingRound.submissionsCloseAt) : null
+  if (submissionsCloseAt && submissionsCloseAt <= now) return 'discussion'
+
+  const submissionsOpenAt = fundingRound.submissionsOpenAt ? new Date(fundingRound.submissionsOpenAt) : null
+  if (submissionsOpenAt && submissionsOpenAt <= now) return 'submissions'
+
+  const publishedAt = fundingRound.publishedAt ? new Date(fundingRound.publishedAt) : null
+  if (publishedAt && publishedAt <= now) return 'published'
+
+  return 'draft'
+}
+
+// Check if a phase transition is needed
+export function needsPhaseTransition (fundingRound) {
+  if (!fundingRound) return false
+  const expectedPhase = getExpectedPhase(fundingRound)
+  return expectedPhase && expectedPhase !== fundingRound.phase
+}
+
+export function doPhaseTransition (id) {
   return {
-    type: DISTRIBUTE_FUNDING_ROUND_TOKENS,
+    type: DO_PHASE_TRANSITION,
     graphql: {
       query: `
-        mutation DistributeFundingRoundTokens($id: ID) {
-          distributeFundingRoundTokens(id: $id) {
+        mutation DoPhaseTransition($id: ID) {
+          doPhaseTransition(id: $id) {
             id
-            tokensDistributedAt
+            phase
             tokensRemaining
           }
         }
@@ -451,6 +485,17 @@ export function ormSessionReducer (
       return round.update({ isParticipating: false })
     }
 
+    case DO_PHASE_TRANSITION_PENDING: {
+      const round = FundingRound.safeGet({ id: meta.id })
+      if (!round) return
+      // Optimistically update the phase to the expected phase
+      const expectedPhase = getExpectedPhase(round)
+      if (expectedPhase) {
+        return round.update({ phase: expectedPhase })
+      }
+      return round
+    }
+
     case UPDATE_FUNDING_ROUND_PENDING: {
       const round = FundingRound.safeGet({ id: meta.id })
       if (!round) return
@@ -479,14 +524,13 @@ export function ormSessionReducer (
     case ALLOCATE_TOKENS_TO_SUBMISSION_PENDING: {
       const post = Post.safeGet({ id: meta.postId })
       if (!post) return
+      const round = FundingRound.safeGet({ id: meta.fundingRoundId })
+      if (!round) return
+      // Add back the old allocation, then subtract the new allocation
+      const oldAllocation = post.tokensAllocated || 0
+      const newTokensRemaining = round.tokensRemaining + oldAllocation - meta.tokens
+      round.update({ tokensRemaining: newTokensRemaining })
       return post.update({ tokensAllocated: meta.tokens })
-    }
-
-    case ALLOCATE_TOKENS_TO_SUBMISSION: {
-      if (!payload?.data?.allocateTokensToSubmission) return
-      const post = Post.safeGet({ id: payload.data.allocateTokensToSubmission.id })
-      if (!post) return
-      return post.update({ tokensAllocated: payload.data.allocateTokensToSubmission.tokensAllocated })
     }
   }
 }

@@ -62,7 +62,7 @@ import {
   deleteReaction,
   deleteSavedSearch,
   deleteZapierTrigger,
-  distributeFundingRoundTokens,
+  doPhaseTransition,
   duplicateTrack,
   enrollInTrack,
   expireInvitation,
@@ -518,7 +518,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
 
-    distributeFundingRoundTokens: (root, { id }, context) => distributeFundingRoundTokens(context.currentUserId, id),
+    doPhaseTransition: (root, { id }, context) => doPhaseTransition(context.currentUserId, id),
 
     duplicateTrack: (root, { trackId }, context) => duplicateTrack(context.currentUserId, trackId),
 

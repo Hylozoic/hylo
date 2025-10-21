@@ -26,16 +26,21 @@ query (
         minTokenAllocation
         numParticipants
         numSubmissions
+        phase
         publishedAt
         requireBudget
         submissionDescriptor
         submissionDescriptorPlural
+        submissionsCloseAt
+        submissionsOpenAt
         title
         tokenType
         totalTokens
         totalTokensAllocated
         updatedAt
+        votingClosesAt
         votingMethod
+        votingOpensAt
       }
     }
   }

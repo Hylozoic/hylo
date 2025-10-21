@@ -10,7 +10,7 @@ import NotFound from 'components/NotFound'
 import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatRoom from 'routes/ChatRoom'
-import { FETCH_FUNDING_ROUND, fetchFundingRound, distributeFundingRoundTokens } from 'routes/FundingRounds/FundingRounds.store'
+import { FETCH_FUNDING_ROUND, fetchFundingRound, doPhaseTransition, needsPhaseTransition } from 'routes/FundingRounds/FundingRounds.store'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import getFundingRound from 'store/selectors/getFundingRound'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -37,21 +37,25 @@ function FundingRoundHome () {
     if (routeParams.fundingRoundId) dispatch(fetchFundingRound(routeParams.fundingRoundId))
   }, [routeParams.fundingRoundId])
 
-  // Trigger token distribution if voting has opened but tokens haven't been distributed yet
+  // Trigger phase transition if a timestamp has passed but phase hasn't been updated
   useEffect(() => {
     if (
       fundingRound &&
-      fundingRound.votingOpensAt &&
-      new Date(fundingRound.votingOpensAt) <= new Date() &&
-      !fundingRound.tokensDistributedAt &&
-      fundingRound.isParticipating
+      fundingRound.isParticipating &&
+      needsPhaseTransition(fundingRound)
     ) {
-      dispatch(distributeFundingRoundTokens(fundingRound.id)).catch(error => {
-        console.error('Failed to distribute tokens:', error)
-        // Silently fail - tokens will be distributed by cron or manual action
-      })
+      dispatch(doPhaseTransition(fundingRound.id))
     }
-  }, [fundingRound?.votingOpensAt, fundingRound?.tokensDistributedAt, fundingRound?.isParticipating, fundingRound?.id])
+  }, [
+    fundingRound?.phase,
+    fundingRound?.publishedAt,
+    fundingRound?.submissionsOpenAt,
+    fundingRound?.submissionsCloseAt,
+    fundingRound?.votingOpensAt,
+    fundingRound?.votingClosesAt,
+    fundingRound?.isParticipating,
+    fundingRound?.id
+  ])
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {

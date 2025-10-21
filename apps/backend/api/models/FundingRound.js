@@ -146,6 +146,16 @@ module.exports = bookshelf.Model.extend({
     return false
   }
 }, {
+
+  PHASES: {
+    DRAFT: 'draft',
+    PUBLISHED: 'published',
+    SUBMISSIONS: 'submissions',
+    DISCUSSION: 'discussion',
+    VOTING: 'voting',
+    COMPLETED: 'completed'
+  },
+
   addPost: async function (postOrId, fundingRoundOrId, userId, { transacting } = {}) {
     const postId = typeof postOrId === 'number' ? postOrId : postOrId.get('id')
     const fundingRound = await (typeof fundingRoundOrId === 'object' ? fundingRoundOrId : FundingRound.find(fundingRoundOrId))
@@ -163,7 +173,7 @@ module.exports = bookshelf.Model.extend({
 
     await fundingRound.save({ num_submissions: fundingRound.get('num_submissions') + 1 }, { transacting })
 
-    return FundingRoundPost.create({
+    const fundingRoundPost = await FundingRoundPost.create({
       funding_round_id: fundingRound.get('id'),
       post_id: postId
     }, { transacting })
@@ -246,8 +256,9 @@ module.exports = bookshelf.Model.extend({
 
     const roundId = round.id
 
-    // Check if tokens have already been distributed
-    if (round.get('tokens_distributed_at')) {
+    // Check if tokens have already been distributed (phase is voting or completed)
+    const phase = round.get('phase')
+    if (phase === FundingRound.PHASES.VOTING || phase === FundingRound.PHASES.COMPLETED) {
       return round
     }
 
@@ -291,9 +302,6 @@ module.exports = bookshelf.Model.extend({
       await roundUser.save({ tokens_remaining: tokensPerUser }, { transacting, patch: true })
     }))
 
-    // Mark tokens as distributed
-    await round.save({ tokens_distributed_at: new Date().toISOString() }, { transacting, patch: true })
-
     return round
   },
 
@@ -306,9 +314,6 @@ module.exports = bookshelf.Model.extend({
     }
 
     const roundId = round.id
-
-    // Clear tokens_distributed_at
-    await round.save({ tokens_distributed_at: null }, { transacting, patch: true })
 
     // Reset all user token balances
     await bookshelf.knex('funding_rounds_users')

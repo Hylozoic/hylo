@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { ImagePlus, X, EyeOff, Eye } from 'lucide-react'
+import { ImagePlus, X } from 'lucide-react'
 import TextInput from 'components/TextInput'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -710,7 +710,7 @@ function FundingRoundEditor (props) {
         </div>
 
         <div className='flex items-center gap-2'>
-          <label>{t('Voting opens:')}</label>
+          <label>{t('Voting opens')}:</label>
           <DateTimePicker
             key={votingOpensAt ? votingOpensAt.toString() : 'empty-votingOpensAt'}
             granularity='minute'
@@ -733,7 +733,7 @@ function FundingRoundEditor (props) {
         </div>
 
         <div className='flex items-center gap-2'>
-          <label>{t('Voting closes:')}</label>
+          <label>{t('Voting closes')}:</label>
           <DateTimePicker
             key={votingClosesAt ? votingClosesAt.toString() : 'empty-votingClosesAt'}
             className={cn({ 'text-error border-error': errors.votingClosesAt })}
