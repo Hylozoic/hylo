@@ -52,11 +52,12 @@ export default function AboutTab ({ round }) {
 
   return (
     <div className='flex flex-col gap-3 pb-[100px]'>
-      <RoundPhaseStatus
-        round={round}
-        currentPhase={currentPhase}
-        submissionCount={submissionCount}
-      />
+      {round.isParticipating && (
+        <RoundPhaseStatus
+          round={round}
+          currentPhase={currentPhase}
+          submissionCount={submissionCount}
+        />)}
       {round.bannerUrl && (
         <div
           className='w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-2 pb-2 relative overflow-hidden'
@@ -66,7 +67,7 @@ export default function AboutTab ({ round }) {
       {round.description && (
         <HyloHTML html={round.description} />
       )}
-      {round.criteria && (
+      {(round.criteria && !!(new DOMParser().parseFromString(round.criteria, 'text/html').body.textContent?.trim())) && (
         <div>
           <h2 className='text-lg font-semibold'>{t('Submission Criteria')}</h2>
           <HyloHTML html={round.criteria} />
