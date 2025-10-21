@@ -3,6 +3,7 @@ import React from 'react'
 export default function HyloHTML ({
   html,
   element = 'div',
+  className,
   ...props
 }) {
   return (
@@ -10,6 +11,7 @@ export default function HyloHTML ({
       element,
       {
         ...props,
+        className: `global-postContent ${className || ''}`.trim(),
         dangerouslySetInnerHTML: { __html: html }
       }
     )
