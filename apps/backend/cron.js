@@ -7,6 +7,7 @@ const digest2 = require('./lib/group/digest2')
 const Promise = require('bluebird')
 const { red } = require('chalk')
 const savedSearches = require('./lib/group/digest2/savedSearches')
+const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -27,6 +28,12 @@ const daily = now => {
 
   sails.log.debug('Removing old notifications')
   tasks.push(Notification.removeOldNotifications())
+
+  sails.log.debug('Cleaning up expired OIDC payloads')
+  tasks.push(OIDCAdapter.cleanupExpired().then(count => {
+    sails.log.debug(`Removed ${count} expired OIDC payloads`)
+    return count
+  }))
 
   switch (now.day) {
     case 3:
