@@ -81,6 +81,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import HyloHTML from 'components/HyloHTML'
 
 import styles from './PostEditor.module.scss'
 
@@ -213,6 +214,9 @@ function PostEditor ({
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [showAllSubmissionCriteria, setShowAllSubmissionCriteria] = useState(false)
+  const [shouldShowSubmissionCriteriaToggle, setShouldShowSubmissionCriteriaToggle] = useState(false)
+  const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -812,6 +816,28 @@ function PostEditor ({
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
 
+  useEffect(() => {
+    setShowAllSubmissionCriteria(false)
+    setShouldShowSubmissionCriteriaToggle(false)
+  }, [isSubmission, currentFundingRound?.id])
+
+  const showSubmissionCriteria = isSubmission && currentFundingRound?.criteria
+
+  useEffect(() => {
+    if (!showSubmissionCriteria) {
+      setShouldShowSubmissionCriteriaToggle(false)
+      return
+    }
+
+    if (showAllSubmissionCriteria) return
+
+    const node = submissionCriteriaRef.current
+    if (!node) return
+
+    const isOverflowing = node.scrollHeight > node.clientHeight + 1
+    setShouldShowSubmissionCriteriaToggle(isOverflowing)
+  }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
+
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
       <div
@@ -840,6 +866,32 @@ function PostEditor ({
               />
               )}
       </div>
+      {showSubmissionCriteria && (
+        <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
+          <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
+          <div
+            ref={submissionCriteriaRef}
+            className={cn(
+              'leading-relaxed space-y-2',
+              !showAllSubmissionCriteria && 'line-clamp-2'
+            )}
+          >
+            <HyloHTML
+              html={currentFundingRound.criteria}
+              className={cn(!showAllSubmissionCriteria && 'child:first:mt-0 child:first:mb-0')}
+            />
+          </div>
+          {shouldShowSubmissionCriteriaToggle && (
+            <button
+              type='button'
+              onClick={() => setShowAllSubmissionCriteria(prev => !prev)}
+              className='self-start text-xs font-semibold text-foreground underline'
+            >
+              {showAllSubmissionCriteria ? t('Hide') : t('Show all')}
+            </button>
+          )}
+        </div>
+      )}
       {!isChat && !isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}

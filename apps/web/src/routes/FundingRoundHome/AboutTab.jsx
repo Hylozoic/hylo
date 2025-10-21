@@ -6,6 +6,8 @@ import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
 import { joinFundingRound, leaveFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { bgImageStyle } from 'util/index'
+import RoundPhaseStatus from './RoundPhaseStatus'
+import { getRoundPhaseMeta } from './phaseUtils'
 
 function Info ({ label, value }) {
   return (
@@ -19,6 +21,10 @@ function Info ({ label, value }) {
 export default function AboutTab ({ round }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const { currentPhase } = getRoundPhaseMeta(round)
+  const submissionCount = typeof round.numSubmissions === 'number'
+    ? round.numSubmissions
+    : Array.isArray(round.submissions) ? round.submissions.length : 0
 
   const renderRoles = (roles) => {
     if (!roles || roles.length === 0) return t('Any member')
@@ -46,6 +52,11 @@ export default function AboutTab ({ round }) {
 
   return (
     <div className='flex flex-col gap-3 pb-[100px]'>
+      <RoundPhaseStatus
+        round={round}
+        currentPhase={currentPhase}
+        submissionCount={submissionCount}
+      />
       {round.bannerUrl && (
         <div
           className='w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-2 pb-2 relative overflow-hidden'

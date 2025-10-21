@@ -4,6 +4,8 @@ import { personUrl } from '@hylo/navigation'
 import { Link } from 'react-router-dom'
 import useRouteParams from 'hooks/useRouteParams'
 import { CircleDashed } from 'lucide-react'
+import RoundPhaseStatus from './RoundPhaseStatus'
+import { getRoundPhaseMeta } from './phaseUtils'
 
 // Check if a user has any of the required roles
 function userHasRole (user, requiredRoles, groupId) {
@@ -33,9 +35,18 @@ export default function PeopleTab ({ group, round }) {
   const routeParams = useRouteParams()
   const { users, submitterRoles, voterRoles } = round
   const groupId = group?.id
+  const { currentPhase } = getRoundPhaseMeta(round)
+  const submissionCount = typeof round.numSubmissions === 'number'
+    ? round.numSubmissions
+    : Array.isArray(round.submissions) ? round.submissions.length : 0
 
   return (
-    <div>
+    <div className='flex flex-col gap-4'>
+      <RoundPhaseStatus
+        round={round}
+        currentPhase={currentPhase}
+        submissionCount={submissionCount}
+      />
       {users?.length === 0 && (
         <div className='flex flex-col gap-2 pt-4 items-center justify-center border-2 border-foreground/20 rounded-md border-dashed p-4 mt-4'>
           <CircleDashed className='w-12 h-12 text-foreground/80' />

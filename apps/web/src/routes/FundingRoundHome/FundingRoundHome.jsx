@@ -1,4 +1,3 @@
-import { capitalize } from 'lodash/fp'
 import { BadgeDollarSign } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -59,7 +58,7 @@ function FundingRoundHome () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    const titleText = (fundingRound?.title || t('Funding Round')) + ' > ' + capitalize(currentTab)
+    const titleText = fundingRound?.title || t('Funding Round')
     const isPublished = !!fundingRound?.publishedAt
     const titleEl = (
       <span className='flex items-center gap-2 space-between'>
@@ -72,7 +71,7 @@ function FundingRoundHome () {
       </span>
     )
     setHeaderDetails({ icon: <BadgeDollarSign />, title: titleEl })
-  }, [fundingRound?.title, fundingRound?.publishedAt, currentTab, canManageRound])
+  }, [fundingRound?.title, fundingRound?.publishedAt, canManageRound, t])
 
   if (isLoading) return <Loading />
   if (!isLoading && !fundingRound) return <NotFound />

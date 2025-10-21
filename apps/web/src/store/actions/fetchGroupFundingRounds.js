@@ -28,6 +28,8 @@ query (
         numSubmissions
         phase
         publishedAt
+        submissionsOpenAt
+        submissionsCloseAt
         requireBudget
         submissionDescriptor
         submissionDescriptorPlural
@@ -38,9 +40,16 @@ query (
         totalTokens
         totalTokensAllocated
         updatedAt
-        votingClosesAt
         votingMethod
         votingOpensAt
+        votingClosesAt
+        users {
+          items {
+            id
+            name
+            avatarUrl
+          }
+        }
       }
     }
   }
