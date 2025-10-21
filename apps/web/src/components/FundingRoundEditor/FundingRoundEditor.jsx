@@ -23,7 +23,7 @@ import {
   CommandSeparator
 } from 'components/ui/command'
 import { getHourCycle } from 'components/Calendar/calendar-util'
-import Checkbox from 'components/Checkbox'
+import CheckBox from 'components/CheckBox'
 import Button from 'components/ui/button'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import { Label } from 'components/ui/label'
@@ -515,7 +515,7 @@ function FundingRoundEditor (props) {
         </div>
 
         <div>
-          <Checkbox
+          <CheckBox
             label={t('Require Budget for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
             checked={requireBudget}
             onChange={updateFundingRoundState('requireBudget')}
