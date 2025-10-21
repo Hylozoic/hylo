@@ -107,10 +107,6 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
   const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId)
   if (!round) throw new GraphQLError('FundingRound not found')
 
-  // Check if user is participating in the round
-  const isParticipating = await round.isParticipating(userId)
-  if (!isParticipating) throw new GraphQLError('You must be participating in this round')
-
   const now = new Date()
   const currentPhase = round.get('phase')
   const publishedAt = round.get('published_at')
