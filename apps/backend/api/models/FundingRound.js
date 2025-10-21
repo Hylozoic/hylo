@@ -177,6 +177,8 @@ module.exports = bookshelf.Model.extend({
       funding_round_id: fundingRound.get('id'),
       post_id: postId
     }, { transacting })
+
+    return fundingRoundPost
   },
 
   create: async function (attrs) {
