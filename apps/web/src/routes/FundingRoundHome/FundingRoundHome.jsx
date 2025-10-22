@@ -39,11 +39,13 @@ function FundingRoundHome () {
   const currentUserRoles = useSelector(state => getRolesForGroup(state, { person: currentUser, groupId: currentGroup?.id }))
   const canSubmit = useMemo(() => {
     if (!fundingRound?.isParticipating) return false
+    if (!fundingRound?.submitterRoles?.length) return true
     return currentUserRoles.some(r => fundingRound?.submitterRoles?.map(r => r.id).includes(r.id))
   }, [fundingRound?.isParticipating, currentUserRoles, fundingRound?.submitterRoles])
 
   const canVote = useMemo(() => {
     if (!fundingRound?.isParticipating) return false
+    if (!fundingRound?.voterRoles?.length) return true
     return currentUserRoles.some(r => fundingRound?.voterRoles?.map(r => r.id).includes(r.id))
   }, [fundingRound?.isParticipating, currentUserRoles, fundingRound?.voterRoles])
 
