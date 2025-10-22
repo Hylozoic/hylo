@@ -243,7 +243,7 @@ export default function ManageTab ({ round }) {
     let confirmMessage = t('Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
 
     // If going back from voting phase to discussion, warn about token reset
-    if (phase.dateField === 'votingOpensAt' && (round.phase === 'voting' || round.phase === 'completed')) {
+    if (phase.backDateField === 'votingOpensAt' && (round.phase === 'voting' || round.phase === 'completed')) {
       confirmMessage = t('This will reset all token allocations. Are you sure you want to {{action}}?', { action: phase.backButtonText.toLowerCase() })
     }
 
