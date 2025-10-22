@@ -292,15 +292,38 @@ module.exports = bookshelf.Model.extend({
       throw new GraphQLError('No users in this round')
     }
 
+    // Filter users by voter roles if specified
+    const voterRolesData = round.get('voter_roles')
+    let eligibleUsers = roundUsers
+
+    if (voterRolesData && voterRolesData.length > 0) {
+      // Only distribute tokens to users with the required voter roles
+      const eligibleUserChecks = await Promise.all(
+        roundUsers.map(async (roundUser) => {
+          const userId = roundUser.get('user_id')
+          const canVote = await round.canUserVote(userId)
+          return { roundUser, canVote }
+        })
+      )
+      eligibleUsers = eligibleUserChecks
+        .filter(({ canVote }) => canVote)
+        .map(({ roundUser }) => roundUser)
+
+      if (eligibleUsers.length === 0) {
+        console.error('No users with required voter roles in this round')
+        return round
+      }
+    }
+
     let tokensPerUser = totalTokens
 
     // Calculate tokens per user based on voting method
     if (votingMethod === 'token_allocation_divide') {
-      tokensPerUser = Math.floor(totalTokens / roundUsers.length)
+      tokensPerUser = Math.floor(totalTokens / eligibleUsers.length)
     }
 
-    // Distribute tokens to each user
-    await Promise.all(roundUsers.map(async (roundUser) => {
+    // Distribute tokens to each eligible user
+    await Promise.all(eligibleUsers.map(async (roundUser) => {
       await roundUser.save({ tokens_remaining: tokensPerUser }, { transacting, patch: true })
     }))
 

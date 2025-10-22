@@ -160,7 +160,6 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
 }
 
 export async function allocateTokensToSubmission (userId, postId, tokens) {
-  console.log('allocateTokensToSubmission', userId, postId, tokens)
   if (!postId) throw new GraphQLError('postId is required')
   if (tokens === undefined || tokens === null) throw new GraphQLError('tokens is required')
   if (tokens < 0) throw new GraphQLError('tokens must be non-negative')
