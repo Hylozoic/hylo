@@ -25,6 +25,9 @@ exports.up = async function (knex) {
     table.string('currency', 3).notNullable().defaultTo('usd')
     table.boolean('active').defaultTo(true)
     table.bigInteger('track_id').unsigned().references('id').inTable('tracks')
+    table.jsonb('content_access').defaultTo('{}').comment('Defines what access this product grants - groups, tracks, roles')
+    table.string('renewal_policy', 20).defaultTo('manual').comment('Renewal policy: automatic or manual')
+    table.string('duration', 20).comment('Duration: month, season, annual, lifetime, or null for no expiration')
     table.timestamps(true, true)
 
     table.index(['group_id'])
@@ -47,8 +50,6 @@ exports.up = async function (knex) {
     // Stripe-specific fields (nullable for non-Stripe grants)
     table.string('stripe_session_id', 255)
     table.string('stripe_payment_intent_id', 255)
-    table.integer('amount_paid').defaultTo(0) // 0 for free grants
-    table.string('currency', 3).defaultTo('usd')
 
     // Status: 'active', 'expired', 'revoked'
     table.string('status', 50).notNullable().defaultTo('active')

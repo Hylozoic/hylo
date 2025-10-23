@@ -20,7 +20,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   enrolledUsers: function () {
     return this.belongsToMany(User, 'tracks_users', 'track_id', 'user_id').query(q => {
       q.whereNotNull('tracks_users.enrolled_at')
-    }).orderBy('users.name', 'asc').withPivot(['enrolled_at', 'completed_at'])
+    }).orderBy('users.name', 'asc').withPivot(['enrolled_at', 'completed_at', 'expires_at'])
   },
 
   groups: function () {

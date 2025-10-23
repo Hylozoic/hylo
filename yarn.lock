@@ -10625,6 +10625,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:>=8.1.0":
+  version: 24.8.1
+  resolution: "@types/node@npm:24.8.1"
+  dependencies:
+    undici-types: "npm:~7.14.0"
+  checksum: 10/4f944466766ca8cc0d635386e2b9b42b1948723ca0ec7d24624e80513e5816d6e96197db7c05f8f67b544a228a06a1c0598d66a5526aa4c1f5919db0d3c5bf8c
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:^22.15.30":
   version: 22.15.32
   resolution: "@types/node@npm:22.15.32"
@@ -13097,7 +13106,7 @@ __metadata:
     socket.io-emitter: "npm:^3.1.1"
     standard: "npm:^17.1.2"
     stream-buffers: "npm:^3.0.2"
-    stripe: "npm:^6.15.0"
+    stripe: "npm:^17.5.0"
     uuid: "npm:^9.0.0"
     validator: "npm:^3.22.1"
     wkx: "npm:^0.5.0"
@@ -31899,7 +31908,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.6.0":
+"qs@npm:^6.11.0":
   version: 6.14.0
   resolution: "qs@npm:6.14.0"
   dependencies:
@@ -34815,7 +34824,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"safe-buffer@npm:5.2.1, safe-buffer@npm:^5.0.1, safe-buffer@npm:^5.1.0, safe-buffer@npm:^5.1.1, safe-buffer@npm:^5.1.2, safe-buffer@npm:^5.2.1, safe-buffer@npm:~5.2.0":
+"safe-buffer@npm:5.2.1, safe-buffer@npm:^5.0.1, safe-buffer@npm:^5.1.0, safe-buffer@npm:^5.1.2, safe-buffer@npm:^5.2.1, safe-buffer@npm:~5.2.0":
   version: 5.2.1
   resolution: "safe-buffer@npm:5.2.1"
   checksum: 10/32872cd0ff68a3ddade7a7617b8f4c2ae8764d8b7d884c651b74457967a9e0e886267d3ecc781220629c44a865167b61c375d2da6c720c840ecd73f45d5d9451
@@ -36847,15 +36856,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stripe@npm:^6.15.0":
-  version: 6.36.0
-  resolution: "stripe@npm:6.36.0"
+"stripe@npm:^17.5.0":
+  version: 17.7.0
+  resolution: "stripe@npm:17.7.0"
   dependencies:
-    lodash.isplainobject: "npm:^4.0.6"
-    qs: "npm:^6.6.0"
-    safe-buffer: "npm:^5.1.1"
-    uuid: "npm:^3.3.2"
-  checksum: 10/60eb81320369e722e640ea97bca585b2c39f836bdc2ae5b3c77a86a1f7fd87af9e73fc7def7bb0cf0c40618874c4758927907b141c88d7c932a233caf65a2af8
+    "@types/node": "npm:>=8.1.0"
+    qs: "npm:^6.11.0"
+  checksum: 10/376f945f9c194c8ea2d47d1fda50d141ed985cbb6f94041e11880084f830e502962d434967f1c90a3cb27a9b6e26c606f2830d9448bde636ebd6c067d5cbfecc
   languageName: node
   linkType: hard
 
@@ -38438,6 +38445,13 @@ __metadata:
   version: 6.21.0
   resolution: "undici-types@npm:6.21.0"
   checksum: 10/ec8f41aa4359d50f9b59fa61fe3efce3477cc681908c8f84354d8567bb3701fafdddf36ef6bff307024d3feb42c837cf6f670314ba37fc8145e219560e473d14
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.14.0":
+  version: 7.14.0
+  resolution: "undici-types@npm:7.14.0"
+  checksum: 10/0f8709b21437697af35801e33bddbe9992e0cf1771959c41850b1946f63822b825e03ce99f44bf19e4f5c3ccc5166e0be59f541565c36ce86163dc2c5870bc62
   languageName: node
   linkType: hard
 

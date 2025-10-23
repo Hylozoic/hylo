@@ -148,6 +148,14 @@ export {
   createZapierTrigger,
   deleteZapierTrigger
 } from './zapier'
+export {
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  stripeAccountStatus,
+  createStripeProduct,
+  stripeProducts,
+  createStripeCheckoutSession
+} from './stripe'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 
 export async function updateMe (sessionId, userId, changes) {

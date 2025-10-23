@@ -789,6 +789,8 @@ type Group {
   name: String
   # For the current logged in user how many prerequisite groups must they join before they can join this one
   numPrerequisitesLeft: Int
+  # Whether this group requires purchased membership (paywall enabled)
+  paywall: Boolean
   # Total number of posts in this group
   postCount: Int
   # The purpose statement for the group
@@ -801,6 +803,8 @@ type Group {
   stewardDescriptor: String
   # Plural word used to describe stewards of this group. Defaults to "Stewards"
   stewardDescriptorPlural: String
+  # Stripe Connected Account ID for accepting payments
+  stripeAccountId: String
   # Right now can either by 'farm' or null
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
@@ -1697,6 +1701,8 @@ type Membership {
   createdAt: Date
   # The common roles this member has in this group
   commonRoles: CommonRoleQuerySet
+  # When this membership expires (mirrored from content_access table)
+  expiresAt: Date
   groupId: ID
   group: Group
   # Is this group membership a moderator role. TODO: remove once mobile app has been updated to use new roles
@@ -1768,6 +1774,8 @@ type MembershipCommonRoleQuerySet {
 type MembershipGroupRole {
   id: ID
   createdAt: Date
+  # When this role membership expires (mirrored from content_access table)
+  expiresAt: Date
   group: Group
   groupId: ID
   groupRoleId: ID
@@ -1918,6 +1926,8 @@ type Person {
   contactPhone: String
   # When loading through a track this is when they were enrolled in the track
   enrolledAt: Date
+  # When loading through a track this is when their access to the track expires (from content_access via tracks_users)
+  expiresAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2482,6 +2492,8 @@ type TopicFollowSettings {
 
 type Track {
   id: ID
+  # Whether this track requires purchased access (paid content)
+  accessControlled: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions
@@ -2504,6 +2516,8 @@ type Track {
   didComplete: Boolean
   # The users enrolled in this track
   enrolledUsers: PersonQuerySet
+  # When the current user's access to this track expires (from content_access via tracks_users)
+  expiresAt: Date
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -2547,11 +2561,44 @@ type TrackUser {
   completedAt: Date
   createdAt: Date
   enrolledAt: Date
+  # When this user's access to the track expires (mirrored from content_access table)
+  expiresAt: Date
   settings: JSON
   updatedAt: Date
   group: Group
   track: Track
   user: Person
+}
+
+# Stripe product for paid content access
+type StripeProduct {
+  id: ID
+  createdAt: Date
+  updatedAt: Date
+  # The group this product belongs to
+  group: Group
+  # Stripe product ID from Stripe API
+  stripeProductId: String
+  # Stripe price ID from Stripe API
+  stripePriceId: String
+  # Product name
+  name: String
+  # Product description
+  description: String
+  # Price in cents
+  priceInCents: Int
+  # Currency code (e.g. 'usd')
+  currency: String
+  # Whether this product is active
+  active: Boolean
+  # Optional track this product grants access to (legacy field)
+  track: Track
+  # JSONB object defining what access this product grants
+  contentAccess: JSON
+  # Renewal policy: automatic or manual
+  renewalPolicy: String
+  # Duration: month, season, annual, lifetime, or null for no expiration
+  duration: String
 }
 
 # Current user's personal settings
@@ -2991,6 +3038,49 @@ type Mutation {
   ): SignupResult
   # Upvote a post, or remove upvote. DEPRECATED, use reactOn instead
   vote(postId: ID, isUpvote: Boolean): Post
+
+  # Stripe Connect mutations
+  # Create a Stripe Connected Account for a group
+  createStripeConnectedAccount(
+    groupId: ID!
+    email: String!
+    businessName: String!
+    country: String
+  ): StripeConnectedAccountResult
+
+  # Create an Account Link for onboarding
+  createStripeAccountLink(
+    groupId: ID!
+    accountId: String!
+    returnUrl: String!
+    refreshUrl: String!
+  ): StripeAccountLinkResult
+
+  # Get the status of a connected account
+  stripeAccountStatus(
+    groupId: ID!
+    accountId: String!
+  ): StripeAccountStatusResult
+
+  # Create a product on the connected account
+  createStripeProduct(input: StripeProductInput!): StripeProductResult
+
+  # List all products for a connected account
+  stripeProducts(
+    groupId: ID!
+    accountId: String!
+  ): StripeProductsResult
+
+  # Create a checkout session for purchasing a product
+  createStripeCheckoutSession(
+    groupId: ID!
+    accountId: String!
+    priceId: String!
+    quantity: Int
+    successUrl: String!
+    cancelUrl: String!
+    metadata: JSON
+  ): StripeCheckoutSessionResult
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -3044,6 +3134,49 @@ type SignupResult {
   error: String
   # If the mutation succeeded return the data for the current user logging in or signup up
   me: Me
+}
+
+# Stripe Connect result types
+type StripeConnectedAccountResult {
+  id: ID
+  accountId: String
+  success: Boolean
+  message: String
+}
+
+type StripeAccountLinkResult {
+  url: String
+  expiresAt: Date
+  success: Boolean
+}
+
+type StripeAccountStatusResult {
+  accountId: String
+  chargesEnabled: Boolean
+  payoutsEnabled: Boolean
+  detailsSubmitted: Boolean
+  email: String
+  requirements: JSON
+}
+
+type StripeProductResult {
+  productId: String
+  priceId: String
+  name: String
+  databaseId: ID
+  success: Boolean
+  message: String
+}
+
+type StripeProductsResult {
+  products: [StripeProduct]
+  success: Boolean
+}
+
+type StripeCheckoutSessionResult {
+  sessionId: String
+  url: String
+  success: Boolean
 }
 
 # An Affilation with an organization added to a User profile
@@ -3288,6 +3421,8 @@ input GroupInput {
   name: String
   # IDs of parent Groups to add this Group to
   parentIds: [ID]
+  # Whether this group requires purchased membership (paywall enabled)
+  paywall: Boolean
   # IDs of Groups that someone must join before they can join this one
   prerequisiteGroupIds: [ID]
   # Purpose statement
@@ -3306,6 +3441,8 @@ input GroupInput {
   stewardDescriptor: String
   # Word used to describe stewards of this group (people with a Common Role). Defaults to "Stewards"
   stewardDescriptorPlural: String
+  # Stripe Connected Account ID for accepting payments
+  stripeAccountId: String
   # Right now can either by 'farm' or empty
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
@@ -3386,6 +3523,29 @@ input GroupWidgetSettingsInput {
   text: String
   # The title of the widget, for Widgets that use this
   title: String
+}
+
+# Input for creating Stripe products
+input StripeProductInput {
+  # The group this product belongs to
+  groupId: ID!
+  # Stripe connected account ID
+  accountId: String!
+  # Product name
+  name: String!
+  # Product description
+  description: String
+  # Price in cents
+  priceInCents: Int!
+  # Currency code (e.g. 'usd')
+  currency: String
+  # JSONB object defining what access this product grants
+  # Format: { "groupId": { "trackIds": [1, 2], "roleIds": [3, 4] } }
+  contentAccess: JSON
+  # Renewal policy: automatic or manual
+  renewalPolicy: String
+  # Duration: month, season, annual, lifetime, or null for no expiration
+  duration: String
 }
 
 # Details passed along when Flagging a Post
@@ -3645,6 +3805,8 @@ input SavedSearchInput {
 }
 
 input TrackInput {
+  # Whether this track requires purchased access (paid content)
+  accessControlled: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions
