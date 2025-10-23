@@ -164,18 +164,26 @@ module.exports = {
         console.log(`Account updated: ${account.id}`)
       }
 
-      // Find the group with this Stripe account ID
-      const group = await Group.where({ stripe_account_id: account.id }).fetch()
+      // Extract group ID from account metadata
+      const groupId = account.metadata?.group_id
+      if (!groupId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No group_id metadata found for Stripe account: ${account.id}`)
+        }
+        return
+      }
 
+      const group = await Group.find(groupId)
       if (!group) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No group found for Stripe account: ${account.id}`)
+          console.log(`No group found with ID: ${groupId}`)
         }
         return
       }
 
       // Update group's Stripe status
       await group.save({
+        stripe_account_id: account.id, // Store account ID if not already stored
         stripe_charges_enabled: account.charges_enabled,
         stripe_payouts_enabled: account.payouts_enabled,
         stripe_details_submitted: account.details_submitted

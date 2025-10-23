@@ -62,7 +62,8 @@ module.exports = {
       const account = await StripeService.createConnectedAccount({
         email: email || group.get('contact_email'),
         country: country || 'US',
-        businessName: businessName || group.get('name')
+        businessName: businessName || group.get('name'),
+        groupId
       })
 
       // TODO STRIPE: Save the account ID to your database

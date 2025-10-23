@@ -62,8 +62,13 @@ The paid content system enables groups to:
 // GraphQL Mutation
 createStripeConnectedAccount(groupId, email, businessName, country)
 
-// Backend Service
-StripeService.createConnectedAccount({ email, country, businessName })
+// Backend Service (with metadata)
+StripeService.createConnectedAccount({ 
+  email, 
+  country, 
+  businessName, 
+  groupId  // Added for metadata correlation
+})
 
 // Account Link Creation
 createStripeAccountLink(groupId, accountId, returnUrl, refreshUrl)

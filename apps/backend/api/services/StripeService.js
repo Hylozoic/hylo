@@ -37,14 +37,16 @@ module.exports = {
    * - Connected account pays Stripe fees
    * - Stripe handles payment disputes and losses
    * - Connected account gets full dashboard access
+   * - Group ID stored in metadata for webhook correlation
    *
    * @param {Object} params - Account creation parameters
    * @param {String} params.email - Email address for the connected account
    * @param {String} params.country - Two-letter country code (e.g. 'US', 'GB')
    * @param {String} params.businessName - Business/group name
+   * @param {String} params.groupId - Group ID for metadata correlation
    * @returns {Promise<Object>} The created Stripe account object
    */
-  async createConnectedAccount ({ email, country = 'US', businessName }) {
+  async createConnectedAccount ({ email, country = 'US', businessName, groupId }) {
     try {
       // Validate required parameters
       if (!email) {
@@ -55,6 +57,10 @@ module.exports = {
         throw new Error('Business name is required to create a connected account')
       }
 
+      if (!groupId) {
+        throw new Error('Group ID is required for account metadata')
+      }
+
       // Create the connected account with controller settings
       // Note: We use controller properties, NOT top-level type property
       const account = await stripe.accounts.create({
@@ -62,6 +68,10 @@ module.exports = {
         country,
         business_profile: {
           name: businessName
+        },
+        metadata: {
+          group_id: groupId.toString(),
+          platform: 'hylo'
         },
         controller: {
           // Platform controls fee collection - connected account pays fees
