@@ -28,13 +28,12 @@ The paid content system enables groups to:
    - Admin goes to `/groups/{groupSlug}/settings/paid-content`
    - Only group administrators can access this section
 
-2. **Create Stripe Connected Account**
+2. **Connect Stripe Account**
    - Click "Connect to Stripe" button
-   - Fill out business information:
-     - Email address
-     - Business name
-     - Country
-   - System creates **unverified** Stripe Connected Account
+   - Choose connection method:
+     - **Create New Account**: Fill out business information (email, business name, country)
+     - **Use Existing Account**: Provide existing Stripe account ID
+   - System either creates new account or connects existing one
    - Account requires completion of Stripe's onboarding process
 
 3. **Complete Stripe Onboarding**
@@ -55,19 +54,26 @@ The paid content system enables groups to:
      - `payouts_enabled`: Can receive payouts (false until bank details added)
      - `details_submitted`: Onboarding information submitted (true when complete)
    - Shows any pending requirements or verification issues
-   - Account may be restricted until all requirements are met
+   - **Product publishing is disabled** until account is fully verified
+   - Account can be connected even if not fully verified
 
 ### Functions Invoked
 ```javascript
-// GraphQL Mutation
-createStripeConnectedAccount(groupId, email, businessName, country)
+// GraphQL Mutation (supports both new and existing accounts)
+createStripeConnectedAccount(groupId, email, businessName, country, existingAccountId)
 
-// Backend Service (with metadata)
+// Backend Service - New Account Creation
 StripeService.createConnectedAccount({ 
   email, 
   country, 
   businessName, 
-  groupId  // Added for metadata correlation
+  groupId
+})
+
+// Backend Service - Existing Account Connection
+StripeService.connectExistingAccount({
+  accountId: existingAccountId,
+  groupId
 })
 
 // Account Link Creation
@@ -89,6 +95,9 @@ Stripe Onboarding → Return to Settings → Account Status Display
 
 2. **Create New Product**
    - Click "Create Product" button
+   - **Verification Check**: System verifies Stripe account is ready
+   - If account not verified: Shows warning and disables product creation
+   - If account verified: Allows product creation
    - Fill out product details:
      - **Name**: e.g., "Premium Membership"
      - **Description**: Detailed description of what's included

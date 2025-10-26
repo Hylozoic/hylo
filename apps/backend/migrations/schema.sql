@@ -2857,6 +2857,18 @@ ALTER SEQUENCE public.stripe_accounts_id_seq OWNED BY public.stripe_accounts.id;
 
 
 --
+-- Name: stripe_products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stripe_products_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
 -- Name: stripe_products; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2880,22 +2892,22 @@ CREATE TABLE public.stripe_products (
 
 
 --
--- Name: stripe_products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: stripe_products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.stripe_products_id_seq
+ALTER SEQUENCE public.stripe_products_id_seq OWNED BY public.stripe_products.id;
+
+
+--
+-- Name: content_access_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.content_access_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-
---
--- Name: stripe_products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.stripe_products_id_seq OWNED BY public.stripe_products.id;
 
 
 --
@@ -2919,18 +2931,6 @@ CREATE TABLE public.content_access (
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );
-
-
---
--- Name: content_access_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.content_access_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
 
 
 --
@@ -5524,6 +5524,22 @@ CREATE INDEX content_access_status_index ON public.content_access USING btree (s
 
 
 --
+-- Name: stripe_products stripe_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_access content_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: activities activities_contribution_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7065,14 +7081,6 @@ ALTER TABLE ONLY public.users_groups_agreements
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: users users_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id);
 
 
 --
