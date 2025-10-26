@@ -97,6 +97,56 @@ module.exports = {
   },
 
   /**
+   * Connects an existing Stripe account to a group
+   *
+   * This allows groups to use their existing Stripe account instead of
+   * creating a new one. The account can be connected even if not fully
+   * verified - verification status will be displayed in the UI and
+   * prevent product publishing until the account is ready.
+   *
+   * @param {Object} params - Connection parameters
+   * @param {String} params.accountId - Existing Stripe account ID
+   * @param {String} params.groupId - Group ID for metadata correlation
+   * @returns {Promise<Object>} The Stripe account object
+   */
+  async connectExistingAccount ({ accountId, groupId }) {
+    try {
+      // Validate required parameters
+      if (!accountId) {
+        throw new Error('Account ID is required to connect existing account')
+      }
+
+      if (!groupId) {
+        throw new Error('Group ID is required for account metadata')
+      }
+
+      // Validate that the account exists by retrieving it
+      // This will throw an error if the account ID is invalid
+      await stripe.accounts.retrieve(accountId)
+
+      // Account exists and is valid - we can proceed with connection
+      // No need to check verification status here as UI will handle that
+
+      // Update the account metadata to include our group ID
+      const updatedAccount = await stripe.accounts.update(accountId, {
+        metadata: {
+          group_id: groupId.toString(),
+          platform: 'hylo',
+          connected_at: new Date().toISOString()
+        }
+      })
+
+      return updatedAccount
+    } catch (error) {
+      console.error('Error connecting existing account:', error)
+      if (error.type === 'StripeInvalidRequestError') {
+        throw new Error('Invalid Stripe account ID provided')
+      }
+      throw new Error(`Failed to connect existing Stripe account: ${error.message}`)
+    }
+  },
+
+  /**
    * Creates an Account Link for onboarding a connected account
    *
    * Account Links are temporary URLs that allow connected accounts
@@ -220,6 +270,98 @@ module.exports = {
     } catch (error) {
       console.error('Error creating product:', error)
       throw new Error(`Failed to create product: ${error.message}`)
+    }
+  },
+
+  /**
+   * Updates a product on a connected account
+   *
+   * Updates product details in Stripe and returns the updated product.
+   * Only updates fields that are provided and different from current values.
+   *
+   * @param {Object} params - Product update parameters
+   * @param {String} params.accountId - The Stripe connected account ID
+   * @param {String} params.productId - The Stripe product ID to update
+   * @param {String} [params.name] - New product name
+   * @param {String} [params.description] - New product description
+   * @param {Number} [params.priceInCents] - New price in cents
+   * @param {String} [params.currency] - New currency code
+   * @returns {Promise<Object>} The updated product object
+   */
+  async updateProduct ({ accountId, productId, name, description, priceInCents, currency }) {
+    try {
+      // Validate required parameters
+      if (!accountId) {
+        throw new Error('Account ID is required to update a product')
+      }
+
+      if (!productId) {
+        throw new Error('Product ID is required')
+      }
+
+      // First, get the current product to compare values
+      const currentProduct = await stripe.products.retrieve(productId, {
+        expand: ['default_price']
+      }, {
+        stripeAccount: accountId
+      })
+
+      const updateData = {}
+
+      // Only update fields that are provided and different
+      if (name !== undefined && name !== currentProduct.name) {
+        updateData.name = name
+      }
+
+      if (description !== undefined && description !== currentProduct.description) {
+        updateData.description = description || ''
+      }
+
+      // Handle price updates - this requires updating the price, not the product
+      if (priceInCents !== undefined || currency !== undefined) {
+        const currentPrice = currentProduct.default_price
+        const newPriceInCents = priceInCents !== undefined ? priceInCents : currentPrice.unit_amount
+        const newCurrency = currency !== undefined ? currency.toLowerCase() : currentPrice.currency
+
+        // Only update price if it's different
+        if (newPriceInCents !== currentPrice.unit_amount || newCurrency !== currentPrice.currency) {
+          // Create a new price for the product
+          const newPrice = await stripe.prices.create({
+            product: productId,
+            unit_amount: newPriceInCents,
+            currency: newCurrency
+          }, {
+            stripeAccount: accountId
+          })
+
+          // Update the product to use the new default price
+          updateData.default_price = newPrice.id
+        }
+      }
+
+      // Only proceed with update if there are changes
+      if (Object.keys(updateData).length === 0) {
+        return currentProduct // No changes needed
+      }
+
+      // Update the product in Stripe
+      const updatedProduct = await stripe.products.update(productId, updateData, {
+        stripeAccount: accountId
+      })
+
+      // If we created a new price, retrieve the product with expanded price info
+      if (updateData.default_price) {
+        return await stripe.products.retrieve(productId, {
+          expand: ['default_price']
+        }, {
+          stripeAccount: accountId
+        })
+      }
+
+      return updatedProduct
+    } catch (error) {
+      console.error('Error updating product:', error)
+      throw new Error(`Failed to update product: ${error.message}`)
     }
   },
 

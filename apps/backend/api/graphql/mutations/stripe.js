@@ -28,6 +28,7 @@ module.exports = {
    *       email: "group@example.com"
    *       businessName: "My Group"
    *       country: "US"
+   *       existingAccountId: "acct_xxx"  # Optional: existing Stripe account
    *     ) {
    *       id
    *       accountId
@@ -35,7 +36,7 @@ module.exports = {
    *     }
    *   }
    */
-  createStripeConnectedAccount: async (root, { groupId, email, businessName, country }, { session }) => {
+  createStripeConnectedAccount: async (root, { groupId, email, businessName, country, existingAccountId }, { session }) => {
     try {
       // Check if user is authenticated
       if (!session || !session.userId) {
@@ -55,19 +56,30 @@ module.exports = {
       }
 
       // Check if group already has a Stripe account
-      // TODO STRIPE: You may want to store the accountId in your Group model
-      // For this demo, we'll just create a new account each time
+      if (group.get('stripe_account_id')) {
+        throw new GraphQLError('This group already has a Stripe account connected')
+      }
 
-      // Create the connected account
-      const account = await StripeService.createConnectedAccount({
-        email: email || group.get('contact_email'),
-        country: country || 'US',
-        businessName: businessName || group.get('name'),
-        groupId
-      })
+      let account
 
-      // TODO STRIPE: Save the account ID to your database
-      // await group.save({ stripe_account_id: account.id })
+      if (existingAccountId) {
+        // Connect existing Stripe account
+        account = await StripeService.connectExistingAccount({
+          accountId: existingAccountId,
+          groupId
+        })
+      } else {
+        // Create new Stripe account
+        account = await StripeService.createConnectedAccount({
+          email: email || group.get('contact_email'),
+          country: country || 'US',
+          businessName: businessName || group.get('name'),
+          groupId
+        })
+      }
+
+      // Save the account ID to the database
+      await group.save({ stripe_account_id: account.id })
 
       return {
         id: groupId,
@@ -200,6 +212,7 @@ module.exports = {
    *           roleIds: [1, 2]
    *         }
    *       }
+   *       publishStatus: "published"
    *     ) {
    *       productId
    *       priceId
@@ -216,7 +229,8 @@ module.exports = {
     currency,
     contentAccess,
     renewalPolicy,
-    duration
+    duration,
+    publishStatus
   }, { session }) => {
     try {
       // Check if user is authenticated
@@ -251,7 +265,7 @@ module.exports = {
         content_access: contentAccess || {},
         renewal_policy: renewalPolicy || 'manual',
         duration: duration || null,
-        active: true
+        publish_status: publishStatus || 'unpublished'
       })
 
       return {
@@ -265,6 +279,130 @@ module.exports = {
     } catch (error) {
       console.error('Error in createStripeProduct:', error)
       throw new GraphQLError(`Failed to create product: ${error.message}`)
+    }
+  },
+
+  /**
+   * Updates an existing Stripe product
+   *
+   * Allows group administrators to update product details including name, description,
+   * price, content access, renewal policy, duration, and publish status.
+   *
+   * Usage:
+   *   mutation {
+   *     updateStripeProduct(
+   *       productId: "123"
+   *       name: "Updated Premium Membership"
+   *       description: "Updated description"
+   *       priceInCents: 2500
+   *       contentAccess: {
+   *         "123": {
+   *           trackIds: [456, 789]
+   *           roleIds: [1, 2]
+   *         }
+   *       }
+   *       publishStatus: "published"
+   *     ) {
+   *       success
+   *       message
+   *     }
+   *   }
+   */
+  updateStripeProduct: async (root, {
+    productId,
+    name,
+    description,
+    priceInCents,
+    currency,
+    contentAccess,
+    renewalPolicy,
+    duration,
+    publishStatus
+  }, { session }) => {
+    try {
+      // Check if user is authenticated
+      if (!session || !session.userId) {
+        throw new GraphQLError('You must be logged in to update a product')
+      }
+
+      // Load the product and verify permissions
+      const product = await StripeProduct.find(productId)
+      if (!product) {
+        throw new GraphQLError('Product not found')
+      }
+
+      const membership = await GroupMembership.forPair(session.userId, product.get('group_id')).fetch()
+      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+        throw new GraphQLError('You must be a group administrator to update products')
+      }
+
+      // Prepare update attributes (only include provided fields)
+      const updateAttrs = {}
+
+      // Fields that need to be synced with Stripe
+      const stripeSyncFields = {}
+      if (name !== undefined) {
+        updateAttrs.name = name
+        stripeSyncFields.name = name
+      }
+      if (description !== undefined) {
+        updateAttrs.description = description
+        stripeSyncFields.description = description
+      }
+      if (priceInCents !== undefined) {
+        updateAttrs.price_in_cents = priceInCents
+        stripeSyncFields.priceInCents = priceInCents
+      }
+      if (currency !== undefined) {
+        updateAttrs.currency = currency
+        stripeSyncFields.currency = currency
+      }
+
+      // Fields that are platform-only (don't sync with Stripe)
+      if (contentAccess !== undefined) updateAttrs.content_access = contentAccess
+      if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
+      if (duration !== undefined) updateAttrs.duration = duration
+      if (publishStatus !== undefined) {
+        // Validate publish status
+        const validStatuses = ['unpublished', 'unlisted', 'published', 'archived']
+        if (!validStatuses.includes(publishStatus)) {
+          throw new GraphQLError('Invalid publish status. Must be unpublished, unlisted, published, or archived')
+        }
+        updateAttrs.publish_status = publishStatus
+      }
+
+      // Sync with Stripe first if there are fields that need syncing
+      if (Object.keys(stripeSyncFields).length > 0) {
+        const group = await Group.find(product.get('group_id'))
+        if (!group || !group.get('stripe_account_id')) {
+          throw new GraphQLError('Group does not have a connected Stripe account')
+        }
+
+        // Update product in Stripe first
+        const updatedStripeProduct = await StripeService.updateProduct({
+          accountId: group.get('stripe_account_id'),
+          productId: product.get('stripe_product_id'),
+          ...stripeSyncFields
+        })
+
+        // Update our database with the actual values from Stripe
+        updateAttrs.name = updatedStripeProduct.name
+        updateAttrs.description = updatedStripeProduct.description
+        updateAttrs.price_in_cents = updatedStripeProduct.default_price.unit_amount
+        updateAttrs.currency = updatedStripeProduct.default_price.currency
+        updateAttrs.stripe_price_id = updatedStripeProduct.default_price
+      }
+
+      // Update the product in our database
+      await StripeProduct.update(productId, updateAttrs)
+
+      return {
+        success: true,
+        message: 'Product updated successfully'
+      }
+    } catch (error) {
+      console.error('Error in updateStripeProduct:', error)
+      throw new GraphQLError(`Failed to update product: ${error.message}`)
     }
   },
 

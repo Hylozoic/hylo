@@ -136,6 +136,10 @@ module.exports = {
           await this.handleCheckoutSessionCompleted(event)
           break
 
+        case 'product.updated':
+          await this.handleProductUpdated(event)
+          break
+
         default:
           if (process.env.NODE_ENV === 'development') {
             console.log(`Unhandled event type: ${event.type}`)
@@ -350,6 +354,71 @@ module.exports = {
       }
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle product.updated webhook events
+   * Syncs product changes from Stripe back to our database
+   */
+  handleProductUpdated: async function (event) {
+    try {
+      const product = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Product updated in Stripe: ${product.id}`)
+      }
+
+      // Find our database record for this product
+      const dbProduct = await StripeProduct.findByStripeId(product.id)
+      if (!dbProduct) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No database record found for Stripe product: ${product.id}`)
+        }
+        return
+      }
+
+      // Get the current price information
+      const expandedProduct = await stripe.products.retrieve(product.id, {
+        expand: ['default_price']
+      })
+
+      // Check if our database record needs updating
+      const needsUpdate = {}
+
+      if (dbProduct.get('name') !== expandedProduct.name) {
+        needsUpdate.name = expandedProduct.name
+      }
+
+      if (dbProduct.get('description') !== expandedProduct.description) {
+        needsUpdate.description = expandedProduct.description
+      }
+
+      if (dbProduct.get('price_in_cents') !== expandedProduct.default_price.unit_amount) {
+        needsUpdate.price_in_cents = expandedProduct.default_price.unit_amount
+      }
+
+      if (dbProduct.get('currency') !== expandedProduct.default_price.currency) {
+        needsUpdate.currency = expandedProduct.default_price.currency
+      }
+
+      if (dbProduct.get('stripe_price_id') !== expandedProduct.default_price) {
+        needsUpdate.stripe_price_id = expandedProduct.default_price
+      }
+
+      // Update our database if there are changes
+      if (Object.keys(needsUpdate).length > 0) {
+        await dbProduct.save(needsUpdate)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Updated database record for product ${product.id}:`, needsUpdate)
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Database record for product ${product.id} is already in sync`)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling product.updated:', error)
       throw error
     }
   },

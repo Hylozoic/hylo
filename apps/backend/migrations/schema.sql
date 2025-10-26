@@ -2869,11 +2869,11 @@ CREATE TABLE public.stripe_products (
     description text,
     price_in_cents integer NOT NULL,
     currency character varying(3) NOT NULL DEFAULT 'usd'::character varying,
-    active boolean DEFAULT true,
     track_id bigint,
     content_access jsonb DEFAULT '{}'::jsonb,
     renewal_policy character varying(20) DEFAULT 'manual'::character varying,
     duration character varying(20),
+    publish_status character varying(20) DEFAULT 'unpublished'::character varying,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );

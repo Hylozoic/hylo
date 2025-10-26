@@ -42,7 +42,8 @@ module.exports = bookshelf.Model.extend({
     const defaults = {
       content_access: {},
       renewal_policy: 'manual',
-      duration: null
+      duration: null,
+      publish_status: 'unpublished'
     }
     return this.forge({ ...defaults, ...attrs }).save({}, { transacting })
   },
@@ -57,21 +58,38 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Get all active products for a group
+   * Get all published products for a group (excludes unpublished, unlisted, and archived)
    * @param {String|Number} groupId - The group ID
    * @returns {Promise<Collection<StripeProduct>>}
    */
   forGroup: function (groupId) {
-    return this.where({ group_id: groupId, active: true }).fetchAll()
+    return this.where({ group_id: groupId, publish_status: 'published' }).fetchAll()
   },
 
   /**
-   * Get all products for a specific track
+   * Get all published products for a specific track (excludes unpublished, unlisted, and archived)
    * @param {String|Number} trackId - The track ID
    * @returns {Promise<Collection<StripeProduct>>}
    */
   forTrack: function (trackId) {
-    return this.where({ track_id: trackId, active: true }).fetchAll()
+    return this.where({ track_id: trackId, publish_status: 'published' }).fetchAll()
+  },
+
+  /**
+   * Update a Stripe product
+   * @param {String|Number} productId - The product ID
+   * @param {Object} attrs - Attributes to update
+   * @param {Object} options - Options including transacting
+   * @returns {Promise<StripeProduct>}
+   */
+  update: async function (productId, attrs, { transacting } = {}) {
+    const product = await this.find(productId)
+    if (!product) {
+      throw new Error('Product not found')
+    }
+
+    // Update the product with new attributes
+    return product.save(attrs, { transacting })
   },
 
   /**
@@ -195,6 +213,14 @@ module.exports = bookshelf.Model.extend({
     SEASON: 'season',
     ANNUAL: 'annual',
     LIFETIME: 'lifetime'
+  },
+
+  // Publish status constants
+  PublishStatus: {
+    UNPUBLISHED: 'unpublished',
+    UNLISTED: 'unlisted',
+    PUBLISHED: 'published',
+    ARCHIVED: 'archived'
   },
 
   /**

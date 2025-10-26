@@ -1462,6 +1462,41 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'name'
       ]
+    },
+
+    StripeProduct: {
+      model: StripeProduct,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'group_id',
+        'stripe_product_id',
+        'stripe_price_id',
+        'name',
+        'description',
+        'price_in_cents',
+        'currency',
+        'track_id',
+        'content_access',
+        'renewal_policy',
+        'duration',
+        'publish_status'
+      ],
+      relations: [
+        'group',
+        'track',
+        { contentAccess: { querySet: true } }
+      ],
+      getters: {
+        stripeProductId: sp => sp.get('stripe_product_id'),
+        stripePriceId: sp => sp.get('stripe_price_id'),
+        priceInCents: sp => sp.get('price_in_cents'),
+        trackId: sp => sp.get('track_id'),
+        contentAccess: sp => sp.get('content_access'),
+        renewalPolicy: sp => sp.get('renewal_policy'),
+        publishStatus: sp => sp.get('publish_status')
+      }
     }
   }
 }

@@ -23,11 +23,11 @@ exports.up = async function (knex) {
     table.text('description')
     table.integer('price_in_cents').notNullable()
     table.string('currency', 3).notNullable().defaultTo('usd')
-    table.boolean('active').defaultTo(true)
     table.bigInteger('track_id').unsigned().references('id').inTable('tracks')
     table.jsonb('content_access').defaultTo('{}').comment('Defines what access this product grants - groups, tracks, roles')
     table.string('renewal_policy', 20).defaultTo('manual').comment('Renewal policy: automatic or manual')
     table.string('duration', 20).comment('Duration: month, season, annual, lifetime, or null for no expiration')
+    table.string('publish_status', 20).defaultTo('unpublished').comment('Publish status: unpublished, unlisted, published, archived')
     table.timestamps(true, true)
 
     table.index(['group_id'])
