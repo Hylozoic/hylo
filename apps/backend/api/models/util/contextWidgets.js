@@ -96,7 +96,7 @@ export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   // so by here the updatedWidgets array has removed the new home widget from its prior position and its prior peers are settled
 
   // if the old home widget is a chat, we need to move it to the top of the chats widget, otherwise we remove it from the menu
-  if (homeChild.type === 'viewChat') {
+  if (homeChild.type === 'chat' || homeChild.type === 'viewChat') {
     const chatsWidgetId = updatedWidgets.find(widget => widget.type === 'chats')?.id
     const newPeers = updatedWidgets.filter(widget => widget.parentId === chatsWidgetId).map(peer => ({
       ...peer,

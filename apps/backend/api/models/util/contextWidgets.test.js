@@ -259,7 +259,7 @@ describe('ContextWidget', () => {
         { id: 7, order: 3, parentId: 4, type: null },
         { id: 8, order: 2, parentId: 2, type: 'chat' },
         { id: 9, order: 1, parentId: 1, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 10, order: null, parentId: null, type: 'chat' }
       ]
       expectedWidgets.forEach((expectedWidget, index) => {
         const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
