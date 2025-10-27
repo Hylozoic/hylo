@@ -11,3 +11,25 @@ chai.use(require('chai-datetime'))
 
 global.spy = chai.spy
 global.expect = chai.expect
+
+// Create a global Stripe mock that can be used by test modules
+const mockStripeClient = {
+  charges: {
+    create: () => Promise.resolve({})
+  },
+  customers: {
+    create: () => Promise.resolve({})
+  }
+}
+
+// Mock require.cache for 'stripe' module
+const Module = require('module')
+const originalRequire = Module.prototype.require
+Module.prototype.require = function (id) {
+  if (id === 'stripe') {
+    return function () {
+      return mockStripeClient
+    }
+  }
+  return originalRequire.apply(this, arguments)
+}
