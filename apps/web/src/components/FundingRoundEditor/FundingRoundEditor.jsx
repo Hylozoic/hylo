@@ -660,10 +660,10 @@ function FundingRoundEditor (props) {
       </div>
 
       <div className='border-t-2 border-foreground/10 p-2 gap-4 flex flex-col'>
-        <h2 className='mb-0 pb-0'>Schedule</h2>
-        <h3 className='mt-0 pt-0'>Set the start and end dates for the submissions and voting phases. If no dates are set in advance, phases will start and stop by manually managing the round.</h3>
+        <h2 className='mb-0 pb-0'>{t('Schedule')}</h2>
+        <h3 className='mt-0 pt-0'>{t('Set the start and end dates for the submissions and voting phases. If no dates are set in advance, phases will start and stop by manually managing the round.')}</h3>
         <div className='flex items-center gap-2'>
-          <label>Submisions open: </label>
+          <label>{t('Submissions open')}: </label>
           <DateTimePicker
             key={submissionsOpenAt ? submissionsOpenAt.toString() : 'empty-submissionsOpenAt'}
             granularity='minute'
@@ -686,7 +686,7 @@ function FundingRoundEditor (props) {
         </div>
 
         <div className='flex items-center gap-2'>
-          <label>Submisions close: </label>
+          <label>{t('Submissions close')}: </label>
           <DateTimePicker
             key={submissionsCloseAt ? submissionsCloseAt.toString() : 'empty-submissionsCloseAt'}
             className={cn({ 'text-error border-error': errors.submissionsCloseAt })}
