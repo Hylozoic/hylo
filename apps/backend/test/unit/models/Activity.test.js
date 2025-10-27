@@ -17,6 +17,19 @@ function mockUser (memberships, settings = {}) {
           models: memberships.map(attrs => {
             const membership = GroupMembership.forge(attrs)
             membership.relations = mapValues(attrs.relations, makeGettable)
+            // Add getSetting method to the membership
+            membership.getSetting = (key) => attrs.settings && attrs.settings[key]
+            // Add related method to the membership
+            membership.related = (name) => {
+              const relation = membership.relations[name]
+              if (relation && typeof relation.get === 'function') {
+                // Make sure the returned object has .id property
+                const rel = makeGettable(attrs.relations[name])
+                rel.id = attrs.relations[name].id || attrs.relations[name]
+                return rel
+              }
+              return null
+            }
             return membership
           })
         })
@@ -61,7 +74,8 @@ describe('Activity', function () {
     it("doesn't returns an email for a newPost if post_notifications = none", async () => {
       const memberships = [
         {
-          settings: { sendEmail: true },
+          settings: { sendEmail: true, postNotifications: 'none' },
+          getSetting: (key) => this.settings[key],
           relations: {
             group: { id: 1 }
           }
@@ -81,7 +95,7 @@ describe('Activity', function () {
         }
       })
 
-      const expected = [0]
+      const expected = []
       const actual = await Activity.generateNotificationMedia(activity)
       expect(actual).to.deep.equal(expected)
     })
@@ -89,7 +103,7 @@ describe('Activity', function () {
     it('returns a push and email for an announcement post if post_notifications = important', async () => {
       const memberships = [
         {
-          settings: { sendPushNotifications: true, sendEmail: true },
+          settings: { sendPushNotifications: true, sendEmail: true, postNotifications: 'important' },
           getSetting: (key) => this.settings[key],
           relations: {
             group: { id: 1 }
@@ -237,27 +251,25 @@ describe('Activity', function () {
         })
     })
 
-    it("doesn't create a push notification when the group setting is false", () => {
-      return fixtures.g1.addMembers([fixtures.u1.id], {
-        settings: { sendPushNotifications: false }
+    it("doesn't create a push notification when the group setting is false", async () => {
+      await fixtures.g1.addMembers([fixtures.u1.id], {
+        settings: { sendEmail: true, sendPushNotifications: false }
       })
-        .then(() => Activity.createWithNotifications({
-          post_id: fixtures.p1.id,
-          reader_id: fixtures.u1.id,
-          actor_id: fixtures.u2.id,
-          meta: { reasons: ['mention'] }
-        }))
-        .then(activity =>
-          Notification.where({ activity_id: activity.id, medium: Notification.MEDIUM.Push })
-            .fetch())
-        .then(notification => {
-          expect(notification).not.to.exist
-        })
+      const activity = await Activity.createWithNotifications({
+        post_id: fixtures.p1.id,
+        reader_id: fixtures.u1.id,
+        actor_id: fixtures.u2.id,
+        meta: { reasons: ['mention'] }
+      })
+
+      const notification = await Notification.where({ activity_id: activity.id, medium: Notification.MEDIUM.Push })
+        .fetch()
+      expect(notification).not.to.exist
     })
 
     it("doesn't create an email when the group setting is false", () => {
       return fixtures.g1.addMembers([fixtures.u1.id], {
-        settings: { sendEmail: false }
+        settings: { sendEmail: false, sendPushNotifications: true }
       })
         .then(() => Activity.createWithNotifications({
           post_id: fixtures.p1.id,
@@ -266,7 +278,7 @@ describe('Activity', function () {
           meta: { reasons: ['mention'] }
         }))
         .then(activity =>
-          Notification.where({ activity_id: activity.id, medium: Notification.MEDIUM.Push })
+          Notification.where({ activity_id: activity.id, medium: Notification.MEDIUM.Email })
             .fetch())
         .then(notification => {
           expect(notification).not.to.exist
