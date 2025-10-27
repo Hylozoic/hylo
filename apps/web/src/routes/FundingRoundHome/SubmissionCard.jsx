@@ -64,7 +64,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   const moderationActionsGroupUrl = groupUrl(routeParams.groupSlug, 'moderation')
 
   const dropdownItems = useMemo(() => filter([
-    { icon: <Pencil />, label: t('Edit'), onClick: currentUser?.id === post.creator.id ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
+    { icon: <Pencil />, label: t('Edit'), onClick: ['submissions', 'discussion'].includes(currentPhase) && currentUser?.id === post.creator.id ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
     { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${fundingRoundUrl(routeParams.fundingRoundId, { groupSlug: routeParams.groupSlug })}/submissions/post/${post.id}`) },
     { icon: <Flag />, label: t('Flag'), onClick: currentUser?.id === post.creator.id ? undefined : flagPostFunc },
     { icon: <Trash />, label: t('Delete'), onClick: currentUser?.id === post.creator.id ? deletePostWithConfirm : undefined, red: true },
