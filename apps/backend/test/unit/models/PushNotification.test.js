@@ -1,14 +1,14 @@
+/* eslint-disable no-unused-expressions */
 import factories from '../../setup/factories'
 import { mockify, unspyify } from '../../setup/helpers'
+require('../../setup')
 
 describe('PushNotification', () => {
-  let device, pushNotification, tmpEnvVar, notifyCall
+  let user, pushNotification, tmpEnvVar, notifyCall
 
-  before(() => {
+  before(async () => {
     tmpEnvVar = process.env.PUSH_NOTIFICATIONS_ENABLED
-    device = factories.device()
-
-    return device.save()
+    user = await factories.user().save()
   })
 
   beforeEach(async () => {
@@ -21,9 +21,9 @@ describe('PushNotification', () => {
       alert: 'hi',
       path: '/post',
       badge_no: 7,
-      platform: 'ios_macos'
+      platform: 'ios_macos',
+      user_id: user.id
     })
-    await pushNotification.set('device_id', device.id)
     await pushNotification.save()
   })
 
@@ -42,8 +42,8 @@ describe('PushNotification', () => {
     beforeEach(async () => {
       const username = 'username'
       const postname = 'My Post'
-      user = await factories.user({name: username, settings: {locale: 'en'}}).save()
-      post = await factories.post({user_id: user.id, name: postname}).save()
+      user = await factories.user({ name: username, settings: { locale: 'en' } }).save()
+      post = await factories.post({ user_id: user.id, name: postname }).save()
       group = await factories.group({ name: 'Friends of Cheese' }).save()
     })
 
@@ -57,7 +57,7 @@ describe('PushNotification', () => {
 
     it('sets sent_at and disabled', function () {
       return pushNotification.send()
-        .then(result => {
+        .then(() => {
           return pushNotification.fetch()
             .then(pn => {
               expect(pn.get('sent_at')).not.to.equal(null)
@@ -67,7 +67,7 @@ describe('PushNotification', () => {
     })
 
     describe('with PUSH_NOTIFICATIONS_TESTING_ENABLED', () => {
-      var tmpEnvVar2
+      let tmpEnvVar2
 
       before(() => {
         tmpEnvVar2 = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED
@@ -87,8 +87,10 @@ describe('PushNotification', () => {
       })
 
       it('sends for a test device', async () => {
-        await device.save({tester: true}, {patch: true})
-        const result = await pushNotification.send()
+        const testUser = await factories.user({ tester: true }).save()
+        pushNotification.set('user_id', testUser.id)
+        await pushNotification.save()
+        await pushNotification.send()
         const pn = await pushNotification.fetch()
         expect(pn.get('sent_at')).not.to.equal(null)
         expect(pn.get('disabled')).to.be.false
@@ -102,9 +104,8 @@ describe('PushNotification', () => {
       process.env.PUSH_NOTIFICATIONS_ENABLED = 'true'
     })
 
-    it('sends for a non-test device with token', async () => {
-      await device.save({token: 'foo'}, {patch: true})
-      const result = await pushNotification.send()
+    it('sends push notification', async () => {
+      await pushNotification.send()
       const pn = await pushNotification.fetch()
 
       expect(pn.get('sent_at')).not.to.equal(null)
@@ -112,28 +113,7 @@ describe('PushNotification', () => {
       expect(OneSignal.notify).to.have.been.called()
 
       expect(notifyCall).to.deep.equal({
-        platform: 'ios_macos',
-        deviceToken: 'foo',
-        playerId: null,
-        alert: 'hi',
-        path: '/post',
-        badgeNo: 7
-      })
-    })
-
-    it('sends for a non-test device with player id', async () => {
-      await device.save({token: null, player_id: 'bar'}, {patch: true})
-      const result = await pushNotification.send()
-      const pn = await pushNotification.fetch()
-
-      expect(pn.get('sent_at')).not.to.equal(null)
-      expect(pn.get('disabled')).to.be.false
-      expect(OneSignal.notify).to.have.been.called()
-
-      expect(notifyCall).to.deep.equal({
-        platform: 'ios_macos',
-        deviceToken: null,
-        playerId: 'bar',
+        readerId: user.id,
         alert: 'hi',
         path: '/post',
         badgeNo: 7
