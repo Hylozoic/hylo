@@ -4,6 +4,10 @@ const isSpy = (func) => !!func.__spy
 
 export const spyify = (object, methodName, callback = () => {}) => {
   if (!isSpy(object[methodName])) object['_original' + methodName] = object[methodName]
+  // If method doesn't exist, create a no-op function
+  if (!object['_original' + methodName]) {
+    object['_original' + methodName] = () => {}
+  }
   object[methodName] = spy(function () {
     const ret = object['_original' + methodName](...arguments)
     if (callback) return callback(...arguments, ret)

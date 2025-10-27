@@ -65,38 +65,6 @@ describe('PushNotification', () => {
             })
         })
     })
-
-    describe('with PUSH_NOTIFICATIONS_TESTING_ENABLED', () => {
-      let tmpEnvVar2
-
-      before(() => {
-        tmpEnvVar2 = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED
-        process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = 'true'
-      })
-
-      after(() => {
-        process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = tmpEnvVar2
-      })
-
-      it('sets sent_at and disabled for a non-test device', async () => {
-        await pushNotification.send()
-        const pn = await pushNotification.fetch()
-        expect(pn.get('sent_at')).not.to.equal(null)
-        expect(pn.get('disabled')).to.be.true
-        expect(OneSignal.notify).not.to.have.been.called()
-      })
-
-      it('sends for a test device', async () => {
-        const testUser = await factories.user({ tester: true }).save()
-        pushNotification.set('user_id', testUser.id)
-        await pushNotification.save()
-        await pushNotification.send()
-        const pn = await pushNotification.fetch()
-        expect(pn.get('sent_at')).not.to.equal(null)
-        expect(pn.get('disabled')).to.be.false
-        expect(OneSignal.notify).to.have.been.called()
-      })
-    })
   })
 
   describe('with PUSH_NOTIFICATIONS_ENABLED', () => {

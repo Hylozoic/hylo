@@ -180,6 +180,10 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
+  sendPushAnnouncement: function () {
+    return this.sendAnnouncementPush()
+  },
+
   sendContributionPush: function (version) {
     const locale = this.locale()
     return this.load(['contribution', 'contribution.post'])
@@ -244,9 +248,6 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
-    if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
-      return Promise.resolve()
-    }
     return this.reader().sendPushNotification(alertText, path)
   },
 
@@ -512,6 +513,8 @@ module.exports = bookshelf.Model.extend({
       ctcn: group.get('name')
     }).toString()
 
+    const postData = post.presentForEmail({ group, clickthroughParams, locale })
+
     return Email.sendPostMentionNotification({
       version: 'Redesign 2025',
       email: reader.get('email'),
@@ -524,7 +527,9 @@ module.exports = bookshelf.Model.extend({
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
-        post: post.presentForEmail({ group, clickthroughParams, locale }),
+        post_title: postData.title,
+        post_user_name: postData.user?.name || user.get('name'),
+        post_description: postData.description || postData.details,
         tracking_pixel_url: Analytics.pixelUrl('Mention in Post', { userId: reader.id })
       }
     })

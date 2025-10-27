@@ -12,6 +12,13 @@ import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
 
+const staticMethods = {
+  isTester: function (userId) {
+    return User.where({ id: userId, tester: true }).count()
+      .then(count => count > 0)
+  }
+}
+
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
   requireFetch: false,
@@ -905,7 +912,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
   }
 
-})
+}, staticMethods)
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {

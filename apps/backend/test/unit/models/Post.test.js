@@ -277,13 +277,13 @@ describe('Post', function () {
         .then(() => Tag.updateForPost(post, ['FollowThisTag']))
         .then(() => post.groups().attach(c.id))
         .then(() => post.createActivities())
-        .then(() => Activity.where({post_id: post.id, reader_id: u3.id}).fetchAll())
+        .then(() => Activity.where({ post_id: post.id, reader_id: u3.id }).fetchAll())
         .then(activities => {
           expect(activities.length).to.equal(1)
           const activity = activities.first()
           expect(activity).to.exist
           expect(activity.get('actor_id')).to.equal(u.id)
-          expect(activity.get('meta')).to.deep.equal({reasons: [`newPost: ${c.id}`, 'tag: FollowThisTag']})
+          expect(activity.get('meta')).to.deep.equal({ reasons: ['tag: FollowThisTag', `newPost: ${c.id}`] })
           expect(activity.get('unread')).to.equal(true)
         })
     })

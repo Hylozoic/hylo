@@ -698,6 +698,27 @@ module.exports = bookshelf.Model.extend(Object.assign({
     } else if (this.get('type') !== Post.Type.ACTION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
+
+      // Add tag follower activities
+      const tagFollows = await TagFollow.query(qb => {
+        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
+        qb.where('group_memberships.active', true)
+        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('tag_follows.group_id', groups.map('id'))
+      })
+        .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+        actor_id: this.get('user_id'),
+        group_id: tagFollow.get('group_id'),
+        reason: `tag: ${tagFollow.relations.tag.get('name')}`
+      }))
+
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
+
       const members = await Promise.all(groups.map(async group => {
         const userIds = await group.members().fetch().then(u => u.pluck('id'))
         const newPosts = userIds.map(userId => ({
