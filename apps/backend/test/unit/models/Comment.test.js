@@ -87,13 +87,17 @@ describe('Comment', () => {
             {
               id: comments[2].id,
               text: comments[2].get('text'),
+              image: undefined,
               name: u2.get('name'),
-              avatar_url: u2.get('avatar_url')
+              avatar_url: u2.get('avatar_url'),
+              timestamp: comments[2].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
             }, {
               id: comments[3].id,
               text: comments[3].get('text'),
+              image: undefined,
               name: u2.get('name'),
-              avatar_url: u2.get('avatar_url')
+              avatar_url: u2.get('avatar_url'),
+              timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
             }])
 
           const send2 = log.find(l => l.email === u2.get('email'))
@@ -102,13 +106,17 @@ describe('Comment', () => {
             {
               id: comments[0].id,
               text: comments[0].get('text'),
+              image: undefined,
               name: u1.get('name'),
-              avatar_url: u1.get('avatar_url')
+              avatar_url: u1.get('avatar_url'),
+              timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
             }, {
               id: comments[1].id,
               text: comments[1].get('text'),
+              image: undefined,
               name: u1.get('name'),
-              avatar_url: u1.get('avatar_url')
+              avatar_url: u1.get('avatar_url'),
+              timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
             }])
         })
       })
@@ -130,8 +138,10 @@ describe('Comment', () => {
           .to.deep.equal([{
             id: comments[3].id,
             text: comments[3].get('text'),
+            image: undefined,
             name: u2.get('name'),
-            avatar_url: u2.get('avatar_url')
+            avatar_url: u2.get('avatar_url'),
+            timestamp: comments[3].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
           }])
         })
       })
@@ -147,14 +157,18 @@ describe('Comment', () => {
           expect(log[0].data.messages)
           .to.deep.equal([{
             id: comments[0].id,
+            text: comments[0].get('text'),
+            image: undefined,
             name: u1.get('name'),
             avatar_url: u1.get('avatar_url'),
-            text: comments[0].get('text')
+            timestamp: comments[0].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
           }, {
             id: comments[1].id,
+            text: comments[1].get('text'),
+            image: undefined,
             name: u1.get('name'),
             avatar_url: u1.get('avatar_url'),
-            text: comments[1].get('text')
+            timestamp: comments[1].get('created_at').toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
           }])
         })
       })
