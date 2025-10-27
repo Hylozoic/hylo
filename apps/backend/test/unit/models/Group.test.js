@@ -30,8 +30,8 @@ describe('Group', function () {
     const user = await new User({ name: 'username', email: 'john1@foo.com', active: true }).save()
     await Group.create(user.id, data)
     const savedGroup = await Group.find('comm1')
-    expect(savedGroup.get('banner_url')).to.equal('https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg')
-    expect(savedGroup.get('avatar_url')).to.equal('https://d3ngex8q79bk55.cloudfront.net/misc/default_community_avatar.png')
+    expect(savedGroup.get('banner_url')).to.equal('/default-group-banner.svg')
+    expect(savedGroup.get('avatar_url')).to.equal('/default-group-avatar.svg')
   })
 
   it('can be created with group extension data', async function () {
@@ -231,9 +231,8 @@ describe('Group', function () {
       const initialWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
       const projectsWidget = initialWidgets.find(w => w.get('view') === 'projects')
       expect(projectsWidget.get('order')).to.be.null
-      console.log('this should be a post', post, 'right?????')
       // Perform update
-      await Group.doesMenuUpdate({ groupIds: [group1.id], post })
+      await Group.doesMenuUpdate({ groupIds: [group1.id], post: { type: post.get('type'), location_id: post.get('location_id') } })
 
       // Check result
       const updatedWidgets = await ContextWidget.where({ group_id: group1.id }).fetchAll()
