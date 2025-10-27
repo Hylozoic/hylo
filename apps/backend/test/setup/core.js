@@ -1,5 +1,11 @@
 process.env.NODE_ENV = 'test'
 
+// Set test environment variables if not already set
+process.env.INBOUND_EMAIL_SALT = process.env.INBOUND_EMAIL_SALT || 'FFFFAAAA123456789'
+process.env.INBOUND_EMAIL_DOMAIN = process.env.INBOUND_EMAIL_DOMAIN || 'inbound-staging.hylo.com'
+process.env.PLAY_APP_SECRET = process.env.PLAY_APP_SECRET || 'quxgrault12345678'
+process.env.EMAIL_NOTIFICATIONS_ENABLED = process.env.EMAIL_NOTIFICATIONS_ENABLED || 'true'
+
 // just set up the test globals, not the test database
 
 const chai = require('chai')
