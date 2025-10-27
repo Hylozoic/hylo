@@ -10,7 +10,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import { allocateTokensToSubmission } from 'routes/FundingRounds/FundingRounds.store'
-import { editPostUrl, groupUrl, personUrl, postUrl, trackUrl } from '@hylo/navigation'
+import { editPostUrl, groupUrl, personUrl, postUrl, fundingRoundUrl } from '@hylo/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,7 +65,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   const dropdownItems = useMemo(() => filter([
     { icon: <Pencil />, label: t('Edit'), onClick: currentUser?.id === post.creator.id ? () => navigate(editPostUrl(post.id, routeParams, querystringParams)) : undefined },
-    { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${trackUrl(routeParams.trackId, { groupSlug: routeParams.groupSlug })}funding-rounds/${routeParams.fundingRoundId}/submissions/${post.id}`) },
+    { icon: <LinkIcon />, label: t('Copy Link'), onClick: () => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${fundingRoundUrl(routeParams.fundingRoundId, { groupSlug: routeParams.groupSlug })}/submissions/post/${post.id}`) },
     { icon: <Flag />, label: t('Flag'), onClick: currentUser?.id === post.creator.id ? undefined : flagPostFunc },
     { icon: <Trash />, label: t('Delete'), onClick: currentUser?.id === post.creator.id ? deletePostWithConfirm : undefined, red: true },
     { icon: <Trash />, label: t('Remove from Round'), onClick: canManageRound && currentUser?.id !== post.creator.id ? removePostWithConfirm : undefined, red: true }
