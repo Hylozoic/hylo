@@ -5,6 +5,8 @@ export const MODULE_NAME = 'FundingRounds'
 export const ALLOCATE_TOKENS_TO_SUBMISSION = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION`
 export const ALLOCATE_TOKENS_TO_SUBMISSION_PENDING = `${MODULE_NAME}/ALLOCATE_TOKENS_TO_SUBMISSION_PENDING`
 export const CREATE_FUNDING_ROUND = `${MODULE_NAME}/CREATE_FUNDING_ROUND`
+export const DELETE_FUNDING_ROUND = `${MODULE_NAME}/DELETE_FUNDING_ROUND`
+export const DELETE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/DELETE_FUNDING_ROUND_PENDING`
 export const DO_PHASE_TRANSITION = `${MODULE_NAME}/DO_PHASE_TRANSITION`
 export const DO_PHASE_TRANSITION_PENDING = `${MODULE_NAME}/DO_PHASE_TRANSITION_PENDING`
 export const FETCH_FUNDING_ROUND = `${MODULE_NAME}/FETCH_FUNDING_ROUND`
@@ -371,6 +373,28 @@ export function leaveFundingRound (id) {
   }
 }
 
+export function deleteFundingRound (id) {
+  return {
+    type: DELETE_FUNDING_ROUND,
+    graphql: {
+      query: `
+        mutation DeleteFundingRound($id: ID) {
+          deleteFundingRound(id: $id) {
+            success
+          }
+        }
+      `,
+      variables: {
+        id
+      }
+    },
+    meta: {
+      id,
+      optimistic: true
+    }
+  }
+}
+
 // Determine what phase a funding round should be in based on timestamps
 export function getExpectedPhase (fundingRound) {
   if (!fundingRound) return null
@@ -531,6 +555,12 @@ export function ormSessionReducer (
       const newTokensRemaining = round.tokensRemaining + oldAllocation - meta.tokens
       round.update({ tokensRemaining: newTokensRemaining })
       return post.update({ tokensAllocated: meta.tokens })
+    }
+
+    case DELETE_FUNDING_ROUND_PENDING: {
+      const round = FundingRound.withId(meta.id)
+      if (round) round.delete()
+      break
     }
   }
 }

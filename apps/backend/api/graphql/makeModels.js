@@ -771,6 +771,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             filter: (relation, { sortBy, order }) =>
               relation.query(q => {
+                q.where('deactivated_at', null)
                 q.orderBy(sortBy || 'id', order || 'asc')
               })
           }

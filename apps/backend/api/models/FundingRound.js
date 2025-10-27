@@ -198,7 +198,9 @@ module.exports = bookshelf.Model.extend({
 
   find: function (id) {
     if (!id) return Promise.resolve(null)
-    return FundingRound.where({ id }).fetch()
+    return FundingRound.where({ id }).query(q => {
+      q.where('deactivated_at', null)
+    }).fetch()
   },
 
   join: async function (roundId, userId) {

@@ -1,4 +1,4 @@
-import { Settings, ChevronsRight } from 'lucide-react'
+import { Settings, ChevronsRight, Trash2 } from 'lucide-react'
 import React, { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -15,7 +15,7 @@ import {
   DialogTitle
 } from 'components/ui/dialog'
 import useRouteParams from 'hooks/useRouteParams'
-import { updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import { updateFundingRound, deleteFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -24,6 +24,7 @@ export default function ManageTab ({ round }) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const navigate = useNavigate()
+
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: '',
@@ -282,8 +283,31 @@ export default function ManageTab ({ round }) {
     setErrorDialog({ isOpen: false, title: '', message: '' })
   }
 
+  const handleDeleteRound = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: t('Delete Funding Round'),
+      message: t('Are you sure you want to delete this funding round? This action cannot be undone. All submissions and votes will be permanently deleted.'),
+      confirmButtonText: t('Delete'),
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', confirmButtonText: '', onConfirm: null })
+        try {
+          await dispatch(deleteFundingRound(round.id))
+          navigate(groupUrl(routeParams.groupSlug, 'funding-rounds'))
+        } catch (error) {
+          const errorMessage = error?.message || error?.toString() || t('An error occurred while deleting the funding round')
+          setErrorDialog({
+            isOpen: true,
+            title: t('Error'),
+            message: errorMessage
+          })
+        }
+      }
+    })
+  }
+
   return (
-    <div className='flex flex-col gap-4 mt-4'>
+    <div className='flex flex-col gap-4 mt-4 pb-4'>
       <button
         className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `funding-rounds/${round?.id}/edit`))}
@@ -368,6 +392,14 @@ export default function ManageTab ({ round }) {
         </div>
       </div>
 
+      <button
+        className='w-full text-destructive border-2 border-destructive/20 hover:border-destructive hover:bg-destructive/10 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
+        onClick={handleDeleteRound}
+      >
+        <Trash2 className='w-4 h-4' />
+        <span>{t('Delete Round')}</span>
+      </button>
+
       <Dialog open={confirmDialog.isOpen} onOpenChange={handleCancelConfirm}>
         <DialogContent>
           <DialogHeader>
@@ -384,7 +416,12 @@ export default function ManageTab ({ round }) {
               {t('Cancel')}
             </Button>
             <Button
-              className='bg-selected hover:bg-selected/90 text-foreground'
+              className={cn(
+                'text-foreground',
+                confirmDialog.confirmButtonText === t('Delete')
+                  ? 'bg-destructive hover:bg-destructive/90'
+                  : 'bg-selected hover:bg-selected/90'
+              )}
               onClick={handleConfirm}
             >
               {confirmDialog.confirmButtonText || t('Confirm')}

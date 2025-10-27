@@ -81,7 +81,7 @@ export async function deleteFundingRound (userId, id) {
   const group = await round.group().fetch()
   const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
   if (!canManage) throw new GraphQLError('You do not have permission to delete funding rounds')
-  await round.destroy()
+  await round.save({ deactivated_at: new Date() }, { patch: true })
   return { success: true }
 }
 
