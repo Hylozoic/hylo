@@ -2504,7 +2504,8 @@ CREATE TABLE public.users (
     location_id bigint,
     contact_email character varying(255),
     contact_phone character varying(255),
-    last_active_at timestamp with time zone
+    last_active_at timestamp with time zone,
+    tester boolean DEFAULT false
 );
 
 
