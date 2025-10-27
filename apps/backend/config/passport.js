@@ -68,27 +68,6 @@ var googleStrategy = new GoogleStrategy({
 })
 passport.use(googleStrategy)
 
-var facebookStrategy = new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID,
-  clientSecret: process.env.FACEBOOK_APP_SECRET,
-  callbackURL: url('/noo/login/facebook/oauth'),
-  scope: ['public_profile', 'email', 'user_friends', 'user_about_me', 'user_likes', 'user_location'],
-  profileFields: ['id', 'displayName', 'email', 'link']
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile, accessToken, refreshToken))
-})
-passport.use(facebookStrategy)
-
-var facebookTokenStrategy = new FacebookTokenStrategy({
-  clientID: process.env.FACEBOOK_APP_ID,
-  clientSecret: process.env.FACEBOOK_APP_SECRET,
-  scope: ['public_profile', 'email', 'user_friends', 'user_about_me', 'user_likes', 'user_location'],
-  profileFields: ['id', 'displayName', 'email', 'link']
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile, accessToken, refreshToken))
-})
-passport.use(facebookTokenStrategy)
-
 var googleTokenStrategy = new GoogleTokenStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET
@@ -115,7 +94,6 @@ var linkedinTokenStrategy = new LinkedInTokenStrategy({
   done(null, formatProfile(profile))
 })
 passport.use(linkedinTokenStrategy)
-
 
 //**** JWT login for email verification, password reset... ****//
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt'

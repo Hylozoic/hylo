@@ -129,9 +129,12 @@ module.exports = {
   },
 
   decodePostReplyAddress: function (address) {
-    const salt = new RegExp(format('^%s', process.env.INBOUND_EMAIL_SALT))
+    const saltStr = process.env.INBOUND_EMAIL_SALT
     const match = address.match(/reply-(.*?)@/)
-    const plaintext = PlayCrypto.decrypt(match[1]).replace(salt, '')
+    let plaintext = PlayCrypto.decrypt(match[1])
+    if (plaintext.startsWith(saltStr)) {
+      plaintext = plaintext.substring(saltStr.length)
+    }
     const ids = plaintext.split('|')
     return { postId: ids[0], userId: ids[1] }
   },
