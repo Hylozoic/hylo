@@ -1,13 +1,8 @@
+/* eslint-disable no-unused-expressions, object-curly-spacing */
 /* globals LinkPreview */
-import nock from 'nock'
 import { spyify, unspyify } from '../../setup/helpers'
+const linkPreviewJs = require('link-preview-js')
 require('../../setup')
-
-const mockDoc = `<html><head>
-  <meta property="og:title" content="wow!">
-  <meta property="og:image" content="http://fake.host/wow.png">
-  <meta property="og:description" content="it's amazing">
-</head></html>`
 
 describe('LinkPreview', () => {
   describe('populate', () => {
@@ -15,16 +10,23 @@ describe('LinkPreview', () => {
     var preview
 
     beforeEach(() => {
-      nock('http://foo.com').get('/bar').reply(200, mockDoc)
-      preview = LinkPreview.forge({url})
+      const mockPreviewData = {
+        title: 'wow!',
+        description: "it's amazing",
+        images: ['http://fake.host/wow.png']
+      }
+      spyify(linkPreviewJs, 'getLinkPreview', () => Promise.resolve(mockPreviewData))
+      preview = LinkPreview.forge({ url })
       return preview.save()
     })
 
+    afterEach(() => unspyify(linkPreviewJs, 'getLinkPreview'))
+
     it('works', () => {
-      return LinkPreview.populate({id: preview.id})
-      .then(preview => {
-        expect(preview.get('title')).to.equal('wow!')
-      })
+      return LinkPreview.populate({ id: preview.id })
+        .then(preview => {
+          expect(preview.get('title')).to.equal('wow!')
+        })
     })
   })
 
@@ -36,20 +38,20 @@ describe('LinkPreview', () => {
 
     it('works for a new url', () => {
       return LinkPreview.queue(url)
-      .then(() => LinkPreview.find(url))
-      .then(preview => {
-        expect(preview).to.exist
+        .then(() => LinkPreview.find(url))
+        .then(preview => {
+          expect(preview).to.exist
 
-        expect(Queue.classMethod).to.have.been.called
-        .with('LinkPreview', 'populate', {id: preview.id}, 0)
-      })
+          expect(Queue.classMethod).to.have.been.called
+            .with('LinkPreview', 'populate', { id: preview.id }, 0)
+        })
     })
 
     it('does nothing for an existing url', () => {
       const url3 = 'http://foo.com/bar3'
-      return LinkPreview.forge({url: url3}).save()
-      .then(() => LinkPreview.queue(url3))
-      .then(() => expect(Queue.classMethod).not.to.have.been.called())
+      return LinkPreview.forge({ url: url3 }).save()
+        .then(() => LinkPreview.queue(url3))
+        .then(() => expect(Queue.classMethod).not.to.have.been.called())
     })
   })
 })

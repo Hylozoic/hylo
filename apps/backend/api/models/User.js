@@ -572,12 +572,16 @@ module.exports = bookshelf.Model.extend(merge({
         throw new Error(`unknown notification type: ${type}`)
     }
 
-    return (medium === Notification.MEDIUM.Email &&
-             (setting === 'both' || setting === 'email') &&
-             (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id))) ||
-           (medium === Notification.MEDIUM.Push &&
-            (setting === 'both' || setting === 'push') &&
-            (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id)))
+    // For Email, check global setting or if user is a tester
+    const emailEnabled = medium === Notification.MEDIUM.Email &&
+                         (setting === 'both' || setting === 'email') &&
+                         (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || this.get('tester') === true)
+
+    // For Push, check if setting is enabled (comment notifications don't require global push to be enabled)
+    const pushEnabled = medium === Notification.MEDIUM.Push &&
+                        (setting === 'both' || setting === 'push')
+
+    return emailEnabled || pushEnabled
   },
 
   disableAllNotifications () {

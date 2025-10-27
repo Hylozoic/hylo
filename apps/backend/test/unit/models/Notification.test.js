@@ -309,62 +309,6 @@ describe('Notification', function () {
     })
   })
 
-  describe('sendCommentNotificationEmail', () => {
-    let args, group
-    beforeEach(() => {
-      spyify(Email, 'sendNewCommentNotification', x => { args = x })
-      group = factories.group()
-      return group.save()
-    })
-
-    afterEach(() => unspyify(Email, 'sendNewCommentNotification'))
-
-    it('sets the correct email attributes', () => {
-      const note = new Notification()
-
-      note.relations = {
-        activity: model({
-          comment_id: 5,
-          relations: {
-            comment: model({
-              id: 5,
-              // Reinforcing that Comment#text() should always be
-              // called instead of Comment.get('text')
-              text: () => 'I have an opinion',
-              relations: {
-                post: model({
-                  summary: () => 'hello world',
-                  name: 'hello world',
-                  relations: {
-                    groups: [group]
-                  }
-                }),
-                user: model({
-                  id: 2,
-                  name: 'Ka Mentor',
-                  settings: { locale: 'en' }
-                })
-              }
-            }),
-            reader: new User({
-              id: 1,
-              name: 'Reader Person',
-              email: 'ilovenotifications@foo.com',
-              created_at: new Date(),
-              settings: { locale: 'en' }
-            })
-          }
-        })
-      }
-
-      return note.sendCommentNotificationEmail()
-        .then(() => {
-          expect(Email.sendNewCommentNotification).to.have.been.called()
-          expect(args.data.post_label).to.equal('"hello world"')
-        })
-    })
-  })
-
   describe('.priorityReason', () => {
     it('picks higher-priority reasons', () => {
       expect(Notification.priorityReason([

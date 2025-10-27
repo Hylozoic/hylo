@@ -1,12 +1,12 @@
 import nock from 'nock'
 
-const isSpy = (func) => !!func.__spy
+const isSpy = (func) => func && !!func.__spy
 
 export const spyify = (object, methodName, callback = () => {}) => {
-  if (!isSpy(object[methodName])) object['_original' + methodName] = object[methodName]
-  // If method doesn't exist, create a no-op function
-  if (!object['_original' + methodName]) {
+  if (!object[methodName]) {
     object['_original' + methodName] = () => {}
+  } else if (!isSpy(object[methodName])) {
+    object['_original' + methodName] = object[methodName]
   }
   object[methodName] = spy(function () {
     const ret = object['_original' + methodName](...arguments)
@@ -16,7 +16,11 @@ export const spyify = (object, methodName, callback = () => {}) => {
 }
 
 export const mockify = (object, methodName, func) => {
-  if (!isSpy(object[methodName])) object['_original' + methodName] = object[methodName]
+  if (!object[methodName]) {
+    object['_original' + methodName] = () => {}
+  } else if (!isSpy(object[methodName])) {
+    object['_original' + methodName] = object[methodName]
+  }
   object[methodName] = spy(func)
 }
 

@@ -248,6 +248,12 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
+
+    // Check if user has comment notifications enabled
+    if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
+      return Promise.resolve()
+    }
+
     return this.reader().sendPushNotification(alertText, path)
   },
 

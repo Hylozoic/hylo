@@ -131,7 +131,14 @@ module.exports = bookshelf.Model.extend({
       return new Promise((resolve, reject) => {
         request(url, (err, resp, body) => {
           if (err) reject(err)
-          resolve(JSON.parse(body).thumbnail_url)
+          try {
+            const parsedBody = JSON.parse(body)
+            resolve(parsedBody.thumbnail_url || null)
+          } catch (parseErr) {
+            // If we can't parse the response (e.g., HTML error page), just return null
+            console.warn('Error parsing Vimeo oEmbed response:', parseErr)
+            resolve(null)
+          }
         })
       })
     }
