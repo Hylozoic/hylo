@@ -222,6 +222,10 @@ describe('mutations/group', () => {
     let adminUser, memberUser, fromGroup, toGroup, otherGroup
 
     before(async () => {
+      // Clean up any existing relationships that might be left over from previous test runs
+      await GroupRelationship.where('id', '>', 0).destroy()
+      await GroupRelationshipInvite.where('id', '>', 0).destroy()
+
       adminUser = await factories.user().save()
       memberUser = await factories.user().save()
       fromGroup = await factories.group().save()

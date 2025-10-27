@@ -162,7 +162,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           : Activity.Reason.GroupParentGroupJoinRequest
     }))
 
-    await Activity.saveForReasons(notifications, opts.transacting)
+    await Activity.saveForReasons(notifications, opts?.transacting)
 
     return invite
   },
