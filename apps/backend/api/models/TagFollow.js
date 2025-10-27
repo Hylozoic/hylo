@@ -32,15 +32,33 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.forge(Object.assign({ created_at: new Date() }, attrs)).save({}, { transacting })
   },
 
+  toggle: function (tagId, userId, groupId) {
+    return TagFollow.where({ group_id: groupId, tag_id: tagId, user_id: userId })
+      .fetch()
+      .then(tagFollow => {
+        if (tagFollow) {
+          return tagFollow.destroy()
+        } else {
+          return TagFollow.findOrCreate({ tagId, userId, groupId })
+        }
+      })
+  },
+
   // TODO: re-evaluate what subscribing means. How does it related to chat rooms and their notification settings?
   subscribe: function (tagId, userId, groupId, isSubscribing) {
     return TagFollow.where({ group_id: groupId, tag_id: tagId, user_id: userId })
       .fetch()
       .then(tagFollow => {
         if (tagFollow) {
-          return tagFollow.save({ settings: { notifications: isSubscribing ? 'all' : false } })
-        } else if (!tagFollow) {
-          return TagFollow.findOrCreate({ tagId, userId, groupId, isSubscribing })
+          if (isSubscribing) {
+            return tagFollow.save({ settings: { notifications: 'all' } })
+          } else {
+            return tagFollow.destroy()
+          }
+        } else {
+          if (isSubscribing) {
+            return TagFollow.findOrCreate({ tagId, userId, groupId, isSubscribing })
+          }
         }
       })
   },
@@ -58,6 +76,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     let tagFollow = await TagFollow.where(attrs).fetch({ transacting })
     attrs.settings = tagFollow?.get('settings') || { }
     let hasChanged = false
+    let shouldIncrementFollowers = false
 
     // If "subscribing" and there's no tag follow yet or there's an existing tag follow but they haven't "subscribed" yet
     if (isSubscribing && !attrs.settings.notifications) {
@@ -71,23 +90,31 @@ module.exports = bookshelf.Model.extend(Object.assign({
         attrs.new_post_count = 0
         hasChanged = true
 
-        // Increment the number of followers for the tag in the group
-        // TODO: re-evaluate what a follower means. how does it related to chat rooms and their notification settings?
-        const query = GroupTag.query(q => {
-          q.where('group_id', groupId)
-          q.where('tag_id', tagId)
-        }).query()
-        if (transacting) {
-          query.transacting(transacting)
-        }
-        await query.increment('num_followers')
+        shouldIncrementFollowers = true
       }
+    }
+
+    // Also increment followers if this is a new tagFollow (used by add/toggle operations that don't pass isSubscribing)
+    if (!tagFollow) {
+      shouldIncrementFollowers = true
     }
 
     if (!tagFollow) {
       tagFollow = await TagFollow.create(attrs, { transacting })
     } else if (hasChanged) {
       await tagFollow.save(attrs, { transacting })
+    }
+
+    // Increment the number of followers for the tag in the group
+    if (shouldIncrementFollowers) {
+      const query = GroupTag.query(q => {
+        q.where('group_id', groupId)
+        q.where('tag_id', tagId)
+      }).query()
+      if (transacting) {
+        query.transacting(transacting)
+      }
+      await query.increment('num_followers')
     }
 
     return tagFollow
