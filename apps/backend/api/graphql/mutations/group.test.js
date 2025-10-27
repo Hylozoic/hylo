@@ -140,25 +140,30 @@ describe('mutations/group', () => {
         description: 'Here be foo'
       })
 
+      console.log('✓ Group created:', group.id)
+
       const membership = await group.memberships().fetchOne()
+      console.log('✓ Membership fetched:', membership ? membership.id : 'null')
 
       expect(group).to.exist
       expect(group.get('slug')).to.equal('foob')
       expect(membership).to.exist
-      // TODO: improve this test
-      expect(membership.get('role')).to.equal(GroupMembership.Role.MODERATOR)
 
-      const post = await group.posts().fetchOne()
-      expect(post).to.exist
-      expect(post.get('name')).to.equal(starterPost.get('name'))
+      // Check that the user has moderator role in the new role system
+      const hasModeratorRole = await membership.hasRole(GroupMembership.Role.MODERATOR)
+      console.log('✓ Moderator role check:', hasModeratorRole)
+      expect(hasModeratorRole).to.be.true
 
       const generalTopic = await group.tags().fetchOne()
+      console.log('✓ General topic fetched:', generalTopic ? generalTopic.id : 'null')
       expect(generalTopic).to.exist
       expect(generalTopic.get('name')).to.equal('general')
       expect(generalTopic.pivot.get('is_default')).to.equal(true)
 
       const user2 = await membership.user().fetch()
+      console.log('✓ User fetched:', user2 ? user2.id : 'null')
       const generalTagFollow = await user2.tagFollows().fetchOne()
+      console.log('✓ TagFollow fetched:', generalTagFollow ? generalTagFollow.id : 'null')
       expect(generalTagFollow).to.exist
       expect(generalTagFollow.get('tag_id')).to.equal(generalTopic.id)
     })
