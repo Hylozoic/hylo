@@ -190,7 +190,7 @@ function FundingRounds () {
                       className='flex items-center gap-1 px-3 py-1.5 text-sm border-2 border-selected hover:bg-selected/80 text-foreground rounded-md transition-all'
                     >
                       <UserPlus className='w-4 h-4' />
-                      {t('Join Round')}
+                      {fr.phase === 'voting' || fr.phase === 'completed' ? t('View Round') : t('Join Round')}
                     </button>
                     )
               )}
