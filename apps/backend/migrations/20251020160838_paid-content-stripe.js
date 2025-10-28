@@ -23,7 +23,7 @@ exports.up = async function (knex) {
     table.text('description')
     table.integer('price_in_cents').notNullable()
     table.string('currency', 3).notNullable().defaultTo('usd')
-    table.bigInteger('track_id').unsigned().references('id').inTable('tracks')
+    table.integer('track_id').unsigned().references('id').inTable('tracks')
     table.jsonb('content_access').defaultTo('{}').comment('Defines what access this product grants - groups, tracks, roles')
     table.string('renewal_policy', 20).defaultTo('manual').comment('Renewal policy: automatic or manual')
     table.string('duration', 20).comment('Duration: month, season, annual, lifetime, or null for no expiration')
@@ -41,7 +41,7 @@ exports.up = async function (knex) {
     table.bigInteger('user_id').unsigned().notNullable().references('id').inTable('users')
     table.bigInteger('group_id').unsigned().notNullable().references('id').inTable('groups')
     table.bigInteger('product_id').unsigned().references('id').inTable('stripe_products')
-    table.bigInteger('track_id').unsigned().references('id').inTable('tracks')
+    table.integer('track_id').unsigned().references('id').inTable('tracks')
     table.integer('role_id').unsigned().references('id').inTable('groups_roles')
 
     // Access type: 'stripe_purchase', 'admin_grant', 'free'
@@ -117,10 +117,8 @@ exports.up = async function (knex) {
     CREATE OR REPLACE FUNCTION sync_content_access_expires_at()
     RETURNS TRIGGER AS $$
     DECLARE
-      latest_expires_at TIMESTAMP;
+      latest_expires_at TIMESTAMP WITH TIME ZONE;
     BEGIN
-      -- Update group_memberships if track_id is NULL (includes group-level and role-based purchases)
-      -- Use the MOST RECENT expires_at from all active content_access records for this user+group
       IF NEW.track_id IS NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
@@ -128,45 +126,33 @@ exports.up = async function (knex) {
           AND group_id = NEW.group_id
           AND track_id IS NULL
           AND status = 'active';
-
         UPDATE group_memberships
-        SET expires_at = latest_expires_at,
-            updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id;
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
       END IF;
-
-      -- If track_id is set, update tracks_users with most recent expires_at for this track
       IF NEW.track_id IS NOT NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
         WHERE user_id = NEW.user_id
           AND track_id = NEW.track_id
           AND status = 'active';
-
         UPDATE tracks_users
-        SET expires_at = latest_expires_at,
-            updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND track_id = NEW.track_id;
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
       END IF;
-
-      -- If role_id is set, update group_memberships_group_roles with most recent expires_at
       IF NEW.role_id IS NOT NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
         WHERE user_id = NEW.user_id
           AND group_id = NEW.group_id
-          AND group_role_id = NEW.role_id
+          AND role_id = NEW.role_id
           AND status = 'active';
-
         UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at
+        SET expires_at = latest_expires_at, updated_at = NOW()
         WHERE user_id = NEW.user_id
           AND group_id = NEW.group_id
           AND group_role_id = NEW.role_id;
       END IF;
-
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
@@ -187,10 +173,8 @@ exports.up = async function (knex) {
     CREATE OR REPLACE FUNCTION clear_content_access_expires_at()
     RETURNS TRIGGER AS $$
     DECLARE
-      latest_expires_at TIMESTAMP;
+      latest_expires_at TIMESTAMP WITH TIME ZONE;
     BEGIN
-      -- Update group_memberships with most recent expires_at from OTHER active records
-      -- If no other active records exist, this will set expires_at to NULL
       IF NEW.track_id IS NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
@@ -198,48 +182,36 @@ exports.up = async function (knex) {
           AND group_id = NEW.group_id
           AND track_id IS NULL
           AND status = 'active'
-          AND id != NEW.id;  -- Exclude the record being revoked
-
+          AND id != NEW.id;
         UPDATE group_memberships
-        SET expires_at = latest_expires_at,
-            updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id;
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
       END IF;
-
-      -- If track_id is set, update tracks_users with most recent from other active records
       IF NEW.track_id IS NOT NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
         WHERE user_id = NEW.user_id
           AND track_id = NEW.track_id
           AND status = 'active'
-          AND id != NEW.id;  -- Exclude the record being revoked
-
+          AND id != NEW.id;
         UPDATE tracks_users
-        SET expires_at = latest_expires_at,
-            updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND track_id = NEW.track_id;
+        SET expires_at = latest_expires_at, updated_at = NOW()
+        WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
       END IF;
-
-      -- If role_id is set, update group_memberships_group_roles with most recent
       IF NEW.role_id IS NOT NULL THEN
         SELECT MAX(expires_at) INTO latest_expires_at
         FROM content_access
         WHERE user_id = NEW.user_id
           AND group_id = NEW.group_id
-          AND group_role_id = NEW.role_id
+          AND role_id = NEW.role_id
           AND status = 'active'
-          AND id != NEW.id;  -- Exclude the record being revoked
-
+          AND id != NEW.id;
         UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at
+        SET expires_at = latest_expires_at, updated_at = NOW()
         WHERE user_id = NEW.user_id
           AND group_id = NEW.group_id
           AND group_role_id = NEW.role_id;
       END IF;
-
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;

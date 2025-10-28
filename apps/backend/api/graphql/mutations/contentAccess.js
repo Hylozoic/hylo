@@ -9,7 +9,7 @@
 
 import { GraphQLError } from 'graphql'
 
-/* global ContentAccess */
+/* global ContentAccess, GroupMembership, User, Group, Responsibility */
 
 module.exports = {
 
@@ -36,36 +36,36 @@ module.exports = {
    *     }
    *   }
    */
-  grantContentAccess: async (root, {
+  grantContentAccess: async (sessionUserId, {
     userId,
     groupId,
     productId,
     trackId,
     expiresAt,
     reason
-  }, { session }) => {
+  }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!sessionUserId) {
         throw new GraphQLError('You must be logged in to grant content access')
       }
 
+      // Verify the group exists first
+      const group = await Group.where({ id: groupId }).fetch()
+      if (!group) {
+        throw new GraphQLError('Group not found')
+      }
+
       // Verify user has admin permission for this group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to grant content access')
       }
 
       // Verify the target user exists
-      const targetUser = await User.find(userId)
+      const targetUser = await User.where({ id: userId }).fetch()
       if (!targetUser) {
         throw new GraphQLError('User not found')
-      }
-
-      // Verify the group exists
-      const group = await Group.find(groupId)
-      if (!group) {
-        throw new GraphQLError('Group not found')
       }
 
       // Must provide either productId or trackId
@@ -77,7 +77,7 @@ module.exports = {
       const access = await ContentAccess.grantAccess({
         userId,
         groupId,
-        grantedById: session.userId,
+        grantedById: sessionUserId,
         productId,
         trackId,
         expiresAt,
@@ -96,6 +96,9 @@ module.exports = {
         message: 'Access granted successfully'
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in grantContentAccess:', error)
       throw new GraphQLError(`Failed to grant access: ${error.message}`)
     }
@@ -118,10 +121,10 @@ module.exports = {
    *     }
    *   }
    */
-  revokeContentAccess: async (root, { accessId, reason }, { session }) => {
+  revokeContentAccess: async (sessionUserId, { accessId, reason }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!sessionUserId) {
         throw new GraphQLError('You must be logged in to revoke content access')
       }
 
@@ -131,19 +134,22 @@ module.exports = {
         throw new GraphQLError('Access record not found')
       }
 
-      const membership = await GroupMembership.forPair(session.userId, access.get('group_id')).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, access.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to revoke access')
       }
 
       // Revoke the access using the model method
-      await ContentAccess.revoke(accessId, session.userId, reason)
+      await ContentAccess.revoke(accessId, sessionUserId, reason)
 
       return {
         success: true,
         message: 'Access revoked successfully'
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in revokeContentAccess:', error)
       throw new GraphQLError(`Failed to revoke access: ${error.message}`)
     }
@@ -168,7 +174,7 @@ module.exports = {
    *     }
    *   }
    */
-  checkContentAccess: async (root, { userId, groupId, productId, trackId }, { session }) => {
+  checkContentAccess: async (sessionUserId, { userId, groupId, productId, trackId }) => {
     try {
       // Check access using the model method
       const access = await ContentAccess.checkAccess({
@@ -194,6 +200,9 @@ module.exports = {
         grantedAt: access.get('created_at')
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in checkContentAccess:', error)
       throw new GraphQLError(`Failed to check access: ${error.message}`)
     }
@@ -222,7 +231,7 @@ module.exports = {
    *     }
    *   }
    */
-  recordStripePurchase: async (root, {
+  recordStripePurchase: async (sessionUserId, {
     userId,
     groupId,
     productId,
@@ -234,7 +243,7 @@ module.exports = {
     currency,
     expiresAt,
     metadata
-  }, { session }) => {
+  }) => {
     try {
       // This mutation should ideally only be called internally from webhook handler
       // For security, you might want to add special authentication for this
@@ -260,6 +269,9 @@ module.exports = {
         message: 'Purchase recorded successfully'
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in recordStripePurchase:', error)
       throw new GraphQLError(`Failed to record purchase: ${error.message}`)
     }

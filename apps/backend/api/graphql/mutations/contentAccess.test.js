@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-import '../../../test/setup'
+import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import {
   grantContentAccess,
@@ -9,7 +9,7 @@ import {
 } from './contentAccess'
 const { expect } = require('chai')
 
-/* global setup */
+/* global ContentAccess, GroupMembership, StripeProduct, Track, GroupRole */
 
 describe('Content Access Mutations', () => {
   let user, adminUser, group, product, track
@@ -19,8 +19,21 @@ describe('Content Access Mutations', () => {
     user = await factories.user().save()
     adminUser = await factories.user().save()
     group = await factories.group().save()
-    product = await factories.stripeProduct({ group_id: group.id }).save()
-    track = await factories.track({ group_id: group.id }).save()
+    product = await StripeProduct.forge({
+      group_id: group.id,
+      stripe_product_id: 'prod_test_123',
+      stripe_price_id: 'price_test_123',
+      name: 'Test Product',
+      description: 'Test Description',
+      price_in_cents: 1000,
+      currency: 'usd',
+      publish_status: 'published'
+    }).save()
+    track = await Track.forge({
+      name: 'Test Track',
+      description: 'Test Track Description'
+    }).save()
+    await group.tracks().attach(track.id)
 
     // Add admin user as group administrator
     await adminUser.joinGroup(group, { role: GroupMembership.Role.MODERATOR })
@@ -32,12 +45,12 @@ describe('Content Access Mutations', () => {
 
   describe('grantContentAccess', () => {
     it('grants access to a product for a user', async () => {
-      const result = await grantContentAccess({
+      const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
         groupId: group.id,
         productId: product.id,
         reason: 'Staff member'
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
       expect(result.userId).to.equal(user.id)
@@ -57,12 +70,12 @@ describe('Content Access Mutations', () => {
     })
 
     it('grants access to a track for a user', async () => {
-      const result = await grantContentAccess({
+      const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
         groupId: group.id,
         trackId: track.id,
         reason: 'Promotional access'
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
       expect(result.trackId).to.equal(track.id)
@@ -75,13 +88,13 @@ describe('Content Access Mutations', () => {
     it('grants access with expiration date', async () => {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
 
-      const result = await grantContentAccess({
+      const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
         groupId: group.id,
         productId: product.id,
         expiresAt,
         reason: 'Temporary access'
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
 
@@ -91,55 +104,55 @@ describe('Content Access Mutations', () => {
 
     it('rejects access grant for non-authenticated users', async () => {
       await expect(
-        grantContentAccess({
+        grantContentAccess(null, {
           userId: user.id,
           groupId: group.id,
           productId: product.id,
           reason: 'Test'
-        }, { session: null })
+        })
       ).to.be.rejectedWith('You must be logged in to grant content access')
     })
 
     it('rejects access grant for non-admin users', async () => {
       await expect(
-        grantContentAccess({
+        grantContentAccess(user.id, {
           userId: user.id,
           groupId: group.id,
           productId: product.id,
           reason: 'Test'
-        }, { session: { userId: user.id } })
+        })
       ).to.be.rejectedWith('You must be a group administrator to grant content access')
     })
 
     it('rejects access grant for non-existent user', async () => {
       await expect(
-        grantContentAccess({
+        grantContentAccess(adminUser.id, {
           userId: 99999,
           groupId: group.id,
           productId: product.id,
           reason: 'Test'
-        }, { session: { userId: adminUser.id } })
+        })
       ).to.be.rejectedWith('User not found')
     })
 
     it('rejects access grant for non-existent group', async () => {
       await expect(
-        grantContentAccess({
+        grantContentAccess(adminUser.id, {
           userId: user.id,
           groupId: 99999,
           productId: product.id,
           reason: 'Test'
-        }, { session: { userId: adminUser.id } })
+        })
       ).to.be.rejectedWith('Group not found')
     })
 
     it('rejects access grant without productId or trackId', async () => {
       await expect(
-        grantContentAccess({
+        grantContentAccess(adminUser.id, {
           userId: user.id,
           groupId: group.id,
           reason: 'Test'
-        }, { session: { userId: adminUser.id } })
+        })
       ).to.be.rejectedWith('Must specify either productId or trackId')
     })
   })
@@ -160,10 +173,10 @@ describe('Content Access Mutations', () => {
     })
 
     it('revokes access for admin users', async () => {
-      const result = await revokeContentAccess({
+      const result = await revokeContentAccess(adminUser.id, {
         accessId: accessRecord.id,
         reason: 'Access no longer needed'
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
       expect(result.message).to.equal('Access revoked successfully')
@@ -175,28 +188,28 @@ describe('Content Access Mutations', () => {
 
     it('rejects revocation for non-authenticated users', async () => {
       await expect(
-        revokeContentAccess({
+        revokeContentAccess(null, {
           accessId: accessRecord.id,
           reason: 'Test'
-        }, { session: null })
+        })
       ).to.be.rejectedWith('You must be logged in to revoke content access')
     })
 
     it('rejects revocation for non-admin users', async () => {
       await expect(
-        revokeContentAccess({
+        revokeContentAccess(user.id, {
           accessId: accessRecord.id,
           reason: 'Test'
-        }, { session: { userId: user.id } })
+        })
       ).to.be.rejectedWith('You must be a group administrator to revoke access')
     })
 
     it('rejects revocation for non-existent access record', async () => {
       await expect(
-        revokeContentAccess({
+        revokeContentAccess(adminUser.id, {
           accessId: 99999,
           reason: 'Test'
-        }, { session: { userId: adminUser.id } })
+        })
       ).to.be.rejectedWith('Access record not found')
     })
   })
@@ -215,11 +228,11 @@ describe('Content Access Mutations', () => {
     })
 
     it('returns access information for user with access', async () => {
-      const result = await checkContentAccess({
+      const result = await checkContentAccess(user.id, {
         userId: user.id,
         groupId: group.id,
         productId: product.id
-      }, { session: { userId: user.id } })
+      })
 
       expect(result.hasAccess).to.be.true
       expect(result.accessType).to.equal('admin_grant')
@@ -229,11 +242,11 @@ describe('Content Access Mutations', () => {
     it('returns no access for user without access', async () => {
       const otherUser = await factories.user().save()
 
-      const result = await checkContentAccess({
+      const result = await checkContentAccess(otherUser.id, {
         userId: otherUser.id,
         groupId: group.id,
         productId: product.id
-      }, { session: { userId: otherUser.id } })
+      })
 
       expect(result.hasAccess).to.be.false
       expect(result.accessType).to.be.null
@@ -242,11 +255,11 @@ describe('Content Access Mutations', () => {
     })
 
     it('returns no access for non-existent product', async () => {
-      const result = await checkContentAccess({
+      const result = await checkContentAccess(user.id, {
         userId: user.id,
         groupId: group.id,
         productId: 99999
-      }, { session: { userId: user.id } })
+      })
 
       expect(result.hasAccess).to.be.false
     })
@@ -258,7 +271,7 @@ describe('Content Access Mutations', () => {
       const paymentIntentId = 'pi_test_123'
       const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
 
-      const result = await recordStripePurchase({
+      const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
         groupId: group.id,
         productId: product.id,
@@ -266,7 +279,7 @@ describe('Content Access Mutations', () => {
         paymentIntentId,
         expiresAt,
         metadata: { source: 'webhook' }
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
       expect(result.message).to.equal('Purchase recorded successfully')
@@ -284,14 +297,14 @@ describe('Content Access Mutations', () => {
     })
 
     it('records a track-specific purchase', async () => {
-      const result = await recordStripePurchase({
+      const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
         groupId: group.id,
         trackId: track.id,
         sessionId: 'cs_test_456',
         paymentIntentId: 'pi_test_456',
         metadata: { source: 'webhook' }
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
 
@@ -301,21 +314,28 @@ describe('Content Access Mutations', () => {
     })
 
     it('records a role-specific purchase', async () => {
-      const roleId = 1
+      // Create a role for this group first
+      const role = await GroupRole.forge({
+        group_id: group.id,
+        name: 'Test Role',
+        emoji: '👤',
+        color: '#FF0000',
+        active: true
+      }).save()
 
-      const result = await recordStripePurchase({
+      const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
         groupId: group.id,
-        roleId,
+        roleId: role.id,
         sessionId: 'cs_test_789',
         paymentIntentId: 'pi_test_789',
         metadata: { source: 'webhook' }
-      }, { session: { userId: adminUser.id } })
+      })
 
       expect(result.success).to.be.true
 
       const access = await ContentAccess.where({ id: result.id }).fetch()
-      expect(access.get('role_id')).to.equal(roleId)
+      expect(access.get('role_id')).to.equal(role.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
     })
   })

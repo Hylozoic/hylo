@@ -2921,7 +2921,7 @@ CREATE TABLE public.content_access (
     user_id bigint NOT NULL,
     group_id bigint NOT NULL,
     product_id bigint,
-    track_id bigint,
+    track_id integer,
     role_id integer,
     access_type character varying(50) NOT NULL,
     stripe_session_id character varying(255),
@@ -7116,10 +7116,8 @@ ALTER TABLE ONLY public.zapier_triggers
 CREATE OR REPLACE FUNCTION sync_content_access_expires_at()
 RETURNS TRIGGER AS $$
 DECLARE
-  latest_expires_at TIMESTAMP;
+  latest_expires_at TIMESTAMP WITH TIME ZONE;
 BEGIN
-  -- Update group_memberships if track_id is NULL (includes group-level and role-based purchases)
-  -- Use the MOST RECENT expires_at from all active content_access records for this user+group
   IF NEW.track_id IS NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
@@ -7127,45 +7125,33 @@ BEGIN
       AND group_id = NEW.group_id
       AND track_id IS NULL
       AND status = 'active';
-
     UPDATE group_memberships
-    SET expires_at = latest_expires_at,
-        updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND group_id = NEW.group_id;
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
   END IF;
-
-  -- If track_id is set, update tracks_users with most recent expires_at for this track
   IF NEW.track_id IS NOT NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
     WHERE user_id = NEW.user_id
       AND track_id = NEW.track_id
       AND status = 'active';
-
     UPDATE tracks_users
-    SET expires_at = latest_expires_at,
-        updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND track_id = NEW.track_id;
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
   END IF;
-
-  -- If role_id is set, update group_memberships_group_roles with most recent expires_at
   IF NEW.role_id IS NOT NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
     WHERE user_id = NEW.user_id
       AND group_id = NEW.group_id
-      AND group_role_id = NEW.role_id
+      AND role_id = NEW.role_id
       AND status = 'active';
-
     UPDATE group_memberships_group_roles
-    SET expires_at = latest_expires_at
+    SET expires_at = latest_expires_at, updated_at = NOW()
     WHERE user_id = NEW.user_id
       AND group_id = NEW.group_id
       AND group_role_id = NEW.role_id;
   END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -7178,10 +7164,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION clear_content_access_expires_at()
 RETURNS TRIGGER AS $$
 DECLARE
-  latest_expires_at TIMESTAMP;
+  latest_expires_at TIMESTAMP WITH TIME ZONE;
 BEGIN
-  -- Update group_memberships with most recent expires_at from OTHER active records
-  -- If no other active records exist, this will set expires_at to NULL
   IF NEW.track_id IS NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
@@ -7189,48 +7173,36 @@ BEGIN
       AND group_id = NEW.group_id
       AND track_id IS NULL
       AND status = 'active'
-      AND id != NEW.id;  -- Exclude the record being revoked
-
+      AND id != NEW.id;
     UPDATE group_memberships
-    SET expires_at = latest_expires_at,
-        updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND group_id = NEW.group_id;
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
   END IF;
-
-  -- If track_id is set, update tracks_users with most recent from other active records
   IF NEW.track_id IS NOT NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
     WHERE user_id = NEW.user_id
       AND track_id = NEW.track_id
       AND status = 'active'
-      AND id != NEW.id;  -- Exclude the record being revoked
-
+      AND id != NEW.id;
     UPDATE tracks_users
-    SET expires_at = latest_expires_at,
-        updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND track_id = NEW.track_id;
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
   END IF;
-
-  -- If role_id is set, update group_memberships_group_roles with most recent
   IF NEW.role_id IS NOT NULL THEN
     SELECT MAX(expires_at) INTO latest_expires_at
     FROM content_access
     WHERE user_id = NEW.user_id
       AND group_id = NEW.group_id
-      AND group_role_id = NEW.role_id
+      AND role_id = NEW.role_id
       AND status = 'active'
-      AND id != NEW.id;  -- Exclude the record being revoked
-
+      AND id != NEW.id;
     UPDATE group_memberships_group_roles
-    SET expires_at = latest_expires_at
+    SET expires_at = latest_expires_at, updated_at = NOW()
     WHERE user_id = NEW.user_id
       AND group_id = NEW.group_id
       AND group_role_id = NEW.role_id;
   END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

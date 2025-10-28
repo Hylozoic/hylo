@@ -107,7 +107,15 @@ module.exports = bookshelf.Model.extend({
       metadata: {}
     }
 
-    return this.forge({ ...defaults, ...attrs }).save({}, { transacting })
+    // Filter out undefined values to prevent SQL errors
+    const filteredAttrs = Object.entries(attrs).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value
+      }
+      return acc
+    }, {})
+
+    return this.forge({ ...defaults, ...filteredAttrs }).save({}, { transacting })
   },
 
   /**
