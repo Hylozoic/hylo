@@ -69,8 +69,6 @@ describe('ProposalVote', () => {
         optionId = rows[0].id
         optionId2 = rows[1].id
         await post.save({ proposal_status: Post.Proposal_Status.VOTING }, { patch: true })
-
-        return post.addProposalVote({ userId: user.id, optionId })
       })
   })
 
@@ -78,16 +76,15 @@ describe('ProposalVote', () => {
     return addProposalVote({ userId: user.id, postId: post.id, optionId })
       .then(() => post.proposalVotes().fetch())
       .then(votes => {
-        expect(votes.length).to.equal(2)
+        expect(votes.length).to.equal(1)
       })
   })
 
-  it('removes the vote', () => {
-    return removeProposalVote({ userId: user.id, postId: post.id, optionId })
-      .then(() => post.proposalVotes().fetch())
-      .then(votes => {
-        expect(votes.length).to.equal(1)
-      })
+  it('removes the vote', async () => {
+    // Remove the vote that was added in "adds a vote" test
+    await removeProposalVote({ userId: user.id, postId: post.id, optionId })
+    const votes = await post.proposalVotes().fetch()
+    expect(votes.length).to.equal(0)
   })
 
   it('swaps a vote', () => {

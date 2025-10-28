@@ -33,6 +33,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   group: async function () {
+    if (!this.relations.post) {
+      await this.load('post')
+    }
     await this.relations.post.load(['groups'])
     return this.relations.post.relations.groups.models[0]
   },
