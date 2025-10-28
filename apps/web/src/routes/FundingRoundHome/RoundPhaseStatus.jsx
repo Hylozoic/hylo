@@ -106,7 +106,7 @@ export default function RoundPhaseStatus ({
                 )}
               </div>
               <p className='text-sm font-normal text-foreground/80 mt-0 mb-0'>
-                {t('Submissions are closed. Discover submissions and join the conversation.')}
+                {t('Submissions are closed. Discuss the {{submissionDescriptorPlural}} below and in the round Chat room.', { submissionDescriptorPlural: round.submissionDescriptorPlural })}
               </p>
               {votingOpensDate && (
                 <p className='text-sm font-semibold -mt-2 mb-0 pt-0'>
