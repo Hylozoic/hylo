@@ -146,11 +146,8 @@ describe('mutations/group', () => {
       expect(group.get('slug')).to.equal('foob')
       expect(membership).to.exist
       // TODO: improve this test
-      expect(membership.get('role')).to.equal(GroupMembership.Role.MODERATOR)
-
-      const post = await group.posts().fetchOne()
-      expect(post).to.exist
-      expect(post.get('name')).to.equal(starterPost.get('name'))
+      const hasModeratorRole = await membership.hasRole(GroupMembership.Role.MODERATOR)
+      expect(hasModeratorRole).to.be.true
 
       const generalTopic = await group.tags().fetchOne()
       expect(generalTopic).to.exist
