@@ -1,10 +1,10 @@
 import { isEqual, trim } from 'lodash'
+import { ChevronDown, ImagePlus, X } from 'lucide-react'
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import { push } from 'redux-first-history'
-import { ImagePlus, X } from 'lucide-react'
 import TextInput from 'components/TextInput'
 import TagInput from 'components/TagInput'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -556,7 +556,7 @@ function FundingRoundEditor (props) {
             <PopoverTrigger className='flex-1' asChild>
               <button type='button' className='w-full text-left border-none outline-none bg-transparent placeholder:text-foreground/50 p-2'>
                 {customTokenMode ? t('Other') : (tokenType || 'Votes')}
-                {/* TODO: add icon indicating its a select box */}
+                <ChevronDown className='inline-block ml-2 w-4 h-4 text-foreground/50 pointer-events-none' aria-hidden='true' />
               </button>
             </PopoverTrigger>
             <PopoverContent className='w-[320px] p-0'>
