@@ -40,7 +40,7 @@ export async function createFundingRound (userId, data) {
     attrs.voter_roles = JSON.stringify(data.voterRoles)
   }
 
-  const round = await FundingRound.create(fixDateFields(attrs, data))
+  const round = await FundingRound.create(fixDateFields(attrs, data), userId)
   Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, fundingRound: round })
   return round
 }

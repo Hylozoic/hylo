@@ -270,7 +270,7 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
-  create: async function (attrs) {
+  create: async function (attrs, userId) {
     attrs.voting_method = attrs.voting_method || 'token_allocation_constant'
 
     return await bookshelf.transaction(async transacting => {
@@ -280,6 +280,9 @@ module.exports = bookshelf.Model.extend({
       // Create the special chat room for this round
       const topic = await Tag.findOrCreate('‡funding_round_' + round.id, { transacting })
       await Tag.addToGroup({ group_id: attrs.group_id, tag_id: topic.id, isSubscribing: true, isChatRoom: true }, { transacting })
+
+      // Add creator as a participant
+      await FundingRound.join(round, userId, { transacting })
 
       return round
     })
@@ -292,34 +295,40 @@ module.exports = bookshelf.Model.extend({
     }).fetch()
   },
 
-  join: async function (roundId, userId) {
-    return bookshelf.transaction(async transacting => {
-      const round = await FundingRound.find(roundId, { transacting })
-      if (!round) {
-        throw new GraphQLError('Funding Round not found')
-      }
-      if (!round.get('published_at')) {
-        throw new GraphQLError('Funding Round is not published')
-      }
-      let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
-      if (!roundUser) {
-        roundUser = await FundingRoundUser.create({ funding_round_id: roundId, user_id: userId })
-        await round.save({ num_participants: round.get('num_participants') + 1 }, { transacting })
-        const group = await round.group().fetch({ transacting })
-        const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
-        const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
-        const stewardsIds = stewards.pluck('id')
-        const activities = stewardsIds.map(stewardId => ({
-          reason: 'fundingRoundJoin',
-          actor_id: userId,
-          group_id: group.id,
-          reader_id: stewardId,
-          funding_round_id: round.id
-        }))
-        await Activity.saveForReasons(activities, { transacting })
-      }
-      return roundUser
-    })
+  join: async function (roundOrId, userId, { transacting } = {}) {
+    if (!transacting) {
+      return bookshelf.transaction(async transacting => {
+        return await FundingRound.join(roundOrId, userId, { transacting })
+      })
+    }
+
+    const round = typeof roundOrId === 'object' ? roundOrId : await FundingRound.find(roundOrId, { transacting })
+    const roundId = round.id
+
+    if (!round) {
+      throw new GraphQLError('Funding Round not found')
+    }
+    if (!round.get('published_at')) {
+      throw new GraphQLError('Funding Round is not published')
+    }
+    let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
+    if (!roundUser) {
+      roundUser = await FundingRoundUser.create({ funding_round_id: roundId, user_id: userId }, { transacting })
+      await round.save({ num_participants: round.get('num_participants') + 1 }, { transacting })
+      const group = await round.group().fetch({ transacting })
+      const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
+      const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
+      const stewardsIds = stewards.pluck('id')
+      const activities = stewardsIds.map(stewardId => ({
+        reason: 'fundingRoundJoin',
+        actor_id: userId,
+        group_id: group.id,
+        reader_id: stewardId,
+        funding_round_id: round.id
+      }))
+      await Activity.saveForReasons(activities, transacting)
+    }
+    return roundUser
   },
 
   leave: async function (roundId, userId) {
