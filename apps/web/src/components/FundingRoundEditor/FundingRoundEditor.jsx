@@ -350,6 +350,8 @@ function FundingRoundEditor (props) {
 
   const handleUnpublish = useCallback(async () => {
     if (saving) return
+    if (!window.confirm(t('Are you sure you want to unpublish this round?'))) return
+
     setSaving(true)
 
     const descriptionHTML = descriptionEditorRef.current?.getHTML?.() || description
