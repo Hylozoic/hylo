@@ -16,7 +16,7 @@ describe('TagFollow', () => {
       group_id: group.id
     }
   })
-  
+
   // toggle doesn't seem to exist as a method anymore
 
   // describe('#toggle', () => {
