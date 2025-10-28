@@ -38,14 +38,14 @@ describe('ContextWidget', () => {
       testTreeFour = [
         { id: 1, order: 1, parentId: null, type: 'home' },
         { id: 2, order: 2, parentId: null, type: 'chats' },
-        { id: 3, order: 1, parentId: 1, type: 'chat' },
+        { id: 3, order: 1, parentId: 1, type: 'viewChat' },
         { id: 4, order: 3, parentId: null, type: null },
         { id: 5, order: 1, parentId: 4, type: null },
         { id: 6, order: 2, parentId: 4, type: null },
         { id: 7, order: 3, parentId: 4, type: null },
-        { id: 8, order: 1, parentId: 2, type: 'chat' },
-        { id: 9, order: 2, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 1, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' }
       ]
 
       testTreeFive = [
@@ -56,9 +56,9 @@ describe('ContextWidget', () => {
         { id: 5, order: 1, parentId: 4, type: null },
         { id: 6, order: 2, parentId: 4, type: null },
         { id: 7, order: 3, parentId: 4, type: null },
-        { id: 8, order: 1, parentId: 2, type: 'chat' },
-        { id: 9, order: 2, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 1, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' },
       ]
     });
 
@@ -229,14 +229,14 @@ describe('ContextWidget', () => {
       const expectedWidgets = [
         { id: 1, order: 1, parentId: null, type: 'home' },
         { id: 2, order: 2, parentId: null, type: 'chats' },
-        { id: 3, order: 1, parentId: 2, type: 'chat' },
+        { id: 3, order: 1, parentId: 2, type: 'viewChat' },
         { id: 4, order: 3, parentId: null, type: null },
         { id: 5, order: 1, parentId: 1, type: null },
         { id: 6, order: 1, parentId: 4, type: null },
         { id: 7, order: 2, parentId: 4, type: null },
-        { id: 8, order: 2, parentId: 2, type: 'chat' },
-        { id: 9, order: 3, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 3, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' },
       ]
 
       expectedWidgets.forEach((expectedWidget, index) => {
@@ -252,14 +252,14 @@ describe('ContextWidget', () => {
       const expectedWidgets = [
         { id: 1, order: 1, parentId: null, type: 'home' },
         { id: 2, order: 2, parentId: null, type: 'chats' },
-        { id: 3, order: 1, parentId: 2, type: 'chat' },
+        { id: 3, order: 1, parentId: 2, type: 'viewChat' },
         { id: 4, order: 3, parentId: null, type: null },
         { id: 5, order: 1, parentId: 4, type: null },
         { id: 6, order: 2, parentId: 4, type: null },
         { id: 7, order: 3, parentId: 4, type: null },
-        { id: 8, order: 2, parentId: 2, type: 'chat' },
-        { id: 9, order: 1, parentId: 1, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' }
+        { id: 8, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 1, parentId: 1, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' }
       ]
       expectedWidgets.forEach((expectedWidget, index) => {
         const reorderedWidget = reorderedWidgets.find(widget => widget.id === expectedWidget.id)
@@ -279,9 +279,9 @@ describe('ContextWidget', () => {
         { id: 5, order: 1, parentId: 1, type: null },
         { id: 6, order: 1, parentId: 4, type: null },
         { id: 7, order: 2, parentId: 4, type: null },
-        { id: 8, order: 1, parentId: 2, type: 'chat' },
-        { id: 9, order: 2, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 1, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' },
       ]
 
       expectedWidgets.forEach((expectedWidget, index) => {
@@ -298,14 +298,14 @@ describe('ContextWidget', () => {
       const expectedWidgets = [
         { id: 1, order: 1, parentId: null, type: 'home' },
         { id: 2, order: 2, parentId: null, type: 'chats' },
-        { id: 3, order: null, parentId: null, type: 'chat' },
+        { id: 3, order: null, parentId: null, type: 'viewChat' },
         { id: 4, order: 3, parentId: null, type: null },
         { id: 5, order: 1, parentId: 4, type: null },
         { id: 6, order: 2, parentId: 4, type: null },
         { id: 7, order: 3, parentId: 4, type: null },
-        { id: 8, order: 1, parentId: 2, type: 'chat' },
-        { id: 9, order: 2, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 1, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' },
       ]
 
       expectedWidgets.forEach((expectedWidget, index) => {
@@ -322,14 +322,14 @@ describe('ContextWidget', () => {
       const expectedWidgets = [
         { id: 1, order: 1, parentId: null, type: 'home' },
         { id: 2, order: 2, parentId: null, type: 'chats' },
-        { id: 3, order: 1, parentId: 1, type: 'chat' },
+        { id: 3, order: 1, parentId: 1, type: 'viewChat' },
         { id: 4, order: null, parentId: null, type: null },
         { id: 5, order: null, parentId: null, type: null },
         { id: 6, order: null, parentId: null, type: null },
         { id: 7, order: null, parentId: null, type: null },
-        { id: 8, order: 1, parentId: 2, type: 'chat' },
-        { id: 9, order: 2, parentId: 2, type: 'chat' },
-        { id: 10, order: null, parentId: null, type: 'chat' },
+        { id: 8, order: 1, parentId: 2, type: 'viewChat' },
+        { id: 9, order: 2, parentId: 2, type: 'viewChat' },
+        { id: 10, order: null, parentId: null, type: 'viewChat' },
       ]
 
       expectedWidgets.forEach((expectedWidget, index) => {
