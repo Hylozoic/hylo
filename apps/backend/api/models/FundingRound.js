@@ -8,6 +8,14 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
+  criteria () {
+    return RichText.processHTML(this.get('criteria'))
+  },
+
+  description () {
+    return RichText.processHTML(this.get('description'))
+  },
+
   // Serialize JSON columns before saving to database
   format: function (attrs) {
     const formatted = Object.assign({}, attrs)
