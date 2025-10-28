@@ -862,7 +862,7 @@ function PostEditor ({
                 includeChat={!modal}
                 postType={currentPost.type}
                 setPostType={handlePostTypeSelection}
-                className={cn({ 'absolute top-3 right-1 z-10': isChat })}
+                className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
               />
               )}
       </div>
