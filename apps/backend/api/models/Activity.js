@@ -107,6 +107,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Track, 'track_id')
   },
 
+  fundingRound: function () {
+    return this.belongsTo(FundingRound, 'funding_round_id')
+  },
+
   notifications: function () {
     return this.hasMany(Notification)
   },
@@ -127,6 +131,12 @@ module.exports = bookshelf.Model.extend({
     }
     if (this.get('other_group_id')) {
       relations.push('otherGroup')
+    }
+    if (this.get('track_id')) {
+      relations.push('track')
+    }
+    if (this.get('funding_round_id')) {
+      relations.push('fundingRound')
     }
     await this.load(relations, { transacting: trx })
     const notificationData = await Activity.generateNotificationMedia(this)
@@ -264,7 +274,7 @@ module.exports = bookshelf.Model.extend({
       const attrs = Object.assign(
         {},
         omit(activity, 'reasons'),
-        { meta: { reasons: activity.reasons } }
+        { meta: { reasons: activity.reasons, ...activity.meta } }
       )
 
       return Activity.createWithNotifications(attrs, trx)

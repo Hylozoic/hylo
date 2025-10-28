@@ -87,6 +87,7 @@ export function afterCreatingPost (post, opts) {
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
+    .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
     .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })

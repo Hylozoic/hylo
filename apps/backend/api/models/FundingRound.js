@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 /* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag, Responsibility, Activity */
 import { GraphQLError } from 'graphql'
+import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'funding_rounds',
@@ -179,6 +180,86 @@ module.exports = bookshelf.Model.extend({
     }, { transacting })
 
     return fundingRoundPost
+  },
+
+  // Check for phase transitions and perform them, sending notifications
+  checkPhaseTransitions: async function () {
+    const now = new Date()
+    let transitionCount = 0
+
+    return bookshelf.transaction(async transacting => {
+      // Transition from draft to published
+      const publishingRounds = await FundingRound.query(q => {
+        q.where('deactivated_at', null)
+        q.whereNotNull('published_at')
+        q.where('phase', FundingRound.PHASES.DRAFT)
+        q.where('published_at', '<=', now)
+      }).fetchAll({ transacting })
+
+      for (const round of publishingRounds.models) {
+        await round.save({ phase: FundingRound.PHASES.PUBLISHED }, { transacting, patch: true })
+        transitionCount++
+      }
+
+      // Transition from published to submissions
+      const submissionsOpeningRounds = await FundingRound.query(q => {
+        q.where('deactivated_at', null)
+        q.whereNotNull('submissions_open_at')
+        q.where('phase', FundingRound.PHASES.PUBLISHED)
+        q.where('submissions_open_at', '<=', now)
+      }).fetchAll({ transacting })
+
+      for (const round of submissionsOpeningRounds.models) {
+        await round.save({ phase: FundingRound.PHASES.SUBMISSIONS }, { transacting, patch: true })
+        Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.SUBMISSIONS })
+        transitionCount++
+      }
+
+      // Transition from submissions to discussion
+      const submissionsClosingRounds = await FundingRound.query(q => {
+        q.where('deactivated_at', null)
+        q.whereNotNull('submissions_close_at')
+        q.where('phase', FundingRound.PHASES.SUBMISSIONS)
+        q.where('submissions_close_at', '<=', now)
+      }).fetchAll({ transacting })
+
+      for (const round of submissionsClosingRounds.models) {
+        await round.save({ phase: FundingRound.PHASES.DISCUSSION }, { transacting, patch: true })
+        Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.DISCUSSION })
+        transitionCount++
+      }
+
+      // Transition from submissions or discussion to voting
+      const votingOpeningRounds = await FundingRound.query(q => {
+        q.where('deactivated_at', null)
+        q.whereNotNull('voting_opens_at')
+        q.whereIn('phase', [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION])
+        q.where('voting_opens_at', '<=', now)
+      }).fetchAll({ transacting })
+
+      for (const round of votingOpeningRounds.models) {
+        await FundingRound.distributeTokens(round, { transacting })
+        await round.save({ phase: FundingRound.PHASES.VOTING }, { transacting, patch: true })
+        Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.VOTING })
+        transitionCount++
+      }
+
+      // Transition from voting to completed
+      const votingClosingRounds = await FundingRound.query(q => {
+        q.where('deactivated_at', null)
+        q.whereNotNull('voting_closes_at')
+        q.where('phase', FundingRound.PHASES.VOTING)
+        q.where('voting_closes_at', '<=', now)
+      }).fetchAll({ transacting })
+
+      for (const round of votingClosingRounds.models) {
+        await round.save({ phase: FundingRound.PHASES.COMPLETED }, { transacting, patch: true })
+        Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.COMPLETED })
+        transitionCount++
+      }
+
+      return transitionCount
+    })
   },
 
   create: async function (attrs) {
@@ -360,5 +441,10 @@ module.exports = bookshelf.Model.extend({
     }
 
     return round
-  }
+  },
+
+  // Notification methods
+  sendPhaseTransitionNotifications,
+  sendReminderNotifications,
+  notifyStewardsOfSubmission
 })

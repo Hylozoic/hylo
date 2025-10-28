@@ -154,6 +154,9 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
   if (newPhase !== currentPhase) {
     // Save the new phase
     await round.save({ phase: newPhase }, { transacting, patch: true })
+    if (newPhase !== FundingRound.PHASES.DRAFT && newPhase !== FundingRound.PHASES.PUBLISHED) {
+      Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: newPhase })
+    }
   }
 
   return round
