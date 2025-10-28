@@ -134,6 +134,7 @@ export function fetchFundingRound (id) {
           description,
           group { id name slug }
           isParticipating
+          joinedAt
           maxTokenAllocation,
           minTokenAllocation,
           numParticipants,
@@ -500,7 +501,7 @@ export function ormSessionReducer (
     case JOIN_FUNDING_ROUND_PENDING: {
       const round = FundingRound.safeGet({ id: meta.id })
       if (!round) return
-      return round.update({ isParticipating: true })
+      return round.update({ isParticipating: true, joinedAt: new Date().toISOString() })
     }
 
     case LEAVE_FUNDING_ROUND_PENDING: {

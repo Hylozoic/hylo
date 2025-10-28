@@ -70,6 +70,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsToMany(User, 'funding_rounds_users', 'funding_round_id', 'user_id')
   },
 
+  joinedAt: async function (userId) {
+    return this.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('created_at') : null)
+  },
+
   isParticipating: function (userId) {
     return this.roundUser(userId).fetch().then(roundUser => !!roundUser)
   },

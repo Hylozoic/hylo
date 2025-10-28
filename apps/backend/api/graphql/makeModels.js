@@ -1354,14 +1354,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         canSubmit: r => r && userId ? r.canUserSubmit(userId) : false,
         canVote: r => r && userId ? r.canUserVote(userId) : false,
         isParticipating: r => r && userId && r.isParticipating(userId),
+        joinedAt: r => r && userId ? r.joinedAt(userId) : null,
         submitterRoles: r => r ? r.submitterRoles() : [],
         tokensRemaining: async r => {
           if (!r || !userId) return null
-          const roundUser = await FundingRoundUser.where({
-            funding_round_id: r.get('id'),
-            user_id: userId
-          }).fetch()
-          return roundUser ? roundUser.get('tokens_remaining') : null
+          return r.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('tokens_remaining') : null)
         },
         totalTokensAllocated: async r => {
           if (!r) return null

@@ -2615,6 +2615,8 @@ type FundingRound {
   group: Group
   # Whether the current user is participating in this round
   isParticipating: Boolean
+  # When the current user joined this funding round
+  joinedAt: Date
   # Maximum tokens a voter can allocate
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate

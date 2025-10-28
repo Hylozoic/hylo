@@ -19,6 +19,10 @@ export default function RoundPhaseStatus ({
   const votingOpensDate = round.votingOpensAt
   const votingClosesDate = round.votingClosesAt
 
+  // Check if user joined after voting started
+  const joinedAfterVotingStarted = round.joinedAt && votingOpensDate &&
+    new Date(round.joinedAt) > new Date(votingOpensDate)
+
   if (!round) return null
 
   return (
@@ -129,7 +133,7 @@ export default function RoundPhaseStatus ({
               </span>
               {t('Voting in progress')}
             </h2>
-            {canVote && currentTokensRemaining != null && (
+            {canVote && !joinedAfterVotingStarted && currentTokensRemaining != null && (
               <div className='bg-selected/20 border-2 border-selected rounded-md py-1 px-2 font-bold text-sm'>
                 {t('You have {{tokens}} {{tokenType}} remaining', {
                   tokens: currentTokensRemaining,
@@ -153,7 +157,22 @@ export default function RoundPhaseStatus ({
               </div>
             </div>
           )}
-          {canVote && (
+          {joinedAfterVotingStarted && (
+            <div className='w-full bg-amber-500/20 border-2 border-amber-500/40 rounded-md p-3 flex items-start gap-2'>
+              <ShieldAlert className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
+              <div className='flex flex-col gap-1'>
+                <p className='text-sm font-semibold text-foreground m-0'>
+                  {t('You cannot vote in this round')}
+                </p>
+                <p className='text-xs font-normal text-foreground/70 m-0'>
+                  {t('You joined after voting started. {{tokenType}} have already been allocated to participants who joined before voting began.', {
+                    tokenType: round.tokenType || t('Votes')
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
+          {canVote && !joinedAfterVotingStarted && (
             <div>
               <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
                 {t('Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support', {
@@ -168,7 +187,7 @@ export default function RoundPhaseStatus ({
               )}
             </div>
           )}
-          {canVote && (
+          {canVote && !joinedAfterVotingStarted && (
             <div className='flex flex-row gap-3 opacity-50'>
               {round.minTokenAllocation && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
