@@ -10,36 +10,17 @@
 
 import { GraphQLError } from 'graphql'
 
-/* global StripeProduct */
+/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
 
 module.exports = {
 
   /**
    * Creates a Stripe Connected Account for a group
-   *
-   * This mutation allows group administrators to create a connected account
-   * that enables them to receive payments directly. The platform takes
-   * an application fee on each transaction.
-   *
-   * Usage:
-   *   mutation {
-   *     createStripeConnectedAccount(
-   *       groupId: "123"
-   *       email: "group@example.com"
-   *       businessName: "My Group"
-   *       country: "US"
-   *       existingAccountId: "acct_xxx"  # Optional: existing Stripe account
-   *     ) {
-   *       id
-   *       accountId
-   *       success
-   *     }
-   *   }
    */
-  createStripeConnectedAccount: async (root, { groupId, email, businessName, country, existingAccountId }, { session }) => {
+  createStripeConnectedAccount: async (userId, { groupId, email, businessName, country, existingAccountId }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to create a connected account')
       }
 
@@ -50,8 +31,8 @@ module.exports = {
       }
 
       // Check if user is a steward/admin of the group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to create a connected account')
       }
 
@@ -63,6 +44,11 @@ module.exports = {
       let account
 
       if (existingAccountId) {
+        // Validate the Stripe account ID format
+        if (!existingAccountId.startsWith('acct_')) {
+          throw new GraphQLError('Invalid Stripe account ID provided')
+        }
+
         // Connect existing Stripe account
         account = await StripeService.connectExistingAccount({
           accountId: existingAccountId,
@@ -71,15 +57,26 @@ module.exports = {
       } else {
         // Create new Stripe account
         account = await StripeService.createConnectedAccount({
-          email: email || group.get('contact_email'),
+          email: email || `${group.get('name')}@hylo.com`,
           country: country || 'US',
           businessName: businessName || group.get('name'),
           groupId
         })
       }
 
-      // Save the account ID to the database
-      await group.save({ stripe_account_id: account.id })
+      // Find or create a StripeAccount record with this external ID
+      let stripeAccountRecord = await StripeAccount.where({
+        stripe_account_external_id: account.id
+      }).fetch()
+
+      if (!stripeAccountRecord) {
+        stripeAccountRecord = await StripeAccount.forge({
+          stripe_account_external_id: account.id
+        }).save()
+      }
+
+      // Save the database ID to the group
+      await group.save({ stripe_account_id: stripeAccountRecord.id })
 
       return {
         id: groupId,
@@ -88,6 +85,10 @@ module.exports = {
         message: 'Connected account created successfully'
       }
     } catch (error) {
+      // If it's already a GraphQLError, rethrow it as-is
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in createStripeConnectedAccount:', error)
       throw new GraphQLError(`Failed to create connected account: ${error.message}`)
     }
@@ -112,16 +113,16 @@ module.exports = {
    *     }
    *   }
    */
-  createStripeAccountLink: async (root, { groupId, accountId, returnUrl, refreshUrl }, { session }) => {
+  createStripeAccountLink: async (userId, { groupId, accountId, returnUrl, refreshUrl }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to create an account link')
       }
 
       // Verify user has permission for this group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to manage payments')
       }
 
@@ -138,6 +139,9 @@ module.exports = {
         success: true
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in createStripeAccountLink:', error)
       throw new GraphQLError(`Failed to create account link: ${error.message}`)
     }
@@ -161,16 +165,16 @@ module.exports = {
    *     }
    *   }
    */
-  stripeAccountStatus: async (root, { groupId, accountId }, { session }) => {
+  stripeAccountStatus: async (userId, { groupId, accountId }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to view account status')
       }
 
       // Verify user has permission for this group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership) {
+      const hasMembership = await GroupMembership.hasActiveMembership(userId, groupId)
+      if (!hasMembership) {
         throw new GraphQLError('You must be a member of this group to view payment status')
       }
 
@@ -186,6 +190,9 @@ module.exports = {
         requirements: status.requirements
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in stripeAccountStatus:', error)
       throw new GraphQLError(`Failed to retrieve account status: ${error.message}`)
     }
@@ -220,7 +227,7 @@ module.exports = {
    *     }
    *   }
    */
-  createStripeProduct: async (root, {
+  createStripeProduct: async (userId, {
     groupId,
     accountId,
     name,
@@ -231,16 +238,16 @@ module.exports = {
     renewalPolicy,
     duration,
     publishStatus
-  }, { session }) => {
+  }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to create a product')
       }
 
       // Verify user has permission for this group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to create products')
       }
 
@@ -277,6 +284,9 @@ module.exports = {
         message: 'Product created successfully'
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in createStripeProduct:', error)
       throw new GraphQLError(`Failed to create product: ${error.message}`)
     }
@@ -308,7 +318,7 @@ module.exports = {
    *     }
    *   }
    */
-  updateStripeProduct: async (root, {
+  updateStripeProduct: async (userId, {
     productId,
     name,
     description,
@@ -318,21 +328,21 @@ module.exports = {
     renewalPolicy,
     duration,
     publishStatus
-  }, { session }) => {
+  }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to update a product')
       }
 
       // Load the product and verify permissions
-      const product = await StripeProduct.find(productId)
+      const product = await StripeProduct.where({ id: productId }).fetch()
       if (!product) {
         throw new GraphQLError('Product not found')
       }
 
-      const membership = await GroupMembership.forPair(session.userId, product.get('group_id')).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, product.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to update products')
       }
 
@@ -378,6 +388,11 @@ module.exports = {
           throw new GraphQLError('Group does not have a connected Stripe account')
         }
 
+        // If price is being updated but not currency, preserve the existing currency
+        if (priceInCents !== undefined && currency === undefined) {
+          stripeSyncFields.currency = product.get('currency')
+        }
+
         // Update product in Stripe first
         const updatedStripeProduct = await StripeService.updateProduct({
           accountId: group.get('stripe_account_id'),
@@ -386,21 +401,31 @@ module.exports = {
         })
 
         // Update our database with the actual values from Stripe
-        updateAttrs.name = updatedStripeProduct.name
-        updateAttrs.description = updatedStripeProduct.description
-        updateAttrs.price_in_cents = updatedStripeProduct.default_price.unit_amount
-        updateAttrs.currency = updatedStripeProduct.default_price.currency
-        updateAttrs.stripe_price_id = updatedStripeProduct.default_price
+        // Only update fields that were actually provided in the request
+        if (name !== undefined) updateAttrs.name = updatedStripeProduct.name
+        if (description !== undefined) updateAttrs.description = updatedStripeProduct.description
+        if (priceInCents !== undefined) updateAttrs.price_in_cents = updatedStripeProduct.default_price.unit_amount
+        if (currency !== undefined || (priceInCents !== undefined && currency === undefined)) {
+          // Update currency if explicitly provided, or if price changed and we preserved it
+          updateAttrs.currency = updatedStripeProduct.default_price.currency
+        }
+        // Always update the stripe_price_id if price changed
+        if (priceInCents !== undefined || currency !== undefined) {
+          updateAttrs.stripe_price_id = updatedStripeProduct.default_price.id
+        }
       }
 
       // Update the product in our database
-      await StripeProduct.update(productId, updateAttrs)
+      await product.save(updateAttrs)
 
       return {
         success: true,
         message: 'Product updated successfully'
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in updateStripeProduct:', error)
       throw new GraphQLError(`Failed to update product: ${error.message}`)
     }
@@ -427,21 +452,24 @@ module.exports = {
    *     }
    *   }
    */
-  stripeProducts: async (root, { groupId, accountId }, { session }) => {
+  stripeProducts: async (userId, { groupId, accountId }) => {
     try {
       // Check if user is authenticated
-      if (!session || !session.userId) {
+      if (!userId) {
         throw new GraphQLError('You must be logged in to view products')
       }
 
       // Verify user has permission for this group
-      const membership = await GroupMembership.forPair(session.userId, groupId).fetch()
-      if (!membership || !membership.hasResponsibility(GroupMembership.RESP_ADMINISTRATION)) {
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to view products')
       }
 
       // Get products from Stripe
-      const products = await StripeService.getProducts(accountId)
+      const productsResponse = await StripeService.getProducts(accountId)
+
+      // Extract products array from Stripe response (which has a 'data' property)
+      const products = productsResponse.data || productsResponse
 
       // Format products for GraphQL response
       const formattedProducts = products.map(product => ({
@@ -458,6 +486,9 @@ module.exports = {
         success: true
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in stripeProducts:', error)
       throw new GraphQLError(`Failed to retrieve products: ${error.message}`)
     }
@@ -484,7 +515,7 @@ module.exports = {
    *     }
    *   }
    */
-  createStripeCheckoutSession: async (root, {
+  createStripeCheckoutSession: async (userId, {
     groupId,
     accountId,
     priceId,
@@ -492,7 +523,7 @@ module.exports = {
     successUrl,
     cancelUrl,
     metadata
-  }, { session }) => {
+  }) => {
     try {
       // Authentication is optional for checkout - you may want to allow guests
       // For this demo, we'll allow unauthenticated purchases
@@ -519,7 +550,7 @@ module.exports = {
         cancelUrl,
         metadata: {
           groupId,
-          userId: session?.userId,
+          userId,
           priceAmount: priceObject.unit_amount,
           currency: priceObject.currency,
           ...metadata
@@ -532,6 +563,9 @@ module.exports = {
         success: true
       }
     } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
       console.error('Error in createStripeCheckoutSession:', error)
       throw new GraphQLError(`Failed to create checkout session: ${error.message}`)
     }
