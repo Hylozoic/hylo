@@ -4,6 +4,7 @@ process.env.NODE_ENV = 'test'
 process.env.INBOUND_EMAIL_SALT = process.env.INBOUND_EMAIL_SALT || 'FFFFAAAA123456789'
 process.env.INBOUND_EMAIL_DOMAIN = process.env.INBOUND_EMAIL_DOMAIN || 'inbound-staging.hylo.com'
 process.env.PLAY_APP_SECRET = process.env.PLAY_APP_SECRET || 'quxgrault12345678'
+process.env.PUSH_NOTIFICATIONS_ENABLED = process.env.PUSH_NOTIFICATIONS_ENABLED || 'true'
 process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED = process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED || 'true'
 process.env.HYLO_TESTER_IDS = process.env.HYLO_TESTER_IDS || '1'
 
