@@ -147,8 +147,8 @@ function FundingRoundHome () {
               <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} canVote={canVote} canSubmit={canSubmit} />} />
               <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} canVote={canVote} canSubmit={canSubmit} />} />
               <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
-              <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />
-              <Route path='manage/*' element={<ManageTab round={fundingRound} />} />
+              {canManageRound && <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />}
+              {canManageRound && <Route path='manage/*' element={<ManageTab round={fundingRound} />} />}
               <Route path='*' element={<AboutTab round={fundingRound} canVote={canVote} canSubmit={canSubmit} />} />
             </Routes>
           </div>
