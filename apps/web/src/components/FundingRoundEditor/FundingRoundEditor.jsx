@@ -219,7 +219,11 @@ function FundingRoundEditor (props) {
   }, [canManage, currentGroup?.id])
 
   const isValid = useMemo(() => {
-    return title?.length > 0 && submissionDescriptor?.length > 0 && submissionDescriptorPlural?.length > 0 && Object.values(errors).filter(v => !!v).length === 0
+    return title?.length > 0 &&
+      submissionDescriptor?.length > 0 &&
+      submissionDescriptorPlural?.length > 0 &&
+      (totalTokens ? Number(totalTokens) : null) > 0 &&
+      Object.values(errors).filter(v => !!v).length === 0
   }, [errors, title, submissionDescriptor, submissionDescriptorPlural])
 
   // Current user for country -> currency prioritization
@@ -376,7 +380,7 @@ function FundingRoundEditor (props) {
       submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
       title: trim(title),
       tokenType,
-      totalTokens: totalTokens ? Number(totalTokens) : null,
+      totalTokens: totalTokens ? Number(totalTokens) : null, // TODO: require this
       voterRoles,
       votingMethod,
       votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
@@ -639,7 +643,7 @@ function FundingRoundEditor (props) {
 
         <TextInput
           type='number'
-          internalLabel={fundingRoundState.votingMethod === 'token_allocation_divide' ? t('Total {{tokenName}} to distribute', { tokenName: tokenType }) : t('Total {{tokenName}} per voter', { tokenName: tokenType })}
+          internalLabel={fundingRoundState.votingMethod === 'token_allocation_divide' ? t('Total {{tokenName}} to distribute', { tokenName: tokenType }) : t('Total {{tokenName}} per voter', { tokenName: tokenType }) + ' * '}
           value={totalTokens}
           onChange={updateFundingRoundState('totalTokens')}
         />
