@@ -20,7 +20,8 @@ class DbAdapter {
   constructor(name) {
     this.name = name
     this.type = name
-    this.cleaned = bookshelf.knex.table(oidc_payloads).where("expires_at", "<", new Date()).delete().then(() => this)
+    // Note: Removed automatic cleanup from constructor to prevent memory leaks
+    // Expired payloads should be cleaned up via a scheduled job or startup script
   }
 
   async upsert(id, payload, expiresIn) {
@@ -85,6 +86,16 @@ class DbAdapter {
 
   consume(id) {
     return this._rows({ id }).update({ consumed_at: new Date() })
+  }
+
+  // Static method to clean up expired payloads
+  // Should be called periodically by a cron job or at startup
+  static async cleanupExpired () {
+    const deletedCount = await bookshelf.knex
+      .table(oidc_payloads)
+      .where('expires_at', '<', new Date())
+      .delete()
+    return deletedCount
   }
 }
 
