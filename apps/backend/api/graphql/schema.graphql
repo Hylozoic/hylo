@@ -18,6 +18,16 @@ type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
 
+  # Check if a user has access to content
+  checkContentAccess(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID
+  ): ContentAccessCheckResult
+
   # Check if a group invitation is still valid
   checkInvitation(invitationToken: String, accessCode: String): CheckInvitationResult
 
@@ -2584,6 +2594,7 @@ type StripeProduct {
   updatedAt: Date
   # The group this product belongs to
   group: Group
+  groupId: ID
   # Stripe product ID from Stripe API
   stripeProductId: String
   # Stripe price ID from Stripe API
@@ -2598,6 +2609,7 @@ type StripeProduct {
   currency: String
   # Optional track this product grants access to (legacy field)
   track: Track
+  trackId: ID
   # JSONB object defining what access this product grants
   contentAccess: JSON
   # Renewal policy: automatic or manual
@@ -2606,6 +2618,65 @@ type StripeProduct {
   duration: String
   # Publish status: unpublished, unlisted, published
   publishStatus: PublishStatus
+}
+
+type ContentAccess {
+  id: ID
+  createdAt: Date
+  updatedAt: Date
+  # User who has access
+  user: Person
+  userId: ID
+  # Group that granted the access
+  grantedByGroup: Group
+  grantedByGroupId: ID
+  # Group access is for (optional)
+  group: Group
+  groupId: ID
+  # Stripe product (if purchased)
+  product: StripeProduct
+  productId: ID
+  # Track access is for (optional)
+  track: Track
+  trackId: ID
+  # Role access is for (optional)
+  role: GroupRole
+  roleId: ID
+  # How access was granted: stripe_purchase or admin_grant
+  accessType: String
+  # Stripe session ID (for purchases)
+  stripeSessionId: String
+  # Stripe payment intent ID (for purchases)
+  stripePaymentIntentId: String
+  # Current status: active, expired, revoked
+  status: String
+  # User who granted access (for admin grants)
+  grantedBy: Person
+  grantedById: ID
+  # When access expires (optional)
+  expiresAt: Date
+  # Additional metadata
+  metadata: JSON
+}
+
+type ContentAccessResult {
+  id: ID
+  userId: ID
+  grantedByGroupId: ID
+  groupId: ID
+  productId: ID
+  trackId: ID
+  roleId: ID
+  accessType: String
+  status: String
+  success: Boolean
+  message: String
+}
+
+type ContentAccessCheckResult {
+  hasAccess: Boolean
+  accessType: String
+  expiresAt: Date
 }
 
 # Current user's personal settings
@@ -2742,6 +2813,37 @@ type Mutation {
   cancelJoinRequest(joinRequestId: ID): GenericResult
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
+  # Grant content access to a user (admin only)
+  grantContentAccess(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID,
+    expiresAt: Date,
+    reason: String
+  ): ContentAccessResult
+  # Revoke content access (admin only)
+  revokeContentAccess(
+    accessId: ID!,
+    reason: String
+  ): GenericResult
+  # Record a Stripe purchase (internal use)
+  recordStripePurchase(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID,
+    sessionId: String!,
+    paymentIntentId: String,
+    amountPaid: Int,
+    currency: String,
+    expiresAt: Date,
+    metadata: JSON
+  ): ContentAccessResult
   # Mark a post as completed
   completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
@@ -3192,6 +3294,12 @@ type StripeProductResult {
 type StripeProductsResult {
   products: [StripeProduct]
   success: Boolean
+}
+
+type StripeProductUpdateResult {
+  product: StripeProduct
+  success: Boolean
+  message: String
 }
 
 type StripeCheckoutSessionResult {

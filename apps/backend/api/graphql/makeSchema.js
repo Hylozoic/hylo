@@ -306,6 +306,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
 export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
+    checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
@@ -427,8 +428,6 @@ export function makeMutations ({ fetchOne }) {
     clearModerationAction: (root, { postId, groupId, moderationActionId }, context) => clearModerationAction({ userId: context.currentUserId, postId, groupId, moderationActionId }),
 
     completePost: (root, { postId, completionResponse }, context) => completePost(context.currentUserId, postId, completionResponse),
-
-    checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
 
     grantContentAccess: (root, args, context) => grantContentAccess(context.currentUserId, args),
 
