@@ -319,18 +319,20 @@ module.exports = bookshelf.Model.extend({
     if (!roundUser) {
       roundUser = await FundingRoundUser.create({ funding_round_id: roundId, user_id: userId }, { transacting })
       await round.save({ num_participants: round.get('num_participants') + 1 }, { transacting })
-      const group = await round.group().fetch({ transacting })
-      const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
-      const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
-      const stewardsIds = stewards.pluck('id')
-      const activities = stewardsIds.map(stewardId => ({
-        reason: 'fundingRoundJoin',
-        actor_id: userId,
-        group_id: group.id,
-        reader_id: stewardId,
-        funding_round_id: round.id
-      }))
-      await Activity.saveForReasons(activities, transacting)
+
+      // XXX: don't send notifications for joining a funding round for now
+      // const group = await round.group().fetch({ transacting })
+      // const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch({ transacting })
+      // const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch({ transacting })
+      // const stewardsIds = stewards.pluck('id')
+      // const activities = stewardsIds.map(stewardId => ({
+      //   reason: 'fundingRoundJoin',
+      //   actor_id: userId,
+      //   group_id: group.id,
+      //   reader_id: stewardId,
+      //   funding_round_id: round.id
+      // }))
+      // await Activity.saveForReasons(activities, transacting)
     }
     return roundUser
   },

@@ -1413,6 +1413,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'actor',
         'post',
         'comment',
+        'fundingRound',
         'group',
         'otherGroup',
         'track'

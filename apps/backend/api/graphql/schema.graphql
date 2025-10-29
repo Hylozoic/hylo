@@ -379,6 +379,8 @@ type Subscription {
 
 # The meta data associated with an Activity
 type ActivityMeta {
+  # The phase of the funding round that this activity is related to
+  phase: String
   """
     The reasons for this activity, options are:
       'mention' = // you are mentioned in a post or comment
@@ -399,8 +401,13 @@ type ActivityMeta {
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
+      'fundingRoundNewSubmission' = someone submitted a new submission to a funding round
+      'fundingRoundPhaseTransition' = a phase transition in a funding round
+      'fundingRoundReminder' = a reminder of a funding round deadline
   """
   reasons: [String]
+  # The type of reminder for this activity if it is a reminder (for funding rounds)
+  reminderType: String
 }
 
 # An activity that someone may want to be notified about
@@ -436,6 +443,8 @@ type Activity {
   contributionAmount: Int
   # Additional metadata about the Activity
   meta: ActivityMeta
+  # If this activity involved a funding round then this is the FundingRound
+  fundingRound: FundingRound
   # The Group related to the activity
   group: Group
   # The other Group related to this activity for ones involving multiple groups

@@ -32,4 +32,3 @@ export function getRoundPhaseMeta (round) {
     votingClosesAt
   }
 }
-

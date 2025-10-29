@@ -176,7 +176,10 @@ module.exports = bookshelf.Model.extend({
     GroupPeerGroupInvite: 'groupPeerGroupInvite',
     GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
     TrackCompleted: 'trackCompleted',
-    TrackEnrollment: 'trackEnrollment'
+    TrackEnrollment: 'trackEnrollment',
+    FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
+    FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
+    FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
   },
 
   find: function (id, options) {
