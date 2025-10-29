@@ -115,7 +115,7 @@ module.exports = bookshelf.Model.extend({
     metadata = {}
   }, { transacting } = {}) {
     const contentAccess = this.get('content_access') || {}
-    const groupId = this.get('group_id')
+    const grantedByGroupId = this.get('group_id') // The group that owns/sells this product
     const productId = this.get('id')
     const duration = this.get('duration')
     const accessRecords = []
@@ -127,7 +127,7 @@ module.exports = bookshelf.Model.extend({
     if (Object.keys(contentAccess).length === 0) {
       const record = await ContentAccess.recordPurchase({
         userId,
-        groupId,
+        grantedByGroupId,
         productId,
         sessionId,
         paymentIntentId,
@@ -145,6 +145,7 @@ module.exports = bookshelf.Model.extend({
       // Create base group access record
       const baseRecord = await ContentAccess.recordPurchase({
         userId,
+        grantedByGroupId,
         groupId: groupIdNum,
         productId,
         sessionId,
@@ -162,6 +163,7 @@ module.exports = bookshelf.Model.extend({
         for (const trackId of groupAccess.trackIds) {
           const trackRecord = await ContentAccess.recordPurchase({
             userId,
+            grantedByGroupId,
             groupId: groupIdNum,
             productId,
             trackId,
@@ -182,6 +184,7 @@ module.exports = bookshelf.Model.extend({
         for (const roleId of groupAccess.roleIds) {
           const roleRecord = await ContentAccess.recordPurchase({
             userId,
+            grantedByGroupId,
             groupId: groupIdNum,
             productId,
             roleId,

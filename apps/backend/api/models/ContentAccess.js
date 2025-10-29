@@ -13,7 +13,16 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * The group this access grant is for
+   * The group that grants this access
+   * Required - this is the group administering the access grant
+   */
+  grantedByGroup: function () {
+    return this.belongsTo(Group, 'granted_by_group_id')
+  },
+
+  /**
+   * The group this access grant is for (optional)
+   * Can be null for system-level or cross-group grants
    */
   group: function () {
     return this.belongsTo(Group, 'group_id')
@@ -87,14 +96,15 @@ module.exports = bookshelf.Model.extend({
    *
    * @param {Object} attrs - Access attributes
    * @param {String|Number} attrs.user_id - User receiving access
-   * @param {String|Number} attrs.group_id - Group the access is for
-   * @param {String} attrs.access_type - Type: 'stripe_purchase', 'admin_grant', or 'free'
+   * @param {String|Number} attrs.granted_by_group_id - Group granting the access (required)
+   * @param {String|Number} [attrs.group_id] - Group the access is for (optional)
+   * @param {String} attrs.access_type - Type: 'stripe_purchase' or 'admin_grant'
    * @param {String} [attrs.product_id] - Optional Stripe product ID
    * @param {String} [attrs.track_id] - Optional track ID
    * @param {String} [attrs.role_id] - Optional role ID
    * @param {Date} [attrs.expires_at] - Optional expiration date
    * @param {String} [attrs.stripe_session_id] - For Stripe purchases
-   * @param {Number} [attrs.amount_paid] - Amount paid in cents
+   * @param {String} [attrs.stripe_payment_intent_id] - Stripe payment intent ID
    * @param {String} [attrs.granted_by_id] - Admin who granted access
    * @param {Object} [attrs.metadata] - Additional metadata
    * @param {Object} options - Options including transacting
@@ -122,8 +132,9 @@ module.exports = bookshelf.Model.extend({
    * Grant free access to content (admin action)
    * @param {Object} params
    * @param {String|Number} params.userId - User to grant access to
-   * @param {String|Number} params.groupId - Group to grant access for
-   * @param {String|Number} params.grantedById - Admin granting the access
+   * @param {String|Number} params.grantedByGroupId - Group granting the access (required)
+   * @param {String|Number} params.groupId - Group to grant access for (optional)
+   * @param {String|Number} params.grantedById - Admin granting the access (optional)
    * @param {String|Number} [params.productId] - Optional product
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.roleId] - Optional role
@@ -134,6 +145,7 @@ module.exports = bookshelf.Model.extend({
    */
   grantAccess: async function ({
     userId,
+    grantedByGroupId,
     groupId,
     grantedById,
     productId,
@@ -147,6 +159,7 @@ module.exports = bookshelf.Model.extend({
 
     return this.create({
       user_id: userId,
+      granted_by_group_id: grantedByGroupId,
       group_id: groupId,
       product_id: productId,
       track_id: trackId,
@@ -162,7 +175,8 @@ module.exports = bookshelf.Model.extend({
    * Record a Stripe purchase (called from webhook handler)
    * @param {Object} params
    * @param {String|Number} params.userId - User who made the purchase
-   * @param {String|Number} params.groupId - Group the purchase is for
+   * @param {String|Number} params.grantedByGroupId - Group making the purchase available (required)
+   * @param {String|Number} params.groupId - Group the purchase is for (optional)
    * @param {String|Number} params.productId - Stripe product ID (from stripe_products table)
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.roleId] - Optional role
@@ -175,6 +189,7 @@ module.exports = bookshelf.Model.extend({
    */
   recordPurchase: async function ({
     userId,
+    grantedByGroupId,
     groupId,
     productId,
     trackId,
@@ -186,6 +201,7 @@ module.exports = bookshelf.Model.extend({
   }, { transacting } = {}) {
     return this.create({
       user_id: userId,
+      granted_by_group_id: grantedByGroupId,
       group_id: groupId,
       product_id: productId,
       track_id: trackId,
@@ -229,19 +245,21 @@ module.exports = bookshelf.Model.extend({
    * Check if a user has active access to content
    * @param {Object} params
    * @param {String|Number} params.userId - User to check
-   * @param {String|Number} params.groupId - Group to check
+   * @param {String|Number} params.grantedByGroupId - Group granting the access (required)
+   * @param {String|Number} [params.groupId] - Specific group access is for (optional)
    * @param {String|Number} [params.productId] - Optional product
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.roleId] - Optional role
    * @returns {Promise<ContentAccess|null>}
    */
-  checkAccess: async function ({ userId, groupId, productId, trackId, roleId }) {
+  checkAccess: async function ({ userId, grantedByGroupId, groupId, productId, trackId, roleId }) {
     const query = this.where({
       user_id: userId,
-      group_id: groupId,
+      granted_by_group_id: grantedByGroupId,
       status: this.Status.ACTIVE
     })
 
+    if (groupId) query.where({ group_id: groupId })
     if (productId) query.where({ product_id: productId })
     if (trackId) query.where({ track_id: trackId })
     if (roleId) query.where({ role_id: roleId })
@@ -259,15 +277,15 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Get all active access records for a user in a group
+   * Get all active access records for a user granted by a specific group
    * @param {String|Number} userId
-   * @param {String|Number} groupId
+   * @param {String|Number} grantedByGroupId - Group granting the access
    * @returns {Promise<Collection<ContentAccess>>}
    */
-  forUser: function (userId, groupId) {
+  forUser: function (userId, grantedByGroupId) {
     return this.where({
       user_id: userId,
-      group_id: groupId,
+      granted_by_group_id: grantedByGroupId,
       status: this.Status.ACTIVE
     }).fetchAll()
   },

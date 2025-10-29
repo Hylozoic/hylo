@@ -25,6 +25,7 @@ import {
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
+  checkContentAccess,
   clearModerationAction,
   completePost,
   createAffiliation,
@@ -67,6 +68,7 @@ import {
   findOrCreateThread,
   flagInappropriateContent,
   fulfillPost,
+  grantContentAccess,
   inviteGroupToGroup,
   invitePeerRelationship,
   invitePeopleToEvent,
@@ -85,6 +87,7 @@ import {
   reactOn,
   reactivateUser,
   recordClickthrough,
+  recordStripePurchase,
   regenerateAccessCode,
   registerDevice,
   registerStripeAccount,
@@ -106,6 +109,7 @@ import {
   reorderPostInCollection,
   resendInvitation,
   respondToEvent,
+  revokeContentAccess,
   savePost,
   sendEmailVerification,
   sendPasswordReset,
@@ -423,6 +427,14 @@ export function makeMutations ({ fetchOne }) {
     clearModerationAction: (root, { postId, groupId, moderationActionId }, context) => clearModerationAction({ userId: context.currentUserId, postId, groupId, moderationActionId }),
 
     completePost: (root, { postId, completionResponse }, context) => completePost(context.currentUserId, postId, completionResponse),
+
+    checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
+
+    grantContentAccess: (root, args, context) => grantContentAccess(context.currentUserId, args),
+
+    revokeContentAccess: (root, args, context) => revokeContentAccess(context.currentUserId, args),
+
+    recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 

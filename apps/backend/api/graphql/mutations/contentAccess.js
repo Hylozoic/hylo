@@ -24,7 +24,8 @@ module.exports = {
    *   mutation {
    *     grantContentAccess(
    *       userId: "456"
-   *       groupId: "123"
+   *       grantedByGroupId: "123"
+   *       groupId: "789"  // optional - for access to a group
    *       productId: "789"  // optional - for product-based access
    *       trackId: "101"    // optional - for track-based access
    *       expiresAt: "2025-12-31T23:59:59Z"  // optional
@@ -38,9 +39,11 @@ module.exports = {
    */
   grantContentAccess: async (sessionUserId, {
     userId,
+    grantedByGroupId,
     groupId,
     productId,
     trackId,
+    roleId,
     expiresAt,
     reason
   }) => {
@@ -50,16 +53,16 @@ module.exports = {
         throw new GraphQLError('You must be logged in to grant content access')
       }
 
-      // Verify the group exists first
-      const group = await Group.where({ id: groupId }).fetch()
-      if (!group) {
-        throw new GraphQLError('Group not found')
+      // Verify the granting group exists first
+      const grantingGroup = await Group.where({ id: grantedByGroupId }).fetch()
+      if (!grantingGroup) {
+        throw new GraphQLError('Granting group not found')
       }
 
-      // Verify user has admin permission for this group
-      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      // Verify user has admin permission for the granting group
+      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, grantedByGroupId, Responsibility.constants.RESP_ADMINISTRATION)
       if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to grant content access')
+        throw new GraphQLError('You must be an administrator of the granting group to grant content access')
       }
 
       // Verify the target user exists
@@ -68,18 +71,28 @@ module.exports = {
         throw new GraphQLError('User not found')
       }
 
-      // Must provide either productId or trackId
-      if (!productId && !trackId) {
-        throw new GraphQLError('Must specify either productId or trackId')
+      // If groupId is provided, verify it exists
+      if (groupId) {
+        const targetGroup = await Group.where({ id: groupId }).fetch()
+        if (!targetGroup) {
+          throw new GraphQLError('Target group not found')
+        }
+      }
+
+      // Must provide either productId, trackId, or roleId
+      if (!productId && !trackId && !roleId) {
+        throw new GraphQLError('Must specify either productId, trackId, or roleId')
       }
 
       // Grant access using the ContentAccess model
       const access = await ContentAccess.grantAccess({
         userId,
+        grantedByGroupId,
         groupId,
         grantedById: sessionUserId,
         productId,
         trackId,
+        roleId,
         expiresAt,
         reason
       })
@@ -87,9 +100,11 @@ module.exports = {
       return {
         id: access.id,
         userId,
+        grantedByGroupId,
         groupId,
         productId,
         trackId,
+        roleId,
         accessType: access.get('access_type'),
         status: access.get('status'),
         success: true,
@@ -134,9 +149,10 @@ module.exports = {
         throw new GraphQLError('Access record not found')
       }
 
-      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, access.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
+      // Check permissions against the granting group
+      const hasAdmin = await GroupMembership.hasResponsibility(sessionUserId, access.get('granted_by_group_id'), Responsibility.constants.RESP_ADMINISTRATION)
       if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to revoke access')
+        throw new GraphQLError('You must be an administrator of the granting group to revoke access')
       }
 
       // Revoke the access using the model method
@@ -165,8 +181,9 @@ module.exports = {
    *   query {
    *     checkContentAccess(
    *       userId: "456"
-   *       groupId: "123"
-   *       productId: "789"  // or trackId: "101"
+   *       grantedByGroupId: "123"
+   *       groupId: "789"  // optional - for group-specific access
+   *       productId: "789"  // optional - or trackId: "101" or roleId: "202"
    *     ) {
    *       hasAccess
    *       accessType
@@ -174,14 +191,16 @@ module.exports = {
    *     }
    *   }
    */
-  checkContentAccess: async (sessionUserId, { userId, groupId, productId, trackId }) => {
+  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, roleId }) => {
     try {
       // Check access using the model method
       const access = await ContentAccess.checkAccess({
         userId,
+        grantedByGroupId,
         groupId,
         productId,
-        trackId
+        trackId,
+        roleId
       })
 
       if (!access) {
@@ -219,12 +238,13 @@ module.exports = {
    *   mutation {
    *     recordStripePurchase(
    *       userId: "456"
-   *       groupId: "123"
+   *       grantedByGroupId: "123"
+   *       groupId: "789"  // optional
    *       productId: "789"
+   *       trackId: "101"  // optional
+   *       roleId: "202"   // optional
    *       sessionId: "cs_xxx"
    *       paymentIntentId: "pi_xxx"
-   *       amountPaid: 2000
-   *       currency: "usd"
    *     ) {
    *       id
    *       success
@@ -233,6 +253,7 @@ module.exports = {
    */
   recordStripePurchase: async (sessionUserId, {
     userId,
+    grantedByGroupId,
     groupId,
     productId,
     trackId,
@@ -251,6 +272,7 @@ module.exports = {
       // Record the purchase using the model method
       const access = await ContentAccess.recordPurchase({
         userId,
+        grantedByGroupId,
         groupId,
         productId,
         trackId,

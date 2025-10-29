@@ -31,7 +31,8 @@ Tracks products/offerings created by groups:
 
 **Key Columns:**
 - `user_id` - Who has access
-- `group_id` - Which group
+- `granted_by_group_id` - Which group is granting the access (required, not null)
+- `group_id` - Which group access is FOR (optional, nullable) - can differ from granting group
 - `product_id` - Product id denotes the entity in Stripe that tracks an offering/product
 - `track_id` - Optional: Grants access to a specific track within a group
 - `role_id` - Optional: References `groups_roles` table, represents role-based access grants by admins
@@ -40,22 +41,28 @@ Tracks products/offerings created by groups:
 - `amount_paid` - Amount paid (0 for free grants)
 - `status` - active/expired/revoked
 - `granted_by_id` - Admin who granted access (for admin grants)
-- `expires_at` - Optional expiration date
+- `expires_at` - Optional expiration date (for group and role access, NOT for tracks)
 - `metadata` - Flexible JSONB for additional info
 
 **Access Granularity:**
 Access can be granted at multiple levels:
-- **Group-level**: Just `group_id` set - access to entire group content
-- **Track-level**: `track_id` set - access to specific track content
+- **Group-level**: `group_id` set - access to group content
+- **Track-level**: `track_id` set - access to specific track content (tracks are one-time, no expiration tracking)
 - **Role-level**: `role_id` set - access tied to a specific group role
+
+**Important: track_id, role_id, and group_id are MUTUALLY EXCLUSIVE in terms of their triggers:**
+Only ONE of these combinations will be active for a content_access record:
+- `track_id` set (implies track-level access)
+- `role_id` set (implies role-level access)  
+- `group_id` set (implies group-level access)
 
 **Automatic Expiration Mirroring:**
 The `expires_at` value from `content_access` is automatically mirrored to related tables using PostgreSQL triggers:
 - **When track_id is NULL** (group-level or role-based): `group_memberships.expires_at` (based on `user_id` + `group_id`)
-- **When track_id is set**: `tracks_users.expires_at` (based on `user_id` + `track_id`)
-- **When role_id is set**: `group_memberships_group_roles.expires_at` (based on `user_id` + `group_id` + `group_role_id`)
+- **When track_id is set**: `tracks_users.access_granted` (boolean, set to true/false since tracks don't expire)
+- **When role_id is set**: `group_memberships_group_roles.expires_at` (based on `user_id` + `group_id` + `group_role_id`) AND `group_memberships.expires_at`
 
-**Important:** Track purchases do NOT update `group_memberships.expires_at`. This prevents a one-off track purchase from overwriting a long-term group membership expiration. However, role bumps DO update group membership (having a role implies group access).
+**Important:** Track purchases (track_id set) do NOT update any expiration dates. Instead, the `access_granted` boolean in `tracks_users` is set to true when access is granted and false when revoked. This is because track access is one-time and doesn't expire.
 
 This avoids the need for JOINs when checking expiration - you can query the respective tables directly.
 
@@ -69,10 +76,10 @@ To avoid constantly joining `content_access` with membership tables, PostgreSQL 
 **When content access is granted or updated:**
 1. User inserts/updates a record in `content_access` with `expires_at` set
 2. Trigger `content_access_expires_at_sync` fires automatically
-3. Function `sync_content_access_expires_at()` executes:
-   - **If track_id is NULL**: Updates `group_memberships.expires_at` (group-level or role-based purchase)
-   - **If track_id is set**: Updates `tracks_users.expires_at` (track-specific purchase, does NOT update group_memberships)
-   - **If role_id is set**: Updates `group_memberships_group_roles.expires_at` (role-specific purchase, also updates group_memberships if no track_id)
+3. Function `sync_content_access_expires_at()` executes (THREE MUTUALLY EXCLUSIVE CONDITIONALS):
+   - **If track_id is NOT NULL**: Sets `tracks_users.access_granted = true` (one-time access, no expiration)
+   - **If role_id is NOT NULL**: Updates `group_memberships_group_roles.expires_at` AND `group_memberships.expires_at` based on `granted_by_group_id`
+   - **If BOTH are NULL** (group-level access): Updates `group_memberships.expires_at` based on `granted_by_group_id`
 
 **When access is revoked or expires:**
 1. Status changes to 'revoked' or 'expired' in `content_access`

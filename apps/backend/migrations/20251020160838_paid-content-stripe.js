@@ -39,7 +39,8 @@ exports.up = async function (knex) {
   await knex.schema.createTable('content_access', function (table) {
     table.bigIncrements('id').primary()
     table.bigInteger('user_id').unsigned().notNullable().references('id').inTable('users')
-    table.bigInteger('group_id').unsigned().notNullable().references('id').inTable('groups')
+    table.bigInteger('granted_by_group_id').unsigned().notNullable().references('id').inTable('groups')
+    table.bigInteger('group_id').unsigned().references('id').inTable('groups')
     table.bigInteger('product_id').unsigned().references('id').inTable('stripe_products')
     table.integer('track_id').unsigned().references('id').inTable('tracks')
     table.integer('role_id').unsigned().references('id').inTable('groups_roles')
@@ -66,6 +67,7 @@ exports.up = async function (knex) {
     table.timestamps(true, true)
 
     table.index(['user_id', 'status'])
+    table.index(['granted_by_group_id'])
     table.index(['group_id'])
     table.index(['product_id'])
     table.index(['track_id'])
@@ -81,7 +83,7 @@ exports.up = async function (knex) {
   })
 
   await knex.schema.table('tracks_users', function (table) {
-    table.timestamp('expires_at').comment('Mirrored from content_access table via trigger')
+    table.boolean('access_granted').comment('Whether user has access to track (set via trigger)')
   })
 
   await knex.schema.table('group_memberships_group_roles', function (table) {
@@ -102,57 +104,43 @@ exports.up = async function (knex) {
     table.boolean('paywall').defaultTo(false).comment('Whether this group requires purchased membership')
   })
 
-  // Create trigger function to sync expires_at to related tables
+  // Create trigger function to sync content_access expiration to related tables
   // This function automatically updates the related tables whenever content_access is modified
+  //
+  // IMPORTANT: track_id, role_id, and granted_by_group_id are mutually exclusive
+  // Only ONE of these will be set for any given content_access record
   //
   // IMPORTANT: Multiple content_access records can reference the same stripe product
   // (e.g., a bundle purchase, recurring subscriptions, or multiple purchases over time)
   //
   // IMPORTANT: Uses the MOST RECENT expires_at from ALL active content_access records
   // This prevents old/expired records from overwriting newer access grants
-  //
-  // IMPORTANT: Only update group_memberships.expires_at when track_id is NULL
-  // This prevents track purchases from overwriting the group membership expiration
   await knex.raw(`
     CREATE OR REPLACE FUNCTION sync_content_access_expires_at()
     RETURNS TRIGGER AS $$
     DECLARE
       latest_expires_at TIMESTAMP WITH TIME ZONE;
     BEGIN
-      IF NEW.track_id IS NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND track_id IS NULL
-          AND status = 'active';
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
-      END IF;
+      -- Track-level access: sync to tracks_users
       IF NEW.track_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND track_id = NEW.track_id
-          AND status = 'active';
         UPDATE tracks_users
-        SET expires_at = latest_expires_at, updated_at = NOW()
+        SET access_granted = true, updated_at = NOW()
         WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
       END IF;
+
+      -- Role-level access: sync to group_memberships_group_roles and group_memberships
       IF NEW.role_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND role_id = NEW.role_id
-          AND status = 'active';
-        UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND group_role_id = NEW.role_id;
+        SELECT MAX(expires_at) INTO latest_expires_at FROM content_access WHERE user_id = NEW.user_id AND role_id = NEW.role_id AND granted_by_group_id = NEW.granted_by_group_id AND status = 'active';
+        UPDATE group_memberships_group_roles SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id AND group_role_id = NEW.role_id;
+        UPDATE group_memberships SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
       END IF;
+
+      -- Group-level access: sync to group_memberships
+      IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at FROM content_access WHERE user_id = NEW.user_id AND granted_by_group_id = NEW.granted_by_group_id AND track_id IS NULL AND role_id IS NULL AND status = 'active';
+        UPDATE group_memberships SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+      END IF;
+
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
@@ -175,43 +163,26 @@ exports.up = async function (knex) {
     DECLARE
       latest_expires_at TIMESTAMP WITH TIME ZONE;
     BEGIN
-      IF NEW.track_id IS NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND track_id IS NULL
-          AND status = 'active'
-          AND id != NEW.id;
-        UPDATE group_memberships
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id AND group_id = NEW.group_id;
-      END IF;
+      -- Track-level access: clear from tracks_users
       IF NEW.track_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND track_id = NEW.track_id
-          AND status = 'active'
-          AND id != NEW.id;
         UPDATE tracks_users
-        SET expires_at = latest_expires_at, updated_at = NOW()
+        SET access_granted = false, updated_at = NOW()
         WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
       END IF;
+
+      -- Role-level access: clear from group_memberships_group_roles and group_memberships
       IF NEW.role_id IS NOT NULL THEN
-        SELECT MAX(expires_at) INTO latest_expires_at
-        FROM content_access
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND role_id = NEW.role_id
-          AND status = 'active'
-          AND id != NEW.id;
-        UPDATE group_memberships_group_roles
-        SET expires_at = latest_expires_at, updated_at = NOW()
-        WHERE user_id = NEW.user_id
-          AND group_id = NEW.group_id
-          AND group_role_id = NEW.role_id;
+        SELECT MAX(expires_at) INTO latest_expires_at FROM content_access WHERE user_id = NEW.user_id AND role_id = NEW.role_id AND granted_by_group_id = NEW.granted_by_group_id AND status = 'active' AND id != NEW.id;
+        UPDATE group_memberships_group_roles SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id AND group_role_id = NEW.role_id;
+        UPDATE group_memberships SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
       END IF;
+
+      -- Group-level access: clear from group_memberships
+      IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
+        SELECT MAX(expires_at) INTO latest_expires_at FROM content_access WHERE user_id = NEW.user_id AND granted_by_group_id = NEW.granted_by_group_id AND track_id IS NULL AND role_id IS NULL AND status = 'active' AND id != NEW.id;
+        UPDATE group_memberships SET expires_at = latest_expires_at, updated_at = NOW() WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+      END IF;
+
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
@@ -240,7 +211,7 @@ exports.down = async function (knex) {
   })
 
   await knex.schema.table('tracks_users', function (table) {
-    table.dropColumn('expires_at')
+    table.dropColumn('access_granted')
   })
 
   await knex.schema.table('group_memberships_group_roles', function (table) {

@@ -47,14 +47,14 @@ describe('Content Access Mutations', () => {
     it('grants access to a product for a user', async () => {
       const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: product.id,
         reason: 'Staff member'
       })
 
       expect(result.success).to.be.true
       expect(result.userId).to.equal(user.id)
-      expect(result.groupId).to.equal(group.id)
+      expect(result.grantedByGroupId).to.equal(group.id)
       expect(result.productId).to.equal(product.id)
       expect(result.accessType).to.equal('admin_grant')
       expect(result.status).to.equal('active')
@@ -63,7 +63,7 @@ describe('Content Access Mutations', () => {
       const access = await ContentAccess.where({ id: result.id }).fetch()
       expect(access).to.exist
       expect(access.get('user_id')).to.equal(user.id)
-      expect(access.get('group_id')).to.equal(group.id)
+      expect(access.get('granted_by_group_id')).to.equal(group.id)
       expect(access.get('product_id')).to.equal(product.id)
       expect(access.get('access_type')).to.equal('admin_grant')
       expect(access.get('status')).to.equal('active')
@@ -72,7 +72,7 @@ describe('Content Access Mutations', () => {
     it('grants access to a track for a user', async () => {
       const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         trackId: track.id,
         reason: 'Promotional access'
       })
@@ -90,7 +90,7 @@ describe('Content Access Mutations', () => {
 
       const result = await grantContentAccess(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: product.id,
         expiresAt,
         reason: 'Temporary access'
@@ -106,7 +106,7 @@ describe('Content Access Mutations', () => {
       await expect(
         grantContentAccess(null, {
           userId: user.id,
-          groupId: group.id,
+          grantedByGroupId: group.id,
           productId: product.id,
           reason: 'Test'
         })
@@ -117,18 +117,18 @@ describe('Content Access Mutations', () => {
       await expect(
         grantContentAccess(user.id, {
           userId: user.id,
-          groupId: group.id,
+          grantedByGroupId: group.id,
           productId: product.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('You must be a group administrator to grant content access')
+      ).to.be.rejectedWith('You must be an administrator of the granting group to grant content access')
     })
 
     it('rejects access grant for non-existent user', async () => {
       await expect(
         grantContentAccess(adminUser.id, {
           userId: 99999,
-          groupId: group.id,
+          grantedByGroupId: group.id,
           productId: product.id,
           reason: 'Test'
         })
@@ -139,21 +139,21 @@ describe('Content Access Mutations', () => {
       await expect(
         grantContentAccess(adminUser.id, {
           userId: user.id,
-          groupId: 99999,
+          grantedByGroupId: 99999,
           productId: product.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('Group not found')
+      ).to.be.rejectedWith('Granting group not found')
     })
 
     it('rejects access grant without productId or trackId', async () => {
       await expect(
         grantContentAccess(adminUser.id, {
           userId: user.id,
-          groupId: group.id,
+          grantedByGroupId: group.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('Must specify either productId or trackId')
+      ).to.be.rejectedWith('Must specify either productId, trackId, or roleId')
     })
   })
 
@@ -164,7 +164,7 @@ describe('Content Access Mutations', () => {
       // Create an access record to revoke
       accessRecord = await ContentAccess.create({
         user_id: user.id,
-        group_id: group.id,
+        granted_by_group_id: group.id,
         product_id: product.id,
         access_type: 'admin_grant',
         status: 'active',
@@ -201,7 +201,7 @@ describe('Content Access Mutations', () => {
           accessId: accessRecord.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('You must be a group administrator to revoke access')
+      ).to.be.rejectedWith('You must be an administrator of the granting group to revoke access')
     })
 
     it('rejects revocation for non-existent access record', async () => {
@@ -219,7 +219,7 @@ describe('Content Access Mutations', () => {
       // Create an active access record
       await ContentAccess.create({
         user_id: user.id,
-        group_id: group.id,
+        granted_by_group_id: group.id,
         product_id: product.id,
         access_type: 'admin_grant',
         status: 'active',
@@ -230,7 +230,7 @@ describe('Content Access Mutations', () => {
     it('returns access information for user with access', async () => {
       const result = await checkContentAccess(user.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: product.id
       })
 
@@ -244,7 +244,7 @@ describe('Content Access Mutations', () => {
 
       const result = await checkContentAccess(otherUser.id, {
         userId: otherUser.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: product.id
       })
 
@@ -257,7 +257,7 @@ describe('Content Access Mutations', () => {
     it('returns no access for non-existent product', async () => {
       const result = await checkContentAccess(user.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: 99999
       })
 
@@ -273,7 +273,7 @@ describe('Content Access Mutations', () => {
 
       const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         productId: product.id,
         sessionId,
         paymentIntentId,
@@ -287,7 +287,7 @@ describe('Content Access Mutations', () => {
       // Verify the access record was created
       const access = await ContentAccess.where({ id: result.id }).fetch()
       expect(access.get('user_id')).to.equal(user.id)
-      expect(access.get('group_id')).to.equal(group.id)
+      expect(access.get('granted_by_group_id')).to.equal(group.id)
       expect(access.get('product_id')).to.equal(product.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
       expect(access.get('stripe_session_id')).to.equal(sessionId)
@@ -299,7 +299,7 @@ describe('Content Access Mutations', () => {
     it('records a track-specific purchase', async () => {
       const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         trackId: track.id,
         sessionId: 'cs_test_456',
         paymentIntentId: 'pi_test_456',
@@ -325,7 +325,7 @@ describe('Content Access Mutations', () => {
 
       const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
-        groupId: group.id,
+        grantedByGroupId: group.id,
         roleId: role.id,
         sessionId: 'cs_test_789',
         paymentIntentId: 'pi_test_789',

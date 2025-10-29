@@ -13,6 +13,12 @@ export {
   removePostFromCollection
 } from './collection'
 export {
+  grantContentAccess,
+  revokeContentAccess,
+  checkContentAccess,
+  recordStripePurchase
+} from './contentAccess'
+export {
   createComment,
   createMessage,
   deleteComment,
