@@ -969,6 +969,8 @@ CREATE TABLE public.group_relationships (
     active boolean DEFAULT true,
     role integer,
     settings jsonb DEFAULT '{}'::jsonb,
+    relationship_type integer DEFAULT 0 NOT NULL,
+    description text,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
 );

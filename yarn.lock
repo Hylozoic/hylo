@@ -13068,8 +13068,6 @@ __metadata:
     oidc-provider: "npm:^7.11.3"
     parse-redis-url: "npm:0.0.2"
     passport: "npm:^0.2.1"
-    passport-facebook: "npm:2.1.1"
-    passport-facebook-token: "npm:3.3.0"
     passport-google-oauth: "npm:^2.0.0"
     passport-google-token: "npm:^0.1.2"
     passport-jwt: "npm:^4.0.0"
@@ -29713,24 +29711,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-facebook-token@npm:3.3.0":
-  version: 3.3.0
-  resolution: "passport-facebook-token@npm:3.3.0"
-  dependencies:
-    passport-oauth: "npm:1.0.0"
-  checksum: 10/9640b13241efae6c2e611aa7f16e4f752d50b92a08c7d7a0420441e01cecda0ddf828777d5c5dab2513d58357cdfe7c9382f0e6b10b18f62a1ef192a59726028
-  languageName: node
-  linkType: hard
-
-"passport-facebook@npm:2.1.1":
-  version: 2.1.1
-  resolution: "passport-facebook@npm:2.1.1"
-  dependencies:
-    passport-oauth2: "npm:1.x.x"
-  checksum: 10/b78a5b584ae4a9252b3cc7b6239f1ae05981cca051e2132a8aecf67694dbed2def49108b4e316da0175cd73c31a962c7246b370b6e9e8ab3c5cc02c38a091bb2
-  languageName: node
-  linkType: hard
-
 "passport-google-oauth1@npm:1.x.x":
   version: 1.0.0
   resolution: "passport-google-oauth1@npm:1.0.0"
@@ -29834,7 +29814,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-oauth@npm:1.0.0, passport-oauth@npm:^1.0.0":
+"passport-oauth@npm:^1.0.0":
   version: 1.0.0
   resolution: "passport-oauth@npm:1.0.0"
   dependencies:

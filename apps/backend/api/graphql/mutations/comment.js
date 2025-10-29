@@ -11,9 +11,12 @@ export async function canDeleteComment (userId, comment) {
 
   const commentWithGroups = await comment.load('post.groups')
 
-  return commentWithGroups.relations.post.relations.groups.map(g =>
+  const hasResponsibilityPromises = commentWithGroups.relations.post.relations.groups.models.map(g =>
     GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_MANAGE_CONTENT)
   )
+
+  const results = await Promise.all(hasResponsibilityPromises)
+  return results.some(r => r)
 }
 
 export async function canUpdateComment (userId, comment) {
