@@ -159,8 +159,10 @@ export {
   createStripeAccountLink,
   stripeAccountStatus,
   createStripeProduct,
+  updateStripeProduct,
   stripeProducts,
-  createStripeCheckoutSession
+  createStripeCheckoutSession,
+  checkStripeStatus
 } from './stripe'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 

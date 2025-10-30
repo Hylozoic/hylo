@@ -12,6 +12,25 @@ import { GraphQLError } from 'graphql'
 
 /* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
 
+/**
+ * Helper function to convert a database account ID to an external Stripe account ID
+ * If the accountId already starts with 'acct_', it's already the external ID
+ * Otherwise, look it up from the database
+ */
+async function getExternalAccountId (accountId) {
+  // If it already starts with 'acct_', it's already the external ID
+  if (accountId && accountId.startsWith('acct_')) {
+    return accountId
+  }
+
+  // Otherwise, it's a database ID - look up the external account ID
+  const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+  if (!stripeAccount) {
+    throw new GraphQLError('Stripe account record not found')
+  }
+  return stripeAccount.get('stripe_account_external_id')
+}
+
 module.exports = {
 
   /**
@@ -126,9 +145,12 @@ module.exports = {
         throw new GraphQLError('You must be a group administrator to manage payments')
       }
 
+      // Convert database ID to external account ID if needed
+      const externalAccountId = await getExternalAccountId(accountId)
+
       // Create the account link
       const accountLink = await StripeService.createAccountLink({
-        accountId,
+        accountId: externalAccountId,
         returnUrl,
         refreshUrl
       })
@@ -178,8 +200,11 @@ module.exports = {
         throw new GraphQLError('You must be a member of this group to view payment status')
       }
 
-      // Get account status from Stripe
-      const status = await StripeService.getAccountStatus(accountId)
+      // Convert database ID to external account ID if needed
+      const externalAccountId = await getExternalAccountId(accountId)
+
+      // Get account status from Stripe using the external account ID
+      const status = await StripeService.getAccountStatus(externalAccountId)
 
       return {
         accountId: status.id,
@@ -251,9 +276,12 @@ module.exports = {
         throw new GraphQLError('You must be a group administrator to create products')
       }
 
+      // Convert database ID to external account ID if needed
+      const externalAccountId = await getExternalAccountId(accountId)
+
       // Create the product on the connected account
       const product = await StripeService.createProduct({
-        accountId,
+        accountId: externalAccountId,
         name,
         description,
         priceInCents,
@@ -465,8 +493,11 @@ module.exports = {
         throw new GraphQLError('You must be a group administrator to view products')
       }
 
+      // Convert database ID to external account ID if needed
+      const externalAccountId = await getExternalAccountId(accountId)
+
       // Get products from Stripe
-      const productsResponse = await StripeService.getProducts(accountId)
+      const productsResponse = await StripeService.getProducts(externalAccountId)
 
       // Extract products array from Stripe response (which has a 'data' property)
       const products = productsResponse.data || productsResponse
@@ -528,8 +559,11 @@ module.exports = {
       // Authentication is optional for checkout - you may want to allow guests
       // For this demo, we'll allow unauthenticated purchases
 
+      // Convert database ID to external account ID if needed
+      const externalAccountId = await getExternalAccountId(accountId)
+
       // Fetch the actual price from Stripe to calculate the application fee accurately
-      const priceObject = await StripeService.getPrice(accountId, priceId)
+      const priceObject = await StripeService.getPrice(externalAccountId, priceId)
 
       // Calculate the total amount (price * quantity)
       const totalAmount = priceObject.unit_amount * (quantity || 1)
@@ -542,7 +576,7 @@ module.exports = {
 
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
-        accountId,
+        accountId: externalAccountId,
         priceId,
         quantity: quantity || 1,
         applicationFeeAmount,
@@ -568,6 +602,82 @@ module.exports = {
       }
       console.error('Error in createStripeCheckoutSession:', error)
       throw new GraphQLError(`Failed to create checkout session: ${error.message}`)
+    }
+  },
+
+  /**
+   * Checks the Stripe account status and updates the database
+   *
+   * This mutation fetches the current status from Stripe and updates
+   * the group's stripe status fields in the database.
+   *
+   * Usage:
+   *   mutation {
+   *     checkStripeStatus(groupId: "123") {
+   *       success
+   *       message
+   *       chargesEnabled
+   *       payoutsEnabled
+   *       detailsSubmitted
+   *     }
+   *   }
+   */
+  checkStripeStatus: async (userId, { groupId }) => {
+    try {
+      // Check if user is authenticated
+      if (!userId) {
+        throw new GraphQLError('You must be logged in to check Stripe status')
+      }
+
+      // Load the group
+      const group = await Group.find(groupId)
+      if (!group) {
+        throw new GraphQLError('Group not found')
+      }
+
+      // Verify user has permission for this group
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
+        throw new GraphQLError('You must be a group administrator to check Stripe status')
+      }
+
+      // Get the Stripe account ID from the group
+      const stripeAccountId = group.get('stripe_account_id')
+      if (!stripeAccountId) {
+        throw new GraphQLError('Group does not have a connected Stripe account')
+      }
+
+      // Get the StripeAccount record to find the external account ID
+      const stripeAccount = await StripeAccount.where({ id: stripeAccountId }).fetch()
+      if (!stripeAccount) {
+        throw new GraphQLError('Stripe account record not found')
+      }
+
+      const externalAccountId = stripeAccount.get('stripe_account_external_id')
+
+      // Get account status from Stripe
+      const status = await StripeService.getAccountStatus(externalAccountId)
+
+      // Update the group with the latest status from Stripe
+      await group.save({
+        stripe_charges_enabled: status.charges_enabled,
+        stripe_payouts_enabled: status.payouts_enabled,
+        stripe_details_submitted: status.details_submitted
+      }, { patch: true })
+
+      return {
+        success: true,
+        message: 'Stripe status updated successfully',
+        chargesEnabled: status.charges_enabled,
+        payoutsEnabled: status.payouts_enabled,
+        detailsSubmitted: status.details_submitted
+      }
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in checkStripeStatus:', error)
+      throw new GraphQLError(`Failed to check Stripe status: ${error.message}`)
     }
   }
 }

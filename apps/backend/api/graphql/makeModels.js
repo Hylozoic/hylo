@@ -608,6 +608,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'purpose',
         'slug',
         'stripe_account_id',
+        'stripe_charges_enabled',
+        'stripe_payouts_enabled',
+        'stripe_details_submitted',
         'type',
         'visibility',
         'website_url',
@@ -786,6 +789,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // commonRoles: async g => g.commonRoles(),
         homeWidget: g => g.homeWidget(),
+        stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),

@@ -307,6 +307,18 @@ type Query {
     offset: Int
   ): SkillQuerySet,
 
+  # Get the status of a connected Stripe account
+  stripeAccountStatus(
+    groupId: ID!
+    accountId: String!
+  ): StripeAccountStatusResult
+
+  # List all products for a connected Stripe account
+  stripeProducts(
+    groupId: ID!
+    accountId: String!
+  ): StripeProductsResult
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -822,6 +834,14 @@ type Group {
   stewardDescriptorPlural: String
   # Stripe Connected Account ID for accepting payments
   stripeAccountId: String
+  # Direct link to the Stripe Dashboard for this group's connected account
+  stripeDashboardUrl: String
+  # Whether the Stripe account can accept charges
+  stripeChargesEnabled: Boolean
+  # Whether the Stripe account can receive payouts
+  stripePayoutsEnabled: Boolean
+  # Whether all required Stripe details have been submitted
+  stripeDetailsSubmitted: Boolean
   # Right now can either by 'farm' or null
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
@@ -3166,12 +3186,6 @@ type Mutation {
     refreshUrl: String!
   ): StripeAccountLinkResult
 
-  # Get the status of a connected account
-  stripeAccountStatus(
-    groupId: ID!
-    accountId: String!
-  ): StripeAccountStatusResult
-
   # Create a product on the connected account
   createStripeProduct(input: StripeProductInput!): StripeProductResult
 
@@ -3188,12 +3202,6 @@ type Mutation {
     publishStatus: PublishStatus
   ): StripeProductUpdateResult
 
-  # List all products for a connected account
-  stripeProducts(
-    groupId: ID!
-    accountId: String!
-  ): StripeProductsResult
-
   # Create a checkout session for purchasing a product
   createStripeCheckoutSession(
     groupId: ID!
@@ -3204,6 +3212,9 @@ type Mutation {
     cancelUrl: String!
     metadata: JSON
   ): StripeCheckoutSessionResult
+
+  # Check Stripe account status and update database values
+  checkStripeStatus(groupId: ID!): StripeStatusCheckResult
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -3280,6 +3291,14 @@ type StripeAccountStatusResult {
   detailsSubmitted: Boolean
   email: String
   requirements: JSON
+}
+
+type StripeStatusCheckResult {
+  success: Boolean
+  message: String
+  chargesEnabled: Boolean
+  payoutsEnabled: Boolean
+  detailsSubmitted: Boolean
 }
 
 type StripeProductResult {

@@ -141,6 +141,14 @@ import {
   updateStripeAccount,
   updateWidget,
   useInvitation,
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  stripeAccountStatus,
+  createStripeProduct,
+  updateStripeProduct,
+  stripeProducts,
+  createStripeCheckoutSession,
+  checkStripeStatus,
   verifyEmail
 } from './mutations'
 import peopleTyping from './mutations/peopleTyping'
@@ -366,6 +374,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         })
     },
     skills: (root, args) => fetchMany('Skill', args),
+    stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
+    stripeProducts: (root, { groupId, accountId }, context) => stripeProducts(context.currentUserId, { groupId, accountId }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
@@ -555,6 +565,18 @@ export function makeMutations ({ fetchOne }) {
     registerDevice: () => registerDevice(),
 
     registerStripeAccount: (root, { authorizationCode }, context) => registerStripeAccount(context.currentUserId, authorizationCode),
+
+    createStripeConnectedAccount: (root, { groupId, email, businessName, country, existingAccountId }, context) => createStripeConnectedAccount(context.currentUserId, { groupId, email, businessName, country, existingAccountId }),
+
+    createStripeAccountLink: (root, { groupId, accountId, returnUrl, refreshUrl }, context) => createStripeAccountLink(context.currentUserId, { groupId, accountId, returnUrl, refreshUrl }),
+
+    createStripeProduct: (root, { input }, context) => createStripeProduct(context.currentUserId, input),
+
+    updateStripeProduct: (root, { productId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeProduct(context.currentUserId, { productId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
+
+    createStripeCheckoutSession: (root, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }),
+
+    checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 
     reinviteAll: (root, { groupId }, context) => reinviteAll(context.currentUserId, groupId),
 

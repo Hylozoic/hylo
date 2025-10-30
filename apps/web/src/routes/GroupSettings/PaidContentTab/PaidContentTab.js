@@ -24,22 +24,26 @@ import {
   createConnectedAccount,
   createAccountLink,
   fetchAccountStatus,
+  checkStripeStatus,
   createProduct,
   fetchProducts
+  // updateProduct - TODO: Enable when database product IDs are available
 } from './PaidContentTab.store'
-import { updateGroupSettings } from '../GroupSettings.store'
+import { updateGroupSettings, fetchGroupSettings } from '../GroupSettings.store'
 
 /**
  * Main PaidContentTab component
  * Orchestrates the Stripe Connect integration UI
  */
-function PaidContentTab ({ group }) {
+function PaidContentTab ({ group, currentUser }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
 
   // Local state for managing Stripe account and products
+  // Note: accountId comes from camelCase GraphQL field
+  const initialAccountId = group?.stripeAccountId || ''
   const [state, setState] = useState({
-    accountId: group?.stripeAccountId || '',
+    accountId: initialAccountId,
     accountStatus: null,
     products: [],
     loading: false,
@@ -60,68 +64,42 @@ function PaidContentTab ({ group }) {
 
   // Update accountId when group changes
   useEffect(() => {
-    if (group?.stripeAccountId && group.stripeAccountId !== state.accountId) {
-      setState(prev => ({ ...prev, accountId: group.stripeAccountId }))
+    const newAccountId = group?.stripeAccountId || ''
+    if (newAccountId && newAccountId !== state.accountId) {
+      setState(prev => ({ ...prev, accountId: newAccountId }))
     }
   }, [group?.stripeAccountId])
 
-  // Load account status if we have an account ID
-  useEffect(() => {
-    if (state.accountId && group?.id) {
-      loadAccountStatus()
-      loadProducts()
-    }
-  }, [state.accountId, group?.id])
-
   /**
-   * Creates a new Stripe Connected Account for this group
+   * Loads the current account status from Stripe
    *
-   * This is the first step in enabling payments. Once the account is created,
-   * the group admin needs to complete onboarding via an Account Link.
+   * This fetches the live status to show onboarding progress
+   * and payment capabilities.
    */
-  const handleCreateAccount = useCallback(async () => {
-    if (!group) return
-
-    setState(prev => ({ ...prev, loading: true, error: null }))
+  const loadAccountStatus = useCallback(async () => {
+    if (!group?.id || !state.accountId) return
 
     try {
-      const result = await dispatch(createConnectedAccount(
-        group.id,
-        group.contactEmail || '', // TODO STRIPE: Use appropriate email field
-        group.name,
-        'US' // TODO STRIPE: Make country selectable or detect from user
-      ))
+      const result = await dispatch(fetchAccountStatus(group.id, state.accountId))
 
       if (result.error) {
-        throw new Error(result.error.message || 'Failed to create connected account')
+        throw new Error(result.error.message)
       }
 
-      const accountId = result.payload?.data?.createStripeConnectedAccount?.accountId
-
-      if (!accountId) {
-        throw new Error('No account ID returned from server')
-      }
-
-      // Save accountId to your group model in the database
-      await dispatch(updateGroupSettings(group.id, { stripeAccountId: accountId }))
+      const status = result.payload?.data?.stripeAccountStatus
 
       setState(prev => ({
         ...prev,
-        accountId,
-        loading: false
+        accountStatus: status
       }))
-
-      // Automatically trigger onboarding after account creation
-      handleStartOnboarding(accountId)
     } catch (error) {
-      console.error('Error creating connected account:', error)
+      console.error('Error loading account status:', error)
       setState(prev => ({
         ...prev,
-        loading: false,
         error: error.message
       }))
     }
-  }, [dispatch, group])
+  }, [dispatch, group, state.accountId])
 
   /**
    * Generates an Account Link and redirects the user to Stripe
@@ -177,35 +155,86 @@ function PaidContentTab ({ group }) {
   }, [dispatch, group, state.accountId])
 
   /**
-   * Loads the current account status from Stripe
+   * Creates a new Stripe Connected Account for this group
    *
-   * This fetches the live status to show onboarding progress
-   * and payment capabilities.
+   * This is the first step in enabling payments. Once the account is created,
+   * the group admin needs to complete onboarding via an Account Link.
    */
-  const loadAccountStatus = useCallback(async () => {
-    if (!group?.id || !state.accountId) return
+  const handleCreateAccount = useCallback(async ({ email, businessName, country, existingAccountId }) => {
+    if (!group) return
+
+    setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const result = await dispatch(fetchAccountStatus(group.id, state.accountId))
+      const result = await dispatch(createConnectedAccount(
+        group.id,
+        email,
+        businessName || group.name,
+        country || 'US',
+        existingAccountId || null
+      ))
 
-      if (result.error) {
-        throw new Error(result.error.message)
+      // Check for errors in the response
+      if (result.error || result.payload?.errors) {
+        const error = result.error || result.payload?.errors?.[0]
+        throw new Error(error?.message || 'Failed to create connected account')
       }
 
-      const status = result.payload?.data?.stripeAccountStatus
+      // Access data - getData() is at result.payload.getData
+      const responseData = result.payload?.getData
+        ? result.payload.getData()
+        : result.payload?.data?.createStripeConnectedAccount
+
+      // If the mutation returned null, log full details
+      if (!responseData || responseData === null) {
+        console.error('Mutation returned null. Full response:', {
+          payload: result.payload,
+          payloadData: result.payload?.data,
+          getDataResult: result.payload?.getData ? result.payload.getData() : null,
+          errors: result.payload?.errors
+        })
+        throw new Error('The server returned null. This usually means the mutation failed. Check the browser console and server logs for details.')
+      }
+
+      const accountId = responseData.accountId
+
+      if (!accountId) {
+        throw new Error('Server response missing accountId field: ' + JSON.stringify(responseData))
+      }
+
+      // Save accountId to your group model in the database
+      await dispatch(updateGroupSettings(group.id, { stripeAccountId: accountId }))
 
       setState(prev => ({
         ...prev,
-        accountStatus: status
+        accountId,
+        loading: false
       }))
+
+      // Automatically trigger onboarding after account creation (only for new accounts)
+      if (!existingAccountId) {
+        handleStartOnboarding(accountId)
+      } else {
+        // For existing accounts, just refresh status
+        loadAccountStatus()
+      }
     } catch (error) {
-      console.error('Error loading account status:', error)
+      console.error('Error creating/connecting account:', error)
       setState(prev => ({
         ...prev,
+        loading: false,
         error: error.message
       }))
     }
-  }, [dispatch, group, state.accountId])
+  }, [dispatch, group, handleStartOnboarding, loadAccountStatus])
+
+  // Load account status if we have an account ID
+  useEffect(() => {
+    if (state.accountId && group?.id) {
+      loadAccountStatus()
+      loadProducts()
+    }
+  }, [state.accountId, group?.id])
 
   /**
    * Loads all products for this connected account
@@ -232,16 +261,51 @@ function PaidContentTab ({ group }) {
   }, [dispatch, group, state.accountId])
 
   /**
-   * Refreshes account status - useful after returning from onboarding
+   * Checks Stripe status and updates the database
    */
-  const handleRefreshStatus = useCallback(() => {
-    loadAccountStatus()
-    loadProducts()
-  }, [loadAccountStatus, loadProducts])
+  const handleCheckStripeStatus = useCallback(async () => {
+    if (!group) return
+
+    setState(prev => ({ ...prev, loading: true, error: null }))
+
+    try {
+      const result = await dispatch(checkStripeStatus(group.id))
+
+      if (result.error || result.payload?.errors) {
+        const error = result.error || result.payload?.errors?.[0]
+        throw new Error(error?.message || 'Failed to check Stripe status')
+      }
+
+      const responseData = result.payload?.getData
+        ? result.payload.getData()
+        : result.payload?.data?.checkStripeStatus
+
+      if (!responseData || !responseData.success) {
+        throw new Error(responseData?.message || 'Failed to check Stripe status')
+      }
+
+      // Refresh the group data to get updated stripe status values from the DB
+      if (group?.slug) {
+        await dispatch(fetchGroupSettings(group.slug))
+      }
+
+      setState(prev => ({ ...prev, loading: false, error: null }))
+
+      // Reload live account status to reflect the updates
+      loadAccountStatus()
+    } catch (error) {
+      console.error('Error checking Stripe status:', error)
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message
+      }))
+    }
+  }, [dispatch, group, loadAccountStatus])
 
   if (!group) return <Loading />
 
-  const { accountId, accountStatus, products, loading, error } = state
+  const { accountId, products, loading, error } = state
 
   return (
     <div className='mb-[300px]'>
@@ -261,31 +325,34 @@ function PaidContentTab ({ group }) {
       )}
 
       <SettingsSection>
-        {!accountId ? (
-          <AccountSetupSection
-            loading={loading}
-            onCreateAccount={handleCreateAccount}
-            t={t}
-          />
-        ) : (
-          <>
-            <AccountStatusSection
-              accountStatus={accountStatus}
+        {!accountId
+          ? (
+            <AccountSetupSection
               loading={loading}
-              onStartOnboarding={handleStartOnboarding}
-              onRefreshStatus={handleRefreshStatus}
-              t={t}
-            />
-
-            <ProductManagementSection
+              onCreateAccount={handleCreateAccount}
+              onConnectAccount={handleCreateAccount}
               group={group}
-              accountId={accountId}
-              products={products}
-              onRefreshProducts={loadProducts}
+              currentUser={currentUser}
               t={t}
-            />
-          </>
-        )}
+            />)
+          : (
+            <>
+              <StripeStatusSection
+                group={group}
+                loading={loading}
+                onCheckStatus={handleCheckStripeStatus}
+                onStartOnboarding={handleStartOnboarding}
+                t={t}
+              />
+
+              <ProductManagementSection
+                group={group}
+                accountId={accountId}
+                products={products}
+                onRefreshProducts={loadProducts}
+                t={t}
+              />
+            </>)}
       </SettingsSection>
     </div>
   )
@@ -295,63 +362,186 @@ function PaidContentTab ({ group }) {
  * Section for initial account setup
  *
  * Displayed when the group doesn't have a Stripe account yet.
+ * Provides a form to collect account information for creating or connecting accounts.
  */
-function AccountSetupSection ({ loading, onCreateAccount, t }) {
+function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, group, currentUser, t }) {
+  const [formData, setFormData] = useState({
+    email: currentUser?.email || '',
+    businessName: group?.name || '',
+    country: 'US',
+    existingAccountId: ''
+  })
+  const [isConnectingExisting, setIsConnectingExisting] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault()
+
+    // Validate required fields
+    if (!formData.email.trim()) {
+      alert(t('Email is required'))
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      alert(t('Please enter a valid email address'))
+      return
+    }
+
+    // If connecting existing account, validate account ID
+    if (isConnectingExisting) {
+      if (!formData.existingAccountId.trim()) {
+        alert(t('Please enter a Stripe account ID'))
+        return
+      }
+      if (!formData.existingAccountId.startsWith('acct_')) {
+        alert(t('Stripe account IDs must start with "acct_"'))
+        return
+      }
+    }
+
+    setSubmitting(true)
+    try {
+      await (isConnectingExisting ? onConnectAccount : onCreateAccount)({
+        email: formData.email.trim(),
+        businessName: formData.businessName.trim() || group.name,
+        country: formData.country,
+        existingAccountId: isConnectingExisting ? formData.existingAccountId.trim() : null
+      })
+    } catch (error) {
+      console.error('Error creating/connecting account:', error)
+      // Error state is handled by parent component
+    } finally {
+      setSubmitting(false)
+    }
+  }, [formData, isConnectingExisting, onCreateAccount, onConnectAccount, group, t])
+
   return (
-    <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
-      <div className='flex items-start gap-4'>
-        <CreditCard className='w-12 h-12 text-primary flex-shrink-0' />
-        <div className='flex-1'>
-          <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
-          <p className='text-foreground/70 mb-4'>
-            {t('Create a Stripe Connect account to start accepting payments. This allows your group to receive payments directly while maintaining security and compliance.')}
-          </p>
-          <ul className='text-sm text-foreground/70 mb-4 space-y-1 list-disc list-inside'>
-            <li>{t('Accept credit card and other payment methods')}</li>
-            <li>{t('Automatic payouts to your bank account')}</li>
-            <li>{t('Full dashboard access to view transactions')}</li>
-            <li>{t('Stripe handles all payment disputes and fraud')}</li>
-          </ul>
+    <SettingsSection>
+      <div className='mb-4'>
+        <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
+        <p className='text-sm text-foreground/70 mb-4'>
+          {t('Set up Stripe Connect to accept payments. You can create a new account or connect an existing Stripe account.')}
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <SettingsControl
+          label={t('Email')}
+          type='email'
+          value={formData.email}
+          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          placeholder={currentUser?.email || t('your-email@example.com')}
+          required
+          helpText={t('This email will be associated with your Stripe account')}
+        />
+
+        <SettingsControl
+          label={t('Business Name')}
+          value={formData.businessName}
+          onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+          placeholder={group?.name || t('Business or Organization Name')}
+          helpText={t('The name of your business or organization (defaults to group name)')}
+        />
+
+        <div className='flex gap-3'>
+          <div className='flex-1'>
+            <SettingsControl
+              label={t('Country')}
+              value={formData.country}
+              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+              renderControl={(props) => (
+                <select {...props} className='w-full p-2 rounded-md bg-background border border-border text-foreground'>
+                  <option value='US'>{t('United States')}</option>
+                  <option value='CA'>{t('Canada')}</option>
+                  <option value='GB'>{t('United Kingdom')}</option>
+                  <option value='AU'>{t('Australia')}</option>
+                  <option value='IE'>{t('Ireland')}</option>
+                  <option value='NZ'>{t('New Zealand')}</option>
+                  <option value='DE'>{t('Germany')}</option>
+                  <option value='FR'>{t('France')}</option>
+                  <option value='ES'>{t('Spain')}</option>
+                  <option value='NL'>{t('Netherlands')}</option>
+                </select>
+              )}
+              helpText={t('Country where your business is located')}
+            />
+          </div>
+        </div>
+
+        <div className='flex items-center gap-2 mb-4'>
+          <input
+            type='checkbox'
+            id='connectExisting'
+            checked={isConnectingExisting}
+            onChange={(e) => setIsConnectingExisting(e.target.checked)}
+            className='w-4 h-4'
+          />
+          <label htmlFor='connectExisting' className='text-sm text-foreground/70 cursor-pointer'>
+            {t('Connect an existing Stripe account instead')}
+          </label>
+        </div>
+
+        {isConnectingExisting && (
+          <SettingsControl
+            label={t('Stripe Account ID')}
+            value={formData.existingAccountId}
+            onChange={(e) => setFormData(prev => ({ ...prev, existingAccountId: e.target.value }))}
+            placeholder='acct_...'
+            required={isConnectingExisting}
+            helpText={t('Enter your existing Stripe Connect account ID (starts with "acct_")')}
+          />
+        )}
+
+        <div className='flex gap-2 justify-end pt-4'>
           <Button
-            onClick={onCreateAccount}
-            disabled={loading}
+            type='submit'
+            disabled={loading || submitting}
             className='w-full sm:w-auto'
           >
-            {loading ? t('Creating account...') : t('Create Stripe Account')}
+            {submitting
+              ? (isConnectingExisting ? t('Connecting...') : t('Creating...'))
+              : (isConnectingExisting ? t('Connect Account') : t('Create Account'))}
           </Button>
         </div>
+      </form>
+
+      <div className='mt-4 p-3 bg-background/50 rounded-md text-sm text-foreground/70'>
+        <p className='font-semibold mb-2'>{t('About Stripe Connect:')}</p>
+        <ul className='space-y-1 list-disc list-inside'>
+          <li>{t('Accept credit card and other payment methods')}</li>
+          <li>{t('Automatic payouts to your bank account')}</li>
+          <li>{t('Full dashboard access to view transactions')}</li>
+          <li>{t('Stripe handles all payment disputes and fraud')}</li>
+        </ul>
       </div>
-    </div>
+    </SettingsSection>
   )
 }
 
 /**
- * Section showing account onboarding status
+ * Section showing Stripe account status from database
  *
- * Displays the current state of the connected account and provides
- * actions to complete onboarding or view the Stripe dashboard.
+ * Displays the current state of the connected account based on database values,
+ * and provides actions to check status with Stripe or complete onboarding.
  */
-function AccountStatusSection ({ accountStatus, loading, onStartOnboarding, onRefreshStatus, t }) {
-  if (loading && !accountStatus) {
-    return (
-      <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
-        <Loading />
-      </div>
-    )
-  }
-
-  const isFullyOnboarded = accountStatus?.chargesEnabled && accountStatus?.payoutsEnabled
-  const needsOnboarding = !accountStatus?.detailsSubmitted
+function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding, t }) {
+  const chargesEnabled = group?.stripeChargesEnabled
+  const payoutsEnabled = group?.stripePayoutsEnabled
+  const detailsSubmitted = group?.stripeDetailsSubmitted
+  const paywall = group?.paywall
+  const isFullyOnboarded = chargesEnabled && payoutsEnabled
+  const needsOnboarding = !detailsSubmitted
 
   return (
     <div className='bg-card p-6 rounded-md text-foreground shadow-xl mb-4'>
       <div className='flex items-start justify-between mb-4'>
         <div className='flex items-start gap-3'>
-          {isFullyOnboarded ? (
-            <CheckCircle className='w-8 h-8 text-green-500 flex-shrink-0' />
-          ) : (
-            <AlertCircle className='w-8 h-8 text-amber-500 flex-shrink-0' />
-          )}
+          {isFullyOnboarded
+            ? (<CheckCircle className='w-8 h-8 text-green-500 flex-shrink-0' />)
+            : (<AlertCircle className='w-8 h-8 text-amber-500 flex-shrink-0' />)}
           <div>
             <h3 className='text-lg font-semibold mb-1'>
               {isFullyOnboarded ? t('Account Active') : t('Account Setup Required')}
@@ -359,39 +549,71 @@ function AccountStatusSection ({ accountStatus, loading, onStartOnboarding, onRe
             <p className='text-sm text-foreground/70'>
               {isFullyOnboarded
                 ? t('Your Stripe account is fully set up and ready to accept payments.')
-                : t('Complete your account setup to start accepting payments.')
-              }
+                : t('Complete your account setup to start accepting payments.')}
             </p>
           </div>
         </div>
         <Button
           variant='outline'
           size='sm'
-          onClick={onRefreshStatus}
+          onClick={onCheckStatus}
+          disabled={loading}
         >
-          {t('Refresh')}
+          {loading ? t('Checking...') : t('Check Stripe Status')}
         </Button>
       </div>
 
-      {accountStatus && (
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
-          <StatusBadge
-            label={t('Accept Payments')}
-            value={accountStatus.chargesEnabled}
-            t={t}
-          />
-          <StatusBadge
-            label={t('Receive Payouts')}
-            value={accountStatus.payoutsEnabled}
-            t={t}
-          />
-          <StatusBadge
-            label={t('Details Submitted')}
-            value={accountStatus.detailsSubmitted}
-            t={t}
-          />
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
+        <StatusBadge
+          label={t('Accept Payments')}
+          value={chargesEnabled}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Receive Payouts')}
+          value={payoutsEnabled}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Details Submitted')}
+          value={detailsSubmitted}
+          t={t}
+        />
+      </div>
+
+      {group?.stripeDashboardUrl && (
+        <div className='mb-4'>
+          <a
+            href={group.stripeDashboardUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
+          >
+            <ExternalLink className='w-4 h-4' />
+            {t('Open Stripe Dashboard')}
+          </a>
         </div>
       )}
+
+      <div className='mb-4'>
+        <SettingsControl
+          label={t('Paywall Enabled')}
+          helpText={t('When enabled, users must purchase access to join this group')}
+          renderControl={() => (
+            <div className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                checked={paywall || false}
+                disabled
+                className='w-4 h-4'
+              />
+              <span className='text-sm text-foreground/70'>
+                {paywall ? t('Yes') : t('No')}
+              </span>
+            </div>
+          )}
+        />
+      </div>
 
       {needsOnboarding && (
         <Button
@@ -401,15 +623,6 @@ function AccountStatusSection ({ accountStatus, loading, onStartOnboarding, onRe
           <ExternalLink className='w-4 h-4 mr-2' />
           {t('Complete Onboarding')}
         </Button>
-      )}
-
-      {accountStatus?.requirements && accountStatus.requirements.currently_due?.length > 0 && (
-        <div className='mt-4 p-3 bg-amber-500/10 border border-amber-500 rounded-md'>
-          <p className='text-sm font-semibold mb-1'>{t('Action Required')}</p>
-          <p className='text-sm text-foreground/70'>
-            {t('There are {{count}} items that need your attention.', { count: accountStatus.requirements.currently_due.length })}
-          </p>
-        </div>
       )}
     </div>
   )
@@ -438,6 +651,7 @@ function StatusBadge ({ label, value, t }) {
 function ProductManagementSection ({ group, accountId, products, onRefreshProducts, t }) {
   const dispatch = useDispatch()
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingProduct, setEditingProduct] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -445,6 +659,7 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
     currency: 'usd'
   })
   const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
 
   /**
    * Handles product creation
@@ -491,6 +706,71 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
     }
   }, [dispatch, group, accountId, formData, onRefreshProducts, t])
 
+  /**
+   * Handles product updates
+   */
+  const handleUpdateProduct = useCallback(async (e) => {
+    e.preventDefault()
+
+    if (!editingProduct || !formData.name) {
+      alert(t('Please fill in all required fields'))
+      return
+    }
+
+    setUpdating(true)
+
+    try {
+      const updates = {}
+      if (formData.name !== editingProduct.name) updates.name = formData.name
+      if (formData.description !== editingProduct.description) updates.description = formData.description
+
+      // Note: We can't update price easily since it requires creating a new price in Stripe
+      // For now, we'll only allow updating name and description
+
+      if (Object.keys(updates).length === 0) {
+        setEditingProduct(null)
+        setUpdating(false)
+        return
+      }
+
+      // Note: updateProduct requires the database product ID, not the Stripe product ID
+      // For now, we'll show a message that this feature needs database product IDs
+      // In production, you'd need to fetch/store the database product ID
+      alert(t('Product updates require database product IDs. This feature is coming soon.'))
+
+      // TODO: Implement full update when database product IDs are available
+      // const result = await dispatch(updateProduct(editingProduct.databaseId, updates))
+      // if (result.error) {
+      //   throw new Error(result.error.message)
+      // }
+
+      setEditingProduct(null)
+      setFormData({ name: '', description: '', price: '', currency: 'usd' })
+      onRefreshProducts()
+    } catch (error) {
+      console.error('Error updating product:', error)
+      alert(t('Failed to update product: {{error}}', { error: error.message }))
+    } finally {
+      setUpdating(false)
+    }
+  }, [dispatch, editingProduct, formData, onRefreshProducts, t])
+
+  const handleStartEdit = useCallback((product) => {
+    setEditingProduct(product)
+    setFormData({
+      name: product.name || '',
+      description: product.description || '',
+      price: '', // Price editing would be complex, skipping for now
+      currency: 'usd'
+    })
+    setShowCreateForm(false)
+  }, [])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingProduct(null)
+    setFormData({ name: '', description: '', price: '', currency: 'usd' })
+  }, [])
+
   return (
     <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
       <div className='flex items-center justify-between mb-4'>
@@ -510,9 +790,11 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
         </Button>
       </div>
 
-      {showCreateForm && (
-        <form onSubmit={handleCreateProduct} className='mb-6 p-4 bg-background rounded-md'>
-          <h4 className='font-semibold mb-3'>{t('Create New Product')}</h4>
+      {(showCreateForm || editingProduct) && (
+        <form onSubmit={editingProduct ? handleUpdateProduct : handleCreateProduct} className='mb-6 p-4 bg-background rounded-md'>
+          <h4 className='font-semibold mb-3'>
+            {editingProduct ? t('Edit Product') : t('Create New Product')}
+          </h4>
 
           <div className='space-y-3'>
             <SettingsControl
@@ -564,39 +846,42 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
               <Button
                 type='button'
                 variant='outline'
-                onClick={() => setShowCreateForm(false)}
+                onClick={editingProduct ? handleCancelEdit : () => setShowCreateForm(false)}
               >
                 {t('Cancel')}
               </Button>
               <Button
                 type='submit'
-                disabled={creating}
+                disabled={creating || updating}
               >
-                {creating ? t('Creating...') : t('Create Product')}
+                {creating ? t('Creating...') : updating ? t('Updating...') : editingProduct ? t('Update Product') : t('Create Product')}
               </Button>
             </div>
           </div>
         </form>
       )}
 
-      {products.length === 0 ? (
-        <div className='text-center py-8 text-foreground/70'>
-          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
-          <p>{t('No products yet')}</p>
-          <p className='text-sm'>{t('Create your first product to start accepting payments')}</p>
-        </div>
-      ) : (
-        <div className='space-y-3'>
-          {products.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              groupSlug={group.slug}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
+      {products.length === 0
+        ? (
+          <div className='text-center py-8 text-foreground/70'>
+            <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+            <p>{t('No products yet')}</p>
+            <p className='text-sm'>{t('Create your first product to start accepting payments')}</p>
+          </div>
+        )
+        : (
+          <div className='space-y-3'>
+            {products.map(product => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                groupSlug={group.slug}
+                onEdit={handleStartEdit}
+                t={t}
+              />
+            ))}
+          </div>
+        )}
 
       {products.length > 0 && (
         <div className='mt-4 p-3 bg-blue-500/10 border border-blue-500 rounded-md'>
@@ -623,21 +908,30 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
 /**
  * Card displaying a single product
  */
-function ProductCard ({ product, groupSlug, t }) {
+function ProductCard ({ product, groupSlug, onEdit, t }) {
   return (
-    <div className='flex items-center justify-between p-3 bg-background rounded-md'>
+    <div className='flex items-center justify-between p-3 bg-background rounded-md hover:bg-background/80 transition-colors'>
       <div className='flex-1'>
         <p className='font-medium'>{product.name}</p>
         {product.description && (
           <p className='text-sm text-foreground/70'>{product.description}</p>
         )}
       </div>
-      <div className='text-right'>
-        <p className='text-sm text-foreground/70'>{t('ID')}: {product.id}</p>
-        {product.active ? (
-          <span className='text-xs text-green-600 font-medium'>{t('Active')}</span>
-        ) : (
-          <span className='text-xs text-gray-600'>{t('Inactive')}</span>
+      <div className='flex items-center gap-3'>
+        <div className='text-right'>
+          <p className='text-sm text-foreground/70'>{t('ID')}: {product.id}</p>
+          {product.active
+            ? (<span className='text-xs text-green-600 font-medium'>{t('Active')}</span>)
+            : (<span className='text-xs text-gray-600'>{t('Inactive')}</span>)}
+        </div>
+        {onEdit && (
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => onEdit(product)}
+          >
+            {t('Edit')}
+          </Button>
         )}
       </div>
     </div>

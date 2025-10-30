@@ -18,6 +18,7 @@ import ResponsibilitiesTab from './ResponsibilitiesTab'
 import ExportDataTab from './ExportDataTab'
 import TracksTab from './TracksTab'
 import WelcomePageTab from './WelcomePageTab'
+import PaidContentTab from './PaidContentTab'
 import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
@@ -182,6 +183,12 @@ export default function GroupSettings () {
     component: <ExportDataTab group={group} />
   }
 
+  const paidContentSettings = {
+    name: t('Paid Content'),
+    path: 'paid-content',
+    component: <PaidContentTab group={group} currentUser={currentUser} />
+  }
+
   const deleteSettings = {
     name: t('Delete'),
     path: 'delete',
@@ -206,6 +213,7 @@ export default function GroupSettings () {
         canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
+        canAdminister ? paidContentSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />
