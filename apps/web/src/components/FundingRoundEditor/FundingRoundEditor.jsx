@@ -453,7 +453,7 @@ function FundingRoundEditor (props) {
 
       <div className='border-t-2 border-foreground/10 p-2'>
         <h2>{submissionDescriptorPlural}</h2>
-        <h3>{t('is the term used to describe submissions to the round. Alternatives include projects, initiatives, ideas, etc. Customize your terms, set your criteria, and choose who can add {{submissionDescriptorPlural}}.', { submissionDescriptorPlural })}</h3>
+        <h3>{t('is the term used to describe entries to the round. Alternatives include projects, initiatives, ideas, etc. Customize your terms, set your criteria, and choose who can add {{submissionDescriptorPlural}}.', { submissionDescriptorPlural })}</h3>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
           <div className='text-xs text-foreground/50 py-1 w-[70px]'>{t('Unit term')}</div>
           <input
@@ -556,6 +556,7 @@ function FundingRoundEditor (props) {
             />
           </div>
         </div>
+        <h3>{t('Choose the token type for this round. Choosing "Votes" (or entering another token name such as "Points" or "Beans) creates a Priority Voting round to establish collective sentiment or priority. Choosing a currency (like "USD" or "ETH") creates a Co-Budgeting Round where each voter can allocate a specific amount of money to each entry.')}</h3>
         <div className='flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-md'>
           <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Token Type')}</div>
           <Popover open={tokenPopoverOpen} onOpenChange={setTokenPopoverOpen}>
@@ -632,6 +633,7 @@ function FundingRoundEditor (props) {
           />
         )}
 
+        <h3>{t('How should the {{tokenType}} be distributed to voters? If "divide evenly" is selected, the total {{tokenType}} will be divided among the voters who have joined the round by the time it begins.', { tokenType })}</h3>
         <RadioGroup onValueChange={updateFundingRoundState('votingMethod')} value={votingMethod || ''}>
           {tokenAllocationOptions.map((option) => (
             <div key={option.value} className='flex items-center gap-2 mb-2 cursor-pointer'>
@@ -666,7 +668,7 @@ function FundingRoundEditor (props) {
       </div>
 
       <div className='border-t-2 border-foreground/10 p-2 gap-4 flex flex-col'>
-        <h2 className='mb-0 pb-0'>{t('Schedule')}</h2>
+        <h2 className='mb-0 pb-0'>{t('Schedule Round Phases')}</h2>
         <h3 className='mt-0 pt-0'>{t('Set the start and end dates for the submissions and voting phases. If no dates are set in advance, phases will start and stop by manually managing the round.')}</h3>
         <div className='flex items-center gap-2'>
           <label>{t('Submissions open')}: </label>

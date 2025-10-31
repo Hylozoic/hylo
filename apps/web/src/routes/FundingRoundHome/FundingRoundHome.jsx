@@ -78,8 +78,10 @@ function FundingRoundHome () {
     const titleText = fundingRound?.title || t('Funding Round')
     const isPublished = !!fundingRound?.publishedAt
     const titleEl = (
-      <span className='flex items-center gap-2 space-between'>
-        <span>{titleText}</span>
+      <span className='flex items-center gap-2 space-between leading-tight'>
+        <span className='text-sm font-semibold leading-tight sm:text-base md:text-lg'>
+          {titleText}
+        </span>
         {canManageRound && (
           <span className={`px-2 py-0.5 rounded-full text-xs ${isPublished ? 'bg-selected text-foreground' : 'bg-foreground/20 text-foreground'}`}>
             {isPublished ? t('Published') : t('Draft')}
