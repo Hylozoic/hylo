@@ -2681,6 +2681,18 @@ type FundingRound {
   votingOpensAt: Date
   # Voting method to be used (current options: token_allocation_constant, token_allocation_divide)
   votingMethod: String
+  # Token allocations for this funding round grouped by user and submission
+  allocations: [FundingRoundAllocation]
+}
+
+# Token allocation for a submission by a user within a funding round
+type FundingRoundAllocation {
+  # The user who allocated tokens
+  user: Person
+  # The submission that received the tokens
+  submission: Post
+  # Number of tokens allocated to the submission
+  tokensAllocated: Int
 }
 
 # Current user's personal settings

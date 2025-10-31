@@ -1,4 +1,4 @@
-import { Settings, ChevronsRight, Trash2 } from 'lucide-react'
+import { Settings, ChevronsRight, Download, Trash2 } from 'lucide-react'
 import React, { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
@@ -16,6 +16,7 @@ import {
 } from 'components/ui/dialog'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateFundingRound, deleteFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import fetchFundingRoundAllocations from 'store/actions/fetchFundingRoundAllocations'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -38,6 +39,7 @@ export default function ManageTab ({ round }) {
     title: '',
     message: ''
   })
+  const [isExporting, setIsExporting] = useState(false)
 
   const submissionsOpenAt = round.submissionsOpenAt ? DateTimeHelpers.toDateTime(round.submissionsOpenAt, { locale: getLocaleFromLocalStorage() }) : null
   const submissionsCloseAt = round.submissionsCloseAt ? DateTimeHelpers.toDateTime(round.submissionsCloseAt, { locale: getLocaleFromLocalStorage() }) : null
@@ -305,6 +307,104 @@ export default function ManageTab ({ round }) {
       }
     })
   }
+  const handleExportResults = useCallback(async () => {
+    if (isExporting) return
+
+    setIsExporting(true)
+
+    try {
+      const response = await dispatch(fetchFundingRoundAllocations(round.id))
+      const allocations = response?.payload?.data?.fundingRound?.allocations || []
+
+      const participantMap = new Map()
+      const normalizeId = (value) => (value == null ? null : String(value))
+
+      const addParticipant = (user) => {
+        if (!user) return null
+        const key = normalizeId(user.id)
+        if (!key) return null
+        if (!participantMap.has(key)) {
+          participantMap.set(key, { user, votes: [] })
+        }
+        return participantMap.get(key)
+      }
+
+      (round.users || []).forEach(user => {
+        addParticipant(user)
+      })
+
+      allocations.forEach(allocation => {
+        const participant = addParticipant(allocation?.user)
+        if (!participant) return
+        const tokens = allocation?.tokensAllocated ?? 0
+        if (tokens <= 0) return
+        participant.votes.push({
+          submission: allocation?.submission || null,
+          tokens
+        })
+      })
+
+      const participants = Array.from(participantMap.values())
+      const maxVotes = participants.reduce((max, participant) => Math.max(max, participant.votes.length), 0)
+
+      const header = [t('Participants')]
+      for (let index = 1; index <= maxVotes; index++) {
+        header.push(`${t('Submission')} ${index}`)
+        header.push(`${t('Tokens')} ${index}`)
+      }
+
+      const escapeCell = (value) => {
+        if (value === null || value === undefined) return ''
+        const stringValue = String(value)
+        return /[",\n]/.test(stringValue)
+          ? `"${stringValue.replace(/"/g, '""')}"`
+          : stringValue
+      }
+
+      const rows = participants
+        .sort((a, b) => (a.user?.name || '').localeCompare(b.user?.name || '', undefined, { sensitivity: 'base' }))
+        .map(({ user, votes }) => {
+          const row = [user?.name || user?.id || '']
+          votes
+            .sort((a, b) => b.tokens - a.tokens)
+            .forEach(vote => {
+              row.push(vote.submission?.title || '')
+              row.push(vote.tokens ?? 0)
+            })
+
+          while (row.length < header.length) {
+            row.push('')
+          }
+
+          return row
+        })
+
+      const csvRows = [header, ...rows]
+      const csvContent = csvRows.map(row => row.map(escapeCell).join(',')).join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const safeTitle = round.title
+        ? round.title.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
+        : 'funding_round'
+      link.setAttribute('download', `${safeTitle || 'funding_round'}-results.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to export funding round results', error)
+      const message = error?.message || t('Unable to export results')
+      setErrorDialog({
+        isOpen: true,
+        title: t('Error'),
+        message
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [dispatch, isExporting, round, t])
 
   return (
     <div className='flex flex-col gap-4 mt-4 pb-4'>
@@ -373,6 +473,17 @@ export default function ManageTab ({ round }) {
                       onClick={() => handleGoBackPhase(phase)}
                     >
                       {phase.backButtonText}
+                    </Button>
+                  )}
+                  {phase.key === 'completed' && phase.isCurrent && (
+                    <Button
+                      size='sm'
+                      className='bg-selected text-foreground border-2 border-selected hover:bg-selected/90 mt-4 mb-2'
+                      onClick={handleExportResults}
+                      disabled={isExporting}
+                    >
+                      <Download className='w-4 h-4 mr-1' />
+                      {isExporting ? t('Exporting...') : t('Export results')}
                     </Button>
                   )}
                   {showForwardButton && (

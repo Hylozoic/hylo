@@ -193,6 +193,18 @@ export function fetchFundingRound (id) {
               }
             }
           }
+          allocations {
+            tokensAllocated
+            submission {
+              id
+              title
+            }
+            user {
+              id
+              name
+              avatarUrl
+            }
+          }
           voterRoles {
             ... on CommonRole {
               id

@@ -45,6 +45,24 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
   // During submission phase, only show posts created by the current user unless you are a steward
   const postsForDisplay = useMemo(() => ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound ? posts : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id)), [canManageRound, posts, currentPhase, currentUser.id])
 
+  const allocationsBySubmission = useMemo(() => {
+    const map = {}
+    const allocationList = Array.isArray(round.allocations)
+      ? round.allocations
+      : Array.isArray(round.allocations?.items)
+        ? round.allocations.items
+        : []
+
+    allocationList.forEach(allocation => {
+      const submissionId = allocation?.submission?.id
+      if (!submissionId) return
+      const key = String(submissionId)
+      if (!map[key]) map[key] = []
+      map[key].push(allocation)
+    })
+    return map
+  }, [round.allocations])
+
   // Initialize local vote amounts when posts change
   React.useEffect(() => {
     setLocalVoteAmounts(prev => {
@@ -126,6 +144,7 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
             localVoteAmount={localVoteAmounts[post.id] || 0}
             setLocalVoteAmount={(amount) => setLocalVoteAmounts(prev => ({ ...prev, [post.id]: amount }))}
             currentTokensRemaining={currentTokensRemaining}
+            submissionAllocations={allocationsBySubmission[String(post.id)] || []}
           />
         ))}
       </div>

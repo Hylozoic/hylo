@@ -38,6 +38,7 @@ FundingRound.fields = {
   tokensRemaining: attr(),
   totalTokens: attr(),
   totalTokensAllocated: attr(),
+  allocations: attr(),
   users: many('Person'),
   updatedAt: attr(),
   voterRoles: many('Role', 'roundsCanVote'),

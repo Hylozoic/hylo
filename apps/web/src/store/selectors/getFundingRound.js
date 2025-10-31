@@ -36,7 +36,8 @@ const getFundingRound = ormCreateSelector(
         submitterRoles: (fundingRound.submitterRoles?.toRefArray() || []).map(addRoleType),
         voterRoles: (fundingRound.voterRoles?.toRefArray() || []).map(addRoleType),
         submissions: fundingRound.submissions?.toModelArray() || [],
-        users
+        users,
+        allocations: fundingRound.ref.allocations || []
       }
     }
     return null
