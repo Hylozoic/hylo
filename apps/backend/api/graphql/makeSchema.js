@@ -225,41 +225,45 @@ export default async function makeSchema ({ req }) {
         const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
         return roundUser ? roundUser.get('tokens_remaining') : null
       }
+      // Expose the new FundingRound.allocations GraphQL field by stitching together
+      // per-user token allocation rows with the existing Post and Person loaders.
       resolvers.FundingRound.allocations = async (fundingRound) => {
         if (!fundingRound) return []
 
         const roundId = fundingRound.get ? fundingRound.get('id') : fundingRound.id
         if (!roundId) return []
 
-        const rows = await bookshelf.knex('posts_users')
-          .join('funding_rounds_posts', 'posts_users.post_id', 'funding_rounds_posts.post_id')
+        const rows = await bookshelf.knex('funding_rounds_posts')
+          .join('posts_users', 'posts_users.post_id', 'funding_rounds_posts.post_id')
           .where('funding_rounds_posts.funding_round_id', roundId)
-          .where('posts_users.active', true)
-          .whereNotNull('posts_users.tokens_allocated_to')
           .where('posts_users.tokens_allocated_to', '>', 0)
+          .whereNotNull('posts_users.tokens_allocated_to')
           .select('posts_users.user_id', 'posts_users.post_id', 'posts_users.tokens_allocated_to')
 
         if (!rows.length) return []
 
         const normalizeId = value => String(value)
-        const userIds = [...new Set(rows.map(row => row.user_id))]
-        const postIds = [...new Set(rows.map(row => row.post_id))]
+        const userIdKeys = rows.map(row => normalizeId(row.user_id)).filter(id => !!id)
+        const postIdKeys = rows.map(row => normalizeId(row.post_id)).filter(id => !!id)
+
+        const uniqueUserIds = [...new Set(userIdKeys)]
+        const uniquePostIds = [...new Set(postIdKeys)]
 
         const [users, posts] = await Promise.all([
-          loaders.Person.loadMany(userIds),
-          loaders.Post.loadMany(postIds)
+          uniqueUserIds.length ? loaders.Person.loadMany(uniqueUserIds) : [],
+          uniquePostIds.length ? loaders.Post.loadMany(uniquePostIds) : []
         ])
 
         const userMap = new Map()
-        users.forEach(user => {
-          if (!user) return
-          userMap.set(normalizeId(user.id), user)
+        uniqueUserIds.forEach((id, index) => {
+          const user = users[index]
+          if (user) userMap.set(id, user)
         })
 
         const postMap = new Map()
-        posts.forEach(post => {
-          if (!post) return
-          postMap.set(normalizeId(post.id), post)
+        uniquePostIds.forEach((id, index) => {
+          const post = posts[index]
+          if (post) postMap.set(id, post)
         })
 
         return rows.map(row => ({
