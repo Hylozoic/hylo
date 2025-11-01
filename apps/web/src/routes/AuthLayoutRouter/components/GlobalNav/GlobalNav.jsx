@@ -285,13 +285,13 @@ export default function GlobalNav (props) {
           showTooltip={isContainerHovered}
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} badgeCount={currentUser?.newNotificationCount} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={isContainerHovered}
-              badgeCount={showBadge ? '!' : 0}
+              badgeCount={showBadge ? '-' : 0}
             >
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
             </GlobalNavItem>}
@@ -356,7 +356,7 @@ export default function GlobalNav (props) {
             <RightClickMenu key={group.id}>
               <RightClickMenuTrigger>
                 <GlobalNavItem
-                  badgeCount={group.newPostCount || 0}
+                  badgeCount={group.newPostCount ? '-' : 0}
                   img={group.avatarUrl}
                   tooltip={group.name}
                   url={`/groups/${group.slug}`}
