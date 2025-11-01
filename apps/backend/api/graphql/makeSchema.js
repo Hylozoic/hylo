@@ -339,7 +339,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
-      resetCount && User.resetNewNotificationCount(context.currentUserId)
+      resetCount && await User.resetNewNotificationCount(context.currentUserId)
       return notifications
     },
     people: (root, args) => fetchMany('Person', args),
