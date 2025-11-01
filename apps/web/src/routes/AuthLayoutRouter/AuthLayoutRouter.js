@@ -17,6 +17,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
+import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
@@ -136,6 +137,13 @@ export default function AuthLayoutRouter (props) {
       setCurrentUserLoading(false)
       dispatch(fetchThreads())
     })()
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        await dispatch(checkForNewNotifications())
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   useEffect(() => {
