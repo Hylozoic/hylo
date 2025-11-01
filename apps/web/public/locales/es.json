@@ -649,6 +649,7 @@
   "New Join Request": "Nueva solicitud de unión",
   "New Member joined <strong>{{groupName}}</strong>": "Nuevo miembro se unió a <strong>{{groupName}}</strong>",
   "New Message": "Nuevo mensaje",
+  "New Message With": "Nuevo mensaje con",
   "New Password": "Nueva contraseña",
   "New Password (Confirm)": "Nueva contraseña (confirmar)",
   "New announcement in <strong>{{groupName}}</strong>": "Nuevo anuncio en <strong>{{groupName}}</strong>",
