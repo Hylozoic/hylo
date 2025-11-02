@@ -16,11 +16,11 @@
 
 .send-message-container {
   display: flex;
-  align-items: center;
   margin-right: 0.5rem;
 }
 
 .send-message-button {
+  position: relative;
   padding: 0;
   line-height: 24px;
   width: 25px;
@@ -36,10 +36,8 @@
 
 .prompt {
   display: flex;
-  align-items: center;
   border-radius: 4px;
   width: 100%;
-  min-height: 56px;
   background-color: hsl(var(--input));
   composes: bdy-lt-sm from 'css/typography.scss';
   color: hsl(var(--foreground));
@@ -52,8 +50,6 @@
 
 .image {
   margin-right: 10px;
-  margin-left: 15px;
-  position: relative;
 }
 
 .anonymous-image {
@@ -66,8 +62,9 @@
 
 .upload-button {
   display: flex;
-  align-items: center;
   margin-right: $space-2x;
+  position: relative;
+  top: -3px;
 }
 
 .upload-button-icon {
@@ -95,6 +92,7 @@
 .editor {
   width: 90%;
   position: relative;
+  top: 2px;
   padding: 0px;
   overflow-wrap: break-word;
   cursor: text;

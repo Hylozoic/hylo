@@ -60,7 +60,7 @@ function CommentForm ({
   const placeholderText = placeholder || t('Add a comment...')
 
   return (
-    <div className={cn('flex flex-col items-center justify-between bg-input rounded-lg p-2', className)}>
+    <div className={cn('CommentForm flex flex-col items-start justify-between bg-input rounded-lg p-3', className)}>
       <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
         {currentUser
           ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
