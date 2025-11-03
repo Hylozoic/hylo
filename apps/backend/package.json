@@ -121,8 +121,6 @@
     "oidc-provider": "^7.11.3",
     "parse-redis-url": "0.0.2",
     "passport": "^0.2.1",
-    "passport-facebook": "2.1.1",
-    "passport-facebook-token": "3.3.0",
     "passport-google-oauth": "^2.0.0",
     "passport-google-token": "^0.1.2",
     "passport-jwt": "^4.0.0",

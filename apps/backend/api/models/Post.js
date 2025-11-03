@@ -531,6 +531,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async removeProposalVote ({ userId, optionId }) {
     const vote = await ProposalVote.query({ where: { user_id: userId, option_id: optionId } }).fetch()
+    if (!vote) {
+      return null
+    }
     const result = await vote.destroy()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
     return result

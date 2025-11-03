@@ -151,7 +151,7 @@ module.exports = {
       if (!group) {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
-        const tags = post.relations.tags
+        const tags = post.relations?.tags
         const firstTopic = tags && tags.first()?.get('name')
         if (fundingRound) {
           return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}?${extraParams}`)

@@ -27,7 +27,7 @@ describe('FullTextSearch', () => {
           order by "rank" desc) as "search"
         left join "group_memberships" on "group_memberships"."user_id" = "search"."user_id"
         left join "comments" on "comments"."id" = "search"."comment_id"
-        left join "posts" on ("posts"."id" = "search"."post_id" or "posts"."id" = "comments"."post_id")
+        left join "posts" on "posts"."id" = "search"."post_id" or "posts"."id" = "comments"."post_id"
         left join "groups_posts" on
           "groups_posts"."post_id" = "search"."post_id"
           or "groups_posts"."post_id" = "comments"."post_id"

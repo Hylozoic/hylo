@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import { Link, useLocation } from 'react-router-dom'
@@ -20,6 +21,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
     return (
       <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground text-sm', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
+        <ExternalLink />
       </a>
     )
   }
