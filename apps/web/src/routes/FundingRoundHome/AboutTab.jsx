@@ -78,8 +78,8 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
         <Info label={t('Budget Required')} value={round.requireBudget ? t('Yes') : t('No')} />
         <Info label={t('Voting Method')} value={round.votingMethod === 'token_allocation_constant' ? t('Equal Token Allocation') : t('Divide Total Tokens Equally')} />
-        {round.tokenType && <Info label={t('Token Type')} value={round.tokenType} />}
-        {round.totalTokens != null && <Info label={round.votingMethod === 'token_allocation_constant' ? t('Tokens per Voter') : t('Total Tokens')} value={round.totalTokens} />}
+        <Info label={t('Token Type')} value={round.tokenType} />
+        <Info label={round.votingMethod === 'token_allocation_constant' ? t('Tokens per Voter') : t('Total Tokens')} value={round.totalTokens} />
         {round.minTokenAllocation != null && <Info label={t('Minimum Tokens per Submission')} value={round.minTokenAllocation} />}
         {round.maxTokenAllocation != null && <Info label={t('Maximum Tokens per Submission')} value={round.maxTokenAllocation} />}
       </div>
