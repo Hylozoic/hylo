@@ -82,6 +82,39 @@ module.exports = bookshelf.Model.extend({
     return this.roundUser(userId).fetch().then(roundUser => roundUser && roundUser.get('settings'))
   },
 
+  allocations: async function () {
+    const roundId = this.get('id')
+    if (!roundId) return []
+
+    const rows = await bookshelf.knex('funding_rounds_posts')
+      .join('posts_users', 'posts_users.post_id', 'funding_rounds_posts.post_id')
+      .where('funding_rounds_posts.funding_round_id', roundId)
+      .whereNotNull('posts_users.tokens_allocated_to')
+      .where('posts_users.tokens_allocated_to', '>', 0)
+      .where('posts_users.active', true)
+      .select('posts_users.user_id', 'posts_users.post_id', 'posts_users.tokens_allocated_to')
+
+    if (!rows.length) return []
+
+    const normalizeId = value => String(value)
+    const userIds = [...new Set(rows.map(r => normalizeId(r.user_id)).filter(Boolean))]
+    const postIds = [...new Set(rows.map(r => normalizeId(r.post_id)).filter(Boolean))]
+
+    const [users, posts] = await Promise.all([
+      userIds.length ? User.query(q => q.whereIn('id', userIds)).fetchAll() : Promise.resolve(User.collection()),
+      postIds.length ? Post.query(q => q.whereIn('id', postIds)).fetchAll() : Promise.resolve(Post.collection())
+    ])
+
+    const userMap = new Map(users.models.map(u => [normalizeId(u.id), u]))
+    const postMap = new Map(posts.models.map(p => [normalizeId(p.id), p]))
+
+    return rows.map(row => ({
+      user: userMap.get(normalizeId(row.user_id)) || null,
+      submission: postMap.get(normalizeId(row.post_id)) || null,
+      tokensAllocated: row.tokens_allocated_to || 0
+    }))
+  },
+
   voterRoles: async function () {
     const rolesData = this.get('voter_roles')
     if (!rolesData || rolesData.length === 0) return []

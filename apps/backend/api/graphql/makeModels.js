@@ -1356,6 +1356,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         isParticipating: r => r && userId && r.isParticipating(userId),
         joinedAt: r => r && userId ? r.joinedAt(userId) : null,
         submitterRoles: r => r ? r.submitterRoles() : [],
+        allocations: r => r ? r.allocations() : [],
         tokensRemaining: async r => {
           if (!r || !userId) return null
           return r.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('tokens_remaining') : null)
