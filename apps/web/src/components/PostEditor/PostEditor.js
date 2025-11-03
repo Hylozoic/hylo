@@ -821,7 +821,7 @@ function PostEditor ({
     setShouldShowSubmissionCriteriaToggle(false)
   }, [isSubmission, currentFundingRound?.id])
 
-  const showSubmissionCriteria = isSubmission && currentFundingRound?.criteria
+  const showSubmissionCriteria = useMemo(() => isSubmission && currentFundingRound?.criteria && !!(new DOMParser().parseFromString(currentFundingRound.criteria, 'text/html').body.textContent?.trim()), [isSubmission, currentFundingRound?.criteria])
 
   useEffect(() => {
     if (!showSubmissionCriteria) {
