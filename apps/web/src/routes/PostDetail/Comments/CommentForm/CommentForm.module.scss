@@ -100,8 +100,9 @@
   // Would be best on the container above but will be wrong height due
   // to `position: relative`
   [contenteditable="true"] {
-    overflow-y: auto;
     max-height: 200px;
+    overflow-y: auto;
+    padding-bottom: 1px;
   }
 }
 
