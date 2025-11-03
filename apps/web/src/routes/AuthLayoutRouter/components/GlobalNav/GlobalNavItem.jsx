@@ -60,8 +60,6 @@ export default function GlobalNavItem ({
    * - Hide when neither condition is true
    */
   useEffect(() => {
-    checkPosition()
-
     if (!isInViewport) {
       setOpen(false)
       return
@@ -80,7 +78,7 @@ export default function GlobalNavItem ({
       setOpen(false)
       setShouldAnimate(false)
     }
-  }, [parentShowTooltip, isHovered, index, isInViewport, checkPosition])
+  }, [parentShowTooltip, isHovered, index, isInViewport])
 
   // Listen for the custom navScroll event from parent
   useEffect(() => {
