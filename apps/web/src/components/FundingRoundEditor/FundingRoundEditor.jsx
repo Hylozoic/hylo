@@ -380,7 +380,7 @@ function FundingRoundEditor (props) {
       submissionsOpenAt: submissionsOpenAt instanceof Date ? submissionsOpenAt.toISOString() : submissionsOpenAt || null,
       title: trim(title),
       tokenType,
-      totalTokens: totalTokens ? Number(totalTokens) : null, // TODO: require this
+      totalTokens: totalTokens ? Number(totalTokens) : null,
       voterRoles,
       votingMethod,
       votingClosesAt: votingClosesAt instanceof Date ? votingClosesAt.toISOString() : votingClosesAt || null,
@@ -764,19 +764,6 @@ function FundingRoundEditor (props) {
           )}
         </div>
       </div>
-      {/*
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-          <span className='mr-2'>Publish At</span>
-          <DateTimePicker
-            hourCycle={getHourCycle()}
-            granularity='minute'
-            value={publishedAt}
-            placeholder={t('When to Publish')}
-            onChange={updateField('publishedAt')}
-            onMonthChange={() => {}}
-          />
-        </div>
-      */}
 
       <div className='flex gap-2 justify-end p-4'>
         {!publishedAt && (

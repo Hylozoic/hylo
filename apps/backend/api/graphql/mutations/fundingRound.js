@@ -1,5 +1,4 @@
 /* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, FundingRoundUser, PostUser */
-import { } from 'lodash'
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
