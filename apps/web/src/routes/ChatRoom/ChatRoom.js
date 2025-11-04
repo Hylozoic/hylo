@@ -29,7 +29,7 @@ import {
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchChatRoomInit from 'store/actions/fetchChatRoomInit'
+import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -143,9 +143,9 @@ export default function ChatRoom (props) {
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topicName: topicName,
+    topic: topicFollow?.topic?.id,
     useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicName])
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic?.id])
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
@@ -157,9 +157,9 @@ export default function ChatRoom (props) {
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topicName: topicName,
+    topic: topicFollow?.topic?.id,
     useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicName])
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic?.id])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -291,13 +291,10 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load topicFollow data - using topicName for cache key consistency
+    // Load topicFollow data when group or topic changes
     if (!group?.id || !topicName) return
 
-    dispatch(fetchChatRoomInit({
-      groupId: group.id,
-      topicName
-    }))
+    dispatch(fetchTopicFollow(group.id, topicName))
   }, [group?.id, topicName])
 
   useEffect(() => {
@@ -312,7 +309,6 @@ export default function ChatRoom (props) {
       purgeItemSizes: true
     })
 
-    // Posts should already be in Redux from fetchChatRoomInit parallel fetch
     // Load future posts (new unread posts) if there are any
     if (topicFollow.newPostCount > 0) {
       fetchPostsFuture(0).then(() => setLoadedFuture(true))
