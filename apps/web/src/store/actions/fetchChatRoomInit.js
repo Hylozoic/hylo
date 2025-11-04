@@ -34,12 +34,9 @@ export default function fetchChatRoomInit ({
     meta: {
       groupSlug,
       topicName,
-      extractModel: ['TopicFollow', 'Group'],
+      extractModel: 'Group',
       extractQueryResults: {
-        // Extract both topicFollow and posts into Redux
-        getTopicFollow: response => response.payload?.data?.topicFollow,
-        getPostsPast: response => response.payload?.data?.group?.postsPast,
-        getPostsFuture: response => response.payload?.data?.group?.postsFuture
+        getItems: response => response.payload?.data?.group?.postsPast
       }
     }
   }
