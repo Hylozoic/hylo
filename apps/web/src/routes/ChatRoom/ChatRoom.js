@@ -29,7 +29,6 @@ import {
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchChatRoomData from 'store/actions/fetchChatRoomData'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
@@ -292,58 +291,35 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load chat room data (topicFollow + posts) in one orchestrated action
-    // This eliminates the waterfall delay from sequential loading
-    if (!group?.id || !topicName) return
+    // Load TopicFollow
+    dispatch(fetchTopicFollow(group?.id, topicName))
+  }, [group?.id, topicName])
 
-    setLoadedFuture(false)
-    setLoadedPast(false)
+  useEffect(() => {
+    // New chat room loaded, reset everything
+    if (topicFollow?.id) {
+      setLoadedFuture(false)
+      setLoadedPast(false)
+      setNotificationsSetting(topicFollow?.settings?.notifications)
 
-    messageListRef.current?.data.replace([], {
-      purgeItemSizes: true
-    })
+      messageListRef.current?.data.replace([], {
+        purgeItemSizes: true
+      })
 
-    dispatch(fetchChatRoomData({
-      groupId: group.id,
-      groupSlug: groupSlug,
-      topicName,
-      postIdToStartAt,
-      initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
-      context,
-      search: search || ''
-    })).then((result) => {
-      if (!result?.topicFollow) return
-
-      // Update notification setting
-      setNotificationsSetting(result.topicFollow.settings?.notifications)
-
-      // Populate message list with past posts
-      const postsPastData = result.postsPast?.items || []
-      if (postsPastData.length > 0) {
-        const newPosts = postsPastData.map(p => presentPost(p, group.id))
-        messageListRef.current?.data.prepend(newPosts.reverse())
+      if (topicFollow.newPostCount > 0) {
+        fetchPostsFuture(0).then(() => setLoadedFuture(true))
+      } else {
+        setLoadedFuture(true)
       }
-      setLoadedPast(true)
 
-      // Populate message list with future posts (new messages since last visit)
-      const postsFutureData = result.postsFuture?.items || []
-      if (postsFutureData.length > 0) {
-        const newPosts = postsFutureData.map(p => presentPost(p, group.id))
-        messageListRef.current?.data.append(newPosts, { index: 'LAST', align: 'end' })
-      }
-      setLoadedFuture(true)
+      fetchPostsPast(0).then(() => setLoadedPast(true))
 
-      // Reset initial post to scroll to
       resetInitialPostToScrollTo()
 
       // Reset marker of new posts
-      setLatestOldPostId(result.topicFollow.lastReadPostId)
-    }).catch((error) => {
-      console.error('Failed to load chat room data:', error)
-      setLoadedPast(true)
-      setLoadedFuture(true)
-    })
-  }, [group?.id, topicName])
+      setLatestOldPostId(topicFollow.lastReadPostId)
+    }
+  }, [topicFollow?.id])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
