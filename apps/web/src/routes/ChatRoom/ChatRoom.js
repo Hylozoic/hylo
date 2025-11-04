@@ -358,6 +358,19 @@ export default function ChatRoom (props) {
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
 
+  // Reset new_post_count when we're at the latest post but still showing a new post count
+  useEffect(() => {
+    if (loadedPast && loadedFuture &&
+        topicFollow?.newPostCount > 0 &&
+        !hasMorePostsFuture &&
+        postsForDisplay.length > 0) {
+      const latestPost = postsForDisplay[postsForDisplay.length - 1]
+      if (latestPost?.id && topicFollow?.id) {
+        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
+      }
+    }
+  }, [loadedPast, loadedFuture, topicFollow?.newPostCount, topicFollow?.id, hasMorePostsFuture, postsForDisplay])
+
   useEffect(() => {
     if (querystringParams?.postId) {
       setPostIdToStartAt(querystringParams?.postId)
