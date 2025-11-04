@@ -85,7 +85,12 @@ export async function deleteFundingRound (userId, id) {
 }
 
 export async function joinFundingRound (userId, roundId) {
-  // TODO: check if the user can see the round?
+  const round = await FundingRound.find(roundId)
+  if (!round) throw new GraphQLError('FundingRound not found')
+  const group = await round.group().fetch()
+  const isMember = await GroupMembership.forPair(userId, group.id).fetch()
+  if (!isMember) throw new GraphQLError('You are not a member of this group')
+
   await FundingRound.join(roundId, userId)
   return FundingRound.find(roundId)
 }
