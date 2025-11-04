@@ -24,7 +24,7 @@ export default function fetchChatRoomInit ({
         slug: groupSlug,
         search,
         sortBy: 'id',
-        topicName,  // Use topicName parameter (NOT topic ID) for cache key consistency
+        topicName, // Use topicName parameter (NOT topic ID) for cache key consistency
         useChatFragment: true
       }))
     ])
