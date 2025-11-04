@@ -12,7 +12,7 @@ export async function createContextWidget ({ userId, groupId, data }) {
   }
 
   // Ensure only one view reference is set
-  const viewFields = ['view_group_id', 'view_post_id', 'custom_view_id', 'view_user_id', 'view_chat_id', 'view_track_id', 'view']
+  const viewFields = ['view_group_id', 'view_post_id', 'custom_view_id', 'view_user_id', 'view_chat_id', 'view_track_id', 'view', 'view_funding_round_id']
   const setViewFields = viewFields.filter(field => convertedData[field] != null)
   if (setViewFields.length > 1) {
     throw new GraphQLError('Only one view reference can be set')

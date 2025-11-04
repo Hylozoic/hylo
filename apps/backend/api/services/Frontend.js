@@ -144,7 +144,7 @@ module.exports = {
       return url(`/members/${getModelId(user)}`)
     },
 
-    post: function (post, group, extraParams = '') {
+    post: function (post, group, extraParams = '', fundingRound = null) {
       const groupSlug = getSlug(group)
       let groupUrl = '/all'
 
@@ -153,7 +153,9 @@ module.exports = {
       } else if (!isEmpty(groupSlug)) {
         const tags = post.relations?.tags
         const firstTopic = tags && tags.first()?.get('name')
-        if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(tags.first()))) {
+        if (fundingRound) {
+          return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}?${extraParams}`)
+        } else if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(tags.first()))) {
           return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
         } else {
           groupUrl = `/groups/${groupSlug}` + (firstTopic ? `/topics/${firstTopic}` : '')
@@ -180,6 +182,10 @@ module.exports = {
 
     track: function (track) {
       return url(`/tracks/${getModelId(track)}`)
+    },
+
+    fundingRound: function (fundingRound, group, tab = null) {
+      return url(`/groups/${getSlug(group)}/funding-rounds/${getModelId(fundingRound)}${tab ? `/${tab}` : ''}`)
     },
 
     unfollow: function (post, group) {

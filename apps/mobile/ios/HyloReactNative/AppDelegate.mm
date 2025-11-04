@@ -13,7 +13,7 @@
 @implementation AppDelegate
 
 - (BOOL)bridgelessEnabled {
-    return NO;
+    return YES;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions

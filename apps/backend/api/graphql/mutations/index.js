@@ -136,6 +136,15 @@ export {
   updateTrackActionOrder
 } from './track'
 export {
+  allocateTokensToSubmission,
+  createFundingRound,
+  deleteFundingRound,
+  doPhaseTransition,
+  joinFundingRound,
+  leaveFundingRound,
+  updateFundingRound
+} from './fundingRound'
+export {
   blockUser,
   deactivateUser,
   deleteUser,

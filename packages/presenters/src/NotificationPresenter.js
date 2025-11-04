@@ -2,7 +2,7 @@ import { convert as convertHtmlToText } from 'html-to-text'
 import find from 'lodash/find.js'
 import get from 'lodash/fp/get.js'
 import truncText from 'trunc-text'
-import { primaryPostUrl, groupUrl, personUrl, trackUrl } from '@hylo/navigation'
+import { primaryPostUrl, groupUrl, personUrl, trackUrl, fundingRoundUrl } from '@hylo/navigation'
 
 // Used by web and electron. Once everyone is on URQL switch over to PostPresenter
 function presentPost (post) {
@@ -64,6 +64,10 @@ export const ACTION_NEW_POST = 'newPost'
 export const ACTION_TAG = 'tag'
 export const ACTION_TRACK_COMPLETED = 'trackCompleted'
 export const ACTION_TRACK_ENROLLMENT = 'trackEnrollment'
+export const ACTION_FUNDING_ROUND_VOTING_CLOSING = 'fundingRoundVotingClosing'
+export const ACTION_FUNDING_ROUND_NEW_SUBMISSION = 'fundingRoundNewSubmission'
+export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransition'
+export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 
 export default function NotificationPresenter (notification) {
   return {
@@ -74,10 +78,10 @@ export default function NotificationPresenter (notification) {
 }
 
 export function titleForNotification (notification, t) {
-  const { activity: { action, actor, post, group, track, meta: { reasons } } } = notification
+  const { activity: { action, actor, post, group, track, fundingRound, meta: { reasons } } } = notification
 
   const postSummary = post ? (post.title && post.title.length > 0 ? post.title : truncateHTML(post.details)) : null
-  const name = actor.name
+  const name = actor?.name
 
   switch (action) {
     case ACTION_NEW_COMMENT:
@@ -128,16 +132,24 @@ export function titleForNotification (notification, t) {
       return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track.name })
     case ACTION_TRACK_ENROLLMENT:
       return t('New Enrollment in Track <strong>{{trackName}}</strong>', { trackName: track.name })
+    case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
+      return t('New Submission to Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.title })
+    case ACTION_FUNDING_ROUND_PHASE_TRANSITION: {
+      return t('Funding Round <strong>{{fundingRoundName}}</strong>', { fundingRoundName: fundingRound?.title })
+    }
+    case ACTION_FUNDING_ROUND_REMINDER: {
+      return t('Funding Round <strong>{{fundingRoundName}}</strong> reminder', { fundingRoundName: fundingRound?.title })
+    }
     default:
       return null
   }
 }
 
 export function bodyForNotification (notification, t) {
-  const { activity: { action, actor, post, comment, group, otherGroup, contributionAmount } } = notification
+  const { activity: { action, actor, post, comment, group, otherGroup, contributionAmount, meta: { phase, reminderType } } } = notification
 
   const postSummary = post ? (post.title && post.title.length > 0 ? post.title : truncateHTML(post.details)) : null
-  const name = actor.name
+  const name = actor?.name
 
   switch (action) {
     case ACTION_COMMENT_MENTION:
@@ -179,12 +191,40 @@ export function bodyForNotification (notification, t) {
       return t('<strong>{{name}}</strong> completed the track', { name })
     case ACTION_TRACK_ENROLLMENT:
       return t('<strong>{{name}}</strong> enrolled in the track', { name })
+    case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
+      return t('<strong>{{name}}</strong> submitted "{{postSummary}}"', { name, postSummary })
+    case ACTION_FUNDING_ROUND_PHASE_TRANSITION: {
+      switch (phase) {
+        case 'submissions':
+          return t('Submissions are now open')
+        case 'discussion':
+          return t('Submissions have closed and discussions are open')
+        case 'voting':
+          return t('Voting is now open')
+        case 'completed':
+          return t('Voting has closed and the round has ended')
+      }
+      break
+    }
+    case ACTION_FUNDING_ROUND_REMINDER: {
+      switch (reminderType) {
+        case 'submissionsClosing1Day':
+          return t('Submissions close in 1 day')
+        case 'submissionsClosing3Days':
+          return t('Submissions close in 3 days')
+        case 'votingClosing1Day':
+          return t('Voting closes in 1 day')
+        case 'votingClosing3Days':
+          return t('Voting closes in 3 days')
+      }
+      break
+    }
     default:
       return null
   }
 }
 
-export function urlForNotification ({ id, activity: { action, actor, post, comment, group, meta: { reasons }, otherGroup, track } }) {
+export function urlForNotification ({ id, activity: { action, actor, post, comment, group, fundingRound, meta: { reasons }, otherGroup, track } }) {
   const groupSlug = get('slug', group) ||
     // 2020-06-03 - LEJ
     // Some notifications (i.e. new comment and comment mention)
@@ -234,6 +274,12 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     case ACTION_TRACK_COMPLETED:
     case ACTION_TRACK_ENROLLMENT:
       return trackUrl(track.id, { groupSlug })
+    case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
+      return fundingRoundUrl(fundingRound.id, { groupSlug, tab: 'submissions' })
+    case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
+      return fundingRoundUrl(fundingRound.id, { groupSlug })
+    case ACTION_FUNDING_ROUND_REMINDER:
+      return fundingRoundUrl(fundingRound.id, { groupSlug, tab: 'submissions' })
   }
 }
 
@@ -241,6 +287,9 @@ export function imageForNotification (notification) {
   const { activity: { action, actor, group } } = notification
   switch (action) {
     case ACTION_MEMBER_JOINED_GROUP:
+    case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
+    case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
+    case ACTION_FUNDING_ROUND_REMINDER:
       return group.avatarUrl
     default:
       return actor.avatarUrl

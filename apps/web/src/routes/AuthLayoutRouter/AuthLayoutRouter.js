@@ -59,6 +59,8 @@ import Search from 'routes/Search'
 import Stream from 'routes/Stream'
 import Themes from 'routes/Themes'
 import TrackHome from 'routes/TrackHome'
+import FundingRounds from 'routes/FundingRounds'
+import FundingRoundHome from 'routes/FundingRoundHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
@@ -304,7 +306,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/funding-rounds/:fundingRoundId/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -399,6 +401,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />
                             <Route path='tracks/*' element={<Tracks />} />
+                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
+                            <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />

@@ -33,3 +33,7 @@ export {
 export {
   ormSessionReducer as tracksReducer
 } from 'routes/Tracks/Tracks.store'
+
+export {
+  ormSessionReducer as fundingRoundsReducer
+} from 'routes/FundingRounds/FundingRounds.store'

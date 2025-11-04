@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget */
+/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -139,6 +139,10 @@ module.exports = bookshelf.Model.extend(merge({
 
   customViews () {
     return this.hasMany(CustomView)
+  },
+
+  fundingRounds () {
+    return this.hasMany(FundingRound, 'group_id')
   },
 
   groupAgreements () {
@@ -713,7 +717,8 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' }
+      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' },
+      { title: 'widget-funding-rounds', type: 'funding-rounds', view: 'funding-rounds', visibility: 'admin' }
     ]
 
     await Promise.all([
@@ -1117,11 +1122,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async doesMenuUpdate ({ groupIds, post, customView, track, groupRelation = false }) {
-    if (!post && !customView && !groupRelation && !track) return
+  async doesMenuUpdate ({ groupIds, post, customView, track, fundingRound, groupRelation = false }) {
+    if (!post && !customView && !groupRelation && !track && !fundingRound) return
     const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
-    if (postType === 'chat' && !customView && !groupRelation && !track) return
+    if (postType === 'chat' && !customView && !groupRelation && !track && !fundingRound) return
     await bookshelf.transaction(async trx => {
       for (const groupId of groupIds) {
         const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
@@ -1168,6 +1173,24 @@ module.exports = bookshelf.Model.extend(merge({
           if (tracksWidget && tracksWidget.get('visibility') === 'admin') {
             // Make tracks widget visible to all, not just admins
             await tracksWidget.save({ visibility: null }, { transacting: trx })
+          }
+        }
+
+        // Handle funding round case
+        if (fundingRound && fundingRound.published_at) {
+          // Only add funding rounds widget if it is published
+          const fundingRoundsWidget = widgets.find(w => w.get('view') === 'funding-rounds')
+          if (fundingRoundsWidget && !fundingRoundsWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: fundingRoundsWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+          if (fundingRoundsWidget && fundingRoundsWidget.get('visibility') === 'admin') {
+            // Make funding rounds widget visible to all, not just admins
+            await fundingRoundsWidget.save({ visibility: null }, { transacting: trx })
           }
         }
 

@@ -24,8 +24,8 @@ export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets 
     })
 
     // Add back the moved widget with null order and parentId
-    // Posts, groups and tracks widgets just get deleted, we don't add them back to the all views
-    if (!oldWidgetDetails.viewTrack && !oldWidgetDetails.viewPost && !oldWidgetDetails.viewGroup) {
+    // Posts, groups, tracks and funding round widgets just get deleted, we don't add them back to the all views
+    if (!oldWidgetDetails.viewTrack && !oldWidgetDetails.viewPost && !oldWidgetDetails.viewGroup && !oldWidgetDetails.viewFundingRound) {
       updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
     }
     return updatedWidgets

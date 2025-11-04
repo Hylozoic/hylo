@@ -66,6 +66,16 @@ export default function fetchContextWidgets (groupId) {
                 id
                 name
               }
+              viewFundingRound {
+                id
+                title
+                isParticipating
+                publishedAt
+                submissionsOpenAt
+                submissionsCloseAt
+                votingOpensAt
+                votingClosesAt
+              }
               viewTrack {
                 id
                 name

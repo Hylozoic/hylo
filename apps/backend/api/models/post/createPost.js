@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -76,7 +76,9 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts)
+    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+
+    opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
     .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))
@@ -85,6 +87,7 @@ export function afterCreatingPost (post, opts) {
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
+    .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
     .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
