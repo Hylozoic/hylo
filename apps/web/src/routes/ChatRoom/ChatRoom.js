@@ -133,34 +133,33 @@ export default function ChatRoom (props) {
   const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 10 : 12
   const PAGINATION_PAGE_SIZE = 15 // Larger pages when scrolling (already rendered, so faster)
 
-  // Optimized params that work even before topicFollow loads (for parallel loading)
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : (topicFollow?.lastReadPostId ? parseInt(topicFollow.lastReadPostId) + 1 : undefined),
+    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: topicFollow ? Math.max(INITIAL_POSTS_TO_LOAD - (topicFollow.newPostCount || 0), 3) : INITIAL_POSTS_TO_LOAD,
+    first: Math.max(INITIAL_POSTS_TO_LOAD - topicFollow?.newPostCount, 3), // Always load at least 3 past posts
     order: 'desc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic?.id, // Optional - if missing, loads all chat posts for group
-    useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow, groupSlug, search, INITIAL_POSTS_TO_LOAD])
+    topic: topicFollow?.topic.id,
+    useChatFragment: true // Use lightweight GraphQL query (60% smaller payload)
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: topicFollow ? Math.min(INITIAL_POSTS_TO_LOAD, topicFollow.newPostCount || 0) : 0,
+    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount),
     order: 'asc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic?.id,
-    useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow, groupSlug, search, INITIAL_POSTS_TO_LOAD])
+    topic: topicFollow?.topic.id,
+    useChatFragment: true // Use lightweight GraphQL query (60% smaller payload)
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -292,42 +291,8 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // CRITICAL OPTIMIZATION: Load TopicFollow and Posts in PARALLEL to eliminate waterfall
-    // Previously: fetch topicFollow (800ms) -> wait -> fetch posts (800ms) = 1600ms
-    // Now: fetch both simultaneously = 800ms (save 800ms!)
-
-    if (!group?.id || !topicName) return
-
-    setLoadedFuture(false)
-    setLoadedPast(false)
-
-    messageListRef.current?.data.replace([], {
-      purgeItemSizes: true
-    })
-
-    // TRUE PARALLEL LOADING: Start BOTH fetches immediately without waiting
-    // topicFollow and posts load simultaneously (NO waterfall)
-    const topicFollowPromise = dispatch(fetchTopicFollow(group.id, topicName))
-    const postsPromise = fetchPostsPast(0).then(() => setLoadedPast(true))
-
-    // Set future as loaded immediately (it will load when topicFollow completes)
-    setLoadedFuture(true)
-
-    // Update UI state when topicFollow completes (posts are already loading/loaded)
-    topicFollowPromise.then((action) => {
-      const follow = action?.payload?.data?.topicFollow
-      if (follow) {
-        setNotificationsSetting(follow.settings?.notifications)
-        setLatestOldPostId(follow.lastReadPostId)
-
-        // If there are unread posts and we need to load future posts, do it now
-        if (follow.newPostCount > 0) {
-          setLoadedFuture(false)
-          fetchPostsFuture(0).then(() => setLoadedFuture(true))
-        }
-      }
-    })
-
+    // Load TopicFollow
+    dispatch(fetchTopicFollow(group?.id, topicName))
   }, [group?.id, topicName])
 
   useEffect(() => {
@@ -336,7 +301,33 @@ export default function ChatRoom (props) {
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
-  }, [topicName, handleNewPostReceived])
+  }, [topicName])
+
+  useEffect(() => {
+    // New chat room loaded, reset everything
+    if (topicFollow?.id) {
+      setLoadedFuture(false)
+      setLoadedPast(false)
+      setNotificationsSetting(topicFollow?.settings?.notifications)
+
+      messageListRef.current?.data.replace([], {
+        purgeItemSizes: true
+      })
+
+      if (topicFollow.newPostCount > 0) {
+        fetchPostsFuture(0).then(() => setLoadedFuture(true))
+      } else {
+        setLoadedFuture(true)
+      }
+
+      fetchPostsPast(0).then(() => setLoadedPast(true))
+
+      resetInitialPostToScrollTo()
+
+      // Reset marker of new posts
+      setLatestOldPostId(topicFollow.lastReadPostId)
+    }
+  }, [topicFollow?.id])
 
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
