@@ -65,14 +65,28 @@ function TrackHome () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: (currentTrack?.name || t('loading...')) + ' > ' + capitalize(currentTab),
+      title: (
+        <div className='flex items-center gap-2'>
+          <span>{currentTrack?.name ? + currentTrack?.name + ' > ' + capitalize(currentTab) : t('loading...')}</span>
+          {canEdit && (
+            <span
+              className={cn(
+                'text-xs font-medium px-2 py-0.5 rounded-full',
+                currentTrack?.publishedAt ? 'bg-selected' : 'bg-foreground/20'
+              )}
+            >
+              {currentTrack?.publishedAt ? t('Published') : t('Unpublished')}
+            </span>
+          )}
+        </div>
+      ),
       search: true,
       icon: <Shapes />
     })
-  }, [currentTrack, currentTab])
+  }, [currentTrack, canEdit])
 
   const handlePublishTrack = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
+    if (window.confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
       dispatch(updateTrack({ trackId: currentTrack.id, publishedAt }))
     }
   }, [currentTrack?.id])
@@ -166,7 +180,7 @@ function TrackHome () {
                   <span>{t('You completed this track')}</span>
                 </>
                 )
-              : isEnrolled
+              : isEnrolled && currentTab === 'about'
                 ? (
                   <>
                     <div className='flex flex-row gap-2 items-center justify-between w-full'>
@@ -280,7 +294,7 @@ function ManageTab ({ track }) {
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${track.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Edit Track')}</span>
+        <span>{t('Edit Track Settings')}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}
