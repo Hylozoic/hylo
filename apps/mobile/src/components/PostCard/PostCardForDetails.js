@@ -74,6 +74,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           editPost={editPost}
           groups={post.groups}
           postId={post.id}
+          savedAt={post.savedAt}
           showMember={goToMember}
           style={{ paddingVertical: 14 }}
           title={post.title}
@@ -116,8 +117,8 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       {!!locationText && (
         <View style={styles.locationRow}>
           <Icon style={styles.locationIcon} name='Location' />
-          <ClickableLocationText 
-            text={locationText} 
+          <ClickableLocationText
+            text={locationText}
             className='text-foreground/70'
             selectable
           />

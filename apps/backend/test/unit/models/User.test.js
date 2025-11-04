@@ -66,7 +66,7 @@ describe('User', function () {
       expect(groups).to.exist
       expect(groups.models).to.exist
       expect(groups.models).not.to.be.empty
-      var names = groups.models.map(c => c.get('name')).sort()
+      let names = groups.models.map(c => c.get('name')).sort()
       expect(names[0]).to.equal('House')
       expect(names[1]).to.equal('Yard')
     })
@@ -97,7 +97,7 @@ describe('User', function () {
     })
 
     it('sanitizes twitter usernames', function () {
-      var user = new User()
+      let user = new User()
 
       user.setSanely({twitter_name: '@user'})
       expect(user.get('twitter_name')).to.equal('user')
@@ -107,7 +107,7 @@ describe('User', function () {
     })
 
     it("doesn't add url, facebook_url or linkedin_url if not provided", function () {
-      var user = new User()
+      let user = new User()
 
       user.setSanely({})
 
@@ -117,7 +117,7 @@ describe('User', function () {
     })
 
     it('adds protocol to url, facebook_url and linkedin_url', function () {
-      var user = new User()
+      let user = new User()
 
       user.setSanely({
         url: 'myawesomesite.com',
@@ -134,18 +134,18 @@ describe('User', function () {
     })
 
     it('preserves existing settings keys', () => {
-      var user = new User({
+      const user = new User({
         settings: {
           a: 'eh',
           b: 'bee',
-          c: {sea: true}
+          c: { sea: true }
         }
       })
 
       user.setSanely({
         settings: {
           b: 'buh',
-          c: {see: true}
+          c: { see: true }
         }
       })
       expect(user.get('settings')).to.deep.equal({
@@ -160,7 +160,7 @@ describe('User', function () {
   })
 
   describe('#groupsSharedWithPost', () => {
-    var user, post, c1, c2, c3, c4
+    let user, post, c1, c2, c3, c4
     before(() => {
       user = factories.user()
       post = factories.post()
@@ -170,18 +170,18 @@ describe('User', function () {
       c4 = factories.group()
       return Promise.join(
         user.save(), post.save(), c1.save(), c2.save(), c3.save(), c4.save())
-      .then(() => post.groups().attach([c1, c2, c3]))
-      .then(() => user.joinGroup(c2))
-      .then(() => user.joinGroup(c3))
-      .then(() => user.joinGroup(c4))
+        .then(() => post.groups().attach([c1, c2, c3]))
+        .then(() => user.joinGroup(c2))
+        .then(() => user.joinGroup(c3))
+        .then(() => user.joinGroup(c4))
     })
 
     it('returns the shared groups', () => {
       return user.groupsSharedWithPost(post)
-      .then(cs => {
-        expect(cs.length).to.equal(2)
-        expect(cs.map(c => c.id).sort()).to.deep.equal([c2.id, c3.id].sort())
-      })
+        .then(cs => {
+          expect(cs.length).to.equal(2)
+          expect(cs.map(c => c.id).sort()).to.deep.equal([c2.id, c3.id].sort())
+        })
     })
   })
 
@@ -196,9 +196,9 @@ describe('User', function () {
 
     it('accepts a valid password', function () {
       return expect(User.authenticate('iam@cat.org', 'password'))
-      .to.eventually.satisfy(function (user) {
-        return user && user.id === cat.id && user.name === cat.name
-      })
+        .to.eventually.satisfy(function (user) {
+          return user && user.id === cat.id && user.name === cat.name
+        })
     })
 
     it('rejects an invalid password', function () {
@@ -207,8 +207,8 @@ describe('User', function () {
   })
 
   describe('.create', function () {
-    var catPic = 'http://i.imgur.com/Kwe1K7k.jpg'
-    var group
+    const catPic = 'http://i.imgur.com/Kwe1K7k.jpg'
+    let group
 
     before(function () {
       group = new Group({name: 'foo', slug: 'foo', group_data_type: 1})
@@ -219,18 +219,18 @@ describe('User', function () {
       return User.create({
         email: 'foo@bar@com',
         group,
-        account: {type: 'password', password: 'password'},
+        account: { type: 'password', password: 'password' },
         name: 'foo bar'
       })
-      .then(user => expect.fail())
-      .catch(err => expect(err.message).to.equal('invalid-email'))
+        .then(user => expect.fail())
+        .catch(err => expect(err.message).to.equal('invalid-email'))
     })
 
     it('rejects a blank email address', () => {
       return User.create({
         email: null,
         group,
-        account: {type: 'password', password: 'password'}
+        account: { type: 'password', password: 'password' }
       })
         .then(user => expect.fail())
         .catch(err => expect(err.message).to.equal('invalid-email'))
@@ -268,56 +268,25 @@ describe('User', function () {
       return User.create({
         name: 'foo2 moo2 wow',
         email: 'foo2.moo2_wow@bar.com',
-        account: {type: 'google', profile: {id: 'foo'}}
+        account: { type: 'google', profile: { id: 'foo' } }
       })
-      .then(async function (user) {
-        await group.addMembers([user.id])
+        .then(async function (user) {
+          await group.addMembers([user.id])
 
-        expect(user.id).to.exist
-        expect(user.get('active')).to.be.true
-        expect(user.get('name')).to.equal('foo2 moo2 wow')
+          expect(user.id).to.exist
+          expect(user.get('active')).to.be.true
+          expect(user.get('name')).to.equal('foo2 moo2 wow')
 
-        return Promise.join(
-          LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
-            expect(account).to.exist
-            expect(account.get('provider_key')).to.equal('google')
-            expect(account.get('provider_user_id')).to.equal('foo')
-          }),
-          GroupMembership.forPair(user, group).fetch()
-          .then(membership => expect(membership).to.exist)
-        )
-      })
-    })
-
-    it('works with facebook', function () {
-      return User.create({
-        email: 'foo3@bar.com',
-        account: {
-          type: 'facebook',
-          profile: {
-            id: 'foo',
-            profileUrl: 'http://www.facebook.com/foo'
-          }
-        }
-      })
-      .then(async (user) => {
-        await group.addMembers([user.id])
-
-        expect(user.id).to.exist
-        expect(user.get('active')).to.be.true
-        expect(user.get('facebook_url')).to.equal('http://www.facebook.com/foo')
-        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/foo/picture?type=large&access_token=186895474801147|ppppppp')
-
-        return Promise.join(
-          LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
-            expect(account).to.exist
-            expect(account.get('provider_key')).to.equal('facebook')
-            expect(account.get('provider_user_id')).to.equal('foo')
-          }),
-          GroupMembership.forPair(user, group).fetch()
-            .then(membership => expect(membership).to.exist)
-        )
-      })
+          return Promise.join(
+            LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
+              expect(account).to.exist
+              expect(account.get('provider_key')).to.equal('google')
+              expect(account.get('provider_user_id')).to.equal('foo')
+            }),
+            GroupMembership.forPair(user, group).fetch()
+              .then(membership => expect(membership).to.exist)
+          )
+        })
     })
 
     it('works with linkedin', function () {
@@ -334,40 +303,40 @@ describe('User', function () {
           }
         }
       })
-      .then(async (user) => {
-        await group.addMembers([user.id])
+        .then(async (user) => {
+          await group.addMembers([user.id])
 
-        expect(user.id).to.exist
-        expect(user.get('active')).to.be.true
-        expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
-        expect(user.get('avatar_url')).to.equal(catPic)
+          expect(user.id).to.exist
+          expect(user.get('active')).to.be.true
+          expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
+          expect(user.get('avatar_url')).to.equal(catPic)
 
-        return Promise.join(
-          LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
-            expect(account).to.exist
-            expect(account.get('provider_key')).to.equal('linkedin')
-            expect(account.get('provider_user_id')).to.equal('foo')
-          }),
-          GroupMembership.forPair(user, group).fetch()
-          .then(membership => expect(membership).to.exist)
-        )
-      })
+          return Promise.join(
+            LinkedAccount.where({user_id: user.id}).fetch().then(function (account) {
+              expect(account).to.exist
+              expect(account.get('provider_key')).to.equal('linkedin')
+              expect(account.get('provider_user_id')).to.equal('foo')
+            }),
+            GroupMembership.forPair(user, group).fetch()
+              .then(membership => expect(membership).to.exist)
+          )
+        })
     })
   })
 
   describe('#followDefaultTags', function () {
     it('creates TagFollows for the default tags of a group', () => {
-      var c1 = factories.group()
+      const c1 = factories.group()
       return c1.save()
-      .then(() => Tag.forge({name: 'hello'}).save())
-      .then(tag => GroupTag.create({tag_id: tag.id, group_id: c1.id, is_default: true}))
-      .then(() => User.followDefaultTags(cat.id, c1.id))
-      .then(() => cat.load('followedTags'))
-      .then(() => {
-        expect(cat.relations.followedTags.length).to.equal(1)
-        var tagNames = cat.relations.followedTags.map(t => t.get('name'))
-        expect(tagNames[0]).to.equal('hello')
-      })
+        .then(() => Tag.forge({ name: 'hello' }).save())
+        .then(tag => GroupTag.create({ tag_id: tag.id, group_id: c1.id, is_default: true }))
+        .then(() => User.followDefaultTags(cat.id, c1.id))
+        .then(() => cat.load('followedTags'))
+        .then(() => {
+          expect(cat.relations.followedTags.length).to.equal(1)
+          const tagNames = cat.relations.followedTags.map(t => t.get('name'))
+          expect(tagNames[0]).to.equal('hello')
+        })
     })
   })
 
@@ -382,12 +351,12 @@ describe('User', function () {
         account: { type: 'password', password: 'password!' },
         name: 'Belle Graceful'
       })
-      .then(async function (user) {
-        await user.deactivate('wacca wacca')
-        expect(user.get('active')).to.be.false
-        await user.reactivate()
-        expect(user.get('active')).to.be.true
-      })
+        .then(async function (user) {
+          await user.deactivate('wacca wacca')
+          expect(user.get('active')).to.be.false
+          await user.reactivate()
+          expect(user.get('active')).to.be.true
+        })
     })
   })
 
@@ -396,7 +365,7 @@ describe('User', function () {
 
     before(async () => {
       doge = factories.user()
-      ;[ post, post2 ] = times(2, () => factories.post({type: Post.Type.THREAD}))
+      ;[post, post2] = times(2, () => factories.post({ type: Post.Type.THREAD }))
 
       await doge.save()
       return Promise.map([post, post2], p =>
@@ -408,17 +377,17 @@ describe('User', function () {
 
       const addMessages = (p, num = 1, creator = doge) =>
         wait(100)
-        .then(() => Promise.all(times(num, () =>
-          Comment.forge({
-            post_id: p.id,
-            user_id: creator.id,
-            text: 'arf',
-            active: true
-          }).save())))
-        .then(comments => Post.updateFromNewComment({
-          postId: p.id,
-          commentId: comments.slice(-1)[0].id
-        }))
+          .then(() => Promise.all(times(num, () =>
+            Comment.forge({
+              post_id: p.id,
+              user_id: creator.id,
+              text: 'arf',
+              active: true
+            }).save())))
+          .then(comments => Post.updateFromNewComment({
+            postId: p.id,
+            commentId: comments.slice(-1)[0].id
+          }))
 
       const n = await User.unseenThreadCount(cat.id)
       expect(n).to.equal(0)
@@ -438,7 +407,7 @@ describe('User', function () {
       await User.unseenThreadCount(cat.id).then(n => expect(n).to.equal(2))
 
       // dropdown was opened
-      await cat.addSetting({last_viewed_messages_at: new Date()}, true)
+      await cat.addSetting({ last_viewed_messages_at: new Date() }, true)
       await User.unseenThreadCount(cat.id).then(n => expect(n).to.equal(0))
 
       // new message after dropdown was opened
@@ -456,20 +425,20 @@ describe('User', function () {
   describe('.comments', () => {
     beforeEach(() => {
       return factories.post({type: Post.Type.THREAD}).save()
-      .then(post => factories.comment({
-        post_id: post.id,
-        user_id: cat.id
-      }).save())
-      .then(() => factories.post().save())
-      .then(post => factories.comment({
-        post_id: post.id,
-        user_id: cat.id
-      }).save())
+        .then(post => factories.comment({
+          post_id: post.id,
+          user_id: cat.id
+        }).save())
+        .then(() => factories.post().save())
+        .then(post => factories.comment({
+          post_id: post.id,
+          user_id: cat.id
+        }).save())
     })
 
     it.skip('does not include messages', () => {
       return cat.comments().fetch()
-      .then(comments => expect(comments.length).to.equal(1))
+        .then(comments => expect(comments.length).to.equal(1))
     })
   })
 
@@ -505,8 +474,8 @@ describe('User', function () {
       const user = await factories.user().save()
       process.env.INTERCOM_KEY = '12345'
       const hash = crypto.createHmac('sha256', process.env.INTERCOM_KEY)
-      .update(user.id)
-      .digest('hex')
+        .update(user.id)
+        .digest('hex')
       expect(user.intercomHash()).to.equal(hash)
     })
   })

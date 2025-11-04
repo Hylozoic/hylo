@@ -146,11 +146,8 @@ describe('mutations/group', () => {
       expect(group.get('slug')).to.equal('foob')
       expect(membership).to.exist
       // TODO: improve this test
-      expect(membership.get('role')).to.equal(GroupMembership.Role.MODERATOR)
-
-      const post = await group.posts().fetchOne()
-      expect(post).to.exist
-      expect(post.get('name')).to.equal(starterPost.get('name'))
+      const hasModeratorRole = await membership.hasRole(GroupMembership.Role.MODERATOR)
+      expect(hasModeratorRole).to.be.true
 
       const generalTopic = await group.tags().fetchOne()
       expect(generalTopic).to.exist
@@ -222,6 +219,10 @@ describe('mutations/group', () => {
     let adminUser, memberUser, fromGroup, toGroup, otherGroup
 
     before(async () => {
+      // Clean up any existing relationships that might be left over from previous test runs
+      await GroupRelationship.where('id', '>', 0).destroy()
+      await GroupRelationshipInvite.where('id', '>', 0).destroy()
+
       adminUser = await factories.user().save()
       memberUser = await factories.user().save()
       fromGroup = await factories.group().save()

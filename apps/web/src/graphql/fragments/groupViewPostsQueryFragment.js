@@ -18,6 +18,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   isFulfilled: $isFulfilled,
   offset: $offset,
   order: $order,
+  savedBy: $savedBy,
   sortBy: $sortBy,
   search: $search,
   topic: $topic,

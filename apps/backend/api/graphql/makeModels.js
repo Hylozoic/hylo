@@ -368,6 +368,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               mentionsOf,
               offset,
               order,
+              savedBy,
               search,
               sortBy,
               topic,
@@ -391,6 +392,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 mentionsOf,
                 offset,
                 order,
+                savedBy,
                 search,
                 showPinnedFirst: false,
                 sortBy,
@@ -477,6 +479,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
+        savedAt: p => p.savedAtForUser(userId),
         sortOrder: p => p.pivot && p.pivot.get('sort_order') // For loading posts in order in a track
       },
       relations: [
@@ -543,6 +546,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         order,
         proposalOutcome,
         proposalStatus,
+        savedBy,
         sortBy,
         search,
         topic,
@@ -570,6 +574,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           order,
           proposalOutcome,
           proposalStatus,
+          savedBy,
           sort: sortBy,
           term: search,
           topic,

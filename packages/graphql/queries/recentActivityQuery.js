@@ -22,6 +22,7 @@ export default gql`
     $isFulfilled: Boolean,
     $mentionsOf: [ID],
     $offset: Int,
+    $savedBy: [ID],
     $search: String,
     $sortBy: String,
     $topic: ID,

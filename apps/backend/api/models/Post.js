@@ -26,7 +26,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
   'following',
   'active',
-  'clickthrough'
+  'clickthrough',
+  'saved_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -440,6 +441,12 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('completion_response')) || null
   },
 
+  async savedAtForUser (userId) {
+    if (!userId) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('saved_at')) || null
+  },
+
   presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
@@ -524,6 +531,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async removeProposalVote ({ userId, optionId }) {
     const vote = await ProposalVote.query({ where: { user_id: userId, option_id: optionId } }).fetch()
+    if (!vote) {
+      return null
+    }
     const result = await vote.destroy()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
     return result
