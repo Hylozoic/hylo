@@ -10,31 +10,53 @@ export default function fetchChatRoomInit ({
   search = ''
 }) {
   return async (dispatch) => {
-    // Dispatch both queries in parallel with consistent topicName parameter
-    // This eliminates the waterfall delay while maintaining cache key consistency
-    const [topicFollowAction, postsAction] = await Promise.all([
-      dispatch(fetchTopicFollow(groupId, topicName)),
+    // Step 1: Fetch topicFollow to get lastReadPostId and newPostCount
+    const topicFollowAction = await dispatch(fetchTopicFollow(groupId, topicName))
+    const topicFollow = topicFollowAction.payload?.data?.topicFollow
+
+    if (!topicFollow) {
+      return { topicFollow: null, posts: null }
+    }
+
+    // Step 2: Fetch both past and future posts in parallel with correct cursors
+    const lastReadPostId = topicFollow.lastReadPostId
+    const newPostCount = topicFollow.newPostCount || 0
+
+    const [pastPostsAction, futurePostsAction] = await Promise.all([
+      // Fetch past posts (before lastReadPostId)
       dispatch(fetchPosts({
         childPostInclusion: 'no',
         context,
-        cursor: undefined,
+        cursor: lastReadPostId ? parseInt(lastReadPostId) + 1 : undefined,
         filter: 'chat',
-        first: initialPostsToLoad,
+        first: Math.max(initialPostsToLoad - newPostCount, 3),
         order: 'desc',
         slug: groupSlug,
         search,
         sortBy: 'id',
-        topicName, // Use topicName parameter (NOT topic ID) for cache key consistency
+        topicName,
         useChatFragment: true
-      }))
+      })),
+      // Fetch future posts (after lastReadPostId) if there are any
+      newPostCount > 0 ? dispatch(fetchPosts({
+        childPostInclusion: 'no',
+        context,
+        cursor: lastReadPostId || undefined,
+        filter: 'chat',
+        first: Math.min(initialPostsToLoad, newPostCount),
+        order: 'asc',
+        slug: groupSlug,
+        search,
+        sortBy: 'id',
+        topicName,
+        useChatFragment: true
+      })) : Promise.resolve(null)
     ])
-
-    const topicFollow = topicFollowAction.payload?.data?.topicFollow
-    const posts = postsAction.payload?.data?.group?.posts
 
     return {
       topicFollow,
-      posts
+      pastPosts: pastPostsAction.payload?.data?.group?.posts,
+      futurePosts: futurePostsAction?.payload?.data?.group?.posts
     }
   }
 }

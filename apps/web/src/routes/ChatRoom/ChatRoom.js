@@ -136,9 +136,9 @@ export default function ChatRoom (props) {
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1,
+    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : (topicFollow?.lastReadPostId ? parseInt(topicFollow.lastReadPostId) + 1 : undefined),
     filter: 'chat',
-    first: Math.max(INITIAL_POSTS_TO_LOAD - topicFollow?.newPostCount, 3),
+    first: Math.max(INITIAL_POSTS_TO_LOAD - (topicFollow?.newPostCount || 0), 3),
     order: 'desc',
     slug: groupSlug,
     search,
@@ -150,9 +150,9 @@ export default function ChatRoom (props) {
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt || topicFollow?.lastReadPostId,
+    cursor: postIdToStartAt || topicFollow?.lastReadPostId || undefined,
     filter: 'chat',
-    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount),
+    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount || 0),
     order: 'asc',
     slug: groupSlug,
     search,
