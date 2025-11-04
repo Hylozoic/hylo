@@ -8,20 +8,12 @@ import { onEnter } from 'util/textInput'
 
 import styles from './TextInput.module.scss'
 
-// pass inputRef to this from a parent, with the same kind of callback you would
-// pass to ref, if you want to have a reference to the input field, e.g. for
-// focus.
-//
-// https://facebook.github.io/react/docs/refs-and-the-dom.html#exposing-dom-refs-to-parent-components
-//
-
 const TextInput = forwardRef(({
   id,
   theme = {},
   onChange,
   value,
   doCheckAutofill = false,
-  inputRef,
   className,
   inputClassName,
   noClearButton,

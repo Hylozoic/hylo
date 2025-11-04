@@ -157,7 +157,6 @@ export function Search ({ onChange }) {
     <div className={styles.search}>
       <TextInput
         theme={styles}
-        inputRef={x => x && x.focus()}
         placeholder={t('Search members')}
         onChange={onChange}
       />
