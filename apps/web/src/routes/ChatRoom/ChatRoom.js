@@ -29,7 +29,7 @@ import {
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchChatRoomInit from 'store/actions/fetchChatRoomInit'
+import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -291,18 +291,10 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load chat room with parallel queries (eliminates waterfall delay)
-    // Dispatches topicFollow and posts in parallel
+    // Load topicFollow data when group or topic changes
     if (!group?.id || !topicName) return
 
-    dispatch(fetchChatRoomInit({
-      groupId: group.id,
-      groupSlug,
-      topicName,
-      initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
-      context,
-      search
-    }))
+    dispatch(fetchTopicFollow(group.id, topicName))
   }, [group?.id, topicName])
 
   useEffect(() => {
@@ -317,13 +309,14 @@ export default function ChatRoom (props) {
       purgeItemSizes: true
     })
 
-    // Posts should already be in Redux from fetchChatRoomInit parallel fetch
+    // Load future posts (new unread posts) if there are any
     if (topicFollow.newPostCount > 0) {
       fetchPostsFuture(0).then(() => setLoadedFuture(true))
     } else {
       setLoadedFuture(true)
     }
 
+    // Load past posts (read history)
     fetchPostsPast(0).then(() => setLoadedPast(true))
 
     resetInitialPostToScrollTo()
