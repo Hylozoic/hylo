@@ -8,6 +8,7 @@ export default function createPost (postParams) {
 
   const {
     acceptContributions,
+    budget,
     completionAction,
     completionActionSettings,
     details,
@@ -15,6 +16,7 @@ export default function createPost (postParams) {
     endTime,
     eventInviteeIds = [],
     fileUrls,
+    fundingRoundId,
     groups,
     imageUrls,
     linkPreview,
@@ -48,6 +50,7 @@ export default function createPost (postParams) {
       variables: {
         acceptContributions,
         announcement: sendAnnouncement,
+        budget,
         completionAction,
         completionActionSettings,
         details,
@@ -55,6 +58,7 @@ export default function createPost (postParams) {
         endTime: endTime && endTime.valueOf(),
         eventInviteeIds,
         fileUrls,
+        fundingRoundId,
         groupIds,
         imageUrls,
         isAnonymousVote,
@@ -86,6 +90,7 @@ export default function createPost (postParams) {
       analytics: {
         eventName: AnalyticsEvents.POST_CREATED,
         detailsLength: TextHelpers.textLengthHTML(details),
+        fundingRoundId,
         groupId: groupIds,
         isAnnouncement: sendAnnouncement,
         isPublic,
@@ -94,6 +99,7 @@ export default function createPost (postParams) {
         type
       },
       type,
+      fundingRoundId,
       groupIds,
       trackId
     }

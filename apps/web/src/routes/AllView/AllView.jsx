@@ -1,4 +1,4 @@
-import { House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
+import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { capitalize } from 'lodash/fp'
 import ContextWidgetPresenter, { humanReadableTypeResolver, isValidChildWidget, translateTitle, types } from '@hylo/presenters/ContextWidgetPresenter'
 import fetchContextWidgets from 'store/actions/fetchContextWidgets'
+import fetchGroupFundingRounds from 'store/actions/fetchGroupFundingRounds'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -23,7 +24,7 @@ import {
   reorderPostInCollection
 } from '../GroupSettings/GroupSettings.store'
 import useDebounce from 'hooks/useDebounce'
-
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 import Icon from 'components/Icon'
 import PostSelector from 'components/PostSelector'
 import WidgetIconResolver from 'components/WidgetIconResolver'
@@ -51,6 +52,7 @@ const GROUP = types.GROUP
 const CUSTOM_VIEW = types.CUSTOM_VIEW
 const CONTAINER = types.CONTAINER
 const TRACK = types.TRACK
+const FUNDING_ROUND = types.FUNDING_ROUND
 
 export default function AllViews () {
   const navigate = useNavigate()
@@ -146,20 +148,32 @@ export default function AllViews () {
             </span>
           )}
           {isEditing && widget.isValidHomeWidget && (
-            <span
-              className='text-sm inline-block text-foreground'
-              onClick={(evt) => {
-                evt.stopPropagation()
-                handleWidgetHomePromotion(widget)
-              }}
-            >
-              <House />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleWidgetHomePromotion(widget)
+                  }}
+                >
+                  <House />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('Set as Home View')}</TooltipContent>
+            </Tooltip>
           )}
+
           {isEditing && !widget.order && (
-            <span className='text-sm text-foreground inline-block'>
-              <Plus />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='text-sm text-foreground inline-block hover:text-selected'>
+                  <Plus />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('Add to Group Menu')}</TooltipContent>
+            </Tooltip>
+
           )}
         </div>
       )
@@ -261,6 +275,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
       customViewInput: addChoice === CUSTOM_VIEW ? cleanCustomView(selectedItem) : null,
       viewUserId: addChoice === USER ? selectedItem.id : null,
       viewChatId: addChoice === CHAT ? groupTopic.id : null,
+      viewFundingRoundId: addChoice === FUNDING_ROUND ? selectedItem.id : null,
       viewTrackId: addChoice === TRACK ? selectedItem.id : null,
       parentId,
       orderInFrontOfWidgetId
@@ -328,8 +343,14 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
                 onClick={() => setAddChoice(TRACK)}
                 disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewTrack: { id: 'fake-id' } } })}
               />
+              <AddOption
+                icon={<BadgeDollarSign />}
+                title={t('Add Funding Round')}
+                onClick={() => setAddChoice(FUNDING_ROUND)}
+                disabled={parentId && !isValidChildWidget({ parentWidget, childWidget: { viewFundingRound: { id: 'fake-id' } } })}
+              />
             </div>}
-          {addChoice && [CHAT, POST, GROUP, USER, TRACK].includes(addChoice) && (
+          {addChoice && [CHAT, POST, GROUP, USER, TRACK, FUNDING_ROUND].includes(addChoice) && (
             <ItemSelector addChoice={addChoice} group={group} selectedItem={selectedItem} setSelectedItem={setSelectedItem} widgetData={widgetData} setWidgetData={setWidgetData} />
           )}
           {addChoice && addChoice === CUSTOM_VIEW && (
@@ -581,6 +602,28 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
     getTracks()
   }, [debouncedSearch, dispatch, addChoice])
 
+  useEffect(() => {
+    async function getFundingRounds () {
+      if (!debouncedSearch || addChoice !== FUNDING_ROUND) return
+
+      setIsLoading(true)
+      try {
+        const response = await dispatch(fetchGroupFundingRounds(group.id, {
+          search: debouncedSearch,
+          first: 20,
+          published: true
+        }))
+        setItems(response?.payload?.data?.group?.fundingRounds?.items.map(item => ({ ...item, name: item.title })) || [])
+      } catch (error) {
+        console.error('Error fetching funding rounds:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    getFundingRounds()
+  }, [debouncedSearch, dispatch, addChoice])
+
   const textOptions = {
     [CHAT]: {
       searchPlaceholder: t('chatTopicSearchPlaceholder'),
@@ -601,13 +644,18 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
       searchPlaceholder: t('trackSearchPlaceholder'),
       noResults: t('No tracks match'),
       heading: t('Tracks')
+    },
+    [FUNDING_ROUND]: {
+      searchPlaceholder: t('fundingRoundSearchPlaceholder'),
+      noResults: t('No funding rounds match'),
+      heading: t('Funding Rounds')
     }
   }
 
   return (
     <div>
       {addChoice === POST && !selectedItem && <PostSelector group={group} onSelectPost={setSelectedItem} />}
-      {[CHAT, USER, GROUP, TRACK].includes(addChoice) && !selectedItem && (
+      {[CHAT, USER, GROUP, TRACK, FUNDING_ROUND].includes(addChoice) && !selectedItem && (
         <Command className='rounded-lg border shadow-md'>
           <CommandInput
             placeholder={textOptions[addChoice].searchPlaceholder}
@@ -683,6 +731,14 @@ function ItemSelector ({ addChoice, group, selectedItem, setSelectedItem, widget
                   {t('Selected Track')}: <span className='font-extrabold'>{selectedItem.name}</span>
                 </h2>
                 <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the track')}</p>
+              </>
+            )}
+            {addChoice === FUNDING_ROUND && (
+              <>
+                <h2 className='text-sm font-semibold text-foreground mb-0 mt-0'>
+                  {t('Selected Funding Round')}: <span className='font-extrabold'>{selectedItem.name}</span>
+                </h2>
+                <p className='text-xs text-foreground/60'>{t('The name of the widget will be the name of the funding round')}</p>
               </>
             )}
           </div>

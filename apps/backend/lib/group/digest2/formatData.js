@@ -34,6 +34,17 @@ const formatData = curry((group, data) => {
   })
 
   ret.posts_with_new_comments = sortBy(p => -p.id, postsWithNewComments)
+
+  // Add funding round submissions
+  if (data.fundingRoundSubmissions && data.fundingRoundSubmissions.length > 0) {
+    ret.funding_rounds = data.fundingRoundSubmissions.map(fr => ({
+      id: fr.fundingRoundId,
+      title: fr.fundingRoundTitle,
+      submission_count: fr.submissionCount,
+      url: Frontend.Route.fundingRound({ id: fr.fundingRoundId }, group)
+    }))
+  }
+
   ret.num_sections = Object.keys(ret).filter(k => Array.isArray(ret[k]) && ret[k].length > 0).length
   return ret.num_sections > 0 ? ret : null
 })

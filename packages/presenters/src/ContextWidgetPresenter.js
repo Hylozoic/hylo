@@ -24,13 +24,14 @@ export default function ContextWidgetPresenter (widget) {
 /* Constants */
 
 export const types = {
+  CHAT: 'viewChat',
+  CONTAINER: 'container',
+  CUSTOM_VIEW: 'customView',
+  FUNDING_ROUND: 'viewFundingRound',
   GROUP: 'viewGroup',
   POST: 'viewPost',
-  USER: 'viewUser',
-  CHAT: 'viewChat',
-  CUSTOM_VIEW: 'customView',
-  CONTAINER: 'container',
-  TRACK: 'viewTrack'
+  TRACK: 'viewTrack',
+  USER: 'viewUser'
 }
 
 /* == Attribute Resolvers == */
@@ -46,6 +47,7 @@ function titleResolver (widget) {
       widget?.viewChat?.name ||
       widget?.customView?.name ||
       widget?.viewTrack?.name ||
+      widget?.viewFundingRound?.title ||
       ''
   } else {
     title = title
@@ -59,6 +61,8 @@ function titleResolver (widget) {
 function isValidHomeWidgetResolver (widget) {
   return !!(
     widget?.viewChat?.id ||
+    widget?.viewTrack?.id ||
+    widget?.viewFundingRound?.id ||
     widget?.customView?.id ||
     widget?.view
   )
@@ -76,12 +80,13 @@ function avatarDataResolver (widget) {
 
 // Determines the correct icon name for a given widget type
 const WIDGET_TYPE_TO_ICON_NAME_MAP = {
+  about: 'Info',
   setup: 'Settings',
   'custom-views': 'Stack',
   chats: 'Topics',
   viewChat: 'Topics',
+  viewFundingRound: 'BadgeDollarSign',
   viewPost: 'Posticon',
-  about: 'Info',
   viewTrack: 'Shapes'
 }
 function iconNameResolver (widget, type) {
@@ -124,6 +129,8 @@ export function humanReadableTypeResolver (type) {
       return 'custom view'
     case type === 'viewTrack':
       return 'track'
+    case type === 'viewFundingRound':
+      return 'funding round'
     case type === null:
       return 'container'
     default:
@@ -140,6 +147,7 @@ function widgetTypeResolver ({ widget }) {
     (widget?.viewUser && 'viewUser') ||
     (widget?.viewChat && 'viewChat') ||
     (widget?.viewTrack && 'viewTrack') ||
+    (widget?.viewFundingRound && 'viewFundingRound') ||
     (widget?.customView && 'customView') ||
     (widget?.url && 'link') ||
     'container'
@@ -154,10 +162,11 @@ export const isHiddenInContextMenuResolver = (widget) => {
     the needs-to-be-hidden quality of a widget has to wait until things are ordered for this to be accurate.
   */
   return (!['members', 'setup'].includes(widget.type) && !widget.view && widget?.childWidgets?.length === 0 &&
-  !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack &&
+  !widget.viewGroup && !widget.viewUser && !widget.viewPost && !widget.viewTrack && !widget.viewFundingRound &&
   !widget.viewChat && !widget.customView) ||
   // Hide unpublished tracks
-  (widget.type === 'viewTrack' && widget.viewTrack?.publishedAt === null)
+  (widget.type === 'viewTrack' && widget.viewTrack?.publishedAt === null) ||
+  (widget.type === 'viewFundingRound' && widget.viewFundingRound?.publishedAt === null)
 }
 
 /* == ContextWidget collection methods, Static Views, and utility functions == */
@@ -185,6 +194,7 @@ export function isValidChildWidget ({ parentWidget, childWidget }) {
       || parentWidget?.viewPost?.id
       || parentWidget?.customView?.id
       || parentWidget?.viewTrack?.id
+      || parentWidget?.viewFundingRound?.id
       || childWidget?.id?.includes('fake-id')
       || childWidget?.id === parentWidget?.id
       || (childWidgetIsContainer && parentWidgetIsContainer)
@@ -288,7 +298,8 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'mentions', iconName: 'Email', title: 'widget-my-mentions', id: 'widget-my-mentions', order: 3, parentId: 'widget-my-content' },
   { context: 'my', view: 'announcements', iconName: 'Announcement', title: 'widget-my-announcements', id: 'widget-my-announcements', order: 4, parentId: 'widget-my-content' },
   { context: 'my', view: 'saved-posts', iconName: 'Bookmark', title: 'widget-my-saved-posts', id: 'widget-my-saved-posts', order: 5, parentId: 'widget-my-content' },
-  { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 6, parentId: 'widget-my-content' },
+  { context: 'my', view: 'tracks', iconName: 'Shapes', title: 'widget-my-tracks', id: 'widget-my-tracks', order: 5, parentId: 'widget-my-content' },
+  { context: 'my', view: 'funding-rounds', iconName: 'BadgeDollarSign', title: 'widget-my-funding-rounds', id: 'widget-my-funding-rounds', order: 6, parentId: 'widget-my-content' },
   { title: 'widget-myself', id: 'widget-myself', order: 3, parentId: null },
   { title: 'widget-my-profile', id: 'widget-my-profile', url: profileUrl, order: 1, parentId: 'widget-myself' },
   { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
@@ -326,6 +337,10 @@ export const COMMON_VIEWS = {
     defaultViewMode: 'calendar',
     postTypes: ['event'],
     defaultSortBy: 'start_time'
+  },
+  'funding-rounds': {
+    name: 'Funding Rounds',
+    iconName: 'BadgeDollarSign'
   },
   groups: {
     name: 'Groups',

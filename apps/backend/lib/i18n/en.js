@@ -11,6 +11,25 @@ exports.en = {
   emailDigestDailySubject: (name) => `Your ${name} Daily Digest`,
   emailDigestWeeklySubject: (name) => `Your ${name} Weekly Digest`,
   groupCreatedNotifySubject: (name) => `New Hylo Group Created: ${name}`,
+  fundingRoundTransitionButtonText: ({ phase }) => {
+    const buttonTextMessages = {
+      submissions: 'Add your submission',
+      discussion: 'Discuss the submissions',
+      voting: 'Vote in the round',
+      completed: 'View the results',
+      viewRound: 'View the Round'
+    }
+    return buttonTextMessages[phase] || 'View the round'
+  },
+  fundingRoundTransitionText: ({ phase }) => {
+    const transitionTextMessages = {
+      submissions: 'Submissions are now open',
+      discussion: 'Submissions are now closed',
+      voting: 'Voting is now open',
+      completed: 'Voting is now closed'
+    }
+    return transitionTextMessages[phase] || 'Status updated'
+  },
   moderationClearedFlagFromYourPost: () => 'Moderator cleared a flag from your post',
   moderationClearedPostEmailContent: ({ post, group }) => `Your post "${post.summary()}" in group ${group.get('name')} was cleared of a group agreement violation. \n`,
   moderationClearedYourFlag: () => 'Moderator cleared your flag',
@@ -52,5 +71,24 @@ exports.en = {
   textForTrackCompleted: ({ actor, track }) => `Track completed: "${track.get('name')}" was completed by ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, track }) => `Track enrollment: "${track.get('name')}" was enrolled in by ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} changed the options for proposal: "${postName}" in ${groupName}. This has reset the votes`,
+  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} submitted "${post.summary()}" to "${fundingRound.get('title')}"`,
+  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+    const phaseMessages = {
+      submissions: 'Submissions are now open',
+      discussion: 'Submissions have closed and discussions are open',
+      voting: 'Voting is now open',
+      completed: 'Voting has closed and the round has ended'
+    }
+    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Status updated'}`
+  },
+  textForFundingRoundReminder: ({ reminderType }) => {
+    const reminderMessages = {
+      submissionsClosing1Day: 'Submissions close in 1 day',
+      submissionsClosing3Days: 'Submissions close in 3 days',
+      votingClosing1Day: 'Voting closes in 1 day',
+      votingClosing3Days: 'Voting closes in 3 days'
+    }
+    return `${reminderMessages[reminderType] || 'Deadline approaching'}`
+  },
   theTeamAtHylo: 'The Team at Hylo'
 }

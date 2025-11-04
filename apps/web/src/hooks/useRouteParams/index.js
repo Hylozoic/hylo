@@ -60,6 +60,13 @@ export default function useRouteParams () {
     // Set trackId
     if (params.view === 'tracks') {
       params.trackId = pathParts[4]
+      params.tab = pathParts[5]
+    }
+
+    // Set fundingRoundId
+    if (params.view === 'funding-rounds') {
+      params.fundingRoundId = pathParts[4]
+      params.tab = pathParts[5]
     }
 
     // If I'm in the group settings then I want the view to include the specific settings tab

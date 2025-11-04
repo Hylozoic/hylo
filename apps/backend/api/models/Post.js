@@ -447,7 +447,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('saved_at')) || null
   },
 
-  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
+  presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
 
@@ -474,7 +474,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         avatar_url: user.get('avatar_url'),
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
-      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
+      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group, '', fundingRound) + clickthroughParams,
       when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
@@ -698,7 +698,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-    } else if (this.get('type') !== Post.Type.ACTION) {
+    } else if (this.get('type') !== Post.Type.ACTION && this.get('type') !== Post.Type.SUBMISSION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
       const members = await Promise.all(groups.map(async group => {
@@ -872,6 +872,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     PROPOSAL: 'proposal',
     REQUEST: 'request',
     RESOURCE: 'resource',
+    SUBMISSION: 'submission',
     THREAD: 'thread',
     WELCOME: 'welcome'
   },

@@ -3,6 +3,7 @@ import postFieldsFragment from '../fragments/postFieldsFragment'
 export default
 `mutation UpdatePost(
   $acceptContributions: Boolean,
+  $budget: String,
   $completionAction: String,
   $completionActionSettings: JSON,
   $details: String,
@@ -33,6 +34,7 @@ export default
 ) {
   updatePost(id: $id, data: {
     acceptContributions: $acceptContributions,
+    budget: $budget,
     completionAction: $completionAction,
     completionActionSettings: $completionActionSettings,
     details: $details,

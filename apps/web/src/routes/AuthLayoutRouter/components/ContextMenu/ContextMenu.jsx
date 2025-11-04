@@ -443,7 +443,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   {canDnd && isDroppable && <GrabMe {...listeners} {...attributes} />}
                 </span>}
               {widget.type !== 'members' && !isOverlay &&
-                <div className={cn('flex flex-col relative transition-all text-foreground text-foreground hover:text-foreground',
+                <div className={cn('flex flex-col relative transition-all text-foreground',
                   {
                     'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
                   })}

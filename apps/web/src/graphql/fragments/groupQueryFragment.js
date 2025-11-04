@@ -193,6 +193,16 @@ export default function groupQueryFragment () {
           id
           name
         }
+        viewFundingRound {
+          id
+          title
+          isParticipating
+          publishedAt
+          submissionsOpenAt
+          submissionsCloseAt
+          votingOpensAt
+          votingClosesAt
+        }
         viewTrack {
           id
           name

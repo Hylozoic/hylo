@@ -76,40 +76,42 @@ module.exports = bookshelf.Model.extend({
   requireFetch: false,
   hasTimestamps: true,
 
-  memberships() {
+  memberships () {
     return this.hasMany(GroupTag)
   },
 
-  groups() {
+  groups () {
     return this.belongsToMany(Group).through(GroupTag)
       .withPivot(['user_id', 'description'])
   },
 
-  groupTags() {
+  groupTags () {
     return this.hasMany(GroupTag)
   },
 
-  posts() {
+  posts () {
     return this.belongsToMany(Post).through(PostTag).withPivot('selected')
   },
 
-  comments() {
+  comments () {
     return this.belongsToMany(Comment).through(GroupTag)
   },
 
-  follows() {
+  follows () {
     return this.hasMany(TagFollow)
   },
 
-  followForUserAndGroup(userId, groupId) {
-    return this.hasOne(TagFollow).query({where: {
-      user_id: userId,
-      group_id: groupId
-    }})
+  followForUserAndGroup (userId, groupId) {
+    return this.hasOne(TagFollow).query({
+      where: {
+        user_id: userId,
+        group_id: groupId
+      }
+    })
   }
 
 }, {
-  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing }, opts) => {
+  addToGroup: ({ group_id, tag_id, user_id, description, is_default, isSubscribing, isChatRoom }, opts) => {
     return GroupTag.where({ group_id, tag_id }).fetch(opts)
       .tap(groupTag => groupTag ||
         GroupTag.create({ group_id, tag_id, user_id, description, is_default }, opts)
@@ -117,22 +119,22 @@ module.exports = bookshelf.Model.extend({
       // the catch above is for the case where another user just created the
       // GroupTag (race condition): the save fails, but we don't care about
       // the result
-      .then(groupTag => groupTag && groupTag.save({updated_at: new Date(), is_default}))
+      .then(groupTag => groupTag && groupTag.save({ updated_at: new Date(), is_default }))
       .then(() => user_id && isSubscribing &&
-        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing }, opts))
+        TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing, isChatRoom }, opts))
   },
 
-  isValidTag(text) {
+  isValidTag (text) {
     return !Validators.validateTopicName(text)
   },
 
-  validate(text) {
+  validate (text) {
     return Validators.validateTopicName(text)
   },
 
   tagsInText,
 
-  find({ id, name }, options) {
+  find ({ id, name }, options) {
     if (id) {
       return Tag.where({ id }).fetch(options)
     }

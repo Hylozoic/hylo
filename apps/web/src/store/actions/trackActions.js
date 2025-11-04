@@ -252,11 +252,11 @@ export function updateTrack (data) {
   const { trackId, ...rest } = data
 
   // We need completionRole in the data for the optimistic update, but only the id in the mutation
-  const dataForUpdate = rest
-  if (rest.completionRole) {
+  const dataForUpdate = { ...rest }
+  if (dataForUpdate.completionRole) {
     dataForUpdate.completionRoleId = rest.completionRole.id
   }
-  delete dataForUpdate.completionRole // outside the if in case completionRole is null
+  delete dataForUpdate.completionRole
 
   return {
     type: UPDATE_TRACK,
