@@ -29,7 +29,7 @@ import {
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
-import fetchTopicFollow from 'store/actions/fetchTopicFollow'
+import fetchChatRoomInit from 'store/actions/fetchChatRoomInit'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -143,9 +143,9 @@ export default function ChatRoom (props) {
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic.id,
+    topicName: topicName,
     useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic.id])
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicName])
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
@@ -157,9 +157,9 @@ export default function ChatRoom (props) {
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic.id,
+    topicName: topicName,
     useChatFragment: true
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic.id])
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicName])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -291,10 +291,18 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load topicFollow data when group or topic changes
+    // Load chat room with parallel queries using consistent topicName parameter
+    // This eliminates the waterfall delay while maintaining cache key consistency
     if (!group?.id || !topicName) return
 
-    dispatch(fetchTopicFollow(group.id, topicName))
+    dispatch(fetchChatRoomInit({
+      groupId: group.id,
+      groupSlug,
+      topicName,
+      initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
+      context,
+      search
+    }))
   }, [group?.id, topicName])
 
   useEffect(() => {
@@ -309,6 +317,7 @@ export default function ChatRoom (props) {
       purgeItemSizes: true
     })
 
+    // Posts should already be in Redux from fetchChatRoomInit parallel fetch
     // Load future posts (new unread posts) if there are any
     if (topicFollow.newPostCount > 0) {
       fetchPostsFuture(0).then(() => setLoadedFuture(true))

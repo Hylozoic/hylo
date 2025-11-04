@@ -205,8 +205,8 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the past posts in a chat room (past because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room (using topicName for cache key consistency)
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topicName: topic.name, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 
@@ -367,6 +367,7 @@ export const queryParamWhitelist = [
   'slug',
   'sortBy',
   'topic',
+  'topicName',
   'topics',
   'type', // TODO: why do we have type & filter? should only need one
   'types',
