@@ -674,6 +674,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               search,
               sortBy,
               topic,
+              topicName,
               topics,
               types
             }) =>
@@ -692,6 +693,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
                 sortBy,
                 topic,
+                topicName,
                 topics,
                 type: filter,
                 types

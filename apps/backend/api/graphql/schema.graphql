@@ -249,6 +249,8 @@ type Query {
     sortBy: String,
     # Return only posts that have this topic by ID
     topic: ID,
+    # Return only posts that have this topic by topic name
+    topicName: String,
     # Return only posts that have any of these topics by topic ID
     topics: [ID],
     # Return only posts that are one of these types: 'discussion', 'event', 'offer', 'project', 'proposal', 'request' and/or 'resource'
@@ -1048,6 +1050,8 @@ type Group {
     sortBy: String,
     # Only load posts with this topic by topic id
     topic: ID,
+    # Only load posts with this topic by topic name
+    topicName: String,
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
@@ -1123,6 +1127,8 @@ type Group {
     sortBy: String,
     # Only load posts with this topic by topic id
     topic: ID,
+    # Only load posts with this topic by topic name
+    topicName: String,
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
@@ -2030,6 +2036,8 @@ type Person {
     sortBy: String,
     # Only load posts with this topic by topic id
     topic: ID,
+    # Only load posts with this topic by topic name
+    topicName: String,
     # Only load posts that have one of these topics by topic id
     topics: [ID],
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
