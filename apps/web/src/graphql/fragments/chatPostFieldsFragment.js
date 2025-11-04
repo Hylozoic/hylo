@@ -12,6 +12,7 @@ const chatPostFieldsFragment = `
     avatarUrl
   }
   createdAt
+  updatedAt
   editedAt
   flaggedGroups
   localId
@@ -38,8 +39,10 @@ const chatPostFieldsFragment = `
     id
     name
   }
-  commenters(first: 0) {
+  commenters(first: 3) {
     id
+    name
+    avatarUrl
   }
   commentersTotal
   commentsTotal
