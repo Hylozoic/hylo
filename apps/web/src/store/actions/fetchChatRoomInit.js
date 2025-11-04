@@ -29,8 +29,7 @@ export default function fetchChatRoomInit ({
         futureCursor,
         pastFirst: initialPostsToLoad,
         futureFirst: 100, // Load up to 100 new messages
-        search,
-        childPostInclusion: 'no'
+        search
       }
     },
     meta: {
@@ -56,8 +55,7 @@ const CHAT_ROOM_INIT_QUERY = `
     $futureCursor: ID,
     $pastFirst: Int,
     $futureFirst: Int,
-    $search: String,
-    $childPostInclusion: String
+    $search: String
   ) {
     topicFollow(groupId: $groupId, topicName: $topicName) {
       id
