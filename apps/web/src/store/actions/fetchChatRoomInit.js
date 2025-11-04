@@ -86,7 +86,7 @@ const CHAT_ROOM_INIT_QUERY = `
         first: $pastFirst,
         order: "desc",
         sortBy: "id",
-        topic: $topicName,
+        topics: [$topicName],
         search: $search
       ) {
         hasMore
@@ -102,7 +102,7 @@ const CHAT_ROOM_INIT_QUERY = `
         first: $futureFirst,
         order: "asc",
         sortBy: "id",
-        topic: $topicName,
+        topics: [$topicName],
         search: $search
       ) {
         hasMore
