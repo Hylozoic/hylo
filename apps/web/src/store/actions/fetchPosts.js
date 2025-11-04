@@ -26,6 +26,7 @@ export default function fetchPosts ({
   slug,
   sortBy,
   topic,
+  topicName,
   topics,
   types,
   useChatFragment = false // Use lightweight fragment for chat queries (60% smaller payload)
@@ -70,6 +71,7 @@ export default function fetchPosts ({
         slug,
         sortBy,
         topic,
+        topicName,
         topics,
         types
       }
@@ -103,6 +105,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   sortBy: $sortBy,
   search: $search,
   topic: $topic,
+  topicName: $topicName,
   topics: $topics,
   types: $types
 ) {
@@ -136,6 +139,7 @@ const groupQuery = (childPostInclusion, useChatFragment = false) => {
   $slug: String,
   $sortBy: String,
   $topic: ID,
+  $topicName: String,
   $topics: [ID],
   $types: [String]
 ) {
@@ -173,6 +177,7 @@ const postsQuery = `query PostsQuery (
   $search: String,
   $sortBy: String,
   $topic: ID,
+  $topicName: String,
   $topics: [ID],
   $types: [String]
 ) {

@@ -25,7 +25,7 @@ export default function fetchChatRoomInit ({
         slug: groupSlug,
         search,
         sortBy: 'id',
-        topic: topicName, // Use topicName now supported by backend
+        topicName, // Use topicName parameter (new backend support)
         useChatFragment: true
       }))
     ])
