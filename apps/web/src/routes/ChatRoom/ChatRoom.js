@@ -310,7 +310,7 @@ export default function ChatRoom (props) {
       postIdToStartAt,
       initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
       context,
-      search
+      search: search || ''
     })).then((result) => {
       if (!result?.topicFollow) return
 
@@ -343,7 +343,7 @@ export default function ChatRoom (props) {
       setLoadedPast(true)
       setLoadedFuture(true)
     })
-  }, [group?.id, topicName, postIdToStartAt])
+  }, [group?.id, topicName])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)

@@ -18,8 +18,8 @@ export default function fetchChatRoomData ({
     const topicFollowAction = await dispatch(fetchTopicFollow(groupId, topicName))
     const topicFollow = topicFollowAction.payload?.data?.topicFollow
 
-    if (!topicFollow) {
-      console.error('Failed to fetch topicFollow')
+    if (!topicFollow || !topicFollow.topic) {
+      console.error('Failed to fetch topicFollow or topic is missing', topicFollow)
       return { topicFollow: null, postsPast: null, postsFuture: null }
     }
 
@@ -29,10 +29,10 @@ export default function fetchChatRoomData ({
       context,
       cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow.lastReadPostId) + 1,
       filter: 'chat',
-      first: Math.max(initialPostsToLoad - topicFollow.newPostCount, 3),
+      first: Math.max(initialPostsToLoad - (topicFollow.newPostCount || 0), 3),
       order: 'desc',
       slug: groupSlug,
-      search,
+      search: search || '',
       sortBy: 'id',
       topic: topicFollow.topic.id,
       useChatFragment: true
@@ -43,10 +43,10 @@ export default function fetchChatRoomData ({
       context,
       cursor: postIdToStartAt ? parseInt(postIdToStartAt) : parseInt(topicFollow.lastReadPostId),
       filter: 'chat',
-      first: topicFollow.newPostCount,
+      first: topicFollow.newPostCount || 0,
       order: 'asc',
       slug: groupSlug,
-      search,
+      search: search || '',
       sortBy: 'id',
       topic: topicFollow.topic.id,
       useChatFragment: true
