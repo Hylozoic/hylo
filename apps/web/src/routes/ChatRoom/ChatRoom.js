@@ -291,17 +291,12 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load chat room with parallel queries using consistent topicName parameter
-    // This eliminates the waterfall delay while maintaining cache key consistency
+    // Load topicFollow data - using topicName for cache key consistency
     if (!group?.id || !topicName) return
 
     dispatch(fetchChatRoomInit({
       groupId: group.id,
-      groupSlug,
-      topicName,
-      initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
-      context,
-      search
+      topicName
     }))
   }, [group?.id, topicName])
 
