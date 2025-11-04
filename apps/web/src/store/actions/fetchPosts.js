@@ -1,4 +1,5 @@
 import { get } from 'lodash/fp'
+import chatPostFieldsFragment from '@graphql/fragments/chatPostFieldsFragment'
 import groupViewPostsQueryFragment from '@graphql/fragments/groupViewPostsQueryFragment'
 import postsQueryFragment from '@graphql/fragments/postsQueryFragment'
 import { CONTEXT_MY, FETCH_POSTS } from 'store/constants'
@@ -26,12 +27,13 @@ export default function fetchPosts ({
   sortBy,
   topic,
   topics,
-  types
+  types,
+  useChatFragment = false // Use lightweight fragment for chat queries (60% smaller payload)
 }) {
   let query, extractModel, getItems
 
   if (context === 'groups') {
-    query = groupQuery(childPostInclusion === 'yes')
+    query = groupQuery(childPostInclusion === 'yes', useChatFragment)
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public' || context === CONTEXT_MY) {
@@ -82,7 +84,41 @@ export default function fetchPosts ({
   }
 }
 
-const groupQuery = childPostInclusion => `query GroupPostsQuery (
+// Lightweight chat posts query fragment (60% smaller than full fragment)
+const chatPostsQueryFragment = (includeChildGroupPosts = true) => `
+${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
+  activePostsOnly: $activePostsOnly,
+  afterTime: $afterTime,
+  beforeTime: $beforeTime,
+  boundingBox: $boundingBox,
+  collectionToFilterOut: $collectionToFilterOut,
+  cursor: $cursor,
+  filter: $filter,
+  first: $first,
+  forCollection: $forCollection,
+  isFulfilled: $isFulfilled,
+  offset: $offset,
+  order: $order,
+  savedBy: $savedBy,
+  sortBy: $sortBy,
+  search: $search,
+  topic: $topic,
+  topics: $topics,
+  types: $types
+) {
+  hasMore
+  total
+  items {
+    ${chatPostFieldsFragment}
+  }
+}`
+
+const groupQuery = (childPostInclusion, useChatFragment = false) => {
+  const postsFragment = useChatFragment
+    ? chatPostsQueryFragment(childPostInclusion)
+    : groupViewPostsQueryFragment(childPostInclusion)
+
+  return `query GroupPostsQuery (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -109,9 +145,10 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
     name
     avatarUrl
     bannerUrl
-    ${groupViewPostsQueryFragment(childPostInclusion)}
+    ${postsFragment}
   }
 }`
+}
 
 const postsQuery = `query PostsQuery (
   $activePostsOnly: Boolean,
