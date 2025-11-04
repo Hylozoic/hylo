@@ -291,22 +291,22 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load chat room with combined query (eliminates waterfall delay)
-    // Fetches both topicFollow AND posts in a single network request
+    // Load chat room with parallel queries (eliminates waterfall delay)
+    // Dispatches topicFollow and posts in parallel
     if (!group?.id || !topicName) return
 
     dispatch(fetchChatRoomInit({
       groupId: group.id,
       groupSlug,
       topicName,
-      lastReadPostId: null, // Will be set from topicFollow after first load
       initialPostsToLoad: INITIAL_POSTS_TO_LOAD,
+      context,
       search
     }))
   }, [group?.id, topicName])
 
   useEffect(() => {
-    // Once topicFollow is loaded, populate the message list from Redux
+    // Once topicFollow is loaded, populate the message list
     if (!topicFollow?.id) return
 
     setLoadedFuture(false)
@@ -317,31 +317,14 @@ export default function ChatRoom (props) {
       purgeItemSizes: true
     })
 
-    // Check if posts are already in Redux (from fetchChatRoomInit)
-    // If not, fetch them (fallback for pagination/refresh scenarios)
-    const hasPosts = postsPast && postsPast.length > 0
-
-    if (hasPosts) {
-      // Posts already loaded from combined query - just populate message list
-      const newPosts = postsPast.map(p => presentPost(p, group.id))
-      messageListRef.current?.data.prepend(newPosts.reverse())
-      setLoadedPast(true)
-
-      if (topicFollow.newPostCount > 0 && postsFuture && postsFuture.length > 0) {
-        const futurePosts = postsFuture.map(p => presentPost(p, group.id))
-        messageListRef.current?.data.append(futurePosts, { index: 'LAST', align: 'end' })
-      }
-      setLoadedFuture(true)
+    // Posts should already be in Redux from fetchChatRoomInit parallel fetch
+    if (topicFollow.newPostCount > 0) {
+      fetchPostsFuture(0).then(() => setLoadedFuture(true))
     } else {
-      // Fallback: fetch posts if not already loaded
-      if (topicFollow.newPostCount > 0) {
-        fetchPostsFuture(0).then(() => setLoadedFuture(true))
-      } else {
-        setLoadedFuture(true)
-      }
-
-      fetchPostsPast(0).then(() => setLoadedPast(true))
+      setLoadedFuture(true)
     }
+
+    fetchPostsPast(0).then(() => setLoadedPast(true))
 
     resetInitialPostToScrollTo()
 
