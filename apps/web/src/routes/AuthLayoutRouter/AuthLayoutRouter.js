@@ -349,10 +349,12 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
+            </Suspense>
 
             <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
-              <Routes>
+              <Suspense fallback={<Loading />}>
+                <Routes>
                 {/* **** Member Routes **** */}
                 <Route path='members/:personId/*' element={<MemberProfile />} />
                 <Route path='all/members/:personId/*' element={<MemberProfile />} />
@@ -441,8 +443,9 @@ export default function AuthLayoutRouter (props) {
                 <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                 {/* **** Default Route (404) **** */}
                 <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
-              </Routes>
-            </Suspense>
+                </Routes>
+              </Suspense>
+            </div>
 
             <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Suspense fallback={<Loading />}>
