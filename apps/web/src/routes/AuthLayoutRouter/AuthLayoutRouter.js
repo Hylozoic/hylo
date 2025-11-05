@@ -33,6 +33,13 @@ import {
   groupHomeUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
+import Loading from 'components/Loading'
+import { GROUP_TYPES } from 'store/models/Group'
+import { getLocaleFromLocalStorage } from 'util/locale'
+import isWebView from 'util/webView'
+import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
+import classes from './AuthLayoutRouter.module.scss'
+
 // Lazy load routes to reduce initial bundle size
 const AllTopics = React.lazy(() => import('routes/AllTopics'))
 const AllView = React.lazy(() => import('routes/AllView'))
@@ -47,8 +54,6 @@ const GroupExplorer = React.lazy(() => import('routes/GroupExplorer'))
 const Drawer = React.lazy(() => import('./components/Drawer'))
 const JoinGroup = React.lazy(() => import('routes/JoinGroup'))
 const LandingPage = React.lazy(() => import('routes/LandingPage'))
-// Loading component must stay eager - it's used as the Suspense fallback
-import Loading from 'components/Loading'
 const MapExplorer = React.lazy(() => import('routes/MapExplorer'))
 const MemberProfile = React.lazy(() => import('routes/MemberProfile'))
 const Members = React.lazy(() => import('routes/Members'))
@@ -64,12 +69,6 @@ const TrackHome = React.lazy(() => import('routes/TrackHome'))
 const Tracks = React.lazy(() => import('routes/Tracks'))
 const UserSettings = React.lazy(() => import('routes/UserSettings'))
 const WelcomeWizardRouter = React.lazy(() => import('routes/WelcomeWizardRouter'))
-import { GROUP_TYPES } from 'store/models/Group'
-import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
-import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
-
-import classes from './AuthLayoutRouter.module.scss'
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
