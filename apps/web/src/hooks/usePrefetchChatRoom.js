@@ -1,9 +1,7 @@
 import { useCallback, useRef } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import isMobile from 'ismobilejs'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
-import isPendingFor from 'store/selectors/isPendingFor'
-import { FETCH_TOPIC_FOLLOW } from 'store/constants'
 
 /**
  * Hook for prefetching chatroom data on hover
@@ -26,17 +24,13 @@ import { FETCH_TOPIC_FOLLOW } from 'store/constants'
 export default function usePrefetchChatRoom({ groupId, topicName, enabled = true }) {
   const dispatch = useDispatch()
   const prefetchTimerRef = useRef(null)
-  const hasPrefetchedRef = useRef(false)
-
-  // Check if already loading
-  const isLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
 
   // Don't prefetch on mobile devices to save bandwidth
   const isMobileDevice = isMobile.any
 
   const handlePrefetch = useCallback(() => {
-    // Skip if disabled, mobile, already prefetched, or currently loading
-    if (!enabled || isMobileDevice || hasPrefetchedRef.current || isLoading) {
+    // Skip if disabled or mobile
+    if (!enabled || isMobileDevice) {
       return
     }
 
@@ -50,12 +44,9 @@ export default function usePrefetchChatRoom({ groupId, topicName, enabled = true
       clearTimeout(prefetchTimerRef.current)
     }
 
-    // Debounce: only prefetch if hover lasts > 100ms
+    // Debounce: only prefetch if hover lasts > 150ms
     // This prevents prefetching when user is just moving mouse across the screen
     prefetchTimerRef.current = setTimeout(() => {
-      // Mark as prefetched to prevent duplicate requests
-      hasPrefetchedRef.current = true
-
       // Dispatch the prefetch
       // Redux will handle deduplication if already cached or loading
       dispatch(fetchTopicFollow(groupId, topicName))
@@ -63,8 +54,8 @@ export default function usePrefetchChatRoom({ groupId, topicName, enabled = true
       if (process.env.DEBUG_GRAPHQL) {
         console.log('[Prefetch] Chatroom data for', topicName)
       }
-    }, 100)
-  }, [enabled, groupId, topicName, isMobileDevice, isLoading, dispatch])
+    }, 150)
+  }, [enabled, groupId, topicName, isMobileDevice, dispatch])
 
   // Cleanup function to cancel pending prefetch
   const cancelPrefetch = useCallback(() => {

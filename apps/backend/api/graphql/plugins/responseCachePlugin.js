@@ -25,32 +25,22 @@ const CACHE_ENABLED = process.env.GRAPHQL_CACHE_ENABLED !== 'false' // Default: 
 const MAX_AGE = parseInt(process.env.GRAPHQL_CACHE_MAX_AGE || '10', 10) // Default: 10 seconds
 const SWR_AGE = parseInt(process.env.GRAPHQL_CACHE_SWR || '30', 10) // Default: 30 seconds
 
+// Pre-build cache control string to avoid string concatenation on every request
+const CACHE_CONTROL_HEADER = `public, max-age=${MAX_AGE}, stale-while-revalidate=${SWR_AGE}`
+
 export const responseCachePlugin = {
-  onRequest({ request, serverContext, fetchAPI }) {
+  onRequest({ request }) {
+    // Skip if disabled
+    if (!CACHE_ENABLED) return
+
     return {
       onResponse({ response }) {
-        // Skip caching if disabled
-        if (!CACHE_ENABLED) return
-
-        // Only cache GraphQL requests
-        const url = new URL(request.url)
-        const isGraphQL = url.pathname.includes('graphql')
-        if (!isGraphQL) return
-
-        // Build cache control header
-        const cacheControl = `public, max-age=${MAX_AGE}, stale-while-revalidate=${SWR_AGE}`
-
         // Set the Cache-Control header
-        response.headers.set('Cache-Control', cacheControl)
+        response.headers.set('Cache-Control', CACHE_CONTROL_HEADER)
 
         // Set Vary header to ensure proper caching with authentication
         // This ensures different users don't see each other's cached data
-        response.headers.set('Vary', 'Accept-Encoding, Cookie')
-
-        // Log cache headers in debug mode
-        if (process.env.DEBUG_GRAPHQL) {
-          console.log('[GraphQL Cache] Setting headers:', cacheControl)
-        }
+        response.headers.set('Vary', 'Cookie')
       }
     }
   }
