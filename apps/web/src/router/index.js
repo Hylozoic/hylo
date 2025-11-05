@@ -17,12 +17,27 @@ if (isWebView()) {
   window.addHyloWebViewListener(history)
 }
 
-// Defer WebSocket initialization until after app mounts
+// Defer WebSocket and Mixpanel initialization until after app mounts
 let websocketsInitialized = false
+let mixpanelInitialized = false
+
 function initializeWebSockets () {
   if (!websocketsInitialized) {
     websocketsInitialized = true
     import('../client/websockets.js')
+  }
+}
+
+function initializeMixpanel () {
+  if (!mixpanelInitialized) {
+    mixpanelInitialized = true
+    import('mixpanel-browser').then(({ default: mixpanel }) => {
+      import('../config/index.js').then(({ default: config, isProduction, isTest }) => {
+        if (!isTest) {
+          mixpanel.init(config.mixpanel.token, { debug: !isProduction })
+        }
+      })
+    })
   }
 }
 
@@ -47,9 +62,10 @@ function initializeWebSockets () {
 // };
 
 export default function App () {
-  // Initialize WebSocket connection after component mounts to avoid blocking initial render
+  // Initialize WebSocket and Mixpanel after component mounts to avoid blocking initial render
   useEffect(() => {
     initializeWebSockets()
+    initializeMixpanel()
   }, [])
 
   return (

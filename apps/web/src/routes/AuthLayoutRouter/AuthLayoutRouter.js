@@ -140,7 +140,7 @@ export default function AuthLayoutRouter (props) {
   }, [])
 
   useEffect(() => {
-    if (currentUser?.id) {
+    if (currentUser?.id && mixpanel && typeof mixpanel.identify === 'function') {
       mixpanel.identify(currentUser.id)
       mixpanel.people.set({
         $name: currentUser.name,
@@ -153,16 +153,18 @@ export default function AuthLayoutRouter (props) {
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
-    // Add all current group membershps to mixpanel user
-    mixpanel.set_group('groupId', memberships.map(m => m.group.id))
+    // Add all current group membershps to mixpanel user (only if mixpanel is loaded)
+    if (mixpanel && typeof mixpanel.set_group === 'function') {
+      mixpanel.set_group('groupId', memberships.map(m => m.group.id))
 
-    if (currentGroup?.id) {
-      // Setup group profile info
-      mixpanel.get_group('groupId', currentGroup.id).set({
-        $location: currentGroup.location,
-        $name: currentGroup.name,
-        type: currentGroup.type
-      })
+      if (currentGroup?.id) {
+        // Setup group profile info
+        mixpanel.get_group('groupId', currentGroup.id).set({
+          $location: currentGroup.location,
+          $name: currentGroup.name,
+          type: currentGroup.type
+        })
+      }
     }
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 

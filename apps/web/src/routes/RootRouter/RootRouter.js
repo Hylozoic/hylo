@@ -1,23 +1,21 @@
-import mixpanel from 'mixpanel-browser'
-import React, { useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
-import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import NavigateWithParams from 'components/NavigateWithParams'
-import AuthLayoutRouter from 'routes/AuthLayoutRouter'
-import JoinGroup from 'routes/JoinGroup'
-import NonAuthLayoutRouter from 'routes/NonAuthLayoutRouter'
-import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
-import PublicLayoutRouter from 'routes/PublicLayoutRouter'
-import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
-import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
 
-if (!isTest) {
-  mixpanel.init(config.mixpanel.token, { debug: !isProduction })
-}
+// Lazy load layout routers to reduce initial bundle size
+const AuthLayoutRouter = React.lazy(() => import('routes/AuthLayoutRouter'))
+const JoinGroup = React.lazy(() => import('routes/JoinGroup'))
+const NonAuthLayoutRouter = React.lazy(() => import('routes/NonAuthLayoutRouter'))
+const OAuthLayoutRouter = React.lazy(() => import('routes/OAuth/OAuthLayoutRouter'))
+const PublicLayoutRouter = React.lazy(() => import('routes/PublicLayoutRouter'))
+const PublicGroupDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicGroupDetail'))
+const PublicPostDetail = React.lazy(() => import('routes/PublicLayoutRouter/PublicPostDetail'))
+
+// Mixpanel initialization moved to router/index.js for deferred loading
 
 export default function RootRouter () {
   const dispatch = useDispatch()
@@ -60,16 +58,19 @@ export default function RootRouter () {
 
   if (isAuthorized) {
     return (
-      <Routes>
-        {/* If authenticated we still need to do oauth stuff when requested */}
-        <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
-        <Route path='*' element={<AuthLayoutRouter />} />
-      </Routes>
+      <Suspense fallback={<Loading type='fullscreen' />}>
+        <Routes>
+          {/* If authenticated we still need to do oauth stuff when requested */}
+          <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+          <Route path='*' element={<AuthLayoutRouter />} />
+        </Routes>
+      </Suspense>
     )
   }
   if (!isAuthorized) {
     return (
-      <Routes>
+      <Suspense fallback={<Loading type='fullscreen' />}>
+        <Routes>
         <Route
           path='/public/*'
           element={<PublicLayoutRouter />}
@@ -101,7 +102,8 @@ export default function RootRouter () {
         <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     )
   }
 }
