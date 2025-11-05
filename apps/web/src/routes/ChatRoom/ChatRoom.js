@@ -173,8 +173,12 @@ export default function ChatRoom (props) {
 
   const postsForDisplay = useMemo(() => {
     if (!postsPast && !postsFuture) return []
-    return ([...(postsPast || []), ...(postsFuture || [])])
-      .sort((a, b) => Number(a.id) - Number(b.id))
+    const allPosts = [...(postsPast || []), ...(postsFuture || [])]
+    // Deduplicate posts by ID (can happen when socket adds posts to Redux while viewing another room)
+    const uniquePosts = Array.from(
+      new Map(allPosts.map(post => [post.id, post])).values()
+    )
+    return uniquePosts.sort((a, b) => Number(a.id) - Number(b.id))
   }, [postsPast, postsFuture])
 
   // Keep the on-screen Virtuoso data in sync when any post updates elsewhere (edit, comment, react)
@@ -306,21 +310,34 @@ export default function ChatRoom (props) {
   useEffect(() => {
     // New chat room loaded, reset everything
     if (topicFollow?.id) {
-      setLoadedFuture(false)
-      setLoadedPast(false)
+      // Check if we already have cached data for this room
+      const hasCachedPastData = postsPast && postsPast.length > 0
+      const hasCachedFutureData = postsFuture && postsFuture.length > 0
+      const hasCachedData = hasCachedPastData || hasCachedFutureData
+
       setNotificationsSetting(topicFollow?.settings?.notifications)
 
       messageListRef.current?.data.replace([], {
         purgeItemSizes: true
       })
 
-      if (topicFollow.newPostCount > 0) {
-        fetchPostsFuture(0).then(() => setLoadedFuture(true))
-      } else {
+      if (hasCachedData) {
+        // We have cached data, use it immediately without showing loading state
+        setLoadedPast(true)
         setLoadedFuture(true)
-      }
+      } else {
+        // No cached data, fetch fresh
+        setLoadedFuture(false)
+        setLoadedPast(false)
 
-      fetchPostsPast(0).then(() => setLoadedPast(true))
+        if (topicFollow.newPostCount > 0) {
+          fetchPostsFuture(0).then(() => setLoadedFuture(true))
+        } else {
+          setLoadedFuture(true)
+        }
+
+        fetchPostsPast(0).then(() => setLoadedPast(true))
+      }
 
       resetInitialPostToScrollTo()
 
@@ -344,6 +361,19 @@ export default function ChatRoom (props) {
       return () => clearTimeout(timer)
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
+
+  // Reset new_post_count when we're at the latest post but still showing a new post count
+  useEffect(() => {
+    if (loadedPast && loadedFuture &&
+        topicFollow?.newPostCount > 0 &&
+        !hasMorePostsFuture &&
+        postsForDisplay.length > 0) {
+      const latestPost = postsForDisplay[postsForDisplay.length - 1]
+      if (latestPost?.id && topicFollow?.id) {
+        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
+      }
+    }
+  }, [loadedPast, loadedFuture, topicFollow?.newPostCount, topicFollow?.id, hasMorePostsFuture, postsForDisplay])
 
   useEffect(() => {
     if (querystringParams?.postId) {
@@ -645,7 +675,7 @@ const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
-      {context.loadingPast || context.loadingFuture
+      {!context.loadedPast || !context.loadedFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
