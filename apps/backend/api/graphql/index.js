@@ -3,13 +3,14 @@ import { red } from 'chalk'
 import { inspect } from 'util'
 import RedisPubSub from '../services/RedisPubSub'
 import makeSchema from './makeSchema'
+import { responseCachePlugin } from './plugins/responseCachePlugin'
 
 export const GRAPHQL_ENDPOINT = '/noo/graphql'
 
 export const yoga = createYoga({
   graphqlEndpoint: GRAPHQL_ENDPOINT,
   schema: makeSchema,
-  // plugins: [useLazyLoadedSchema(createSchema)],
+  plugins: [responseCachePlugin],
   context: async ({ req, params }) => {
     if (process.env.DEBUG_GRAPHQL) {
       sails.log.info('\n' +
