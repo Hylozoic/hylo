@@ -563,22 +563,22 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         </Button>
       </div>
 
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
-          <StatusBadge
-            label={t('Accept Payments')}
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
+        <StatusBadge
+          label={t('Accept Payments')}
           value={chargesEnabled}
-            t={t}
-          />
-          <StatusBadge
-            label={t('Receive Payouts')}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Receive Payouts')}
           value={payoutsEnabled}
-            t={t}
-          />
-          <StatusBadge
-            label={t('Details Submitted')}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Details Submitted')}
           value={detailsSubmitted}
-            t={t}
-          />
+          t={t}
+        />
       </div>
 
       {group?.stripeDashboardUrl && (
