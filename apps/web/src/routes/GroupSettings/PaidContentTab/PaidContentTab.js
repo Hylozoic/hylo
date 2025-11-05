@@ -30,6 +30,7 @@ import {
   // updateOffering - TODO: Enable when database offering IDs are available
 } from './PaidContentTab.store'
 import { updateGroupSettings, fetchGroupSettings } from '../GroupSettings.store'
+import { getHost } from 'store/middleware/apiMiddleware'
 
 /**
  * Main PaidContentTab component
@@ -120,8 +121,7 @@ function PaidContentTab ({ group, currentUser }) {
 
     try {
       // Build return URLs
-      // TODO STRIPE: Replace with your actual domain
-      const baseUrl = window.location.origin
+      const baseUrl = getHost()
       const returnUrl = `${baseUrl}/groups/${group.slug}/settings/paid-content?onboarding=complete`
       const refreshUrl = `${baseUrl}/groups/${group.slug}/settings/paid-content?onboarding=refresh`
 
@@ -563,22 +563,22 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         </Button>
       </div>
 
-      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
-        <StatusBadge
-          label={t('Accept Payments')}
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
+          <StatusBadge
+            label={t('Accept Payments')}
           value={chargesEnabled}
-          t={t}
-        />
-        <StatusBadge
-          label={t('Receive Payouts')}
+            t={t}
+          />
+          <StatusBadge
+            label={t('Receive Payouts')}
           value={payoutsEnabled}
-          t={t}
-        />
-        <StatusBadge
-          label={t('Details Submitted')}
+            t={t}
+          />
+          <StatusBadge
+            label={t('Details Submitted')}
           value={detailsSubmitted}
-          t={t}
-        />
+            t={t}
+          />
       </div>
 
       {group?.stripeDashboardUrl && (
@@ -863,25 +863,25 @@ function OfferingManagementSection ({ group, accountId, offerings, onRefreshOffe
 
       {offerings.length === 0
         ? (
-          <div className='text-center py-8 text-foreground/70'>
-            <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+        <div className='text-center py-8 text-foreground/70'>
+          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
             <p>{t('No offerings yet')}</p>
             <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
-          </div>
+        </div>
         )
         : (
-          <div className='space-y-3'>
+        <div className='space-y-3'>
             {offerings.map(offering => (
               <OfferingCard
                 key={offering.id}
                 offering={offering}
-                groupSlug={group.slug}
+              groupSlug={group.slug}
                 onEdit={handleStartEdit}
-                t={t}
-              />
-            ))}
-          </div>
-        )}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
 
       {offerings.length > 0 && (
         <div className='mt-4 p-3 bg-blue-500/10 border border-blue-500 rounded-md'>
@@ -893,7 +893,7 @@ function OfferingManagementSection ({ group, accountId, offerings, onRefreshOffe
               rel='noopener noreferrer'
               className='text-blue-600 hover:underline'
             >
-              {window.location.origin}/groups/{group.slug}/store
+              {getHost()}/groups/{group.slug}/store
             </a>
           </p>
           <p className='text-xs text-foreground/70 mt-1'>
@@ -918,7 +918,7 @@ function OfferingCard ({ offering, groupSlug, onEdit, t }) {
         )}
       </div>
       <div className='flex items-center gap-3'>
-        <div className='text-right'>
+      <div className='text-right'>
           <p className='text-sm text-foreground/70'>{t('ID')}: {offering.id}</p>
           {offering.active
             ? (<span className='text-xs text-green-600 font-medium'>{t('Active')}</span>)
