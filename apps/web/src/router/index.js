@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from 'components/ThemeProvider'
@@ -15,6 +15,15 @@ import isWebView from 'util/webView'
 
 if (isWebView()) {
   window.addHyloWebViewListener(history)
+}
+
+// Defer WebSocket initialization until after app mounts
+let websocketsInitialized = false
+function initializeWebSockets () {
+  if (!websocketsInitialized) {
+    websocketsInitialized = true
+    import('../client/websockets.js')
+  }
 }
 
 // same configuration you would create for the Rollbar.js SDK
@@ -38,6 +47,11 @@ if (isWebView()) {
 // };
 
 export default function App () {
+  // Initialize WebSocket connection after component mounts to avoid blocking initial render
+  useEffect(() => {
+    initializeWebSockets()
+  }, [])
+
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>

@@ -21,7 +21,89 @@ export default defineConfig({
     'process.env.PUBLIC_URL': JSON.stringify('')
   },
   build: {
-    minify: true
+    minify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React ecosystem
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+          // Redux ecosystem
+          'vendor-redux': ['redux', 'react-redux', 'redux-orm', 'redux-first-history', 'redux-promise'],
+
+          // Large mapping libraries - split into separate chunks
+          'vendor-mapbox': ['mapbox-gl', 'react-map-gl'],
+          'vendor-deckgl': [
+            '@deck.gl/core',
+            '@deck.gl/layers',
+            '@deck.gl/react',
+            '@deck.gl/geo-layers',
+            '@deck.gl/mesh-layers',
+            '@deck.gl/extensions',
+            '@deck.gl/mapbox'
+          ],
+          'vendor-deckgl-community': [
+            '@deck.gl-community/editable-layers',
+            '@deck.gl-community/layers'
+          ],
+
+          // Rich text editor
+          'vendor-tiptap': [
+            '@tiptap/core',
+            '@tiptap/react',
+            '@tiptap/starter-kit',
+            '@tiptap/extension-link',
+            '@tiptap/extension-mention',
+            '@tiptap/extension-placeholder',
+            '@tiptap/extension-highlight',
+            '@tiptap/extension-image',
+            '@tiptap/extension-text-style',
+            '@tiptap/suggestion'
+          ],
+
+          // Data visualization
+          'vendor-d3': ['d3'],
+
+          // UI libraries
+          'vendor-radix': [
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-context-menu',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-toggle',
+            '@radix-ui/react-toggle-group',
+            '@radix-ui/react-tooltip'
+          ],
+
+          // Animation and interactions
+          'vendor-animation': ['framer-motion', 'react-tsparticles'],
+
+          // GraphQL and data fetching
+          'vendor-graphql': ['graphql', 'graphql-tag', 'urql'],
+
+          // i18n
+          'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector', 'i18next-http-backend'],
+
+          // Utilities
+          'vendor-lodash': ['lodash'],
+          'vendor-utils': [
+            'luxon',
+            'validator',
+            'query-string',
+            'classnames',
+            'clsx',
+            'uuid',
+            'immutability-helper'
+          ]
+        }
+      }
+    }
   },
   plugins: [
     patchCssModules(),

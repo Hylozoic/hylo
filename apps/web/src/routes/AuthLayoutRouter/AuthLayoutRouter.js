@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -33,35 +33,37 @@ import {
   groupHomeUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
-import AllTopics from 'routes/AllTopics'
-import AllView from 'routes/AllView'
-import ChatRoom from 'routes/ChatRoom'
-import CreateGroup from 'routes/CreateGroup'
-import GroupDetail from 'routes/GroupDetail'
-import GroupSettings from 'routes/GroupSettings'
-import GroupWelcomeModal from 'routes/GroupWelcomeModal'
-import GroupWelcomePage from 'routes/GroupWelcomePage'
-import Groups from 'routes/Groups'
-import GroupExplorer from 'routes/GroupExplorer'
-import Drawer from './components/Drawer'
-import JoinGroup from 'routes/JoinGroup'
-import LandingPage from 'routes/LandingPage'
+// Lazy load routes to reduce initial bundle size
+const AllTopics = React.lazy(() => import('routes/AllTopics'))
+const AllView = React.lazy(() => import('routes/AllView'))
+const ChatRoom = React.lazy(() => import('routes/ChatRoom'))
+const CreateGroup = React.lazy(() => import('routes/CreateGroup'))
+const GroupDetail = React.lazy(() => import('routes/GroupDetail'))
+const GroupSettings = React.lazy(() => import('routes/GroupSettings'))
+const GroupWelcomeModal = React.lazy(() => import('routes/GroupWelcomeModal'))
+const GroupWelcomePage = React.lazy(() => import('routes/GroupWelcomePage'))
+const Groups = React.lazy(() => import('routes/Groups'))
+const GroupExplorer = React.lazy(() => import('routes/GroupExplorer'))
+const Drawer = React.lazy(() => import('./components/Drawer'))
+const JoinGroup = React.lazy(() => import('routes/JoinGroup'))
+const LandingPage = React.lazy(() => import('routes/LandingPage'))
+// Loading component must stay eager - it's used as the Suspense fallback
 import Loading from 'components/Loading'
-import MapExplorer from 'routes/MapExplorer'
-import MemberProfile from 'routes/MemberProfile'
-import Members from 'routes/Members'
-import Messages from 'routes/Messages'
-import ThreadList from 'routes/Messages/ThreadList'
-import Moderation from 'routes/Moderation'
-import MyTracks from 'routes/MyTracks'
-import PostDetail from 'routes/PostDetail'
-import Search from 'routes/Search'
-import Stream from 'routes/Stream'
-import Themes from 'routes/Themes'
-import TrackHome from 'routes/TrackHome'
-import Tracks from 'routes/Tracks'
-import UserSettings from 'routes/UserSettings'
-import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
+const MapExplorer = React.lazy(() => import('routes/MapExplorer'))
+const MemberProfile = React.lazy(() => import('routes/MemberProfile'))
+const Members = React.lazy(() => import('routes/Members'))
+const Messages = React.lazy(() => import('routes/Messages'))
+const ThreadList = React.lazy(() => import('routes/Messages/ThreadList'))
+const Moderation = React.lazy(() => import('routes/Moderation'))
+const MyTracks = React.lazy(() => import('routes/MyTracks'))
+const PostDetail = React.lazy(() => import('routes/PostDetail'))
+const Search = React.lazy(() => import('routes/Search'))
+const Stream = React.lazy(() => import('routes/Stream'))
+const Themes = React.lazy(() => import('routes/Themes'))
+const TrackHome = React.lazy(() => import('routes/TrackHome'))
+const Tracks = React.lazy(() => import('routes/Tracks'))
+const UserSettings = React.lazy(() => import('routes/UserSettings'))
+const WelcomeWizardRouter = React.lazy(() => import('routes/WelcomeWizardRouter'))
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
@@ -247,22 +249,24 @@ export default function AuthLayoutRouter (props) {
         </script>
       </Helmet>
 
-      <Routes>
-        {/* Redirects for switching into global contexts, since these pages don't exist yet */}
-        <Route path='public/members' element={<Navigate to='/public' replace />} />
-        <Route path='public/settings' element={<Navigate to='/public' replace />} />
-        <Route path='all/members' element={<Navigate to='/all' replace />} />
-        <Route path='all/settings' element={<Navigate to='/all' replace />} />
+      <Suspense fallback={null}>
+        <Routes>
+          {/* Redirects for switching into global contexts, since these pages don't exist yet */}
+          <Route path='public/members' element={<Navigate to='/public' replace />} />
+          <Route path='public/settings' element={<Navigate to='/public' replace />} />
+          <Route path='all/members' element={<Navigate to='/all' replace />} />
+          <Route path='all/settings' element={<Navigate to='/all' replace />} />
 
-        {/* Redirect manage notifications page to settings page when logged in */}
-        <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
+          {/* Redirect manage notifications page to settings page when logged in */}
+          <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
-        {!isWebView() && (
-          <>
-            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-          </>
-        )}
-      </Routes>
+          {!isWebView() && (
+            <>
+              <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+            </>
+          )}
+        </Routes>
+      </Suspense>
 
       <div className={cn('flex flex-row items-stretch bg-midground h-[100vh] h-[100dvh]', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
@@ -275,26 +279,33 @@ export default function AuthLayoutRouter (props) {
                   routeParams={pathMatchParams}
                   showMenuBadge={showMenuBadge}
                 />
-                {isDrawerOpen && <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />}
+                {isDrawerOpen && (
+                  <Suspense fallback={<Loading />}>
+                    <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />
+                  </Suspense>
+                )}
               </>
             )}
 
             {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
-              <Routes>
-                <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='groups/:joinGroupSlug/join/:accessCode' />
-                <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='messages/:messageThreadId' element={<ThreadList />} />
-                <Route path='messages' element={<ThreadList />} />
-              </Routes>}
+              <Suspense fallback={<Loading />}>
+                <Routes>
+                  <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                  <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                  <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                  <Route path='groups/:joinGroupSlug/join/:accessCode' />
+                  <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                  <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                  <Route path='messages' element={<ThreadList />} />
+                </Routes>
+              </Suspense>}
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative'>
             <ViewHeader />
 
-            <Routes>
+            <Suspense fallback={<Loading />}>
+              <Routes>
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
@@ -431,10 +442,11 @@ export default function AuthLayoutRouter (props) {
                 {/* **** Default Route (404) **** */}
                 <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
               </Routes>
-            </div>
+            </Suspense>
 
             <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
-              <Routes>
+              <Suspense fallback={<Loading />}>
+                <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
                 <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
@@ -462,6 +474,7 @@ export default function AuthLayoutRouter (props) {
                 {/* Other routes */}
                 <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
               </Routes>
+              </Suspense>
             </div>
             <SocketListener location={location} groupSlug={currentGroupSlug} />
             <SocketSubscriber type='group' id={get('slug', currentGroup)} />

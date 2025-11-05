@@ -35,7 +35,9 @@ i18n
       escapeValue: false // not needed for react as it escapes by default
     },
     defaultNS: false,
-    preload: ['en', 'es']
+    // Only preload English by default - Spanish will be loaded on demand if needed
+    // This reduces initial bundle size and improves load time
+    preload: ['en']
   })
 
 export default i18n

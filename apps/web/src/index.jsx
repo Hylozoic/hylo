@@ -2,7 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { rootDomId } from './client/util'
 import Root from 'router/Root'
-import './client/websockets.js'
+// WebSocket initialization deferred to after app mounts - see router/index.js
 import './css/global/index.scss'
 import './i18n.mjs'
 
