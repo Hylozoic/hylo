@@ -4,6 +4,7 @@ import { cn } from 'util/index'
 import { Link, NavLink } from 'react-router-dom'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'
+import usePrefetchChatRoom from 'hooks/usePrefetchChatRoom'
 import badgeHoverStyles from '../../../../../components/Badge/component.module.scss'
 import styles from './TopicNavigation.module.scss'
 
@@ -45,23 +46,41 @@ export default function TopicNavigation ({
   )
 }
 
+// Wrapper component for topic link with prefetch on hover
+function TopicLink ({ topic, onClick, onClose }) {
+  const { handlePrefetch, cancelPrefetch } = usePrefetchChatRoom({
+    groupId: topic.groupId,
+    topicName: topic.name
+  })
+
+  return (
+    <NavLink
+      className={({ isActive }) => cn(badgeHoverStyles.parent, styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
+      to={topic.url}
+      onClick={() => onClick(topic)}
+      onMouseEnter={handlePrefetch}
+      onMouseLeave={cancelPrefetch}
+    >
+      <span className={styles.name}>#{topic.name}</span>
+      {topic.newPostCount > 0 && !topic.current &&
+        <Badge number={topic.newPostCount} className={styles.badge} />}
+      {topic.visibility === 2 && <Icon name='Pin' className={styles.pinIcon} />}
+      {topic.current &&
+        <Icon name='Ex' className={styles.closeIcon} onClick={onClose} />}
+    </NavLink>
+  )
+}
+
 export function TopicsList ({ topics, onClick, onClose }) {
   return (
     <ul className={styles.topics}>
       {topics.map(topic => (
         <li key={topic.name} className={cn(styles.topic, { [styles.pinned]: topic.visibility === 2 })}>
-          <NavLink
-            className={({ isActive }) => cn(badgeHoverStyles.parent, styles.topicLink, { [styles.activeTopicNavLink]: isActive })}
-            to={topic.url}
-            onClick={() => onClick(topic)}
-          >
-            <span className={styles.name}>#{topic.name}</span>
-            {topic.newPostCount > 0 && !topic.current &&
-              <Badge number={topic.newPostCount} className={styles.badge} />}
-            {topic.visibility === 2 && <Icon name='Pin' className={styles.pinIcon} />}
-            {topic.current &&
-              <Icon name='Ex' className={styles.closeIcon} onClick={onClose} />}
-          </NavLink>
+          <TopicLink
+            topic={topic}
+            onClick={onClick}
+            onClose={onClose}
+          />
         </li>
       ))}
     </ul>
