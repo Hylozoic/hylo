@@ -581,7 +581,7 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
-        {(initialPostToScrollTo === null || topicFollowLoading || !loadedPast)
+        {(initialPostToScrollTo === null || topicFollowLoading)
           ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', overflowY: 'auto' }}><ChatRoomSkeleton count={10} /></div>
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
