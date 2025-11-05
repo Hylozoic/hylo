@@ -1,0 +1,32 @@
+/**
+ * Skeleton shimmer animation styles
+ * Creates a subtle loading effect that improves perceived performance
+ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-midground) 0%,
+    var(--color-midground-highlight) 50%,
+    var(--color-midground) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.6;
+  }
+}

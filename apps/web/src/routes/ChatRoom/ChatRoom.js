@@ -27,6 +27,7 @@ import {
   SelectTrigger
 } from '@/components/ui/select'
 import ChatPost from './ChatPost'
+import ChatRoomSkeleton from './ChatRoomSkeleton'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
@@ -581,7 +582,7 @@ export default function ChatRoom (props) {
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
         {initialPostToScrollTo === null || topicFollowLoading
-          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
+          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', overflowY: 'auto' }}><ChatRoomSkeleton count={10} /></div>
           : (
             <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
               <VirtuosoMessageList
@@ -650,7 +651,7 @@ const EmptyPlaceholder = ({ context }) => {
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {context.loadingPast || context.loadingFuture
-        ? <Loading />
+        ? <ChatRoomSkeleton count={8} />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
