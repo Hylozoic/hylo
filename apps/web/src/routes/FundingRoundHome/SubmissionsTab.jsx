@@ -22,9 +22,9 @@ const getPosts = ormCreateSelector(
     const sorted = posts.sort((a, b) => {
       if (sortByTokens) {
         // Sort by total tokens allocated (descending), then by ID
-        return (b.totalTokensAllocated || 0) - (a.totalTokensAllocated || 0) || a.id - b.id
+        return (b.totalTokensAllocated || 0) - (a.totalTokensAllocated || 0) || b.id - a.id
       }
-      return a.id - b.id
+      return b.id - a.id
     })
     return sorted.map(p => presentPost(p))
   }
