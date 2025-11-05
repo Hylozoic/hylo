@@ -12,7 +12,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle } from 'lucide-react'
+import { Link, Routes, Route, useLocation } from 'react-router-dom'
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
@@ -39,6 +40,7 @@ import { getHost } from 'store/middleware/apiMiddleware'
 function PaidContentTab ({ group, currentUser }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const location = useLocation()
 
   // Local state for managing Stripe account and products
   // Note: accountId comes from camelCase GraphQL field
@@ -292,7 +294,7 @@ function PaidContentTab ({ group, currentUser }) {
       setState(prev => ({ ...prev, loading: false, error: null }))
 
       // Reload live account status to reflect the updates
-      loadAccountStatus()
+    loadAccountStatus()
     } catch (error) {
       console.error('Error checking Stripe status:', error)
       setState(prev => ({
@@ -303,12 +305,40 @@ function PaidContentTab ({ group, currentUser }) {
     }
   }, [dispatch, group, loadAccountStatus])
 
+  // Extract nested tab from pathname
+  // URL structure: /groups/:groupSlug/settings/paid-content/:subTab
+  const pathParts = location.pathname.split('/')
+  const paidContentIndex = pathParts.indexOf('paid-content')
+  const subTab = paidContentIndex > -1 && pathParts[paidContentIndex + 1] ? pathParts[paidContentIndex + 1] : null
+  const currentTab = subTab || 'account'
+
   if (!group) return <Loading />
 
   const { accountId, offerings, loading, error } = state
 
   return (
     <div className='mb-[300px]'>
+      <div className='flex gap-2 w-full justify-center items-center bg-black/10 rounded-md p-2 mb-4'>
+        <Link
+          className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'account' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+          to=''
+        >
+          {t('Account')}
+        </Link>
+        <Link
+          className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'offerings' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+          to='offerings'
+        >
+          {t('Offerings')}
+        </Link>
+        <Link
+          className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'content-access' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+          to='content-access'
+        >
+          {t('Content Access')}
+        </Link>
+      </div>
+
       <h2 className='text-foreground font-bold mb-2'>{t('Accept payments for your group')}</h2>
       <p className='text-foreground/70 mb-4'>
         {t('Set up Stripe Connect to accept payments for group memberships, track content, and other offerings. Stripe handles all payment processing securely.')}
@@ -324,37 +354,333 @@ function PaidContentTab ({ group, currentUser }) {
         </div>
       )}
 
-      <SettingsSection>
-        {!accountId
-          ? (
-            <AccountSetupSection
-              loading={loading}
-              onCreateAccount={handleCreateAccount}
-              onConnectAccount={handleCreateAccount}
-              group={group}
-              currentUser={currentUser}
-              t={t}
-            />)
-          : (
-            <>
-              <StripeStatusSection
+      <div className='flex-1'>
+        <Routes>
+          <Route path='offerings' element={<OfferingsTab group={group} accountId={accountId} offerings={offerings} onRefreshOfferings={loadOfferings} />} />
+          <Route path='content-access' element={<ContentAccessTab group={group} />} />
+          <Route
+            path='*'
+            element={
+              <AccountTab
                 group={group}
+                currentUser={currentUser}
+                accountId={accountId}
                 loading={loading}
+                onCreateAccount={handleCreateAccount}
+                onConnectAccount={handleCreateAccount}
                 onCheckStatus={handleCheckStripeStatus}
                 onStartOnboarding={handleStartOnboarding}
-                t={t}
               />
-
-              <OfferingManagementSection
-                group={group}
-                accountId={accountId}
-                offerings={offerings}
-                onRefreshOfferings={loadOfferings}
-                t={t}
-              />
-            </>)}
-      </SettingsSection>
+            }
+          />
+        </Routes>
+      </div>
     </div>
+  )
+}
+
+/**
+ * Account Tab Component
+ *
+ * Main tab showing account setup and status
+ */
+function AccountTab ({ group, currentUser, accountId, loading, onCreateAccount, onConnectAccount, onCheckStatus, onStartOnboarding }) {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      {!accountId
+        ? (
+          <AccountSetupSection
+            loading={loading}
+            onCreateAccount={onCreateAccount}
+            onConnectAccount={onConnectAccount}
+            group={group}
+            currentUser={currentUser}
+            t={t}
+          />)
+        : (
+          <StripeStatusSection
+            group={group}
+            loading={loading}
+            onCheckStatus={onCheckStatus}
+            onStartOnboarding={onStartOnboarding}
+            t={t}
+          />)}
+    </>
+  )
+}
+
+/**
+ * Offerings Tab Component
+ *
+ * Displays a list of offerings with details and management options
+ */
+function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [editingOffering, setEditingOffering] = useState(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    currency: 'usd'
+  })
+  const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
+
+  const handleCreateOffering = useCallback(async (e) => {
+    e.preventDefault()
+
+    if (!formData.name || !formData.price) {
+      alert(t('Please fill in all required fields'))
+      return
+    }
+
+    setCreating(true)
+
+    try {
+      const priceInCents = Math.round(parseFloat(formData.price) * 100)
+
+      if (isNaN(priceInCents) || priceInCents < 0) {
+        throw new Error(t('Invalid price'))
+      }
+
+      const result = await dispatch(createOffering(
+        group.id,
+        accountId,
+        formData.name,
+        formData.description,
+        priceInCents,
+        formData.currency
+      ))
+
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+
+      // Reset form and refresh offerings
+      setFormData({ name: '', description: '', price: '', currency: 'usd' })
+      setShowCreateForm(false)
+      onRefreshOfferings()
+    } catch (error) {
+      console.error('Error creating offering:', error)
+      alert(t('Failed to create offering: {{error}}', { error: error.message }))
+    } finally {
+      setCreating(false)
+    }
+  }, [dispatch, group, accountId, formData, onRefreshOfferings, t])
+
+  const handleUpdateOffering = useCallback(async (e) => {
+    e.preventDefault()
+
+    if (!editingOffering || !formData.name) {
+      alert(t('Please fill in all required fields'))
+      return
+    }
+
+    setUpdating(true)
+
+    try {
+      const updates = {}
+      if (formData.name !== editingOffering.name) updates.name = formData.name
+      if (formData.description !== editingOffering.description) updates.description = formData.description
+
+      if (Object.keys(updates).length === 0) {
+        setEditingOffering(null)
+        setUpdating(false)
+        return
+      }
+
+      alert(t('Offering updates require database offering IDs. This feature is coming soon.'))
+
+      setEditingOffering(null)
+      setFormData({ name: '', description: '', price: '', currency: 'usd' })
+      onRefreshOfferings()
+    } catch (error) {
+      console.error('Error updating offering:', error)
+      alert(t('Failed to update offering: {{error}}', { error: error.message }))
+    } finally {
+      setUpdating(false)
+    }
+  }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
+
+  const handleStartEdit = useCallback((offering) => {
+    setEditingOffering(offering)
+    setFormData({
+      name: offering.name || '',
+      description: offering.description || '',
+      price: '',
+      currency: 'usd'
+    })
+    setShowCreateForm(false)
+  }, [])
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingOffering(null)
+    setFormData({ name: '', description: '', price: '', currency: 'usd' })
+    setShowCreateForm(false)
+  }, [])
+
+  return (
+    <div className='flex flex-col gap-4 mt-4 pb-4'>
+      <button
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
+        onClick={() => setShowCreateForm(true)}
+      >
+        <PlusCircle className='w-4 h-4' />
+        <span>{t('Create Offering')}</span>
+      </button>
+
+      {showCreateForm && (
+        <div className='border-2 border-foreground/20 rounded-lg p-4'>
+          <h3 className='text-lg font-semibold mb-3'>{t('Create New Offering')}</h3>
+          <form onSubmit={handleCreateOffering} className='space-y-3'>
+            <SettingsControl
+              label={t('Offering Name')}
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder={t('e.g., Premium Membership')}
+              required
+            />
+            <SettingsControl
+              label={t('Description')}
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder={t('What does this offering include?')}
+            />
+            <div className='flex gap-3'>
+              <div className='flex-1'>
+                <SettingsControl
+                  label={t('Price')}
+                  type='number'
+                  step='0.01'
+                  min='0'
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  placeholder='20.00'
+                  required
+                />
+              </div>
+              <div className='w-24'>
+                <SettingsControl
+                  label={t('Currency')}
+                  value={formData.currency}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                  renderControl={(props) => (
+                    <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
+                      <option value='usd'>USD</option>
+                      <option value='eur'>EUR</option>
+                      <option value='gbp'>GBP</option>
+                      <option value='cad'>CAD</option>
+                    </select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className='flex gap-2 justify-end pt-2'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => {
+                  setShowCreateForm(false)
+                  setFormData({ name: '', description: '', price: '', currency: 'usd' })
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
+                type='submit'
+                disabled={creating}
+              >
+                {creating ? t('Creating...') : t('Create Offering')}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {editingOffering && (
+        <div className='border-2 border-foreground/20 rounded-lg p-4'>
+          <h3 className='text-lg font-semibold mb-3'>{t('Edit Offering')}</h3>
+          <form onSubmit={handleUpdateOffering} className='space-y-3'>
+            <SettingsControl
+              label={t('Offering Name')}
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder={t('e.g., Premium Membership')}
+              required
+            />
+            <SettingsControl
+              label={t('Description')}
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder={t('What does this offering include?')}
+            />
+            <div className='flex gap-2 justify-end pt-2'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={handleCancelEdit}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
+                type='submit'
+                disabled={updating}
+              >
+                {updating ? t('Updating...') : t('Update Offering')}
+              </Button>
+          </div>
+        </form>
+        </div>
+      )}
+
+      <div className='border-2 border-foreground/20 rounded-lg p-4'>
+        <h3 className='text-sm opacity-50 w-full text-center mb-3'>{t('Offerings')}</h3>
+        <div className='flex flex-col gap-3'>
+          {offerings.length === 0
+            ? (
+        <div className='text-center py-8 text-foreground/70'>
+          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+                <p>{t('No offerings yet')}</p>
+                <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
+              </div>
+            )
+            : (
+              offerings.map(offering => (
+                <OfferingListItem
+                  key={offering.id}
+                  offering={offering}
+                  onEdit={handleStartEdit}
+                  t={t}
+                />
+              ))
+            )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Content Access Tab Component
+ *
+ * Placeholder component for managing content access
+ */
+function ContentAccessTab ({ group }) {
+  const { t } = useTranslation()
+
+  return (
+    <SettingsSection>
+      <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
+        <h3 className='text-lg font-semibold mb-2'>{t('Content Access')}</h3>
+        <p className='text-sm text-foreground/70'>
+          {t('Manage content access settings for your group offerings.')}
+        </p>
+      </div>
+    </SettingsSection>
   )
 }
 
@@ -419,7 +745,7 @@ function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, grou
   }, [formData, isConnectingExisting, onCreateAccount, onConnectAccount, group, t])
 
   return (
-    <SettingsSection>
+    <>
       <div className='mb-4'>
         <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
         <p className='text-sm text-foreground/70 mb-4'>
@@ -517,7 +843,7 @@ function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, grou
           <li>{t('Stripe handles all payment disputes and fraud')}</li>
         </ul>
       </div>
-    </SettingsSection>
+    </>
   )
 }
 
@@ -585,13 +911,13 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         <div className='mb-4'>
           <a
             href={group.stripeDashboardUrl}
-            target='_blank'
-            rel='noopener noreferrer'
+              target='_blank'
+              rel='noopener noreferrer'
             className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
-          >
+            >
             <ExternalLink className='w-4 h-4' />
             {t('Open Stripe Dashboard')}
-          </a>
+            </a>
         </div>
       )}
 
@@ -644,292 +970,38 @@ function StatusBadge ({ label, value, t }) {
 }
 
 /**
- * Section for managing offerings
- *
- * Allows creating and viewing offerings that customers can purchase.
+ * List item displaying a single offering with details
+ * Used in the OfferingsTab list view
  */
-function OfferingManagementSection ({ group, accountId, offerings, onRefreshOfferings, t }) {
-  const dispatch = useDispatch()
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [editingOffering, setEditingOffering] = useState(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    currency: 'usd'
-  })
-  const [creating, setCreating] = useState(false)
-  const [updating, setUpdating] = useState(false)
-
-  /**
-   * Handles offering creation
-   */
-  const handleCreateOffering = useCallback(async (e) => {
-    e.preventDefault()
-
-    if (!formData.name || !formData.price) {
-      alert(t('Please fill in all required fields'))
-      return
-    }
-
-    setCreating(true)
-
-    try {
-      const priceInCents = Math.round(parseFloat(formData.price) * 100)
-
-      if (isNaN(priceInCents) || priceInCents < 0) {
-        throw new Error(t('Invalid price'))
-      }
-
-      const result = await dispatch(createOffering(
-        group.id,
-        accountId,
-        formData.name,
-        formData.description,
-        priceInCents,
-        formData.currency
-      ))
-
-      if (result.error) {
-        throw new Error(result.error.message)
-      }
-
-      // Reset form and refresh offerings
-      setFormData({ name: '', description: '', price: '', currency: 'usd' })
-      setShowCreateForm(false)
-      onRefreshOfferings()
-    } catch (error) {
-      console.error('Error creating offering:', error)
-      alert(t('Failed to create offering: {{error}}', { error: error.message }))
-    } finally {
-      setCreating(false)
-    }
-  }, [dispatch, group, accountId, formData, onRefreshOfferings, t])
-
-  /**
-   * Handles offering updates
-   */
-  const handleUpdateOffering = useCallback(async (e) => {
-    e.preventDefault()
-
-    if (!editingOffering || !formData.name) {
-      alert(t('Please fill in all required fields'))
-      return
-    }
-
-    setUpdating(true)
-
-    try {
-      const updates = {}
-      if (formData.name !== editingOffering.name) updates.name = formData.name
-      if (formData.description !== editingOffering.description) updates.description = formData.description
-
-      // Note: We can't update price easily since it requires creating a new price in Stripe
-      // For now, we'll only allow updating name and description
-
-      if (Object.keys(updates).length === 0) {
-        setEditingOffering(null)
-        setUpdating(false)
-        return
-      }
-
-      // Note: updateOffering requires the database offering ID, not the Stripe product ID
-      // For now, we'll show a message that this feature needs database offering IDs
-      // In production, you'd need to fetch/store the database offering ID
-      alert(t('Offering updates require database offering IDs. This feature is coming soon.'))
-
-      // TODO STRIPE: Implement full update when database offering IDs are available
-      // const result = await dispatch(updateOffering(editingOffering.databaseId, updates))
-      // if (result.error) {
-      //   throw new Error(result.error.message)
-      // }
-
-      setEditingOffering(null)
-      setFormData({ name: '', description: '', price: '', currency: 'usd' })
-      onRefreshOfferings()
-    } catch (error) {
-      console.error('Error updating offering:', error)
-      alert(t('Failed to update offering: {{error}}', { error: error.message }))
-    } finally {
-      setUpdating(false)
-    }
-  }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
-
-  const handleStartEdit = useCallback((offering) => {
-    setEditingOffering(offering)
-    setFormData({
-      name: offering.name || '',
-      description: offering.description || '',
-      price: '', // Price editing would be complex, skipping for now
-      currency: 'usd'
-    })
-    setShowCreateForm(false)
-  }, [])
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingOffering(null)
-    setFormData({ name: '', description: '', price: '', currency: 'usd' })
-  }, [])
-
+function OfferingListItem ({ offering, onEdit, t }) {
   return (
-    <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
-      <div className='flex items-center justify-between mb-4'>
-        <div>
-          <h3 className='text-lg font-semibold'>{t('Offerings & Pricing')}</h3>
-          <p className='text-sm text-foreground/70'>
-            {t('Create offerings for memberships, tracks, or content access')}
-          </p>
-        </div>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() => setShowCreateForm(!showCreateForm)}
-        >
-          <PlusCircle className='w-4 h-4 mr-2' />
-          {t('Add Offering')}
-        </Button>
-      </div>
-
-      {(showCreateForm || editingOffering) && (
-        <form onSubmit={editingOffering ? handleUpdateOffering : handleCreateOffering} className='mb-6 p-4 bg-background rounded-md'>
-          <h4 className='font-semibold mb-3'>
-            {editingOffering ? t('Edit Offering') : t('Create New Offering')}
-          </h4>
-
-          <div className='space-y-3'>
-            <SettingsControl
-              label={t('Offering Name')}
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder={t('e.g., Premium Membership')}
-              required
-            />
-
-            <SettingsControl
-              label={t('Description')}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder={t('What does this product include?')}
-            />
-
-            <div className='flex gap-3'>
-              <div className='flex-1'>
-                <SettingsControl
-                  label={t('Price')}
-                  type='number'
-                  step='0.01'
-                  min='0'
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder='20.00'
-                  required
-                />
-              </div>
-              <div className='w-24'>
-                <SettingsControl
-                  label={t('Currency')}
-                  value={formData.currency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-                  renderControl={(props) => (
-                    <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
-                      <option value='usd'>USD</option>
-                      <option value='eur'>EUR</option>
-                      <option value='gbp'>GBP</option>
-                      <option value='cad'>CAD</option>
-                    </select>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className='flex gap-2 justify-end'>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={editingOffering ? handleCancelEdit : () => setShowCreateForm(false)}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                type='submit'
-                disabled={creating || updating}
-              >
-                {creating ? t('Creating...') : updating ? t('Updating...') : editingOffering ? t('Update Offering') : t('Create Offering')}
-              </Button>
-            </div>
-          </div>
-        </form>
-      )}
-
-      {offerings.length === 0
-        ? (
-        <div className='text-center py-8 text-foreground/70'>
-          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
-            <p>{t('No offerings yet')}</p>
-            <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
-        </div>
-        )
-        : (
-        <div className='space-y-3'>
-            {offerings.map(offering => (
-              <OfferingCard
-                key={offering.id}
-                offering={offering}
-              groupSlug={group.slug}
-                onEdit={handleStartEdit}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
-
-      {offerings.length > 0 && (
-        <div className='mt-4 p-3 bg-blue-500/10 border border-blue-500 rounded-md'>
-          <p className='text-sm'>
-            <strong>{t('Storefront Link:')}</strong>{' '}
-            <a
-              href={`/groups/${group.slug}/store`}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-blue-600 hover:underline'
-            >
-              {getHost()}/groups/{group.slug}/store
-            </a>
-          </p>
-          <p className='text-xs text-foreground/70 mt-1'>
-            {t('Share this link with your members so they can view and purchase products')}
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Card displaying a single offering
- */
-function OfferingCard ({ offering, groupSlug, onEdit, t }) {
-  return (
-    <div className='flex items-center justify-between p-3 bg-background rounded-md hover:bg-background/80 transition-colors'>
+    <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-all'>
+      <div className='flex items-start justify-between'>
       <div className='flex-1'>
-        <p className='font-medium'>{offering.name}</p>
-        {offering.description && (
-          <p className='text-sm text-foreground/70'>{offering.description}</p>
+          <div className='flex items-center gap-2 mb-2'>
+            <h4 className='font-semibold text-foreground'>{offering.name}</h4>
+            {offering.active
+              ? (<span className='text-xs bg-green-500/20 text-green-600 font-medium px-2 py-0.5 rounded-full'>{t('Active')}</span>)
+              : (<span className='text-xs bg-gray-500/20 text-gray-600 px-2 py-0.5 rounded-full'>{t('Inactive')}</span>)}
+          </div>
+          {offering.description && (
+            <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
+          )}
+          <div className='flex items-center gap-4 text-xs text-foreground/50'>
+            <span>{t('Stripe ID')}: {offering.id}</span>
+            {offering.defaultPriceId && (
+              <span>{t('Price ID')}: {offering.defaultPriceId}</span>
         )}
       </div>
-      <div className='flex items-center gap-3'>
-      <div className='text-right'>
-          <p className='text-sm text-foreground/70'>{t('ID')}: {offering.id}</p>
-          {offering.active
-            ? (<span className='text-xs text-green-600 font-medium'>{t('Active')}</span>)
-            : (<span className='text-xs text-gray-600'>{t('Inactive')}</span>)}
         </div>
         {onEdit && (
           <Button
             variant='outline'
             size='sm'
             onClick={() => onEdit(offering)}
+            className='ml-4'
           >
+            <Edit className='w-4 h-4 mr-1' />
             {t('Edit')}
           </Button>
         )}

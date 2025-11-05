@@ -185,7 +185,7 @@ export default function GroupSettings () {
 
   const paidContentSettings = {
     name: t('Paid Content'),
-    path: 'paid-content',
+    path: 'paid-content/*',
     component: <PaidContentTab group={group} currentUser={currentUser} />
   }
 
