@@ -151,9 +151,9 @@ import {
   createStripeConnectedAccount,
   createStripeAccountLink,
   stripeAccountStatus,
-  createStripeProduct,
-  updateStripeProduct,
-  stripeProducts,
+  createStripeOffering,
+  updateStripeOffering,
+  stripeOfferings,
   createStripeCheckoutSession,
   checkStripeStatus,
   verifyEmail
@@ -401,7 +401,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     },
     skills: (root, args) => fetchMany('Skill', args),
     stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
-    stripeProducts: (root, { groupId, accountId }, context) => stripeProducts(context.currentUserId, { groupId, accountId }),
+    stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
@@ -608,9 +608,9 @@ export function makeMutations ({ fetchOne }) {
 
     createStripeAccountLink: (root, { groupId, accountId, returnUrl, refreshUrl }, context) => createStripeAccountLink(context.currentUserId, { groupId, accountId, returnUrl, refreshUrl }),
 
-    createStripeProduct: (root, { input }, context) => createStripeProduct(context.currentUserId, input),
+    createStripeOffering: (root, { input }, context) => createStripeOffering(context.currentUserId, input),
 
-    updateStripeProduct: (root, { productId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeProduct(context.currentUserId, { productId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
+    updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
 
     createStripeCheckoutSession: (root, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }),
 

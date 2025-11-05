@@ -1554,7 +1554,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ]
     },
 
-    StripeProduct: {
+    StripeOffering: {
       model: StripeProduct,
       attributes: [
         'id',

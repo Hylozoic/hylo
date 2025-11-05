@@ -13,9 +13,9 @@ export const CREATE_CONNECTED_ACCOUNT = `${MODULE_NAME}/CREATE_CONNECTED_ACCOUNT
 export const CREATE_ACCOUNT_LINK = `${MODULE_NAME}/CREATE_ACCOUNT_LINK`
 export const FETCH_ACCOUNT_STATUS = `${MODULE_NAME}/FETCH_ACCOUNT_STATUS`
 export const CHECK_STRIPE_STATUS = `${MODULE_NAME}/CHECK_STRIPE_STATUS`
-export const CREATE_PRODUCT = `${MODULE_NAME}/CREATE_PRODUCT`
-export const UPDATE_PRODUCT = `${MODULE_NAME}/UPDATE_PRODUCT`
-export const FETCH_PRODUCTS = `${MODULE_NAME}/FETCH_PRODUCTS`
+export const CREATE_OFFERING = `${MODULE_NAME}/CREATE_OFFERING`
+export const UPDATE_OFFERING = `${MODULE_NAME}/UPDATE_OFFERING`
+export const FETCH_OFFERINGS = `${MODULE_NAME}/FETCH_OFFERINGS`
 
 /**
  * Creates a Stripe Connected Account for the group
@@ -116,17 +116,17 @@ export function fetchAccountStatus (groupId, accountId) {
 }
 
 /**
- * Creates a product on the connected account
+ * Creates an offering on the connected account
  *
- * Products represent subscription tiers, content access, or other offerings
+ * Offerings represent subscription tiers, content access, or other offerings
  * that the group wants to sell.
  */
-export function createProduct (groupId, accountId, name, description, priceInCents, currency = 'usd') {
+export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd') {
   return {
-    type: CREATE_PRODUCT,
+    type: CREATE_OFFERING,
     graphql: {
       query: `mutation ($groupId: ID!, $accountId: String!, $name: String!, $description: String, $priceInCents: Int!, $currency: String) {
-        createStripeProduct(
+        createStripeOffering(
           groupId: $groupId
           accountId: $accountId
           name: $name
@@ -180,20 +180,20 @@ export function checkStripeStatus (groupId) {
 }
 
 /**
- * Fetches all products for a connected account
+ * Fetches all offerings for a connected account
  *
- * Lists all active products that the group has created for sale.
+ * Lists all active offerings that the group has created for sale.
  */
-export function fetchProducts (groupId, accountId) {
+export function fetchOfferings (groupId, accountId) {
   return {
-    type: FETCH_PRODUCTS,
+    type: FETCH_OFFERINGS,
     graphql: {
       query: `query ($groupId: ID!, $accountId: String!) {
-        stripeProducts(
+        stripeOfferings(
           groupId: $groupId
           accountId: $accountId
         ) {
-          products {
+          offerings {
             id
             name
             description
@@ -213,19 +213,19 @@ export function fetchProducts (groupId, accountId) {
 }
 
 /**
- * Updates an existing Stripe product
+ * Updates an existing Stripe offering
  *
- * Allows updating product details including name, description, price, etc.
+ * Allows updating offering details including name, description, price, etc.
  */
-export function updateProduct (productId, updates) {
+export function updateOffering (offeringId, updates) {
   const { name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus } = updates || {}
 
   return {
-    type: UPDATE_PRODUCT,
+    type: UPDATE_OFFERING,
     graphql: {
-      query: `mutation ($productId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $contentAccess: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
-        updateStripeProduct(
-          productId: $productId
+      query: `mutation ($offeringId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $contentAccess: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
+        updateStripeOffering(
+          offeringId: $offeringId
           name: $name
           description: $description
           priceInCents: $priceInCents
@@ -240,7 +240,7 @@ export function updateProduct (productId, updates) {
         }
       }`,
       variables: {
-        productId,
+        offeringId,
         name,
         description,
         priceInCents,
@@ -262,10 +262,10 @@ export function getAccountStatus (state) {
 }
 
 /**
- * Selector to get products from state
+ * Selector to get offerings from state
  */
-export function getProducts (state) {
-  return get('PaidContentTab.products', state) || []
+export function getOfferings (state) {
+  return get('PaidContentTab.offerings', state) || []
 }
 
 /**
@@ -283,10 +283,10 @@ export default function reducer (state = {}, action) {
         accountStatus: payload?.data?.stripeAccountStatus
       }
 
-    case FETCH_PRODUCTS:
+    case FETCH_OFFERINGS:
       return {
         ...state,
-        products: payload?.data?.stripeProducts?.products || []
+        offerings: payload?.data?.stripeOfferings?.offerings || []
       }
 
     default:

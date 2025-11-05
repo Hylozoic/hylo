@@ -327,11 +327,11 @@ type Query {
     accountId: String!
   ): StripeAccountStatusResult
 
-  # List all products for a connected Stripe account
-  stripeProducts(
+  # List all offerings for a connected Stripe account
+  stripeOfferings(
     groupId: ID!
     accountId: String!
-  ): StripeProductsResult
+  ): StripeOfferingsResult
 
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
@@ -2660,30 +2660,30 @@ type TrackUser {
   user: Person
 }
 
-# Stripe product for paid content access
-type StripeProduct {
+# Stripe offering for paid content access
+type StripeOffering {
   id: ID
   createdAt: Date
   updatedAt: Date
-  # The group this product belongs to
+  # The group this offering belongs to
   group: Group
   groupId: ID
   # Stripe product ID from Stripe API
   stripeProductId: String
   # Stripe price ID from Stripe API
   stripePriceId: String
-  # Product name
+  # Offering name
   name: String
-  # Product description
+  # Offering description
   description: String
   # Price in cents
   priceInCents: Int
   # Currency code (e.g. 'usd')
   currency: String
-  # Optional track this product grants access to (legacy field)
+  # Optional track this offering grants access to (legacy field)
   track: Track
   trackId: ID
-  # JSONB object defining what access this product grants
+  # JSONB object defining what access this offering grants
   contentAccess: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
@@ -2706,9 +2706,9 @@ type ContentAccess {
   # Group access is for (optional)
   group: Group
   groupId: ID
-  # Stripe product (if purchased)
-  product: StripeProduct
-  productId: ID
+  # Stripe offering (if purchased)
+  offering: StripeOffering
+  offeringId: ID
   # Track access is for (optional)
   track: Track
   trackId: ID
@@ -3343,12 +3343,12 @@ type Mutation {
     refreshUrl: String!
   ): StripeAccountLinkResult
 
-  # Create a product on the connected account
-  createStripeProduct(input: StripeProductInput!): StripeProductResult
+  # Create an offering on the connected account
+  createStripeOffering(input: StripeOfferingInput!): StripeOfferingResult
 
-  # Update an existing Stripe product
-  updateStripeProduct(
-    productId: ID!
+  # Update an existing Stripe offering
+  updateStripeOffering(
+    offeringId: ID!
     name: String
     description: String
     priceInCents: Int
@@ -3357,7 +3357,7 @@ type Mutation {
     renewalPolicy: String
     duration: String
     publishStatus: PublishStatus
-  ): StripeProductUpdateResult
+  ): StripeOfferingUpdateResult
 
   # Create a checkout session for purchasing a product
   createStripeCheckoutSession(
@@ -3458,7 +3458,7 @@ type StripeStatusCheckResult {
   detailsSubmitted: Boolean
 }
 
-type StripeProductResult {
+type StripeOfferingResult {
   productId: String
   priceId: String
   name: String
@@ -3467,13 +3467,13 @@ type StripeProductResult {
   message: String
 }
 
-type StripeProductsResult {
-  products: [StripeProduct]
+type StripeOfferingsResult {
+  offerings: [StripeOffering]
   success: Boolean
 }
 
-type StripeProductUpdateResult {
-  product: StripeProduct
+type StripeOfferingUpdateResult {
+  offering: StripeOffering
   success: Boolean
   message: String
 }
@@ -3833,21 +3833,21 @@ input GroupWidgetSettingsInput {
   title: String
 }
 
-# Input for creating Stripe products
-input StripeProductInput {
-  # The group this product belongs to
+# Input for creating Stripe offerings
+input StripeOfferingInput {
+  # The group this offering belongs to
   groupId: ID!
   # Stripe connected account ID
   accountId: String!
-  # Product name
+  # Offering name
   name: String!
-  # Product description
+  # Offering description
   description: String
   # Price in cents
   priceInCents: Int!
   # Currency code (e.g. 'usd')
   currency: String
-  # JSONB object defining what access this product grants
+  # JSONB object defining what access this offering grants
   # Format: { "groupId": { "trackIds": [1, 2], "roleIds": [3, 4] } }
   contentAccess: JSON
   # Renewal policy: automatic or manual

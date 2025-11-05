@@ -4,7 +4,7 @@
  * Provides GraphQL API for Stripe Connect functionality:
  * - Creating connected accounts for groups
  * - Generating onboarding links
- * - Managing products and prices
+ * - Managing offerings and prices
  * - Creating checkout sessions
  */
 
@@ -224,14 +224,14 @@ module.exports = {
   },
 
   /**
-   * Creates a product on the connected account
+   * Creates an offering on the connected account
    *
-   * Products represent subscription tiers, content access, or other
+   * Offerings represent subscription tiers, content access, or other
    * offerings that the group wants to sell.
    *
    * Usage:
    *   mutation {
-   *     createStripeProduct(
+   *     createStripeOffering(
    *       groupId: "123"
    *       accountId: "acct_xxx"
    *       name: "Premium Membership"
@@ -252,7 +252,7 @@ module.exports = {
    *     }
    *   }
    */
-  createStripeProduct: async (userId, {
+  createStripeOffering: async (userId, {
     groupId,
     accountId,
     name,
@@ -267,13 +267,13 @@ module.exports = {
     try {
       // Check if user is authenticated
       if (!userId) {
-        throw new GraphQLError('You must be logged in to create a product')
+        throw new GraphQLError('You must be logged in to create an offering')
       }
 
       // Verify user has permission for this group
       const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
       if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to create products')
+        throw new GraphQLError('You must be a group administrator to create offerings')
       }
 
       // Convert database ID to external account ID if needed
@@ -288,7 +288,7 @@ module.exports = {
         currency: currency || 'usd'
       })
 
-      // Save product to database for tracking and association with content
+      // Save offering to database for tracking and association with content
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -309,27 +309,27 @@ module.exports = {
         name: product.name,
         databaseId: stripeProduct.id,
         success: true,
-        message: 'Product created successfully'
+        message: 'Offering created successfully'
       }
     } catch (error) {
       if (error instanceof GraphQLError) {
         throw error
       }
-      console.error('Error in createStripeProduct:', error)
-      throw new GraphQLError(`Failed to create product: ${error.message}`)
+      console.error('Error in createStripeOffering:', error)
+      throw new GraphQLError(`Failed to create offering: ${error.message}`)
     }
   },
 
   /**
-   * Updates an existing Stripe product
+   * Updates an existing Stripe offering
    *
-   * Allows group administrators to update product details including name, description,
+   * Allows group administrators to update offering details including name, description,
    * price, content access, renewal policy, duration, and publish status.
    *
    * Usage:
    *   mutation {
-   *     updateStripeProduct(
-   *       productId: "123"
+   *     updateStripeOffering(
+   *       offeringId: "123"
    *       name: "Updated Premium Membership"
    *       description: "Updated description"
    *       priceInCents: 2500
@@ -346,8 +346,8 @@ module.exports = {
    *     }
    *   }
    */
-  updateStripeProduct: async (userId, {
-    productId,
+  updateStripeOffering: async (userId, {
+    offeringId,
     name,
     description,
     priceInCents,
@@ -360,18 +360,18 @@ module.exports = {
     try {
       // Check if user is authenticated
       if (!userId) {
-        throw new GraphQLError('You must be logged in to update a product')
+        throw new GraphQLError('You must be logged in to update an offering')
       }
 
-      // Load the product and verify permissions
-      const product = await StripeProduct.where({ id: productId }).fetch()
+      // Load the offering and verify permissions
+      const product = await StripeProduct.where({ id: offeringId }).fetch()
       if (!product) {
-        throw new GraphQLError('Product not found')
+        throw new GraphQLError('Offering not found')
       }
 
       const hasAdmin = await GroupMembership.hasResponsibility(userId, product.get('group_id'), Responsibility.constants.RESP_ADMINISTRATION)
       if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to update products')
+        throw new GraphQLError('You must be a group administrator to update offerings')
       }
 
       // Prepare update attributes (only include provided fields)
@@ -443,32 +443,32 @@ module.exports = {
         }
       }
 
-      // Update the product in our database
+      // Update the offering in our database
       await product.save(updateAttrs)
 
       return {
         success: true,
-        message: 'Product updated successfully'
+        message: 'Offering updated successfully'
       }
     } catch (error) {
       if (error instanceof GraphQLError) {
         throw error
       }
-      console.error('Error in updateStripeProduct:', error)
-      throw new GraphQLError(`Failed to update product: ${error.message}`)
+      console.error('Error in updateStripeOffering:', error)
+      throw new GraphQLError(`Failed to update offering: ${error.message}`)
     }
   },
 
   /**
-   * Lists all products for a connected account
+   * Lists all offerings for a connected account
    *
    * Usage:
    *   query {
-   *     stripeProducts(
+   *     stripeOfferings(
    *       groupId: "123"
    *       accountId: "acct_xxx"
    *     ) {
-   *       products {
+   *       offerings {
    *         id
    *         name
    *         description
@@ -480,17 +480,17 @@ module.exports = {
    *     }
    *   }
    */
-  stripeProducts: async (userId, { groupId, accountId }) => {
+  stripeOfferings: async (userId, { groupId, accountId }) => {
     try {
       // Check if user is authenticated
       if (!userId) {
-        throw new GraphQLError('You must be logged in to view products')
+        throw new GraphQLError('You must be logged in to view offerings')
       }
 
       // Verify user has permission for this group
       const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
       if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to view products')
+        throw new GraphQLError('You must be a group administrator to view offerings')
       }
 
       // Convert database ID to external account ID if needed
@@ -502,8 +502,8 @@ module.exports = {
       // Extract products array from Stripe response (which has a 'data' property)
       const products = productsResponse.data || productsResponse
 
-      // Format products for GraphQL response
-      const formattedProducts = products.map(product => ({
+      // Format offerings for GraphQL response
+      const formattedOfferings = products.map(product => ({
         id: product.id,
         name: product.name,
         description: product.description,
@@ -513,15 +513,15 @@ module.exports = {
       }))
 
       return {
-        products: formattedProducts,
+        offerings: formattedOfferings,
         success: true
       }
     } catch (error) {
       if (error instanceof GraphQLError) {
         throw error
       }
-      console.error('Error in stripeProducts:', error)
-      throw new GraphQLError(`Failed to retrieve products: ${error.message}`)
+      console.error('Error in stripeOfferings:', error)
+      throw new GraphQLError(`Failed to retrieve offerings: ${error.message}`)
     }
   },
 

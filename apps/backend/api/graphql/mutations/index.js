@@ -167,9 +167,9 @@ export {
   createStripeConnectedAccount,
   createStripeAccountLink,
   stripeAccountStatus,
-  createStripeProduct,
-  updateStripeProduct,
-  stripeProducts,
+  createStripeOffering,
+  updateStripeOffering,
+  stripeOfferings,
   createStripeCheckoutSession,
   checkStripeStatus
 } from './stripe'

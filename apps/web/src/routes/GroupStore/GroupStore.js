@@ -1,10 +1,10 @@
 /**
  * GroupStore Component
  * 
- * Public-facing storefront that displays products available for purchase
+ * Public-facing storefront that displays offerings available for purchase
  * from a group's Stripe Connected Account.
  * 
- * Customers can browse products and initiate checkout sessions.
+ * Customers can browse offerings and initiate checkout sessions.
  * 
  * URL: /groups/:groupSlug/store
  * 
@@ -27,7 +27,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 /**
  * Main GroupStore component
  * 
- * Displays all products for a group and allows customers to purchase them
+ * Displays all offerings for a group and allows customers to purchase them
  */
 function GroupStore () {
   const { t } = useTranslation()
@@ -37,11 +37,10 @@ function GroupStore () {
   // Get group from Redux store
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
 
-  // Local state for products and checkout
+  // Local state for offerings and checkout
   const [state, setState] = useState({
-    // TODO STRIPE: Load accountId from group.stripe_account_id in your database
-    accountId: '', // PLACEHOLDER: Replace with actual account ID from database
-    products: [],
+    accountId: group?.stripeAccountId || '',
+    offerings: [],
     loading: true,
     error: null,
     checkoutLoading: false
@@ -60,11 +59,11 @@ function GroupStore () {
   }, [group, t])
 
   /**
-   * Loads products from the backend
+   * Loads offerings from the backend
    * 
-   * This makes a GraphQL query to fetch products from the connected account
+   * This makes a GraphQL query to fetch offerings from the connected account
    */
-  const loadProducts = useCallback(async () => {
+  const loadOfferings = useCallback(async () => {
     if (!group?.id || !state.accountId) {
       setState(prev => ({
         ...prev,
@@ -77,14 +76,14 @@ function GroupStore () {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      // Make GraphQL query to fetch products
+      // Make GraphQL query to fetch offerings
       const query = `
         query ($groupId: ID!, $accountId: String!) {
-          stripeProducts(
+          stripeOfferings(
             groupId: $groupId
             accountId: $accountId
           ) {
-            products {
+            offerings {
               id
               name
               description
@@ -118,15 +117,15 @@ function GroupStore () {
         throw new Error(result.errors[0].message)
       }
 
-      const products = result.data?.stripeProducts?.products || []
+      const offerings = result.data?.stripeOfferings?.offerings || []
 
       setState(prev => ({
         ...prev,
-        products,
+        offerings,
         loading: false
       }))
     } catch (error) {
-      console.error('Error loading products:', error)
+      console.error('Error loading offerings:', error)
       setState(prev => ({
         ...prev,
         loading: false,
@@ -137,17 +136,17 @@ function GroupStore () {
 
   useEffect(() => {
     if (state.accountId) {
-      loadProducts()
+      loadOfferings()
     }
-  }, [state.accountId])
+  }, [state.accountId, loadOfferings])
 
   /**
-   * Initiates a checkout session for a product
+   * Initiates a checkout session for an offering
    * 
    * Creates a Stripe Checkout session and redirects the customer
    * to the hosted checkout page.
    */
-  const handlePurchase = useCallback(async (product) => {
+  const handlePurchase = useCallback(async (offering) => {
     if (!group?.id || !state.accountId) return
 
     setState(prev => ({ ...prev, checkoutLoading: true }))
@@ -187,12 +186,12 @@ function GroupStore () {
           variables: {
             groupId: group.id,
             accountId: state.accountId,
-            priceId: product.defaultPriceId,
+            priceId: offering.defaultPriceId,
             quantity: 1,
             successUrl,
             cancelUrl,
             metadata: {
-              productId: product.id,
+              offeringId: offering.id,
               groupSlug: groupSlug
             }
           }
@@ -255,10 +254,10 @@ function GroupStore () {
     )
   }
 
-  if (state.products.length === 0) {
+  if (state.offerings.length === 0) {
     return (
       <div className='max-w-4xl mx-auto p-6'>
-        <NoProductsAvailable group={group} t={t} />
+        <NoOfferingsAvailable group={group} t={t} />
       </div>
     )
   }
@@ -270,16 +269,16 @@ function GroupStore () {
           {group.name} {t('Store')}
         </h1>
         <p className='text-foreground/70'>
-          {t('Browse and purchase products from this group')}
+          {t('Browse and purchase offerings from this group')}
         </p>
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {state.products.map(product => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onPurchase={() => handlePurchase(product)}
+        {state.offerings.map(offering => (
+          <OfferingCard
+            key={offering.id}
+            offering={offering}
+            onPurchase={() => handlePurchase(offering)}
             loading={state.checkoutLoading}
             t={t}
           />
@@ -308,15 +307,15 @@ function NoStoreSetup ({ group, t }) {
 }
 
 /**
- * Displayed when there are no products available
+ * Displayed when there are no offerings available
  */
-function NoProductsAvailable ({ group, t }) {
+function NoOfferingsAvailable ({ group, t }) {
   return (
     <div className='bg-card p-8 rounded-lg text-center shadow-xl'>
       <CreditCard className='w-16 h-16 mx-auto mb-4 text-foreground/50' />
-      <h2 className='text-2xl font-bold mb-2'>{t('No Products Available')}</h2>
+      <h2 className='text-2xl font-bold mb-2'>{t('No Offerings Available')}</h2>
       <p className='text-foreground/70 mb-4'>
-        {t('This group doesn\'t have any products for sale yet.')}
+        {t('This group doesn\'t have any offerings for sale yet.')}
       </p>
       <p className='text-sm text-foreground/70'>
         {t('Check back later for new offerings.')}
@@ -326,17 +325,17 @@ function NoProductsAvailable ({ group, t }) {
 }
 
 /**
- * Card displaying a single product
+ * Card displaying a single offering
  */
-function ProductCard ({ product, onPurchase, loading, t }) {
+function OfferingCard ({ offering, onPurchase, loading, t }) {
   return (
     <div className='bg-card rounded-lg shadow-lg overflow-hidden flex flex-col h-full'>
-      {/* Product Image */}
-      {product.images && product.images.length > 0 ? (
+      {/* Offering Image */}
+      {offering.images && offering.images.length > 0 ? (
         <div className='aspect-video bg-gradient-to-br from-primary/20 to-primary/10'>
           <img
-            src={product.images[0]}
-            alt={product.name}
+            src={offering.images[0]}
+            alt={offering.name}
             className='w-full h-full object-cover'
           />
         </div>
@@ -346,25 +345,25 @@ function ProductCard ({ product, onPurchase, loading, t }) {
         </div>
       )}
 
-      {/* Product Info */}
+      {/* Offering Info */}
       <div className='p-6 flex-1 flex flex-col'>
         <h3 className='text-xl font-semibold text-foreground mb-2'>
-          {product.name}
+          {offering.name}
         </h3>
         
-        {product.description && (
+        {offering.description && (
           <p className='text-foreground/70 text-sm mb-4 flex-1'>
-            {product.description}
+            {offering.description}
           </p>
         )}
 
         {/* Purchase Button */}
         <Button
           onClick={onPurchase}
-          disabled={loading || !product.active}
+          disabled={loading || !offering.active}
           className='w-full'
         >
-          {!product.active ? (
+          {!offering.active ? (
             t('Not Available')
           ) : loading ? (
             t('Loading...')

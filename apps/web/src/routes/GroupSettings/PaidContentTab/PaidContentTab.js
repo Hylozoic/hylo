@@ -25,9 +25,9 @@ import {
   createAccountLink,
   fetchAccountStatus,
   checkStripeStatus,
-  createProduct,
-  fetchProducts
-  // updateProduct - TODO: Enable when database product IDs are available
+  createOffering,
+  fetchOfferings
+  // updateOffering - TODO: Enable when database offering IDs are available
 } from './PaidContentTab.store'
 import { updateGroupSettings, fetchGroupSettings } from '../GroupSettings.store'
 
@@ -45,7 +45,7 @@ function PaidContentTab ({ group, currentUser }) {
   const [state, setState] = useState({
     accountId: initialAccountId,
     accountStatus: null,
-    products: [],
+    offerings: [],
     loading: false,
     error: null
   })
@@ -228,37 +228,37 @@ function PaidContentTab ({ group, currentUser }) {
     }
   }, [dispatch, group, handleStartOnboarding, loadAccountStatus])
 
-  // Load account status if we have an account ID
-  useEffect(() => {
-    if (state.accountId && group?.id) {
-      loadAccountStatus()
-      loadProducts()
-    }
-  }, [state.accountId, group?.id])
-
   /**
-   * Loads all products for this connected account
+   * Loads all offerings for this connected account
    */
-  const loadProducts = useCallback(async () => {
+  const loadOfferings = useCallback(async () => {
     if (!group?.id || !state.accountId) return
 
     try {
-      const result = await dispatch(fetchProducts(group.id, state.accountId))
+      const result = await dispatch(fetchOfferings(group.id, state.accountId))
 
       if (result.error) {
         throw new Error(result.error.message)
       }
 
-      const products = result.payload?.data?.stripeProducts?.products || []
+      const offerings = result.payload?.data?.stripeOfferings?.offerings || []
 
       setState(prev => ({
         ...prev,
-        products
+        offerings
       }))
     } catch (error) {
-      console.error('Error loading products:', error)
+      console.error('Error loading offerings:', error)
     }
   }, [dispatch, group, state.accountId])
+
+  // Load account status if we have an account ID
+  useEffect(() => {
+    if (state.accountId && group?.id) {
+      loadAccountStatus()
+      loadOfferings()
+    }
+  }, [state.accountId, group?.id, loadAccountStatus, loadOfferings])
 
   /**
    * Checks Stripe status and updates the database
@@ -305,7 +305,7 @@ function PaidContentTab ({ group, currentUser }) {
 
   if (!group) return <Loading />
 
-  const { accountId, products, loading, error } = state
+  const { accountId, offerings, loading, error } = state
 
   return (
     <div className='mb-[300px]'>
@@ -345,11 +345,11 @@ function PaidContentTab ({ group, currentUser }) {
                 t={t}
               />
 
-              <ProductManagementSection
+              <OfferingManagementSection
                 group={group}
                 accountId={accountId}
-                products={products}
-                onRefreshProducts={loadProducts}
+                offerings={offerings}
+                onRefreshOfferings={loadOfferings}
                 t={t}
               />
             </>)}
@@ -644,14 +644,14 @@ function StatusBadge ({ label, value, t }) {
 }
 
 /**
- * Section for managing products
+ * Section for managing offerings
  *
- * Allows creating and viewing products that customers can purchase.
+ * Allows creating and viewing offerings that customers can purchase.
  */
-function ProductManagementSection ({ group, accountId, products, onRefreshProducts, t }) {
+function OfferingManagementSection ({ group, accountId, offerings, onRefreshOfferings, t }) {
   const dispatch = useDispatch()
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
+  const [editingOffering, setEditingOffering] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -662,9 +662,9 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
   const [updating, setUpdating] = useState(false)
 
   /**
-   * Handles product creation
+   * Handles offering creation
    */
-  const handleCreateProduct = useCallback(async (e) => {
+  const handleCreateOffering = useCallback(async (e) => {
     e.preventDefault()
 
     if (!formData.name || !formData.price) {
@@ -681,7 +681,7 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
         throw new Error(t('Invalid price'))
       }
 
-      const result = await dispatch(createProduct(
+      const result = await dispatch(createOffering(
         group.id,
         accountId,
         formData.name,
@@ -694,25 +694,25 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
         throw new Error(result.error.message)
       }
 
-      // Reset form and refresh products
+      // Reset form and refresh offerings
       setFormData({ name: '', description: '', price: '', currency: 'usd' })
       setShowCreateForm(false)
-      onRefreshProducts()
+      onRefreshOfferings()
     } catch (error) {
-      console.error('Error creating product:', error)
-      alert(t('Failed to create product: {{error}}', { error: error.message }))
+      console.error('Error creating offering:', error)
+      alert(t('Failed to create offering: {{error}}', { error: error.message }))
     } finally {
       setCreating(false)
     }
-  }, [dispatch, group, accountId, formData, onRefreshProducts, t])
+  }, [dispatch, group, accountId, formData, onRefreshOfferings, t])
 
   /**
-   * Handles product updates
+   * Handles offering updates
    */
-  const handleUpdateProduct = useCallback(async (e) => {
+  const handleUpdateOffering = useCallback(async (e) => {
     e.preventDefault()
 
-    if (!editingProduct || !formData.name) {
+    if (!editingOffering || !formData.name) {
       alert(t('Please fill in all required fields'))
       return
     }
@@ -721,45 +721,45 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
 
     try {
       const updates = {}
-      if (formData.name !== editingProduct.name) updates.name = formData.name
-      if (formData.description !== editingProduct.description) updates.description = formData.description
+      if (formData.name !== editingOffering.name) updates.name = formData.name
+      if (formData.description !== editingOffering.description) updates.description = formData.description
 
       // Note: We can't update price easily since it requires creating a new price in Stripe
       // For now, we'll only allow updating name and description
 
       if (Object.keys(updates).length === 0) {
-        setEditingProduct(null)
+        setEditingOffering(null)
         setUpdating(false)
         return
       }
 
-      // Note: updateProduct requires the database product ID, not the Stripe product ID
-      // For now, we'll show a message that this feature needs database product IDs
-      // In production, you'd need to fetch/store the database product ID
-      alert(t('Product updates require database product IDs. This feature is coming soon.'))
+      // Note: updateOffering requires the database offering ID, not the Stripe product ID
+      // For now, we'll show a message that this feature needs database offering IDs
+      // In production, you'd need to fetch/store the database offering ID
+      alert(t('Offering updates require database offering IDs. This feature is coming soon.'))
 
-      // TODO: Implement full update when database product IDs are available
-      // const result = await dispatch(updateProduct(editingProduct.databaseId, updates))
+      // TODO STRIPE: Implement full update when database offering IDs are available
+      // const result = await dispatch(updateOffering(editingOffering.databaseId, updates))
       // if (result.error) {
       //   throw new Error(result.error.message)
       // }
 
-      setEditingProduct(null)
+      setEditingOffering(null)
       setFormData({ name: '', description: '', price: '', currency: 'usd' })
-      onRefreshProducts()
+      onRefreshOfferings()
     } catch (error) {
-      console.error('Error updating product:', error)
-      alert(t('Failed to update product: {{error}}', { error: error.message }))
+      console.error('Error updating offering:', error)
+      alert(t('Failed to update offering: {{error}}', { error: error.message }))
     } finally {
       setUpdating(false)
     }
-  }, [dispatch, editingProduct, formData, onRefreshProducts, t])
+  }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
-  const handleStartEdit = useCallback((product) => {
-    setEditingProduct(product)
+  const handleStartEdit = useCallback((offering) => {
+    setEditingOffering(offering)
     setFormData({
-      name: product.name || '',
-      description: product.description || '',
+      name: offering.name || '',
+      description: offering.description || '',
       price: '', // Price editing would be complex, skipping for now
       currency: 'usd'
     })
@@ -767,7 +767,7 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
   }, [])
 
   const handleCancelEdit = useCallback(() => {
-    setEditingProduct(null)
+    setEditingOffering(null)
     setFormData({ name: '', description: '', price: '', currency: 'usd' })
   }, [])
 
@@ -775,9 +775,9 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
     <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
       <div className='flex items-center justify-between mb-4'>
         <div>
-          <h3 className='text-lg font-semibold'>{t('Products & Pricing')}</h3>
+          <h3 className='text-lg font-semibold'>{t('Offerings & Pricing')}</h3>
           <p className='text-sm text-foreground/70'>
-            {t('Create products for memberships, tracks, or content access')}
+            {t('Create offerings for memberships, tracks, or content access')}
           </p>
         </div>
         <Button
@@ -786,19 +786,19 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
           onClick={() => setShowCreateForm(!showCreateForm)}
         >
           <PlusCircle className='w-4 h-4 mr-2' />
-          {t('Add Product')}
+          {t('Add Offering')}
         </Button>
       </div>
 
-      {(showCreateForm || editingProduct) && (
-        <form onSubmit={editingProduct ? handleUpdateProduct : handleCreateProduct} className='mb-6 p-4 bg-background rounded-md'>
+      {(showCreateForm || editingOffering) && (
+        <form onSubmit={editingOffering ? handleUpdateOffering : handleCreateOffering} className='mb-6 p-4 bg-background rounded-md'>
           <h4 className='font-semibold mb-3'>
-            {editingProduct ? t('Edit Product') : t('Create New Product')}
+            {editingOffering ? t('Edit Offering') : t('Create New Offering')}
           </h4>
 
           <div className='space-y-3'>
             <SettingsControl
-              label={t('Product Name')}
+              label={t('Offering Name')}
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder={t('e.g., Premium Membership')}
@@ -846,7 +846,7 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
               <Button
                 type='button'
                 variant='outline'
-                onClick={editingProduct ? handleCancelEdit : () => setShowCreateForm(false)}
+                onClick={editingOffering ? handleCancelEdit : () => setShowCreateForm(false)}
               >
                 {t('Cancel')}
               </Button>
@@ -854,27 +854,27 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
                 type='submit'
                 disabled={creating || updating}
               >
-                {creating ? t('Creating...') : updating ? t('Updating...') : editingProduct ? t('Update Product') : t('Create Product')}
+                {creating ? t('Creating...') : updating ? t('Updating...') : editingOffering ? t('Update Offering') : t('Create Offering')}
               </Button>
             </div>
           </div>
         </form>
       )}
 
-      {products.length === 0
+      {offerings.length === 0
         ? (
           <div className='text-center py-8 text-foreground/70'>
             <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
-            <p>{t('No products yet')}</p>
-            <p className='text-sm'>{t('Create your first product to start accepting payments')}</p>
+            <p>{t('No offerings yet')}</p>
+            <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
           </div>
         )
         : (
           <div className='space-y-3'>
-            {products.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
+            {offerings.map(offering => (
+              <OfferingCard
+                key={offering.id}
+                offering={offering}
                 groupSlug={group.slug}
                 onEdit={handleStartEdit}
                 t={t}
@@ -883,7 +883,7 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
           </div>
         )}
 
-      {products.length > 0 && (
+      {offerings.length > 0 && (
         <div className='mt-4 p-3 bg-blue-500/10 border border-blue-500 rounded-md'>
           <p className='text-sm'>
             <strong>{t('Storefront Link:')}</strong>{' '}
@@ -906,21 +906,21 @@ function ProductManagementSection ({ group, accountId, products, onRefreshProduc
 }
 
 /**
- * Card displaying a single product
+ * Card displaying a single offering
  */
-function ProductCard ({ product, groupSlug, onEdit, t }) {
+function OfferingCard ({ offering, groupSlug, onEdit, t }) {
   return (
     <div className='flex items-center justify-between p-3 bg-background rounded-md hover:bg-background/80 transition-colors'>
       <div className='flex-1'>
-        <p className='font-medium'>{product.name}</p>
-        {product.description && (
-          <p className='text-sm text-foreground/70'>{product.description}</p>
+        <p className='font-medium'>{offering.name}</p>
+        {offering.description && (
+          <p className='text-sm text-foreground/70'>{offering.description}</p>
         )}
       </div>
       <div className='flex items-center gap-3'>
         <div className='text-right'>
-          <p className='text-sm text-foreground/70'>{t('ID')}: {product.id}</p>
-          {product.active
+          <p className='text-sm text-foreground/70'>{t('ID')}: {offering.id}</p>
+          {offering.active
             ? (<span className='text-xs text-green-600 font-medium'>{t('Active')}</span>)
             : (<span className='text-xs text-gray-600'>{t('Inactive')}</span>)}
         </div>
@@ -928,7 +928,7 @@ function ProductCard ({ product, groupSlug, onEdit, t }) {
           <Button
             variant='outline'
             size='sm'
-            onClick={() => onEdit(product)}
+            onClick={() => onEdit(offering)}
           >
             {t('Edit')}
           </Button>
