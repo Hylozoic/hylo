@@ -307,48 +307,48 @@ export default function AuthLayoutRouter (props) {
 
             <Suspense fallback={<Loading />}>
               <Routes>
-              <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
-              <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-              <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
-              <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
-              <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
-              <Route path='public/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
-              <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
-              <Route path='all/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-              <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
-              <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+                <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='groups/:groupSlug/chat/:topicName/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/chat/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/chat/:topicName/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
+                <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/custom/:customViewId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='groups/:groupSlug/:view/post/:postId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/:view/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='groups/:groupSlug/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/post/:postId/create/*' element={<CreateModal context='groups' />} />
+                <Route path='groups/:groupSlug/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='public/topics/:topicName/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/topics/:topicName/post/:postId/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+                <Route path='all/topics/:topicName/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/topics/:topicName/post/:postId/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/topics/:topicName/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+                <Route path='all/:view/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/:view/post/:postId/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/:view/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+                <Route path='public/:view/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/:view/post/:postId/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/:view/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+                <Route path='my/:view/create/*' element={<CreateModal context='my' />} />
+                <Route path='my/:view/post/:postId/create/*' element={<CreateModal context='my' />} />
+                <Route path='my/:view/post/:postId/edit/*' element={<CreateModal context='my' editingPost />} />
+                <Route path='public/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/post/:postId/create/*' element={<CreateModal context='public' />} />
+                <Route path='public/post/:postId/edit/*' element={<CreateModal context='public' editingPost />} />
+                <Route path='all/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/post/:postId/create/*' element={<CreateModal context='all' />} />
+                <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
+                <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
+                <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
             </Suspense>
 
@@ -356,127 +356,127 @@ export default function AuthLayoutRouter (props) {
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Suspense fallback={<Loading />}>
                 <Routes>
-                {/* **** Member Routes **** */}
-                <Route path='members/:personId/*' element={<MemberProfile />} />
-                <Route path='all/members/:personId/*' element={<MemberProfile />} />
-                {/* **** All and Public Routes **** */}
-                <Route path='all/stream/*' element={<Stream context='all' />} />
-                <Route path='public/stream/*' element={<Stream context='public' />} />
-                <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
-                <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
-                <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
-                <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
-                <Route path='all/events/*' element={<Stream context='all' />} />
-                <Route path='public/events/*' element={<Stream context='public' />} />
-                <Route path='all/map/*' element={<MapExplorer context='all' />} />
-                <Route path='public/map/*' element={<MapExplorer context='public' />} />
-                <Route path='public/groups/*' element={<GroupExplorer />} />
-                <Route path='all/topics/:topicName' element={<Stream context='all' />} />
-                <Route path='public/topics/:topicName' element={<Stream context='public' />} />
-                <Route path='all/topics' element={<AllTopics />} />
-                <Route path='all/*' element={<Stream context='my' />} />
-                <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
-                {/* **** Group Routes **** */}
-                <Route path='create-group/*' element={<CreateGroup />} />
-                <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
-                <Route path='h/use-invitation' element={<JoinGroup />} />
-                {currentGroupLoading && (
-                  <Route path='groups/:groupSlug/*' element={<Loading />} />
-                )}
-                <Route
-                  path='groups/:groupSlug/*'
-                  element={
-                    /* When viewing a group, check membership first before rendering any group routes */
-                    currentGroupLoading
-                      ? <Loading />
-                      : currentGroupSlug && !currentGroupMembership
-                        ? <GroupDetail context='groups' group={currentGroup} />
-                        : (
-                          <Routes>
-                            <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
-                            <Route path='welcome/*' element={<GroupWelcomePage />} />
-                            <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
-                            <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
-                            <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
-                            <Route path='events/*' element={<Stream context='groups' view='events' />} />
-                            <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
-                            <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
-                            <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
-                            <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
-                            <Route path='explore/*' element={<LandingPage />} />
-                            <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
-                            <Route path='groups/*' element={<Groups context='groups' />} />
-                            <Route path='members/create/*' element={<Members context='groups' />} />
-                            <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
-                            <Route path='members/*' element={<Members context='groups' />} />
-                            <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
-                            <Route path='topics' element={<AllTopics context='groups' />} />
-                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
-                            <Route path='tracks/*' element={<Tracks />} />
-                            <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
-                            <Route path='settings/*' element={<GroupSettings context='groups' />} />
-                            <Route path='all-views' element={<AllView context='groups' />} />
-                            <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
-                            <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={homeRoute} />
-                          </Routes>
-                          )
-                    }
-                />
-                {/* **** My Routes **** */}
-                <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
-                <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
-                <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
-                <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
-                <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
-                <Route path='my/tracks/*' element={<MyTracks />} />
-                <Route path='my/*' element={<UserSettings />} />
-                <Route path='my' element={<Navigate to='/my/posts' replace />} />
-                {/* **** Other Routes **** */}
-                <Route path='welcome/*' element={<WelcomeWizardRouter />} />
-                <Route path='messages/:messageThreadId' element={<Messages />} />
-                <Route path='messages' element={<Loading />} />
-                <Route path='post/:postId/*' element={<PostDetail />} />
-                {/* Keep old settings paths for mobile */}
-                <Route path='settings/*' element={<UserSettings />} />
-                <Route path='search' element={<Search />} />
-                <Route path='themes' element={<Themes />} />
-                <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
-                {/* **** Default Route (404) **** */}
-                <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
-                </Routes>
+                  {/* **** Member Routes **** */}
+                  <Route path='members/:personId/*' element={<MemberProfile />} />
+                  <Route path='all/members/:personId/*' element={<MemberProfile />} />
+                  {/* **** All and Public Routes **** */}
+                  <Route path='all/stream/*' element={<Stream context='all' />} />
+                  <Route path='public/stream/*' element={<Stream context='public' />} />
+                  <Route path='all/projects/*' element={<Stream context='all' view='projects' />} />
+                  <Route path='public/projects/*' element={<Stream context='public' view='projects' />} />
+                  <Route path='all/proposals/*' element={<Stream context='all' view='proposals' />} />
+                  <Route path='public/proposals/*' element={<Stream context='public' view='proposals' />} />
+                  <Route path='all/events/*' element={<Stream context='all' />} />
+                  <Route path='public/events/*' element={<Stream context='public' />} />
+                  <Route path='all/map/*' element={<MapExplorer context='all' />} />
+                  <Route path='public/map/*' element={<MapExplorer context='public' />} />
+                  <Route path='public/groups/*' element={<GroupExplorer />} />
+                  <Route path='all/topics/:topicName' element={<Stream context='all' />} />
+                  <Route path='public/topics/:topicName' element={<Stream context='public' />} />
+                  <Route path='all/topics' element={<AllTopics />} />
+                  <Route path='all/*' element={<Stream context='my' />} />
+                  <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                  {/* **** Group Routes **** */}
+                  <Route path='create-group/*' element={<CreateGroup />} />
+                  <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
+                  <Route path='h/use-invitation' element={<JoinGroup />} />
+                  {currentGroupLoading && (
+                    <Route path='groups/:groupSlug/*' element={<Loading />} />
+                  )}
+                  <Route
+                    path='groups/:groupSlug/*'
+                    element={
+                      /* When viewing a group, check membership first before rendering any group routes */
+                      currentGroupLoading
+                        ? <Loading />
+                        : currentGroupSlug && !currentGroupMembership
+                          ? <GroupDetail context='groups' group={currentGroup} />
+                          : (
+                            <Routes>
+                              <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+                              <Route path='welcome/*' element={<GroupWelcomePage />} />
+                              <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
+                              <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
+                              <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
+                              <Route path='events/*' element={<Stream context='groups' view='events' />} />
+                              <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
+                              <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
+                              <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
+                              <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
+                              <Route path='explore/*' element={<LandingPage />} />
+                              <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
+                              <Route path='groups/*' element={<Groups context='groups' />} />
+                              <Route path='members/create/*' element={<Members context='groups' />} />
+                              <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
+                              <Route path='members/*' element={<Members context='groups' />} />
+                              <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
+                              <Route path='topics' element={<AllTopics context='groups' />} />
+                              <Route path='tracks/:trackId/*' element={<TrackHome />} />
+                              <Route path='tracks/*' element={<Tracks />} />
+                              <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                              <Route path='settings/*' element={<GroupSettings context='groups' />} />
+                              <Route path='all-views' element={<AllView context='groups' />} />
+                              <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
+                              <Route path='moderation/*' element={<Moderation context='groups' />} />
+                              <Route path='*' element={homeRoute} />
+                            </Routes>
+                            )
+                      }
+                  />
+                  {/* **** My Routes **** */}
+                  <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
+                  <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
+                  <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
+                  <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
+                  <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
+                  <Route path='my/tracks/*' element={<MyTracks />} />
+                  <Route path='my/*' element={<UserSettings />} />
+                  <Route path='my' element={<Navigate to='/my/posts' replace />} />
+                  {/* **** Other Routes **** */}
+                  <Route path='welcome/*' element={<WelcomeWizardRouter />} />
+                  <Route path='messages/:messageThreadId' element={<Messages />} />
+                  <Route path='messages' element={<Loading />} />
+                  <Route path='post/:postId/*' element={<PostDetail />} />
+                  {/* Keep old settings paths for mobile */}
+                  <Route path='settings/*' element={<UserSettings />} />
+                  <Route path='search' element={<Search />} />
+                  <Route path='themes' element={<Themes />} />
+                  <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
+                  {/* **** Default Route (404) **** */}
+                  <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
+                  </Routes>
               </Suspense>
             </div>
 
             <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Suspense fallback={<Loading />}>
-                <Routes>
-                {/* All context routes */}
-                <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
+                  <Routes>
+                  {/* All context routes */}
+                  <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                  <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                  <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
 
-                {/* Public context routes */}
-                <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
-                <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                  {/* Public context routes */}
+                  <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                  <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                  <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                  <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
 
-                {/* My context routes */}
-                {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
+                  {/* My context routes */}
+                  {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
-                {/* Groups context routes */}
-                <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-                <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  {/* Groups context routes */}
+                  <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
-                {/* Other routes */}
-                <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
+                  {/* Other routes */}
+                  <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
               </Routes>
               </Suspense>
             </div>

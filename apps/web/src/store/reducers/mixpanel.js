@@ -1,8 +1,4 @@
-import mixpanel from 'mixpanel-browser'
-import config, { isProduction, isTest } from 'config/index'
+// Mixpanel initialization moved to router/index.js for deferred loading
+// This reducer just maintains a reference that will be populated after load
 
-if (!isTest) {
-  mixpanel.init(config.mixpanel.token, { debug: !isProduction })
-}
-
-export default (state = mixpanel, action) => state
+export default (state = null, action) => state
