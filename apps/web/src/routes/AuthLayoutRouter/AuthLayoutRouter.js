@@ -128,20 +128,23 @@ export default function AuthLayoutRouter (props) {
   const signupInProgress = useSelector(getSignupInProgress)
 
   // Track group loading to prevent NotFound flash
+  const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
   const [hasAttemptedGroupLoad, setHasAttemptedGroupLoad] = useState(false)
 
-  // Optimistic rendering: don't block if we already have user data from checkLogin
-  // Fetch fresh data in background to keep state current
+  // Parallelize critical API calls but wait for them to complete
+  // Rendering too early causes expensive re-renders as data streams in
   useEffect(() => {
-    // Fire-and-forget background refresh (don't await, don't block rendering)
-    Promise.all([
-      dispatch(fetchCommonRoles()),
-      dispatch(fetchForCurrentUser())
-    ]).then(() => {
-      // Defer non-critical data until after critical data loads
+    (async function () {
+      // Parallelize for speed, but await to ensure data is complete before render
+      await Promise.all([
+        dispatch(fetchCommonRoles()),
+        dispatch(fetchForCurrentUser())
+      ])
+      setCurrentUserLoading(false)
+      // Defer non-critical data until after render
       dispatch(fetchThreads())
-    })
+    })()
   }, [])
 
   useEffect(() => {
@@ -193,9 +196,8 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
-  // Optimistic rendering: only show loading if we don't have user data yet
-  // checkLogin() should have populated currentUser, so we can render immediately
-  if (!currentUser) {
+  // Wait for critical user data before rendering to avoid expensive re-renders
+  if (currentUserLoading) {
     return (
       <div className={classes.container} data-testid='loading-screen'>
         <Loading type='loading-fullscreen' />
