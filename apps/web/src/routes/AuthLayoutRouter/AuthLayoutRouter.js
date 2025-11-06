@@ -127,7 +127,9 @@ export default function AuthLayoutRouter (props) {
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
-  const [currentGroupLoading, setCurrentGroupLoading] = useState()
+  // Track group loading to prevent NotFound flash
+  const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
+  const [hasAttemptedGroupLoad, setHasAttemptedGroupLoad] = useState(false)
 
   // Optimistic rendering: don't block if we already have user data from checkLogin
   // Fetch fresh data in background to keep state current
@@ -175,8 +177,12 @@ export default function AuthLayoutRouter (props) {
     (async function () {
       if (currentGroupSlug) {
         setCurrentGroupLoading(true)
+        setHasAttemptedGroupLoad(true)
         await dispatch(fetchForGroup(currentGroupSlug))
         setCurrentGroupLoading(false)
+      } else {
+        // Reset when navigating away from a group
+        setHasAttemptedGroupLoad(false)
       }
     })()
   }, [currentGroupSlug])
@@ -239,7 +245,9 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  // Only show NotFound if we've actually attempted to load the group and it doesn't exist
+  // This prevents the NotFound flash during optimistic rendering
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading && hasAttemptedGroupLoad) {
     return <NotFound />
   }
 
