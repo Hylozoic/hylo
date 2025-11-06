@@ -127,20 +127,19 @@ export default function AuthLayoutRouter (props) {
   const returnToPath = useSelector(getReturnToPath)
   const signupInProgress = useSelector(getSignupInProgress)
 
-  const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState()
 
+  // Optimistic rendering: don't block if we already have user data from checkLogin
+  // Fetch fresh data in background to keep state current
   useEffect(() => {
-    (async function () {
-      // Parallelize critical API calls instead of sequential (saves ~200-300ms)
-      await Promise.all([
-        dispatch(fetchCommonRoles()),
-        dispatch(fetchForCurrentUser())
-      ])
-      setCurrentUserLoading(false)
-      // Defer non-critical data to after render
+    // Fire-and-forget background refresh (don't await, don't block rendering)
+    Promise.all([
+      dispatch(fetchCommonRoles()),
+      dispatch(fetchForCurrentUser())
+    ]).then(() => {
+      // Defer non-critical data until after critical data loads
       dispatch(fetchThreads())
-    })()
+    })
   }, [])
 
   useEffect(() => {
@@ -188,7 +187,9 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
-  if (currentUserLoading) {
+  // Optimistic rendering: only show loading if we don't have user data yet
+  // checkLogin() should have populated currentUser, so we can render immediately
+  if (!currentUser) {
     return (
       <div className={classes.container} data-testid='loading-screen'>
         <Loading type='loading-fullscreen' />
