@@ -10,7 +10,6 @@ import config, { isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
-import GlobalNav from './components/GlobalNav'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -69,6 +68,9 @@ const TrackHome = React.lazy(() => import('routes/TrackHome'))
 const Tracks = React.lazy(() => import('routes/Tracks'))
 const UserSettings = React.lazy(() => import('routes/UserSettings'))
 const WelcomeWizardRouter = React.lazy(() => import('routes/WelcomeWizardRouter'))
+
+// Lazy load navigation to prioritize content rendering
+const GlobalNav = React.lazy(() => import('./components/GlobalNav'))
 
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
@@ -289,12 +291,14 @@ export default function AuthLayoutRouter (props) {
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
-                <GlobalNav
-                  group={currentGroup}
-                  currentUser={currentUser}
-                  routeParams={pathMatchParams}
-                  showMenuBadge={showMenuBadge}
-                />
+                <Suspense fallback={<div className="w-20" />}>
+                  <GlobalNav
+                    group={currentGroup}
+                    currentUser={currentUser}
+                    routeParams={pathMatchParams}
+                    showMenuBadge={showMenuBadge}
+                  />
+                </Suspense>
                 {isDrawerOpen && (
                   <Suspense fallback={<Loading />}>
                     <Drawer className={cn(classes.drawer)} group={currentGroup} context={pathMatchParams?.context} />
