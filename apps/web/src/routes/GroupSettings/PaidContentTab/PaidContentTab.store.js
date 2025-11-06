@@ -21,19 +21,19 @@ export const FETCH_OFFERINGS = `${MODULE_NAME}/FETCH_OFFERINGS`
  * Creates a Stripe Connected Account for the group
  *
  * This allows the group to receive payments directly while the platform
- * takes an application fee. Can create a new account or connect an existing one.
+ * takes an application fee. If the user already has a Stripe account,
+ * Stripe will prompt them to connect it during onboarding.
  */
-export function createConnectedAccount (groupId, email, businessName, country = 'US', existingAccountId = null) {
+export function createConnectedAccount (groupId, email, businessName, country = 'US') {
   return {
     type: CREATE_CONNECTED_ACCOUNT,
     graphql: {
-      query: `mutation ($groupId: ID!, $email: String!, $businessName: String!, $country: String, $existingAccountId: String) {
+      query: `mutation ($groupId: ID!, $email: String!, $businessName: String!, $country: String) {
         createStripeConnectedAccount(
           groupId: $groupId
           email: $email
           businessName: $businessName
           country: $country
-          existingAccountId: $existingAccountId
         ) {
           id
           accountId
@@ -45,8 +45,7 @@ export function createConnectedAccount (groupId, email, businessName, country = 
         groupId,
         email,
         businessName,
-        country,
-        existingAccountId
+        country
       }
     }
   }

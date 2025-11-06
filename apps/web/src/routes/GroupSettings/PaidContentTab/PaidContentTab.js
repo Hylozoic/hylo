@@ -30,7 +30,7 @@ import {
   fetchOfferings
   // updateOffering - TODO: Enable when database offering IDs are available
 } from './PaidContentTab.store'
-import { updateGroupSettings, fetchGroupSettings } from '../GroupSettings.store'
+import { fetchGroupSettings } from '../GroupSettings.store'
 import { getHost } from 'store/middleware/apiMiddleware'
 
 /**
@@ -161,8 +161,10 @@ function PaidContentTab ({ group, currentUser }) {
    *
    * This is the first step in enabling payments. Once the account is created,
    * the group admin needs to complete onboarding via an Account Link.
+   * Note: Stripe will handle the case where the user already has an account
+   * by prompting them during onboarding.
    */
-  const handleCreateAccount = useCallback(async ({ email, businessName, country, existingAccountId }) => {
+  const handleCreateAccount = useCallback(async ({ email, businessName, country }) => {
     if (!group) return
 
     setState(prev => ({ ...prev, loading: true, error: null }))
@@ -172,8 +174,7 @@ function PaidContentTab ({ group, currentUser }) {
         group.id,
         email,
         businessName || group.name,
-        country || 'US',
-        existingAccountId || null
+        country || 'US'
       ))
 
       // Check for errors in the response
@@ -204,22 +205,20 @@ function PaidContentTab ({ group, currentUser }) {
         throw new Error('Server response missing accountId field: ' + JSON.stringify(responseData))
       }
 
-      // Save accountId to your group model in the database
-      await dispatch(updateGroupSettings(group.id, { stripeAccountId: accountId }))
+      // Refresh group data to get the updated stripe_account_id
+      if (group?.slug) {
+        await dispatch(fetchGroupSettings(group.slug))
+      }
 
+      // Update local state with the external account ID for display purposes
       setState(prev => ({
         ...prev,
         accountId,
         loading: false
       }))
 
-      // Automatically trigger onboarding after account creation (only for new accounts)
-      if (!existingAccountId) {
-        handleStartOnboarding(accountId)
-      } else {
-        // For existing accounts, just refresh status
-        loadAccountStatus()
-      }
+      // Automatically trigger onboarding after account creation
+      handleStartOnboarding(accountId)
     } catch (error) {
       console.error('Error creating/connecting account:', error)
       setState(prev => ({
@@ -294,7 +293,7 @@ function PaidContentTab ({ group, currentUser }) {
       setState(prev => ({ ...prev, loading: false, error: null }))
 
       // Reload live account status to reflect the updates
-    loadAccountStatus()
+      loadAccountStatus()
     } catch (error) {
       console.error('Error checking Stripe status:', error)
       setState(prev => ({
@@ -304,6 +303,17 @@ function PaidContentTab ({ group, currentUser }) {
       }))
     }
   }, [dispatch, group, loadAccountStatus])
+
+  // Check for onboarding completion query parameter and trigger status check
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    const onboarding = searchParams.get('onboarding')
+
+    if (onboarding === 'complete' && group?.id && state.accountId) {
+      // Automatically check Stripe status when user returns from onboarding
+      handleCheckStripeStatus()
+    }
+  }, [location.search, group?.id, state.accountId, handleCheckStripeStatus])
 
   // Extract nested tab from pathname
   // URL structure: /groups/:groupSlug/settings/paid-content/:subTab
@@ -367,7 +377,6 @@ function PaidContentTab ({ group, currentUser }) {
                 accountId={accountId}
                 loading={loading}
                 onCreateAccount={handleCreateAccount}
-                onConnectAccount={handleCreateAccount}
                 onCheckStatus={handleCheckStripeStatus}
                 onStartOnboarding={handleStartOnboarding}
               />
@@ -384,7 +393,7 @@ function PaidContentTab ({ group, currentUser }) {
  *
  * Main tab showing account setup and status
  */
-function AccountTab ({ group, currentUser, accountId, loading, onCreateAccount, onConnectAccount, onCheckStatus, onStartOnboarding }) {
+function AccountTab ({ group, currentUser, accountId, loading, onCreateAccount, onCheckStatus, onStartOnboarding }) {
   const { t } = useTranslation()
 
   return (
@@ -394,7 +403,6 @@ function AccountTab ({ group, currentUser, accountId, loading, onCreateAccount, 
           <AccountSetupSection
             loading={loading}
             onCreateAccount={onCreateAccount}
-            onConnectAccount={onConnectAccount}
             group={group}
             currentUser={currentUser}
             t={t}
@@ -632,8 +640,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 {updating ? t('Updating...') : t('Update Offering')}
               </Button>
-          </div>
-        </form>
+            </div>
+          </form>
         </div>
       )}
 
@@ -642,22 +650,22 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         <div className='flex flex-col gap-3'>
           {offerings.length === 0
             ? (
-        <div className='text-center py-8 text-foreground/70'>
-          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+              <div className='text-center py-8 text-foreground/70'>
+                <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
                 <p>{t('No offerings yet')}</p>
                 <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
               </div>
-            )
+              )
             : (
-              offerings.map(offering => (
-                <OfferingListItem
-                  key={offering.id}
-                  offering={offering}
-                  onEdit={handleStartEdit}
-                  t={t}
-                />
-              ))
-            )}
+                offerings.map(offering => (
+                  <OfferingListItem
+                    key={offering.id}
+                    offering={offering}
+                    onEdit={handleStartEdit}
+                    t={t}
+                  />
+                ))
+              )}
         </div>
       </div>
     </div>
@@ -688,16 +696,15 @@ function ContentAccessTab ({ group }) {
  * Section for initial account setup
  *
  * Displayed when the group doesn't have a Stripe account yet.
- * Provides a form to collect account information for creating or connecting accounts.
+ * Provides a form to collect account information for creating a new Stripe account.
+ * Note: If the user already has a Stripe account, Stripe will prompt them to connect it during onboarding.
  */
-function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, group, currentUser, t }) {
+function AccountSetupSection ({ loading, onCreateAccount, group, currentUser, t }) {
   const [formData, setFormData] = useState({
     email: currentUser?.email || '',
     businessName: group?.name || '',
-    country: 'US',
-    existingAccountId: ''
+    country: 'US'
   })
-  const [isConnectingExisting, setIsConnectingExisting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = useCallback(async (e) => {
@@ -716,40 +723,27 @@ function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, grou
       return
     }
 
-    // If connecting existing account, validate account ID
-    if (isConnectingExisting) {
-      if (!formData.existingAccountId.trim()) {
-        alert(t('Please enter a Stripe account ID'))
-        return
-      }
-      if (!formData.existingAccountId.startsWith('acct_')) {
-        alert(t('Stripe account IDs must start with "acct_"'))
-        return
-      }
-    }
-
     setSubmitting(true)
     try {
-      await (isConnectingExisting ? onConnectAccount : onCreateAccount)({
+      await onCreateAccount({
         email: formData.email.trim(),
         businessName: formData.businessName.trim() || group.name,
-        country: formData.country,
-        existingAccountId: isConnectingExisting ? formData.existingAccountId.trim() : null
+        country: formData.country
       })
     } catch (error) {
-      console.error('Error creating/connecting account:', error)
+      console.error('Error creating account:', error)
       // Error state is handled by parent component
     } finally {
       setSubmitting(false)
     }
-  }, [formData, isConnectingExisting, onCreateAccount, onConnectAccount, group, t])
+  }, [formData, onCreateAccount, group, t])
 
   return (
     <>
       <div className='mb-4'>
         <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
         <p className='text-sm text-foreground/70 mb-4'>
-          {t('Set up Stripe Connect to accept payments. You can create a new account or connect an existing Stripe account.')}
+          {t('Set up Stripe Connect to accept payments. If you already have a Stripe account, Stripe will prompt you to connect it during onboarding.')}
         </p>
       </div>
 
@@ -797,39 +791,13 @@ function AccountSetupSection ({ loading, onCreateAccount, onConnectAccount, grou
           </div>
         </div>
 
-        <div className='flex items-center gap-2 mb-4'>
-          <input
-            type='checkbox'
-            id='connectExisting'
-            checked={isConnectingExisting}
-            onChange={(e) => setIsConnectingExisting(e.target.checked)}
-            className='w-4 h-4'
-          />
-          <label htmlFor='connectExisting' className='text-sm text-foreground/70 cursor-pointer'>
-            {t('Connect an existing Stripe account instead')}
-          </label>
-        </div>
-
-        {isConnectingExisting && (
-          <SettingsControl
-            label={t('Stripe Account ID')}
-            value={formData.existingAccountId}
-            onChange={(e) => setFormData(prev => ({ ...prev, existingAccountId: e.target.value }))}
-            placeholder='acct_...'
-            required={isConnectingExisting}
-            helpText={t('Enter your existing Stripe Connect account ID (starts with "acct_")')}
-          />
-        )}
-
         <div className='flex gap-2 justify-end pt-4'>
           <Button
             type='submit'
             disabled={loading || submitting}
             className='w-full sm:w-auto'
           >
-            {submitting
-              ? (isConnectingExisting ? t('Connecting...') : t('Creating...'))
-              : (isConnectingExisting ? t('Connect Account') : t('Create Account'))}
+            {submitting ? t('Creating...') : t('Create Account')}
           </Button>
         </div>
       </form>
@@ -911,13 +879,13 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         <div className='mb-4'>
           <a
             href={group.stripeDashboardUrl}
-              target='_blank'
-              rel='noopener noreferrer'
+            target='_blank'
+            rel='noopener noreferrer'
             className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
-            >
+          >
             <ExternalLink className='w-4 h-4' />
             {t('Open Stripe Dashboard')}
-            </a>
+          </a>
         </div>
       )}
 
@@ -977,7 +945,7 @@ function OfferingListItem ({ offering, onEdit, t }) {
   return (
     <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-all'>
       <div className='flex items-start justify-between'>
-      <div className='flex-1'>
+        <div className='flex-1'>
           <div className='flex items-center gap-2 mb-2'>
             <h4 className='font-semibold text-foreground'>{offering.name}</h4>
             {offering.active
@@ -991,8 +959,8 @@ function OfferingListItem ({ offering, onEdit, t }) {
             <span>{t('Stripe ID')}: {offering.id}</span>
             {offering.defaultPriceId && (
               <span>{t('Price ID')}: {offering.defaultPriceId}</span>
-        )}
-      </div>
+            )}
+          </div>
         </div>
         {onEdit && (
           <Button

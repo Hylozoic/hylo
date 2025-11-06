@@ -23,8 +23,9 @@ if (!STRIPE_SECRET_KEY) {
 }
 
 // Initialize Stripe client with the latest API version
+// Note: API version should match what Stripe expects - check Stripe dashboard for latest
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover' // Using the latest Stripe API version
+  apiVersion: '2025-10-29.clover' // Updated to match Stripe's expected version
 })
 
 module.exports = {
@@ -104,8 +105,15 @@ module.exports = {
    * verified - verification status will be displayed in the UI and
    * prevent product publishing until the account is ready.
    *
+   * NOTE: This only works for Stripe accounts that were originally created
+   * through our platform (connected accounts). To connect accounts created
+   * outside our platform, we need to implement Stripe OAuth flow.
+   *
+   * Note: Stripe will handle the edge case where the user already has an account
+   * by prompting them to connect their existing account during onboarding.
+   *
    * @param {Object} params - Connection parameters
-   * @param {String} params.accountId - Existing Stripe account ID
+   * @param {String} params.accountId - Existing Stripe account ID (must be a connected account)
    * @param {String} params.groupId - Group ID for metadata correlation
    * @returns {Promise<Object>} The Stripe account object
    */
@@ -122,7 +130,17 @@ module.exports = {
 
       // Validate that the account exists by retrieving it
       // This will throw an error if the account ID is invalid
-      await stripe.accounts.retrieve(accountId)
+      // Note: For connected accounts, we retrieve using the account ID directly
+      // The accountId should be a string like 'acct_xxx'
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Attempting to retrieve Stripe account:', {
+          accountId,
+          accountIdType: typeof accountId,
+          accountIdLength: accountId?.length,
+          isString: typeof accountId === 'string'
+        })
+      }
+      const retrievedAccount = await stripe.accounts.retrieve(accountId)
 
       // Account exists and is valid - we can proceed with connection
       // No need to check verification status here as UI will handle that
@@ -138,9 +156,23 @@ module.exports = {
 
       return updatedAccount
     } catch (error) {
-      console.error('Error connecting existing account:', error)
+      console.error('Error connecting existing account:', {
+        accountId,
+        groupId,
+        errorType: error.type,
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorParam: error.param,
+        errorDetail: error.detail,
+        rawError: error.raw,
+        fullError: error
+      })
       if (error.type === 'StripeInvalidRequestError') {
-        throw new Error('Invalid Stripe account ID provided')
+        // Provide more specific error message based on the error details
+        if (error.message && error.message.includes('API version')) {
+          throw new Error(`Stripe API version error: ${error.message}. This may indicate an issue with the Stripe SDK configuration.`)
+        }
+        throw new Error(`Invalid Stripe account ID provided: ${error.message}`)
       }
       throw new Error(`Failed to connect existing Stripe account: ${error.message}`)
     }

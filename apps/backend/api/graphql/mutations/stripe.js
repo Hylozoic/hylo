@@ -36,7 +36,7 @@ module.exports = {
   /**
    * Creates a Stripe Connected Account for a group
    */
-  createStripeConnectedAccount: async (userId, { groupId, email, businessName, country, existingAccountId }) => {
+  createStripeConnectedAccount: async (userId, { groupId, email, businessName, country }) => {
     try {
       // Check if user is authenticated
       if (!userId) {
@@ -56,32 +56,27 @@ module.exports = {
       }
 
       // Check if group already has a Stripe account
-      if (group.get('stripe_account_id')) {
-        throw new GraphQLError('This group already has a Stripe account connected')
-      }
-
-      let account
-
-      if (existingAccountId) {
-        // Validate the Stripe account ID format
-        if (!existingAccountId.startsWith('acct_')) {
-          throw new GraphQLError('Invalid Stripe account ID provided')
+      // If stripe_account_id exists, verify the database record still exists
+      // (in case DB was cleared but group still has the reference)
+      const existingStripeAccountId = group.get('stripe_account_id')
+      if (existingStripeAccountId) {
+        const existingStripeAccount = await StripeAccount.where({ id: existingStripeAccountId }).fetch()
+        if (existingStripeAccount) {
+          throw new GraphQLError('This group already has a Stripe account connected')
         }
-
-        // Connect existing Stripe account
-        account = await StripeService.connectExistingAccount({
-          accountId: existingAccountId,
-          groupId
-        })
-      } else {
-        // Create new Stripe account
-        account = await StripeService.createConnectedAccount({
-          email: email || `${group.get('name')}@hylo.com`,
-          country: country || 'US',
-          businessName: businessName || group.get('name'),
-          groupId
-        })
+        // If the database record doesn't exist, we can proceed to reconnect
+        // This handles the edge case where DB was cleared but Stripe account still exists
       }
+
+      // Create new Stripe account
+      // Note: Stripe will handle the case where the user already has an account
+      // by prompting them to connect it during onboarding
+      const account = await StripeService.createConnectedAccount({
+        email: email || `${group.get('name')}@hylo.com`,
+        country: country || 'US',
+        businessName: businessName || group.get('name'),
+        groupId
+      })
 
       // Find or create a StripeAccount record with this external ID
       let stripeAccountRecord = await StripeAccount.where({

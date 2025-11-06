@@ -11,8 +11,10 @@
 const StripeService = require('../services/StripeService')
 const Stripe = require('stripe')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-09-30.clover'
+  apiVersion: '2025-10-29.clover'
 })
+
+/* global StripeAccount */
 
 module.exports = {
 
@@ -185,9 +187,21 @@ module.exports = {
         return
       }
 
+      // Find or create the StripeAccount record for this external account ID
+      let stripeAccountRecord = await StripeAccount.where({
+        stripe_account_external_id: account.id
+      }).fetch()
+
+      if (!stripeAccountRecord) {
+        stripeAccountRecord = await StripeAccount.forge({
+          stripe_account_external_id: account.id
+        }).save()
+      }
+
       // Update group's Stripe status
+      // Note: stripe_account_id should be the database ID, not the external account ID
       await group.save({
-        stripe_account_id: account.id, // Store account ID if not already stored
+        stripe_account_id: stripeAccountRecord.id, // Store database ID, not external account ID
         stripe_charges_enabled: account.charges_enabled,
         stripe_payouts_enabled: account.payouts_enabled,
         stripe_details_submitted: account.details_submitted

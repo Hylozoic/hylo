@@ -3331,7 +3331,6 @@ type Mutation {
     email: String!
     businessName: String!
     country: String
-    existingAccountId: String
   ): StripeConnectedAccountResult
 
   # Create an Account Link for onboarding
