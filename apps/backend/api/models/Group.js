@@ -50,6 +50,23 @@ module.exports = bookshelf.Model.extend(merge({
     return response
   },
 
+  /**
+   * Builds a Stripe Dashboard URL for this group's connected account
+   */
+  async stripeDashboardUrl () {
+    try {
+      const stripeAccountId = this.get('stripe_account_id')
+      if (!stripeAccountId) return null
+      const acct = await StripeAccount.where({ id: stripeAccountId }).fetch()
+      if (!acct) return null
+      const externalId = acct.get('stripe_account_external_id')
+      if (!externalId) return null
+      return `https://dashboard.stripe.com/${externalId}`
+    } catch (e) {
+      return null
+    }
+  },
+
   // ******** Getters ******* //
 
   agreements: function () {
@@ -722,7 +739,7 @@ module.exports = bookshelf.Model.extend(merge({
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'location', 'location_id', 'name', 'purpose', 'settings',
       'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
-      'welcome_page', 'website_url'
+      'welcome_page', 'website_url', 'stripe_account_id', 'stripe_charges_enabled', 'stripe_payouts_enabled', 'stripe_details_submitted', 'paywall'
     ]
     const trimAttrs = ['name', 'description', 'purpose']
 

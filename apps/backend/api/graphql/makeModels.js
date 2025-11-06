@@ -200,6 +200,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupMembership,
       attributes: [
         'created_at',
+        'expires_at',
         'group_id',
         'nav_order'
       ],
@@ -256,6 +257,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: MemberGroupRole,
       attributes: [
         'id',
+        'expires_at',
         'group_id',
         'group_role_id',
         'user_id'
@@ -310,6 +312,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
         enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
+        expiresAt: p => p.pivot && p.pivot.get('expires_at'), // When loading through a track this is when their access expires
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
       relations: [
@@ -615,9 +618,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'geo_shape',
         'memberCount',
         'name',
+        'paywall',
         'postCount',
         'purpose',
         'slug',
+        'stripe_account_id',
+        'stripe_charges_enabled',
+        'stripe_payouts_enabled',
+        'stripe_details_submitted',
         'type',
         'visibility',
         'website_url',
@@ -806,6 +814,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         // commonRoles: async g => g.commonRoles(),
         homeWidget: g => g.homeWidget(),
+        stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
@@ -1278,6 +1287,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     Track: {
       model: Track,
       attributes: [
+        'access_controlled',
         'action_descriptor',
         'action_descriptor_plural',
         'created_at',
@@ -1304,7 +1314,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
-        userSettings: t => t && userId ? t.userSettings(userId) : null
+        userSettings: t => t && userId ? t.userSettings(userId) : null,
+        expiresAt: async (t) => {
+          if (!t || !userId) return null
+          const trackUser = await t.trackUser(userId).fetch()
+          return trackUser ? trackUser.get('expires_at') : null
+        }
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
@@ -1318,6 +1333,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'completed_at',
         'created_at',
         'enrolled_at',
+        'expires_at',
         'settings',
         'updated_at'
       ],
@@ -1536,6 +1552,83 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'name'
       ]
+    },
+
+    StripeOffering: {
+      model: StripeProduct,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'group_id',
+        'stripe_product_id',
+        'stripe_price_id',
+        'name',
+        'description',
+        'price_in_cents',
+        'currency',
+        'track_id',
+        'content_access',
+        'renewal_policy',
+        'duration',
+        'publish_status'
+      ],
+      relations: [
+        'group',
+        'track'
+      ],
+      getters: {
+        stripeProductId: sp => sp.get('stripe_product_id'),
+        stripePriceId: sp => sp.get('stripe_price_id'),
+        priceInCents: sp => sp.get('price_in_cents'),
+        trackId: sp => sp.get('track_id'),
+        contentAccess: sp => sp.get('content_access'),
+        renewalPolicy: sp => sp.get('renewal_policy'),
+        publishStatus: sp => sp.get('publish_status')
+      }
+    },
+
+    ContentAccess: {
+      model: ContentAccess,
+      isDefaultTypeForTable: true,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'user_id',
+        'granted_by_group_id',
+        'group_id',
+        'track_id',
+        'role_id',
+        'access_type',
+        'stripe_session_id',
+        'stripe_payment_intent_id',
+        'status',
+        'granted_by_id',
+        'expires_at',
+        'metadata'
+      ],
+      relations: [
+        'user',
+        'grantedByGroup',
+        'group',
+        { product: { alias: 'offering', typename: 'StripeOffering' } },
+        'track',
+        'role',
+        'grantedBy'
+      ],
+      getters: {
+        userId: ca => ca.get('user_id'),
+        grantedByGroupId: ca => ca.get('granted_by_group_id'),
+        groupId: ca => ca.get('group_id'),
+        offeringId: ca => ca.get('product_id'),
+        trackId: ca => ca.get('track_id'),
+        roleId: ca => ca.get('role_id'),
+        accessType: ca => ca.get('access_type'),
+        stripeSessionId: ca => ca.get('stripe_session_id'),
+        stripePaymentIntentId: ca => ca.get('stripe_payment_intent_id'),
+        grantedById: ca => ca.get('granted_by_id')
+      }
     }
   }
 }

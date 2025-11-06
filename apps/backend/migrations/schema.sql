@@ -1245,7 +1245,8 @@ CREATE TABLE public.group_memberships (
     new_post_count integer DEFAULT 0,
     group_data_type integer,
     project_role_id bigint,
-    nav_order integer
+    nav_order integer,
+    expires_at timestamp with time zone
 );
 
 
@@ -1292,7 +1293,8 @@ CREATE TABLE public.group_memberships_group_roles (
     group_role_id bigint NOT NULL,
     active boolean,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    expires_at timestamp with time zone
 );
 
 
@@ -1526,7 +1528,12 @@ CREATE TABLE public.groups (
     allow_in_public boolean DEFAULT false,
     purpose text,
     welcome_page text,
-    website_url text
+    website_url text,
+    stripe_account_id bigint,
+    stripe_charges_enabled boolean DEFAULT false,
+    stripe_payouts_enabled boolean DEFAULT false,
+    stripe_details_submitted boolean DEFAULT false,
+    paywall boolean DEFAULT false
 );
 
 
@@ -2631,7 +2638,6 @@ CREATE TABLE public.users (
     location character varying(255),
     url character varying(255),
     tagline character varying(255),
-    stripe_account_id bigint,
     location_id bigint,
     contact_email character varying(255),
     contact_phone character varying(255),
@@ -2982,6 +2988,91 @@ ALTER SEQUENCE public.stripe_accounts_id_seq OWNED BY public.stripe_accounts.id;
 
 
 --
+-- Name: stripe_products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stripe_products_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stripe_products; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stripe_products (
+    id bigint DEFAULT nextval('public.stripe_products_id_seq'::regclass) NOT NULL,
+    group_id bigint NOT NULL,
+    stripe_product_id character varying(255) NOT NULL,
+    stripe_price_id character varying(255) NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    price_in_cents integer NOT NULL,
+    currency character varying(3) NOT NULL DEFAULT 'usd'::character varying,
+    track_id bigint,
+    content_access jsonb DEFAULT '{}'::jsonb,
+    renewal_policy character varying(20) DEFAULT 'manual'::character varying,
+    duration character varying(20),
+    publish_status character varying(20) DEFAULT 'unpublished'::character varying,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: stripe_products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stripe_products_id_seq OWNED BY public.stripe_products.id;
+
+
+--
+-- Name: content_access_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.content_access_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: content_access; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_access (
+    id bigint DEFAULT nextval('public.content_access_id_seq'::regclass) NOT NULL,
+    user_id bigint NOT NULL,
+    granted_by_group_id bigint NOT NULL,
+    group_id bigint,
+    product_id bigint,
+    track_id integer,
+    role_id integer,
+    access_type character varying(50) NOT NULL,
+    stripe_session_id character varying(255),
+    stripe_payment_intent_id character varying(255),
+    status character varying(50) NOT NULL DEFAULT 'active'::character varying,
+    granted_by_id bigint,
+    expires_at timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: content_access_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.content_access_id_seq OWNED BY public.content_access.id;
+
+
+--
 -- Name: tags; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3071,7 +3162,8 @@ CREATE TABLE public.tracks (
     num_people_completed integer DEFAULT 0,
     completion_role_id bigint,
     completion_role_type character varying(255),
-    action_descriptor character varying(255)
+    action_descriptor character varying(255),
+    access_controlled boolean DEFAULT false
 );
 
 
@@ -3141,7 +3233,8 @@ CREATE TABLE public.tracks_users (
     enrolled_at timestamp with time zone,
     completed_at timestamp with time zone,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    access_granted boolean
 );
 
 
@@ -5573,6 +5666,92 @@ CREATE INDEX zapier_triggers_groups_zapier_trigger_id_index ON public.zapier_tri
 
 
 --
+-- Name: stripe_products_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_products_group_id_index ON public.stripe_products USING btree (group_id);
+
+
+--
+-- Name: stripe_products_stripe_product_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stripe_products_stripe_product_id_index ON public.stripe_products USING btree (stripe_product_id);
+
+
+--
+-- Name: content_access_user_id_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_user_id_status_index ON public.content_access USING btree (user_id, status);
+
+
+--
+-- Name: content_access_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_group_id_index ON public.content_access USING btree (group_id);
+
+
+--
+-- Name: content_access_product_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_product_id_index ON public.content_access USING btree (product_id);
+
+
+--
+-- Name: content_access_track_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_track_id_index ON public.content_access USING btree (track_id);
+
+
+--
+-- Name: content_access_role_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_role_id_index ON public.content_access USING btree (role_id);
+
+
+--
+-- Name: content_access_stripe_session_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_stripe_session_id_index ON public.content_access USING btree (stripe_session_id);
+
+
+--
+-- Name: content_access_access_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_access_type_index ON public.content_access USING btree (access_type);
+
+
+--
+-- Name: content_access_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_status_index ON public.content_access USING btree (status);
+
+
+--
+-- Name: stripe_products stripe_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_access content_access_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: activities activities_contribution_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6525,6 +6704,14 @@ ALTER TABLE ONLY public.groups
 
 
 --
+-- Name: groups groups_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: groups groups_location_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6586,6 +6773,78 @@ ALTER TABLE ONLY public.groups_tracks
 
 ALTER TABLE ONLY public.groups_tracks
     ADD CONSTRAINT groups_tracks_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: stripe_products stripe_products_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: stripe_products stripe_products_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_products
+    ADD CONSTRAINT stripe_products_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_granted_by_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_granted_by_group_id_foreign FOREIGN KEY (granted_by_group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_product_id_foreign FOREIGN KEY (product_id) REFERENCES public.stripe_products(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_track_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_track_id_foreign FOREIGN KEY (track_id) REFERENCES public.tracks(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_role_id_foreign FOREIGN KEY (role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_granted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_granted_by_id_foreign FOREIGN KEY (granted_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7101,14 +7360,6 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_stripe_account_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_stripe_account_id_foreign FOREIGN KEY (stripe_account_id) REFERENCES public.stripe_accounts(id);
-
-
---
 -- Name: zapier_triggers_groups zapier_triggers_groups_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7130,6 +7381,130 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: sync_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION sync_content_access_expires_at()
+RETURNS TRIGGER AS $$
+DECLARE
+  latest_expires_at TIMESTAMP WITH TIME ZONE;
+BEGIN
+  IF NEW.track_id IS NOT NULL THEN
+    UPDATE tracks_users
+    SET access_granted = true, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+  END IF;
+
+  IF NEW.role_id IS NOT NULL THEN
+    SELECT MAX(expires_at) INTO latest_expires_at
+    FROM content_access
+    WHERE user_id = NEW.user_id
+      AND role_id = NEW.role_id
+      AND granted_by_group_id = NEW.granted_by_group_id
+      AND status = 'active';
+    UPDATE group_memberships_group_roles
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id
+      AND group_id = NEW.granted_by_group_id
+      AND group_role_id = NEW.role_id;
+    UPDATE group_memberships
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+  END IF;
+
+  IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
+    SELECT MAX(expires_at) INTO latest_expires_at
+    FROM content_access
+    WHERE user_id = NEW.user_id
+      AND granted_by_group_id = NEW.granted_by_group_id
+      AND track_id IS NULL
+      AND role_id IS NULL
+      AND status = 'active';
+    UPDATE group_memberships
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+--
+-- Name: clear_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE OR REPLACE FUNCTION clear_content_access_expires_at()
+RETURNS TRIGGER AS $$
+DECLARE
+  latest_expires_at TIMESTAMP WITH TIME ZONE;
+BEGIN
+  IF NEW.track_id IS NOT NULL THEN
+    UPDATE tracks_users
+    SET access_granted = false, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+  END IF;
+
+  IF NEW.role_id IS NOT NULL THEN
+    SELECT MAX(expires_at) INTO latest_expires_at
+    FROM content_access
+    WHERE user_id = NEW.user_id
+      AND role_id = NEW.role_id
+      AND granted_by_group_id = NEW.granted_by_group_id
+      AND status = 'active'
+      AND id != NEW.id;
+    UPDATE group_memberships_group_roles
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id
+      AND group_id = NEW.granted_by_group_id
+      AND group_role_id = NEW.role_id;
+    UPDATE group_memberships
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+  END IF;
+
+  IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
+    SELECT MAX(expires_at) INTO latest_expires_at
+    FROM content_access
+    WHERE user_id = NEW.user_id
+      AND granted_by_group_id = NEW.granted_by_group_id
+      AND track_id IS NULL
+      AND role_id IS NULL
+      AND status = 'active'
+      AND id != NEW.id;
+    UPDATE group_memberships
+    SET expires_at = latest_expires_at, updated_at = NOW()
+    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+--
+-- Name: content_access_expires_at_sync; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER content_access_expires_at_sync
+    AFTER INSERT OR UPDATE OF expires_at ON public.content_access
+    FOR EACH ROW
+    WHEN (NEW.status = 'active')
+    EXECUTE FUNCTION sync_content_access_expires_at();
+
+
+--
+-- Name: content_access_expires_at_clear; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER content_access_expires_at_clear
+    AFTER UPDATE OF status ON public.content_access
+    FOR EACH ROW
+    WHEN (NEW.status IN ('revoked', 'expired'))
+    EXECUTE FUNCTION clear_content_access_expires_at();
 
 
 --

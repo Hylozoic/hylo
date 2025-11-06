@@ -812,6 +812,7 @@ function GroupSettingsMenu ({ group }) {
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 

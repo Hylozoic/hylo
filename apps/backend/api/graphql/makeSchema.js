@@ -26,6 +26,7 @@ import {
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
+  checkContentAccess,
   clearModerationAction,
   completePost,
   createAffiliation,
@@ -71,6 +72,7 @@ import {
   findOrCreateThread,
   flagInappropriateContent,
   fulfillPost,
+  grantContentAccess,
   inviteGroupToGroup,
   invitePeerRelationship,
   invitePeopleToEvent,
@@ -91,6 +93,7 @@ import {
   reactOn,
   reactivateUser,
   recordClickthrough,
+  recordStripePurchase,
   regenerateAccessCode,
   registerDevice,
   registerStripeAccount,
@@ -112,6 +115,7 @@ import {
   reorderPostInCollection,
   resendInvitation,
   respondToEvent,
+  revokeContentAccess,
   savePost,
   sendEmailVerification,
   sendPasswordReset,
@@ -144,6 +148,14 @@ import {
   updateStripeAccount,
   updateWidget,
   useInvitation,
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  stripeAccountStatus,
+  createStripeOffering,
+  updateStripeOffering,
+  stripeOfferings,
+  createStripeCheckoutSession,
+  checkStripeStatus,
   verifyEmail
 } from './mutations'
 import peopleTyping from './mutations/peopleTyping'
@@ -327,6 +339,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
 export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
+    checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
@@ -387,6 +400,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         })
     },
     skills: (root, args) => fetchMany('Skill', args),
+    stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
+    stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
@@ -451,6 +466,12 @@ export function makeMutations ({ fetchOne }) {
     clearModerationAction: (root, { postId, groupId, moderationActionId }, context) => clearModerationAction({ userId: context.currentUserId, postId, groupId, moderationActionId }),
 
     completePost: (root, { postId, completionResponse }, context) => completePost(context.currentUserId, postId, completionResponse),
+
+    grantContentAccess: (root, args, context) => grantContentAccess(context.currentUserId, args),
+
+    revokeContentAccess: (root, args, context) => revokeContentAccess(context.currentUserId, args),
+
+    recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 
@@ -582,6 +603,18 @@ export function makeMutations ({ fetchOne }) {
     registerDevice: () => registerDevice(),
 
     registerStripeAccount: (root, { authorizationCode }, context) => registerStripeAccount(context.currentUserId, authorizationCode),
+
+    createStripeConnectedAccount: (root, { groupId, email, businessName, country, existingAccountId }, context) => createStripeConnectedAccount(context.currentUserId, { groupId, email, businessName, country, existingAccountId }),
+
+    createStripeAccountLink: (root, { groupId, accountId, returnUrl, refreshUrl }, context) => createStripeAccountLink(context.currentUserId, { groupId, accountId, returnUrl, refreshUrl }),
+
+    createStripeOffering: (root, { input }, context) => createStripeOffering(context.currentUserId, input),
+
+    updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
+
+    createStripeCheckoutSession: (root, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }),
+
+    checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 
     reinviteAll: (root, { groupId }, context) => reinviteAll(context.currentUserId, groupId),
 
