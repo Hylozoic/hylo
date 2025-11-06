@@ -3846,7 +3846,7 @@ input StripeOfferingInput {
   # Currency code (e.g. 'usd')
   currency: String
   # JSONB object defining what access this offering grants
-  # Format: { "groupId": { "trackIds": [1, 2], "roleIds": [3, 4] } }
+  # Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
   contentAccess: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String

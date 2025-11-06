@@ -26,7 +26,7 @@ module.exports = bookshelf.Model.extend({
    */
   contentAccess: function () {
     // Note: ContentAccess is globally available after models are loaded
-    return this.hasMany('ContentAccess', 'product_id')
+    return this.hasMany(ContentAccess, 'product_id')
   }
 
 }, {

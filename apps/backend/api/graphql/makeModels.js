@@ -1575,8 +1575,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       relations: [
         'group',
-        'track',
-        { contentAccess: { querySet: true } }
+        'track'
       ],
       getters: {
         stripeProductId: sp => sp.get('stripe_product_id'),
@@ -1586,6 +1585,49 @@ export default function makeModels (userId, isAdmin, apiClient) {
         contentAccess: sp => sp.get('content_access'),
         renewalPolicy: sp => sp.get('renewal_policy'),
         publishStatus: sp => sp.get('publish_status')
+      }
+    },
+
+    ContentAccess: {
+      model: ContentAccess,
+      isDefaultTypeForTable: true,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'user_id',
+        'granted_by_group_id',
+        'group_id',
+        'track_id',
+        'role_id',
+        'access_type',
+        'stripe_session_id',
+        'stripe_payment_intent_id',
+        'status',
+        'granted_by_id',
+        'expires_at',
+        'metadata'
+      ],
+      relations: [
+        'user',
+        'grantedByGroup',
+        'group',
+        { product: { alias: 'offering', typename: 'StripeOffering' } },
+        'track',
+        'role',
+        'grantedBy'
+      ],
+      getters: {
+        userId: ca => ca.get('user_id'),
+        grantedByGroupId: ca => ca.get('granted_by_group_id'),
+        groupId: ca => ca.get('group_id'),
+        offeringId: ca => ca.get('product_id'),
+        trackId: ca => ca.get('track_id'),
+        roleId: ca => ca.get('role_id'),
+        accessType: ca => ca.get('access_type'),
+        stripeSessionId: ca => ca.get('stripe_session_id'),
+        stripePaymentIntentId: ca => ca.get('stripe_payment_intent_id'),
+        grantedById: ca => ca.get('granted_by_id')
       }
     }
   }

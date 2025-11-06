@@ -234,10 +234,9 @@ module.exports = {
    *       priceInCents: 2000
    *       currency: "usd"
    *       contentAccess: {
-   *         "123": {
-   *           trackIds: [456, 789]
-   *           roleIds: [1, 2]
-   *         }
+   *         trackIds: [456, 789]
+   *         roleIds: [1, 2]
+   *         groupIds: [123]
    *       }
    *       publishStatus: "published"
    *     ) {
@@ -329,10 +328,9 @@ module.exports = {
    *       description: "Updated description"
    *       priceInCents: 2500
    *       contentAccess: {
-   *         "123": {
-   *           trackIds: [456, 789]
-   *           roleIds: [1, 2]
-   *         }
+   *         trackIds: [456, 789]
+   *         roleIds: [1, 2]
+   *         groupIds: [123]
    *       }
    *       publishStatus: "published"
    *     ) {
@@ -457,6 +455,9 @@ module.exports = {
   /**
    * Lists all offerings for a connected account
    *
+   * Fetches offerings from the database (not from Stripe API) to ensure
+   * we show all offerings including those that may not be synced to Stripe yet.
+   *
    * Usage:
    *   query {
    *     stripeOfferings(
@@ -467,10 +468,10 @@ module.exports = {
    *         id
    *         name
    *         description
-   *         defaultPrice {
-   *           unitAmount
-   *           currency
-   *         }
+   *         priceInCents
+   *         currency
+   *         stripeProductId
+   *         stripePriceId
    *       }
    *     }
    *   }
@@ -488,27 +489,12 @@ module.exports = {
         throw new GraphQLError('You must be a group administrator to view offerings')
       }
 
-      // Convert database ID to external account ID if needed
-      const externalAccountId = await getExternalAccountId(accountId)
-
-      // Get products from Stripe
-      const productsResponse = await StripeService.getProducts(externalAccountId)
-
-      // Extract products array from Stripe response (which has a 'data' property)
-      const products = productsResponse.data || productsResponse
-
-      // Format offerings for GraphQL response
-      const formattedOfferings = products.map(product => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        defaultPriceId: product.default_price,
-        images: product.images,
-        active: product.active
-      }))
+      // Fetch offerings from database for this group
+      // Return Bookshelf model instances so GraphQL can use the getters defined in makeModels.js
+      const products = await StripeProduct.where({ group_id: groupId }).fetchAll()
 
       return {
-        offerings: formattedOfferings,
+        offerings: products.models,
         success: true
       }
     } catch (error) {

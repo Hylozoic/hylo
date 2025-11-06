@@ -120,19 +120,12 @@ export function fetchAccountStatus (groupId, accountId) {
  * Offerings represent subscription tiers, content access, or other offerings
  * that the group wants to sell.
  */
-export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd') {
+export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd', contentAccess = null, duration = null, publishStatus = 'unpublished') {
   return {
     type: CREATE_OFFERING,
     graphql: {
-      query: `mutation ($groupId: ID!, $accountId: String!, $name: String!, $description: String, $priceInCents: Int!, $currency: String) {
-        createStripeOffering(
-          groupId: $groupId
-          accountId: $accountId
-          name: $name
-          description: $description
-          priceInCents: $priceInCents
-          currency: $currency
-        ) {
+      query: `mutation ($input: StripeOfferingInput!) {
+        createStripeOffering(input: $input) {
           productId
           priceId
           name
@@ -141,12 +134,17 @@ export function createOffering (groupId, accountId, name, description, priceInCe
         }
       }`,
       variables: {
-        groupId,
-        accountId,
-        name,
-        description,
-        priceInCents,
-        currency
+        input: {
+          groupId,
+          accountId,
+          name,
+          description,
+          priceInCents,
+          currency,
+          contentAccess,
+          duration,
+          publishStatus
+        }
       }
     }
   }
@@ -196,9 +194,13 @@ export function fetchOfferings (groupId, accountId) {
             id
             name
             description
-            defaultPriceId
-            images
-            active
+            priceInCents
+            currency
+            stripeProductId
+            stripePriceId
+            contentAccess
+            publishStatus
+            duration
           }
           success
         }
