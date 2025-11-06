@@ -21,7 +21,7 @@ import fetchTopicFollow from 'store/actions/fetchTopicFollow'
  * @param {boolean} options.enabled - Whether prefetching is enabled (default: true)
  * @returns {Function} handlePrefetch - Function to call on mouseEnter
  */
-export default function usePrefetchChatRoom({ groupId, topicName, enabled = true }) {
+export default function usePrefetchChatRoom ({ groupId, topicName, enabled = true }) {
   const dispatch = useDispatch()
   const prefetchTimerRef = useRef(null)
 

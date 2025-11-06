@@ -353,7 +353,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
                 <Route path='post/:postId/create/*' element={<CreateModal context='all' />} />
                 <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
-            </Routes>
+              </Routes>
             </Suspense>
 
             <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
@@ -448,39 +448,39 @@ export default function AuthLayoutRouter (props) {
                   <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                   {/* **** Default Route (404) **** */}
                   <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
-                  </Routes>
+                </Routes>
               </Suspense>
             </div>
 
             <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Suspense fallback={<Loading />}>
-                  <Routes>
-                  {/* All context routes */}
-                  <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                  <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                  <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
+                    <Routes>
+                    {/* All context routes */}
+                    <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                    <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                    <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
 
-                  {/* Public context routes */}
-                  <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                  <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                  <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
-                  <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                    {/* Public context routes */}
+                    <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                    <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                    <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                    <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
 
-                  {/* My context routes */}
-                  {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                  <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                  <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                  <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
+                    {/* My context routes */}
+                    {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                    <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                    <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                    <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
-                  {/* Groups context routes */}
-                  <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-                  <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                  <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                  <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                  <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                    {/* Groups context routes */}
+                    <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                    <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                    <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                    <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                    <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
-                  {/* Other routes */}
-                  <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
+                    {/* Other routes */}
+                    <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
               </Routes>
               </Suspense>
             </div>
