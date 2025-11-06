@@ -142,7 +142,8 @@ function PostEditor ({
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const topicName = customTopicName || routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
@@ -946,7 +947,7 @@ function PostEditor ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: customTopicName ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}

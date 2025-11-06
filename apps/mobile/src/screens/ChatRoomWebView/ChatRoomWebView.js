@@ -20,9 +20,9 @@ export default function ChatRoomWebView () {
   const path = `/groups/${currentGroup.slug}/chat/${topicName}`
 
   return (
-    <KeyboardFriendlyView 
+    <KeyboardFriendlyView
       style={{ flex: 1 }}
-      keyboardVerticalOffset={insets.bottom + 80}
+      keyboardVerticalOffset={insets.bottom}
     >
       <HyloWebView path={path} />
     </KeyboardFriendlyView>

@@ -50,10 +50,12 @@ export default function PostBody ({
           />
         )}
       </View>
-      <HyloHTML
-        html={isFlagged ? '<p>' + t('Contents obscured') + '</p>' : presentedDetails}
-        baseStyle={{ marginBottom: 8 }}
-      />
+      {type !== 'submission' && (
+        <HyloHTML
+          html={isFlagged ? '<p>' + t('Contents obscured') + '</p>' : presentedDetails}
+          baseStyle={{ marginBottom: 8 }}
+        />
+      )}
       {/* {!linkPreviewFeatured && ( */}
       {type === 'proposal' && <PostBodyProposal {...post} currentUser={currentUser} isFlagged={isFlagged} />}
       <LinkPreview {...linkPreview} />

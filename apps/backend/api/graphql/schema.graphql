@@ -2172,6 +2172,8 @@ type Post {
   followersTotal: Int
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
+  # The funding round this post is associated with
+  fundingRound: FundingRound
   # Number of groups this has been posted to
   groupsTotal: Int
   # Whether who votes on this proposal is visible or not
