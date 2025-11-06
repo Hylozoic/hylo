@@ -20,16 +20,21 @@ const PublicPostDetail = React.lazy(() => import('routes/PublicLayoutRouter/Publ
 export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
-  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  // This should be the only place we check for a session from the API.
-  // Routes will not be available until this check is complete.
+  // Optimistic auth: use cached state for instant render, revalidate in background
+  const cachedAuth = localStorage.getItem('hylo-auth-state')
+  const [loading, setLoading] = useState(cachedAuth === null) // Only show loading if no cache
+  const [authChecked, setAuthChecked] = useState(false)
+
+  // Background auth check - doesn't block rendering if we have cached state
   useEffect(() => {
     (async function () {
-      setLoading(true)
       await dispatch(checkLogin())
+      setAuthChecked(true)
       setLoading(false)
+      // Cache the auth state for next load
+      localStorage.setItem('hylo-auth-state', isAuthorized ? '1' : '0')
     }())
 
     // For navigation to work from notifactions in the electron app
@@ -50,13 +55,30 @@ export default function RootRouter () {
     }
   }, [])
 
+  // Handle auth state mismatch: if cached state was wrong, redirect appropriately
+  useEffect(() => {
+    if (authChecked && cachedAuth !== null) {
+      const wasAuthorized = cachedAuth === '1'
+      const isCurrentlyAuthorized = isAuthorized
+
+      // If user was logged out but cache said they were logged in, refresh to login
+      if (wasAuthorized && !isCurrentlyAuthorized) {
+        window.location.href = '/login'
+      }
+    }
+  }, [authChecked, isAuthorized, cachedAuth])
+
+  // If we have no cached auth and haven't checked yet, show loading
   if (loading) {
     return (
       <Loading type='fullscreen' />
     )
   }
 
-  if (isAuthorized) {
+  // Use isAuthorized from Redux if auth check complete, otherwise use cached state
+  const shouldShowAuthLayout = authChecked ? isAuthorized : (cachedAuth === '1')
+
+  if (shouldShowAuthLayout) {
     return (
       <Suspense fallback={<Loading type='fullscreen' />}>
         <Routes>
@@ -67,7 +89,9 @@ export default function RootRouter () {
       </Suspense>
     )
   }
-  if (!isAuthorized) {
+
+  // Not authorized - show public routes
+  if (!shouldShowAuthLayout) {
     return (
       <Suspense fallback={<Loading type='fullscreen' />}>
         <Routes>
