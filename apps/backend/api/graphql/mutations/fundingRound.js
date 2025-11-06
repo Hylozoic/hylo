@@ -24,6 +24,8 @@ export async function createFundingRound (userId, data) {
   // Required fields
   if (!attrs.title) throw new GraphQLError('title is required')
   if (!attrs.group_id) throw new GraphQLError('groupId is required')
+  if (!attrs.voting_method) throw new GraphQLError('votingMethod is required')
+  if (!attrs.total_tokens) throw new GraphQLError('totalTokens is required')
 
   const group = await Group.find(attrs.group_id)
   if (!group) throw new GraphQLError('Invalid group')

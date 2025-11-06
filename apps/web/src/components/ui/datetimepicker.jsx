@@ -472,6 +472,15 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
   onMonthChange ||= onChange
+
+  // Sync internal state when value prop changes externally (e.g., when cleared)
+  React.useEffect(() => {
+    setDisplayDate(value ?? undefined)
+    if (value) {
+      setMonth(value)
+    }
+  }, [value])
+
   /**
    * carry over the current time when a user clicks a new day
    * instead of resetting to 00:00

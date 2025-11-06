@@ -1129,7 +1129,6 @@ module.exports = bookshelf.Model.extend({
         break
     }
 
-    console.log('transition data', data)
     return Email.sendFundingRoundPhaseTransitionEmail({
       email: reader.get('email'),
       locale,

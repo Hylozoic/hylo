@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.0] - 2025-11-04
+
+### Added
+- New feature: Funding Rounds! Group stewards can now create funding rounds that allows members to submit project proposals and vote on them to decide how to allocate funding. Funding rounds can be created for any group, and are visible to all members of the group. You can control who can submit proposals and vote by role.
+- External links in context menu show icon indicating they go to external webpage
+
+### Changed
+- Strip out pasted in images in post editor, because we don't support them yet and they were breaking post saving.
+
 ## [6.1.23] - 2025-10-13
 
 ### Added
