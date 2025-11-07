@@ -352,9 +352,6 @@ module.exports = bookshelf.Model.extend({
     if (!round) {
       throw new GraphQLError('Funding Round not found')
     }
-    if (!round.get('published_at')) {
-      throw new GraphQLError('Funding Round is not published')
-    }
     let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
     if (!roundUser) {
       roundUser = await FundingRoundUser.create({ funding_round_id: roundId, user_id: userId }, { transacting })
