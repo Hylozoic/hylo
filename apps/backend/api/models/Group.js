@@ -1181,7 +1181,7 @@ module.exports = bookshelf.Model.extend(merge({
         if (post) {
           // Check if it is time to display the stream widget
           const streamWidget = widgets.find(w => w.get('view') === 'stream')
-          if (streamWidget && !streamWidget.get('order')) {
+          if (streamWidget && !streamWidget.get('order') && !streamWidget.get('auto_added')) {
             // If there are more than 3 non chat posts, then that stream is flowing
             const groupPostCount = await Group.postCount(groupId, false)
             if (groupPostCount > 3) {
