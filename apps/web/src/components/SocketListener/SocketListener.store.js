@@ -117,7 +117,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         const group = Group.withId(groupId)
         const contextWidgets = group.contextWidgets.items
         const newContextWidgets = contextWidgets.map(cw => {
-          if (cw.type === 'chat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
+          if (cw.type === 'viewChat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
             return { ...cw, highlightNumber: cw.highlightNumber + 1 }
           }
           return cw

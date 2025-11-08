@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.1] - 2025-11-07
+
+### Fixed
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Fix bug creating funding round drafts
+
 ## [6.2.0] - 2025-11-04
 
 ### Added
