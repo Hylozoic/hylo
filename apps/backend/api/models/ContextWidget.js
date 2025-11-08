@@ -47,6 +47,17 @@ module.exports = bookshelf.Model.extend({
     return 0
   },
 
+  isSystemWidget () {
+    return !this.get('view_group_id') &&
+      !this.get('view_post_id') &&
+      !this.get('custom_view_id') &&
+      !this.get('view_user_id') &&
+      !this.get('view_chat_id') &&
+      !this.get('view_track_id') &&
+      !this.get('view_funding_round_id') &&
+      this.get('type') !== 'container'
+  },
+
   secondaryNumber () {
     // TODO CONTEXT: these will need to determine a useful number based on the entity the widget is linked to
     return 0
