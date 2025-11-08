@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [6.2.1] - 2025-11-07
 
+### Changed
+- A number of fixes to try and address memory leaks:
+- Redis: Added cleanup handlers for Redis clients on process exit.
+  - Clients are now properly closed on SIGTERM, SIGINT, and exit.
+  - Uses connection pool with unique keys ('pubsub-publish', 'pubsub-subscribe')
+  - Implemented connection pooling to reuse connections
+  - Connections are tracked and cleaned up on process exit
+  - Dead connections are automatically removed from pool
+  - Added connection health checks
+- Websockets: Added cleanup handlers for socket.io-emitter Redis connection. Connection is properly closed on process exit. Cleanup handlers registered to prevent leaks
+- QueryMonitor: Added periodic cleanup (every 10 seconds) to remove stale queries. Maximum query age limit (30 seconds). Maximum queries tracked (1000) with automatic cleanup of oldest. Cleanup interval properly cleaned up on process exit
+- worker.js: Added uncaught exception handler to ensure queue cleanup. Added unhandled rejection logging
+- GraphQL Subscriptions:
+  - Added proper cleanup for async iterators in `allUpdates` subscription
+  - Iterators are now properly closed using `return()` method when subscription ends
+  - Added try/finally blocks to ensure cleanup even if errors occur
+  - Promises array is cleared on cleanup
+  - All 5 subscription iterators are properly closed when client disconnects
+  - Added development logging for cleanup tracking
+
 ### Fixed
 - Bug where Stream would get re-added to context menu after being removed when a post is created
 - Fix bug that was not resetting the new notifications count when you click on the activity bell
