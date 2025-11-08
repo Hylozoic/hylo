@@ -65,7 +65,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <GlobalNavItem
-        badgeCount={group.newPostCount || 0}
+        badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
         tooltip={group.name}
         url={`/groups/${group.slug}`}
@@ -285,7 +285,7 @@ export default function GlobalNav (props) {
           showTooltip={isContainerHovered}
         />
 
-        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} badgeCount={currentUser?.newNotificationCount} /></GlobalNavItem>}>
+        <Suspense fallback={<GlobalNavItem className={isVisible(1)} showTooltip={isContainerHovered}><BadgedIcon name='Notifications' className={styles.icon} /></GlobalNavItem>}>
           <NotificationsDropdown renderToggleChildren={showBadge =>
             <GlobalNavItem
               tooltip={t('Activity')}
