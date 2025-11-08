@@ -134,7 +134,7 @@ module.exports = bookshelf.Model.extend(merge({
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending  }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRelationshipInvitesTo () {
@@ -192,7 +192,7 @@ module.exports = bookshelf.Model.extend(merge({
     }).fetch()
   },
 
-  isHidden() {
+  isHidden () {
     return this.get('visibility') === Group.Visibility.HIDDEN
   },
 

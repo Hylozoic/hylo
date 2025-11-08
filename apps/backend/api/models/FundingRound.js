@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag, Responsibility, Activity */
+/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
 import { GraphQLError } from 'graphql'
 import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
 
