@@ -91,7 +91,20 @@ export default function PostBigGridItem ({
   if (!post.creator) return null
 
   return (
-    <div className={cn('w-full h-[400px] bg-card/50 hover:bg-card/100 transition-all rounded-lg shadow-lg relative p-2', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType], classes[detailClass], classes[post.type])} onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}>
+    <div
+      className={cn(
+        'w-full h-[400px] bg-card/50 hover:bg-card/100 transition-all rounded-lg shadow-lg relative p-2',
+        {
+          [classes.unread]: unread,
+          [classes.expanded]: expanded,
+          'opacity-60': post.fulfilledAt
+        },
+        classes[attachmentType],
+        classes[detailClass],
+        classes[post.type]
+      )}
+      onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}
+    >
       <div className={classes.contentSummary} ref={contentSummaryRef}>
         {childPost && (
           <div
@@ -116,7 +129,10 @@ export default function PostBigGridItem ({
             </div>
           )}
           <h3 className='font-bold text-foreground mb-0 mt-0 w-full' onClick={showDetailsTargeted}>
-            <span className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</span>
+            <span className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+              {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
+              {title}
+            </span>
             <div className='w-full flex items-center justify-between' onClick={() => viewPostDetails(post)}>
               <div className='text-foreground/60 text-xs font-normal flex items-center gap-1'>
                 <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />

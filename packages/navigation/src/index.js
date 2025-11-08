@@ -291,7 +291,7 @@ export function setQuerystringParam (key, value, location) {
 
 export function stringifyParams (paramsObj) {
   // The weird query needed to ignore empty arrays but allow for boolean values and numbers
-  const filtered = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), paramsObj)
+  const filtered = omitBy(x => isEmpty(x) && x !== true && x !== false && !isNumber(x), paramsObj)
   const params = new URLSearchParams()
   Object.entries(filtered).forEach(([key, value]) => {
     if (Array.isArray(value)) {
