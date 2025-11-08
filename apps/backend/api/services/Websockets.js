@@ -12,6 +12,35 @@ const validMessageTypes = [
 ]
 
 var io
+let cleanupRegistered = false
+
+function registerCleanup () {
+  if (cleanupRegistered || process.env.NODE_ENV === 'test') {
+    return
+  }
+
+  cleanupRegistered = true
+
+  const cleanup = () => {
+    if (io && io.redis) {
+      // Close Redis connection
+      if (typeof io.redis.quit === 'function') {
+        io.redis.quit().catch(err => {
+          if (sails && sails.log) {
+            sails.log.error('Error closing socket.io-emitter Redis connection:', err)
+          }
+        })
+      } else if (typeof io.redis.disconnect === 'function') {
+        io.redis.disconnect()
+      }
+      io = null
+    }
+  }
+
+  process.on('SIGTERM', cleanup)
+  process.on('SIGINT', cleanup)
+  process.on('exit', cleanup)
+}
 
 export function broadcast (room, messageType, payload, socketToExclude) {
   if (sails.sockets) {
@@ -22,6 +51,7 @@ export function broadcast (room, messageType, payload, socketToExclude) {
       io.redis.on('error', err => {
         rollbar.error(err, null, {room, messageType, payload})
       })
+      registerCleanup()
     }
     io.in(room).emit(messageType, payload) // TODO handle socketToExclude
   }

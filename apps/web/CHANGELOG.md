@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.1] - 2025-11-07
+
+### Changed
+- Sort funding round submissions by most recent at the top
+- Use option-enter to submit comments instead of enter
+- Faster loading of chat rooms that have already been loaded
+- Activity bell shows blank orange dot insyead of ! which was kind of stressful
+- Group icons show blank orange dots for notifications instead of numbers which were not very accurate or helpful
+- When Hylo tab becomes visible again check for new notifications
+
+### Fixed
+- Creating track actions
+- Bug saving a draft of a funding round
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix datetime picker from closing when changing anything in funding round editor
+- Reset chat room new post count when at the latest post but orange dot still showing new posts
+- When a post is deleted decrement the new post count (orange dot) of associated chat rooms that have not seen the post yet
+- Comment form doesn't overlap comments above it anymore as it grows
+- Fix duplicate post issue that could happen when switching between chat rooms
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Correctly update orange dot on chat room when new post is received
+- Fix/improve UI for creating new messages on web mobile
+- Fix bug that would briefly show an orange dot on a DM thread after you posted a new message
+
 ## [6.2.0] - 2025-11-04
 
 ### Added

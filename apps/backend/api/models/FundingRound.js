@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag, Responsibility, Activity */
+/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
 import { GraphQLError } from 'graphql'
 import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
 
@@ -351,9 +351,6 @@ module.exports = bookshelf.Model.extend({
 
     if (!round) {
       throw new GraphQLError('Funding Round not found')
-    }
-    if (!round.get('published_at')) {
-      throw new GraphQLError('Funding Round is not published')
     }
     let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
     if (!roundUser) {
