@@ -25,8 +25,13 @@ export default async function createComment (commenterId, opts = {}) {
 
   return bookshelf.transaction(async (trx) => {
     const comment = await new Comment(attrs).save(null, { transacting: trx })
-    const postUser = await PostUser.find(post.id, commenterId, { transacting: trx })
-    await postUser.updateAndSave({ last_read_at: new Date() }, { transacting: trx }) // So it doesn't show a new message in a message thread for the person adding the message
+    if (isThread) {
+      const postUser = await PostUser.find(post.id, commenterId, { transacting: trx })
+      if (postUser) {
+        // So it doesn't show a new message in a message thread for the person adding the message
+        await postUser.updateAndSave({ last_read_at: new Date() }, { transacting: trx })
+      }
+    }
     await createMedia(comment, opts, trx)
     return comment
   }).then(async (comment) => {
