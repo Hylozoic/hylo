@@ -1,4 +1,4 @@
-import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
+import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes, Trash } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -14,7 +14,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { RESP_ADMINISTRATION } from 'store/constants'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMyGroups from 'store/selectors/getMyGroups'
-import { createContextWidget, setHomeWidget, updateContextWidget } from 'store/actions/contextWidgets'
+import { createContextWidget, deleteContextWidget, setHomeWidget, updateContextWidget } from 'store/actions/contextWidgets'
 import findTopics from 'store/actions/findTopics'
 import fetchPeople from 'store/actions/fetchPeople'
 import {
@@ -109,6 +109,15 @@ export default function AllViews () {
     }))
   }, [updateContextWidget])
 
+  const handleDeleteWidget = useCallback((widget) => {
+    if (confirm('Are you sure you want to delete this view?')) {
+      dispatch(deleteContextWidget({
+        contextWidgetId: widget.id,
+        groupId: group.id
+      }))
+    }
+  }, [deleteContextWidget])
+
   // Filter and sort widgets and get them ready for display
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
@@ -137,15 +146,20 @@ export default function AllViews () {
             <span className='ml-2'>{widget.title}</span>
           </h3>
           {isEditing && widget.isEditable && (
-            <span
-              className='text-sm inline-block text-foreground'
-              onClick={(evt) => {
-                evt.stopPropagation()
-                handleEditWidget(widget)
-              }}
-            >
-              <Pencil />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleEditWidget(widget)
+                  }}
+                >
+                  <Pencil />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side='bottom'>{t('Edit View')}</TooltipContent>
+            </Tooltip>
           )}
           {isEditing && widget.isValidHomeWidget && (
             <Tooltip>
@@ -160,7 +174,7 @@ export default function AllViews () {
                   <House />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{t('Set as Home View')}</TooltipContent>
+              <TooltipContent side='bottom'>{t('Set as Home View')}</TooltipContent>
             </Tooltip>
           )}
 
@@ -171,9 +185,25 @@ export default function AllViews () {
                   <Plus />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{t('Add to Group Menu')}</TooltipContent>
+              <TooltipContent side='bottom'>{t('Add to Group Menu')}</TooltipContent>
             </Tooltip>
+          )}
 
+          {isEditing && widget.isDeletable && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleDeleteWidget(widget)
+                  }}
+                >
+                  <Trash />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side='bottom'>{t('Delete View')}</TooltipContent>
+            </Tooltip>
           )}
         </div>
       )

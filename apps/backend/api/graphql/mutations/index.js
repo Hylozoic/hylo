@@ -22,6 +22,7 @@ export {
 } from './comment'
 export {
   createContextWidget,
+  deleteContextWidget,
   updateContextWidget,
   removeWidgetFromMenu,
   reorderContextWidget,
