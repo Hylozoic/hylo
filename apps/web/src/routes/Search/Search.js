@@ -1,9 +1,9 @@
 import { get, intersection, debounce } from 'lodash/fp'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
-import { useLocation } from 'react-router-dom'
+import { useLocation, Routes, Route } from 'react-router-dom'
 import TextInput from 'components/TextInput'
 import Icon from 'components/Icon'
 import ScrollListener from 'components/ScrollListener'
@@ -13,6 +13,7 @@ import RoundImage from 'components/RoundImage'
 import Highlight from 'components/Highlight'
 import Loading from 'components/Loading'
 import Pill from 'components/Pill'
+import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import {
   fetchSearchResults,
@@ -22,6 +23,7 @@ import {
 } from './Search.store'
 import { personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
@@ -33,9 +35,12 @@ export default function Search (props) {
   const location = useLocation()
   const { t } = useTranslation()
   const searchFromQueryString = getQuerystringParam('t', location) || ''
+  const groupSlug = getQuerystringParam('groupSlug', location) || ''
+  const group = useSelector(state => groupSlug && getGroupForSlug(state, groupSlug))
+  const groupIds = useMemo(() => group ? [group.id] : null, [group.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
   const [filter, setFilter] = useState('all')
-  const queryResultProps = { search: searchForInput, type: filter }
+  const queryResultProps = { search: searchForInput, type: filter, groupIds }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
@@ -58,26 +63,30 @@ export default function Search (props) {
   )
 
   const fetchSearchResultsAction = useCallback(() => {
-    return fetchSearchResultsDebounced({ search: searchForInput, filter })
-  }, [fetchSearchResultsDebounced, searchForInput, filter])
+    return fetchSearchResultsDebounced({ search: searchForInput, filter, groupIds })
+  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds])
 
   const fetchMoreSearchResults = useCallback(() => hasMore
-    ? fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length })
+    ? fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length, groupIds })
     : () => {},
-  [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length])
+  [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length, groupIds])
 
   useEffect(() => {
     fetchSearchResultsAction()
-  }, [searchForInput, filter])
+  }, [searchForInput, filter, groupIds])
+
+  const handleClearGroup = useCallback(() => {
+    dispatch(changeQuerystringParam(location, 'groupSlug', null, null, false))
+  })
 
   // Create a component that will auto-focus itself when mounted
   const SearchInput = React.useCallback(() => {
     return (
       <div className='w-full flex justify-center relative'>
         <div className='relative flex items-center'>
-          <Icon name='Search' className='left-2 absolute opacity-50' />
+          <Icon name='Search' className='left-2 absolute opacity-50 z-50' />
           <TextInput
-            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[360px] max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
+            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[375px] max-w-[750px] bg-black/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
             value={searchForInput}
             placeholder={t('Search for people, posts and comments')}
@@ -99,25 +108,37 @@ export default function Search (props) {
     setHeaderDetails({
       title: <SearchInput />,
       centered: true,
-      backButton: true,
+      backButton: true, // TODO: mavigate back 1 doesnt work with postdialog, how to remember what to go back to?
       icon: undefined,
       search: false
     })
   }, [SearchInput])
 
   return (
-    <div className='w-full flex flex-col gap-2 m-2 max-w-[750px] mx-auto'>
-      <TabBar setSearchFilter={setFilter} filter={filter} />
-      <div className='w-full'>
-        {searchResults.map(sr =>
-          <SearchResult
-            key={sr.id}
-            searchResult={sr}
-            term={searchForInput}
-            showPerson={showPerson}
-          />)}
-        {pending && <Loading type='bottom' />}
-        <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={CENTER_COLUMN_ID} />
+    <div className='w-full m-2'>
+      <div className='w-full max-w-[750px] mx-auto flex flex-col gap-2 relative'>
+        {group && (
+          <span className='flex fit-content align-center items-center px-2 py-1 rounded-md bg-selected/40 border-2 border-selected'>
+            <span className='flex-1'>Searching in group {group.name}</span>
+            <Icon name='Ex' className='inline-block cursor-pointer pl-2' onClick={handleClearGroup} />
+          </span>
+        )}
+        <TabBar setSearchFilter={setFilter} filter={filter} />
+        <div className='w-full'>
+          {searchResults.map(sr =>
+            <SearchResult
+              key={sr.id}
+              searchResult={sr}
+              term={searchForInput}
+              showPerson={showPerson}
+            />)}
+          {pending && <Loading type='bottom' />}
+          <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={CENTER_COLUMN_ID} />
+        </div>
+
+        <Routes>
+          <Route path='post/:postId' element={<PostDialog />} />
+        </Routes>
       </div>
     </div>
   )
