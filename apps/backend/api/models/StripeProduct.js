@@ -33,14 +33,14 @@ module.exports = bookshelf.Model.extend({
   /**
    * Create a new Stripe product record
    * @param {Object} attrs - Product attributes (stripe_product_id, stripe_price_id, name, price_in_cents, etc.)
-   * @param {Object} attrs.content_access - JSONB object defining what access this product grants
+   * @param {Object} attrs.access_grants - JSONB object defining what access this product grants
    * @param {Object} options - Options including transacting
    * @returns {Promise<StripeProduct>}
    */
   create: async function (attrs, { transacting } = {}) {
     // Set default values if not provided
     const defaults = {
-      content_access: {},
+      access_grants: {},
       renewal_policy: 'manual',
       duration: null,
       publish_status: 'unpublished'
@@ -95,7 +95,7 @@ module.exports = bookshelf.Model.extend({
   /**
    * Generate content access records from product definition
    *
-   * Takes the content_access JSONB field and creates individual content_access records
+   * Takes the access_grants JSONB field and creates individual content_access table records
    * for each group/track/role combination defined in the product.
    *
    * @param {Object} params
@@ -114,7 +114,7 @@ module.exports = bookshelf.Model.extend({
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
-    const contentAccess = this.get('content_access') || {}
+    const accessGrants = this.get('access_grants') || {}
     const grantedByGroupId = this.get('group_id') // The group that owns/sells this product
     const productId = this.get('id')
     const duration = this.get('duration')
@@ -123,8 +123,8 @@ module.exports = bookshelf.Model.extend({
     // Calculate expiration date if not provided
     const calculatedExpiresAt = expiresAt || this.calculateExpirationDate(duration)
 
-    // If content_access is empty, grant basic group access
-    if (Object.keys(contentAccess).length === 0) {
+    // If access_grants is empty, grant basic group access
+    if (Object.keys(accessGrants).length === 0) {
       const record = await ContentAccess.recordPurchase({
         userId,
         grantedByGroupId,
@@ -138,8 +138,8 @@ module.exports = bookshelf.Model.extend({
       return accessRecords
     }
 
-    // Process each group in the content_access definition
-    for (const [groupIdStr, groupAccess] of Object.entries(contentAccess)) {
+    // Process each group in the access_grants definition
+    for (const [groupIdStr, groupAccess] of Object.entries(accessGrants)) {
       const groupIdNum = parseInt(groupIdStr, 10)
 
       // Create base group access record

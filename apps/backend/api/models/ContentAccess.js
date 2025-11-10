@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+const { createTrackScope, createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
 
 module.exports = bookshelf.Model.extend({
   tableName: 'content_access',
@@ -73,6 +74,28 @@ module.exports = bookshelf.Model.extend({
    */
   isActive: function () {
     return this.get('status') === 'active' && !this.isExpired()
+  },
+
+  /**
+   * Get the scope string that this content access grants
+   * Note: Each content_access record grants exactly ONE scope - either a track, role, or group scope
+   * @returns {String|null} Single scope string (e.g., 'group:123', 'track:456', 'group_role:789')
+   */
+  getScope: function () {
+    const trackId = this.get('track_id')
+    const roleId = this.get('role_id')
+    const groupId = this.get('group_id')
+
+    // Each content_access record should only have one of these set
+    if (trackId) {
+      return createTrackScope(trackId)
+    } else if (roleId) {
+      return createGroupRoleScope(roleId)
+    } else if (groupId) {
+      return createGroupScope(groupId)
+    }
+
+    return null
   }
 
 }, {
@@ -91,8 +114,8 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Create a new content access record
-   * Note: The database triggers will automatically update related tables
-   * (group_memberships, tracks_users, group_memberships_group_roles)
+   * Note: The database triggers will automatically update the user_scopes table
+   * to materialize the access as scopes for the user.
    *
    * @param {Object} attrs - Access attributes
    * @param {String|Number} attrs.user_id - User receiving access
@@ -216,7 +239,8 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Revoke access (changes status to revoked)
-   * Note: Database triggers will automatically clear expires_at in related tables
+   * Note: Database triggers will automatically remove the corresponding scopes
+   * from the user_scopes table.
    *
    * @param {String|Number} accessId - The access record ID
    * @param {String|Number} revokedById - Admin who revoked the access
@@ -298,5 +322,46 @@ module.exports = bookshelf.Model.extend({
    */
   forStripeSession: function (sessionId) {
     return this.where({ stripe_session_id: sessionId }).fetchAll()
+  },
+
+  /**
+   * Extend access expiration date (for subscription renewals)
+   * @param {String|Number} accessId - ID of content_access record to extend
+   * @param {Date} newExpiresAt - New expiration date
+   * @param {Object} [extraMetadata] - Additional metadata to merge
+   * @param {Object} options - Options including transacting
+   * @returns {Promise<ContentAccess>}
+   */
+  extendAccess: async function (accessId, newExpiresAt, extraMetadata = {}, { transacting } = {}) {
+    const access = await this.where({ id: accessId }).fetch({ transacting })
+    if (!access) {
+      throw new Error(`Content access record not found: ${accessId}`)
+    }
+
+    // Merge new metadata with existing
+    const existingMetadata = access.get('metadata') || {}
+    const updatedMetadata = {
+      ...existingMetadata,
+      ...extraMetadata,
+      last_renewed_at: new Date().toISOString()
+    }
+
+    // Update expiration date and metadata
+    // Note: The database trigger will handle updating user_scopes.expires_at
+    return access.save({
+      expires_at: newExpiresAt,
+      status: this.Status.ACTIVE,
+      metadata: updatedMetadata
+    }, { transacting })
+  },
+
+  /**
+   * Find content access records by Stripe payment intent ID
+   * @param {String} paymentIntentId - Stripe payment intent ID
+   * @param {Object} options - Options including transacting
+   * @returns {Promise<Collection<ContentAccess>>}
+   */
+  findByPaymentIntentId: async function (paymentIntentId, { transacting } = {}) {
+    return this.where({ stripe_payment_intent_id: paymentIntentId }).fetchAll({ transacting })
   }
 })

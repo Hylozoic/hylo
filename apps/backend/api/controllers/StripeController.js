@@ -142,6 +142,18 @@ module.exports = {
           await this.handleProductUpdated(event)
           break
 
+        case 'customer.subscription.updated':
+          await this.handleSubscriptionUpdated(event)
+          break
+
+        case 'customer.subscription.deleted':
+          await this.handleSubscriptionDeleted(event)
+          break
+
+        case 'charge.refunded':
+          await this.handleChargeRefunded(event)
+          break
+
         default:
           if (process.env.NODE_ENV === 'development') {
             console.log(`Unhandled event type: ${event.type}`)
@@ -433,6 +445,159 @@ module.exports = {
       }
     } catch (error) {
       console.error('Error handling product.updated:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle customer.subscription.updated webhook events
+   * Extends access when subscription renews
+   */
+  handleSubscriptionUpdated: async function (event) {
+    try {
+      const subscription = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription updated: ${subscription.id}`)
+      }
+
+      // Only handle active subscriptions
+      if (subscription.status !== 'active') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Subscription ${subscription.id} is not active (status: ${subscription.status}), skipping`)
+        }
+        return
+      }
+
+      // Find content access records associated with this subscription
+      // Note: We need to store subscription ID in metadata during initial purchase
+      const accessRecords = await ContentAccess.where('metadata', '@>', JSON.stringify({
+        stripe_subscription_id: subscription.id
+      })).fetchAll()
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscription.id}`)
+        }
+        return
+      }
+
+      // Calculate new expiration date from subscription's current period end
+      const newExpiresAt = new Date(subscription.current_period_end * 1000)
+
+      // Extend access for all associated records
+      await Promise.all(accessRecords.map(async (access) => {
+        await ContentAccess.extendAccess(
+          access.id,
+          newExpiresAt,
+          {
+            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            subscription_period_end: newExpiresAt.toISOString(),
+            renewed_via_webhook: true
+          }
+        )
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Extended ${accessRecords.length} access records for subscription ${subscription.id}`)
+      }
+    } catch (error) {
+      console.error('Error handling customer.subscription.updated:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle customer.subscription.deleted webhook events
+   * Expires access when subscription is canceled or ends
+   */
+  handleSubscriptionDeleted: async function (event) {
+    try {
+      const subscription = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription deleted: ${subscription.id}`)
+      }
+
+      // Find content access records associated with this subscription
+      const accessRecords = await ContentAccess.where('metadata', '@>', JSON.stringify({
+        stripe_subscription_id: subscription.id
+      })).fetchAll()
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscription.id}`)
+        }
+        return
+      }
+
+      // Update all associated records to expired status
+      await Promise.all(accessRecords.map(async (access) => {
+        const metadata = access.get('metadata') || {}
+        metadata.subscription_canceled_at = new Date().toISOString()
+        metadata.subscription_cancel_reason = subscription.cancellation_details?.reason || 'Subscription ended'
+
+        await access.save({
+          status: ContentAccess.Status.EXPIRED,
+          metadata
+        })
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Expired ${accessRecords.length} access records for deleted subscription ${subscription.id}`)
+      }
+    } catch (error) {
+      console.error('Error handling customer.subscription.deleted:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.refunded webhook events
+   * Revokes access when payment is refunded
+   */
+  handleChargeRefunded: async function (event) {
+    try {
+      const charge = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Charge refunded: ${charge.id}`)
+      }
+
+      // Find the payment intent to get the session ID
+      const paymentIntentId = charge.payment_intent
+      if (!paymentIntentId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No payment intent found for charge ${charge.id}`)
+        }
+        return
+      }
+
+      // Find content access records associated with this payment intent
+      const accessRecords = await ContentAccess.findByPaymentIntentId(paymentIntentId)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for payment intent ${paymentIntentId}`)
+        }
+        return
+      }
+
+      // Revoke all associated access records
+      await Promise.all(accessRecords.map(async (access) => {
+        const metadata = access.get('metadata') || {}
+        metadata.refunded_at = new Date().toISOString()
+        metadata.refund_amount = charge.amount_refunded
+        metadata.refund_reason = charge.refund?.reason || 'Payment refunded'
+
+        await access.save({
+          status: ContentAccess.Status.REVOKED,
+          metadata
+        })
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Revoked ${accessRecords.length} access records for refunded charge ${charge.id}`)
+      }
+    } catch (error) {
+      console.error('Error handling charge.refunded:', error)
       throw error
     }
   },

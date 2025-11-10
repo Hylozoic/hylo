@@ -233,7 +233,7 @@ module.exports = {
    *       description: "Access to all premium content"
    *       priceInCents: 2000
    *       currency: "usd"
-   *       contentAccess: {
+   *       accessGrants: {
    *         trackIds: [456, 789]
    *         roleIds: [1, 2]
    *         groupIds: [123]
@@ -253,7 +253,7 @@ module.exports = {
     description,
     priceInCents,
     currency,
-    contentAccess,
+    accessGrants,
     renewalPolicy,
     duration,
     publishStatus
@@ -291,7 +291,7 @@ module.exports = {
         description: product.description,
         price_in_cents: priceInCents,
         currency: currency || 'usd',
-        content_access: contentAccess || {},
+        access_grants: accessGrants || {},
         renewal_policy: renewalPolicy || 'manual',
         duration: duration || null,
         publish_status: publishStatus || 'unpublished'
@@ -327,7 +327,7 @@ module.exports = {
    *       name: "Updated Premium Membership"
    *       description: "Updated description"
    *       priceInCents: 2500
-   *       contentAccess: {
+   *       accessGrants: {
    *         trackIds: [456, 789]
    *         roleIds: [1, 2]
    *         groupIds: [123]
@@ -345,7 +345,7 @@ module.exports = {
     description,
     priceInCents,
     currency,
-    contentAccess,
+    accessGrants,
     renewalPolicy,
     duration,
     publishStatus
@@ -390,7 +390,7 @@ module.exports = {
       }
 
       // Fields that are platform-only (don't sync with Stripe)
-      if (contentAccess !== undefined) updateAttrs.content_access = contentAccess
+      if (accessGrants !== undefined) updateAttrs.access_grants = accessGrants
       if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
       if (duration !== undefined) updateAttrs.duration = duration
       if (publishStatus !== undefined) {

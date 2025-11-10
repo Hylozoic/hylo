@@ -1245,8 +1245,7 @@ CREATE TABLE public.group_memberships (
     new_post_count integer DEFAULT 0,
     group_data_type integer,
     project_role_id bigint,
-    nav_order integer,
-    expires_at timestamp with time zone
+    nav_order integer
 );
 
 
@@ -1293,8 +1292,7 @@ CREATE TABLE public.group_memberships_group_roles (
     group_role_id bigint NOT NULL,
     active boolean,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    expires_at timestamp with time zone
+    updated_at timestamp with time zone
 );
 
 
@@ -1617,8 +1615,16 @@ CREATE TABLE public.groups_roles (
     active boolean,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    description character varying(255)
+    description character varying(255),
+    scopes jsonb
 );
+
+
+--
+-- Name: COLUMN groups_roles.scopes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.groups_roles.scopes IS 'Array of scope strings that this role grants';
 
 
 --
@@ -3013,7 +3019,7 @@ CREATE TABLE public.stripe_products (
     price_in_cents integer NOT NULL,
     currency character varying(3) NOT NULL DEFAULT 'usd'::character varying,
     track_id bigint,
-    content_access jsonb DEFAULT '{}'::jsonb,
+    access_grants jsonb DEFAULT '{}'::jsonb,
     renewal_policy character varying(20) DEFAULT 'manual'::character varying,
     duration character varying(20),
     publish_status character varying(20) DEFAULT 'unpublished'::character varying,
@@ -3070,6 +3076,43 @@ CREATE TABLE public.content_access (
 --
 
 ALTER SEQUENCE public.content_access_id_seq OWNED BY public.content_access.id;
+
+
+--
+-- Name: user_scopes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_scopes (
+    user_id bigint NOT NULL,
+    scope character varying(255) NOT NULL,
+    expires_at timestamp with time zone,
+    source_kind character varying(255) NOT NULL,
+    source_id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT user_scopes_pkey PRIMARY KEY (user_id, scope)
+);
+
+
+--
+-- Name: COLUMN user_scopes.expires_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.expires_at IS 'Earliest ends_at among sources; null means never expires';
+
+
+--
+-- Name: COLUMN user_scopes.source_kind; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.source_kind IS 'Type of source: grant or role';
+
+
+--
+-- Name: COLUMN user_scopes.source_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.user_scopes.source_id IS 'ID of the content_access grant or group_memberships_group_roles record';
 
 
 --
@@ -3233,8 +3276,7 @@ CREATE TABLE public.tracks_users (
     enrolled_at timestamp with time zone,
     completed_at timestamp with time zone,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    access_granted boolean
+    updated_at timestamp with time zone
 );
 
 
@@ -5736,6 +5778,27 @@ CREATE INDEX content_access_status_index ON public.content_access USING btree (s
 
 
 --
+-- Name: user_scopes_user_id_scope_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_scopes_user_id_scope_index ON public.user_scopes USING btree (user_id, scope);
+
+
+--
+-- Name: user_scopes_expires_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_scopes_expires_at_index ON public.user_scopes USING btree (expires_at) WHERE (expires_at IS NOT NULL);
+
+
+--
+-- Name: user_scopes_source_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_scopes_source_index ON public.user_scopes USING btree (source_kind, source_id);
+
+
+--
 -- Name: stripe_products stripe_products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6848,6 +6911,14 @@ ALTER TABLE ONLY public.content_access
 
 
 --
+-- Name: user_scopes user_scopes_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_scopes
+    ADD CONSTRAINT user_scopes_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: group_join_questions_answers join_request_question_answers_join_request_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7384,127 +7455,191 @@ ALTER TABLE ONLY public.zapier_triggers
 
 
 --
--- Name: sync_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE OR REPLACE FUNCTION sync_content_access_expires_at()
+CREATE OR REPLACE FUNCTION compute_user_scopes_from_content_access()
 RETURNS TRIGGER AS $$
 DECLARE
-  latest_expires_at TIMESTAMP WITH TIME ZONE;
+  scope_string TEXT;
 BEGIN
-  IF NEW.track_id IS NOT NULL THEN
-    UPDATE tracks_users
-    SET access_granted = true, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+  -- Only process active content_access records
+  IF NEW.status = 'active' THEN
+    -- Determine the scope based on what the content_access grants
+    
+    -- Track access: scope format is 'track:<track_id>'
+    IF NEW.track_id IS NOT NULL THEN
+      scope_string := 'track:' || NEW.track_id;
+      
+      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+      ON CONFLICT (user_id, scope) 
+      DO UPDATE SET 
+        expires_at = CASE 
+          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+          ELSE user_scopes.expires_at
+        END,
+        updated_at = NOW();
+    END IF;
+    
+    -- Role access: scope format is 'group_role:<role_id>'
+    IF NEW.role_id IS NOT NULL THEN
+      scope_string := 'group_role:' || NEW.role_id;
+      
+      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+      ON CONFLICT (user_id, scope) 
+      DO UPDATE SET 
+        expires_at = CASE 
+          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+          ELSE user_scopes.expires_at
+        END,
+        updated_at = NOW();
+    END IF;
+    
+    -- Group access: scope format is 'group:<group_id>'
+    IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+      scope_string := 'group:' || NEW.granted_by_group_id;
+      
+      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+      ON CONFLICT (user_id, scope) 
+      DO UPDATE SET 
+        expires_at = CASE 
+          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+          ELSE user_scopes.expires_at
+        END,
+        updated_at = NOW();
+    END IF;
+  ELSE
+    -- If status is not active (revoked/expired), remove the scope
+    IF NEW.track_id IS NOT NULL THEN
+      scope_string := 'track:' || NEW.track_id;
+      DELETE FROM user_scopes 
+      WHERE user_id = NEW.user_id 
+        AND scope = scope_string 
+        AND source_kind = 'grant' 
+        AND source_id = NEW.id;
+    END IF;
+    
+    IF NEW.role_id IS NOT NULL THEN
+      scope_string := 'group_role:' || NEW.role_id;
+      DELETE FROM user_scopes 
+      WHERE user_id = NEW.user_id 
+        AND scope = scope_string 
+        AND source_kind = 'grant' 
+        AND source_id = NEW.id;
+    END IF;
+    
+    IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+      scope_string := 'group:' || NEW.granted_by_group_id;
+      DELETE FROM user_scopes 
+      WHERE user_id = NEW.user_id 
+        AND scope = scope_string 
+        AND source_kind = 'grant' 
+        AND source_id = NEW.id;
+    END IF;
   END IF;
-
-  IF NEW.role_id IS NOT NULL THEN
-    SELECT MAX(expires_at) INTO latest_expires_at
-    FROM content_access
-    WHERE user_id = NEW.user_id
-      AND role_id = NEW.role_id
-      AND granted_by_group_id = NEW.granted_by_group_id
-      AND status = 'active';
-    UPDATE group_memberships_group_roles
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND group_id = NEW.granted_by_group_id
-      AND group_role_id = NEW.role_id;
-    UPDATE group_memberships
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
-  END IF;
-
-  IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
-    SELECT MAX(expires_at) INTO latest_expires_at
-    FROM content_access
-    WHERE user_id = NEW.user_id
-      AND granted_by_group_id = NEW.granted_by_group_id
-      AND track_id IS NULL
-      AND role_id IS NULL
-      AND status = 'active';
-    UPDATE group_memberships
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
-  END IF;
-
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 
 --
--- Name: clear_content_access_expires_at(); Type: FUNCTION; Schema: public; Owner: -
+-- Name: compute_user_scopes_from_role(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE OR REPLACE FUNCTION clear_content_access_expires_at()
+CREATE OR REPLACE FUNCTION compute_user_scopes_from_role()
 RETURNS TRIGGER AS $$
 DECLARE
-  latest_expires_at TIMESTAMP WITH TIME ZONE;
+  role_scopes JSONB;
+  scope_string TEXT;
 BEGIN
-  IF NEW.track_id IS NOT NULL THEN
-    UPDATE tracks_users
-    SET access_granted = false, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND track_id = NEW.track_id;
+  -- Only process active role assignments
+  IF NEW.active = true THEN
+    -- Fetch the scopes array from the groups_roles table
+    SELECT scopes INTO role_scopes
+    FROM groups_roles
+    WHERE id = NEW.group_role_id;
+    
+    -- If the role has scopes defined, insert them into user_scopes
+    IF role_scopes IS NOT NULL THEN
+      -- Iterate over each scope in the JSONB array
+      FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
+      LOOP
+        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+        VALUES (NEW.user_id, scope_string, NULL, 'role', NEW.id, NOW(), NOW())
+        ON CONFLICT (user_id, scope) 
+        DO UPDATE SET 
+          updated_at = NOW();
+      END LOOP;
+    END IF;
+  ELSE
+    -- If role assignment is not active, remove the scopes
+    -- We need to get the scopes from the role again to know what to delete
+    SELECT scopes INTO role_scopes
+    FROM groups_roles
+    WHERE id = NEW.group_role_id;
+    
+    IF role_scopes IS NOT NULL THEN
+      FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
+      LOOP
+        DELETE FROM user_scopes 
+        WHERE user_id = NEW.user_id 
+          AND scope = scope_string 
+          AND source_kind = 'role' 
+          AND source_id = NEW.id;
+      END LOOP;
+    END IF;
   END IF;
-
-  IF NEW.role_id IS NOT NULL THEN
-    SELECT MAX(expires_at) INTO latest_expires_at
-    FROM content_access
-    WHERE user_id = NEW.user_id
-      AND role_id = NEW.role_id
-      AND granted_by_group_id = NEW.granted_by_group_id
-      AND status = 'active'
-      AND id != NEW.id;
-    UPDATE group_memberships_group_roles
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id
-      AND group_id = NEW.granted_by_group_id
-      AND group_role_id = NEW.role_id;
-    UPDATE group_memberships
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
-  END IF;
-
-  IF NEW.track_id IS NULL AND NEW.role_id IS NULL THEN
-    SELECT MAX(expires_at) INTO latest_expires_at
-    FROM content_access
-    WHERE user_id = NEW.user_id
-      AND granted_by_group_id = NEW.granted_by_group_id
-      AND track_id IS NULL
-      AND role_id IS NULL
-      AND status = 'active'
-      AND id != NEW.id;
-    UPDATE group_memberships
-    SET expires_at = latest_expires_at, updated_at = NOW()
-    WHERE user_id = NEW.user_id AND group_id = NEW.granted_by_group_id;
-  END IF;
-
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 
 --
--- Name: content_access_expires_at_sync; Type: TRIGGER; Schema: public; Owner: -
+-- Name: content_access_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER content_access_expires_at_sync
-    AFTER INSERT OR UPDATE OF expires_at ON public.content_access
+CREATE TRIGGER content_access_user_scopes_sync
+    AFTER INSERT OR UPDATE ON public.content_access
     FOR EACH ROW
-    WHEN (NEW.status = 'active')
-    EXECUTE FUNCTION sync_content_access_expires_at();
+    EXECUTE FUNCTION compute_user_scopes_from_content_access();
 
 
 --
--- Name: content_access_expires_at_clear; Type: TRIGGER; Schema: public; Owner: -
+-- Name: content_access_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER content_access_expires_at_clear
-    AFTER UPDATE OF status ON public.content_access
+CREATE TRIGGER content_access_user_scopes_delete
+    AFTER DELETE ON public.content_access
     FOR EACH ROW
-    WHEN (NEW.status IN ('revoked', 'expired'))
-    EXECUTE FUNCTION clear_content_access_expires_at();
+    EXECUTE FUNCTION compute_user_scopes_from_content_access();
+
+
+--
+-- Name: group_role_assignment_user_scopes_sync; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER group_role_assignment_user_scopes_sync
+    AFTER INSERT OR UPDATE ON public.group_memberships_group_roles
+    FOR EACH ROW
+    EXECUTE FUNCTION compute_user_scopes_from_role();
+
+
+--
+-- Name: group_role_assignment_user_scopes_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER group_role_assignment_user_scopes_delete
+    AFTER DELETE ON public.group_memberships_group_roles
+    FOR EACH ROW
+    EXECUTE FUNCTION compute_user_scopes_from_role();
 
 
 --

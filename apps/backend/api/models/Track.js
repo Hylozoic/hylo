@@ -3,6 +3,7 @@
 import { GraphQLError } from 'graphql'
 import HasSettings from './mixins/HasSettings' // TODO: does it have settings?
 import uniq from 'lodash/uniq'
+const { createTrackScope } = require('../../lib/scopes')
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'tracks',
@@ -57,6 +58,25 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   didComplete: function (userId) {
     return this.trackUser(userId).fetch().then(trackUser => trackUser && trackUser.get('completed_at') !== null)
+  },
+
+  /**
+   * Check if a user has access to this track
+   * If track is not access controlled, returns true (free access)
+   * If track is access controlled, checks user's scopes
+   * @param {String|Number} userId - User ID to check
+   * @returns {Promise<Boolean>}
+   */
+  canAccess: async function (userId) {
+    // If track is not access controlled, it's freely accessible
+    if (!this.get('access_controlled')) {
+      return true
+    }
+    
+    // Check scope for access-controlled tracks
+    const trackId = this.get('id')
+    const requiredScope = createTrackScope(trackId)
+    return await UserScope.canAccess(userId, requiredScope)
   },
 
   enrolledCount: function () {

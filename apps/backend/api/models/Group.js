@@ -18,6 +18,7 @@ import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { es } from '../../lib/i18n/es'
 import { en } from '../../lib/i18n/en'
+const { createGroupScope } = require('../../lib/scopes')
 
 const locales = { es, en }
 
@@ -65,6 +66,25 @@ module.exports = bookshelf.Model.extend(merge({
     } catch (e) {
       return null
     }
+  },
+
+  /**
+   * Check if a user has access to this group
+   * If group has no paywall, returns true (free access)
+   * If group has a paywall, checks user's scopes
+   * @param {String|Number} userId - User ID to check
+   * @returns {Promise<Boolean>}
+   */
+  async canAccess (userId) {
+    // If no paywall, group is freely accessible
+    if (!this.get('paywall')) {
+      return true
+    }
+    
+    // Check scope for paywalled groups
+    const groupId = this.get('id')
+    const requiredScope = createGroupScope(groupId)
+    return await UserScope.canAccess(userId, requiredScope)
   },
 
   // ******** Getters ******* //

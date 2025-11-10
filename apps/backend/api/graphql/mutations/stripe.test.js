@@ -363,7 +363,7 @@ describe('Stripe Mutations', () => {
       expect(savedProduct.get('stripe_product_id')).to.equal('prod_test_123')
       expect(savedProduct.get('name')).to.equal('Premium Membership')
       expect(savedProduct.get('price_in_cents')).to.equal(2000)
-      expect(savedProduct.get('content_access')).to.deep.equal(contentAccess)
+      expect(savedProduct.get('access_grants')).to.deep.equal(contentAccess)
       expect(savedProduct.get('renewal_policy')).to.equal('manual')
       expect(savedProduct.get('duration')).to.equal('lifetime')
       expect(savedProduct.get('publish_status')).to.equal('published')
@@ -383,7 +383,7 @@ describe('Stripe Mutations', () => {
 
       const savedProduct = await StripeProduct.where({ id: result.databaseId }).fetch()
       expect(savedProduct.get('currency')).to.equal('usd') // default
-      expect(savedProduct.get('content_access')).to.deep.equal({}) // default
+      expect(savedProduct.get('access_grants')).to.deep.equal({}) // default
       expect(savedProduct.get('renewal_policy')).to.equal('manual') // default
       expect(savedProduct.get('publish_status')).to.equal('unpublished') // default
     })
@@ -487,7 +487,7 @@ describe('Stripe Mutations', () => {
 
       // Verify the changes were saved
       await testProduct.refresh()
-      expect(testProduct.get('content_access')).to.deep.equal(newContentAccess)
+      expect(testProduct.get('access_grants')).to.deep.equal(newContentAccess)
     })
 
     it('updates renewal policy and duration', async () => {

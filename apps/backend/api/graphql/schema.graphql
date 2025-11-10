@@ -808,6 +808,8 @@ union FeedItemContent = Post | Interstitial
 # A Hylo Group
 type Group {
   id: ID
+  # Whether the current user has access to this group (via scope system or free access)
+  canAccess: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -1368,6 +1370,8 @@ type GroupRelationshipInviteQuerySet {
 type GroupRole {
   # Whether this role is active
   active: Boolean
+  # Whether the current user has access to this role (via scope system)
+  canAccess: Boolean
   # When this role was created
   createdAt: Date
   # The description of the role
@@ -2583,6 +2587,8 @@ type Track {
   id: ID
   # Whether this track requires purchased access (paid content)
   accessControlled: Boolean
+  # Whether the current user has access to this track (via scope system or free access)
+  canAccess: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions

@@ -20,6 +20,7 @@ import {
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
+const { createGroupRoleScope } = require('../../lib/scopes')
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -813,6 +814,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // commonRoles: async g => g.commonRoles(),
+        canAccess: g => g ? g.canAccess(userId) : false,
         homeWidget: g => g.homeWidget(),
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
@@ -968,7 +970,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'group',
         { responsibilities: { querySet: true } }
-      ]
+      ],
+      getters: {
+        canAccess: gr => {
+          if (!gr || !userId) return false
+          // Check if user has the group_role scope
+          const requiredScope = createGroupRoleScope(gr.get('id'))
+          return UserScope.canAccess(userId, requiredScope)
+        }
+      }
     },
 
     CustomView: {
@@ -1312,6 +1322,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
+        canAccess: t => t ? t.canAccess(userId) : false,
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
         userSettings: t => t && userId ? t.userSettings(userId) : null,
@@ -1568,7 +1579,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'price_in_cents',
         'currency',
         'track_id',
-        'content_access',
+        'access_grants',
         'renewal_policy',
         'duration',
         'publish_status'
@@ -1582,7 +1593,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripePriceId: sp => sp.get('stripe_price_id'),
         priceInCents: sp => sp.get('price_in_cents'),
         trackId: sp => sp.get('track_id'),
-        contentAccess: sp => sp.get('content_access'),
+        accessGrants: sp => sp.get('access_grants'),
         renewalPolicy: sp => sp.get('renewal_policy'),
         publishStatus: sp => sp.get('publish_status')
       }
