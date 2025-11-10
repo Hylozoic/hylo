@@ -265,7 +265,7 @@ export default function ContextMenu (props) {
                   <ContextMenuItem widget={activeWidget} isOverlay />
                 )}
                 {activeWidget && activeWidget.parentId && (
-                  <ListItemRenderer item={activeWidget} isOverlay canDnd={false} />
+                  <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
                 )}
               </DragOverlay>
             </DndContext>
@@ -410,6 +410,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                 to={url}
                 externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
                 className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 group'
+                isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={widget} />
@@ -430,6 +431,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                     to={url}
                     externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
                     badgeCount={widget.highlightNumber}
+                    isEditing={isEditing}
                   >
                     <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
                   </MenuLink>
@@ -451,7 +453,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} isEditing={isEditing} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
@@ -469,7 +471,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} isEditing={isEditing} />)}
                   </ul>
                 </div>}
             </div>)}
@@ -477,7 +479,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink isEditing={isEditing} to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
             <span className='text-base'>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
@@ -580,7 +582,7 @@ function DropZone ({ droppableParams, children, removalDropZone }) {
   )
 }
 
-function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
+function ListItemRenderer ({ item, widget, canDnd, isEditing, isOverlay = false }) {
   const { t } = useTranslation()
   const itemTitle = translateTitle(item.title, t)
   const { activeWidget, rootPath, groupSlug } = useContextMenuContext()
@@ -627,6 +629,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between group'
+                isEditing={isEditing}
               >
                 <div className='flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
@@ -645,6 +648,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='ContextWidgetMenuItem flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />

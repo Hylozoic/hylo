@@ -71,7 +71,7 @@ const Comments = ({
       ))}
       {currentUser
         ? (
-          <div className={cn('bg-transparent absolute bottom-0 w-full p-4 z-10')} style={style}>
+          <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10')} style={style}>
             <CommentForm
               currentUser={currentUser}
               createComment={createComment}

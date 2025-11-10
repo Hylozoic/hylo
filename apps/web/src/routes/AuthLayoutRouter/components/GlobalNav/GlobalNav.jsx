@@ -65,7 +65,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <GlobalNavItem
-        badgeCount={group.newPostCount || 0}
+        badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
         tooltip={group.name}
         url={`/groups/${group.slug}`}
@@ -291,7 +291,7 @@ export default function GlobalNav (props) {
               tooltip={t('Activity')}
               className={isVisible(1)}
               showTooltip={isContainerHovered}
-              badgeCount={showBadge ? '!' : 0}
+              badgeCount={showBadge ? '-' : 0}
             >
               <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer font-md' />
             </GlobalNavItem>}
@@ -356,7 +356,7 @@ export default function GlobalNav (props) {
             <RightClickMenu key={group.id}>
               <RightClickMenuTrigger>
                 <GlobalNavItem
-                  badgeCount={group.newPostCount || 0}
+                  badgeCount={group.newPostCount ? '-' : 0}
                   img={group.avatarUrl}
                   tooltip={group.name}
                   url={`/groups/${group.slug}`}

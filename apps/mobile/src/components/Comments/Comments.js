@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import React, { useState, useRef, useImperativeHandle, useCallback, useEffect } from 'react'
 import { Text, TouchableOpacity, View, SectionList } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from 'urql'
 import { isIOS } from 'util/platform'
 import postCommentsQuery from '@hylo/graphql/queries/postCommentsQuery'
@@ -19,7 +20,11 @@ export const Comments = React.forwardRef(({
   panHandlers,
   onSelect
 }, ref) => {
-  const [{ data, fetching }] = useQuery({ query: postCommentsQuery, variables: { postId } })
+  const [{ data, fetching }, refetch] = useQuery({
+    query: postCommentsQuery,
+    variables: { postId },
+    requestPolicy: 'cache-and-network'
+  })
   const post = data?.post
   const commentsQuerySet = post?.comments
   const comments = commentsQuerySet?.items || []
@@ -27,7 +32,16 @@ export const Comments = React.forwardRef(({
   const [highlightedComment, setHighlightedComment] = useState()
   const commentsListRef = useRef()
   const hasExecutedCommentFromPath = useRef(false)
-  
+
+  // Refetch comments when screen comes into focus to ensure latest data
+  useFocusEffect(
+    useCallback(() => {
+      if (postId) {
+        refetch({ requestPolicy: 'network-only' })
+      }
+    }, [postId, refetch])
+  )
+
   const sections = comments?.map((comment, index) => {
     return ({
       comment,
@@ -70,7 +84,7 @@ export const Comments = React.forwardRef(({
   useEffect(() => {
     if (!hasExecutedCommentFromPath.current && commentIdFromPath && comments.length > 0) {
       let foundComment = comments.find(comment => comment.id === commentIdFromPath)
-      
+
       if (!foundComment) {
         for (const parentComment of comments) {
           if (parentComment.childComments?.items) {
@@ -79,7 +93,7 @@ export const Comments = React.forwardRef(({
           }
         }
       }
-      
+
       if (foundComment) {
         setHighlightedComment(foundComment)
         hasExecutedCommentFromPath.current = true
