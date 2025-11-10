@@ -454,6 +454,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [updating, setUpdating] = useState(false)
   const [updatingPaywall, setUpdatingPaywall] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [accessFilter, setAccessFilter] = useState('all')
 
   // Fetch tracks when needed for content access editing and display
   useEffect(() => {
@@ -797,11 +798,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 <span className='text-sm text-foreground/70'>
                   {group?.paywall ? t('Yes') : t('No')}
                 </span>
-              </div>
+        </div>
               <div className='text-xs mt-1'>
                 {isPaywallReady
                   ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
-                  : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE offering that allows access to the group')}</span>)}
+                  : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE published offering that allows access to the group')}</span>)}
               </div>
             </div>
           )}
@@ -1004,7 +1005,20 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       <div className='border-2 border-foreground/20 rounded-lg p-4'>
         <div className='flex items-center justify-between mb-4'>
           <h3 className='text-xl font-semibold'>{t('Offerings')}</h3>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-4'>
+            <div className='flex items-center gap-2'>
+              <label className='text-sm text-foreground/70'>{t('Offerings with')}:</label>
+              <select
+                value={accessFilter}
+                onChange={(e) => setAccessFilter(e.target.value)}
+                className='text-sm px-2 py-1 rounded-md bg-background border border-border text-foreground'
+              >
+                <option value='all'>{t('All')}</option>
+                <option value='group'>{t('Group access')}</option>
+                <option value='track'>{t('Track access')}</option>
+                <option value='role'>{t('Role access')}</option>
+              </select>
+            </div>
             <label className='text-sm text-foreground/70 flex items-center gap-2 cursor-pointer'>
               <input
                 type='checkbox'
@@ -1018,9 +1032,42 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         </div>
         <div className='flex flex-col gap-3'>
           {(() => {
-            const filteredOfferings = showArchived
+            // First filter by archived status
+            let filteredOfferings = showArchived
               ? offerings
               : offerings.filter(offering => offering.publishStatus !== 'archived')
+
+            // Then filter by access type
+            if (accessFilter !== 'all') {
+              filteredOfferings = filteredOfferings.filter(offering => {
+                if (!offering.contentAccess) {
+                  return false
+                }
+
+                // Parse contentAccess (might be string or object)
+                let contentAccess = {}
+                if (typeof offering.contentAccess === 'string') {
+                  try {
+                    contentAccess = JSON.parse(offering.contentAccess)
+                  } catch {
+                    return false
+                  }
+                } else {
+                  contentAccess = offering.contentAccess
+                }
+
+                // Check based on filter type
+                if (accessFilter === 'group') {
+                  return contentAccess.groupIds && Array.isArray(contentAccess.groupIds) && contentAccess.groupIds.length > 0
+                } else if (accessFilter === 'track') {
+                  return contentAccess.trackIds && Array.isArray(contentAccess.trackIds) && contentAccess.trackIds.length > 0
+                } else if (accessFilter === 'role') {
+                  return contentAccess.roleIds && Array.isArray(contentAccess.roleIds) && contentAccess.roleIds.length > 0
+                }
+
+                return false
+              })
+            }
 
             if (filteredOfferings.length === 0) {
               return (
