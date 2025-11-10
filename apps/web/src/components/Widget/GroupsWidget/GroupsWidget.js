@@ -67,7 +67,7 @@ export function GroupCard ({ group, routeParams, className }) {
         <div className={classes.content}>
           <div className={classes.groupAvatar}><img src={group.avatarUrl || DEFAULT_AVATAR} /></div>
           <div className={classes.groupName}>{group.name}</div>
-          <div className={classes.memberCount}>{group.memberCount} {t('member', { count: group.memberCount })}</div>
+          <div className={classes.memberCount}>{t('{{count}} members', { count: group.memberCount })}</div>
           <div className={classes.groupDescription}>
             <ClickCatcher>
               <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
