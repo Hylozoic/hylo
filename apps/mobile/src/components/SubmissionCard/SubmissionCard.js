@@ -74,7 +74,6 @@ function SubmissionCard ({
           tokens: localVoteAmount
         })
 
-        console.log('result', result)
         if (result.error) {
           Alert.alert(t('Error'), t('Failed to allocate tokens'))
           // Reset to previous value on error
