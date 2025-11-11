@@ -673,7 +673,6 @@ function FundingRoundEditor (props) {
         <div className='flex items-center gap-2'>
           <label>{t('Submissions open')}: </label>
           <DateTimePicker
-            key={submissionsOpenAt ? submissionsOpenAt.toString() : 'empty-submissionsOpenAt'}
             granularity='minute'
             hourCycle={getHourCycle()}
             onChange={updateFundingRoundState('submissionsOpenAt')}
@@ -696,7 +695,6 @@ function FundingRoundEditor (props) {
         <div className='flex items-center gap-2'>
           <label>{t('Submissions close')}: </label>
           <DateTimePicker
-            key={submissionsCloseAt ? submissionsCloseAt.toString() : 'empty-submissionsCloseAt'}
             className={cn({ 'text-error border-error': errors.submissionsCloseAt })}
             granularity='minute'
             hourCycle={getHourCycle()}
@@ -720,7 +718,6 @@ function FundingRoundEditor (props) {
         <div className='flex items-center gap-2'>
           <label>{t('Voting opens')}:</label>
           <DateTimePicker
-            key={votingOpensAt ? votingOpensAt.toString() : 'empty-votingOpensAt'}
             granularity='minute'
             hourCycle={getHourCycle()}
             onChange={updateFundingRoundState('votingOpensAt')}
@@ -743,7 +740,6 @@ function FundingRoundEditor (props) {
         <div className='flex items-center gap-2'>
           <label>{t('Voting closes')}:</label>
           <DateTimePicker
-            key={votingClosesAt ? votingClosesAt.toString() : 'empty-votingClosesAt'}
             className={cn({ 'text-error border-error': errors.votingClosesAt })}
             granularity='minute'
             hourCycle={getHourCycle()}

@@ -6,6 +6,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+
+### Changed
+- When sending comment digest emails, use the group name as the sender name, instead of the team at Hylo
+
+### Fixed
+- Fix broken commenting on new posts
+
+## [6.2.1] - 2025-11-07
+
+### Changed
+- A number of fixes to try and address memory leaks:
+- Redis: Added cleanup handlers for Redis clients on process exit.
+  - Clients are now properly closed on SIGTERM, SIGINT, and exit.
+  - Uses connection pool with unique keys ('pubsub-publish', 'pubsub-subscribe')
+  - Implemented connection pooling to reuse connections
+  - Connections are tracked and cleaned up on process exit
+  - Dead connections are automatically removed from pool
+  - Added connection health checks
+- Websockets: Added cleanup handlers for socket.io-emitter Redis connection. Connection is properly closed on process exit. Cleanup handlers registered to prevent leaks
+- QueryMonitor: Added periodic cleanup (every 10 seconds) to remove stale queries. Maximum query age limit (30 seconds). Maximum queries tracked (1000) with automatic cleanup of oldest. Cleanup interval properly cleaned up on process exit
+- worker.js: Added uncaught exception handler to ensure queue cleanup. Added unhandled rejection logging
+- GraphQL Subscriptions:
+  - Added proper cleanup for async iterators in `allUpdates` subscription
+  - Iterators are now properly closed using `return()` method when subscription ends
+  - Added try/finally blocks to ensure cleanup even if errors occur
+  - Promises array is cleared on cleanup
+  - All 5 subscription iterators are properly closed when client disconnects
+  - Added development logging for cleanup tracking
+
+### Fixed
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Fix bug creating funding round drafts
+
+## [6.2.0] - 2025-11-04
+
+### Added
+- New feature: Funding Rounds! Group stewards can now create funding rounds that allows members to submit project proposals and vote on them to decide how to allocate funding. Funding rounds can be created for any group, and are visible to all members of the group. You can control who can submit proposals and vote by role.
+
+### Changed
+- Create a singleton socket io emitter to prevent memory leaks
+- Create a singleton kue queue to prevent memory leaks
+- Remove expired OIDC payloads in cron, not in every call to DBAdapter For performance reasons.
+
 ## [6.1.23] - 2025-10-13
 
 ### Added

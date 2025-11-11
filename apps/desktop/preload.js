@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('electron', {
   showNotification: (notification) => ipcRenderer.send('show-notification', notification),
   setTitle: (title) => ipcRenderer.send('set-title', title),
   getLocale: () => ipcRenderer.invoke('get-locale'),
-  requestNotificationPermission: () => ipcRenderer.invoke('request-notification-permission'),
   onNavigateTo: (callback) => ipcRenderer.on('navigate-to', (event, url) => callback(url)),
 
   // Navigation controls

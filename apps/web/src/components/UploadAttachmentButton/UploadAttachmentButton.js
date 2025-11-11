@@ -53,10 +53,9 @@ export default function UploadAttachmentButton ({
   }
 
   const onUploadDone = async ({ filesUploaded }) => {
-    await Promise.all(
-      filesUploaded.map(filestackFileObject =>
-        onFileUploadFinished(filestackFileObject))
-    )
+    for (const filestackFileObject of filesUploaded) {
+      await onFileUploadFinished(filestackFileObject)
+    }
     setLoading(false)
   }
 

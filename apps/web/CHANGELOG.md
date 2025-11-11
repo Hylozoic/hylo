@@ -6,6 +6,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+- Long pressing on an emoji on mobile shows the tooltip of all the people who reacted with that emoji
+
+### Changed
+- Update to the latest filestack library
+- When uploading multiple images to a post the order of the images matches the order of the files
+- Fully remove orange dot from Activity Bell after it is clicked on, even if there are unread notifications
+
+### Fixed
+- Fix reordering of image attachments in posts and comments
+
+### Changed
+
+## [6.2.1] - 2025-11-07
+
+### Changed
+- Sort funding round submissions by most recent at the top
+- Use option-enter to submit comments instead of enter
+- Faster loading of chat rooms that have already been loaded
+- Activity bell shows blank orange dot insyead of ! which was kind of stressful
+- Group icons show blank orange dots for notifications instead of numbers which were not very accurate or helpful
+- When Hylo tab becomes visible again check for new notifications
+
+### Fixed
+- Creating track actions
+- Bug saving a draft of a funding round
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix datetime picker from closing when changing anything in funding round editor
+- Reset chat room new post count when at the latest post but orange dot still showing new posts
+- When a post is deleted decrement the new post count (orange dot) of associated chat rooms that have not seen the post yet
+- Comment form doesn't overlap comments above it anymore as it grows
+- Fix duplicate post issue that could happen when switching between chat rooms
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Correctly update orange dot on chat room when new post is received
+- Fix/improve UI for creating new messages on web mobile
+- Fix bug that would briefly show an orange dot on a DM thread after you posted a new message
+
+## [6.2.0] - 2025-11-04
+
+### Added
+- New feature: Funding Rounds! Group stewards can now create funding rounds that allows members to submit project proposals and vote on them to decide how to allocate funding. Funding rounds can be created for any group, and are visible to all members of the group. You can control who can submit proposals and vote by role.
+- External links in context menu show icon indicating they go to external webpage
+
+### Changed
+- Strip out pasted in images in post editor, because we don't support them yet and they were breaking post saving.
+
 ## [6.1.23] - 2025-10-13
 
 ### Added

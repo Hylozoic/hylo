@@ -11,6 +11,7 @@ import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
+import { decrementNewPostCount } from './post/deletePost'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -1089,8 +1090,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
       Promise.join(
         Activity.removeForPost(postId, trx),
         Track.removePost(postId, trx),
-        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx)
+        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx),
+        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0)
       )),
+
+  // Background task to decrement new_post_count when a post is deleted
+  decrementNewPostCountForDeletedPost: async ({ postId }) => {
+    // Note: Post may be deactivated, so we need to fetch it without the default active filter
+    const post = await Post.where({ id: postId }).fetch({ withRelated: ['groups', 'tags'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📉 Background job: Decrementing new_post_count for deleted post ${postId}`)
+    }
+
+    try {
+      await decrementNewPostCount(post)
+    } catch (error) {
+      console.error('❌ Error decrementing new_post_count in background job:', error)
+    }
+  },
 
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&

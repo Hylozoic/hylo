@@ -1,3 +1,4 @@
+/* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
@@ -153,8 +154,14 @@ function PostEditor ({
   const attachmentPostId = (editingPostId || fromPostId)
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
-  const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const imageAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
+  const fileAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 

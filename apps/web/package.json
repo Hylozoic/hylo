@@ -1,7 +1,7 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.1.23",
+  "version": "6.2.2",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
@@ -137,7 +137,7 @@
     "dotenv-safe": "^4.0.4",
     "emoji-mart": "5.6.0",
     "express": "^4.15.5",
-    "filestack-js": "^3.36.4",
+    "filestack-js": "^4.3.4",
     "framer-motion": "^11.17.0",
     "globals": "^15.9.0",
     "graphql": "^16.3.0",

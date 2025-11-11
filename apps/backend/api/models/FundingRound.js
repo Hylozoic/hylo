@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag, Responsibility, Activity */
+/* global bookshelf, Group, Post, CommonRole, GroupRole, FundingRoundUser, User, MemberCommonRole, MemberGroupRole, FundingRound, FundingRoundPost, Tag */
 import { GraphQLError } from 'graphql'
 import { sendPhaseTransitionNotifications, sendReminderNotifications, notifyStewardsOfSubmission } from './FundingRound/notifications'
 
@@ -260,6 +260,8 @@ module.exports = bookshelf.Model.extend({
         transitionCount++
       }
 
+      // TODO: if going from published to voting straight dont send notifications for 3 transitions
+
       // Transition from submissions to discussion
       const submissionsClosingRounds = await FundingRound.query(q => {
         q.where('deactivated_at', null)
@@ -283,7 +285,12 @@ module.exports = bookshelf.Model.extend({
       }).fetchAll({ transacting })
 
       for (const round of votingOpeningRounds.models) {
-        await FundingRound.distributeTokens(round, { transacting })
+        try {
+          await FundingRound.distributeTokens(round, { transacting })
+        } catch (error) {
+          console.error('Error distributing tokens for round:', round.id, error)
+          continue
+        }
         await round.save({ phase: FundingRound.PHASES.VOTING }, { transacting, patch: true })
         Queue.classMethod('FundingRound', 'sendPhaseTransitionNotifications', { roundId: round.id, phase: FundingRound.PHASES.VOTING })
         transitionCount++
@@ -344,9 +351,6 @@ module.exports = bookshelf.Model.extend({
 
     if (!round) {
       throw new GraphQLError('Funding Round not found')
-    }
-    if (!round.get('published_at')) {
-      throw new GraphQLError('Funding Round is not published')
     }
     let roundUser = await FundingRoundUser.where({ funding_round_id: roundId, user_id: userId }).fetch({ transacting })
     if (!roundUser) {

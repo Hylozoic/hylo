@@ -60,8 +60,6 @@ export default function GlobalNavItem ({
    * - Hide when neither condition is true
    */
   useEffect(() => {
-    checkPosition()
-
     if (!isInViewport) {
       setOpen(false)
       return
@@ -80,7 +78,7 @@ export default function GlobalNavItem ({
       setOpen(false)
       setShouldAnimate(false)
     }
-  }, [parentShowTooltip, isHovered, index, isInViewport, checkPosition])
+  }, [parentShowTooltip, isHovered, index, isInViewport])
 
   // Listen for the custom navScroll event from parent
   useEffect(() => {
@@ -145,7 +143,7 @@ export default function GlobalNavItem ({
             {children}
             {img === DEFAULT_AVATAR && <span className='GlobalNavItemDefaultAvatarText text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
-            {badgeCount === '!' && <Badge number='!' className='absolute -top-2 -left-2' expanded />}
+            {badgeCount === '-' && <Badge number='&nbsp;' className='absolute -top-2 -left-2' expanded />}
           </div>
         </TooltipTrigger>
         {tooltip && (

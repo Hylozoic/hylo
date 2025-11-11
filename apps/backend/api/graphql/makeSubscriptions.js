@@ -167,34 +167,75 @@ export default function makeSubscriptions () {
           pipe(context.pubSub.subscribe(`postUpdates:${userId}`), withDontSendToCreator({ context }))
         ]
 
-        // Merge all subscription streams
+        // Merge all subscription streams with proper cleanup
         const mergedStream = async function * () {
           const iterators = subscriptions.map(sub => sub[Symbol.asyncIterator]())
           const promises = iterators.map((iterator, index) =>
             iterator.next().then(result => ({ result, index }))
           )
 
-          while (promises.length > 0) {
-            const { result, index } = await Promise.race(promises.filter(Boolean))
-
-            if (!result.done) {
-              if (process.env.NODE_ENV === 'development') {
-                const streamNames = ['updates', 'groupUpdates', 'groupMembershipUpdates', 'groupRelationshipUpdates', 'postUpdates']
-                console.log(`🔧 Unified subscription yielding from ${streamNames[index]} stream:`, Object.keys(result.value))
+          try {
+            while (promises.length > 0) {
+              const activePromises = promises.filter(Boolean)
+              if (activePromises.length === 0) {
+                break
               }
 
-              yield result.value
+              const { result, index } = await Promise.race(activePromises)
 
-              // Replace the resolved promise with the next value from the same iterator
-              promises[index] = iterators[index].next().then(nextResult => ({ result: nextResult, index }))
-            } else {
-              // Remove completed iterator
-              promises[index] = null
+              if (!result.done) {
+                if (process.env.NODE_ENV === 'development') {
+                  const streamNames = ['updates', 'groupUpdates', 'groupMembershipUpdates', 'groupRelationshipUpdates', 'postUpdates']
+                  console.log(`🔧 Unified subscription yielding from ${streamNames[index]} stream:`, Object.keys(result.value))
+                }
+
+                yield result.value
+
+                // Replace the resolved promise with the next value from the same iterator
+                promises[index] = iterators[index].next().then(nextResult => ({ result: nextResult, index }))
+              } else {
+                // Remove completed iterator
+                promises[index] = null
+                // Try to close the iterator if it has a return method
+                if (iterators[index] && typeof iterators[index].return === 'function') {
+                  try {
+                    await iterators[index].return()
+                  } catch (err) {
+                    // Ignore errors during cleanup
+                    if (process.env.NODE_ENV === 'development') {
+                      console.warn('Error closing iterator:', err)
+                    }
+                  }
+                }
+              }
             }
+          } finally {
+            // Cleanup: ensure all iterators are properly closed
+            for (let i = 0; i < iterators.length; i++) {
+              if (iterators[i] && typeof iterators[i].return === 'function') {
+                try {
+                  await iterators[i].return()
+                } catch (err) {
+                  // Ignore errors during cleanup
+                  if (process.env.NODE_ENV === 'development') {
+                    console.warn(`Error closing iterator ${i}:`, err)
+                  }
+                }
+              }
+            }
+            // Clear promises array
+            promises.length = 0
           }
         }
 
-        yield * mergedStream()
+        try {
+          yield * mergedStream()
+        } finally {
+          // Additional cleanup when subscription ends
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`🔧 Cleaning up unified subscription for user ${userId}`)
+          }
+        }
       },
       resolve: (payload) => {
         // Route payload to appropriate type based on content

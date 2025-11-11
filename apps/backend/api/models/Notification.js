@@ -650,7 +650,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -684,7 +684,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -1132,7 +1132,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundPhaseTransitionEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data
     })
   },
@@ -1167,7 +1167,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundReminderEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         funding_round_title: fundingRound.get('title'),

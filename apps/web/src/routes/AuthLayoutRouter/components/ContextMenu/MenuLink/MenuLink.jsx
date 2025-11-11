@@ -5,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { cn } from 'util/index'
 
-export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className }) {
+export default function MenuLink ({ badgeCount = null, to, children, onClick, externalLink, className, isEditing }) {
   const dispatch = useDispatch()
   const location = useLocation()
   const isCurrentLocation = location.pathname === to
@@ -21,7 +21,7 @@ export default function MenuLink ({ badgeCount = null, to, children, onClick, ex
     return (
       <a href={externalLink} target='_blank' rel='noreferrer' onClick={onClick} className={cn('MenuLink text-foreground text-sm', className, { 'opacity-100 border-selected': isCurrentLocation })}>
         {children}
-        <ExternalLink />
+        {!isEditing && <ExternalLink className='w-4 h-4' />}
       </a>
     )
   }

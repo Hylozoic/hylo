@@ -13,6 +13,7 @@ export default function ContextWidgetPresenter (widget) {
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
     isEditable: isEditableResolver(widget),
+    isDeletable: isDeleteableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver(widget),
     type,
@@ -109,6 +110,12 @@ function isEditableResolver (widget) {
   const type = widgetTypeResolver({ widget })
   return type === 'customView' ||
     type === 'container'
+}
+
+// Only custom created widgets can be fully deleted
+function isDeleteableResolver (widget) {
+  const type = widgetTypeResolver({ widget })
+  return ['container', 'viewGroup', 'viewPost', 'viewChat', 'customView', 'viewUser', 'viewChat', 'viewTrack', 'viewFundingRound'].includes(type)
 }
 
 // This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog
