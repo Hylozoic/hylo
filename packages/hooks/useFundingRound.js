@@ -3,7 +3,7 @@ import { useQuery } from 'urql'
 import fetchFundingRoundQuery from '@hylo/graphql/queries/fetchFundingRoundQuery'
 
 // Helper to present funding round data
-function presentFundingRound (fundingRound) {
+export function presentFundingRound (fundingRound) {
   if (!fundingRound) return null
   return {
     ...fundingRound,

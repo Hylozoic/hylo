@@ -1,15 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from 'urql'
 import groupFundingRoundsQuery from '@hylo/graphql/queries/groupFundingRoundsQuery'
-
-// Helper to present funding round data
-function presentFundingRound (fundingRound) {
-  if (!fundingRound) return null
-  return {
-    ...fundingRound,
-    users: fundingRound.users?.items || []
-  }
-}
+import { presentFundingRound } from './useFundingRound'
 
 export default function useFundingRounds ({
   groupId,
