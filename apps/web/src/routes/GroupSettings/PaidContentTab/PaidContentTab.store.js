@@ -120,7 +120,7 @@ export function fetchAccountStatus (groupId, accountId) {
  * Offerings represent subscription tiers, content access, or other offerings
  * that the group wants to sell.
  */
-export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd', contentAccess = null, duration = null, publishStatus = 'unpublished') {
+export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd', accessGrants = null, duration = null, publishStatus = 'unpublished') {
   return {
     type: CREATE_OFFERING,
     graphql: {
@@ -141,7 +141,7 @@ export function createOffering (groupId, accountId, name, description, priceInCe
           description,
           priceInCents,
           currency,
-          contentAccess,
+          accessGrants,
           duration,
           publishStatus
         }
@@ -198,7 +198,7 @@ export function fetchOfferings (groupId, accountId) {
             currency
             stripeProductId
             stripePriceId
-            contentAccess
+            accessGrants
             publishStatus
             duration
           }
@@ -219,19 +219,19 @@ export function fetchOfferings (groupId, accountId) {
  * Allows updating offering details including name, description, price, etc.
  */
 export function updateOffering (offeringId, updates) {
-  const { name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus } = updates || {}
+  const { name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus } = updates || {}
 
   return {
     type: UPDATE_OFFERING,
     graphql: {
-      query: `mutation ($offeringId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $contentAccess: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
+      query: `mutation ($offeringId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $accessGrants: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
         updateStripeOffering(
           offeringId: $offeringId
           name: $name
           description: $description
           priceInCents: $priceInCents
           currency: $currency
-          contentAccess: $contentAccess
+          accessGrants: $accessGrants
           renewalPolicy: $renewalPolicy
           duration: $duration
           publishStatus: $publishStatus
@@ -246,7 +246,7 @@ export function updateOffering (offeringId, updates) {
         description,
         priceInCents,
         currency,
-        contentAccess,
+        accessGrants,
         renewalPolicy,
         duration,
         publishStatus

@@ -2689,7 +2689,7 @@ type StripeOffering {
   track: Track
   trackId: ID
   # JSONB object defining what access this offering grants
-  contentAccess: JSON
+  accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
   # Duration: month, season, annual, lifetime, or null for no expiration
@@ -3359,7 +3359,7 @@ type Mutation {
     description: String
     priceInCents: Int
     currency: String
-    contentAccess: JSON
+    accessGrants: JSON
     renewalPolicy: String
     duration: String
     publishStatus: PublishStatus
@@ -3855,7 +3855,7 @@ input StripeOfferingInput {
   currency: String
   # JSONB object defining what access this offering grants
   # Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
-  contentAccess: JSON
+  accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
   # Duration: month, season, annual, lifetime, or null for no expiration

@@ -9,7 +9,7 @@
  * - View onboarding status
  */
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
@@ -244,10 +244,25 @@ function PaidContentTab ({ group, currentUser }) {
       const result = await dispatch(fetchOfferings(group.id, state.accountId))
 
       if (result.error) {
+        console.error('Error in fetchOfferings:', result.error)
         throw new Error(result.error.message)
       }
 
-      const offerings = result.payload?.data?.stripeOfferings?.offerings || []
+      // Use getData() helper from graphqlMiddleware to get the root query result
+      const responseData = result.payload?.getData
+        ? result.payload.getData()
+        : result.payload?.data?.stripeOfferings
+
+      if (!responseData) {
+        console.error('No response data from stripeOfferings query. Full result:', {
+          payload: result.payload,
+          payloadData: result.payload?.data,
+          getDataResult: result.payload?.getData ? result.payload.getData() : null,
+          errors: result.payload?.errors
+        })
+      }
+
+      const offerings = responseData?.offerings || []
 
       setState(prev => ({
         ...prev,
@@ -437,6 +452,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const commonRoles = useSelector(getCommonRoles)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
+  const editFormRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -462,6 +478,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       dispatch(fetchGroupTracks(group.id, { published: true }))
     }
   }, [dispatch, group?.id, showCreateForm, editingOffering, offerings?.length])
+
+  // Scroll to edit form when it opens
+  useEffect(() => {
+    if (editingOffering && editFormRef.current) {
+      editFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingOffering])
 
   /**
    * Validates if a group is ready to have a paywall enabled
@@ -496,25 +519,25 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return false
       }
 
-      if (!offering.contentAccess) {
+      if (!offering.accessGrants) {
         return false
       }
 
-      // Parse contentAccess (might be string or object)
-      let contentAccess = {}
-      if (typeof offering.contentAccess === 'string') {
+      // Parse accessGrants (might be string or object)
+      let accessGrants = {}
+      if (typeof offering.accessGrants === 'string') {
         try {
-          contentAccess = JSON.parse(offering.contentAccess)
+          accessGrants = JSON.parse(offering.accessGrants)
         } catch {
           return false
         }
       } else {
-        contentAccess = offering.contentAccess
+        accessGrants = offering.accessGrants
       }
 
-      // Check if contentAccess includes the current group's ID
-      if (contentAccess.groupIds && Array.isArray(contentAccess.groupIds)) {
-        return contentAccess.groupIds.some(groupId => parseInt(groupId) === parseInt(group?.id))
+      // Check if accessGrants includes the current group's ID
+      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
+        return accessGrants.groupIds.some(groupId => parseInt(groupId) === parseInt(group?.id))
       }
 
       return false
@@ -562,17 +585,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Invalid price'))
       }
 
-      // Format contentAccess from line items
+      // Format accessGrants from line items
       // Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
-      const contentAccess = {}
+      const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
-        contentAccess.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
+        accessGrants.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        contentAccess.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
       }
       if (formData.lineItems.groups.length > 0) {
-        contentAccess.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
+        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
 
       const result = await dispatch(createOffering(
@@ -582,7 +605,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         formData.description,
         priceInCents,
         formData.currency,
-        Object.keys(contentAccess).length > 0 ? contentAccess : null,
+        Object.keys(accessGrants).length > 0 ? accessGrants : null,
         formData.duration || null,
         formData.publishStatus || 'unpublished'
       ))
@@ -618,38 +641,38 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Cannot update offering: missing offering ID'))
       }
 
-      // Format contentAccess from line items
-      const contentAccess = {}
+      // Format accessGrants from line items
+      const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
-        contentAccess.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
+        accessGrants.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        contentAccess.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
       }
       if (formData.lineItems.groups.length > 0) {
-        contentAccess.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
+        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
 
-      // Parse existing contentAccess for comparison
-      let existingContentAccess = {}
-      if (editingOffering.contentAccess) {
-        if (typeof editingOffering.contentAccess === 'string') {
+      // Parse existing accessGrants for comparison
+      let existingAccessGrants = {}
+      if (editingOffering.accessGrants) {
+        if (typeof editingOffering.accessGrants === 'string') {
           try {
-            existingContentAccess = JSON.parse(editingOffering.contentAccess)
+            existingAccessGrants = JSON.parse(editingOffering.accessGrants)
           } catch {
-            existingContentAccess = {}
+            existingAccessGrants = {}
           }
         } else {
-          existingContentAccess = editingOffering.contentAccess
+          existingAccessGrants = editingOffering.accessGrants
         }
       }
 
       // Normalize for comparison
-      const normalizeContentAccess = (ca) => {
+      const normalizeAccessGrants = (ag) => {
         const normalized = {}
-        if (ca.trackIds && ca.trackIds.length > 0) normalized.trackIds = [...ca.trackIds].sort()
-        if (ca.roleIds && ca.roleIds.length > 0) normalized.roleIds = [...ca.roleIds].sort()
-        if (ca.groupIds && ca.groupIds.length > 0) normalized.groupIds = [...ca.groupIds].sort()
+        if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
+        if (ag.roleIds && ag.roleIds.length > 0) normalized.roleIds = [...ag.roleIds].sort()
+        if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         return normalized
       }
 
@@ -659,12 +682,12 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       if (formData.duration !== (editingOffering.duration || '')) updates.duration = formData.duration || null
       if (formData.publishStatus !== (editingOffering.publishStatus || 'unpublished')) updates.publishStatus = formData.publishStatus || 'unpublished'
 
-      // Compare contentAccess
-      const normalizedNew = normalizeContentAccess(contentAccess)
-      const normalizedExisting = normalizeContentAccess(existingContentAccess)
-      const contentAccessChanged = JSON.stringify(normalizedNew) !== JSON.stringify(normalizedExisting)
-      if (contentAccessChanged) {
-        updates.contentAccess = Object.keys(contentAccess).length > 0 ? contentAccess : null
+      // Compare accessGrants
+      const normalizedNew = normalizeAccessGrants(accessGrants)
+      const normalizedExisting = normalizeAccessGrants(existingAccessGrants)
+      const accessGrantsChanged = JSON.stringify(normalizedNew) !== JSON.stringify(normalizedExisting)
+      if (accessGrantsChanged) {
+        updates.accessGrants = Object.keys(accessGrants).length > 0 ? accessGrants : null
       }
 
       if (Object.keys(updates).length === 0) {
@@ -698,24 +721,19 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
   const handleStartEdit = useCallback((offering) => {
-    console.log('Starting edit for offering:', offering)
-    // Parse contentAccess and convert to lineItems format
-    let contentAccess = {}
-    if (offering.contentAccess) {
-      if (typeof offering.contentAccess === 'string') {
+    // Parse accessGrants and convert to lineItems format
+    let accessGrants = {}
+    if (offering.accessGrants) {
+      if (typeof offering.accessGrants === 'string') {
         try {
-          contentAccess = JSON.parse(offering.contentAccess)
-          console.log('Parsed contentAccess from string:', contentAccess)
+          accessGrants = JSON.parse(offering.accessGrants)
         } catch (e) {
-          console.error('Error parsing contentAccess JSON:', e, offering.contentAccess)
-          contentAccess = {}
+          console.error('Error parsing accessGrants JSON:', e, offering.accessGrants)
+          accessGrants = {}
         }
       } else {
-        contentAccess = offering.contentAccess
-        console.log('Using contentAccess as object:', contentAccess)
+        accessGrants = offering.accessGrants
       }
-    } else {
-      console.log('No contentAccess found in offering')
     }
 
     // Get roles for lookup
@@ -725,26 +743,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       ...groupRoles.map(role => ({ ...role, type: 'group' }))
     ]
 
-    console.log('Available tracks:', tracks.length, tracks.map(t => ({ id: t.id, name: t.name })))
-    console.log('Available roles:', allRoles.length, allRoles.map(r => ({ id: r.id, name: r.name })))
-
     // Convert IDs to objects
     const lineItems = {
-      tracks: (contentAccess.trackIds || []).map(trackId => {
+      tracks: (accessGrants.trackIds || []).map(trackId => {
         const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-        if (!track) {
-          console.warn('Track not found for ID:', trackId)
-        }
         return track ? { id: track.id, name: track.name } : null
       }).filter(Boolean),
-      roles: (contentAccess.roleIds || []).map(roleId => {
+      roles: (accessGrants.roleIds || []).map(roleId => {
         const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        if (!role) {
-          console.warn('Role not found for ID:', roleId)
-        }
         return role ? { id: role.id, name: role.name, emoji: role.emoji } : null
       }).filter(Boolean),
-      groups: (contentAccess.groupIds || []).map(groupId => {
+      groups: (accessGrants.groupIds || []).map(groupId => {
         // For groups, we can use the current group if it matches, or create a placeholder
         if (parseInt(groupId) === parseInt(group?.id)) {
           return { id: group.id, name: group.name }
@@ -752,8 +761,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return { id: groupId, name: t('Group {{id}}', { id: groupId }) }
       })
     }
-
-    console.log('Converted lineItems:', lineItems)
 
     setEditingOffering(offering)
     setFormData({
@@ -930,7 +937,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       )}
 
       {editingOffering && (
-        <div className='border-2 border-foreground/20 rounded-lg p-4'>
+        <div ref={editFormRef} className='border-2 border-foreground/20 rounded-lg p-4'>
           <h3 className='text-lg font-semibold mb-3'>{t('Edit Offering')}</h3>
           <form onSubmit={handleUpdateOffering} className='space-y-3'>
             <SettingsControl
@@ -1040,29 +1047,29 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
             // Then filter by access type
             if (accessFilter !== 'all') {
               filteredOfferings = filteredOfferings.filter(offering => {
-                if (!offering.contentAccess) {
+                if (!offering.accessGrants) {
                   return false
                 }
 
-                // Parse contentAccess (might be string or object)
-                let contentAccess = {}
-                if (typeof offering.contentAccess === 'string') {
+                // Parse accessGrants (might be string or object)
+                let accessGrants = {}
+                if (typeof offering.accessGrants === 'string') {
                   try {
-                    contentAccess = JSON.parse(offering.contentAccess)
+                    accessGrants = JSON.parse(offering.accessGrants)
                   } catch {
                     return false
                   }
                 } else {
-                  contentAccess = offering.contentAccess
+                  accessGrants = offering.accessGrants
                 }
 
                 // Check based on filter type
                 if (accessFilter === 'group') {
-                  return contentAccess.groupIds && Array.isArray(contentAccess.groupIds) && contentAccess.groupIds.length > 0
+                  return accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
                 } else if (accessFilter === 'track') {
-                  return contentAccess.trackIds && Array.isArray(contentAccess.trackIds) && contentAccess.trackIds.length > 0
+                  return accessGrants.trackIds && Array.isArray(accessGrants.trackIds) && accessGrants.trackIds.length > 0
                 } else if (accessFilter === 'role') {
-                  return contentAccess.roleIds && Array.isArray(contentAccess.roleIds) && contentAccess.roleIds.length > 0
+                  return accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && accessGrants.roleIds.length > 0
                 }
 
                 return false
@@ -1345,23 +1352,23 @@ function StatusBadge ({ label, value, t }) {
  * Used in the OfferingsTab list view
  */
 function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
-  // Parse contentAccess JSON
-  const contentAccess = useMemo(() => {
-    if (!offering.contentAccess) {
+  // Parse accessGrants JSON
+  const accessGrants = useMemo(() => {
+    if (!offering.accessGrants) {
       return {}
     }
     // If it's a string, parse it
-    if (typeof offering.contentAccess === 'string') {
+    if (typeof offering.accessGrants === 'string') {
       try {
-        return JSON.parse(offering.contentAccess)
+        return JSON.parse(offering.accessGrants)
       } catch (e) {
-        console.error('Error parsing contentAccess JSON:', e, offering.contentAccess)
+        console.error('Error parsing accessGrants JSON:', e, offering.accessGrants)
         return {}
       }
     }
     // If it's already an object, use it directly
-    return offering.contentAccess || {}
-  }, [offering.contentAccess])
+    return offering.accessGrants || {}
+  }, [offering.accessGrants])
 
   // Get tracks, roles, and groups from the group data
   const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
@@ -1380,44 +1387,31 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
       hasGroups: false
     }
 
-    // Debug: log what we're working with
-    if (offering.contentAccess) {
-      console.log('Offering contentAccess:', offering.contentAccess, 'Parsed:', contentAccess)
-      console.log('Available tracks:', tracks.length, tracks.map(t => ({ id: t.id, name: t.name })))
-      console.log('Available roles:', allRoles.length, allRoles.map(r => ({ id: r.id, name: r.name })))
-    }
-
-    if (contentAccess.trackIds && Array.isArray(contentAccess.trackIds)) {
-      details.tracks = contentAccess.trackIds
+    if (accessGrants.trackIds && Array.isArray(accessGrants.trackIds)) {
+      details.tracks = accessGrants.trackIds
         .map(trackId => {
           const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-          if (!track) {
-            console.warn('Track not found for ID:', trackId, 'Available tracks:', tracks.map(t => t.id))
-          }
           return track
         })
         .filter(Boolean)
     }
 
-    if (contentAccess.roleIds && Array.isArray(contentAccess.roleIds)) {
-      details.roles = contentAccess.roleIds
+    if (accessGrants.roleIds && Array.isArray(accessGrants.roleIds)) {
+      details.roles = accessGrants.roleIds
         .map(roleId => {
           const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-          if (!role) {
-            console.warn('Role not found for ID:', roleId, 'Available roles:', allRoles.map(r => r.id))
-          }
           return role
         })
         .filter(Boolean)
     }
 
     // Since we only allow the current group, just check if groups exist
-    if (contentAccess.groupIds && Array.isArray(contentAccess.groupIds) && contentAccess.groupIds.length > 0) {
+    if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0) {
       details.hasGroups = true
     }
 
     return details
-  }, [contentAccess, tracks, allRoles, offering.contentAccess])
+  }, [accessGrants, tracks, allRoles, offering.accessGrants])
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
