@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import { isEmpty, some } from 'lodash/fp'
+import { isEmpty } from 'lodash/fp'
 import React, { useCallback, useMemo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import ScrollListener from 'components/ScrollListener/ScrollListener'
@@ -24,7 +24,6 @@ const NOTIFICATIONS_PAGE_SIZE = 20
 
 function NotificationsDropdown ({ renderToggleChildren, className }) {
   const [showingUnread, setShowingUnread] = useState(false)
-  const [lastOpenedAt, setLastOpenedAt] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -50,22 +49,10 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
 
   const handleOpenChange = useCallback(isOpen => {
     if (isOpen) {
-      setLastOpenedAt(new Date())
       if (!pending) dispatch(fetchNotifications())
     }
     setModalOpen(isOpen)
   }, [])
-
-  const hasUnread = useMemo(() => {
-    if (isEmpty(notifications)) {
-      return currentUser?.newNotificationCount > 0
-    }
-
-    const isUnread = n =>
-      n.activity && n.activity.unread && (!lastOpenedAt || new Date(n.createdAt) > lastOpenedAt)
-
-    return some(isUnread, notifications) || currentUser?.newNotificationCount > 0
-  }, [notifications, currentUser?.newNotificationCount, lastOpenedAt])
 
   const showRecent = useCallback(() => setShowingUnread(false))
   const showUnread = useCallback(() => setShowingUnread(true))
@@ -119,7 +106,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   return (
     <Popover onOpenChange={handleOpenChange} open={modalOpen}>
       <PopoverTrigger>
-        {renderToggleChildren(hasUnread)}
+        {renderToggleChildren(currentUser?.newNotificationCount > 0)}
       </PopoverTrigger>
       <PopoverContent side='right' align='start' className='!p-0 !w-[248px] sm:!w-[300px]'>
         <div className='flex items-center w-full z-10 p-2 pointer-events-auto'>
