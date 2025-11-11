@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+
+### Changed
+- When sending comment digest emails, use the group name as the sender name, instead of the team at Hylo
+
+### Fixed
+- Fix broken commenting on new posts
+
 ## [6.2.1] - 2025-11-07
 
 ### Changed

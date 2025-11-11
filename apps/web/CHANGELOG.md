@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+- Long pressing on an emoji on mobile shows the tooltip of all the people who reacted with that emoji
+
+### Changed
+- Update to the latest filestack library
+- When uploading multiple images to a post the order of the images matches the order of the files
+- Fully remove orange dot from Activity Bell after it is clicked on, even if there are unread notifications
+
+### Fixed
+- Fix reordering of image attachments in posts and comments
+
+### Changed
+
 ## [6.2.1] - 2025-11-07
 
 ### Changed
