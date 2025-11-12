@@ -5,6 +5,7 @@ import Button from 'components/ui/button'
 import { DollarSign, CreditCard } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
+import { createStripeCheckoutSession } from 'util/offerings'
 
 /**
  * PaywallOfferingsSection Component
@@ -58,62 +59,21 @@ export default function PaywallOfferingsSection ({ group }) {
     try {
       const baseUrl = getHost()
       const successUrl = `${baseUrl}/groups/${group.slug}/payment/success`
-      const cancelUrl = `${baseUrl}/groups/${group.slug}`
+      const cancelUrl = `${baseUrl}/groups/${group.slug}/payment/cancel`
 
-      const mutation = `
-        mutation ($groupId: ID!, $offeringId: ID!, $quantity: Int, $successUrl: String!, $cancelUrl: String!, $metadata: JSON) {
-          createStripeCheckoutSession(
-            groupId: $groupId
-            offeringId: $offeringId
-            quantity: $quantity
-            successUrl: $successUrl
-            cancelUrl: $cancelUrl
-            metadata: $metadata
-          ) {
-            sessionId
-            url
-            success
-          }
+      const checkoutData = await createStripeCheckoutSession({
+        groupId: group.id,
+        offeringId: offering.id,
+        quantity: 1,
+        successUrl,
+        cancelUrl,
+        metadata: {
+          groupSlug: group.slug
         }
-      `
-
-      const response = await fetch('/noo/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          query: mutation,
-          variables: {
-            groupId: group.id,
-            offeringId: offering.id,
-            quantity: 1,
-            successUrl,
-            cancelUrl,
-            metadata: {
-              offeringId: offering.id,
-              groupId: group.id,
-              groupSlug: group.slug
-            }
-          }
-        })
       })
 
-      const result = await response.json()
-
-      if (result.errors) {
-        throw new Error(result.errors[0].message)
-      }
-
-      const checkoutUrl = result.data?.createStripeCheckoutSession?.url
-
-      if (!checkoutUrl) {
-        throw new Error(t('No checkout URL returned'))
-      }
-
       // Redirect to Stripe checkout
-      window.location.href = checkoutUrl
+      window.location.href = checkoutData.url
     } catch (error) {
       console.error('Error creating checkout session:', error)
       alert(t('Failed to start payment process: {{error}}', { error: error.message }))
