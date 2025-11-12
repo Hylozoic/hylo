@@ -187,6 +187,18 @@ export default function AuthLayoutRouter (props) {
     })()
   }, [currentGroupSlug])
 
+  // Redirect to stream if user is a member but doesn't have access (expired subscription)
+  useEffect(() => {
+    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
+      const currentPath = location.pathname
+      const streamPath = `/groups/${currentGroupSlug}/stream`
+      // Only redirect if not already on stream page
+      if (!currentPath.includes('/stream')) {
+        navigate(streamPath, { replace: true })
+      }
+    }
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate])
+
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
