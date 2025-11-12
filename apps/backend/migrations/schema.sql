@@ -3098,7 +3098,7 @@ CREATE TABLE public.user_scopes (
 -- Name: COLUMN user_scopes.expires_at; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.user_scopes.expires_at IS 'Earliest ends_at among sources; null means never expires';
+COMMENT ON COLUMN public.user_scopes.expires_at IS 'Earliest ends_at among sources, null means never expires';
 
 
 --

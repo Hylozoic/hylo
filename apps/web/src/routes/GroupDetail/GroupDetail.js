@@ -208,36 +208,52 @@ function GroupDetail ({ forCurrentGroup = false }) {
             </div>)
           : ''}
         {!isAboutCurrentGroup
-          ? !currentUser
-              ? (
-                <div className={g.signupButton}>
-                  <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
-                    {t('Signup or Login to connect with')}{' '}
-                    <span className={g.requestGroup}>{group.name}</span>
-                  </Link>
-                </div>)
-              : isMember
+          ? group.paywall
+            ? (
+              <div>
+                <JoinSection
+                  addSkill={addSkill}
+                  currentUser={currentUser}
+                  fullPage={fullPage}
+                  group={group}
+                  groupsWithPendingRequests={groupsWithPendingRequests}
+                  joinGroup={joinGroupHandler}
+                  requestToJoinGroup={requestToJoinGroup}
+                  removeSkill={removeSkill}
+                  routeParams={routeParams}
+                  t={t}
+                />
+              </div>)
+            : !currentUser
                 ? (
-                  <div className={g.existingMember}>
-                    {t('You are a member of ')}
-                    <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                  <div className={g.signupButton}>
+                    <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
+                      {t('Signup or Login to connect with')}{' '}
+                      <span className={g.requestGroup}>{group.name}</span>
+                    </Link>
                   </div>)
-                : (
-                  <div>
-                    <JoinSection
-                      addSkill={addSkill}
-                      currentUser={currentUser}
-                      fullPage={fullPage}
-                      group={group}
-                      groupsWithPendingRequests={groupsWithPendingRequests}
-                      joinGroup={joinGroupHandler}
-                      requestToJoinGroup={requestToJoinGroup}
-                      removeSkill={removeSkill}
-                      routeParams={routeParams}
-                      t={t}
-                    />
-                  </div>
-                  )
+                : isMember
+                  ? (
+                    <div className={g.existingMember}>
+                      {t('You are a member of ')}
+                      <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                    </div>)
+                  : (
+                    <div>
+                      <JoinSection
+                        addSkill={addSkill}
+                        currentUser={currentUser}
+                        fullPage={fullPage}
+                        group={group}
+                        groupsWithPendingRequests={groupsWithPendingRequests}
+                        joinGroup={joinGroupHandler}
+                        requestToJoinGroup={requestToJoinGroup}
+                        removeSkill={removeSkill}
+                        routeParams={routeParams}
+                        t={t}
+                      />
+                    </div>
+                    )
           : ''}
       </div>
       <Tooltip

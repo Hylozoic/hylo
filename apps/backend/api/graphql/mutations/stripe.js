@@ -507,6 +507,80 @@ module.exports = {
   },
 
   /**
+   * Lists published offerings for a group (public, no auth required)
+   *
+   * Fetches only published offerings from the database that grant access to the group.
+   * This is a public query that doesn't require authentication.
+   *
+   * Usage:
+   *   query {
+   *     publicStripeOfferings(groupId: "123") {
+   *       offerings {
+   *         id
+   *         name
+   *         description
+   *         priceInCents
+   *         currency
+   *         stripeProductId
+   *         stripePriceId
+   *         accessGrants
+   *         publishStatus
+   *         duration
+   *       }
+   *       success
+   *     }
+   *   }
+   */
+  publicStripeOfferings: async (userId, { groupId }) => {
+    try {
+      // Fetch only published offerings from database for this group
+      const products = await StripeProduct.where({
+        group_id: groupId,
+        publish_status: 'published'
+      }).fetchAll()
+
+      // Filter to only offerings that grant access to this group
+      const groupAccessOfferings = products.models.filter(product => {
+        const accessGrants = product.get('access_grants')
+        if (!accessGrants) {
+          return false
+        }
+
+        // Parse accessGrants (might be string or object)
+        let grants = {}
+        if (typeof accessGrants === 'string') {
+          try {
+            grants = JSON.parse(accessGrants)
+          } catch (e) {
+            console.warn('Failed to parse accessGrants as JSON for product:', product.get('id'), e)
+            return false
+          }
+        } else {
+          grants = accessGrants
+        }
+
+        // Check if it includes the current group's ID
+        if (grants.groupIds && Array.isArray(grants.groupIds)) {
+          return grants.groupIds.some(gId => parseInt(gId) === parseInt(groupId))
+        }
+
+        return false
+      })
+
+      return {
+        offerings: groupAccessOfferings,
+        success: true
+      }
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in publicStripeOfferings:', error)
+      throw new GraphQLError(`Failed to retrieve offerings: ${error.message}`)
+    }
+  },
+
+  /**
    * Creates a checkout session for purchasing a product
    *
    * This mutation creates a Stripe Checkout session and returns a URL
@@ -529,8 +603,7 @@ module.exports = {
    */
   createStripeCheckoutSession: async (userId, {
     groupId,
-    accountId,
-    priceId,
+    offeringId,
     quantity,
     successUrl,
     cancelUrl,
@@ -540,11 +613,40 @@ module.exports = {
       // Authentication is optional for checkout - you may want to allow guests
       // For this demo, we'll allow unauthenticated purchases
 
+      // Look up the offering from the database
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+      if (!offering) {
+        throw new GraphQLError('Offering not found')
+      }
+
+      // Verify the offering belongs to the specified group
+      const offeringGroupId = offering.get('group_id')
+      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
+        throw new GraphQLError('Offering does not belong to the specified group')
+      }
+
+      // Get the group to access its Stripe account ID
+      const group = await Group.where({ id: groupId }).fetch()
+      if (!group) {
+        throw new GraphQLError('Group not found')
+      }
+
+      const stripeAccountId = group.get('stripe_account_id')
+      if (!stripeAccountId) {
+        throw new GraphQLError('Group does not have a Stripe account configured')
+      }
+
+      // Get the Stripe price ID from the offering
+      const stripePriceId = offering.get('stripe_price_id')
+      if (!stripePriceId) {
+        throw new GraphQLError('Offering does not have a Stripe price ID')
+      }
+
       // Convert database ID to external account ID if needed
-      const externalAccountId = await getExternalAccountId(accountId)
+      const externalAccountId = await getExternalAccountId(stripeAccountId)
 
       // Fetch the actual price from Stripe to calculate the application fee accurately
-      const priceObject = await StripeService.getPrice(externalAccountId, priceId)
+      const priceObject = await StripeService.getPrice(externalAccountId, stripePriceId)
 
       // Calculate the total amount (price * quantity)
       const totalAmount = priceObject.unit_amount * (quantity || 1)
@@ -558,13 +660,14 @@ module.exports = {
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
         accountId: externalAccountId,
-        priceId,
+        priceId: stripePriceId,
         quantity: quantity || 1,
         applicationFeeAmount,
-        successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&account_id=${accountId}`,
+        successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
         cancelUrl,
         metadata: {
           groupId,
+          offeringId,
           userId,
           priceAmount: priceObject.unit_amount,
           currency: priceObject.currency,

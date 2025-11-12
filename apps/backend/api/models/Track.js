@@ -63,7 +63,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   /**
    * Check if a user has access to this track
    * If track is not access controlled, returns true (free access)
-   * If track is access controlled, checks user's scopes
+   * Otherwise checks: 1) full-access responsibilities in parent group, 2) scope-based access
    * @param {String|Number} userId - User ID to check
    * @returns {Promise<Boolean>}
    */
@@ -72,8 +72,21 @@ module.exports = bookshelf.Model.extend(Object.assign({
     if (!this.get('access_controlled')) {
       return true
     }
+
+    if (!userId) {
+      return false
+    }
     
-    // Check scope for access-controlled tracks
+    // Check if user has full-access responsibility in parent group (admin or content manager)
+    const groupId = this.get('group_id')
+    if (groupId) {
+      const hasFullAccess = await Group.hasFullAccessResponsibility(userId, groupId)
+      if (hasFullAccess) {
+        return true
+      }
+    }
+    
+    // Check scope-based access (purchased or granted)
     const trackId = this.get('id')
     const requiredScope = createTrackScope(trackId)
     return await UserScope.canAccess(userId, requiredScope)

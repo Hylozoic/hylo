@@ -332,6 +332,11 @@ type Query {
     accountId: String!
   ): StripeOfferingsResult
 
+  # List published offerings for a group (public, no auth required)
+  publicStripeOfferings(
+    groupId: ID!
+  ): StripeOfferingsResult
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -3368,8 +3373,7 @@ type Mutation {
   # Create a checkout session for purchasing a product
   createStripeCheckoutSession(
     groupId: ID!
-    accountId: String!
-    priceId: String!
+    offeringId: ID!
     quantity: Int
     successUrl: String!
     cancelUrl: String!

@@ -155,6 +155,7 @@ import {
   createStripeOffering,
   updateStripeOffering,
   stripeOfferings,
+  publicStripeOfferings,
   createStripeCheckoutSession,
   checkStripeStatus,
   verifyEmail
@@ -332,7 +333,8 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
-    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true }))
+    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId })
   }
 }
 
@@ -418,7 +420,8 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
-    verifyEmail: verifyEmail(fetchOne)
+    verifyEmail: verifyEmail(fetchOne),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata })
   }
 }
 
@@ -615,7 +618,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 

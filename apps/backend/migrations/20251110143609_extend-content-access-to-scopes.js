@@ -3,7 +3,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable('user_scopes', table => {
     table.bigInteger('user_id').references('id').inTable('users').notNullable()
     table.string('scope').notNullable()
-    table.timestamp('expires_at').nullable().comment('Earliest ends_at among sources; null means never expires')
+    table.timestamp('expires_at').nullable().comment('Earliest ends_at among sources, null means never expires')
     table.string('source_kind').notNullable().comment('Type of source: grant or role')
     table.bigInteger('source_id').notNullable().comment('ID of the content_access grant or group_memberships_group_roles record')
     table.timestamp('created_at')
