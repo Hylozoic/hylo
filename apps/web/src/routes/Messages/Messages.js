@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation, useParams } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -44,7 +43,6 @@ import classes from './Messages.module.scss'
 export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
-  const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
   const routeParams = useParams()
