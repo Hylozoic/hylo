@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
 
-/* global StripeAccount */
+/* global StripeAccount, StripeProduct, ContentAccess, GroupMembership */
 
 module.exports = {
 
@@ -263,38 +263,39 @@ module.exports = {
       // Extract user and product info from session metadata
       const userId = session.metadata?.userId
       const groupId = session.metadata?.groupId
-      const accountId = session.metadata?.accountId
+      const offeringId = session.metadata?.offeringId
 
-      if (!userId || !groupId || !accountId) {
+      if (!userId || !groupId || !offeringId) {
         if (process.env.NODE_ENV === 'development') {
           console.log(`Missing required metadata in session ${sessionId}:`, {
             userId: !!userId,
             groupId: !!groupId,
-            accountId: !!accountId
+            offeringId: !!offeringId
           })
         }
         return
       }
 
-      // Find the Stripe product for this purchase
-      const lineItem = session.line_items?.data?.[0]
-      if (!lineItem) {
+      // Find the offering (StripeProduct) by database ID
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+      if (!offering) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No line items found in session: ${sessionId}`)
+          console.log(`No offering found for ID: ${offeringId}`)
         }
         return
       }
 
-      const product = await StripeProduct.findByStripeId(lineItem.price.product)
-      if (!product) {
+      // Verify the offering belongs to the specified group
+      const offeringGroupId = offering.get('group_id')
+      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No product found for Stripe product ID: ${lineItem.price.product}`)
+          console.log(`Offering ${offeringId} does not belong to group ${groupId}`)
         }
         return
       }
 
       // Generate content access records
-      const accessRecords = await product.generateContentAccessRecords({
+      const accessRecords = await offering.generateContentAccessRecords({
         userId: parseInt(userId, 10),
         sessionId,
         paymentIntentId: paymentIntent.id,
@@ -307,6 +308,33 @@ module.exports = {
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
+      }
+
+      // Grant group membership for any groups that received access
+      const userIdNum = parseInt(userId, 10)
+
+      // Collect unique group IDs that received access
+      const groupsToJoin = new Set()
+      for (const accessRecord of accessRecords) {
+        const accessGroupId = accessRecord.get('group_id')
+        if (accessGroupId) {
+          groupsToJoin.add(parseInt(accessGroupId, 10))
+        }
+      }
+
+      // Ensure user is a member of all groups that received access
+      for (const accessGroupId of groupsToJoin) {
+        try {
+          await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
+            role: GroupMembership.Role.DEFAULT
+          })
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
+          }
+        } catch (error) {
+          console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
+          // Continue processing other groups even if one fails
+        }
       }
 
       // TODO STRIPE: Send confirmation email to user
@@ -357,6 +385,8 @@ module.exports = {
   /**
    * Handle checkout.session.completed webhook events
    * Final verification that checkout completed successfully
+   * Note: The actual access granting and membership creation is handled by payment_intent.succeeded
+   * This handler is primarily for logging and verification
    */
   handleCheckoutSessionCompleted: async function (event) {
     try {
@@ -371,6 +401,26 @@ module.exports = {
           console.log(`Checkout session ${session.id} completed but payment status is ${session.payment_status}`)
         }
         return
+      }
+
+      // Verify that ContentAccess records were created for this session
+      const offeringId = session.metadata?.offeringId
+      const userId = session.metadata?.userId
+      if (offeringId && userId) {
+        const accessRecords = await ContentAccess.where({
+          stripe_session_id: session.id,
+          user_id: parseInt(userId, 10),
+          status: ContentAccess.Status.ACTIVE
+        }).fetchAll()
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Checkout session ${session.id} completed successfully. ${accessRecords.length} access records found.`)
+        }
+
+        // If no access records found, this might indicate an issue
+        if (accessRecords.length === 0) {
+          console.warn(`Warning: Checkout session ${session.id} completed but no ContentAccess records found. This may indicate the payment_intent.succeeded webhook failed.`)
+        }
       }
 
       // The actual access granting is handled by payment_intent.succeeded

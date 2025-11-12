@@ -222,7 +222,18 @@ function PostEditor ({
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   const groupOptions = useMemo(() => {
-    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+    if (!currentUser) return []
+
+    return currentUser.memberships.toModelArray()
+      .map((m) => m.group)
+      .filter((g) => {
+        // Filter out paywalled groups where user doesn't have access
+        if (g?.paywall && g?.canAccess === false) {
+          return false
+        }
+        return true
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [currentUser?.memberships])
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
