@@ -144,7 +144,7 @@ function PostEditor ({
 
   const postType = getQuerystringParam('newPostType', urlLocation)
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
-  const hiddenTopic = topicName.startsWith('‡')
+  const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
