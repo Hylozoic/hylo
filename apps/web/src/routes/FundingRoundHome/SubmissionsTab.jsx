@@ -107,7 +107,8 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
 
     // Subtract current local vote amounts
     Object.values(localVoteAmounts).forEach(amount => {
-      remaining -= amount
+      const numericAmount = typeof amount === 'number' ? amount : parseInt(amount, 10)
+      remaining -= Number.isNaN(numericAmount) ? 0 : numericAmount
     })
 
     return remaining
@@ -141,7 +142,7 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
             canVote={canVote}
             currentPhase={currentPhase}
             round={round}
-            localVoteAmount={localVoteAmounts[post.id] || 0}
+            localVoteAmount={localVoteAmounts[post.id] ?? 0}
             setLocalVoteAmount={(amount) => setLocalVoteAmounts(prev => ({ ...prev, [post.id]: amount }))}
             currentTokensRemaining={currentTokensRemaining}
             submissionAllocations={allocationsBySubmission[String(post.id)] || []}

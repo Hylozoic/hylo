@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { View, Text, TextInput, Alert, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useMutation } from 'urql'
@@ -18,6 +18,8 @@ function SubmissionCard ({
 }) {
   const { t } = useTranslation()
   const [validationError, setValidationError] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
+  const [inputValue, setInputValue] = useState('')
   const [, executeAllocate] = useMutation(allocateTokensToSubmissionMutation)
 
   const tokenLabel = fundingRound?.tokenType || t('Votes')
@@ -26,6 +28,13 @@ function SubmissionCard ({
   const availableTokens = useMemo(() => {
     return (currentTokensRemaining || 0) + (localVoteAmount || 0)
   }, [currentTokensRemaining, localVoteAmount])
+
+  // Sync inputValue with localVoteAmount when not focused
+  useEffect(() => {
+    if (!isFocused) {
+      setInputValue(String(localVoteAmount || 0))
+    }
+  }, [localVoteAmount, isFocused])
 
   const validateVoteAmount = useCallback((value) => {
     // Check if exceeds available tokens
@@ -47,15 +56,27 @@ function SubmissionCard ({
   }, [availableTokens, fundingRound.maxTokenAllocation, fundingRound.minTokenAllocation, t])
 
   const handleVoteAmountChange = useCallback((text) => {
-    let newValue = parseInt(text) || 0
-    if (newValue < 0) newValue = 0
+    // Allow empty string while typing
+    setInputValue(text)
+
+    // If empty, don't update the actual value yet
+    if (text === '' || text === '-') {
+      return
+    }
+
+    let newValue = parseInt(text)
+    if (isNaN(newValue) || newValue < 0) {
+      return
+    }
 
     // Enforce maximum constraints
     if (fundingRound.maxTokenAllocation && newValue > fundingRound.maxTokenAllocation) {
       newValue = fundingRound.maxTokenAllocation
+      setInputValue(String(newValue))
     }
     if (newValue > availableTokens) {
       newValue = availableTokens
+      setInputValue(String(newValue))
     }
 
     setLocalVoteAmount(newValue)
@@ -65,13 +86,40 @@ function SubmissionCard ({
     setValidationError(error)
   }, [availableTokens, fundingRound.maxTokenAllocation, validateVoteAmount, setLocalVoteAmount])
 
+  const handleVoteAmountFocus = useCallback(() => {
+    setIsFocused(true)
+    setInputValue(String(localVoteAmount || 0))
+  }, [localVoteAmount])
+
   const handleVoteAmountBlur = useCallback(async () => {
+    setIsFocused(false)
+
+    // If input is empty, reset to 0
+    let finalValue = parseInt(inputValue) || 0
+    if (finalValue < 0) finalValue = 0
+
+    // Enforce maximum constraints
+    if (fundingRound.maxTokenAllocation && finalValue > fundingRound.maxTokenAllocation) {
+      finalValue = fundingRound.maxTokenAllocation
+    }
+    if (finalValue > availableTokens) {
+      finalValue = availableTokens
+    }
+
+    // Update the value and input display
+    setLocalVoteAmount(finalValue)
+    setInputValue(String(finalValue))
+
+    // Validate
+    const error = validateVoteAmount(finalValue)
+    setValidationError(error)
+
     // Only submit if there's no validation error and the value changed
-    if (!validationError && localVoteAmount !== submission.tokensAllocated) {
+    if (!error && finalValue !== submission.tokensAllocated) {
       try {
         const result = await executeAllocate({
           postId: submission.id,
-          tokens: localVoteAmount
+          tokens: finalValue
         })
 
         if (result.error) {
@@ -86,7 +134,7 @@ function SubmissionCard ({
         setLocalVoteAmount(submission.tokensAllocated || 0)
       }
     }
-  }, [validationError, localVoteAmount, submission.tokensAllocated, submission.id, executeAllocate, setLocalVoteAmount, t])
+  }, [inputValue, availableTokens, fundingRound.maxTokenAllocation, validateVoteAmount, submission.tokensAllocated, submission.id, executeAllocate, setLocalVoteAmount, t])
 
   return (
     <View className='flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl mb-1'>
@@ -108,8 +156,9 @@ function SubmissionCard ({
             {t('Your {{tokenType}}', { tokenType: tokenLabel })}
           </Text>
           <TextInput
-            value={String(localVoteAmount)}
+            value={inputValue}
             onChangeText={handleVoteAmountChange}
+            onFocus={handleVoteAmountFocus}
             onBlur={handleVoteAmountBlur}
             keyboardType='number-pad'
             className={`w-20 h-12 text-center text-2xl font-bold bg-input border-2 rounded-md ${
