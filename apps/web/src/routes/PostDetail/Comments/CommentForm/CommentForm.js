@@ -33,7 +33,10 @@ function CommentForm ({
   const dispatch = useDispatch()
 
   const currentUser = useSelector(getMe)
-  const attachments = useSelector(state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const attachments = useSelector(
+    state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])

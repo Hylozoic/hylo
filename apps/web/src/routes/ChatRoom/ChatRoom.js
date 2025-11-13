@@ -102,7 +102,8 @@ export default function ChatRoom (props) {
   const { groupSlug, postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
-  const topicName = customTopicName || routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName.startsWith('‡')
 
   const socket = useMemo(() => getSocket(), [])
 
@@ -570,7 +571,7 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    !customTopicName && setHeaderDetails({
+    !hiddenTopic && setHeaderDetails({
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
@@ -596,7 +597,7 @@ export default function ChatRoom (props) {
       info: '',
       search: !isWebView()
     })
-  }, [customTopicName, topicName, notificationsSetting])
+  }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
     <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
@@ -608,7 +609,7 @@ export default function ChatRoom (props) {
         {initialPostToScrollTo === null || topicFollowLoading
           ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
           : (
-            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
+            <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
                 ref={messageListRef}

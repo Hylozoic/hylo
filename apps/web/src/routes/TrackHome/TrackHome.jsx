@@ -154,6 +154,7 @@ function TrackHome () {
             <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
             <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
             <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+            <Route path='manage/create/*' element={<CreateModal context='groups' />} />
             <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
             <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
             <Route path='*' element={<AboutTab track={currentTrack} />} />

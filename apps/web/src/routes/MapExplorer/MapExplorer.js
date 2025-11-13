@@ -961,12 +961,12 @@ function MapExplorer (props) {
 
       {createCreatePopupVisible && (
         <div
-          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2'
+          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2 flex flex-col items-center'
           style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
           onClick={() => setCreatePopupVisible(false)}
         >
-          <CreateMenu coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
-          <button onClick={() => setCreatePopupVisible(false)}>Close</button>
+          <CreateMenu mapView coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
+          <button className='mt-2' onClick={() => setCreatePopupVisible(false)}>Close</button>
         </div>
       )}
     </div>

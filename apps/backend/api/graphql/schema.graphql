@@ -2219,6 +2219,8 @@ type Post {
   followersTotal: Int
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
+  # The funding round this post is associated with
+  fundingRound: FundingRound
   # Number of groups this has been posted to
   groupsTotal: Int
   # Whether who votes on this proposal is visible or not
@@ -3058,6 +3060,8 @@ type Mutation {
   deleteAffiliation(id: ID): ID
   # Delete a comment
   deleteComment(id: ID): GenericResult
+  # Delete a context widget (can only delete user added ones)
+  deleteContextWidget(contextWidgetId: ID): GenericResult
   # Delete a funding round
   deleteFundingRound(id: ID): GenericResult
   # Delete a group that you are a steward of

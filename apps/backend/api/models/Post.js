@@ -160,6 +160,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
   },
 
+  fundingRounds: function () {
+    return this.belongsToMany(FundingRound, 'funding_rounds_posts', 'post_id', 'funding_round_id')
+  },
+
   groups: function () {
     return this.belongsToMany(Group).through(PostMembership)
       .query({ where: { 'groups.active': true } })

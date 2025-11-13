@@ -52,6 +52,7 @@ import {
   declineJoinRequest,
   deleteAffiliation,
   deleteComment,
+  deleteContextWidget,
   deleteFundingRound,
   deleteGroup,
   deleteGroupRelationship,
@@ -514,6 +515,8 @@ export function makeMutations ({ fetchOne }) {
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
+
+    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId),
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
