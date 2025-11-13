@@ -50,7 +50,7 @@ export default function PostCard ({
           </View>
         </View>
       )}
-      <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''}`}>
+      <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''} ${post.fulfilledAt && 'opacity-60'}`}>
         {isAction && (
           <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
             {post.completedAt ? (

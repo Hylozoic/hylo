@@ -59,7 +59,18 @@ const PostListRow = (props) => {
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
 
   return (
-    <div className={cn('bg-card/50 hover:bg-card/100 transition-all p-3 border-b-2 border-midground text-foreground', classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
+    <div
+      className={cn(
+        'bg-card/50 hover:bg-card/100 transition-all p-3 border-b-2 border-midground text-foreground',
+        classes.postRow,
+        {
+          [classes.unread]: unread,
+          [classes.expanded]: expanded,
+          'opacity-60': post.fulfilledAt
+        }
+      )}
+      onClick={() => viewPostDetails(post)}
+    >
       <div className={classes.contentSummary}>
         <div className={classes.typeAuthor}>
           {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
@@ -111,7 +122,10 @@ const PostListRow = (props) => {
           </div>
         )}
         <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <h3 className={cn('font-bold text-foreground mb-0')}>{title}</h3>
+          <h3 className={cn('font-bold text-foreground mb-0')}>
+            {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
+            {title}
+          </h3>
           <HyloHTML className='text-foreground/60 text-sm line-clamp-1 -mt-[10px]' html={details} />
         </div>
         <div className={classes.reactions}>
