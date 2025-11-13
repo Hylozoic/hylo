@@ -199,7 +199,7 @@ export default function RoundPhaseStatus ({
             <View className='flex-row gap-3 opacity-50'>
               {round.minTokenAllocation && (
                 <Text className='text-xs text-foreground/80 border-r-2 border-foreground/20 pr-2'>
-                  {t('Minimum of {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
+                  {t('Minimum {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     minTokenAllocation: round.minTokenAllocation,
                     tokenType: round.tokenType || t('Votes'),
                     submissionDescriptor: round.submissionDescriptor
@@ -208,7 +208,7 @@ export default function RoundPhaseStatus ({
               )}
               {round.maxTokenAllocation && (
                 <Text className='text-xs text-foreground/80'>
-                  {t('Maximum of {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
+                  {t('Maximum {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     maxTokenAllocation: round.maxTokenAllocation,
                     tokenType: round.tokenType || t('Votes'),
                     submissionDescriptor: round.submissionDescriptor
