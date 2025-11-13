@@ -9,6 +9,7 @@ export default gql`
     description
     completionMessage
     completionRole {
+      __typename
       ... on CommonRole {
         id
         emoji

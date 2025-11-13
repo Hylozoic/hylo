@@ -121,6 +121,7 @@ export default gql`
         }
       }
       submitterRoles {
+        __typename
         ... on CommonRole {
           id
           emoji
@@ -177,6 +178,7 @@ export default gql`
         }
       }
       voterRoles {
+        __typename
         ... on CommonRole {
           id
           emoji
