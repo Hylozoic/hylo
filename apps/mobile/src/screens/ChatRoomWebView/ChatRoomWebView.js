@@ -22,7 +22,7 @@ export default function ChatRoomWebView () {
   return (
     <KeyboardFriendlyView
       style={{ flex: 1 }}
-      keyboardVerticalOffset={insets.bottom + 80}
+      keyboardVerticalOffset={insets.bottom + 62}
     >
       <HyloWebView path={path} />
     </KeyboardFriendlyView>
