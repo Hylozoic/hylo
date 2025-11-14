@@ -5,37 +5,35 @@ const defaultGroupUrl = '/assets/default_group_avatar.png'
 
 // Icon Layer for Groups
 export function createIconLayerFromGroups ({ boundingBox, groups, onHover, onClick }) {
+  const toMapVariant = url => {
+    if (!url) return null
+    if (!url.includes('/evo-uploads/')) return url
+    const base = url.split('?')[0]
+    const mapUrl = base.replace(/(\.[a-zA-Z0-9]{2,4})?$/, '') + '-forMap.png'
+    return mapUrl
+  }
+
   const data = groups.filter(group => group.locationObject && group.locationObject.center)
-    .map(group => {
-      return {
-        id: group.id,
-        slug: group.slug,
-        type: 'group',
-        message: 'Group: ' + group.name,
-        avatarUrl: group.avatarUrl,
-        coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
-      }
-    })
+    .map(group => ({
+      id: group.id,
+      slug: group.slug,
+      type: 'group',
+      message: 'Group: ' + group.name,
+      avatarUrl: toMapVariant(group.avatarUrl) || group.avatarUrl,
+      coordinates: [parseFloat(group.locationObject.center.lng), parseFloat(group.locationObject.center.lat)]
+    }))
 
   return new IconLayer({
     loadOptions: {
-      fetch: {
-        mode: 'no-cors',
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          Authorization: 'yes'
-          // 'Origin': 'bloop'
-        }
-      }
+      image: { crossOrigin: 'anonymous' }
     },
     id: 'group-icon-layer',
     data,
     sizeScale: 1,
     getPosition: d => d.coordinates,
     // getIcon return an object which contains url to fetch icon of each data point
-    // d.avatarUrl || defaultGroupUrl
     getIcon: d => ({
-      url: defaultGroupUrl, // process.env.NODE_ENV === 'development' ? defaultGroupUrl : d.avatarUrl,
+      url: d.avatarUrl || defaultGroupUrl,
       width: 42,
       height: 42,
       anchorY: 0
@@ -65,10 +63,7 @@ export default class GroupIconLayer extends CompositeLayer {
 
     const groupIconLayer = new IconLayer({
       loadOptions: {
-        mode: 'no-cors',
-        headers: {
-          'Access-Control-Allow-Origin': '*'
-        }
+        image: { crossOrigin: 'anonymous' }
       },
       id: 'group-icon-layer',
       data,
@@ -77,7 +72,7 @@ export default class GroupIconLayer extends CompositeLayer {
       // getIcon return an object which contains url to fetch icon of each data point
       //  || '/assets/all-groups-avatar.png'
       getIcon: d => ({
-        url: d.avatarUrl,
+        url: d.avatarUrl || defaultGroupUrl,
         width: 40,
         height: 40,
         anchorY: 40

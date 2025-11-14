@@ -1,12 +1,15 @@
+/* eslint-disable indent, object-curly-spacing */
 import getFileType from 'file-type'
 import mime from 'mime-types'
 import request from 'request'
+import sharp from 'sharp'
 import { PassThrough } from 'stream'
 
 import { createConverterStream } from './converter'
 import { createPostImporter } from './postImporter'
 import { createS3StorageStream } from './storage'
 import { validate } from './validation'
+import * as types from './types'
 
 export function upload (args) {
   let { type, id, userId, url, stream, onProgress, filename } = args
@@ -50,6 +53,22 @@ export function upload (args) {
               mimetype
             }
 
+            // For group avatars, also generate a 42x42 rounded variant with a thin black border
+            if (type === types.GROUP_AVATAR && mimetype && mimetype.startsWith('image')) {
+              try {
+                const originalFilename = filename || url
+                generateGroupMapVariant({
+                  sourceUrl: storage.url,
+                  userId,
+                  type,
+                  id,
+                  originalFilename
+                })
+              } catch (err) {
+                // TODO from assistant: non-fatal error creating map avatar variant
+                if (process.env.NODE_ENV === 'development') console.error('map avatar variant error', err)
+              }
+            }
             return resolve(uploaderResult)
           })
           storage.on('error', err => reject(err))
@@ -100,4 +119,44 @@ export function guessFileType (data, filename) {
     }
     return fileType
   } catch (err) {}
+}
+
+// Create and upload a 42x42 PNG variant of a group avatar, clipped to a circle with a thin black border
+function generateGroupMapVariant ({ sourceUrl, userId, type, id, originalFilename }) {
+  const filenameForMap = (originalFilename || 'avatar')
+    .replace(/\?.*$/, '')
+    .replace(/(\.[a-zA-Z0-9]{2,4})?$/, '-forMap.png')
+
+  const circleMaskSvg = Buffer.from('<svg width=\'42\' height=\'42\'><circle cx=\'21\' cy=\'21\' r=\'21\' fill=\'#fff\'/></svg>')
+
+  const circleStrokeSvg = Buffer.from('<svg width=\'42\' height=\'42\'><circle cx=\'21\' cy=\'21\' r=\'20.5\' fill=\'none\' stroke=\'#000\' stroke-width=\'1\'/></svg>')
+
+  const pngFileType = { mime: 'image/png', ext: 'png' }
+
+  const pipeline = request.get({ url: sourceUrl, encoding: null })
+    .on('error', err => {
+      if (process.env.NODE_ENV === 'development') console.error('map avatar fetch error', err)
+    })
+    .pipe(
+      sharp()
+        .rotate()
+        .resize(42, 42, { fit: 'cover', withoutEnlargement: true })
+        .composite([
+          { input: circleMaskSvg, blend: 'dest-in' },
+          { input: circleStrokeSvg, blend: 'over' }
+        ])
+        .png()
+    )
+
+  const storage = createS3StorageStream(type, id, { userId, fileType: pngFileType, filename: filenameForMap })
+
+  pipeline.pipe(storage)
+
+  storage.on('finish', () => {
+    if (process.env.NODE_ENV === 'development') console.log('uploaded group map avatar', storage.url)
+  })
+
+  storage.on('error', err => {
+    if (process.env.NODE_ENV === 'development') console.error('map avatar upload error', err)
+  })
 }

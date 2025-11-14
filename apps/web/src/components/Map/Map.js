@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef } from 'react'
+import React, { forwardRef, useState, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import MapGL, { NavigationControl, useControl } from 'react-map-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
@@ -42,20 +42,17 @@ const Map = forwardRef(({
   const [hoveredLayerFeatures, setHoveredLayerFeatures] = useState([])
   const [cursorLocation, setCursorLocation] = useState({ x: 0, y: 0 })
 
-  const onMouseEnter = event => {
+  const onMouseEnter = useCallback(event => {
     const { features } = event
     setHoveredLayerFeatures(features)
-  }
+  }, [])
 
-  const onMouseMove = event => {
-    const {
-      originalEvent: { offsetX, offsetY }
-    } = event
-
-    if (event.target.id === 'deckgl-overlay') {
-      setCursorLocation({ x: offsetX, y: offsetY })
+  const onMouseMove = useCallback(event => {
+    const { point } = event
+    if (point) {
+      setCursorLocation({ x: point.x, y: point.y })
     }
-  }
+  }, [])
 
   return (
     <MapGL
