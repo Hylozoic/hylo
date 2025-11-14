@@ -19,6 +19,11 @@ function getRoundPhase (round, t) {
 
   const toDate = (value) => (value ? new Date(value) : null)
   const formatDate = (value) => (value ? DateTimeHelpers.formatDatePair({ start: value }) : null)
+  const formatCompletedDate = (value) => {
+    if (!value) return null
+    const date = new Date(value)
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  }
   const now = new Date()
   const submissionsOpenAt = toDate(round.submissionsOpenAt)
   const submissionsCloseAt = toDate(round.submissionsCloseAt)
@@ -26,7 +31,7 @@ function getRoundPhase (round, t) {
   const votingClosesAt = toDate(round.votingClosesAt)
 
   if (votingClosesAt && votingClosesAt <= now) {
-    const completedDate = formatDate(round.votingClosesAt)
+    const completedDate = formatCompletedDate(round.votingClosesAt)
     return {
       key: 'completed',
       label: completedDate ? t('Completed {{date}}', { date: completedDate }) : t('Completed'),
