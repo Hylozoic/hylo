@@ -37,6 +37,7 @@ import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
 
 /**
  * Main PaidContentTab component
@@ -519,28 +520,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return false
       }
 
-      if (!offering.accessGrants) {
-        return false
-      }
-
-      // Parse accessGrants (might be string or object)
-      let accessGrants = {}
-      if (typeof offering.accessGrants === 'string') {
-        try {
-          accessGrants = JSON.parse(offering.accessGrants)
-        } catch {
-          return false
-        }
-      } else {
-        accessGrants = offering.accessGrants
-      }
-
-      // Check if accessGrants includes the current group's ID
-      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
-        return accessGrants.groupIds.some(groupId => parseInt(groupId) === parseInt(group?.id))
-      }
-
-      return false
+      // Check if this offering grants access to the current group
+      return offeringGrantsGroupAccess(offering, group?.id)
     })
 
     return hasGroupAccessOffering
@@ -654,18 +635,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Parse existing accessGrants for comparison
-      let existingAccessGrants = {}
-      if (editingOffering.accessGrants) {
-        if (typeof editingOffering.accessGrants === 'string') {
-          try {
-            existingAccessGrants = JSON.parse(editingOffering.accessGrants)
-          } catch {
-            existingAccessGrants = {}
-          }
-        } else {
-          existingAccessGrants = editingOffering.accessGrants
-        }
-      }
+      const existingAccessGrants = parseAccessGrants(editingOffering.accessGrants)
 
       // Normalize for comparison
       const normalizeAccessGrants = (ag) => {
@@ -722,19 +692,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
   const handleStartEdit = useCallback((offering) => {
     // Parse accessGrants and convert to lineItems format
-    let accessGrants = {}
-    if (offering.accessGrants) {
-      if (typeof offering.accessGrants === 'string') {
-        try {
-          accessGrants = JSON.parse(offering.accessGrants)
-        } catch (e) {
-          console.error('Error parsing accessGrants JSON:', e, offering.accessGrants)
-          accessGrants = {}
-        }
-      } else {
-        accessGrants = offering.accessGrants
-      }
-    }
+    const accessGrants = parseAccessGrants(offering.accessGrants)
 
     // Get roles for lookup
     const groupRoles = group?.groupRoles?.items || []
@@ -1047,29 +1005,12 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
             // Then filter by access type
             if (accessFilter !== 'all') {
               filteredOfferings = filteredOfferings.filter(offering => {
-                if (!offering.accessGrants) {
-                  return false
-                }
-
-                // Parse accessGrants (might be string or object)
-                let accessGrants = {}
-                if (typeof offering.accessGrants === 'string') {
-                  try {
-                    accessGrants = JSON.parse(offering.accessGrants)
-                  } catch {
-                    return false
-                  }
-                } else {
-                  accessGrants = offering.accessGrants
-                }
-
-                // Check based on filter type
                 if (accessFilter === 'group') {
-                  return accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
+                  return offeringHasGroupAccess(offering)
                 } else if (accessFilter === 'track') {
-                  return accessGrants.trackIds && Array.isArray(accessGrants.trackIds) && accessGrants.trackIds.length > 0
+                  return offeringHasTrackAccess(offering)
                 } else if (accessFilter === 'role') {
-                  return accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && accessGrants.roleIds.length > 0
+                  return offeringHasRoleAccess(offering)
                 }
 
                 return false
@@ -1354,20 +1295,7 @@ function StatusBadge ({ label, value, t }) {
 function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
   // Parse accessGrants JSON
   const accessGrants = useMemo(() => {
-    if (!offering.accessGrants) {
-      return {}
-    }
-    // If it's a string, parse it
-    if (typeof offering.accessGrants === 'string') {
-      try {
-        return JSON.parse(offering.accessGrants)
-      } catch (e) {
-        console.error('Error parsing accessGrants JSON:', e, offering.accessGrants)
-        return {}
-      }
-    }
-    // If it's already an object, use it directly
-    return offering.accessGrants || {}
+    return parseAccessGrants(offering.accessGrants)
   }, [offering.accessGrants])
 
   // Get tracks, roles, and groups from the group data
