@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform, Dimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Check, DoorOpen } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
@@ -18,19 +18,25 @@ import RoundPhaseStatus from 'components/RoundPhaseStatus'
 import SubmissionCard from 'components/SubmissionCard'
 import useRouteParams from 'hooks/useRouteParams'
 
-const TabButton = ({ isSelected, onPress, children }) => (
-  <TouchableOpacity
-    className={`py-1 px-4 rounded-md border-2 ${
-      isSelected
-        ? 'bg-selected border-selected'
-        : 'bg-transparent border-foreground/20'
-    }`}
-    onPress={onPress}
-    hitSlop={{ top: 4, bottom: 4, left: 6, right: 6 }}
-  >
-    <Text className='text-foreground'>{children}</Text>
-  </TouchableOpacity>
-)
+const TabButton = ({ isSelected, onPress, children }) => {
+  const windowWidth = Dimensions.get('window').width
+  // Use smaller padding on smaller devices (e.g., phones < 400px width)
+  const paddingX = windowWidth < 375 ? 'px-2' : windowWidth < 400 ? 'px-3' : 'px-4'
+
+  return (
+    <TouchableOpacity
+      className={`py-1 ${paddingX} rounded-md border-2 ${
+        isSelected
+          ? 'bg-selected border-selected'
+          : 'bg-transparent border-foreground/20'
+      }`}
+      onPress={onPress}
+      hitSlop={{ top: 4, bottom: 4, left: 6, right: 6 }}
+    >
+      <Text className='text-foreground'>{children}</Text>
+    </TouchableOpacity>
+  )
+}
 
 // Get current phase of funding round
 function getRoundPhase (round) {
