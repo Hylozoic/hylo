@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { View, FlatList, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useFocusEffect } from '@react-navigation/native'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
@@ -14,10 +15,18 @@ function FundingRounds () {
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canManageRounds = hasResponsibility(RESP_MANAGE_ROUNDS)
-  const [fundingRounds, { fetching, error }] = useFundingRounds({
+  const [fundingRounds, { fetching, error }, refetchFundingRounds] = useFundingRounds({
     groupId: currentGroup?.id,
     hideUnpublished: !canManageRounds
   })
+
+  useFocusEffect(
+    useCallback(() => {
+      if (refetchFundingRounds) {
+        refetchFundingRounds({ requestPolicy: 'network-only' })
+      }
+    }, [refetchFundingRounds])
+  )
 
   if (error) {
     return (
