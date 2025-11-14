@@ -25,6 +25,7 @@ import { personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 
@@ -37,6 +38,7 @@ export default function Search (props) {
   const searchFromQueryString = getQuerystringParam('t', location) || ''
   const groupSlug = getQuerystringParam('groupSlug', location) || ''
   const group = useSelector(state => groupSlug && getGroupForSlug(state, groupSlug))
+  const previousLocation = useSelector(getPreviousLocation)
   const groupIds = useMemo(() => group ? [group.id] : null, [group.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
   const [filter, setFilter] = useState('all')
@@ -100,19 +102,42 @@ export default function Search (props) {
         </div>
       </div>
     )
-  }, [searchForInput])
+  }, [searchForInput, t, updateQueryParam])
 
   const { setHeaderDetails } = useViewHeader()
+  const [backDestination, setBackDestination] = useState(null)
+  const fromParam = getQuerystringParam('from', location)
+  const hasRemovedFromParam = React.useRef(false)
+
+  // Set back destination once when component mounts or when fromParam/previousLocation changes
+  useEffect(() => {
+    const nonSearchPrevious = previousLocation && !previousLocation.pathname.startsWith('/search')
+      ? `${previousLocation.pathname}${previousLocation.search || ''}`
+      : null
+    const newBackDestination = fromParam || nonSearchPrevious
+    if (newBackDestination) {
+      setBackDestination(prev => prev || newBackDestination)
+    }
+  }, [fromParam, previousLocation?.pathname, previousLocation?.search])
+
+  // Remove from param from URL once when it exists
+  useEffect(() => {
+    if (fromParam && !hasRemovedFromParam.current) {
+      hasRemovedFromParam.current = true
+      dispatch(changeQuerystringParam(location, 'from', null, undefined, true))
+    }
+  }, [fromParam, dispatch, location])
 
   useEffect(() => {
     setHeaderDetails({
       title: <SearchInput />,
       centered: true,
       backButton: true, // TODO: mavigate back 1 doesnt work with postdialog, how to remember what to go back to?
+      backTo: backDestination,
       icon: undefined,
       search: false
     })
-  }, [SearchInput])
+  }, [SearchInput, backDestination, setHeaderDetails])
 
   return (
     <div className='w-full m-2'>

@@ -2,7 +2,7 @@ import { Globe, ChevronLeft } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Icon from 'components/Icon'
 import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
@@ -19,11 +19,12 @@ const ViewHeader = () => {
   const dispatch = useDispatch()
   const { context, groupSlug } = useRouteParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useTranslation()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, title, icon, info, search, centered } = headerDetails
+  const { backButton, backTo, title, icon, info, search, centered } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
 
@@ -79,13 +80,19 @@ const ViewHeader = () => {
 
   const handleSearch = useCallback((option) => {
     if (!option) return
-    const query = encodeURIComponent(searchValue.trim())
-    const basePath = `/search?t=${query}`
-    const destination = option.groupSlug ? `${basePath}&groupSlug=${encodeURIComponent(option.groupSlug)}` : basePath
+    const trimmedQuery = searchValue.trim()
+    const params = new URLSearchParams()
+    if (trimmedQuery) params.set('t', trimmedQuery)
+    if (option.groupSlug) params.set('groupSlug', option.groupSlug)
+    if (!location.pathname.startsWith('/search')) {
+      const fromValue = `${location.pathname}${location.search || ''}`
+      if (fromValue) params.set('from', fromValue)
+    }
+    const destination = `/search${params.toString() ? `?${params.toString()}` : ''}`
     navigate(destination)
     setSearchOpen(false)
     searchInputRef.current?.blur()
-  }, [navigate, searchValue])
+  }, [navigate, searchValue, location])
 
   const handleSearchKeyDown = useCallback((event) => {
     if (!searchOptions.length) return
@@ -107,6 +114,16 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
+  const handleBackClick = useCallback(() => {
+    if (backTo) {
+      navigate(backTo)
+    } else if (centered) {
+      navigate(previousLocation || '/')
+    } else {
+      navigate(-1)
+    }
+  }, [backTo, centered, navigate, previousLocation])
+
   return (
     <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered
@@ -115,14 +132,14 @@ const ViewHeader = () => {
       {centered && backButton && (
         <ChevronLeft
           className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
-          onClick={() => backButton ? navigate(previousLocation || '/') : dispatch(toggleNavMenu())}
+          onClick={handleBackClick}
         />
       )}
       {!isWebView() && !centered && (
         <>
           <ChevronLeft
             className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
-            onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
+            onClick={() => backButton ? handleBackClick() : dispatch(toggleNavMenu())}
           />
           {context !== 'messages' && (
             <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
