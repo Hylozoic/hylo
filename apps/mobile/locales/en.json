@@ -597,7 +597,6 @@
   "{{count}} Groups_other": "{{count}} Groups",
   "{{count}} Members_one": "{{count}} Member",
   "{{count}} Members_other": "{{count}} Members",
-  "{{count}} participants": "",
   "{{count}} participants_one": "{{count}} participant",
   "{{count}} participants_other": "{{count}} participants",
   "{{count}} {{submissionDescriptor}}": "{{count}} {{submissionDescriptor}}",
