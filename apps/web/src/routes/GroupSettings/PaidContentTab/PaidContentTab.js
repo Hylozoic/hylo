@@ -13,7 +13,8 @@ import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
-import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X } from 'lucide-react'
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X, Link2 } from 'lucide-react'
+import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
@@ -691,26 +692,22 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
   const handleStartEdit = useCallback((offering) => {
-    // Parse accessGrants and convert to lineItems format
+    // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
+    const offeringTracks = offering.tracks || []
+    const offeringRoles = offering.roles || []
     const accessGrants = parseAccessGrants(offering.accessGrants)
 
-    // Get roles for lookup
-    const groupRoles = group?.groupRoles?.items || []
-    const allRoles = [
-      ...commonRoles.map(role => ({ ...role, type: 'common' })),
-      ...groupRoles.map(role => ({ ...role, type: 'group' }))
-    ]
-
-    // Convert IDs to objects
+    // Convert tracks relation to lineItems format
     const lineItems = {
-      tracks: (accessGrants.trackIds || []).map(trackId => {
-        const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-        return track ? { id: track.id, name: track.name } : null
-      }).filter(Boolean),
-      roles: (accessGrants.roleIds || []).map(roleId => {
-        const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        return role ? { id: role.id, name: role.name, emoji: role.emoji } : null
-      }).filter(Boolean),
+      tracks: offeringTracks.map(track => ({
+        id: track.id,
+        name: track.name
+      })),
+      roles: offeringRoles.map(role => ({
+        id: role.id,
+        name: role.name,
+        emoji: role.emoji
+      })),
       groups: (accessGrants.groupIds || []).map(groupId => {
         // For groups, we can use the current group if it matches, or create a placeholder
         if (parseInt(groupId) === parseInt(group?.id)) {
@@ -1293,44 +1290,21 @@ function StatusBadge ({ label, value, t }) {
  * Used in the OfferingsTab list view
  */
 function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
-  // Parse accessGrants JSON
+  const [copied, setCopied] = useState(false)
+  const baseUrl = getHost()
+  const offeringUrl = `${baseUrl}/offerings/${offering.id}`
+
+  // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
   const accessGrants = useMemo(() => {
     return parseAccessGrants(offering.accessGrants)
   }, [offering.accessGrants])
 
-  // Get tracks, roles, and groups from the group data
-  const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
-  const commonRoles = useSelector(getCommonRoles)
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
-  const allRoles = useMemo(() => [
-    ...commonRoles.map(role => ({ ...role, type: 'common' })),
-    ...groupRoles.map(role => ({ ...role, type: 'group' }))
-  ], [commonRoles, groupRoles])
-
-  // Get track and role objects for display (keep full objects for chips)
+  // Get track and role objects for display using relations
   const accessDetails = useMemo(() => {
     const details = {
-      tracks: [],
-      roles: [],
+      tracks: offering.tracks || [],
+      roles: offering.roles || [],
       hasGroups: false
-    }
-
-    if (accessGrants.trackIds && Array.isArray(accessGrants.trackIds)) {
-      details.tracks = accessGrants.trackIds
-        .map(trackId => {
-          const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-          return track
-        })
-        .filter(Boolean)
-    }
-
-    if (accessGrants.roleIds && Array.isArray(accessGrants.roleIds)) {
-      details.roles = accessGrants.roleIds
-        .map(roleId => {
-          const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-          return role
-        })
-        .filter(Boolean)
     }
 
     // Since we only allow the current group, just check if groups exist
@@ -1339,7 +1313,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
     }
 
     return details
-  }, [accessGrants, tracks, allRoles, offering.accessGrants])
+  }, [offering.tracks, offering.roles, accessGrants])
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
@@ -1423,18 +1397,36 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
             </div>
           )}
         </div>
-        {onEdit && (
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => !isEditing && onEdit(offering)}
-            disabled={isEditing}
-            className='ml-4'
+        <div className='flex items-center gap-2 ml-4'>
+          <CopyToClipboard
+            text={offeringUrl}
+            onCopy={() => {
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            }}
           >
-            <Edit className='w-4 h-4 mr-1' />
-            {isEditing ? t('Editing...') : t('Edit')}
-          </Button>
-        )}
+            <Button
+              variant='outline'
+              size='sm'
+              className='flex items-center gap-1'
+              title={copied ? t('Copied!') : t('Copy Link')}
+            >
+              <Link2 className='w-4 h-4' />
+              {copied ? t('Copied!') : t('Link')}
+            </Button>
+          </CopyToClipboard>
+          {onEdit && (
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => !isEditing && onEdit(offering)}
+              disabled={isEditing}
+            >
+              <Edit className='w-4 h-4 mr-1' />
+              {isEditing ? t('Editing...') : t('Edit')}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

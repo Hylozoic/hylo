@@ -581,6 +581,53 @@ module.exports = {
   },
 
   /**
+   * Get a single offering by ID (public, no auth required)
+   * Includes unlisted offerings so they can be accessed via direct link
+   *
+   * @param {String|Number} userId - Not used (public query)
+   * @param {Object} args
+   * @param {String|Number} args.offeringId - The offering ID to fetch
+   * @returns {Promise<StripeProduct>} The offering
+   *
+   * Example query:
+   *   {
+   *     publicStripeOffering(offeringId: "123") {
+   *       id
+   *       name
+   *       description
+   *       priceInCents
+   *       currency
+   *       tracks {
+   *         id
+   *         name
+   *       }
+   *       roles {
+   *         id
+   *         name
+   *       }
+   *     }
+   *   }
+   */
+  publicStripeOffering: async (userId, { offeringId }) => {
+    try {
+      // Fetch offering by ID from database (no publish_status filter - includes unlisted)
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+
+      if (!offering) {
+        throw new GraphQLError('Offering not found')
+      }
+
+      return offering
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in publicStripeOffering:', error)
+      throw new GraphQLError(`Failed to retrieve offering: ${error.message}`)
+    }
+  },
+
+  /**
    * Creates a checkout session for purchasing a product
    *
    * This mutation creates a Stripe Checkout session and returns a URL

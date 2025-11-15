@@ -39,7 +39,7 @@ export function parseAccessGrants (accessGrants) {
 
 /**
  * Checks if an offering grants access to a specific track
- * @param {object} offering - The offering object with accessGrants
+ * @param {object} offering - The offering object with tracks relation or accessGrants
  * @param {string|number} trackId - The track ID to check
  * @returns {boolean} True if the offering grants access to the track
  */
@@ -48,6 +48,12 @@ export function offeringGrantsTrackAccess (offering, trackId) {
     return false
   }
 
+  // Prefer tracks relation if available
+  if (offering.tracks && Array.isArray(offering.tracks)) {
+    return offering.tracks.some(track => parseInt(track.id) === parseInt(trackId))
+  }
+
+  // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
 
   if (accessGrants.trackIds && Array.isArray(accessGrants.trackIds)) {
@@ -79,7 +85,7 @@ export function offeringGrantsGroupAccess (offering, groupId) {
 
 /**
  * Checks if an offering has any track access grants
- * @param {object} offering - The offering object with accessGrants
+ * @param {object} offering - The offering object with tracks relation or accessGrants
  * @returns {boolean} True if the offering grants access to any tracks
  */
 export function offeringHasTrackAccess (offering) {
@@ -87,6 +93,12 @@ export function offeringHasTrackAccess (offering) {
     return false
   }
 
+  // Prefer tracks relation if available
+  if (offering.tracks && Array.isArray(offering.tracks)) {
+    return offering.tracks.length > 0
+  }
+
+  // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
   return accessGrants.trackIds && Array.isArray(accessGrants.trackIds) && accessGrants.trackIds.length > 0
 }
@@ -107,7 +119,7 @@ export function offeringHasGroupAccess (offering) {
 
 /**
  * Checks if an offering has any role access grants
- * @param {object} offering - The offering object with accessGrants
+ * @param {object} offering - The offering object with roles relation or accessGrants
  * @returns {boolean} True if the offering grants access to any roles
  */
 export function offeringHasRoleAccess (offering) {
@@ -115,6 +127,12 @@ export function offeringHasRoleAccess (offering) {
     return false
   }
 
+  // Prefer roles relation if available
+  if (offering.roles && Array.isArray(offering.roles)) {
+    return offering.roles.length > 0
+  }
+
+  // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
   return accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && accessGrants.roleIds.length > 0
 }

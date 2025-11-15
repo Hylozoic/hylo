@@ -201,6 +201,17 @@ export function fetchOfferings (groupId, accountId) {
             accessGrants
             publishStatus
             duration
+            tracks {
+              id
+              name
+              bannerUrl
+              description
+            }
+            roles {
+              id
+              name
+              emoji
+            }
           }
           success
         }
