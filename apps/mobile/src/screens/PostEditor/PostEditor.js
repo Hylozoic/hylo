@@ -49,13 +49,14 @@ import { caribbeanGreen, rhino30, rhino80 } from '@hylo/presenters/colors'
 export const MAX_TITLE_LENGTH = 50
 
 const titlePlaceholders = {
-  discussion: 'Create a post',
-  request: 'What are you looking for help with?',
-  offer: 'What help can you offer?',
-  resource: 'What resource is available?',
-  project: 'What would you like to call your project?',
-  proposal: 'What is your proposal?',
-  event: 'What is your event called?'
+  discussion: 'Add a Title',
+  request: 'Add a Request Title',
+  offer: 'Add an Offer Title',
+  resource: 'Add a Resource Title',
+  project: 'Add a Project Title',
+  proposal: 'Add a Proposal Title',
+  event: 'Add an Event Title',
+  submission: 'Add a Title'
 }
 
 export const getPostTypeOrDefault = postType => {
@@ -84,9 +85,13 @@ export default function PostEditor (props) {
     lat: mapCoordinateLat,
     lng: mapCoordinateLng,
     topicName: selectedTopicName,
-    type: providedType
+    type: providedType,
+    fundingRoundId,
+    submissionDescriptor,
+    groupId: providedGroupId
   } = useRouteParams()
   const editingPost = !!selectedPostId
+  const isSubmission = !!fundingRoundId
   const [{ data: selectedPostData, fetching: selectedPostLoading }] = useQuery({
     query: postQuery, variables: { id: selectedPostId }, pause: !editingPost
   })
@@ -110,12 +115,22 @@ export default function PostEditor (props) {
   useEffect(() => { resetPost() }, [])
 
   useEffect(() => {
+    const allGroups = currentUser?.memberships?.map(m => m.group) || []
+    const groups = providedGroupId
+      ? allGroups.filter(g => g.id === providedGroupId)
+      : currentGroup && !isStaticContext(currentGroup?.slug) ? [currentGroup] : post.groups
+
+    const postType = fundingRoundId && providedType === 'submission'
+      ? 'submission'
+      : getPostTypeOrDefault(providedType || post.type)
+
     updatePost({
-      type: getPostTypeOrDefault(providedType || post.type),
+      type: postType,
       topics: selectedTopicName ? [{ name: selectedTopicName }] : post.topics,
-      groups: currentGroup && !isStaticContext(currentGroup?.slug) ? [currentGroup] : post.groups
+      groups,
+      fundingRoundId
     })
-  }, [updatePost, providedType, selectedTopicName, currentGroup])
+  }, [updatePost, providedType, selectedTopicName, currentGroup, providedGroupId, fundingRoundId, currentUser])
 
   useEffect(() => {
     if (selectedPostData?.post) {
@@ -136,6 +151,7 @@ export default function PostEditor (props) {
   const [isSaving, setIsSaving] = useState(false)
   const [topicsPicked, setTopicsPicked] = useState(false)
   const [filePickerPending, setFilePickerPending] = useState(false)
+  const saveSuccessfulRef = useRef(false)
 
   const handleShowFilePicker = async () => {
     setFilePickerPending(true)
@@ -167,6 +183,9 @@ export default function PostEditor (props) {
     }
 
     const removeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+      if (saveSuccessfulRef.current) {
+        return
+      }
       e.preventDefault()
       confirmAlert({
         onConfirm: () => navigation.dispatch(e.data.action),
@@ -202,7 +221,13 @@ export default function PostEditor (props) {
 
         const id = data[Object.keys(data)[0]].id
 
-        navigation.navigate('Post Details', { id })
+        saveSuccessfulRef.current = true
+
+        if (isSubmission) {
+          navigation.goBack()
+        } else {
+          navigation.navigate('Post Details', { id })
+        }
       } catch (e) {
         console.log('!!!! error saving post', e)
         setIsSaving(false)
@@ -221,7 +246,7 @@ export default function PostEditor (props) {
     } else {
       doSave()
     }
-  }, [post, canHaveTimeframe, detailsEditorRef])
+  }, [post, canHaveTimeframe, detailsEditorRef, isSubmission, navigation])
 
   const header = useMemo(() => {
     const headerRightButtonLabel = isSaving
@@ -238,12 +263,20 @@ export default function PostEditor (props) {
             color={rhino30}
             onPress={() => navigation.goBack()}
           />
-          <TypeSelector
-            disabled={isSaving || post.type === 'proposal'}
-            onValueChange={type => updatePost({ type })}
-            placeholder={{}}
-            value={post?.type}
-          />
+          {isSubmission
+            ? (
+              <Text className='text-foreground font-bold text-lg flex-1 text-center'>
+                {t('Add {{submissionDescriptor}}', { submissionDescriptor })}
+              </Text>
+              )
+            : (
+              <TypeSelector
+                disabled={isSaving || post.type === 'proposal'}
+                onValueChange={type => updatePost({ type })}
+                placeholder={{}}
+                value={post?.type}
+              />
+              )}
           <Button
             style={styles.headerSaveButton}
             disabled={isSaving || !isValid()}
@@ -253,7 +286,7 @@ export default function PostEditor (props) {
         </View>
       </View>
     )
-  }, [isValid, isSaving, handleSave, post?.type])
+  }, [isValid, isSaving, handleSave, post?.type, isSubmission, submissionDescriptor])
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, header })
@@ -303,42 +336,44 @@ export default function PostEditor (props) {
         {selectedPostLoading && <Loading />}
         {!selectedPostLoading && (
           <View>
-            <TouchableOpacity
-              className='border-foreground/30'
-              style={styles.pressSelectionSection}
-              onPress={() => groupSelectorModalRef.current.show()}
-            >
-              <View style={styles.pressSelection}>
-                <Text style={styles.pressSelectionLeftText}>{t('To:')}</Text>
-                <View style={styles.pressSelectionRight}>
-                  <Icon name='Plus' style={styles.pressSelectionRightIcon} />
-                </View>
-              </View>
-              <ItemSelectorModal
-                ref={groupSelectorModalRef}
-                title={t('Post in Groups')}
-                items={groupOptions}
-                itemsTransform={(items, searchTerm) => (
-                  items.filter(item => searchTerm
-                    ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
-                    : item
-                  )
-                )}
-                chosenItems={post.groups}
-                onItemPress={addGroup}
-                searchPlaceholder={t('Search for group by name')}
-              />
-              <GroupsList
-                style={styles.pressSelectionValue}
-                groups={post.groups}
-                columns={1}
+            {!isSubmission && (
+              <TouchableOpacity
+                className='border-foreground/30'
+                style={styles.pressSelectionSection}
                 onPress={() => groupSelectorModalRef.current.show()}
-                onRemove={removeGroup}
-                RemoveIcon={() => (
-                  <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
-                )}
-              />
-            </TouchableOpacity>
+              >
+                <View style={styles.pressSelection}>
+                  <Text style={styles.pressSelectionLeftText}>{t('To:')}</Text>
+                  <View style={styles.pressSelectionRight}>
+                    <Icon name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                <ItemSelectorModal
+                  ref={groupSelectorModalRef}
+                  title={t('Post in Groups')}
+                  items={groupOptions}
+                  itemsTransform={(items, searchTerm) => (
+                    items.filter(item => searchTerm
+                      ? item.name.toLowerCase().match(searchTerm?.toLowerCase())
+                      : item
+                    )
+                  )}
+                  chosenItems={post.groups}
+                  onItemPress={addGroup}
+                  searchPlaceholder={t('Search for group by name')}
+                />
+                <GroupsList
+                  style={styles.pressSelectionValue}
+                  groups={post.groups}
+                  columns={1}
+                  onPress={() => groupSelectorModalRef.current.show()}
+                  onRemove={removeGroup}
+                  RemoveIcon={() => (
+                    <Icon className='text-muted' name='Ex' style={styles.groupRemoveIcon} />
+                  )}
+                />
+              </TouchableOpacity>
+            )}
 
             <View style={[styles.titleInputWrapper]}>
               <TextInput
@@ -380,52 +415,54 @@ export default function PostEditor (props) {
               />
             </View>
 
-            <TouchableOpacity
-              className='border-foreground/30'
-              style={[styles.pressSelectionSection, styles.topics]}
-              onPress={() => topicSelectorModalRef.current.show()}
-            >
-              <View style={styles.pressSelection}>
-                <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
-                <View style={styles.pressSelectionRight}>
-                  <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
-                </View>
-              </View>
-              <ItemSelectorModal
-                ref={topicSelectorModalRef}
-                title={t('Pick a Topic')}
-                searchPlaceholder={t('Search for a topic by name')}
-                onItemPress={topic => handleAddTopic(topic, true)}
-                itemsUseQueryArgs={({ searchTerm }) => ({
-                  query: topicsForGroupIdQuery,
-                  variables: {
-                    searchTerm,
-                    // Note: Only finds topics for first group
-                    groupId: get('[0].id', post.groups)
-                  }
-                })}
-                itemsUseQuerySelector={data =>
-                  data?.group?.groupTopics?.items &&
-                  data?.group?.groupTopics?.items.map(item => item.topic)}
-                itemsTransform={(items, searchTerm) => {
-                  if (!items.find(item => item.name.match(searchTerm))) {
-                    items.unshift({ id: searchTerm, name: searchTerm })
-                  }
-                  return items
-                }}
-                chosenItems={post.topics}
-                renderItem={TopicRow}
-              />
-              <Topics
-                className='text-secondary'
-                style={styles.pressSelectionValue}
-                pillStyle={styles.topicPillStyle}
-                textStyle={styles.topicTextStyle}
+            {!isSubmission && (
+              <TouchableOpacity
+                className='border-foreground/30'
+                style={[styles.pressSelectionSection, styles.topics]}
                 onPress={() => topicSelectorModalRef.current.show()}
-                onPressRemove={handleRemoveTopic}
-                topics={post.topics}
-              />
-            </TouchableOpacity>
+              >
+                <View style={styles.pressSelection}>
+                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Topics')}</Text>
+                  <View style={styles.pressSelectionRight}>
+                    <Icon className='text-secondary' name='Plus' style={styles.pressSelectionRightIcon} />
+                  </View>
+                </View>
+                <ItemSelectorModal
+                  ref={topicSelectorModalRef}
+                  title={t('Pick a Topic')}
+                  searchPlaceholder={t('Search for a topic by name')}
+                  onItemPress={topic => handleAddTopic(topic, true)}
+                  itemsUseQueryArgs={({ searchTerm }) => ({
+                    query: topicsForGroupIdQuery,
+                    variables: {
+                      searchTerm,
+                      // Note: Only finds topics for first group
+                      groupId: get('[0].id', post.groups)
+                    }
+                  })}
+                  itemsUseQuerySelector={data =>
+                    data?.group?.groupTopics?.items &&
+                    data?.group?.groupTopics?.items.map(item => item.topic)}
+                  itemsTransform={(items, searchTerm) => {
+                    if (!items.find(item => item.name.match(searchTerm))) {
+                      items.unshift({ id: searchTerm, name: searchTerm })
+                    }
+                    return items
+                  }}
+                  chosenItems={post.topics}
+                  renderItem={TopicRow}
+                />
+                <Topics
+                  className='text-secondary'
+                  style={styles.pressSelectionValue}
+                  pillStyle={styles.topicPillStyle}
+                  textStyle={styles.topicTextStyle}
+                  onPress={() => topicSelectorModalRef.current.show()}
+                  onPressRemove={handleRemoveTopic}
+                  topics={post.topics}
+                />
+              </TouchableOpacity>
+            )}
 
             {post.type === 'proposal' && (
               <View
@@ -471,7 +508,7 @@ export default function PostEditor (props) {
               </TouchableOpacity>
             )}
 
-            {canHaveTimeframe && (
+            {!isSubmission && canHaveTimeframe && (
               <>
                 <DatePickerWithLabel
                   className='border-foreground/30'
@@ -493,69 +530,73 @@ export default function PostEditor (props) {
               </>
             )}
 
-            <TouchableOpacity
-              className='border-foreground/30'
-              style={[styles.pressSelectionSection]}
-              onPress={togglePublicPost}
-            >
-              <View style={styles.pressSelection}>
-                <View style={styles.pressSelectionLeft}>
-                  <LucideIcon
-                    name='Globe'
-                    style={[{ marginRight: 7 }]}
-                    size={20}
-                    color={rhino80}
-                  />
-                  <Text style={styles.pressSelectionLeftText}>{t('Make Public')}</Text>
-                </View>
-                <View style={styles.pressSelectionRightNoBorder}>
-                  <Switch
-                    trackColor={{ true: caribbeanGreen, false: rhino80 }}
-                    onValueChange={togglePublicPost}
-                    style={styles.pressSelectionSwitch}
-                    value={post.isPublic}
-                  />
-                </View>
-              </View>
-              {post.groups?.some(g => g.allowInPublic) && (
-                <Text className='text-foreground/50 text-sm mt-2 px-2 ml-2'>
-                  {t('If public this post will be visible in the Commons public feed and map')}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className='border-foreground/30'
-              style={[styles.pressSelectionSection, styles.topics]}
-              onPress={() => locationSelectorModalRef.current.show()}
-            >
-              <View style={styles.pressSelection}>
-                <View style={styles.pressSelectionLeft}>
-                  <LucideIcon
-                    name='MapPin'
-                    style={{ marginRight: 7 }}
-                    size={20}
-                    color={rhino80}
-                  />
-                  <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Location')}</Text>
-                </View>
-                <View style={styles.pressSelectionRightNoBorder}>
-                  <View style={styles.pressSelectionRight}>
-                    <Icon name='ArrowDown' style={styles.pressSelectionRightIcon} />
+            {!isSubmission && (
+              <TouchableOpacity
+                className='border-foreground/30'
+                style={[styles.pressSelectionSection]}
+                onPress={togglePublicPost}
+              >
+                <View style={styles.pressSelection}>
+                  <View style={styles.pressSelectionLeft}>
+                    <LucideIcon
+                      name='Globe'
+                      style={[{ marginRight: 7 }]}
+                      size={20}
+                      color={rhino80}
+                    />
+                    <Text style={styles.pressSelectionLeftText}>{t('Make Public')}</Text>
+                  </View>
+                  <View style={styles.pressSelectionRightNoBorder}>
+                    <Switch
+                      trackColor={{ true: caribbeanGreen, false: rhino80 }}
+                      onValueChange={togglePublicPost}
+                      style={styles.pressSelectionSwitch}
+                      value={post.isPublic}
+                    />
                   </View>
                 </View>
-              </View>
-              {(post.location || post.locationObject) && (
-                <Text className='text-secondary' style={styles.pressSelectionValue}>
-                  {post.location || post.locationObject.fullText}
-                </Text>
-              )}
-              <LocationSelectorModal
-                ref={locationSelectorModalRef}
-                onItemPress={updateLocation}
-                initialSearchTerm={post?.location || post?.locationObject?.fullText}
-              />
-            </TouchableOpacity>
+                {post.groups?.some(g => g.allowInPublic) && (
+                  <Text className='text-foreground/50 text-sm mt-2 px-2 ml-2'>
+                    {t('If public this post will be visible in the Commons public feed and map')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {!isSubmission && (
+              <TouchableOpacity
+                className='border-foreground/30'
+                style={[styles.pressSelectionSection, styles.topics]}
+                onPress={() => locationSelectorModalRef.current.show()}
+              >
+                <View style={styles.pressSelection}>
+                  <View style={styles.pressSelectionLeft}>
+                    <LucideIcon
+                      name='MapPin'
+                      style={{ marginRight: 7 }}
+                      size={20}
+                      color={rhino80}
+                    />
+                    <Text className='text-foreground/80' style={styles.pressSelectionLeftText}>{t('Location')}</Text>
+                  </View>
+                  <View style={styles.pressSelectionRightNoBorder}>
+                    <View style={styles.pressSelectionRight}>
+                      <Icon name='ArrowDown' style={styles.pressSelectionRightIcon} />
+                    </View>
+                  </View>
+                </View>
+                {(post.location || post.locationObject) && (
+                  <Text className='text-secondary' style={styles.pressSelectionValue}>
+                    {post.location || post.locationObject.fullText}
+                  </Text>
+                )}
+                <LocationSelectorModal
+                  ref={locationSelectorModalRef}
+                  onItemPress={updateLocation}
+                  initialSearchTerm={post?.location || post?.locationObject?.fullText}
+                />
+              </TouchableOpacity>
+            )}
 
             {post.type === 'project' && (
               <>
@@ -597,7 +638,7 @@ export default function PostEditor (props) {
         {/*  Form Bottom */}
 
         <View style={styles.formBottom}>
-          {canAdminister && (
+          {!isSubmission && canAdminister && (
             <TouchableOpacity
               className='border-foreground/30'
               style={[styles.pressSelectionSection]}

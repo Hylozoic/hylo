@@ -149,7 +149,7 @@ export default function PostCard ({
           type={post.type}
         />
         <Files urls={post.getFileUrls()} className='mx-4 mb-2' />
-        {showGroups && (
+        {showGroups && post.type !== 'submission' && (
           <PostGroups
             groups={post.groups}
             includePublic={post.isPublic}

@@ -49,7 +49,8 @@ export default function EmojiRow (props) {
           emojiFull={reaction.emojiFull}
           count={reaction.userList.length}
           selected={reaction.loggedInUser}
-          toolTip={reaction.userList.join('<br>')}
+          toolTip={reaction.userList.join('\n')}
+          allReactions={entityReactions}
         />
       ))}
       {(currentUser && includePicker) && (

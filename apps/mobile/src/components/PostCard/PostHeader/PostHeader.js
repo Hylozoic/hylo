@@ -76,7 +76,7 @@ export default function PostHeader ({
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />
         )}
-        {type && (
+        {type && type !== 'submission' && (
           <PostLabel type={type} condensed={isFlagged} />
         )}
         {!hideMenu && (

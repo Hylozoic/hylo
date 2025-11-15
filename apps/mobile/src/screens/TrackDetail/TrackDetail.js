@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native'
-import { Shapes, Settings, DoorOpen, Check } from 'lucide-react-native'
+import { DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
-import { TextHelpers } from '@hylo/shared'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
 import { groupUrl, personUrl } from '@hylo/navigation'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
@@ -34,12 +33,12 @@ const TabButton = ({ isSelected, onPress, children }) => (
 
 const AboutTab = ({ trackDetail }) => {
   const { t } = useTranslation()
-  const { bannerUrl, name, description, isEnrolled } = trackDetail
+  const { bannerUrl, name, description } = trackDetail
 
   return (
     <ScrollView
       className='flex-1'
-      showsVerticalScrollIndicator={true}
+      showsVerticalScrollIndicator
     >
       <View className={`mt-4 w-full rounded-xl h-[40vh] items-center justify-center bg-foreground/20 ${Platform.OS === 'ios' ? 'shadow-2xl' : ''}`}>
         {bannerUrl && (
@@ -250,16 +249,20 @@ function TrackDetail() {
 
   if (fetching && trackDetail?.posts?.length === 0) return <Loading />
   if (fetching && !trackDetail) return <Loading />
-  if (error || enrollmentError) return (
-    <Text className='text-error text-center py-4'>
-      {t('Error loading track')}
-    </Text>
-  )
-  if (!trackDetail && !fetching) return (
-    <Text className='text-error text-center py-4'>
-      {t('Track not found')}
-    </Text>
-  )
+  if (error || enrollmentError) {
+    return (
+      <Text className='text-error text-center py-4'>
+        {t('Error loading track')}
+      </Text>
+    )
+  }
+  if (!trackDetail && !fetching) {
+    return (
+      <Text className='text-error text-center py-4'>
+        {t('Track not found')}
+      </Text>
+    )
+  }
 
   const handleEnroll = async () => {
     const success = await enrollInTrack(trackDetail.id)
@@ -374,7 +377,7 @@ function TrackDetail() {
                 <ScrollView
                   className='flex-1'
                   style={{ maxHeight: 120 }}
-                  showsVerticalScrollIndicator={true}
+                  showsVerticalScrollIndicator
                 >
                   <Text className='text-foreground font-bold mb-2'>{t('Welcome Message')}</Text>
                   <HyloHTML html={TextHelpers.markdown(trackDetail.welcomeMessage)} />

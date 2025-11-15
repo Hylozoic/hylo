@@ -134,6 +134,8 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/topics':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Web View`,
   '/:context(groups)/:groupSlug/tracks/:trackId':                         `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Track Detail`,
   '/:context(groups)/:groupSlug/tracks':                                  `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Tracks`,
+  '/:context(groups)/:groupSlug/funding-rounds/:fundingRoundId/:tab?':    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Funding Round Detail`,
+  '/:context(groups)/:groupSlug/funding-rounds':                          `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Funding Rounds`,
   '/:context(groups)/:groupSlug/custom/:customViewId':                    `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`,
   '/:context(groups)/:groupSlug/settings/:settingsArea?':                 `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Group Settings`,
   // TODO:  Routing - potentially group these

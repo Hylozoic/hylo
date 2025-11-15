@@ -31,7 +31,8 @@ const initialState = {
   attachments: [],
   images: [],
   files: [],
-  postMemberships: []
+  postMemberships: [],
+  fundingRoundId: null
 }
 
 export const usePostEditorStore = create((set, get) => {
@@ -90,7 +91,8 @@ export const usePostEditorStore = create((set, get) => {
         donationsLink: TextHelpers.sanitizeURL(post.donationsLink),
         locationId: post?.locationObject?.id || null,
         linkPreviewId: post?.linkPreview?.id,
-        linkPreviewFeatured: post?.linkPreviewFeatured
+        linkPreviewFeatured: post?.linkPreviewFeatured,
+        fundingRoundId: post.fundingRoundId
       }
     },
 

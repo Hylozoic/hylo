@@ -475,6 +475,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         completedAt: p => p.completedAtForUser(userId),
         completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
+        fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],

@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 export default function Avatar ({ url, avatarUrl, tiny, small, medium, className }) {
   if (url) {
     return (
-      <Link to={url} className={className}>
+      <Link to={url} className={className} tabIndex={-1}>
         <RoundImage url={avatarUrl} small={small} medium={medium} tiny={tiny} />
       </Link>
     )

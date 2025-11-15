@@ -67,6 +67,17 @@ export default gql`
           didComplete
           isEnrolled
         }
+        viewFundingRound {
+          id
+          title
+          isParticipating
+          phase
+          publishedAt
+          submissionsOpenAt
+          submissionsCloseAt
+          votingOpensAt
+          votingClosesAt
+        }
       }
     }
   }

@@ -4,14 +4,17 @@ export default {
   AgreementQuerySet: () => null,
   CheckInvitationResult: () => null,
   CommentQuerySet: () => null,
+  CommonRole: data => data?.id,
   ContextWidgetQuerySet: () => null,
   CustomViewQuerySet: () => null,
   EventInvitationQuerySet: () => null,
+  FundingRoundAllocation: () => null,
+  FundingRoundQuerySet: () => null,
   GroupExistsOutput: () => null,
   GroupExtensionQuerySet: () => null,
   GroupJoinQuestionQuerySet: () => null,
   GroupQuerySet: () => null,
-  GroupRole: () => null,
+  GroupRole: data => data?.id,
   GroupRoleQuerySet: () => null,
   // TODO: URQL! -- This is due to out-of-scheme return { groupTopics(autocomplete: $searchTerm, first: 20) { topic { ... } } }
   // in topicsForGroupIdQuery. May have adverse side-effects, and should be fixed in the backend to comply with scheme

@@ -7,7 +7,7 @@ import StreamHeader from '../Stream/StreamHeader'
 import Loading from 'components/Loading'
 import Avatar from 'components/Avatar'
 
-export default function MyTracks() {
+export default function MyTracks () {
   const { t } = useTranslation()
   const [tracks, { fetching, error }] = useMyTracks({ sortBy: 'name', order: 'asc' })
 
@@ -24,12 +24,14 @@ export default function MyTracks() {
     }, { groupedTracks: {}, ungroupedTracks: [] })
   }, [tracks])
 
-  if (error) return (
-    <Text className='text-error text-center py-4'>
-      {t('Error loading tracks')}
-      {error.message}
-    </Text>
-  )
+  if (error) {
+    return (
+      <Text className='text-error text-center py-4'>
+        {t('Error loading tracks')}
+        {error.message}
+      </Text>
+    )
+  }
 
   if (fetching) return <Loading />
 
@@ -108,4 +110,4 @@ export default function MyTracks() {
       />
     </View>
   )
-} 
+}

@@ -34,7 +34,8 @@ export default gql`
     $timezone: String,
     $location: String,
     $locationId: ID,
-    $isPublic: Boolean
+    $isPublic: Boolean,
+    $fundingRoundId: ID
   ) {
     createPost(data: {
       type: $type,
@@ -57,7 +58,8 @@ export default gql`
       timezone: $timezone,
       location: $location,
       locationId: $locationId,
-      isPublic: $isPublic
+      isPublic: $isPublic,
+      fundingRoundId: $fundingRoundId
     }) {
       ...PostFieldsFragment
     }

@@ -11,7 +11,12 @@ export default function Pill ({
   className,
   style,
   editable,
-  onPress
+  onPress,
+  onLongPress,
+  delayLongPress,
+  disabled,
+  hitSlop = 2,
+  ...touchableProps
 }) {
   const [removing, setRemoving] = useState(false)
   const deletePill = () => {
@@ -26,9 +31,17 @@ export default function Pill ({
   const mouseOut = () => setRemoving(false)
 
   return (
-    <TouchableOpacity onPress={onPress} hitSlop={2}>
+    <TouchableOpacity
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
+      disabled={disabled}
+      hitSlop={hitSlop}
+      {...touchableProps}
+    >
       <View
         className={`relative mr-2 mb-2 ${className}`}
+        style={style}
         onMouseLeave={mouseOut}
       >
         <View>
