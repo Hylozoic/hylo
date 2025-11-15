@@ -101,6 +101,7 @@ export async function joinGroup (groupId, userId, questionAnswers, context) {
   if (group.get('accessibility') !== Group.Accessibility.OPEN) {
     throw new GraphQLError('You do not have permisson to do that')
   }
+  // TODO STRIPE: We need to think through how this joinGroup mutation will be impacted by paywall
   // Make sure user is first a member of all prerequisite groups
   const prerequisiteGroups = await group.prerequisiteGroups().fetch()
   await Promise.map(prerequisiteGroups.models, async (prereq) => {

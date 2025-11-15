@@ -9,6 +9,8 @@ import { createGroupUrl, groupUrl, groupDetailUrl } from '@hylo/navigation'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
+import { DollarSign } from 'lucide-react'
+import Tooltip from 'components/Tooltip'
 
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
@@ -66,7 +68,19 @@ export function GroupCard ({ group, routeParams, className }) {
       <div>
         <div className={classes.content}>
           <div className={classes.groupAvatar}><img src={group.avatarUrl || DEFAULT_AVATAR} /></div>
-          <div className={classes.groupName}>{group.name}</div>
+          <div className={classes.groupName}>
+            {group.name}
+            {group.paywall && (
+              <>
+                <DollarSign
+                  className='inline-block ml-2 w-4 h-4'
+                  data-tooltip-id={`paywall-tooltip-${group.id}`}
+                  data-tooltip-content={t('This group requires payment to join')}
+                />
+                <Tooltip id={`paywall-tooltip-${group.id}`} />
+              </>
+            )}
+          </div>
           <div className={classes.memberCount}>{group.memberCount} {t('member', { count: group.memberCount })}</div>
           <div className={classes.groupDescription}>
             <ClickCatcher>

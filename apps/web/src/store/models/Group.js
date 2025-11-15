@@ -206,7 +206,13 @@ Group.fields = {
     relatedName: 'eventGroups'
   }),
   visibility: attr(),
-  widgets: many('Widget')
+  widgets: many('Widget'),
+  stripeAccountId: attr(),
+  stripeDashboardUrl: attr(),
+  stripeChargesEnabled: attr(),
+  stripePayoutsEnabled: attr(),
+  stripeDetailsSubmitted: attr(),
+  paywall: attr()
 }
 
 export const DEFAULT_BANNER = '/default-group-banner.svg'

@@ -180,5 +180,60 @@ module.exports = bookshelf.Model.extend(Object.assign({
       return membership
     }
     return false
+  },
+
+  /**
+   * Ensures a user is a member of a group
+   * Creates membership if it doesn't exist, or reactivates if inactive
+   *
+   * @param {User|Number} userOrId - User instance or user ID
+   * @param {Group|Number} groupOrId - Group instance or group ID
+   * @param {Object} [options] - Options
+   * @param {Number} [options.role] - Role to assign (defaults to DEFAULT)
+   * @param {Object} [options.transacting] - Database transaction
+   * @returns {Promise<GroupMembership>} The membership record
+   */
+  async ensureMembership (userOrId, groupOrId, { role = GroupMembership.Role.DEFAULT, transacting } = {}) {
+    const userId = userOrId instanceof User ? userOrId.id : userOrId
+    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
+
+    if (!userId) {
+      throw new Error("Can't call ensureMembership without a user or user id")
+    }
+    if (!groupId) {
+      throw new Error("Can't call ensureMembership without a group or group id")
+    }
+
+    // Check for existing membership (including inactive)
+    const existingMembership = await GroupMembership.forPair(userId, groupId, { includeInactive: true }).fetch({ transacting })
+
+    if (existingMembership) {
+      // Membership exists
+      if (!existingMembership.get('active')) {
+        // Reactivate inactive membership
+        await existingMembership.save({ active: true }, { patch: true, transacting })
+      }
+      return existingMembership
+    }
+
+    // No membership exists, create it
+    const user = userOrId instanceof User ? userOrId : await User.find(userId, { transacting })
+    if (!user) {
+      throw new Error(`User not found: ${userId}`)
+    }
+
+    const group = groupOrId instanceof Group ? groupOrId : await Group.find(groupId, { transacting })
+    if (!group) {
+      throw new Error(`Group not found: ${groupId}`)
+    }
+
+    // Create membership via user.joinGroup
+    const membership = await user.joinGroup(group, {
+      role,
+      fromInvitation: false,
+      transacting
+    })
+
+    return membership
   }
 })

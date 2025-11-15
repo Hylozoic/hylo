@@ -6,6 +6,7 @@ import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
 import { cn } from 'util/index'
 import { groupUrl, groupDetailUrl } from '@hylo/navigation'
+import PaywallOfferingsSection from './PaywallOfferingsSection'
 
 import Icon from 'components/Icon'
 
@@ -13,6 +14,15 @@ import classes from './GroupDetail.module.scss'
 
 export default function JoinSection ({ addSkill, currentUser, fullPage, group, groupsWithPendingRequests, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
+
+  // If group has paywall, show paywall offerings instead of join UI
+  if (group.paywall) {
+    return (
+      <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+        <PaywallOfferingsSection group={group} />
+      </div>
+    )
+  }
 
   return (
     <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>

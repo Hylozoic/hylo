@@ -172,6 +172,7 @@ module.exports = {
       return Group.queryByAccessCode(accessCode)
         .fetch()
         .then(group => {
+          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
           return GroupMembership.forPair(user, group, { includeInactive: true }).fetch()
             .then(existingMembership => {
               if (existingMembership) {
@@ -201,6 +202,7 @@ module.exports = {
       .then(invitation => {
         if (!invitation) throw new GraphQLError('not found')
         if (invitation.isExpired()) throw new GraphQLError('expired')
+        // TODO STRIPE: We need to think through how invite links will be impacted by paywall
         return invitation.use(userId)
       })
     }
