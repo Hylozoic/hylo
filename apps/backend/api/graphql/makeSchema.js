@@ -156,6 +156,7 @@ import {
   updateStripeOffering,
   stripeOfferings,
   publicStripeOfferings,
+  publicStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
   verifyEmail
@@ -334,7 +335,8 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
-    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId })
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
   }
 }
 

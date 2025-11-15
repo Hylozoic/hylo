@@ -172,6 +172,7 @@ export {
   updateStripeOffering,
   stripeOfferings,
   publicStripeOfferings,
+  publicStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus
 } from './stripe'

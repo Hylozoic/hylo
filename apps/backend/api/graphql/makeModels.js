@@ -1595,7 +1595,66 @@ export default function makeModels (userId, isAdmin, apiClient) {
         trackId: sp => sp.get('track_id'),
         accessGrants: sp => sp.get('access_grants'),
         renewalPolicy: sp => sp.get('renewal_policy'),
-        publishStatus: sp => sp.get('publish_status')
+        publishStatus: sp => sp.get('publish_status'),
+        tracks: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          // Parse accessGrants (might be string or object)
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          // Extract all trackIds from all groups
+          const trackIds = []
+          if (grants.trackIds && Array.isArray(grants.trackIds)) {
+            trackIds.push(...grants.trackIds.map(id => parseInt(id)))
+          }
+
+          if (trackIds.length === 0) return []
+
+          // Fetch tracks
+          const tracks = await Track.whereIn('id', trackIds).fetchAll()
+          return tracks.models || []
+        },
+        roles: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          // Parse accessGrants (might be string or object)
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          // Extract all roleIds from all groups
+          const roleIds = []
+          if (grants.roleIds && Array.isArray(grants.roleIds)) {
+            roleIds.push(...grants.roleIds.map(id => parseInt(id)))
+          }
+
+          if (roleIds.length === 0) return []
+
+          // Fetch group roles
+          const groupRoles = await GroupRole.whereIn('id', roleIds).fetchAll()
+
+          return groupRoles.models || []
+        }
       }
     },
 
