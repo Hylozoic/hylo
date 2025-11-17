@@ -41,7 +41,19 @@ export default function PostGridItem ({
   const viewPostDetails = useViewPostDetails()
 
   return (
-    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={() => viewPostDetails(post)}>
+    <div
+      className={
+        cn(
+          'h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden',
+          {
+            [classes.unread]: unread,
+            [classes.expanded]: expanded,
+            'opacity-60': post.fulfilledAt
+          },
+          classes[attachmentType])
+        }
+      onClick={() => viewPostDetails(post)}
+    >
       <div className={classes.contentSummary}>
         {childPost &&
           <div
@@ -58,7 +70,10 @@ export default function PostGridItem ({
               id={'childgroup-tt' + post.id}
             />
           </div>}
-        <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
+        <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+          {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
+          {title}
+        </h3>
         {attachmentType === 'image'
           ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
