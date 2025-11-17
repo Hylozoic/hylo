@@ -9,6 +9,16 @@ This guide provides comprehensive test scenarios for the new User Scopes system 
 - **Content Access**: Records of purchases or grants that create scopes
 - **User Scopes**: Materialized table of active permissions (automatically maintained by database triggers)
 - **Webhooks**: Stripe events that update access in real-time
+- **Checkout Sessions**: Primary payment method for both one-time and subscription purchases
+- **Subscriptions**: Recurring payments tracked via `stripe_subscription_id` column
+
+**Supported Stripe Webhook Events:**
+- `checkout.session.completed`: Creates initial access for both one-time purchases and subscriptions
+- `customer.subscription.created`: Backup handler for subscription access creation
+- `invoice.paid`: Extends access on subscription renewals (enforces `renewal_policy`)
+- `invoice.payment_failed`: Logs payment failures (access not revoked immediately)
+- `customer.subscription.deleted`: Revokes access when subscription is canceled
+- `charge.refunded`: Revokes access when payment is refunded
 
 ---
 
@@ -73,7 +83,8 @@ For each scenario, you'll need:
      - Status: `active`
      - Access Type: `stripe_purchase`
      - Appropriate `expires_at` date (if time-limited)
-     - Stripe session ID and payment intent ID populated
+     - `stripe_session_id` populated
+     - `stripe_subscription_id` populated (if subscription, otherwise NULL)
 
 3. **Database Verification** (Developer):
    ```sql
@@ -123,10 +134,10 @@ For each scenario, you'll need:
    - Navigate to Group Settings → Paid Content → Content Access
    - Note the current `expires_at` date for the user's access records
 
-2. **Trigger Webhook** (Developer):
+2. **Trigger Renewal** (Developer):
    - In Stripe Dashboard → Webhooks
-   - Manually send a `customer.subscription.updated` event
-   - OR advance subscription billing date
+   - Manually send an `invoice.paid` event (for renewal)
+   - OR advance subscription billing date to trigger automatic renewal
 
 3. **Post-Renewal Verification**:
    - Refresh the content access list
@@ -206,7 +217,136 @@ For each scenario, you'll need:
 
 ---
 
-### 4. Refund / Charge Reversal
+### 4. Subscription Payment Failure
+
+**Purpose**: Verify that when a subscription renewal payment fails, the system logs the failure appropriately.
+
+**Note**: Access is NOT immediately revoked as Stripe retries failed payments.
+
+#### Test Steps (Developer - Trigger Failure)
+
+1. **Setup**:
+   - Have an active subscription-based purchase
+   - In Stripe Dashboard → Customers → Find customer
+   - Update payment method to a test card that will fail: `4000 0000 0000 0341`
+
+2. **Trigger Renewal**:
+   - Advance the subscription billing date to trigger renewal attempt
+   - The payment will fail
+
+3. **Verification**:
+   - Check webhook logs for `invoice.payment_failed` event
+   - **Expected**: Event processed successfully
+   - Access should still be active (Stripe retries)
+   - Metadata should include:
+     - `last_payment_attempt_at`: timestamp
+     - `payment_failure_count`: incremented
+     - `last_payment_error`: error message
+
+4. **Database Verification**:
+   ```sql
+   -- Check metadata was updated
+   SELECT id, user_id, status, metadata 
+   FROM content_access 
+   WHERE stripe_subscription_id = '[SUBSCRIPTION_ID]';
+   ```
+   - **Expected**: Status still `active`, but metadata shows failure
+
+5. **Monitor Stripe Retries**:
+   - Stripe will automatically retry the payment
+   - After final retry failure, `customer.subscription.deleted` webhook fires
+   - At that point, access should be revoked
+
+---
+
+### 5. Manual Renewal Policy
+
+**Purpose**: Verify that subscriptions with `renewal_policy = 'manual'` do not automatically renew.
+
+#### Test Steps (Admin User - Setup)
+
+1. **Create Manual Renewal Offering**:
+   - Navigate to Group Settings → Paid Content → Offerings
+   - Create a subscription-based offering
+   - Set `renewal_policy` to `'manual'`
+   - Publish the offering
+
+#### Test Steps (Regular User - Purchase)
+
+1. **Purchase**:
+   - Complete purchase of the manual renewal offering
+   - Verify initial access is granted
+
+#### Test Steps (Developer - Test Renewal)
+
+1. **Trigger Renewal Attempt**:
+   - In Stripe Dashboard → Find the subscription
+   - Advance billing date to trigger renewal invoice
+
+2. **Verification**:
+   - Check webhook logs for `invoice.paid` event
+   - **Expected**: 
+     - Webhook handler detects `renewal_policy = 'manual'`
+     - Cancels subscription at period end via Stripe API
+     - Does NOT extend `expires_at` in `content_access`
+   - User's access should expire at the end of current period
+
+3. **Database Verification**:
+   ```sql
+   -- Check that expires_at was NOT extended
+   SELECT id, user_id, expires_at, metadata 
+   FROM content_access 
+   WHERE stripe_subscription_id = '[SUBSCRIPTION_ID]';
+   ```
+   - **Expected**: `expires_at` remains at original period end date
+
+4. **Stripe Verification**:
+   - Check subscription in Stripe Dashboard
+   - **Expected**: Should show "Cancels at period end"
+
+---
+
+### 6. Subscription Without Initial Access (Voluntary Contribution)
+
+**Purpose**: Verify that subscriptions without `access_grants` (voluntary contributions) don't create access records.
+
+#### Test Steps (Admin User - Setup)
+
+1. **Create Contribution Offering**:
+   - Navigate to Group Settings → Paid Content → Offerings
+   - Create a subscription-based offering
+   - Leave `access_grants` empty (no tracks, roles, or group access)
+   - Set price and publish
+
+#### Test Steps (Regular User - Purchase)
+
+1. **Purchase**:
+   - Complete purchase of the voluntary contribution offering
+   - Verify payment succeeds
+
+#### Test Steps (Developer - Verification)
+
+1. **Check Webhooks**:
+   - Verify `checkout.session.completed` event processed
+   - Verify `customer.subscription.created` event processed
+   - **Expected**: No errors logged
+
+2. **Database Verification**:
+   ```sql
+   -- Verify NO content_access records were created
+   SELECT * FROM content_access 
+   WHERE stripe_subscription_id = '[SUBSCRIPTION_ID]';
+   ```
+   - **Expected**: No records (empty result)
+
+3. **Stripe Verification**:
+   - Subscription should be active in Stripe
+   - Renewals should process normally
+   - `invoice.paid` handler should recognize empty `access_grants` and skip processing
+
+---
+
+### 7. Refund / Charge Reversal
 
 **Purpose**: Verify that when a payment is refunded, access is immediately revoked.
 
@@ -244,7 +384,7 @@ For each scenario, you'll need:
    -- Check content_access was revoked
    SELECT id, user_id, status, metadata 
    FROM content_access 
-   WHERE stripe_payment_intent_id = '[PAYMENT_INTENT_ID]';
+   WHERE stripe_session_id = '[SESSION_ID]';
    
    -- Verify user_scopes were removed
    SELECT * FROM user_scopes 
@@ -257,7 +397,7 @@ For each scenario, you'll need:
 
 ---
 
-### 5. Access Control - Track Level
+### 8. Access Control - Track Level
 
 **Purpose**: Verify that tracks with `access_controlled = true` properly restrict access to users without appropriate scopes.
 
@@ -307,7 +447,7 @@ For each scenario, you'll need:
 
 ---
 
-### 6. Access Control - Group Level (Paywall)
+### 9. Access Control - Group Level (Paywall)
 
 **Purpose**: Verify that groups with `paywall = true` properly restrict access to non-members.
 
@@ -353,7 +493,7 @@ For each scenario, you'll need:
 
 ---
 
-### 7. Role-Based Access (Group Roles)
+### 10. Role-Based Access (Group Roles)
 
 **Purpose**: Verify that group roles can grant scopes and that role assignment properly creates user scopes.
 
@@ -410,7 +550,7 @@ For each scenario, you'll need:
 
 ---
 
-### 8. Multiple Access Sources
+### 11. Multiple Access Sources
 
 **Purpose**: Verify that when a user has access from multiple sources (purchase + role), the system handles it correctly.
 
@@ -442,7 +582,7 @@ For each scenario, you'll need:
 
 ---
 
-### 9. Expiration Handling
+### 12. Expiration Handling
 
 **Purpose**: Verify that expired access is properly cleaned up and users lose access after expiration.
 
@@ -479,7 +619,7 @@ For each scenario, you'll need:
 
 ---
 
-### 10. Admin-Granted Access
+### 13. Admin-Granted Access
 
 **Purpose**: Verify that admins can manually grant access without payment.
 
