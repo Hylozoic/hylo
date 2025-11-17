@@ -90,8 +90,7 @@ const mockStripeService = {
 
   createCheckoutSession: async ({ accountId, priceId, quantity, applicationFeeAmount, successUrl, cancelUrl, metadata }) => ({
     id: 'cs_test_123',
-    url: 'https://checkout.stripe.com/pay/cs_test_123',
-    payment_intent: 'pi_test_123'
+    url: 'https://checkout.stripe.com/pay/cs_test_123'
   })
 }
 

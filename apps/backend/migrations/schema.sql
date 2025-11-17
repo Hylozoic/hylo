@@ -3061,7 +3061,7 @@ CREATE TABLE public.content_access (
     role_id integer,
     access_type character varying(50) NOT NULL,
     stripe_session_id character varying(255),
-    stripe_payment_intent_id character varying(255),
+    stripe_subscription_id character varying(255),
     status character varying(50) NOT NULL DEFAULT 'active'::character varying,
     granted_by_id bigint,
     expires_at timestamp with time zone,
@@ -5775,6 +5775,13 @@ CREATE INDEX content_access_access_type_index ON public.content_access USING btr
 --
 
 CREATE INDEX content_access_status_index ON public.content_access USING btree (status);
+
+
+--
+-- Name: content_access_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_stripe_subscription_id_index ON public.content_access USING btree (stripe_subscription_id) WHERE (stripe_subscription_id IS NOT NULL);
 
 
 --

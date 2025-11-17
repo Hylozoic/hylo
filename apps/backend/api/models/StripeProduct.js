@@ -101,7 +101,7 @@ module.exports = bookshelf.Model.extend({
    * @param {Object} params
    * @param {String|Number} params.userId - User who purchased the product
    * @param {String} params.sessionId - Stripe checkout session ID
-   * @param {String} [params.paymentIntentId] - Stripe payment intent ID
+   * @param {String} [params.stripeSubscriptionId] - Stripe subscription ID (recurring purchases)
    * @param {Date} [params.expiresAt] - When access expires
    * @param {Object} [params.metadata] - Additional metadata
    * @param {Object} options - Options including transacting
@@ -110,7 +110,7 @@ module.exports = bookshelf.Model.extend({
   generateContentAccessRecords: async function ({
     userId,
     sessionId,
-    paymentIntentId,
+    stripeSubscriptionId,
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
@@ -130,7 +130,7 @@ module.exports = bookshelf.Model.extend({
         grantedByGroupId,
         productId,
         sessionId,
-        paymentIntentId,
+        stripeSubscriptionId,
         expiresAt: calculatedExpiresAt,
         metadata
       }, { transacting })
@@ -149,7 +149,7 @@ module.exports = bookshelf.Model.extend({
         groupId: groupIdNum,
         productId,
         sessionId,
-        paymentIntentId,
+        stripeSubscriptionId,
         expiresAt: calculatedExpiresAt,
         metadata: {
           ...metadata,
@@ -168,7 +168,7 @@ module.exports = bookshelf.Model.extend({
             productId,
             trackId,
             sessionId,
-            paymentIntentId,
+            stripeSubscriptionId,
             expiresAt: calculatedExpiresAt,
             metadata: {
               ...metadata,
@@ -189,7 +189,7 @@ module.exports = bookshelf.Model.extend({
             productId,
             roleId,
             sessionId,
-            paymentIntentId,
+            stripeSubscriptionId,
             expiresAt: calculatedExpiresAt,
             metadata: {
               ...metadata,

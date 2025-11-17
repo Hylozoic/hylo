@@ -244,7 +244,7 @@ module.exports = {
    *       trackId: "101"  // optional
    *       roleId: "202"   // optional
    *       sessionId: "cs_xxx"
-   *       paymentIntentId: "pi_xxx"
+   *       stripeSubscriptionId: "sub_xxx"  // optional, for recurring
    *     ) {
    *       id
    *       success
@@ -259,7 +259,7 @@ module.exports = {
     trackId,
     roleId,
     sessionId,
-    paymentIntentId,
+    stripeSubscriptionId,
     amountPaid,
     currency,
     expiresAt,
@@ -278,7 +278,7 @@ module.exports = {
         trackId,
         roleId,
         sessionId,
-        paymentIntentId,
+        stripeSubscriptionId,
         amountPaid,
         currency,
         expiresAt,

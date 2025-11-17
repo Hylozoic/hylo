@@ -204,7 +204,7 @@ module.exports = bookshelf.Model.extend({
    * @param {String|Number} [params.trackId] - Optional track
    * @param {String|Number} [params.roleId] - Optional role
    * @param {String} params.sessionId - Stripe checkout session ID
-   * @param {String} [params.paymentIntentId] - Stripe payment intent ID
+   * @param {String} [params.stripeSubscriptionId] - Stripe subscription ID (for recurring purchases)
    * @param {Date} [params.expiresAt] - When access expires
    * @param {Object} [params.metadata] - Additional metadata
    * @param {Object} options - Options including transacting
@@ -218,7 +218,7 @@ module.exports = bookshelf.Model.extend({
     trackId,
     roleId,
     sessionId,
-    paymentIntentId,
+    stripeSubscriptionId,
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
@@ -231,7 +231,7 @@ module.exports = bookshelf.Model.extend({
       role_id: roleId,
       access_type: this.Type.STRIPE_PURCHASE,
       stripe_session_id: sessionId,
-      stripe_payment_intent_id: paymentIntentId,
+      stripe_subscription_id: stripeSubscriptionId,
       expires_at: expiresAt,
       metadata
     }, { transacting })
@@ -356,12 +356,37 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Find content access records by Stripe payment intent ID
-   * @param {String} paymentIntentId - Stripe payment intent ID
+   * Find content access records by Stripe subscription ID
+   * Used for subscription renewals, cancellations, and refunds
+   * @param {String} subscriptionId - Stripe subscription ID
    * @param {Object} options - Options including transacting
    * @returns {Promise<Collection<ContentAccess>>}
    */
-  findByPaymentIntentId: async function (paymentIntentId, { transacting } = {}) {
-    return this.where({ stripe_payment_intent_id: paymentIntentId }).fetchAll({ transacting })
+  findBySubscriptionId: async function (subscriptionId, { transacting } = {}) {
+    return this.where({ stripe_subscription_id: subscriptionId }).fetchAll({ transacting })
+  },
+
+  /**
+   * Check if an access record is subscription-based
+   * @param {ContentAccess} accessRecord - The access record to check
+   * @returns {Boolean}
+   */
+  isSubscription: function (accessRecord) {
+    return !!accessRecord.get('stripe_subscription_id')
+  },
+
+  /**
+   * Get all active subscription-based access for a user
+   * @param {String|Number} userId
+   * @returns {Promise<Collection<ContentAccess>>}
+   */
+  getActiveSubscriptions: function (userId) {
+    return this.query(qb => {
+      qb.where({
+        user_id: userId,
+        status: this.Status.ACTIVE
+      })
+      qb.whereNotNull('stripe_subscription_id')
+    }).fetchAll()
   }
 })

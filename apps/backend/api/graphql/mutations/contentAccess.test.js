@@ -268,7 +268,6 @@ describe('Content Access Mutations', () => {
   describe('recordStripePurchase', () => {
     it('records a successful Stripe purchase', async () => {
       const sessionId = 'cs_test_123'
-      const paymentIntentId = 'pi_test_123'
       const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
 
       const result = await recordStripePurchase(adminUser.id, {
@@ -276,7 +275,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         productId: product.id,
         sessionId,
-        paymentIntentId,
         expiresAt,
         metadata: { source: 'webhook' }
       })
@@ -291,7 +289,6 @@ describe('Content Access Mutations', () => {
       expect(access.get('product_id')).to.equal(product.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
       expect(access.get('stripe_session_id')).to.equal(sessionId)
-      expect(access.get('stripe_payment_intent_id')).to.equal(paymentIntentId)
       expect(access.get('expires_at')).to.be.closeToTime(expiresAt, 1000)
       expect(access.get('metadata')).to.deep.include({ source: 'webhook' })
     })
@@ -302,7 +299,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         trackId: track.id,
         sessionId: 'cs_test_456',
-        paymentIntentId: 'pi_test_456',
         metadata: { source: 'webhook' }
       })
 
@@ -328,7 +324,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         roleId: role.id,
         sessionId: 'cs_test_789',
-        paymentIntentId: 'pi_test_789',
         metadata: { source: 'webhook' }
       })
 

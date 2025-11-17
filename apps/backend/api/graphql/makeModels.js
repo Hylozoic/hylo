@@ -1672,7 +1672,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'role_id',
         'access_type',
         'stripe_session_id',
-        'stripe_payment_intent_id',
+        'stripe_subscription_id',
         'status',
         'granted_by_id',
         'expires_at',
@@ -1696,7 +1696,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         roleId: ca => ca.get('role_id'),
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
-        stripePaymentIntentId: ca => ca.get('stripe_payment_intent_id'),
+        stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),
         grantedById: ca => ca.get('granted_by_id')
       }
     }

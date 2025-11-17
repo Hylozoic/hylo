@@ -37,9 +37,6 @@ const mockStripe = function (apiKey) {
         create: async () => ({}),
         retrieve: async () => ({})
       }
-    },
-    paymentIntents: {
-      update: async () => ({})
     }
   }
 }

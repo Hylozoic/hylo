@@ -2737,8 +2737,8 @@ type ContentAccess {
   accessType: String
   # Stripe session ID (for purchases)
   stripeSessionId: String
-  # Stripe payment intent ID (for purchases)
-  stripePaymentIntentId: String
+  # Stripe subscription ID (for recurring purchases)
+  stripeSubscriptionId: String
   # Current status: active, expired, revoked
   status: String
   # User who granted access (for admin grants)
@@ -3021,7 +3021,7 @@ type Mutation {
     trackId: ID,
     roleId: ID,
     sessionId: String!,
-    paymentIntentId: String,
+    stripeSubscriptionId: String,
     amountPaid: Int,
     currency: String,
     expiresAt: Date,

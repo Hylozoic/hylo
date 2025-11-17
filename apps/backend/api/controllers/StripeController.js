@@ -126,14 +126,6 @@ module.exports = {
           await this.handleAccountUpdated(event)
           break
 
-        case 'payment_intent.succeeded':
-          await this.handlePaymentIntentSucceeded(event)
-          break
-
-        case 'payment_intent.payment_failed':
-          await this.handlePaymentIntentFailed(event)
-          break
-
         case 'checkout.session.completed':
           await this.handleCheckoutSessionCompleted(event)
           break
@@ -229,33 +221,20 @@ module.exports = {
   },
 
   /**
-   * Handle payment_intent.succeeded webhook events
-   * Grants access to content when payment is successful
+   * Handle checkout.session.completed webhook events
+   * Grants access to content when checkout completes successfully
    */
-  handlePaymentIntentSucceeded: async function (event) {
+  handleCheckoutSessionCompleted: async function (event) {
     try {
-      const paymentIntent = event.data.object
+      const session = event.data.object
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Payment succeeded: ${paymentIntent.id}`)
+        console.log(`Checkout session completed: ${session.id}`)
       }
 
-      // Get the checkout session to find the product and user info
-      const sessionId = paymentIntent.metadata?.session_id
-      if (!sessionId) {
+      // Verify payment was successful
+      if (session.payment_status !== 'paid') {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in payment intent metadata: ${paymentIntent.id}`)
-        }
-        return
-      }
-
-      // Retrieve the checkout session
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items']
-      })
-
-      if (!session) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No checkout session found: ${sessionId}`)
+          console.log(`Checkout session ${session.id} completed but payment status is ${session.payment_status}`)
         }
         return
       }
@@ -267,7 +246,7 @@ module.exports = {
 
       if (!userId || !groupId || !offeringId) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Missing required metadata in session ${sessionId}:`, {
+          console.log(`Missing required metadata in session ${session.id}:`, {
             userId: !!userId,
             groupId: !!groupId,
             offeringId: !!offeringId
@@ -294,14 +273,17 @@ module.exports = {
         return
       }
 
+      // Determine if this is a subscription based on session mode
+      const stripeSubscriptionId = session.subscription || null
+
       // Generate content access records
       const accessRecords = await offering.generateContentAccessRecords({
         userId: parseInt(userId, 10),
-        sessionId,
-        paymentIntentId: paymentIntent.id,
+        sessionId: session.id,
+        stripeSubscriptionId,
         metadata: {
-          paymentAmount: paymentIntent.amount,
-          currency: paymentIntent.currency,
+          paymentAmount: session.amount_total,
+          currency: session.currency,
           purchasedAt: new Date().toISOString()
         }
       })
@@ -339,95 +321,6 @@ module.exports = {
 
       // TODO STRIPE: Send confirmation email to user
       // TODO STRIPE: Send notification to group admins
-    } catch (error) {
-      console.error('Error handling payment_intent.succeeded:', error)
-      throw error
-    }
-  },
-
-  /**
-   * Handle payment_intent.payment_failed webhook events
-   * Notifies user and logs failed payments
-   * TODO STRIPE: This needs to actually log to somewhere specific, and otherwise be more useful. Need to be able to access the checkout session from stripe
-   */
-  handlePaymentIntentFailed: async function (event) {
-    try {
-      const paymentIntent = event.data.object
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Payment failed: ${paymentIntent.id}`)
-      }
-
-      // Get the checkout session to find user info
-      const sessionId = paymentIntent.metadata?.session_id
-      if (!sessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in failed payment intent metadata: ${paymentIntent.id}`)
-        }
-        return
-      }
-
-      const session = await stripe.checkout.sessions.retrieve(sessionId)
-      const userId = session.metadata?.userId
-
-      if (userId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Payment failed for user ${userId}, session ${sessionId}`)
-        }
-        // TODO STRIPE: Send failure notification email to user
-        // TODO STRIPE: Log for analytics
-      }
-    } catch (error) {
-      console.error('Error handling payment_intent.payment_failed:', error)
-      throw error
-    }
-  },
-
-  /**
-   * Handle checkout.session.completed webhook events
-   * Final verification that checkout completed successfully
-   * Note: The actual access granting and membership creation is handled by payment_intent.succeeded
-   * This handler is primarily for logging and verification
-   */
-  handleCheckoutSessionCompleted: async function (event) {
-    try {
-      const session = event.data.object
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Checkout session completed: ${session.id}`)
-      }
-
-      // Verify payment was successful
-      if (session.payment_status !== 'paid') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Checkout session ${session.id} completed but payment status is ${session.payment_status}`)
-        }
-        return
-      }
-
-      // Verify that ContentAccess records were created for this session
-      const offeringId = session.metadata?.offeringId
-      const userId = session.metadata?.userId
-      if (offeringId && userId) {
-        const accessRecords = await ContentAccess.where({
-          stripe_session_id: session.id,
-          user_id: parseInt(userId, 10),
-          status: ContentAccess.Status.ACTIVE
-        }).fetchAll()
-
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Checkout session ${session.id} completed successfully. ${accessRecords.length} access records found.`)
-        }
-
-        // If no access records found, this might indicate an issue
-        if (accessRecords.length === 0) {
-          console.warn(`Warning: Checkout session ${session.id} completed but no ContentAccess records found. This may indicate the payment_intent.succeeded webhook failed.`)
-        }
-      }
-
-      // The actual access granting is handled by payment_intent.succeeded
-      // This is just for logging and verification
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Checkout session ${session.id} completed successfully`)
-      }
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
       throw error
@@ -611,7 +504,7 @@ module.exports = {
         console.log(`Charge refunded: ${charge.id}`)
       }
 
-      // Find the payment intent to get the session ID
+      // Get the payment intent to find the checkout session
       const paymentIntentId = charge.payment_intent
       if (!paymentIntentId) {
         if (process.env.NODE_ENV === 'development') {
@@ -620,12 +513,23 @@ module.exports = {
         return
       }
 
-      // Find content access records associated with this payment intent
-      const accessRecords = await ContentAccess.findByPaymentIntentId(paymentIntentId)
+      // Retrieve the payment intent to get session_id from metadata
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      const sessionId = paymentIntent.metadata?.session_id
+
+      if (!sessionId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No session_id found in payment intent metadata for ${paymentIntentId}`)
+        }
+        return
+      }
+
+      // Find content access records associated with this session
+      const accessRecords = await ContentAccess.findBySessionId(sessionId)
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`No content access records found for payment intent ${paymentIntentId}`)
+          console.log(`No content access records found for session ${sessionId}`)
         }
         return
       }

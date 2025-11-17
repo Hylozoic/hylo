@@ -563,7 +563,7 @@ module.exports = {
         stripeAccount: accountId // Process payment on connected account
       })
 
-      // Update the payment intent metadata with the actual session ID
+      // Update the payment intent with the actual session ID for refund tracking
       if (session.payment_intent) {
         await stripe.paymentIntents.update(session.payment_intent, {
           metadata: {
