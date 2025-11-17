@@ -138,10 +138,6 @@ module.exports = {
           await this.handleSubscriptionCreated(event)
           break
 
-        case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdated(event)
-          break
-
         case 'customer.subscription.deleted':
           await this.handleSubscriptionDeleted(event)
           break
@@ -518,63 +514,6 @@ module.exports = {
   },
 
   /**
-   * Handle customer.subscription.updated webhook events
-   * Extends access when subscription renews
-   */
-  handleSubscriptionUpdated: async function (event) {
-    try {
-      const subscription = event.data.object
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Subscription updated: ${subscription.id}`)
-      }
-
-      // Only handle active subscriptions
-      if (subscription.status !== 'active') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Subscription ${subscription.id} is not active (status: ${subscription.status}), skipping`)
-        }
-        return
-      }
-
-      // Find content access records associated with this subscription
-      // Note: We need to store subscription ID in metadata during initial purchase
-      const accessRecords = await ContentAccess.where('metadata', '@>', JSON.stringify({
-        stripe_subscription_id: subscription.id
-      })).fetchAll()
-
-      if (!accessRecords || accessRecords.length === 0) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No content access records found for subscription ${subscription.id}`)
-        }
-        return
-      }
-
-      // Calculate new expiration date from subscription's current period end
-      const newExpiresAt = new Date(subscription.current_period_end * 1000)
-
-      // Extend access for all associated records
-      await Promise.all(accessRecords.map(async (access) => {
-        await ContentAccess.extendAccess(
-          access.id,
-          newExpiresAt,
-          {
-            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            subscription_period_end: newExpiresAt.toISOString(),
-            renewed_via_webhook: true
-          }
-        )
-      }))
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Extended ${accessRecords.length} access records for subscription ${subscription.id}`)
-      }
-    } catch (error) {
-      console.error('Error handling customer.subscription.updated:', error)
-      throw error
-    }
-  },
-
-  /**
    * Handle customer.subscription.deleted webhook events
    * Expires access when subscription is canceled or ends
    */
@@ -586,9 +525,7 @@ module.exports = {
       }
 
       // Find content access records associated with this subscription
-      const accessRecords = await ContentAccess.where('metadata', '@>', JSON.stringify({
-        stripe_subscription_id: subscription.id
-      })).fetchAll()
+      const accessRecords = await ContentAccess.findBySubscriptionId(subscription.id)
 
       if (!accessRecords || accessRecords.length === 0) {
         if (process.env.NODE_ENV === 'development') {
@@ -656,6 +593,31 @@ module.exports = {
           console.log(`No content access records found for subscription ${subscriptionId}`)
         }
         return
+      }
+
+      // Check renewal_policy from the offering
+      const firstAccess = accessRecords.at(0)
+      const productId = firstAccess.get('product_id')
+
+      if (productId) {
+        const offering = await StripeProduct.where({ id: productId }).fetch()
+
+        if (offering && offering.get('renewal_policy') === StripeProduct.RenewalPolicy.MANUAL) {
+          // This offering should not auto-renew
+          console.warn(`Subscription ${subscriptionId} attempted to renew but offering ${productId} has renewal_policy='manual'. Canceling subscription.`)
+
+          // Cancel the subscription at period end
+          await stripe.subscriptions.update(subscriptionId, {
+            cancel_at_period_end: true
+          })
+
+          // Don't extend access - let it expire naturally
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Subscription ${subscriptionId} set to cancel at period end. Access will expire.`)
+          }
+
+          return
+        }
       }
 
       // Get subscription details to get the new period end

@@ -140,7 +140,8 @@ module.exports = {
           isString: typeof accountId === 'string'
         })
       }
-      const retrievedAccount = await stripe.accounts.retrieve(accountId)
+      // Verify account exists (will throw if not found)
+      await stripe.accounts.retrieve(accountId)
 
       // Account exists and is valid - we can proceed with connection
       // No need to check verification status here as UI will handle that
@@ -512,6 +513,7 @@ module.exports = {
    * @param {Number} params.applicationFeeAmount - Platform fee in cents
    * @param {String} params.successUrl - URL to redirect on success
    * @param {String} params.cancelUrl - URL to redirect on cancel
+   * @param {String} params.mode - Checkout mode: 'payment' or 'subscription'
    * @param {Object} params.metadata - Optional metadata to attach
    * @returns {Promise<Object>} Checkout session with url to redirect customer
    */
@@ -522,6 +524,7 @@ module.exports = {
     applicationFeeAmount,
     successUrl,
     cancelUrl,
+    mode = 'payment',
     metadata = {}
   }) {
     try {
@@ -542,32 +545,57 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
-      // Create checkout session on the connected account
-      const session = await stripe.checkout.sessions.create({
+      // Build session configuration based on mode
+      const sessionConfig = {
         line_items: [{
           price: priceId,
           quantity
         }],
-        mode: 'payment',
-        // Direct charge with application fee
-        payment_intent_data: {
+        mode,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata
+      }
+
+      // Configure for payment or subscription mode
+      if (mode === 'subscription') {
+        // For subscriptions, use subscription_data with platform fee
+        sessionConfig.subscription_data = {
+          application_fee_percent: 10.0, // Platform takes 10% of each subscription payment
+          metadata // Metadata flows to subscription
+        }
+      } else {
+        // For one-time payments, use payment_intent_data
+        sessionConfig.payment_intent_data = {
           application_fee_amount: applicationFeeAmount,
           metadata: {
             session_id: 'placeholder' // Will be updated after session creation
           }
-        },
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        metadata
-      }, {
+        }
+      }
+
+      // Create checkout session on the connected account
+      const session = await stripe.checkout.sessions.create(sessionConfig, {
         stripeAccount: accountId // Process payment on connected account
       })
 
-      // Update the payment intent with the actual session ID for refund tracking
-      if (session.payment_intent) {
+      // For one-time payments, update payment intent with session ID for refund tracking
+      if (mode === 'payment' && session.payment_intent) {
         await stripe.paymentIntents.update(session.payment_intent, {
           metadata: {
             session_id: session.id
+          }
+        }, {
+          stripeAccount: accountId
+        })
+      }
+
+      // For subscriptions, update subscription with session ID
+      if (mode === 'subscription' && session.subscription) {
+        await stripe.subscriptions.update(session.subscription, {
+          metadata: {
+            ...metadata,
+            sessionId: session.id
           }
         }, {
           stripeAccount: accountId
