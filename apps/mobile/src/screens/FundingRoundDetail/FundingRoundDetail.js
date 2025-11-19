@@ -508,7 +508,7 @@ function FundingRoundDetail () {
                     requeryFundingRound({ requestPolicy: 'network-only' })
                   }}
                 >
-                  {fundingRound.submissionDescriptorPlural}
+                  {currentPhase === 'voting' ? t('Vote') : fundingRound.submissionDescriptorPlural}
                 </TabButton>
 
                 <TabButton
