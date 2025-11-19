@@ -618,6 +618,8 @@ export default function ChatRoom (props) {
                   group,
                   initialAnimationComplete,
                   latestOldPostId,
+                  loadedFuture,
+                  loadedPast,
                   loadingFuture,
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,
