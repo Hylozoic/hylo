@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
 ## [6.2.2] - 2025-11-10
 
 ### Added
