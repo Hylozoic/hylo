@@ -1622,7 +1622,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (trackIds.length === 0) return []
 
           // Fetch tracks
-          const tracks = await Track.whereIn('id', trackIds).fetchAll()
+          const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
         },
         roles: async (sp) => {
@@ -1651,7 +1651,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           if (roleIds.length === 0) return []
 
           // Fetch group roles
-          const groupRoles = await GroupRole.whereIn('id', roleIds).fetchAll()
+          const groupRoles = await GroupRole.where('id', 'in', roleIds).fetchAll()
 
           return groupRoles.models || []
         }

@@ -7465,19 +7465,13 @@ ALTER TABLE ONLY public.zapier_triggers
 -- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE OR REPLACE FUNCTION compute_user_scopes_from_content_access()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION compute_user_scopes_from_content_access() RETURNS TRIGGER AS $$
 DECLARE
   scope_string TEXT;
 BEGIN
-  -- Only process active content_access records
   IF NEW.status = 'active' THEN
-    -- Determine the scope based on what the content_access grants
-    
-    -- Track access: scope format is 'track:<track_id>'
     IF NEW.track_id IS NOT NULL THEN
       scope_string := 'track:' || NEW.track_id;
-      
       INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
       VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
       ON CONFLICT (user_id, scope) 
@@ -7489,11 +7483,8 @@ BEGIN
         END,
         updated_at = NOW();
     END IF;
-    
-    -- Role access: scope format is 'group_role:<role_id>'
     IF NEW.role_id IS NOT NULL THEN
       scope_string := 'group_role:' || NEW.role_id;
-      
       INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
       VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
       ON CONFLICT (user_id, scope) 
@@ -7505,11 +7496,8 @@ BEGIN
         END,
         updated_at = NOW();
     END IF;
-    
-    -- Group access: scope format is 'group:<group_id>'
     IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
       scope_string := 'group:' || NEW.granted_by_group_id;
-      
       INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
       VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
       ON CONFLICT (user_id, scope) 
@@ -7522,7 +7510,6 @@ BEGIN
         updated_at = NOW();
     END IF;
   ELSE
-    -- If status is not active (revoked/expired), remove the scope
     IF NEW.track_id IS NOT NULL THEN
       scope_string := 'track:' || NEW.track_id;
       DELETE FROM user_scopes 
@@ -7531,7 +7518,6 @@ BEGIN
         AND source_kind = 'grant' 
         AND source_id = NEW.id;
     END IF;
-    
     IF NEW.role_id IS NOT NULL THEN
       scope_string := 'group_role:' || NEW.role_id;
       DELETE FROM user_scopes 
@@ -7540,7 +7526,6 @@ BEGIN
         AND source_kind = 'grant' 
         AND source_id = NEW.id;
     END IF;
-    
     IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
       scope_string := 'group:' || NEW.granted_by_group_id;
       DELETE FROM user_scopes 
@@ -7550,7 +7535,6 @@ BEGIN
         AND source_id = NEW.id;
     END IF;
   END IF;
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -7560,22 +7544,16 @@ $$ LANGUAGE plpgsql;
 -- Name: compute_user_scopes_from_role(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE OR REPLACE FUNCTION compute_user_scopes_from_role()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION compute_user_scopes_from_role() RETURNS TRIGGER AS $$
 DECLARE
   role_scopes JSONB;
   scope_string TEXT;
 BEGIN
-  -- Only process active role assignments
   IF NEW.active = true THEN
-    -- Fetch the scopes array from the groups_roles table
     SELECT scopes INTO role_scopes
     FROM groups_roles
     WHERE id = NEW.group_role_id;
-    
-    -- If the role has scopes defined, insert them into user_scopes
     IF role_scopes IS NOT NULL THEN
-      -- Iterate over each scope in the JSONB array
       FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
       LOOP
         INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
@@ -7586,12 +7564,9 @@ BEGIN
       END LOOP;
     END IF;
   ELSE
-    -- If role assignment is not active, remove the scopes
-    -- We need to get the scopes from the role again to know what to delete
     SELECT scopes INTO role_scopes
     FROM groups_roles
     WHERE id = NEW.group_role_id;
-    
     IF role_scopes IS NOT NULL THEN
       FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
       LOOP
@@ -7603,7 +7578,6 @@ BEGIN
       END LOOP;
     END IF;
   END IF;
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

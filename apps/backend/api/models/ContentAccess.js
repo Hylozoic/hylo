@@ -127,7 +127,7 @@ module.exports = bookshelf.Model.extend({
    * @param {String} [attrs.role_id] - Optional role ID
    * @param {Date} [attrs.expires_at] - Optional expiration date
    * @param {String} [attrs.stripe_session_id] - For Stripe purchases
-   * @param {String} [attrs.stripe_payment_intent_id] - Stripe payment intent ID
+   * @param {String} [attrs.stripe_subscription_id] - Stripe subscription ID (for recurring purchases)
    * @param {String} [attrs.granted_by_id] - Admin who granted access
    * @param {Object} [attrs.metadata] - Additional metadata
    * @param {Object} options - Options including transacting

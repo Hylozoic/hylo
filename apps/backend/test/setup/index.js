@@ -162,6 +162,10 @@ TestSetup.prototype.createSchema = function () {
 TestSetup.prototype.clearDb = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.knex.transaction(trx => trx.raw('set constraints all deferred')
+    .then(() => {
+      // Delete from user_scopes first to avoid foreign key constraint violations
+      return trx.raw('delete from public.user_scopes')
+    })
     .then(() => Promise.map(this.tables, table => { if (!['public.common_roles', 'public.responsibilities', 'public.common_roles_responsibilities', 'public.tags', 'public.platform_agreements'].includes(table)) { return trx.raw('delete from ' + table) } })))
 }
 
