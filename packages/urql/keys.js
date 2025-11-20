@@ -9,6 +9,7 @@ export default {
   CustomViewQuerySet: () => null,
   EventInvitationQuerySet: () => null,
   FundingRoundAllocation: () => null,
+  FundingRoundQuerySet: () => null,
   GroupExistsOutput: () => null,
   GroupExtensionQuerySet: () => null,
   GroupJoinQuestionQuerySet: () => null,

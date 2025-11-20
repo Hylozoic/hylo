@@ -117,60 +117,19 @@ function SubmissionCard ({
     // Only submit if there's no validation error and the value changed
     if (!error && finalValue !== submission.tokensAllocated) {
       try {
-        console.log('Attempting to allocate tokens:', {
-          postId: submission.id,
-          tokens: finalValue,
-          previousValue: submission.tokensAllocated
-        })
-
         const result = await executeAllocate({
           postId: submission.id,
           tokens: finalValue
         })
 
-        console.log('Allocate tokens result:', {
-          hasData: !!result.data,
-          hasError: !!result.error,
-          data: result.data
-        })
-
         if (result.error) {
-          // Log full error details for debugging
-          console.error('Failed to allocate tokens - GraphQL error:', {
-            error: result.error,
-            graphQLErrors: result.error.graphQLErrors,
-            networkError: result.error.networkError,
-            response: result.error.response,
-            postId: submission.id,
-            tokens: finalValue
-          })
-
-          const errorMessage = result.error.graphQLErrors?.[0]?.message ||
-                               result.error.networkError?.message ||
-                               result.error.message ||
-                               t('Failed to allocate tokens')
-
-          Alert.alert(t('Error'), errorMessage)
+          Alert.alert(t('Error'), t('Failed to allocate tokens'))
           // Reset to previous value on error
-          setLocalVoteAmount(submission.tokensAllocated || 0)
-        } else if (!result.data) {
-          // No error but also no data - this shouldn't happen but handle it
-          console.error('Failed to allocate tokens - no data returned:', result)
-          Alert.alert(t('Error'), t('Failed to allocate tokens: No response from server'))
           setLocalVoteAmount(submission.tokensAllocated || 0)
         }
       } catch (error) {
-        // Network errors or other exceptions
-        console.error('Failed to allocate tokens - exception:', {
-          error,
-          message: error?.message,
-          stack: error?.stack,
-          postId: submission.id,
-          tokens: finalValue
-        })
-
-        const errorMessage = error?.message || t('Failed to allocate tokens')
-        Alert.alert(t('Error'), errorMessage)
+        console.error('Failed to allocate tokens:', error)
+        Alert.alert(t('Error'), t('Failed to allocate tokens'))
         // Reset to previous value on error
         setLocalVoteAmount(submission.tokensAllocated || 0)
       }

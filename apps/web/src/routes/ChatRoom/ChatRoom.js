@@ -600,7 +600,7 @@ export default function ChatRoom (props) {
   }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -618,6 +618,8 @@ export default function ChatRoom (props) {
                   group,
                   initialAnimationComplete,
                   latestOldPostId,
+                  loadedFuture,
+                  loadedPast,
                   loadingFuture,
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,

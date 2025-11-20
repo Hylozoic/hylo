@@ -111,7 +111,7 @@ function FundingRoundHome () {
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'submissions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to='submissions'
               >
-                {fundingRound.submissionDescriptorPlural}
+                {fundingRound?.phase === 'voting' ? t('Vote') : fundingRound.submissionDescriptorPlural}
               </Link>
               <Link
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'participants' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}

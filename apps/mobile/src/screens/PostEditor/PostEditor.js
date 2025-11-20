@@ -90,11 +90,7 @@ export default function PostEditor (props) {
     submissionDescriptor,
     groupId: providedGroupId
   } = useRouteParams()
-  const editingPost = !!selectedPostId
-  const isSubmission = !!fundingRoundId
-  const [{ data: selectedPostData, fetching: selectedPostLoading }] = useQuery({
-    query: postQuery, variables: { id: selectedPostId }, pause: !editingPost
-  })
+
   const {
     post,
     updatePost,
@@ -112,6 +108,12 @@ export default function PostEditor (props) {
     removeAttachment
   } = usePostEditorStore()
 
+  const editingPost = !!selectedPostId
+  const isSubmission = !!fundingRoundId || providedType === 'submission' || post.type === 'submission'
+  const [{ data: selectedPostData, fetching: selectedPostLoading }] = useQuery({
+    query: postQuery, variables: { id: selectedPostId }, pause: !editingPost
+  })
+
   useEffect(() => { resetPost() }, [])
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function PostEditor (props) {
       ? allGroups.filter(g => g.id === providedGroupId)
       : currentGroup && !isStaticContext(currentGroup?.slug) ? [currentGroup] : post.groups
 
-    const postType = fundingRoundId && providedType === 'submission'
+    const postType = fundingRoundId || providedType === 'submission'
       ? 'submission'
       : getPostTypeOrDefault(providedType || post.type)
 
@@ -141,7 +143,6 @@ export default function PostEditor (props) {
   const canAdminister = hasResponsibility(RESP_ADMINISTRATION, {
     groupIds: post?.groups && post.groups.map(group => group.id)
   })
-
   const canHaveTimeframe = useMemo(() => post.type !== 'discussion', [post])
   const titleLengthWarning = useMemo(() => post?.title && post.title.length >= MAX_TITLE_LENGTH, [post])
   const groupOptions = useMemo(() => currentUser?.memberships.map(m => m.group) || [], [currentUser])
@@ -266,7 +267,7 @@ export default function PostEditor (props) {
           {isSubmission
             ? (
               <Text className='text-foreground font-bold text-lg flex-1 text-center'>
-                {t('Add {{submissionDescriptor}}', { submissionDescriptor })}
+                {editingPost ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: submissionDescriptor || 'Submission' }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: submissionDescriptor || 'Submission' })}
               </Text>
               )
             : (
@@ -286,7 +287,7 @@ export default function PostEditor (props) {
         </View>
       </View>
     )
-  }, [isValid, isSaving, handleSave, post?.type, isSubmission, submissionDescriptor])
+  }, [isValid, isSaving, handleSave, post?.type, isSubmission, submissionDescriptor, editingPost])
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, header })
