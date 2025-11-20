@@ -225,6 +225,7 @@ function MapDrawer ({
                       key={group.id}
                       group={group}
                       routeParams={routeParams}
+                      className='mb-2'
                     />
                   ))}
                 </div>
