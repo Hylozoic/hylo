@@ -104,7 +104,7 @@ export default function PostCard ({
             className='mx-4 mt-2'
           />
         )}
-        {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && (
+        {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && post.type !== 'submission' && (
           <ImageAttachments
             creator={post.creator}
             images={images}
