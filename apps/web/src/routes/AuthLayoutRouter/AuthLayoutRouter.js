@@ -57,6 +57,7 @@ import Messages from 'routes/Messages'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
@@ -448,6 +449,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Other Routes **** */}
+                <Route path='offerings/:offeringId' element={<OfferingDetails />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />

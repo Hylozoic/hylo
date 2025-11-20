@@ -407,6 +407,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     skills: (root, args) => fetchMany('Skill', args),
     stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
     stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),

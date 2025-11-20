@@ -103,7 +103,13 @@ module.exports = {
         return res.status(400).json({ error: 'Missing signature' })
       }
 
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        console.error('STRIPE_WEBHOOK_SECRET environment variable is not set')
+        return res.status(500).json({ error: 'Webhook secret not configured' })
+      }
+
       // Verify webhook signature
+      // req.body should be a Buffer from bodyParser.raw() middleware
       let event
       try {
         event = stripe.webhooks.constructEvent(
@@ -121,37 +127,39 @@ module.exports = {
       }
 
       // Handle different event types
+      // Use module.exports to access handler methods (this context is lost in Sails controllers)
+      const handlers = module.exports
       switch (event.type) {
         case 'account.updated':
-          await this.handleAccountUpdated(event)
+          await handlers.handleAccountUpdated(event)
           break
 
         case 'checkout.session.completed':
-          await this.handleCheckoutSessionCompleted(event)
+          await handlers.handleCheckoutSessionCompleted(event)
           break
 
         case 'product.updated':
-          await this.handleProductUpdated(event)
+          await handlers.handleProductUpdated(event)
           break
 
         case 'customer.subscription.created':
-          await this.handleSubscriptionCreated(event)
+          await handlers.handleSubscriptionCreated(event)
           break
 
         case 'customer.subscription.deleted':
-          await this.handleSubscriptionDeleted(event)
+          await handlers.handleSubscriptionDeleted(event)
           break
 
         case 'invoice.paid':
-          await this.handleInvoicePaid(event)
+          await handlers.handleInvoicePaid(event)
           break
 
         case 'invoice.payment_failed':
-          await this.handleInvoicePaymentFailed(event)
+          await handlers.handleInvoicePaymentFailed(event)
           break
 
         case 'charge.refunded':
-          await this.handleChargeRefunded(event)
+          await handlers.handleChargeRefunded(event)
           break
 
         default:
