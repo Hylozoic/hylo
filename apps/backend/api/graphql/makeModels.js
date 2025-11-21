@@ -1,4 +1,4 @@
-/* global FundingRound */
+/* global FundingRound ContentAccess */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -17,6 +17,7 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import InvitationService from '../services/InvitationService'
 import {
+  filterAndSortContentAccess,
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
@@ -783,6 +784,23 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 q.where('deactivated_at', null)
                 q.orderBy(sortBy || 'id', order || 'asc')
               })
+          }
+        },
+        {
+          contentAccess: {
+            querySet: true,
+            filter: (relation, { search, accessType, status, offeringId, trackId, roleId, sortBy, order }) =>
+              relation.query(filterAndSortContentAccess({
+                groupIds: [relation.relatedData.parentId],
+                search,
+                accessType,
+                status,
+                offeringId,
+                trackId,
+                roleId,
+                sortBy,
+                order
+              }))
           }
         },
         {
@@ -1687,6 +1705,74 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'role',
         'grantedBy'
       ],
+      fetchMany: (args) => {
+        // Store args for use in filter function
+        ContentAccess._fetchManyArgs = args
+        return ContentAccess
+      },
+      filter: (relation) => {
+        const args = ContentAccess._fetchManyArgs || {}
+        const { groupIds, search, accessType, status, offeringId, trackId, roleId, sortBy = 'created_at', order } = args
+
+        return relation.query(q => {
+          // Filter by group IDs (groups that granted the access)
+          if (groupIds && groupIds.length > 0) {
+            q.whereIn('content_access.granted_by_group_id', groupIds)
+          }
+
+          // Filter by user name search
+          if (search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+            q.whereRaw('users.name ilike ?', `%${search}%`)
+          }
+
+          // Filter by access type
+          if (accessType) {
+            q.where('content_access.access_type', accessType)
+          }
+
+          // Filter by status
+          if (status) {
+            q.where('content_access.status', status)
+          }
+
+          // Filter by offering ID
+          if (offeringId) {
+            q.where('content_access.product_id', offeringId)
+          }
+
+          // Filter by track ID
+          if (trackId) {
+            q.where('content_access.track_id', trackId)
+          }
+
+          // Filter by role ID
+          if (roleId) {
+            q.where('content_access.role_id', roleId)
+          }
+
+          // Apply sorting
+          const validSortColumns = {
+            created_at: 'content_access.created_at',
+            expires_at: 'content_access.expires_at',
+            user_name: 'users.name'
+          }
+
+          const sortColumn = validSortColumns[sortBy] || validSortColumns.created_at
+
+          // If sorting by user name and not already joined, join users table
+          if (sortBy === 'user_name' && !search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+          }
+
+          // Apply sorting
+          if (sortBy === 'user_name') {
+            q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+          } else {
+            q.orderBy(sortColumn, order || 'desc')
+          }
+        })
+      },
       getters: {
         userId: ca => ca.get('user_id'),
         grantedByGroupId: ca => ca.get('granted_by_group_id'),

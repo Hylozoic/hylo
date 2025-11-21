@@ -47,6 +47,32 @@ type Query {
 
   collection(id: ID): Collection
 
+  # Query for content access records
+  contentAccess(
+    # Filter by one or more group IDs (groups that granted the access)
+    groupIds: [ID],
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
+
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
@@ -661,6 +687,13 @@ type CommentQuerySet {
   items: [Comment]
 }
 
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ContentAccessQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ContentAccess]
+}
+
 # Common Roles are standard roles that are always available in all groups
 type CommonRole {
   id: ID
@@ -1220,6 +1253,30 @@ type Group {
     # Filter posts by a set of post types: 'discussion', 'event', 'offer', 'project', 'proposal', request', 'resource'
     types: [String]
   ): PostQuerySet
+
+  # Content access records for this group (purchased or granted)
+  contentAccess(
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
 
   # Widgets used on the Explore page
   widgets: GroupWidgetQuerySet
