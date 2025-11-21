@@ -230,9 +230,58 @@ module.exports = bookshelf.Model.extend(Object.assign({
     // Create membership via user.joinGroup
     const membership = await user.joinGroup(group, {
       role,
-      fromInvitation: false,
+      fromInvitation: true, // This will ensure join questions are still shown
       transacting
     })
+
+    return membership
+  },
+
+  /**
+   * Pin a group to the user's global navigation menu
+   * Adds it to the bottom of the pinned list
+   *
+   * @param {User|Number} userOrId - User instance or user ID
+   * @param {Group|Number} groupOrId - Group instance or group ID
+   * @param {Object} [options] - Options
+   * @param {Object} [options.transacting] - Database transaction
+   * @returns {Promise<GroupMembership>} The updated membership record
+   */
+  async pinGroupToNav (userOrId, groupOrId, { transacting } = {}) {
+    const userId = userOrId instanceof User ? userOrId.id : userOrId
+    const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId
+
+    if (!userId) {
+      throw new Error("Can't call pinGroupToNav without a user or user id")
+    }
+    if (!groupId) {
+      throw new Error("Can't call pinGroupToNav without a group or group id")
+    }
+
+    const membership = await GroupMembership.forPair(userId, groupId).fetch({ transacting })
+    if (!membership) {
+      throw new Error(`Membership not found for user ${userId} and group ${groupId}`)
+    }
+
+    // Check if already pinned
+    if (membership.get('nav_order') !== null) {
+      // Already pinned, no need to do anything
+      return membership
+    }
+
+    // Find the max nav_order for this user's pinned groups
+    const result = await bookshelf.knex('group_memberships')
+      .where({ user_id: userId })
+      .whereNotNull('nav_order')
+      .max('nav_order as max_order')
+      .transacting(transacting)
+      .first()
+
+    // Set this group's nav_order to max + 1 (or 0 if no pinned groups)
+    const maxOrder = result?.max_order
+    const newNavOrder = maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 0
+
+    await membership.save({ nav_order: newNavOrder }, { patch: true, transacting })
 
     return membership
   }

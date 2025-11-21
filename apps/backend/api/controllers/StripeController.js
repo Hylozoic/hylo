@@ -320,12 +320,16 @@ module.exports = {
         }
       }
 
-      // Ensure user is a member of all groups that received access
+      // Ensure user is a member of all groups that received access and pin to nav
       for (const accessGroupId of groupsToJoin) {
         try {
           await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
             role: GroupMembership.Role.DEFAULT
           })
+
+          // Pin the purchased group to the user's global navigation
+          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+
           if (process.env.NODE_ENV === 'development') {
             console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
           }
@@ -508,6 +512,10 @@ module.exports = {
           await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
             role: GroupMembership.Role.DEFAULT
           })
+
+          // Pin the purchased group to the user's global navigation
+          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+
           if (process.env.NODE_ENV === 'development') {
             console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
           }
