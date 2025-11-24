@@ -30,11 +30,12 @@ const TextInput = forwardRef(({
   internalLabel,
   ...props
 }, ref) => {
-  const [active, setActive] = useState(!!value)
+  const hasValue = value != null && value !== ''
+  const [active, setActive] = useState(hasValue)
   const inputEl = useRef(null)
 
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
-  const onBlur = () => { props.onBlur && props.onBlur(); setActive(value) }
+  const onBlur = () => { props.onBlur && props.onBlur(); setActive(hasValue) }
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
 
   const otherProps = omit(['onEnter', 'onBlur', 'onFocus'], props)
@@ -55,7 +56,8 @@ const TextInput = forwardRef(({
   useEffect(() => {
     if (!doCheckAutofill) return
     const checkAutofill = () => {
-      if (inputEl.current && inputEl.current.value) {
+      const val = inputEl.current?.value
+      if (val != null && val !== '') {
         setActive(true)
       }
     }
@@ -101,14 +103,14 @@ const TextInput = forwardRef(({
           htmlFor={id}
           className={cn(
             'block absolute left-[18px] top-[50%] -translate-y-1/2 text-foreground/60 text-base transition-all duration-200',
-            (active || (value && value.length > 0)) && 'text-[10px] top-[5%] translate-y-0 left-[14px]'
+            (active || hasValue) && 'text-[10px] top-[5%] translate-y-0 left-[14px]'
           )}
         >
           {internalLabel}
         </label>
       )}
 
-      {value && !noClearButton && props.type !== 'number' &&
+      {hasValue && !noClearButton && props.type !== 'number' &&
         <div
           className={cn(
             'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer mr-2 transition-colors text-foreground/60 hover:text-foreground/100'
