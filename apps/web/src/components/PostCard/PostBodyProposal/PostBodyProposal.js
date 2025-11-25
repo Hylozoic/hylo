@@ -112,7 +112,7 @@ export default function PostBodyProposal ({
   const votePrompt = votingMethod === VOTING_METHOD_SINGLE ? t('select one') : t('select one or more options')
 
   return (
-    <div className={cn('group border-2 mt-6 mx-2 p-2 sm:p-4 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
+    <div className={cn('group border-2 mt-6 mx-2 p-2 sm:p-4 text-foreground background-darkening/10 rounded-lg border-dashed relative mb-4 transition-all flex flex-col gap-2', {
       'border-t-focus/30 border-x-focus/20 border-b-focus/10  hover:border-t-focus/100 hover:border-x-focus/90 hover:border-b-focus/80': proposalStatus === PROPOSAL_STATUS_DISCUSSION,
       'border-t-selected/30 border-x-selected/20 border-b-selected/10 hover:border-t-selected/100 hover:border-x-selected/90 hover:border-b-selected/80': proposalStatus === PROPOSAL_STATUS_VOTING || proposalStatus === PROPOSAL_STATUS_CASUAL,
       'border-t-foreground/30 border-x-foreground/20 border-b-foreground/10': votingComplete,
@@ -164,7 +164,7 @@ export default function PostBodyProposal ({
                 {option.text}
               </div>
             </div>
-            <div className='flex items-center h-8 gap-0 rounded-sm bg-black/20 p-1 px-2' data-tooltip-html={voterNames.length > 0 ? `<pre>${voterNames.join('\r\n')}</pre>` : ''} data-tooltip-id={`voters-tt-${id}`}>
+            <div className='flex items-center h-8 gap-0 rounded-sm bg-darkening/20 p-1 px-2' data-tooltip-html={voterNames.length > 0 ? `<pre>${voterNames.join('\r\n')}</pre>` : ''} data-tooltip-id={`voters-tt-${id}`}>
               {(!isAnonymousVote || votingComplete) &&
                 <div className='text-sm'>
                   {optionVotes.length}

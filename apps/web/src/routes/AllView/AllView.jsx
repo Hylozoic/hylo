@@ -324,7 +324,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   }, [])
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Add {{something}} to Menu', { something: addChoice ? t(capitalize(humanReadableTypeResolver(addChoice))) : 'Something' })}</div>
         <div>
@@ -477,7 +477,7 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
   }, [])
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Edit menu item')}</div>
         <div>

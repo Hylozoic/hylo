@@ -535,7 +535,7 @@ function RequestToJoinModal ({ group, hideRequestToJoinModal, parentGroup, reque
   }
 
   return (
-    <div className='fixed inset-0 bg-black/70 z-[100000] flex items-center justify-center overflow-y-auto py-[70px]'>
+    <div className='fixed inset-0 bg-darkening/70 z-[100000] flex items-center justify-center overflow-y-auto py-[70px]'>
       <div className='bg-background rounded-xl w-full max-w-[480px] border border-foreground/20 relative'>
         <div className='bg-foreground/5 p-6 rounded-t-xl'>
           <button onClick={hideRequestToJoinModal} className='absolute top-2 right-2 w-6 h-6 bg-background rounded-full shadow hover:shadow-md transition-shadow flex items-center justify-center'>

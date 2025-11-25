@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
+### Changed
+- During funding round voting phase Submissions tab becomes Vote tab
+- Don't show Track and Funding Round in create menu when clicking on the map
+
+### Fixed
+- Infinite spinner in chat rooms that have no posts
+- Fix height of nav and context menu in Desktop app
+- Positioning of layers and create buttons on the map
+- Native lands map layer tooltip location
+
 ## [6.2.2] - 2025-11-10
 
 ### Added

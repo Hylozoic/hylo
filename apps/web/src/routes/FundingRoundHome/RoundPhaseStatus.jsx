@@ -189,7 +189,7 @@ export default function RoundPhaseStatus ({
           )}
           {canVote && !joinedAfterVotingStarted && (
             <div className='flex flex-row gap-3 opacity-50'>
-              {round.minTokenAllocation && (
+              {typeof round.minTokenAllocation === 'number' && round.minTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
                   {t('Minimum of {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     minTokenAllocation: round.minTokenAllocation,
@@ -198,7 +198,7 @@ export default function RoundPhaseStatus ({
                   })}
                 </p>
               )}
-              {round.maxTokenAllocation && (
+              {typeof round.maxTokenAllocation === 'number' && round.maxTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0'>
                   {t('Maximum of {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     maxTokenAllocation: round.maxTokenAllocation,
