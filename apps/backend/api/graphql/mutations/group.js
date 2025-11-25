@@ -315,7 +315,7 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
   }
 
   if (relationship && relationship.get('active')) {
-    throw new GraphQLError('Group relationship already exists')
+    throw new GraphQLError('Groups are already related')
   }
 
   // Check if current user is an administrator of both groups

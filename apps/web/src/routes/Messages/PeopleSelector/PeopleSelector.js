@@ -112,7 +112,7 @@ export default function PeopleSelector (props) {
   return (
     <div className='w-full relative' tabIndex='0'>
       <div className='w-full relative flex flex-wrap gap-1'>
-        <span className='p-2'>{t('With:')}</span>
+        <span className='p-2'>{t('New Message With')}:</span>
         {selectedPeople && selectedPeople.map(person =>
           <MatchingPeopleListItem
             avatarUrl={person.avatarUrl}

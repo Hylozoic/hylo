@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { CSSTransition } from 'react-transition-group'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { TextHelpers } from '@hylo/shared'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -18,6 +18,7 @@ import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
 import RoundImage from 'components/RoundImage'
 import SuggestedSkills from 'components/SuggestedSkills'
+import { leaveGroup } from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store'
 import { bgImageStyle, cn } from 'util/index'
 
 import classes from './GroupWelcomeModal.module.scss'
@@ -26,6 +27,7 @@ export default function GroupWelcomeModal (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
+  const navigate = useNavigate()
   const params = useParams()
   const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
@@ -113,6 +115,13 @@ export default function GroupWelcomeModal (props) {
       questionAnswers && !joinQuestionsAnsweredAt ? questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })) : null
     ))
     return null
+  }
+
+  const handleDecline = async () => {
+    if (window.confirm(t('Are you sure you want to decline the agreements and leave this group?'))) {
+      await dispatch(leaveGroup(group.id))
+      navigate('/')
+    }
   }
 
   const handleAnswerQuestion = (index) => (event) => {
@@ -236,13 +245,21 @@ export default function GroupWelcomeModal (props) {
               )}
               <Button
                 variant='secondary'
-                className='w-full bg-accent rounded-md mt-4 border-highlight'
+                className='w-full rounded-md mt-4 border-highlight'
                 dataTestId='jump-in'
                 disabled={(page === 1 && !checkedAllAgreements) || (page === 2 && !allQuestionsAnswered)}
                 onClick={handleAccept}
               >
                 {page === 1 && hasSecondPage ? t('Next') : t('Jump in!')}
               </Button>
+              {page === 1 && (
+                <Button
+                  variant='outline'
+                  className='w-full rounded-md mt-4 border-highlight justify-center'
+                  onClick={handleDecline}
+                >
+                  {t('Decline')}
+                </Button>)}
             </div>
           </div>
         </div>

@@ -65,8 +65,14 @@ export function fetchNotifications (first = 20, offset = 0) {
                 id
                 name
               }
+              fundingRound {
+                id
+                title
+              }
               meta {
                 reasons
+                phase
+                reminderType
               }
               action
               unread

@@ -158,6 +158,15 @@ const HyloEditor = React.forwardRef(({
     },
     onBlur: () => {
       document.removeEventListener('touchmove', onTouchMove, { passive: false })
+    },
+    editorProps: {
+      transformPastedHTML (html) {
+        if (type === 'post') {
+          // Remove any images copied any pasted as HTML
+          return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
+        }
+        return html
+      }
     }
   })
 

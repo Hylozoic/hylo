@@ -71,3 +71,15 @@ function invalidPair (v, k) {
   return isNull(k) || isUndefined(k) || v === 'undefined' ||
     ['HttpOnly', 'Expires', 'Max-Age', 'Domain', 'Path', 'Version'].includes(k)
 }
+
+// Clear all AsyncStorage keys except the session cookie
+export async function clearAllExceptSessionCookie () {
+  try {
+    const cookie = await AsyncStorage.getItem(COOKIE_KEY)
+    await AsyncStorage.clear()
+    if (cookie) await AsyncStorage.setItem(COOKIE_KEY, cookie)
+  } catch (error) {
+    // Swallow to avoid secondary crash during recovery
+    console.warn('Failed to clear cache before restart:', error)
+  }
+}

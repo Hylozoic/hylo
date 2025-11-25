@@ -14,6 +14,9 @@ export function fetchRelatedGroups (slug) {
             geoShape
             name
             purpose
+            settings {
+              askJoinQuestions
+            }
             slug
             visibility
             type
@@ -29,6 +32,9 @@ export function fetchRelatedGroups (slug) {
             geoShape
             name
             purpose
+            settings {
+              askJoinQuestions
+            }
             slug
             visibility
             type
@@ -44,6 +50,9 @@ export function fetchRelatedGroups (slug) {
             geoShape
             name
             purpose
+            settings {
+              askJoinQuestions
+            }
             slug
             visibility
             type

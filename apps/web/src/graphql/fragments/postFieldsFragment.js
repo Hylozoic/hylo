@@ -33,6 +33,7 @@ const CommentFieldsFragment = `
 const postFieldsFragment = (withComments, withCompletion = false, withAllCompletionResponses = false) => `
   id
   announcement
+  budget
   title
   details
   type
@@ -55,6 +56,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   editedAt
   projectManagementLink
   myEventResponse
+  savedAt
   commenters(first: 3) {
     id
     name

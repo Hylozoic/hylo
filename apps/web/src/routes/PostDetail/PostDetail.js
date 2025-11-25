@@ -210,7 +210,7 @@ function PostDetail () {
         </title>
         <meta name='description' content={TextHelpers.presentHTMLToText(post.details, { truncate: MAX_DETAILS_LENGTH })} />
       </Helmet>
-      <div className='flex flex-col bg-card rounded-lg shadow-sm'>
+      <div className='flex flex-col rounded-lg shadow-sm'>
         <ScrollListener elementId={DETAIL_COLUMN_ID} onScroll={handleScroll} />
         <PostHeader
           className={classes.header}
@@ -239,84 +239,86 @@ function PostDetail () {
             />
           </div>
         )}
-        {post.attachments && post.attachments.length > 0 && (
-          <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
-        )}
-        {isEvent && (
-          <EventBody
-            className={classes.body}
-            expanded
-            currentUser={currentUser}
-            slug={groupSlug}
-            event={post}
-            respondToEvent={(response) => dispatch(respondToEvent(post, response))}
-            togglePeopleDialog={handleTogglePeopleDialog}
-            isFlagged={isFlagged}
-          />
-        )}
-        {!isEvent && (
-          <PostBody
-            currentUser={currentUser}
-            className={classes.body}
-            expanded
-            routeParams={routeParams}
-            slug={groupSlug}
-            isFlagged={isFlagged}
-            {...post}
-          />
-        )}
-        {isProject && currentUser && (
-          <div className='flex flex-col gap-2 p-2 sm:p-4'>
-            <div className={classes.joinProjectButtonContainer}>
-              <JoinProjectSection
-                currentUser={currentUser}
-                joinProject={() => dispatch(joinProject(postId))}
-                leaveProject={() => dispatch(leaveProject(postId))}
-                leaving={isProjectMember}
-                members={post.members}
-                togglePeopleDialog={handleTogglePeopleDialog}
-              />
+        <div className='bg-card rounded-lg shadow-md'>
+          {post.attachments && post.attachments.length > 0 && (
+            <CardImageAttachments attachments={post.attachments} isFlagged={isFlagged && !post.clickthrough} />
+          )}
+          {isEvent && (
+            <EventBody
+              className={classes.body}
+              expanded
+              currentUser={currentUser}
+              slug={groupSlug}
+              event={post}
+              respondToEvent={(response) => dispatch(respondToEvent(post, response))}
+              togglePeopleDialog={handleTogglePeopleDialog}
+              isFlagged={isFlagged}
+            />
+          )}
+          {!isEvent && (
+            <PostBody
+              currentUser={currentUser}
+              className={classes.body}
+              expanded
+              routeParams={routeParams}
+              slug={groupSlug}
+              isFlagged={isFlagged}
+              {...post}
+            />
+          )}
+          {isProject && currentUser && (
+            <div className='flex flex-col gap-2 p-2 sm:p-4'>
+              <div className={classes.joinProjectButtonContainer}>
+                <JoinProjectSection
+                  currentUser={currentUser}
+                  joinProject={() => dispatch(joinProject(postId))}
+                  leaveProject={() => dispatch(leaveProject(postId))}
+                  leaving={isProjectMember}
+                  members={post.members}
+                  togglePeopleDialog={handleTogglePeopleDialog}
+                />
+              </div>
+              {post.projectManagementLink && projectManagementTool && (
+                <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
+                  <div>{t('This project is being managed on')} <img className='max-h-4 m-0' src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
+                  <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+                </div>
+              )}
+              {post.projectManagementLink && !projectManagementTool && (
+                <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
+                  <div>{t('View project management tool')}</div>
+                  <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
+                </div>
+              )}
+              {post.donationsLink && donationService && (
+                <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
+                  <div className='flex items-center gap-2'>{t('Support this project on')} <img className='max-h-4 m-0' src={`/assets/payment-services/${donationService}.svg`} /></div>
+                  <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+                </div>
+              )}
+              {post.donationsLink && !donationService && (
+                <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed'>
+                  <div>{t('Support this project')}</div>
+                  <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
+                </div>
+              )}
             </div>
-            {post.projectManagementLink && projectManagementTool && (
-              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
-                <div>{t('This project is being managed on')} <img className='max-h-4 m-0' src={`/assets/pm-tools/${projectManagementTool}.svg`} /></div>
-                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
-              </div>
-            )}
-            {post.projectManagementLink && !projectManagementTool && (
-              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
-                <div>{t('View project management tool')}</div>
-                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.projectManagementLink} target='_blank' rel='noreferrer'>{t('View tasks')}</a></div>
-              </div>
-            )}
-            {post.donationsLink && donationService && (
-              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed items-center'>
-                <div className='flex items-center gap-2'>{t('Support this project on')} <img className='max-h-4 m-0' src={`/assets/payment-services/${donationService}.svg`} /></div>
-                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-              </div>
-            )}
-            {post.donationsLink && !donationService && (
-              <div className='border-2 border-foreground/20 rounded-lg p-2 flex flex-row gap-2 w-full justify-between border-dashed'>
-                <div>{t('Support this project')}</div>
-                <div><a className='inline-block border-2 border-selected/20 rounded-lg p-2 px-4 hover:border-selected/100 transition-all text-selected' href={post.donationsLink} target='_blank' rel='noreferrer'>{t('Contribute')}</a></div>
-              </div>
-            )}
-          </div>
-        )}
-        {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-          <ProjectContributions
-            postId={post.id}
-            totalContributions={totalContributions}
-            processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
-          />
-        )}
-        {post.type === 'action' && post.completionAction && (
-          <ActionCompletionSection
-            post={post}
-            currentUser={currentUser}
-          />
-        )}
-        <PostFooter {...post} currentUser={currentUser} />
+          )}
+          {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
+            <ProjectContributions
+              postId={post.id}
+              totalContributions={totalContributions}
+              processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
+            />
+          )}
+          {post.type === 'action' && post.completionAction && (
+            <ActionCompletionSection
+              post={post}
+              currentUser={currentUser}
+            />
+          )}
+          <PostFooter {...post} currentUser={currentUser} />
+        </div>
         <div ref={activityHeader} />
         {state.atActivity && (
           <div className={classes.activitySticky} style={activityStyle}>

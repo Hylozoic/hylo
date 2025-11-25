@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
@@ -65,6 +65,8 @@ class PostHeader extends PureComponent {
       moderationActionsGroupUrl = '',
       fulfillPost,
       unfulfillPost,
+      savePost,
+      unsavePost,
       updateProposalOutcome,
       postUrl,
       t
@@ -81,7 +83,8 @@ class PostHeader extends PureComponent {
       id,
       endTime,
       startTime,
-      fulfilledAt
+      fulfilledAt,
+      savedAt
     } = post
 
     if (type === 'action') {
@@ -106,6 +109,7 @@ class PostHeader extends PureComponent {
     const dropdownItems = filter([
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
+      { icon: savedAt ? <BookmarkCheck /> : <Bookmark />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
       { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
       { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
@@ -165,10 +169,11 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
-                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
-                  {t(type)}
-                </div>
+                {type !== 'submission' && (
+                  <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                    <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                    {t(type)}
+                  </div>)}
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>

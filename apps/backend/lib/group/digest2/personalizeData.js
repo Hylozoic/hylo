@@ -96,7 +96,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
         topics[chat.topic_name] = {
           name: chat.topic_name,
           num_new_chats: 1,
-          url: Frontend.Route.topic(data.group_slug, chat.topic_name)
+          url: Frontend.Route.chat(data.group_slug, chat.topic_name)
         }
       }
     }

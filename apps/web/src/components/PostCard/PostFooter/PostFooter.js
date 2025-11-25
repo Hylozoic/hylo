@@ -20,6 +20,7 @@ class PostFooter extends React.PureComponent {
 
   render () {
     const {
+      className,
       currentUser,
       commenters,
       commentersTotal,
@@ -35,7 +36,7 @@ class PostFooter extends React.PureComponent {
     const tooltipId = 'postfooter-tt-' + postId
 
     return (
-      <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-2 items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer })} data-testid='post-footer'>
+      <div onClick={onClick} className={cn('w-full text-foreground flex flex-wrap p-2 items-center', { [classes.constrained]: constrained }, { 'flex-col justify-start items-start gap-2': mapDrawer }, className)} data-testid='post-footer'>
         <EmojiRow
           post={post}
           currentUser={currentUser}

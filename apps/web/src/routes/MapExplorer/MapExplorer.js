@@ -288,42 +288,6 @@ function MapExplorer (props) {
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
 
-  const [drawerWidth, setDrawerWidth] = useState(300) // minimum width of drawer
-  const resizeObserverRef = useRef(null)
-
-  function observeDrawerWidth () {
-    const drawer = document.getElementById('map-drawer')
-    if (!drawer) return
-
-    // Set initial width
-    setDrawerWidth(drawer.offsetWidth)
-
-    // Clean up any previous observer
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect()
-    }
-
-    // Listen for width changes
-    const resizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setDrawerWidth(entry.contentRect.width)
-      }
-    })
-    resizeObserver.observe(drawer)
-    resizeObserverRef.current = resizeObserver
-  }
-
-  useEffect(() => {
-    if (!hideDrawer) {
-      observeDrawerWidth()
-    }
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect()
-      }
-    }
-  }, [hideDrawer])
-
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
     setCreatePopupVisible(true)
@@ -388,15 +352,6 @@ function MapExplorer (props) {
     setHideDrawer(!hideDrawer)
     setTimeout(() => {
       mapRef.current.resize()
-      if (hideDrawer) {
-        // Drawer is being opened
-        observeDrawerWidth()
-      } else {
-        // Drawer is being closed
-        if (resizeObserverRef.current) {
-          resizeObserverRef.current.disconnect()
-        }
-      }
     }, 100)
   }, [dispatch, hideDrawer, location])
 
@@ -598,9 +553,6 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
-    } else if (!hideDrawer) {
-      // Start observing drawer width on load unless its already hidden
-      observeDrawerWidth()
     }
 
     if (currentUser) {
@@ -811,8 +763,12 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
-        style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
+        className={cn(
+          'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
+          classes.toggleDrawerButton,
+          {
+            [classes.drawerOpen]: !hideDrawer
+          })}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
@@ -893,12 +849,27 @@ function MapExplorer (props) {
         data-tooltip-id='helpTip'
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs', { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}
+        className={cn(
+          'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs',
+          classes.drawerAdjacentButton,
+          {
+            [classes.open]: showLayersSelector,
+            [classes.withoutNav]: withoutNav,
+            [classes.drawerOpen]: !hideDrawer
+          })}
         data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>
-      <div className={cn('absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}>
+      <div className={cn(
+        'absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
+        classes.drawerAdjacentButton,
+        {
+          flex: showLayersSelector,
+          [classes.withoutNav]: withoutNav,
+          [classes.drawerOpen]: !hideDrawer
+        })}
+      >
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
@@ -941,7 +912,13 @@ function MapExplorer (props) {
         <button
           data-tooltip-id='helpTip'
           data-tooltip-content='Add item to map'
-          className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs', { [classes.active]: isAddingItemToMap, 'right-[520px]': !hideDrawer })}
+          className={cn(
+            'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs',
+            classes.drawerAdjacentButton,
+            {
+              [classes.active]: isAddingItemToMap,
+              [classes.drawerOpen]: !hideDrawer
+            })}
           onClick={handleAddItemToMap}
         >
           <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
@@ -961,12 +938,12 @@ function MapExplorer (props) {
 
       {createCreatePopupVisible && (
         <div
-          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2'
+          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2 flex flex-col items-center'
           style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
           onClick={() => setCreatePopupVisible(false)}
         >
-          <CreateMenu coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
-          <button onClick={() => setCreatePopupVisible(false)}>Close</button>
+          <CreateMenu mapView coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
+          <button className='mt-2' onClick={() => setCreatePopupVisible(false)}>Close</button>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     isAnnouncement,
     isFulfilled,
     order,
+    savedBy,
     search,
     showPinnedFirst,
     sortBy = 'updated',
@@ -30,6 +31,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     id: 'posts.id',
     order: 'collections_posts.order', // Only works if forCollection is set
     reactions: 'posts.num_people_reacts',
+    saved: 'posts_users.saved_at', // Only works if savedBy is set
     start_time: 'posts.start_time',
     updated: 'posts.updated_at',
     votes: 'posts.num_people_reacts' // Need to remove once Mobile has been ported to reactions
@@ -95,6 +97,13 @@ export const filterAndSortPosts = curry((opts, q) => {
       j.andOn('collections_posts.collection_id', '=', bookshelf.knex.raw('?', [forCollection]))
     })
     q.whereIn('posts.id', bookshelf.knex.raw('select post_id from collections_posts where collection_id = ?', [forCollection]))
+  }
+
+  if (savedBy) {
+    q.join('posts_users', 'posts_users.post_id', '=', 'posts.id')
+    q.select('posts_users.saved_at')
+    q.whereIn('posts_users.user_id', savedBy)
+    q.whereNotNull('posts_users.saved_at')
   }
 
   if (collectionToFilterOut) {

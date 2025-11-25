@@ -22,6 +22,7 @@ export {
 } from './comment'
 export {
   createContextWidget,
+  deleteContextWidget,
   updateContextWidget,
   removeWidgetFromMenu,
   reorderContextWidget,
@@ -85,6 +86,10 @@ export {
   pinPost
 } from './post'
 export {
+  savePost,
+  unsavePost
+} from './savePost'
+export {
   createModerationAction,
   clearModerationAction,
   recordClickthrough
@@ -125,6 +130,15 @@ export {
   updateTrack,
   updateTrackActionOrder
 } from './track'
+export {
+  allocateTokensToSubmission,
+  createFundingRound,
+  deleteFundingRound,
+  doPhaseTransition,
+  joinFundingRound,
+  leaveFundingRound,
+  updateFundingRound
+} from './fundingRound'
 export {
   blockUser,
   deactivateUser,

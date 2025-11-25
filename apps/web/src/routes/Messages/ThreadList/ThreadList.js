@@ -9,6 +9,7 @@ import { toRefArray, itemsToArray } from 'util/reduxOrmMigration'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import isPendingFor from 'store/selectors/isPendingFor'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import {
   setThreadSearch,
   getThreadSearch,
@@ -39,6 +40,8 @@ function ThreadList () {
 
   const fetchMoreThreadsAction = useCallback(() => hasMoreThreads && dispatch(fetchThreads(20, threads.length)), [hasMoreThreads])
   const setThreadSearchAction = useCallback((search) => dispatch(setThreadSearch(search)), [])
+
+  const toggleNavMenuAction = useCallback(() => dispatch(toggleNavMenu()), [])
 
   const onSearchChange = event => {
     const searchTerm = event.target.value
@@ -118,7 +121,7 @@ function ThreadList () {
             className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground' to='/messages/new'>
+        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground' to='/messages/new' onClick={toggleNavMenuAction}>
           <SquarePen />
         </Link>
       </div>
@@ -146,7 +149,7 @@ function ThreadList () {
         {!threadsPending && isEmpty(displayThreads) && !threadSearch &&
           <div className={classes.noConversations}>
             {t('You have no active messages!')}
-            <Link to='/messages/new'>{t('Send a message')}</Link>
+            <Link to='/messages/new' onClick={toggleNavMenuAction}>{t('Send a message')}</Link>
             {t('to get started.')}
           </div>}
         {!threadsPending && isEmpty(displayThreads) && threadSearch &&

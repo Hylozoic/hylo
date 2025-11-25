@@ -183,5 +183,17 @@ module.exports = bookshelf.Model.extend({
 
   textForTrackEnrollment: function (track, actor, locale) {
     return locales[locale].textForTrackEnrollment({ actor, track })
+  },
+
+  textForFundingRoundNewSubmission: function (fundingRound, post, actor, locale) {
+    return locales[locale].textForFundingRoundNewSubmission({ fundingRound, post, actor })
+  },
+
+  textForFundingRoundPhaseTransition: function (fundingRound, phase, locale) {
+    return locales[locale].textForFundingRoundPhaseTransition({ fundingRound, phase })
+  },
+
+  textForFundingRoundReminder: function (fundingRound, reminderType, locale) {
+    return fundingRound.get('title') + ': ' + locales[locale].textForFundingRoundReminder({ reminderType })
   }
 })

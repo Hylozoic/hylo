@@ -22,6 +22,7 @@ const postCardFieldsFragment = `
   proposalOutcome
   proposalStatus
   quorum
+  savedAt
   startTime
   timezone
   title

@@ -11,8 +11,8 @@ import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { trackWithConsent } from 'services/mixpanel'
 import useRouteParams from 'hooks/useRouteParams'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
 import Loading from 'components/Loading'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import NotificationOverlay from 'components/NotificationOverlay'
 import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
@@ -70,6 +70,7 @@ export default function Thread () {
   const peopleTypingRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
+  const keyboardHeight = useKeyboardHeight({ androidOffset: 0 })
 
   const [, createMessage] = useMutation(createMessageMutation)
   const [cursor, setCursor] = useState(null)
@@ -120,6 +121,7 @@ export default function Thread () {
     }, currentUser)
   }
 
+
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({
@@ -140,7 +142,7 @@ export default function Thread () {
   // }, [messages, atBottom])
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <View style={[styles.container, { marginBottom: keyboardHeight }]}>
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
@@ -179,7 +181,7 @@ export default function Thread () {
           </View>
         }
       />
-    </KeyboardFriendlyView>
+    </View>
   )
 }
 

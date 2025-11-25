@@ -12,16 +12,18 @@ module.exports = bookshelf.Model.extend({
   },
 
   getObject: function () {
-    if (!this.get('object_id')) throw new GraphQLError('No object_id defined for Flagged Item')
+    if (!this.get('object_id')) {
+      return Promise.reject(new GraphQLError('No object_id defined for Flagged Item'))
+    }
     switch (this.get('object_type')) {
       case FlaggedItem.Type.POST:
-        return Post.find(this.get('object_id'), { withRelated: 'groups' })
+        return Post.find(this.get('object_id'), { withRelated: ['groups', 'tags'] })
       case FlaggedItem.Type.COMMENT:
         return Comment.find(this.get('object_id'), { withRelated: 'post.groups' })
       case FlaggedItem.Type.MEMBER:
         return User.find(this.get('object_id'))
       default:
-        throw new GraphQLError('Unsupported type for Flagged Item', this.get('object_type'))
+        return Promise.reject(new GraphQLError('Unsupported type for Flagged Item: ' + this.get('object_type')))
     }
   },
 
@@ -35,15 +37,18 @@ module.exports = bookshelf.Model.extend({
 
   async getContentLink (group) {
     switch (this.get('object_type')) {
-      case FlaggedItem.Type.POST:
-        return Frontend.Route.post(this.get('object_id'), group)
-      case FlaggedItem.Type.COMMENT:
+      case FlaggedItem.Type.POST: {
+        const post = await this.getObject()
+        return Frontend.Route.post(post, group)
+      }
+      case FlaggedItem.Type.COMMENT: {
         const comment = await this.getObject()
         return Frontend.Route.comment({ comment, group })
+      }
       case FlaggedItem.Type.MEMBER:
         return Frontend.Route.profile(this.get('object_id'), group)
       default:
-        throw new GraphQLError('Unsupported type for Flagged Item', this.get('object_type'))
+        throw new GraphQLError('Unsupported type for Flagged Item: ' + this.get('object_type'))
     }
   }
 
@@ -104,7 +109,7 @@ module.exports = bookshelf.Model.extend({
       case FlaggedItem.Type.MEMBER:
         return notifyModeratorsMember(flaggedItem)
       default:
-        throw new GraphQLError('Unsupported type for Flagged Item', flaggedItem.get('object_type'))
+        throw new GraphQLError('Unsupported type for Flagged Item: ' + flaggedItem.get('object_type'))
     }
   }
 })

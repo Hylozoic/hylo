@@ -24,8 +24,8 @@ export function reorderTree ({ widgetToBeMovedId, newWidgetPosition, allWidgets 
     })
 
     // Add back the moved widget with null order and parentId
-    // Posts, groups and tracks widgets just get deleted, we don't add them back to the all views
-    if (!oldWidgetDetails.viewTrack && !oldWidgetDetails.viewPost && !oldWidgetDetails.viewGroup) {
+    // Posts, groups, tracks and funding round widgets just get deleted, we don't add them back to the all views
+    if (!oldWidgetDetails.viewTrack && !oldWidgetDetails.viewPost && !oldWidgetDetails.viewGroup && !oldWidgetDetails.viewFundingRound) {
       updatedWidgets.push({ ...oldWidgetDetails, order: null, parentId: null })
     }
     return updatedWidgets
@@ -99,7 +99,7 @@ export function replaceHomeWidget ({ widgets, newHomeWidgetId }) {
   // so by here the updatedWidgets array has removed the new home widget from its prior position and its prior peers are settled
 
   // if the old home widget is a chat, we need to move it to the top of the chats widget, otherwise we remove it from the menu
-  if (homeChild.type === 'chat') {
+  if (homeChild.type === 'chat' || homeChild.type === 'viewChat') {
     const chatsWidgetId = updatedWidgets.find(widget => widget.type === 'chats')?.id
     const newPeers = updatedWidgets.filter(widget => widget.parentId === chatsWidgetId).map(peer => ({
       ...peer,

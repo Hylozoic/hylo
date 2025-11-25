@@ -58,6 +58,23 @@ export default function initDataLoaders (spec) {
     { cacheKeyFn: ({ groupId, tagId, userId }) => `${groupId}:${tagId}:${userId}` }
   )
 
+  // DataLoader for FundingRoundUser lookups by (fundingRoundId, userId) pairs
+  // To prevent duplicate lookups of the same FundingRoundUser in one session
+  loaders.fundingRoundUser = new DataLoader(
+    async (keys) => {
+      const results = await Promise.map(keys, async ({ fundingRoundId, userId }) => {
+        return FundingRoundUser.query(q => {
+          q.where({
+            user_id: userId,
+            funding_round_id: fundingRoundId
+          })
+        }).fetch()
+      })
+      return results
+    },
+    { cacheKeyFn: ({ fundingRoundId, userId }) => `${fundingRoundId}:${userId}` }
+  )
+
   return loaders
 }
 

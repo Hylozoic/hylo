@@ -80,6 +80,7 @@ export default function PostCard ({
             hideMenu={hideMenu}
             isFlagged={isFlagged}
             postId={post.id}
+            savedAt={post.savedAt}
             showMember={handleShowMember}
             title={post.title}
             type={post.type}
@@ -103,7 +104,7 @@ export default function PostCard ({
             className='mx-4 mt-2'
           />
         )}
-        {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && (
+        {(images && images.length > 0) && !(isFlagged && !post.clickthrough) && post.type !== 'submission' && (
           <ImageAttachments
             creator={post.creator}
             images={images}
@@ -148,7 +149,7 @@ export default function PostCard ({
           type={post.type}
         />
         <Files urls={post.getFileUrls()} className='mx-4 mb-2' />
-        {showGroups && (
+        {showGroups && post.type !== 'submission' && (
           <PostGroups
             groups={post.groups}
             includePublic={post.isPublic}

@@ -1,3 +1,4 @@
+/* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
@@ -48,6 +49,7 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
+import getFundingRound from 'store/selectors/getFundingRound'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -80,6 +82,7 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import HyloHTML from 'components/HyloHTML'
 
 import styles from './PostEditor.module.scss'
 
@@ -114,6 +117,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditor ({
   context,
+  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   modal = true,
   post: propsPost,
   editing = false,
@@ -133,12 +137,14 @@ function PostEditor ({
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const topicName = routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
@@ -148,8 +154,14 @@ function PostEditor ({
   const attachmentPostId = (editingPostId || fromPostId)
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
-  const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const imageAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
+  const fileAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
@@ -210,6 +222,9 @@ function PostEditor ({
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [showAllSubmissionCriteria, setShowAllSubmissionCriteria] = useState(false)
+  const [shouldShowSubmissionCriteriaToggle, setShouldShowSubmissionCriteriaToggle] = useState(false)
+  const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -469,6 +484,11 @@ function PostEditor ({
     setCurrentPost({ ...currentPost, projectManagementLink })
   }, [currentPost])
 
+  const handleBudgetChange = useCallback((evt) => {
+    const budget = evt.target.value
+    setCurrentPost({ ...currentPost, budget })
+  }, [currentPost])
+
   /**
    * Validates time inputs to ensure end time is after start time
    * @param {Date} startTime - The start time to validate
@@ -559,7 +579,7 @@ function PostEditor ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -577,6 +597,11 @@ function PostEditor ({
       case 'proposal':
         if (proposalOptions?.length === 0) {
           errorMessages.push(t('At least one proposal option required'))
+        }
+        break
+      case 'submission':
+        if (currentFundingRound?.requireBudget && !budget) {
+          errorMessages.push(t('Budget is required for this submission'))
         }
         break
     }
@@ -600,7 +625,7 @@ function PostEditor ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -616,6 +641,7 @@ function PostEditor ({
   const save = useCallback(async () => {
     const {
       acceptContributions,
+      budget,
       completionAction,
       completionActionSettings,
       donationsLink,
@@ -663,6 +689,7 @@ function PostEditor ({
     const postToSave = {
       id,
       acceptContributions,
+      budget,
       commenters: [], // For optimistic display of the new post
       createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
@@ -674,6 +701,7 @@ function PostEditor ({
       eventInviteeIds,
       fileAttachments, // For optimistic display of the new post
       fileUrls,
+      fundingRoundId: currentFundingRound?.id,
       groups,
       imageAttachments, // For optimistic display of the new post
       imageUrls,
@@ -708,7 +736,7 @@ function PostEditor ({
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-  }, [afterSave, announcementSelected, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+  }, [afterSave, announcementSelected, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -718,7 +746,7 @@ function PostEditor ({
     if (!isValid || loading) return
 
     const _save = announcementSelected ? toggleAnnouncementModal : save
-    if (currentPost.type === 'proposal' && isEditing && !isEqual(currentPost.proposalOptions, initialPost.proposalOptions)) {
+    if (currentPost.type === 'proposal' && isEditing) {
       if (window.confirm(t('Changing proposal options will reset the votes. Are you sure you want to continue?'))) {
         _save()
       }
@@ -771,7 +799,7 @@ function PostEditor ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -780,12 +808,13 @@ function PostEditor ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat' && currentPost.type !== 'action'
+  const canHaveTimes = !['discussion', 'chat', 'action', 'submission'].includes(currentPost.type)
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isChat = currentPost.type === 'chat'
   const isAction = currentPost.type === 'action'
+  const isSubmission = currentPost.type === 'submission'
 
   /**
    * Handles the To field container click, focusing the actual ToField
@@ -794,6 +823,28 @@ function PostEditor ({
   const handleToFieldContainerClick = () => {
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
+
+  useEffect(() => {
+    setShowAllSubmissionCriteria(false)
+    setShouldShowSubmissionCriteriaToggle(false)
+  }, [isSubmission, currentFundingRound?.id])
+
+  const showSubmissionCriteria = useMemo(() => isSubmission && currentFundingRound?.criteria && !!(new DOMParser().parseFromString(currentFundingRound.criteria, 'text/html').body.textContent?.trim()), [isSubmission, currentFundingRound?.criteria])
+
+  useEffect(() => {
+    if (!showSubmissionCriteria) {
+      setShouldShowSubmissionCriteriaToggle(false)
+      return
+    }
+
+    if (showAllSubmissionCriteria) return
+
+    const node = submissionCriteriaRef.current
+    if (!node) return
+
+    const isOverflowing = node.scrollHeight > node.clientHeight + 1
+    setShouldShowSubmissionCriteriaToggle(isOverflowing)
+  }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
@@ -805,21 +856,51 @@ function PostEditor ({
         }}
       />
       <div className={cn('PostEditorHeader relative')}>
-        {!isAction
+        {isAction
           ? (
-            <PostTypeSelect
-              disabled={loading}
-              includeChat={!modal}
-              postType={currentPost.type}
-              setPostType={handlePostTypeSelection}
-              className={cn({ 'absolute top-3 right-1 z-10': isChat })}
-            />
-            )
-          : (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
-            )}
+            )
+          : isSubmission
+            ? (
+              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              )
+            : (
+              <PostTypeSelect
+                disabled={loading}
+                includeChat={!modal}
+                postType={currentPost.type}
+                setPostType={handlePostTypeSelection}
+                className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
+              />
+              )}
       </div>
-      {!isChat && !isAction && (
+      {showSubmissionCriteria && (
+        <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
+          <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
+          <div
+            ref={submissionCriteriaRef}
+            className={cn(
+              'leading-relaxed space-y-2',
+              !showAllSubmissionCriteria && 'line-clamp-2'
+            )}
+          >
+            <HyloHTML
+              html={currentFundingRound.criteria}
+              className={cn(!showAllSubmissionCriteria && 'child:first:mt-0 child:first:mb-0')}
+            />
+          </div>
+          {shouldShowSubmissionCriteriaToggle && (
+            <button
+              type='button'
+              onClick={() => setShowAllSubmissionCriteria(prev => !prev)}
+              className='self-start text-xs font-semibold text-foreground underline'
+            >
+              {showAllSubmissionCriteria ? t('Hide') : t('Show all')}
+            </button>
+          )}
+        </div>
+      )}
+      {!isChat && !isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
@@ -873,7 +954,7 @@ function PostEditor ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
@@ -922,7 +1003,7 @@ function PostEditor ({
               forGroups={currentPost.groups}
               readOnly={loading}
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50 pt-0'
-              backgroundClassName='bg-midground rounded-lg p-2 shadow-md'
+              backgroundClassName='bg-midground rounded-lg p-1 shadow-md'
             />
           </div>
         </div>
@@ -937,7 +1018,7 @@ function PostEditor ({
           />
         </div>
       </div> */}
-      {!isChat && !isAction && (
+      {!isChat && !isAction && !isSubmission && (
         <div className={cn('PostEditorPublic', styles.section)}>
           <PublicToggle
             togglePublic={togglePublic}
@@ -1179,9 +1260,7 @@ function PostEditor ({
               />
               {!currentPost.acceptContributions && (
                 <div className={styles.acceptContributionsHelp}>
-                  {t(`If you turn 'Accept Contributions' on, people will be able
-                  to send money to your Stripe connected account to support
-                  this project.`)}
+                  {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
                 </div>
               )}
             </div>
@@ -1226,6 +1305,22 @@ function PostEditor ({
               placeholder={t('Add a project management link (must be valid URL)')}
               value={currentPost.projectManagementLink || ''}
               onChange={handleProjectManagementLinkChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
+            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+          </div>
+          <div className={styles.sectionGroups}>
+            <input
+              type='text'
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+              value={currentPost.budget || ''}
+              onChange={handleBudgetChange}
               disabled={loading}
             />
           </div>

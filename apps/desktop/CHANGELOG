@@ -4,6 +4,15 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta.3] - 2025-11-10
+
+### Added
+- Back, forward and refresh buttons to the titlebar
+- Support for .icns icon file for macOS Tahoe
+
+### Changed
+- Update to latest Electron v39.1.2
+
 ## [1.0.0-beta.2] - 2025-08-04
 
 ### Changed

@@ -12,7 +12,7 @@ export async function createContextWidget ({ userId, groupId, data }) {
   }
 
   // Ensure only one view reference is set
-  const viewFields = ['view_group_id', 'view_post_id', 'custom_view_id', 'view_user_id', 'view_chat_id', 'view_track_id', 'view']
+  const viewFields = ['view_group_id', 'view_post_id', 'custom_view_id', 'view_user_id', 'view_chat_id', 'view_track_id', 'view', 'view_funding_round_id']
   const setViewFields = viewFields.filter(field => convertedData[field] != null)
   if (setViewFields.length > 1) {
     throw new GraphQLError('Only one view reference can be set')
@@ -24,6 +24,29 @@ export async function createContextWidget ({ userId, groupId, data }) {
   })
     .catch(err => {
       throw new GraphQLError(`Creation of context widget failed: ${err.message}`)
+    })
+}
+
+export async function deleteContextWidget (userId, contextWidgetId) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!contextWidgetId) throw new GraphQLError('No context widget id passed into function')
+  const widget = await ContextWidget.where({ id: contextWidgetId }).fetch()
+  if (!widget) throw new GraphQLError('Context widget not found')
+
+  const groupId = widget.get('group_id')
+  const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+  if (!responsibilities.includes(Responsibility.constants.RESP_ADMINISTRATION)) {
+    throw new GraphQLError("You don't have permission to delete context widgets for this group")
+  }
+
+  if (widget.isSystemWidget()) {
+    throw new GraphQLError('Cannot delete a system widget')
+  }
+
+  return widget.destroy()
+    .then(() => ({ success: true }))
+    .catch(err => {
+      throw new GraphQLError(`Deletion of context widget failed: ${err.message}`)
     })
 }
 
