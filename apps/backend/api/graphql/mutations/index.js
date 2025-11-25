@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
 
 export {
@@ -162,7 +163,14 @@ export { default as findOrCreateThread } from '../../models/post/findOrCreateThr
 
 export async function updateMe (sessionId, userId, changes) {
   const user = await User.find(userId)
-  return user.validateAndSave(sessionId, convertGraphqlData(changes))
+  const convertedChanges = convertGraphqlData(changes)
+  
+  // Generate calendar token if RSVP calendar subscription is enabled and token doesn't exist
+  if (convertedChanges.settings?.rsvp_calendar_sub && !user.get('calendar_token')) {
+    convertedChanges.calendar_token = uuidv4()
+  }
+  
+  return user.validateAndSave(sessionId, convertedChanges)
 }
 
 export function allowGroupInvites (groupId, data) {

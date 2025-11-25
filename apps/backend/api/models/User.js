@@ -511,7 +511,7 @@ module.exports = bookshelf.Model.extend(merge({
       'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
       'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
-      'new_notification_count'
+      'new_notification_count', 'calendar_token'
     ])
 
     return bookshelf.transaction(async (transacting) => {
@@ -637,7 +637,13 @@ module.exports = bookshelf.Model.extend(merge({
 
   hasStripeAccount () {
     return !!this.get('stripe_account_id')
-  }
+  },
+
+  rsvpCalendarUrl () {
+    return this.get('calendar_token')
+      ? `${process.env.AWS_S3_CONTENT_URL}/evo-uploads/user/${this.id}/calendar-${this.get('calendar_token')}.ics`
+      : null
+  },
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
