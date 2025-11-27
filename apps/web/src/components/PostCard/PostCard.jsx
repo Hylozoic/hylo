@@ -96,7 +96,8 @@ export default function PostCard (props) {
           {
             [classes.expanded]: expanded,
             [classes.constrained]: constrained,
-            'border-accent/50': highlighted
+            'border-accent/50': highlighted,
+            'opacity-60': post.fulfilledAt
           },
           className
         )}

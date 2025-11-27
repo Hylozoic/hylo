@@ -120,8 +120,7 @@ class PostHeader extends PureComponent {
     const canHaveTimes = typesWithTimes.includes(type)
 
     const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
-    const canBeCompleted = typesWithCompletion.includes(type) && (!proposalStatus || proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL)
-
+    const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
     // If it was completed/fulfilled before it ended, then use that as the end datetime
     const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
 
@@ -153,7 +152,7 @@ class PostHeader extends PureComponent {
     }
 
     return (
-      <div className={cn('relative', { 'mb-0 px-2': constrained }, className)}>
+      <div className={cn('PostHeader relative', { 'mb-0 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
           <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
