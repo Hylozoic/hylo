@@ -96,7 +96,8 @@ export default function ChatRoom (props) {
   const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  // DEPRECATED: No longer treat webview differently
+  const withoutNav = /* isWebView() || */ hideNavLayout
 
   const { customTopicName } = props
   const { groupSlug, postId: selectedPostId } = routeParams
@@ -134,7 +135,8 @@ export default function ChatRoom (props) {
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
   // The number of posts that should fill a screen plus a few more to make sure we have enough posts to scroll through
-  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
+  // DEPRECATED: Load same number for all mobile (including webview)
+  const INITIAL_POSTS_TO_LOAD = isMobile.any ? 17 : 25
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
@@ -408,10 +410,11 @@ export default function ChatRoom (props) {
         ])
       }
 
-      // Remove the scroll to post from the url so we can click on a notification to scroll to it again but only if its the regular web app (not mobile webview)
-      if (!isWebView()) {
+      // Remove the scroll to post from the url so we can click on a notification to scroll to it again
+      // DEPRECATED: Now always clean up the URL parameter
+      // if (!isWebView()) {
         dispatch(changeQuerystringParam(location, 'postId', null, null, true))
-      }
+      // }
     }
   }, [querystringParams?.postId])
 
@@ -595,7 +598,8 @@ export default function ChatRoom (props) {
       ),
       icon: null,
       info: '',
-      search: !isWebView()
+      // DEPRECATED: Now always enable search
+      search: true // !isWebView()
     })
   }, [hiddenTopic, topicName, notificationsSetting])
 
@@ -663,12 +667,12 @@ export default function ChatRoom (props) {
           afterSave={afterCreate}
         />
       </div>
-      {/* This is hidden for webView in mobile; stops two different versions of a post detail view getting rendered */}
-      {!isWebView() && (
-        <Routes>
-          <Route path='post/:postId' element={<PostDialog container={container} />} />
-        </Routes>
-      )}
+      {/* DEPRECATED: Now always show PostDialog routes */}
+      {/* {!isWebView() && ( */}
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
+      {/* )} */}
     </div>
   )
 }

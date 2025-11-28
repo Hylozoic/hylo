@@ -1,3 +1,9 @@
+// DEPRECATED: This screen is no longer used in the app.
+// All content (including group exploration) is now handled by PrimaryWebView.
+// The web app provides the group exploration interface.
+// Kept for reference - may revisit native implementation in the future.
+// Last used: 2025-01-26
+
 import React, { useRef, useEffect, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useQuery } from 'urql'

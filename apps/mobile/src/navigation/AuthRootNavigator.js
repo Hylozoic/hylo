@@ -16,21 +16,8 @@ import useHandleLinking from 'navigation/linking/useHandleLinking'
 import { isDev } from 'config'
 import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import useRouteParams from 'hooks/useRouteParams'
-import ModalHeader from 'navigation/headers/ModalHeader'
-import CreateGroup from 'screens/CreateGroup'
-import DrawerNavigator from 'navigation/DrawerNavigator'
-import CreationOptions from 'screens/CreationOptions'
-import GroupExploreWebView from 'screens/GroupExploreWebView'
-import HyloWebView from 'components/HyloWebView'
+import PrimaryWebView from 'screens/PrimaryWebView'
 import LoadingScreen from 'screens/LoadingScreen'
-import MemberProfile from 'screens/MemberProfile'
-import PostDetails from 'screens/PostDetails'
-import PostEditor from 'screens/PostEditor'
-import NotificationsList from 'screens/NotificationsList'
-import Thread from 'screens/Thread'
-import UploadAction from 'screens/UploadAction'
 import { twBackground } from '@hylo/presenters/colors'
 import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
 
@@ -121,6 +108,9 @@ export default function AuthRootNavigator () {
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
+  
+  // Initial loading state before auth completes
+  // This is different from PrimaryWebView's loading state which handles WebView content loading
   if (loading) return <LoadingScreen />
 
   const navigatorProps = {
@@ -132,52 +122,22 @@ export default function AuthRootNavigator () {
   return (
     <HyloHTMLConfigProvider>
       <AuthRoot.Navigator {...navigatorProps}>
-        <AuthRoot.Screen name='Drawer' component={DrawerNavigator} options={{ headerShown: false }} />
-        <AuthRoot.Screen name='Create Group' component={CreateGroup} options={{ headerShown: false }} />
-        <AuthRoot.Screen name='Loading' component={LoadingScreen} options={{ headerShown: false, animationEnabled: false }} />
-        {/*
-          == Modals ==
-          modelScreenName is used to differentiate screen names from ones that have a non-model counterpart,
-          it is used to simply consistently appends '- Modal` to then be used by const isModalScreen = useIsModalScreen()
-          in views which have different behavior when opened as a modal. Don't use it if there is no non-modal
-          counterpart to a modal screen.
+        {/* 
+          PRIMARY WEBVIEW ARCHITECTURE
+          
+          Single full-screen WebView handles all authenticated content.
+          The web app provides its own navigation (drawer, tabs, routing, etc.)
+          
+          All previous native screens (Drawer, Stream, Messages, Posts, Members, etc.)
+          are now handled by the web app displayed in PrimaryWebView.
+          
+          PrimaryWebView includes its own loading state for WebView content.
         */}
-        <AuthRoot.Screen name='Notifications' component={NotificationsList} />
-
-        <AuthRoot.Group screenOptions={{ 
-          presentation: 'modal', 
-          header: ModalHeader,
-          cardStyle: { 
-            backgroundColor: twBackground,
-            // Add safe area insets to the card style
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-            paddingLeft: insets.left,
-            paddingRight: insets.right
-          },
-          // Let React Navigation handle safe areas naturally
-          cardOverlayEnabled: false,
-          // Ensure proper safe area handling for modals
-          headerStatusBarHeight: undefined
-        }}>
-          <AuthRoot.Screen
-            name='Creation'
-            component={CreationOptions}
-            options={{
-              title: 'Create',
-              presentation: 'transparentModal',
-              headerShown: false,
-              cardStyle: { backgroundColor: 'transparent' }
-            }}
-          />
-          <AuthRoot.Screen name='Edit Post' component={PostEditor} options={{ headerShown: false }} />
-          <AuthRoot.Screen name={modalScreenName('Group Explore')} component={GroupExploreWebView} options={{ title: 'Explore' }} />
-          <AuthRoot.Screen name={modalScreenName('Member')} component={MemberProfile} options={{ title: 'Member' }} />
-          <AuthRoot.Screen name='Upload Action' component={UploadAction} />
-          <AuthRoot.Screen name={modalScreenName('Post Details')} component={PostDetails} options={{ title: 'Post Details' }} />
-          <AuthRoot.Screen name={modalScreenName('Thread')} component={Thread} />
-          <AuthRoot.Screen name={modalScreenName('Web View')} component={HyloWebView} />
-        </AuthRoot.Group>
+        <AuthRoot.Screen 
+          name='Main' 
+          component={PrimaryWebView} 
+          options={{ headerShown: false }} 
+        />
       </AuthRoot.Navigator>
     </HyloHTMLConfigProvider>
   )

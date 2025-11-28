@@ -1,3 +1,8 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Search functionality and screens have been replaced.
+// Kept for reference only.
+
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import ModalHeader from 'navigation/headers/ModalHeader'

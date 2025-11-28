@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, Pressable } from 'react-native'
 import { FlashList } from '@shopify/flash-list'

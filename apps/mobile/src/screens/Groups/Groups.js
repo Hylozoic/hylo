@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import { useEffect, useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery } from 'urql'

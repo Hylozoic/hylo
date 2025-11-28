@@ -77,7 +77,8 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  // DEPRECATED: No longer treat webview differently
+  const withoutNav = /* isWebView() || */ hideNavLayout
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -268,11 +269,12 @@ export default function AuthLayoutRouter (props) {
         {/* Redirect manage notifications page to settings page when logged in */}
         <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
-        {!isWebView() && (
-          <>
-            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-          </>
-        )}
+        {/* DEPRECATED: Now always show GroupWelcomeModal */}
+        {/* {!isWebView() && ( */}
+        <>
+          <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+        </>
+        {/* )} */}
       </Routes>
 
       <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
