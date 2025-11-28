@@ -17,6 +17,7 @@ import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
+import useSwipeGesture from 'hooks/useSwipeGesture'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -69,7 +70,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
-import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
+import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -133,6 +134,19 @@ export default function AuthLayoutRouter (props) {
 
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState()
+
+  // Swipe gestures for navigation menu on mobile
+  // - Swipe from left edge to open menu
+  // - Swipe right-to-left to close menu when open
+  useSwipeGesture(
+    () => dispatch(toggleNavMenu(true)), // Open menu on swipe from left
+    {
+      enabled: !withoutNav, // Enable when nav is available
+      edgeWidth: 30, // Detect swipes starting within 30px of left edge
+      minSwipeDistance: 80, // Require at least 80px swipe distance
+      onSwipeRight: isNavOpen ? () => dispatch(toggleNavMenu(false)) : null // Close menu on right swipe when open
+    }
+  )
 
   useEffect(() => {
     (async function () {
