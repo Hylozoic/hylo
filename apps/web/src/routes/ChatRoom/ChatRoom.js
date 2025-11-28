@@ -575,6 +575,7 @@ export default function ChatRoom (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     !hiddenTopic && setHeaderDetails({
+      backButton: true, // Ensure back/menu button shows on all devices
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
