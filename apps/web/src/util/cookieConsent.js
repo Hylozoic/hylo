@@ -11,7 +11,6 @@ export const shouldSkipCookieConsent = () => {
   // Skip for iframe
   if (window.self !== window.top) return true
 
-  // Skip for mobile webView
   if (isWebView()) return true
 
   return false

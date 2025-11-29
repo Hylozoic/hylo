@@ -35,7 +35,9 @@ const ViewHeader = () => {
           onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
         />
       )}
-      {!isWebView() && !centered && (
+      {/* DEPRECATED: Now always show back button/menu toggle */}
+      {/* {!isWebView() && !centered && ( */}
+      {!centered && (
         <>
           <ChevronLeft
             className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
@@ -52,7 +54,9 @@ const ViewHeader = () => {
                     : null}
             </div>
           )}
-        </>)}
+        </>
+      )}
+      {/* )} */}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
         {typeof title === 'string' || React.isValidElement(title)

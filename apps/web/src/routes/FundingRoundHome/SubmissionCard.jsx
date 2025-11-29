@@ -247,7 +247,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
       )}
       {currentPhase === 'completed' && (
         <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-4 rounded-r-lg min-w-[160px]'>
-          {hasAllocations
+          {hasAllocations && canManageRound
             ? (
               <Tooltip>
                 <TooltipTrigger asChild>

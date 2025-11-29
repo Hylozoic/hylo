@@ -1,3 +1,9 @@
+// DEPRECATED: This screen is no longer used in the app.
+// All content (including user settings) is now handled by PrimaryWebView.
+// The web app provides the settings interface and handles logout.
+// Kept for reference - may revisit native implementation in the future.
+// Last used: 2025-01-26
+
 import React, { useCallback, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import useRouteParams from 'hooks/useRouteParams'

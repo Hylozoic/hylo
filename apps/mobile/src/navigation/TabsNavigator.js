@@ -1,3 +1,8 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Bottom tabs (Home, Messages, Search) and their navigators have been replaced.
+// Kept for reference only.
+
 import React from 'react'
 import { StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'

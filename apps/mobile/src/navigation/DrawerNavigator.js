@@ -1,3 +1,8 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// The drawer menu, tabs, and all nested navigators have been replaced.
+// Kept for reference only.
+
 import React from 'react'
 import { Dimensions } from 'react-native'
 import { createDrawerNavigator } from '@react-navigation/drawer'

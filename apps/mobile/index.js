@@ -116,6 +116,13 @@ if (Platform.OS === 'ios') {
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
   const storage = makeAsyncStorage({ storage: AsyncStorage })
+  
+  // MOSTLY DEPRECATED: URQL is now minimally used in the mobile app.
+  // The web app (loaded via PrimaryWebView) handles all data fetching, caching, and subscriptions.
+  // 
+  // Still needed for:
+  // - Native auth screens (Login, Signup, JoinGroup)
+  // - Auth-related hooks (useLogout, useAuth)
   const urqlClient = useMakeUrqlClient({
     subscriptionExchange: mobileSubscriptionExchange,
     storage

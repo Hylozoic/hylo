@@ -1,3 +1,8 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Home/stream navigation and all nested screens have been replaced.
+// Kept for reference only.
+
 import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Header } from '@react-navigation/elements'

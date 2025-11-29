@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 /* eslint-disable react/no-unstable-nested-components */
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Alert, KeyboardAvoidingView, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native'
