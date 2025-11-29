@@ -41,7 +41,7 @@ const PostDialog = ({
     <Dialog.Root defaultOpen onOpenChange={handleOpenChange}>
       <Dialog.Portal container={container}>
         <Dialog.Overlay
-          className='PostDialog-Overlay bg-black/50 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'
+          className='PostDialog-Overlay bg-darkening/50 dark:bg-darkening/90 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2'
         >
           <Dialog.Content
             onInteractOutside={handleInteractOutside}

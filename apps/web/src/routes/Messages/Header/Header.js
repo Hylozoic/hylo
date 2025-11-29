@@ -66,12 +66,12 @@ export default class Header extends React.Component {
             <div className='text-foreground flex flex-wrap gap-2'>
               {displayNames}
               {andOthers && 'and' && (
-                <span className='text-foreground text-sm xs:text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
+                <span className='text-foreground text-sm xs:text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
                   {andOthers}
                   {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
                 </span>
               )}
-              {showAll && <span className='text-foreground text-base p-2 bg-black/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
+              {showAll && <span className='text-foreground text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
             </div>
           )}
         </div>
@@ -98,7 +98,7 @@ export function calculateMaxShown (showAll, otherParticipants, maxCharacters) {
 }
 
 export const getFormattedLinkToProfile = (user) => {
-  return <Link key={user.id} to={personUrl(user.id)} className='text-foreground font-bold inline-block p-2 rounded bg-black/20 text-sm xs:text-base transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>{user.name}</Link>
+  return <Link key={user.id} to={personUrl(user.id)} className='text-foreground font-bold inline-block p-2 rounded bg-darkening/20 text-sm xs:text-base transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>{user.name}</Link>
 }
 
 export function generateDisplayNames (maxShown, participants, currentUser) {
