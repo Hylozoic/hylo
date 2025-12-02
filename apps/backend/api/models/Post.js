@@ -859,7 +859,39 @@ module.exports = bookshelf.Model.extend(Object.assign({
   removeFromGroup: function (idOrSlug) {
     return PostMembership.find(this.id, idOrSlug)
       .then(membership => membership.destroy())
+  },
+
+  createIcsCal: async function({ userId, eventInvitation, eventChanges = {}}) {
+    // Load groups for URL generation
+    await this.load('groups')
+    const group = this.relations.groups?.first()
+    
+    // Generate URL for the event
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_rsvp',
+      cti: userId
+    }).toString()
+    const url = Frontend.Route.post(this, group, clickthroughParams)
+
+    // Create a new ical calendar for this event
+    const cal = ical()
+    
+    // Get calendar event data
+    const calEvent = await this.getCalEventData({ 
+      eventInvitation, 
+      forUserId: userId, 
+      eventChanges: eventChanges, 
+      url 
+    })
+    
+    // Add event to calendar
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+    
+    // Convert calendar to .ics string and add to array
+    return cal
   }
+
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
 
@@ -1310,23 +1342,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
+  updatePostRsvpCalendarSubscriptions: async function ({ postId }) {
+    const post = await Post.find(postId)
+    if (!post) return
+
+    const eventInvitations = await post.eventInvitations().fetch()
+    eventInvitations.forEach(eventInvitation => {
+      const userId = eventInvitation.get('user_id')
+      if (userId) {
+        Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId })
+      }
+    })
+  },
+
   async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
     const post = await Post.where({ id: eventId }).fetch()
     const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
     const user = await eventInvitation.user().fetch()
-    const clickthroughParams = '?' + new URLSearchParams({
-      ctt: 'event_rsvp',
-      cti: user.id
-    }).toString()
     await post.load('groups')
-    const url = Frontend.Route.post(post, post.relations.groups.first(), clickthroughParams)
-
-    const cal = ical()
-    const calEvent = await post.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
     const groupNames = post.relations.groups.map(g => g.get('name')).join(', ')
-
+    const icsCal = await post.createIcsCal({ userId: user.id, eventInvitation, eventChanges })
     const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
@@ -1342,7 +1377,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         event_name: post.title(),
         event_description: post.details(),
         event_location: post.get('location'),
-        event_url: url,
+        event_url: icsCal.url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
         newDate: newDate,
@@ -1351,7 +1386,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       files: [
         {
           id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+          data: Buffer.from(icsCal.toString(), 'utf8').toString('base64')
         }
       ]
     }).then(() => {

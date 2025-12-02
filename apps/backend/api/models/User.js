@@ -11,6 +11,9 @@ import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
+import ical from 'ical-generator'
+import Frontend from '../services/Frontend'
+import { writeStringToS3 } from '../../lib/uploader/storage'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -639,9 +642,13 @@ module.exports = bookshelf.Model.extend(merge({
     return !!this.get('stripe_account_id')
   },
 
+  getRsvpCalendarPath () {
+    return `${process.env.UPLOADER_PATH_PREFIX}/user/${this.id}/calendar-${this.get('calendar_token')}.ics`
+  },
+
   rsvpCalendarUrl () {
     return this.get('calendar_token')
-      ? `${process.env.AWS_S3_CONTENT_URL}/evo-uploads/user/${this.id}/calendar-${this.get('calendar_token')}.ics`
+      ? `${process.env.AWS_S3_CONTENT_URL}/${this.getRsvpCalendarPath()}`
       : null
   },
 
@@ -909,9 +916,99 @@ module.exports = bookshelf.Model.extend(merge({
         }
       })
     }
+  },
+
+  async updateUserRsvpCalendarSubscriptions ({ userId }) {
+    const user = await User.find(userId)
+    if (!user) return
+
+    // Ensure user has calendar token
+    if (!user.get('calendar_token')) {
+      await user.save({ calendar_token: uuidv4() }, { patch: true })
+      await user.refresh()
+    }
+
+    // Fetch all EventInvitations for this user
+    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll()
+
+    // Array to store .ics strings for each event
+    const icsCalPromises = []
+
+    // Process each event invitation
+    for (const eventInvitation of eventInvitations.models) {
+      // Fetch the post (event)
+      const post = await eventInvitation.event().fetch()
+      if (post?.isEvent()) {
+        icsCalPromises.push(post.createIcsCal({ userId: user.id, eventInvitation }))
+      }
+    }
+
+    // Wait for all .ics strings to be created
+    const icsCals = await Promise.all(icsCalPromises)
+
+    // Combine all .ics strings into one calendar file
+    const combinedIcsString = combineIcsCalsToString(icsCals)
+
+    // Write the combined calendar file to S3
+    await writeStringToS3(
+      combinedIcsString,
+      user.getRsvpCalendarPath(), {
+      ContentType: 'text/calendar'
+    })
+    console.log('******************')
+    console.log('combinedIcsString:')
+    console.log('******************')
+    console.log(combinedIcsString)
+    console.log('******************')
+  }
+})
+
+// Helper function to combine multiple .ics calendar strings into one
+function combineIcsCalsToString (icsCals) {
+  if (!icsCals || icsCals.length === 0) {
+    return ''
   }
 
-})
+  const icsStrings = icsCals.map(icsCal => icsCal.toString())
+
+  if (icsStrings.length === 1) {
+    return icsStrings[0]
+  }
+
+  // Extract VEVENT blocks from each calendar string
+  const vevents = []
+  
+  for (const icsString of icsStrings) {
+    if (!icsString) continue
+    
+    // Find all VEVENT blocks in this calendar
+    const veventMatches = icsString.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g)
+    if (veventMatches) {
+      vevents.push(...veventMatches)
+    }
+  }
+
+  if (vevents.length === 0) {
+    return icsStrings[0] // Return first calendar if no events found
+  }
+
+  // Use the first calendar's header and combine all VEVENT blocks
+  const firstCalendar = icsStrings[0]
+  const headerEnd = firstCalendar.indexOf('BEGIN:VEVENT')
+  const header = firstCalendar.substring(0, headerEnd).trim()
+  
+  // Find the footer (END:VCALENDAR)
+  const footer = '\r\nEND:VCALENDAR'
+
+  // Combine header, all VEVENT blocks, and footer
+  const combined = [
+    header,
+    ...vevents.map(vevent => vevent.trim()),
+    footer
+  ].join('\r\n')
+
+  return combined
+}
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {

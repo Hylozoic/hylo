@@ -136,3 +136,40 @@ function getMimetypeFromFileType (fileType, filename) {
       ? mime.lookup(filename)
       : 'application/octet-stream'
 }
+
+// Write a string directly to S3
+export function writeStringToS3 (content, key, options = {}) {
+  const {
+    ACL = 'public-read',
+    ContentType = 'text/plain'
+  } = options
+
+  ;[
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'AWS_S3_BUCKET',
+    'AWS_S3_CONTENT_URL'
+  ].forEach(envKey => {
+    if (!process.env[envKey]) {
+      throw new Error(`missing process.env.${envKey}`)
+    }
+  })
+
+  const s3 = new aws.S3()
+
+  return new Promise((resolve, reject) => {
+    s3.putObject({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+      Body: content,
+      ACL,
+      ContentType
+    }, (err, data) => {
+      if (err) return reject(err)
+      resolve({
+        ...data,
+        url: `${process.env.AWS_S3_CONTENT_URL}/${key}`
+      })
+    })
+  })
+}
