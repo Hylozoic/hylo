@@ -13,7 +13,7 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
-import { writeStringToS3 } from '../../lib/uploader/storage'
+import { writeStringToS3, deleteFromS3 } from '../../lib/uploader/storage'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -955,11 +955,14 @@ module.exports = bookshelf.Model.extend(merge({
       user.getRsvpCalendarPath(), {
       ContentType: 'text/calendar'
     })
-    console.log('******************')
-    console.log('combinedIcsString:')
-    console.log('******************')
-    console.log(combinedIcsString)
-    console.log('******************')
+  },
+
+  async clearUserRsvpCalendarSubscriptions ({ userId }) {
+    const user = await User.find(userId)
+    if (!user) return
+
+    // Delete the calendar file from S3
+    await deleteFromS3(user.getRsvpCalendarPath())
   }
 })
 

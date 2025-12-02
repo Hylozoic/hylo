@@ -173,3 +173,28 @@ export function writeStringToS3 (content, key, options = {}) {
     })
   })
 }
+
+// Delete a single file from S3 by key (path)
+export function deleteFromS3 (key) {
+  ;[
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'AWS_S3_BUCKET'
+  ].forEach(envKey => {
+    if (!process.env[envKey]) {
+      throw new Error(`missing process.env.${envKey}`)
+    }
+  })
+
+  const s3 = new aws.S3()
+
+  return new Promise((resolve, reject) => {
+    s3.deleteObject({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key
+    }, (err, data) => {
+      if (err) return reject(err)
+      resolve(data)
+    })
+  })
+}
