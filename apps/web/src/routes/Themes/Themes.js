@@ -78,7 +78,7 @@ function ThemeColumn ({ title, isDark = false }) {
         {/* Theme Colors */}
         <div className='mb-6'>
           <h3 className='text-lg font-semibold mb-3'>Theme Colors</h3>
-          <ColorSample colorName='Theme Background' bgClass='bg-theme-background' textClass='text-theme-foreground' />
+          <ColorSample colorName='Theme Background' bgClass='bg-theme-background' textClass='text-foreground' />
         </div>
 
         {/* Buttons */}
