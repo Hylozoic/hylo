@@ -21,7 +21,8 @@ import { sentryConfig, isTest } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-html'
+// DEPRECATED: react-native-render-html no longer needed - only deprecated screens used it
+// import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-html'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
@@ -29,7 +30,8 @@ import RootNavigator from 'navigation/RootNavigator'
 import { ToastProvider } from 'components/Toast'
 import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
-import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
+// DEPRECATED: HyloHTML styles no longer needed - only deprecated screens used HyloHTML
+// import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
 
 if (__DEV__) {
@@ -119,14 +121,14 @@ if (Platform.OS === 'ios') {
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
   const storage = makeAsyncStorage({ storage: AsyncStorage })
-  
+
   // MOSTLY DEPRECATED: URQL is now minimally used in the mobile app.
   // The web app (loaded via PrimaryWebView) handles all data fetching, caching, and subscriptions.
-  // 
+  //
   // Still needed for:
   // - Native auth screens (Login, Signup, JoinGroup)
   // - Auth-related hooks (useLogout, useAuth)
-  // 
+  //
   // DEPRECATED: subscriptionExchange removed - web app handles all real-time updates
   const urqlClient = useMakeUrqlClient({
     // subscriptionExchange: mobileSubscriptionExchange, // No longer needed
@@ -172,24 +174,13 @@ export default function App () {
           <UrqlProvider value={urqlClient}>
             <AuthProvider>
               <ActionSheetProvider>
-                {/*
-                  `TRenderEngineProvider` is the react-native-render-html rendering engine.
-                  It is app-wide for performance reasons. The styles applied are global and
-                  not readily overridden. For more details see: https://bit.ly/3MeJCIR
-                */}
-                <TRenderEngineProvider
-                  baseStyle={baseStyle}
-                  tagsStyles={tagsStyles}
-                  classesStyles={classesStyles}
-                  systemFonts={[...defaultSystemFonts, 'Circular-Book']}
-                >
-                  <Provider store={store}>
-                    <ToastProvider>
-                      <VersionCheck />
-                      <RootNavigator />
-                    </ToastProvider>
-                  </Provider>
-                </TRenderEngineProvider>
+                {/* DEPRECATED: TRenderEngineProvider removed - only deprecated screens used HyloHTML */}
+                <Provider store={store}>
+                  <ToastProvider>
+                    <VersionCheck />
+                    <RootNavigator />
+                  </ToastProvider>
+                </Provider>
               </ActionSheetProvider>
             </AuthProvider>
           </UrqlProvider>
