@@ -255,7 +255,7 @@ export default function ChatPost ({
       >
         <div className={
           cn(
-            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-card dark:bg-theme-background/100 opacity-0 delay-100 scale-0',
+            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-card dark:bg-darkening opacity-0 delay-100 scale-0',
             {
               'opacity-100 scale-100 scale-100': isHovered
             }
@@ -266,7 +266,7 @@ export default function ChatPost ({
             <button
               key={item.label}
               onClick={item.onClick}
-              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/50 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
               data-tooltip-content={item.tooltip}
               data-tooltip-id='action-tt'
             >
