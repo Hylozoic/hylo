@@ -262,7 +262,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/15 to-theme-background/30 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-background/90 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
