@@ -7,12 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { makeAsyncStorage } from '@urql/storage-rn'
 import { Provider } from 'react-redux'
 import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
-import Timer from 'react-native-background-timer'
+// DEPRECATED: react-native-background-timer removed - old workaround no longer needed
+// See: https://github.com/facebook/react-native/issues/12981 (from 2017)
+// import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
 import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
-import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
+// DEPRECATED: Subscription exchange no longer needed - web app handles all real-time updates
+// import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
 import { sentryConfig, isTest } from 'config'
 import store from 'store'
@@ -55,15 +58,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
-if (Platform.OS === 'android') {
-  // We get these long polling warnings in development, which can actually cause
-  // problems in production.  Here's a workaround.
-  // https://github.com/facebook/react-native/issues/12981
-  setTimeout = (fn, ms = 0) => Timer.setTimeout(fn, ms)
-  setInterval = (fn, ms = 0) => Timer.setInterval(fn, ms)
-  clearTimeout = (fn, ms = 0) => Timer.clearTimeout(fn, ms)
-  clearInterval = (fn, ms = 0) => Timer.clearInterval(fn, ms)
-}
+// DEPRECATED: Old Android timer workaround removed
+// This was a workaround for React Native issue #12981 from 2017
+// No longer needed with modern React Native versions
+// if (Platform.OS === 'android') {
+//   setTimeout = (fn, ms = 0) => Timer.setTimeout(fn, ms)
+//   setInterval = (fn, ms = 0) => Timer.setInterval(fn, ms)
+//   clearTimeout = (fn, ms = 0) => Timer.clearTimeout(fn, ms)
+//   clearInterval = (fn, ms = 0) => Timer.clearInterval(fn, ms)
+// }
 
 AppRegistry.registerComponent(appName, () => App)
 
@@ -123,8 +126,10 @@ export default function App () {
   // Still needed for:
   // - Native auth screens (Login, Signup, JoinGroup)
   // - Auth-related hooks (useLogout, useAuth)
+  // 
+  // DEPRECATED: subscriptionExchange removed - web app handles all real-time updates
   const urqlClient = useMakeUrqlClient({
-    subscriptionExchange: mobileSubscriptionExchange,
+    // subscriptionExchange: mobileSubscriptionExchange, // No longer needed
     storage
   })
 
