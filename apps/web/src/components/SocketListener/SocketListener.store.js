@@ -1,6 +1,3 @@
-import { TextHelpers } from '@hylo/shared'
-import { bodyForNotification, titleForNotification } from 'store/models/Notification'
-
 const MODULE_NAME = 'SocketListener'
 export const RECEIVE_MESSAGE = `${MODULE_NAME}/RECEIVE_MESSAGE`
 export const RECEIVE_COMMENT = `${MODULE_NAME}/RECEIVE_COMMENT`
@@ -120,7 +117,7 @@ export function ormSessionReducer (session, { meta, type, payload }) {
         const group = Group.withId(groupId)
         const contextWidgets = group.contextWidgets.items
         const newContextWidgets = contextWidgets.map(cw => {
-          if (cw.type === 'chat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
+          if (cw.type === 'viewChat' && post.topics.some(t => t.id === cw.viewChat?.id)) {
             return { ...cw, highlightNumber: cw.highlightNumber + 1 }
           }
           return cw
@@ -142,10 +139,9 @@ export function ormSessionReducer (session, { meta, type, payload }) {
 
       if (window.electron) {
         const notification = payload.data.notification
+
         window.electron.setBadgeCount(currentUser.newNotificationCount)
-        const title = TextHelpers.presentHTMLToText(titleForNotification(notification))
-        const body = TextHelpers.presentHTMLToText(bodyForNotification(notification))
-        window.electron.showNotification(title, body)
+        window.electron.showNotification(notification)
       }
       break
     }

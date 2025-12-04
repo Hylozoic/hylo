@@ -22,6 +22,7 @@ export {
 } from './comment'
 export {
   createContextWidget,
+  deleteContextWidget,
   updateContextWidget,
   removeWidgetFromMenu,
   reorderContextWidget,
@@ -37,8 +38,10 @@ export {
   addModerator,
   cancelGroupRelationshipInvite,
   createGroup,
+  invitePeerRelationship,
   deleteGroup,
   deleteGroupRelationship,
+  deletePeerRelationship,
   deleteGroupTopic,
   inviteGroupToGroup,
   joinGroup,
@@ -46,7 +49,8 @@ export {
   rejectGroupRelationshipInvite,
   removeModerator,
   removeMember,
-  updateGroup
+  updateGroup,
+  updatePeerRelationship
 } from './group'
 export {
   createInvitation,
@@ -81,6 +85,10 @@ export {
   deletePost,
   pinPost
 } from './post'
+export {
+  savePost,
+  unsavePost
+} from './savePost'
 export {
   createModerationAction,
   clearModerationAction,
@@ -122,6 +130,15 @@ export {
   updateTrack,
   updateTrackActionOrder
 } from './track'
+export {
+  allocateTokensToSubmission,
+  createFundingRound,
+  deleteFundingRound,
+  doPhaseTransition,
+  joinFundingRound,
+  leaveFundingRound,
+  updateFundingRound
+} from './fundingRound'
 export {
   blockUser,
   deactivateUser,

@@ -23,6 +23,7 @@ import PostGroups from 'components/PostCard/PostGroups'
 import PostHeader from 'components/PostCard/PostHeader'
 // import ProjectMembersSummary from 'components/ProjectMembersSummary'
 import Topics from 'components/Topics'
+import ClickableLocationText from 'components/ClickableLocationText'
 import styles from 'components/PostCard/PostCard.styles'
 import { SvgUri } from 'react-native-svg'
 import { useTranslation } from 'react-i18next'
@@ -73,6 +74,7 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
           editPost={editPost}
           groups={post.groups}
           postId={post.id}
+          savedAt={post.savedAt}
           showMember={goToMember}
           style={{ paddingVertical: 14 }}
           title={post.title}
@@ -115,7 +117,11 @@ export default function PostCardForDetails ({ post, showGroups = true, groupId }
       {!!locationText && (
         <View style={styles.locationRow}>
           <Icon style={styles.locationIcon} name='Location' />
-          <Text style={styles.locationText} selectable>{locationText}</Text>
+          <ClickableLocationText
+            text={locationText}
+            className='text-foreground/70'
+            selectable
+          />
         </View>
       )}
       <PostBody

@@ -17,7 +17,6 @@ describe('PostFooter', () => {
         commentersTotal={4}
         currentUser={commenters[1]}
         peopleReactedTotal={3}
-        myReactions={[]}
         postReactions={[]}
       />
     )
@@ -34,7 +33,6 @@ describe('PostFooter', () => {
         commenters={[]}
         commentersTotal={0}
         currentUser={null}
-        myReactions={[]}
         postReactions={[]}
         peopleReactedTotal={0}
         type='event'

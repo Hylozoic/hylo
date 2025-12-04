@@ -21,7 +21,7 @@ export default function apiMiddleware (req) {
 
 export function getHost () {
   if (typeof window === 'undefined') {
-    return process.env.API_HOST
+    return process.env.VITE_API_HOST
   } else {
     return window.location.origin
   }

@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget */
+/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -84,13 +84,21 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   chatRooms () {
-    return this.hasMany(ContextWidget).where('type', 'chat')
+    return this.hasMany(ContextWidget).query(q => {
+      q.whereNotNull('view_chat_id')
+    })
   },
 
   childGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'parent_group_id', 'child_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .orderBy('groups.name', 'asc')
   },
 
@@ -116,13 +124,17 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(CustomView)
   },
 
+  fundingRounds () {
+    return this.hasMany(FundingRound, 'group_id')
+  },
+
   groupAgreements () {
     return this.hasMany(GroupAgreement)
   },
 
   groupRelationshipInvitesFrom () {
     return this.hasMany(GroupRelationshipInvite, 'from_group_id')
-      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending  }})
+      .query({ where: { status: GroupRelationshipInvite.STATUS.Pending } })
   },
 
   groupRelationshipInvitesTo () {
@@ -180,7 +192,7 @@ module.exports = bookshelf.Model.extend(merge({
     }).fetch()
   },
 
-  isHidden() {
+  isHidden () {
     return this.get('visibility') === Group.Visibility.HIDDEN
   },
 
@@ -274,14 +286,104 @@ module.exports = bookshelf.Model.extend(merge({
   parentGroups () {
     return this.belongsToMany(Group)
       .through(GroupRelationship, 'child_group_id', 'parent_group_id')
-      .query({ where: { 'group_relationships.active': true, 'groups.active': true } })
+      .query({
+        where: {
+          'group_relationships.active': true,
+          'group_relationships.relationship_type': 0, // PARENT_CHILD
+          'groups.active': true
+        }
+      })
       .withPivot(['settings'])
       .orderBy('groups.name', 'asc')
   },
 
   parentGroupRelationships () {
     return this.hasMany(GroupRelationship, 'child_group_id')
-      .query({ where: { active: true } })
+      .query({ where: { active: true, relationship_type: 0 } }) // PARENT_CHILD only
+  },
+
+  peerGroups () {
+    // For peer relationships, we need to get groups connected to this one in either direction
+    // Since peer relationships are bidirectional, we can't use the normal belongsToMany().through() pattern
+    // Instead, we create a collection query that gets the related groups
+    const groupId = this.id
+    return Group.collection().query(qb => {
+      qb.distinct('groups.*')
+        .join('group_relationships', function () {
+          this.on(function () {
+            this.on('groups.id', '=', 'group_relationships.parent_group_id')
+              .andOn('group_relationships.child_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          }).orOn(function () {
+            this.on('groups.id', '=', 'group_relationships.child_group_id')
+              .andOn('group_relationships.parent_group_id', '=', bookshelf.knex.raw('?', [groupId]))
+          })
+        })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .orderBy('groups.name', 'asc')
+    })
+  },
+
+  peerGroupRelationships () {
+    const groupId = this.id
+    const collection = GroupRelationship.collection().query(qb => {
+      qb.where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where(function () {
+          this.where('parent_group_id', groupId)
+            .orWhere('child_group_id', groupId)
+        })
+    })
+
+    // Add tableName method for GraphQL bridge compatibility
+    collection.tableName = () => 'group_relationships'
+    return collection
+  },
+
+  // Get peer groups visible to a specific user (respects visibility rules)
+  visiblePeerGroups (userId) {
+    if (!userId) {
+      // Non-authenticated users can only see public peer groups
+      return this.peerGroups().query(qb => {
+        qb.where('groups.visibility', Group.Visibility.PUBLIC)
+      })
+    }
+
+    const groupId = this.id
+    return Group.query(qb => {
+      qb.join('group_relationships', function () {
+        this.on(function () {
+          this.on('groups.id', '=', 'group_relationships.parent_group_id')
+            .andOn('group_relationships.child_group_id', '=', groupId)
+        }).orOn(function () {
+          this.on('groups.id', '=', 'group_relationships.child_group_id')
+            .andOn('group_relationships.parent_group_id', '=', groupId)
+        })
+      })
+        .where('group_relationships.active', true)
+        .where('group_relationships.relationship_type', Group.RelationshipType.PEER_TO_PEER)
+        .where('groups.active', true)
+        .where('groups.id', '!=', groupId)
+        .where(qb2 => {
+          // Can see public peer groups
+          qb2.where('groups.visibility', Group.Visibility.PUBLIC)
+          // Can see protected peer groups if user is member of this group
+          const selectIdsForMember = Group.selectIdsForMember(userId)
+          qb2.orWhere(qb3 => {
+            qb3.where('groups.visibility', Group.Visibility.PROTECTED)
+            qb3.andWhere(groupId, 'in', selectIdsForMember)
+          })
+          // Stewards of this group can see hidden peer groups
+          const selectStewardedGroupIds = Group.selectIdsByResponsibilities(userId, [Responsibility.Common.RESP_ADMINISTRATION])
+          qb2.orWhere(qb4 => {
+            qb4.where('groups.visibility', Group.Visibility.HIDDEN)
+            qb4.andWhere(groupId, 'in', selectStewardedGroupIds)
+          })
+        })
+        .orderBy('groups.name', 'asc')
+    })
   },
 
   prerequisiteGroups () {
@@ -430,8 +532,8 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Increment num_members
     // XXX: num_members is updated every 10 minutes via cron, we are doing this here too for the case that someone joins a group and moderator looks immediately at member count after that
-    if (newUserIds.length > 0) {
-      await this.save({ num_members: this.get('num_members') + newUserIds.length }, { transacting })
+    if (newUserIds.length > 0 || reactivatedUserIds.length > 0) {
+      await this.save({ num_members: this.get('num_members') + newUserIds.length + reactivatedUserIds.length }, { transacting })
     }
 
     Queue.classMethod('Group', 'afterAddMembers', {
@@ -567,7 +669,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Create general chat widget as child of home widget
     await ContextWidget.forge({
       group_id: this.id,
-      type: 'chat',
+      type: 'viewChat',
       view_chat_id: generalTag.id,
       parent_id: homeWidget.id,
       order: 1,
@@ -603,7 +705,8 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-resources', type: 'resources', view: 'resources' },
       { title: 'widget-stream', view: 'stream' },
       { title: 'widget-topics', type: 'topics', view: 'topics' },
-      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' }
+      { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' },
+      { title: 'widget-funding-rounds', type: 'funding-rounds', view: 'funding-rounds', visibility: 'admin' }
     ]
 
     await Promise.all([
@@ -854,6 +957,11 @@ module.exports = bookshelf.Model.extend(merge({
     CLOSED: 0,
     RESTRICTED: 1,
     OPEN: 2
+  },
+
+  RelationshipType: {
+    PARENT_CHILD: 0,
+    PEER_TO_PEER: 1
   },
 
   // ******* Class methods ******** //
@@ -1139,11 +1247,11 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async doesMenuUpdate ({ groupIds, post, customView, track, groupRelation = false }) {
-    if (!post && !customView && !groupRelation && !track) return
+  async doesMenuUpdate ({ groupIds, post, customView, track, fundingRound, groupRelation = false }) {
+    if (!post && !customView && !groupRelation && !track && !fundingRound) return
     const postType = post?.type
     // Skip processing if it's a chat post and no other conditions are present
-    if (postType === 'chat' && !customView && !groupRelation && !track) return
+    if (postType === 'chat' && !customView && !groupRelation && !track && !fundingRound) return
     await bookshelf.transaction(async trx => {
       for (const groupId of groupIds) {
         const widgets = await ContextWidget.where({ group_id: groupId }).fetchAll({ transacting: trx })
@@ -1193,11 +1301,29 @@ module.exports = bookshelf.Model.extend(merge({
           }
         }
 
+        // Handle funding round case
+        if (fundingRound && fundingRound.published_at) {
+          // Only add funding rounds widget if it is published
+          const fundingRoundsWidget = widgets.find(w => w.get('view') === 'funding-rounds')
+          if (fundingRoundsWidget && !fundingRoundsWidget.get('auto_added')) {
+            await ContextWidget.reorder({
+              id: fundingRoundsWidget.get('id'),
+              parentId: autoAddWidget.get('id'),
+              addToEnd: true,
+              trx
+            })
+          }
+          if (fundingRoundsWidget && fundingRoundsWidget.get('visibility') === 'admin') {
+            // Make funding rounds widget visible to all, not just admins
+            await fundingRoundsWidget.save({ visibility: null }, { transacting: trx })
+          }
+        }
+
         // Handle post cases - multiple conditions can apply
         if (post) {
           // Check if it is time to display the stream widget
           const streamWidget = widgets.find(w => w.get('view') === 'stream')
-          if (streamWidget && !streamWidget.get('order')) {
+          if (streamWidget && !streamWidget.get('order') && !streamWidget.get('auto_added')) {
             // If there are more than 3 non chat posts, then that stream is flowing
             const groupPostCount = await Group.postCount(groupId, false)
             if (groupPostCount > 3) {

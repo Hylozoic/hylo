@@ -1,51 +1,43 @@
-import React, { Component } from 'react'
-import { useTranslation, withTranslation } from 'react-i18next'
+import React, { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { get, isEmpty } from 'lodash/fp'
 import { cn } from 'util/index'
 import { Link } from 'react-router-dom'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import GroupsList from 'components/GroupsList'
 import Icon from 'components/Icon'
 import classes from './PostGroups.module.scss'
 
-class PostGroups extends Component {
-  static defaultState = {
-    expanded: false
-  }
+function PostGroups ({ groups = [], isPublic, constrained, slug, showBottomBorder }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
 
-  constructor (props) {
-    super(props)
-    this.state = PostGroups.defaultState
-  }
+  const groupsWithPublic = useMemo(() => {
+    if (isPublic) {
+      return [{ name: 'Public', id: 'public', avatarUrl: '/public-icon.svg', slug: 'public' }, ...groups]
+    }
+    return groups
+  }, [groups, isPublic])
 
-  toggleExpanded = () => {
-    this.setState({
-      expanded: !this.state.expanded
-    })
-  }
+  const toggleExpanded = () => setExpanded(prev => !prev)
 
-  render () {
-    const { groups, constrained, slug, showBottomBorder, t } = this.props
-    const { expanded } = this.state
+  // don't show if there are no groups or this isn't cross posted
+  if (isEmpty(groupsWithPublic) || (groupsWithPublic.length === 1 && get('0.slug', groupsWithPublic) === slug)) return null
 
-    // don't show if there are no groups or this isn't cross posted
-    if (isEmpty(groups) || (groups.length === 1 && get('0.slug', groups) === slug)) return null
-
-    return (
-      <div className={cn('bg-black/10 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })} onClick={expanded ? this.toggleExpanded : undefined}>
-        <div className={classes.row}>
-          <span className={classes.label}>{`${this.props.t('To:')}`}&nbsp;</span>
-          {!expanded &&
-            <LinkedGroupNameList t={t} groups={groups} maxShown={2} expandFunc={this.toggleExpanded} />}
-          <a onClick={this.toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>
-            <Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className='text-foreground/60 hover:text-foreground' />
-          </a>
-        </div>
-
-        {expanded && <GroupsList groups={groups} />}
+  return (
+    <div className={cn('bg-black/10 p-2 mx-[8px] rounded-lg mt-2 mb-2', { [classes.constrained]: constrained, [classes.expanded]: expanded, [classes.bottomBorder]: showBottomBorder })}>
+      <div className={classes.row}>
+        <span className={classes.label}>{`${t('To')}:`}&nbsp;</span>
+        {!expanded &&
+          <LinkedGroupNameList t={t} groups={groupsWithPublic} maxShown={2} expandFunc={toggleExpanded} />}
+        <a onClick={toggleExpanded} className={classes.expandLink} role='button' aria-label={expanded ? 'collapse' : 'expand'}>
+          <Icon name={expanded ? 'ArrowUp' : 'ArrowDown'} className='text-foreground/60 hover:text-foreground' />
+        </a>
       </div>
-    )
-  }
+
+      {expanded && <GroupsList groups={groupsWithPublic} />}
+    </div>
+  )
 }
 
 export function LinkedGroupNameList ({ groups, maxShown = 2, expandFunc, t }) {
@@ -100,4 +92,4 @@ export function Others ({ othersCount, expandFunc }) {
   )
 }
 
-export default withTranslation()(PostGroups)
+export default PostGroups

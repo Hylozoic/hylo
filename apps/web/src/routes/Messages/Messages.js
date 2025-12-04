@@ -1,21 +1,19 @@
 import { cn } from 'util/index'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { get, isEmpty } from 'lodash/fp'
 import { TextHelpers } from '@hylo/shared'
 import { getSocket, sendIsTyping } from 'client/websockets'
 import { push } from 'redux-first-history'
-import { messageThreadUrl } from 'util/navigation'
+import { messageThreadUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import isPendingFor from 'store/selectors/isPendingFor'
 import fetchPeople from 'store/actions/fetchPeople'
 import fetchRecentContacts from 'store/actions/fetchRecentContacts'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
-import Icon from 'components/Icon'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -45,7 +43,6 @@ import classes from './Messages.module.scss'
 export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
-  const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
   const routeParams = useParams()
@@ -114,14 +111,14 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
-    setParticipants([])
     if (forNewThread) {
-      sendNewMessage()
+      await sendNewMessage()
     } else {
-      sendForExisting()
+      await sendForExisting()
     }
+    setParticipants([])
     return false
   }
 
@@ -155,15 +152,6 @@ const Messages = () => {
   const header = forNewThread
     ? (
       <div>
-        <div className={classes.newThreadHeader}>
-          <Link to='/messages' className={classes.backButton}>
-            <Icon name='ArrowForward' className={classes.closeMessagesIcon} />
-          </Link>
-          <div className={classes.messagesTitle}>
-            <Icon name='Messages' />
-            <h3>{t('New Message')}</h3>
-          </div>
-        </div>
         <PeopleSelector
           currentUser={currentUser}
           fetchPeople={fetchPeopleAction}

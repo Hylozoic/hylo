@@ -2,6 +2,9 @@ import crypto from 'crypto'
 import socketIoEmitter from 'socket.io-emitter'
 import RedisClient from '../api/services/RedisClient'
 
+// Singleton socket.io emitter to prevent creating multiple Redis clients
+let socketIoEmitterInstance = null
+
 module.exports = {
 
   getPublicKeyFromPem: function (pem) {
@@ -16,7 +19,10 @@ module.exports = {
   },
 
   socketIo: function () {
-    return socketIoEmitter(RedisClient.create())
+    if (!socketIoEmitterInstance) {
+      socketIoEmitterInstance = socketIoEmitter(RedisClient.create())
+    }
+    return socketIoEmitterInstance
   },
 
   mapLocaleToSendWithUS: function (locale) {

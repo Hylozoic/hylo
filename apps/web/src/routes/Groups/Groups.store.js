@@ -14,12 +14,15 @@ export function fetchRelatedGroups (slug) {
             geoShape
             name
             purpose
+            settings {
+              askJoinQuestions
+            }
             slug
             visibility
             type
           }
         }
-        childGroups {
+        parentGroups {
           items {
             id
             accessibility
@@ -29,9 +32,47 @@ export function fetchRelatedGroups (slug) {
             geoShape
             name
             purpose
+            settings {
+              askJoinQuestions
+            }
             slug
             visibility
             type
+          }
+        }
+        peerGroups {
+          items {
+            id
+            accessibility
+            avatarUrl
+            bannerUrl
+            description
+            geoShape
+            name
+            purpose
+            settings {
+              askJoinQuestions
+            }
+            slug
+            visibility
+            type
+          }
+        }
+        peerGroupRelationships {
+          items {
+            id
+            description
+            relationshipType
+            parentGroup {
+              id
+              slug
+              name
+            }
+            childGroup {
+              id
+              slug
+              name
+            }
           }
         }
       }

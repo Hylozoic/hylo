@@ -7,7 +7,6 @@ import { DateTimeHelpers } from '@hylo/shared'
 import EventInviteDialog from 'components/EventInviteDialog'
 import EventDate from '../EventDate'
 import EventRSVP from '../EventRSVP'
-import Icon from 'components/Icon'
 import PostTitle from '../PostTitle'
 import PostContent from '../PostContent'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
@@ -23,7 +22,7 @@ function EventBody (props) {
   const toggleInviteDialog = () => setShowInviteDialog(!showInviteDialog)
 
   const { currentUser, event, isFlagged, respondToEvent, slug, expanded, className, constrained, onClick, togglePeopleDialog } = props
-  const { id, startTime, endTime, location, eventInvitations, groups } = event
+  const { id, startTime, endTime, eventInvitations, groups } = event
 
   const firstAttachment = event.attachments?.[0]
   const attachmentType = firstAttachment?.type
@@ -56,11 +55,6 @@ function EventBody (props) {
                 )}
               </div>
               <PostTitle {...event} constrained={constrained} onClick={onClick} />
-              {!!location && (
-                <div className={cn('text-xs text-foreground/50')} onClick={onClick}>
-                  <Icon name='Location' className='w-4 h-4' /> {location}
-                </div>
-              )}
             </div>
           </div>
           <div className={cn(classes.eventDetails, { [classes.constrained]: constrained })}>
@@ -105,6 +99,7 @@ function EventBody (props) {
         {showInviteDialog && (
           <EventInviteDialog
             eventId={id}
+            eventTitle={event.title}
             eventInvitations={eventInvitations}
             forGroups={groups}
             onClose={toggleInviteDialog}

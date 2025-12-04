@@ -20,6 +20,7 @@ export default function fetchPosts ({
   mentionsOf,
   offset,
   order,
+  savedBy,
   search,
   slug,
   sortBy,
@@ -62,6 +63,7 @@ export default function fetchPosts ({
         mentionsOf,
         offset,
         order,
+        savedBy,
         search,
         slug,
         sortBy,
@@ -93,6 +95,7 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
   $isFulfilled: Boolean,
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $slug: String,
   $sortBy: String,
@@ -104,12 +107,6 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
     id
     slug
     name
-    locationObject {
-      center {
-        lat
-        lng
-      }
-    }
     avatarUrl
     bannerUrl
     ${groupViewPostsQueryFragment(childPostInclusion)}
@@ -135,6 +132,7 @@ const postsQuery = `query PostsQuery (
   $mentionsOf: [ID],
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,

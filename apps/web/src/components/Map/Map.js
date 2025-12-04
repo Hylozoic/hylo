@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef } from 'react'
+import React, { forwardRef, useState, useRef, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import MapGL, { NavigationControl, useControl } from 'react-map-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
@@ -13,13 +13,14 @@ function DeckGLOverlay (props) {
 
 const Map = forwardRef(({
   afterViewportUpdate = () => {},
-  baseLayerStyle = 'light-v11',
+  baseLayerStyle = 'satellite-streets-v12',
   darkLayerStyle = 'dark-v11',
   isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
   children = {},
   hyloLayers,
   isAddingItemToMap,
   layers = [],
+  onDragStart,
   onMouseDown,
   onMouseUp,
   onLoad,
@@ -41,20 +42,17 @@ const Map = forwardRef(({
   const [hoveredLayerFeatures, setHoveredLayerFeatures] = useState([])
   const [cursorLocation, setCursorLocation] = useState({ x: 0, y: 0 })
 
-  const onMouseEnter = event => {
+  const onMouseEnter = useCallback(event => {
     const { features } = event
     setHoveredLayerFeatures(features)
-  }
+  }, [])
 
-  const onMouseMove = event => {
-    const {
-      originalEvent: { offsetX, offsetY }
-    } = event
-
-    if (event.target.id === 'deckgl-overlay') {
-      setCursorLocation({ x: offsetX, y: offsetY })
+  const onMouseMove = useCallback(event => {
+    const { point } = event
+    if (point) {
+      setCursorLocation({ x: point.x, y: point.y })
     }
-  }
+  }, [])
 
   return (
     <MapGL
@@ -64,11 +62,13 @@ const Map = forwardRef(({
       mapboxAccessToken={mapbox.token}
       mapOptions={{ logoPosition: 'bottom-right' }}
       mapStyle={`mapbox://styles/mapbox/${isDarkMode ? darkLayerStyle : baseLayerStyle}`}
+      projection='mercator'
       onLoad={(map) => { map.target.resize(); onLoad && onLoad(map) }}
       onMouseEnter={onMouseEnter}
       onMouseDown={onMouseDown}
-      onTouchStart={onMouseDown}
       onMouseMove={onMouseMove}
+      onTouchStart={onMouseDown}
+      onDragStart={onDragStart}
       onMouseLeave={() => { setHoveredLayerFeatures([]) }}
       onMouseOut={() => { setHoveredLayerFeatures([]) }}
       onMouseUp={onMouseUp}

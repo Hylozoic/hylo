@@ -23,7 +23,8 @@ export default function updatePost (userId, id, params) {
           Post.Type.PROJECT,
           Post.Type.PROPOSAL,
           Post.Type.REQUEST,
-          Post.Type.RESOURCE
+          Post.Type.RESOURCE,
+          Post.Type.SUBMISSION
         ]
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")
@@ -33,8 +34,10 @@ export default function updatePost (userId, id, params) {
           attrs.edited_at = new Date()
         }
 
+        const eventChanges = getEventChanges({ post, params })
+
         return post.save(attrs, { patch: true, transacting })
-          .tap(updatedPost => afterUpdatingPost(updatedPost, { params, userId, transacting }))
+          .tap(updatedPost => afterUpdatingPost(updatedPost, { params, userId, eventChanges, transacting }))
       })))
 }
 
@@ -43,6 +46,7 @@ export function afterUpdatingPost (post, opts) {
     params,
     params: { requests, group_ids, topicNames, memberIds, eventInviteeIds, proposalOptions },
     userId,
+    eventChanges,
     transacting
   } = opts
 
@@ -56,7 +60,15 @@ export function afterUpdatingPost (post, opts) {
     ]))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.type, location_id: post.location_id }, groupIds: group_ids }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
-    .then(() => post.get('type') === 'event' && eventInviteeIds && post.updateEventInvitees(eventInviteeIds, userId, { transacting }))
+    .then(() => post.get('type') === 'event' && eventInviteeIds && post.updateEventInvitees({ userIds: eventInviteeIds, inviterId: userId, eventChanges, transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))
     .then(() => Post.afterRelatedMutation(post.id, { changeContext: 'edit' }))
+}
+
+function getEventChanges({ post, params }) {
+  return !post.isEvent() ? {} : {
+    start_time: post.get('start_time').getTime() != params.startTime.getTime() && params.startTime,
+    end_time: post.get('end_time').getTime() != params.endTime.getTime() && params.endTime,
+    location: post.get('location') != params.location && params.location
+  }
 }

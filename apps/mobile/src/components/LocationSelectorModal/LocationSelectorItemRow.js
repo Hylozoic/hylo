@@ -3,7 +3,7 @@ import { Text, TouchableOpacity } from 'react-native'
 import useFindOrCreateLocationObject from '@hylo/hooks/useFindOrCreateLocationObject'
 import { PLAIN_TEXT_LOCATION_ID } from './LocationSelectorModal'
 import Icon from 'components/Icon'
-import { rhino80, rhino20, caribbeanGreen, alabaster } from 'style/colors'
+import { rhino80, rhino20, caribbeanGreen, alabaster } from '@hylo/presenters/colors'
 
 export default function LocationSelectorItemRow ({ item, onPress, colors = {} }) {
   const [, findOrCreateLocationObject] = useFindOrCreateLocationObject()

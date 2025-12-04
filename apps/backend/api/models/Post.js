@@ -7,10 +7,11 @@ import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
-import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
+import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
+import { decrementNewPostCount } from './post/deletePost'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -26,7 +27,8 @@ export const POSTS_USERS_ATTR_UPDATE_WHITELIST = [
   'project_role_id',
   'following',
   'active',
-  'clickthrough'
+  'clickthrough',
+  'saved_at'
 ]
 
 const commentersQuery = (limit, post, currentUserId) => q => {
@@ -156,6 +158,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       // .withPivot(['last_read_at', 'clickthrough']) // TODO COMOD: does not seem to work
       .withPivot(['last_read_at'])
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
+  },
+
+  fundingRounds: function () {
+    return this.belongsToMany(FundingRound, 'funding_rounds_posts', 'post_id', 'funding_round_id')
   },
 
   groups: function () {
@@ -348,27 +354,72 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
+  iCalUid: function() {
+    return `event-${this.id}-hylo.com`
+  },
+
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: function (forUserId, eventInvitation) {
-    const user = this.relations.user
+  getCalEventData: async function ({ eventInvitation, forUserId, eventChanges = {}, url }) {
+    const organizer = await this.user().fetch()
 
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: this.get('location'),
-      start: this.get('start_time'),
-      end: this.get('end_time'),
-      timezone: this.get('timezone'),
+      location: eventChanges.location || this.get('location'),
+      start: eventChanges.start_time || this.get('start_time'),
+      end: eventChanges.end_time || this.get('end_time'),
+      // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
+      // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
       status: eventInvitation.notGoing() ? ICalEventStatus.CANCELLED : ICalEventStatus.CONFIRMED,
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
-      uid: `event-${this.id}-hylo.com`,
+      uid: this.iCalUid(),
+      url: url,
       organizer: {
-        name: user.get('name'),
-        email: user.get('email')
+        name: organizer.get('name'),
+        email: organizer.get('email')
       }
     }
+  },
+
+  // for event objects, for use in icalendar
+  // must eager load the user relation
+  getCalEventCancelData: async function (eventInvitation) {
+    return {
+      summary: this.title(),
+      status: ICalEventStatus.CANCELLED,
+      method: ICalCalendarMethod.CANCEL,
+      sequence: eventInvitation.getIcalSequence(),
+      uid: this.iCalUid()
+    }
+  },
+
+  async sendEventCancelRsvp (eventInvitation) {
+    const cal = ical()
+    const user = await eventInvitation.user().fetch()
+    const calEvent = await this.getCalEventCancelData(eventInvitation)
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+    const groupNames = this.relations.groups?.map(g => g.get('name')).join(', ')
+
+    Queue.classMethod('Email', 'sendEventCancelEmail', {
+      email: user.get('email'),
+      version: 'default',
+      data: {
+        user_name: user.get('name'),
+        event_name: this.title(),
+        event_description: this.details(),
+        event_location: this.get('location'),
+        group_names: groupNames
+      },
+      files: [
+        {
+          id: 'invite.ics',
+          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+        }
+      ]
+    })
   },
 
   async clickthroughForUser (userId) {
@@ -395,7 +446,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('completion_response')) || null
   },
 
-  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
+  async savedAtForUser (userId) {
+    if (!userId) return null
+    const pu = await this.loadPostInfoForUser(userId)
+    return (pu && pu.get('saved_at')) || null
+  },
+
+  presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
 
@@ -405,7 +462,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       comments: [],
       day: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getDayFromDate(this.get('start_time'), this.get('timezone')),
       details: type !== 'oneline' && RichText.qualifyLinks(this.details(), slug),
-      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair(this.get('end_time'), null, false, this.get('timezone'), locale),
+      end_time: type === 'oneline' && this.get('end_time') && DateTimeHelpers.formatDatePair({ start: this.get('end_time'), timezone: this.get('timezone'), locale }),
       link_preview: type !== 'oneline' && linkPreview && linkPreview.id &&
         linkPreview.pick('title', 'description', 'url', 'image_url'),
       location: type !== 'oneline' && this.get('location'),
@@ -413,7 +470,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       month: type !== 'oneline' && this.get('start_time') && DateTimeHelpers.getMonthFromDate(this.get('start_time'), this.get('timezone')),
       topic_name: type !== 'oneline' && this.get('type') === 'chat' ? tags?.first()?.get('name') : '',
       type: this.get('type'),
-      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair(this.get('start_time'), null, false, this.get('timezone'), locale),
+      start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
       unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
       user: {
@@ -422,7 +479,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         avatar_url: user.get('avatar_url'),
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
-      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
+      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group, '', fundingRound) + clickthroughParams,
       when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
@@ -479,6 +536,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   async removeProposalVote ({ userId, optionId }) {
     const vote = await ProposalVote.query({ where: { user_id: userId, option_id: optionId } }).fetch()
+    if (!vote) {
+      return null
+    }
     const result = await vote.destroy()
     Post.afterRelatedMutation(this.id, { changeContext: 'vote' })
     return result
@@ -643,7 +703,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-    } else if (this.get('type') !== Post.Type.ACTION) {
+    } else if (this.get('type') !== Post.Type.ACTION && this.get('type') !== Post.Type.SUBMISSION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
       const members = await Promise.all(groups.map(async group => {
@@ -817,6 +877,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     PROPOSAL: 'proposal',
     REQUEST: 'request',
     RESOURCE: 'resource',
+    SUBMISSION: 'submission',
     THREAD: 'thread',
     WELCOME: 'welcome'
   },
@@ -1029,8 +1090,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
       Promise.join(
         Activity.removeForPost(postId, trx),
         Track.removePost(postId, trx),
-        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx)
+        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx),
+        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0)
       )),
+
+  // Background task to decrement new_post_count when a post is deleted
+  decrementNewPostCountForDeletedPost: async ({ postId }) => {
+    // Note: Post may be deactivated, so we need to fetch it without the default active filter
+    const post = await Post.where({ id: postId }).fetch({ withRelated: ['groups', 'tags'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📉 Background job: Decrementing new_post_count for deleted post ${postId}`)
+    }
+
+    try {
+      await decrementNewPostCount(post)
+    } catch (error) {
+      console.error('❌ Error decrementing new_post_count in background job:', error)
+    }
+  },
 
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&
@@ -1211,6 +1290,77 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // Use Queue system for non-blocking post subscription publishing
     Queue.classMethod('Post', 'publishPostUpdates', { postId, options }, 0)
-  }
+  },
 
+  sendEventUpdateRsvps: async function ({ postId, eventChanges }) {
+    const post = await Post.find(postId)
+    const eventInvitations = await post.eventInvitations().fetch()
+
+    eventInvitations.forEach(eventInvitation => {
+      if (!eventInvitation.notGoing()) {
+        Post.sendEventRsvp({eventId: postId, eventInvitationId: eventInvitation.id, eventChanges})
+      }
+    })
+  },
+
+  sendEventCancelRsvps: async function ({ postId }) {
+    const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
+    const eventInvitationIds = (await post.eventInvitations().fetch()).pluck('id')
+    for (const eventInvitationId of eventInvitationIds) {
+      const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
+      if (eventInvitation && !eventInvitation.notGoing()) {
+        post.sendEventCancelRsvp(eventInvitation)
+      }
+    }
+  },
+
+  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
+    const post = await Post.where({ id: eventId }).fetch()
+    const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
+    const user = await eventInvitation.user().fetch()
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'event_rsvp',
+      cti: user.id
+    }).toString()
+    await post.load('groups')
+    const url = Frontend.Route.post(post, post.relations.groups.first(), clickthroughParams)
+
+    const cal = ical()
+    const calEvent = await post.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+    const groupNames = post.relations.groups.map(g => g.get('name')).join(', ')
+
+    const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
+    const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
+    const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: post.get('timezone')}) : null
+    const newLocation = eventChanges.location
+
+    Queue.classMethod('Email', emailTemplate, {
+      email: user.get('email'),
+      version: 'default',
+      data: {
+        date: DateTimeHelpers.formatDatePair({start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone')}),
+        user_name: user.get('name'),
+        event_name: post.title(),
+        event_description: post.details(),
+        event_location: post.get('location'),
+        event_url: url,
+        response: eventInvitation.getHumanResponse(),
+        group_names: groupNames,
+        newDate: newDate,
+        newLocation: newLocation
+      },
+      files: [
+        {
+          id: 'invite.ics',
+          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+        }
+      ]
+    }).then(() => {
+      // update the ical sequence number, no need to await
+      eventInvitation.incrementIcalSequence()
+    })
+  }
 })

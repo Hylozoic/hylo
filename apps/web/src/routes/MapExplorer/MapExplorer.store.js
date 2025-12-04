@@ -50,6 +50,7 @@ const groupPostsQuery = (postsFragment) => `query (
   $isFulfilled: Boolean,
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $slug: String,
   $sortBy: String,
@@ -86,6 +87,7 @@ const postsQuery = (postsFragment) => `query (
   $mentionsOf: [ID]
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
@@ -131,6 +133,7 @@ const membersFragment = `
           lat
           lng
         }
+        fullText
       }
       skills {
         hasMore
@@ -224,6 +227,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
       isFulfilled: $isFulfilled,
       offset: $offset,
       order: $order,
+      savedBy: $savedBy,
       sortBy: $sortBy,
       search: $search,
       topic: $topic,
@@ -244,6 +248,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
             lat
             lng
           }
+          fullText
         }
         topics {
           id
@@ -273,6 +278,7 @@ export function fetchPostsForMap ({ activePostsOnly, childPostInclusion = 'yes',
       mentionsOf: $mentionsOf
       offset: $offset,
       order: $order,
+      savedBy: $savedBy,
       sortBy: $sortBy,
       search: $search,
       topic: $topic,
@@ -424,7 +430,7 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
   }
 }
 
-export function fetchGroups ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
+export function fetchGroupsForMap ({ boundingBox, context, parentSlugs, search, slug, sortBy }) {
   return {
     type: FETCH_GROUPS_MAP,
     graphql: {

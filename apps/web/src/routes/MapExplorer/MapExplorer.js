@@ -39,7 +39,7 @@ import { FETCH_FOR_GROUP } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
-import { personUrl, postUrl, groupDetailUrl } from 'util/navigation'
+import { personUrl, postUrl, groupDetailUrl } from '@hylo/navigation'
 
 import {
   fetchSavedSearches, deleteSearch, saveSearch, viewSavedSearch
@@ -52,7 +52,7 @@ import {
   fetchMembers,
   fetchPostsForDrawer,
   fetchPostsForMap,
-  fetchGroups,
+  fetchGroupsForMap,
   formatBoundingBox,
   getCurrentTopics,
   getGroupsFilteredByTopics,
@@ -245,9 +245,9 @@ function MapExplorer (props) {
   const zoom = useMemo(() => zoomParam ? parseFloat(zoomParam) : reduxState.zoom || defaultZoom, [zoomParam, reduxState.zoom, defaultZoom])
 
   const baseStyleParam = getQuerystringParam('style', location)
-  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'light-v11')
+  const [baseLayerStyle, setBaseLayerStyle] = useState(baseStyleParam || reduxState.baseLayerStyle || currentUser?.settings?.mapBaseLayer || 'satellite-streets-v12')
   if (!MAP_BASE_LAYERS.find(o => o.id === baseLayerStyle)) {
-    setBaseLayerStyle('light-v11')
+    setBaseLayerStyle('satellite-streets-v12')
   }
 
   const possibleFeatureTypes = useMemo(() => context === 'public'
@@ -287,42 +287,6 @@ function MapExplorer (props) {
 
   const [createCreatePopupVisible, setCreatePopupVisible] = useState(false)
   const [createPopupPosition, setCreatePopupPosition] = useState({ top: 0, left: 0, lat: 0, lng: 0 })
-
-  const [drawerWidth, setDrawerWidth] = useState(300) // minimum width of drawer
-  const resizeObserverRef = useRef(null)
-
-  function observeDrawerWidth () {
-    const drawer = document.getElementById('map-drawer')
-    if (!drawer) return
-
-    // Set initial width
-    setDrawerWidth(drawer.offsetWidth)
-
-    // Clean up any previous observer
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect()
-    }
-
-    // Listen for width changes
-    const resizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setDrawerWidth(entry.contentRect.width)
-      }
-    })
-    resizeObserver.observe(drawer)
-    resizeObserverRef.current = resizeObserver
-  }
-
-  useEffect(() => {
-    if (!hideDrawer) {
-      observeDrawerWidth()
-    }
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect()
-      }
-    }
-  }, [hideDrawer])
 
   const showCreatePopup = (point, lngLat) => {
     setCreatePopupPosition({ top: point.y, left: point.x, lat: lngLat.lat, lng: lngLat.lng })
@@ -388,15 +352,6 @@ function MapExplorer (props) {
     setHideDrawer(!hideDrawer)
     setTimeout(() => {
       mapRef.current.resize()
-      if (hideDrawer) {
-        // Drawer is being opened
-        observeDrawerWidth()
-      } else {
-        // Drawer is being closed
-        if (resizeObserverRef.current) {
-          resizeObserverRef.current.disconnect()
-        }
-      }
     }, 100)
   }, [dispatch, hideDrawer, location])
 
@@ -487,21 +442,28 @@ function MapExplorer (props) {
     setShowFeatureFilters(false)
     setShowLayersSelector(false)
     setShowSavedSearches(false)
-    const oneSecondInMs = 1000
     setCreatePopupVisible(false)
-    creatingPostRef.current = true
-    setTimeout(() => {
-      if (creatingPostRef.current) {
-        showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
-      }
-    }, isAddingItemToMap ? 0 : oneSecondInMs)
-  }, [isAddingItemToMap, showCreatePopup])
+    if (currentUser) {
+      creatingPostRef.current = e.point
+      setTimeout(() => {
+        // Make sure the point is still the same as the one we clicked on
+        if (creatingPostRef.current === e.point) {
+          showCreatePopup(e.point, e.lngLat) // Show the popup at the clicked location
+        }
+      }, isAddingItemToMap ? 0 : 1000)
+    }
+  }, [isAddingItemToMap, showCreatePopup, currentUser])
 
   const onMapMouseUp = useCallback(() => {
     if (creatingPostRef.current) {
       creatingPostRef.current = false
       setIsAddingItemToMap(false)
     }
+  }, [])
+
+  const onDragStart = useCallback((e) => {
+    // Stop the create popup from appearing when dragging
+    creatingPostRef.current = false
   }, [])
 
   const updatedMapFeatures = useCallback((boundingBox) => {
@@ -591,9 +553,6 @@ function MapExplorer (props) {
   useEffect(() => {
     if (isMobileDevice()) {
       setHideDrawer(true)
-    } else if (!hideDrawer) {
-      // Start observing drawer width on load unless its already hidden
-      observeDrawerWidth()
     }
 
     if (currentUser) {
@@ -631,7 +590,7 @@ function MapExplorer (props) {
 
   useEffect(() => {
     if (totalBoundingBoxLoaded) {
-      dispatch(fetchGroups({ ...fetchGroupParams }))
+      dispatch(fetchGroupsForMap({ ...fetchGroupParams }))
     }
   }, [fetchGroupParams])
 
@@ -792,6 +751,7 @@ function MapExplorer (props) {
           ref={mapRef}
           onMouseDown={onMapMouseDown}
           onMouseUp={onMapMouseUp}
+          onDragStart={onDragStart}
           onLoad={onMapLoad}
           afterViewportUpdate={afterViewportUpdate}
           setViewport={setViewport}
@@ -803,8 +763,12 @@ function MapExplorer (props) {
       <button
         data-tooltip-id='helpTip'
         data-tooltip-content={hideDrawer ? t('Open Drawer') : t('Close Drawer')}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ', { 'right-5': hideDrawer, 'right-[calc(100%-0px)] sm:right-[520px]': !hideDrawer })}
-        style={!hideDrawer ? { right: `calc(${drawerWidth}px - 60px)` } : undefined}
+        className={cn(
+          'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute top-5 gap-1 text-xs z-40 ',
+          classes.toggleDrawerButton,
+          {
+            [classes.drawerOpen]: !hideDrawer
+          })}
         onClick={toggleDrawer}
         data-testid='drawer-toggle-button'
       >
@@ -885,12 +849,27 @@ function MapExplorer (props) {
         data-tooltip-id='helpTip'
         data-tooltip-content={showLayersSelector ? null : t('Change Map Layers')}
         onClick={toggleLayersSelector}
-        className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs', { [classes.open]: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}
+        className={cn(
+          'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-[80px] right-5 gap-1 text-xs',
+          classes.drawerAdjacentButton,
+          {
+            [classes.open]: showLayersSelector,
+            [classes.withoutNav]: withoutNav,
+            [classes.drawerOpen]: !hideDrawer
+          })}
         data-testid='layers-selector-button'
       >
         <Icon name='Stack' />
       </button>
-      <div className={cn('absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col', { flex: showLayersSelector, [classes.withoutNav]: withoutNav, 'right-[520px]': !hideDrawer })}>
+      <div className={cn(
+        'absolute bottom-[120px] w-[200px] right-5 hidden bg-background rounded-md p-2 drop-shadow-md flex-col',
+        classes.drawerAdjacentButton,
+        {
+          flex: showLayersSelector,
+          [classes.withoutNav]: withoutNav,
+          [classes.drawerOpen]: !hideDrawer
+        })}
+      >
         <div className='flex flex-col pb-2 border-b-2 border-foreground/20 mb-2'>
           <span className='text-sm font-medium text-foreground/60'>{t('Base Layer')}</span>
           <Dropdown
@@ -933,7 +912,13 @@ function MapExplorer (props) {
         <button
           data-tooltip-id='helpTip'
           data-tooltip-content='Add item to map'
-          className={cn('border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs', { [classes.active]: isAddingItemToMap, 'right-[520px]': !hideDrawer })}
+          className={cn(
+            'border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center absolute bottom-10 right-5 gap-1 text-xs',
+            classes.drawerAdjacentButton,
+            {
+              [classes.active]: isAddingItemToMap,
+              [classes.drawerOpen]: !hideDrawer
+            })}
           onClick={handleAddItemToMap}
         >
           <Icon name='Plus' className={cn({ [classes.openDrawer]: !hideDrawer, [classes.closeDrawer]: hideDrawer })} />
@@ -953,12 +938,12 @@ function MapExplorer (props) {
 
       {createCreatePopupVisible && (
         <div
-          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2'
+          className='absolute w-[200px] bg-background z-50 rounded-md drop-shadow-md p-2 flex flex-col items-center'
           style={{ top: createPopupPosition.top, left: createPopupPosition.left }}
           onClick={() => setCreatePopupVisible(false)}
         >
-          <CreateMenu coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
-          <button onClick={() => setCreatePopupVisible(false)}>Close</button>
+          <CreateMenu mapView coordinates={{ lat: createPopupPosition.lat, lng: createPopupPosition.lng }} />
+          <button className='mt-2' onClick={() => setCreatePopupVisible(false)}>Close</button>
         </div>
       )}
     </div>

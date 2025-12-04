@@ -1,13 +1,15 @@
 import { connect } from 'react-redux'
 import { push } from 'redux-first-history'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl } from 'util/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
 import {
   unfulfillPost,
   fulfillPost,
+  savePost,
+  unsavePost,
   getGroup,
   updateProposalOutcome
 } from './PostHeader.store'
@@ -69,6 +71,12 @@ export function mapDispatchToProps (dispatch, props) {
     unfulfillPost: postId => props.unfulfillPost
       ? props.unfulfillPost(postId)
       : dispatch(unfulfillPost(postId)),
+    savePost: postId => props.savePost
+      ? props.savePost(postId)
+      : dispatch(savePost(postId)),
+    unsavePost: postId => props.unsavePost
+      ? props.unsavePost(postId)
+      : dispatch(unsavePost(postId)),
     removePost: (postId, text) => {
       removePostWithConfirm(postId, text)
     },
@@ -79,7 +87,7 @@ export function mapDispatchToProps (dispatch, props) {
 export function mergeProps (stateProps, dispatchProps, ownProps) {
   const { currentUser, group, responsibilities, connectorGetRolesForGroup } = stateProps
   const { id, creator } = ownProps.post
-  const { deletePost, editPost, duplicatePost, fulfillPost, unfulfillPost, removePost, updateProposalOutcome } = dispatchProps
+  const { deletePost, editPost, duplicatePost, fulfillPost, unfulfillPost, savePost, unsavePost, removePost, updateProposalOutcome } = dispatchProps
   const isCreator = currentUser && creator && currentUser.id === creator.id
   const canEdit = isCreator
   return {
@@ -91,6 +99,8 @@ export function mergeProps (stateProps, dispatchProps, ownProps) {
     duplicatePost: () => duplicatePost(id),
     fulfillPost: isCreator ? () => fulfillPost(id) : undefined,
     unfulfillPost: isCreator ? () => unfulfillPost(id) : undefined,
+    savePost: () => savePost(id),
+    unsavePost: () => unsavePost(id),
     canFlag: !isCreator,
     removePost: !isCreator && (responsibilities.includes(RESP_MANAGE_CONTENT)) ? (text) => removePost(id, text) : undefined,
     roles: creator && connectorGetRolesForGroup(creator.id),

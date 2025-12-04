@@ -2,7 +2,8 @@ import { filter, forEach, map, uniq, isNull } from 'lodash/fp'
 import insane from 'insane'
 import Autolinker from 'autolinker'
 import { JSDOM } from 'jsdom'
-import { PathHelpers, TextHelpers, HYLO_URL_REGEX } from '@hylo/shared'
+import { TextHelpers } from '@hylo/shared'
+import { mentionPath, topicPath, HYLO_URL_REGEX } from '@hylo/navigation'
 
 export const MAX_LINK_LENGTH = 48
 
@@ -122,8 +123,8 @@ export function qualifyLinks (processedHTML, groupSlug) {
   const convertSpansToAnchors = forEach(el => {
     const anchorElement = dom.createElement('a')
     const href = el.className === 'mention'
-      ? PathHelpers.mentionPath(el.getAttribute('data-id'), groupSlug)
-      : PathHelpers.topicPath(el.getAttribute('data-id'), groupSlug)
+      ? mentionPath(el.getAttribute('data-id'), groupSlug)
+      : topicPath(el.getAttribute('data-id'), groupSlug)
 
     for (const attr of el.attributes) {
       anchorElement.setAttribute(attr.name, attr.value)

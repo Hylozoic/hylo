@@ -3,6 +3,7 @@ import { View } from 'react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import ContextSwitchMenu from 'components/ContextSwitchMenu'
 import LoadingScreen from 'screens/LoadingScreen'
+import Loading from 'components/Loading'
 import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 
 export default function NoContextFallbackScreen () {
@@ -36,10 +37,9 @@ export default function NoContextFallbackScreen () {
       }
     }
   }, [currentGroup?.slug, changeToGroup])
-
   if (fetching || currentGroup?.slug) {
     return <LoadingScreen />
-  }
+  } 
 
   // Only show the context menu if we truly have no group context
   return (

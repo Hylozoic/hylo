@@ -148,6 +148,14 @@ module.exports = bookshelf.Model.extend({
     return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildMember({ parentGroup, childGroup })
   },
 
+  textForGroupPeerGroupInvite: function (fromGroup, toGroup, actor, locale) {
+    return locales[locale].textForGroupPeerGroupInvite({ actor, fromGroup, toGroup })
+  },
+
+  textForGroupPeerGroupInviteAccepted: function (fromGroup, toGroup, actor, locale) {
+    return locales[locale].textForGroupPeerGroupInviteAccepted({ actor, fromGroup, toGroup })
+  },
+
   textForDonationTo: function (contribution, locale) {
     const project = contribution.relations.project
     const postName = decode(project.summary())
@@ -175,5 +183,17 @@ module.exports = bookshelf.Model.extend({
 
   textForTrackEnrollment: function (track, actor, locale) {
     return locales[locale].textForTrackEnrollment({ actor, track })
+  },
+
+  textForFundingRoundNewSubmission: function (fundingRound, post, actor, locale) {
+    return locales[locale].textForFundingRoundNewSubmission({ fundingRound, post, actor })
+  },
+
+  textForFundingRoundPhaseTransition: function (fundingRound, phase, locale) {
+    return locales[locale].textForFundingRoundPhaseTransition({ fundingRound, phase })
+  },
+
+  textForFundingRoundReminder: function (fundingRound, reminderType, locale) {
+    return fundingRound.get('title') + ': ' + locales[locale].textForFundingRoundReminder({ reminderType })
   }
 })

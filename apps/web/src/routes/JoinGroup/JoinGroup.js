@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom'
 import { every, isEmpty } from 'lodash/fp'
-import { baseUrl, groupUrl } from 'util/navigation'
+import { baseUrl, groupUrl } from '@hylo/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -34,7 +34,7 @@ export default function JoinGroup (props) {
           accessCode: routeParams.accessCode
         }
         if (every(isEmpty, invitationTokenAndCode)) {
-          throw new Error(t('Please provide either a `token` query string parameter or `accessCode` route param'))
+          throw new Error(t('Please provide either a token query string parameter or accessCode route param'))
         }
 
         if (signupComplete) {

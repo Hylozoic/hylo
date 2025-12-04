@@ -71,7 +71,7 @@ export default class Fetcher {
       const whitelist = mapKeys((k) => snakeCase(k), pick(['visibility', 'group_data_type'], args))
       relation = relation.where(whitelist)
     }
-    return this.loaders.relations.load({relation}).then(instance => {
+    return this.loaders.relations.load({ relation }).then(instance => {
       if (!instance) return
       this.loaders[typename].prime(instance.id, instance)
       return instance
@@ -108,7 +108,7 @@ export default class Fetcher {
   _getTypenameFromTableName (tableName) {
     // TODO cache this
     const matches = toPairs(this.models)
-    .filter(([typename, spec]) => spec.model.collection().tableName() === tableName)
+      .filter(([typename, spec]) => spec.model.collection().tableName() === tableName)
 
     if (matches.length > 1) {
       const defaultTypeForTable = matches.find(([typename, spec]) => spec.isDefaultTypeForTable)
@@ -157,10 +157,10 @@ export default class Fetcher {
 
   _loadOne (relation, { loader }) {
     return this.loaders.relations.load({relation})
-    .then(instance => {
-      if (!instance) return null
-      loader.prime(instance.id, instance)
-      return loader.load(instance.id)
-    })
+      .then(instance => {
+        if (!instance) return null
+        loader.prime(instance.id, instance)
+        return loader.load(instance.id)
+      })
   }
 }

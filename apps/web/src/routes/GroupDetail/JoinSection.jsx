@@ -5,7 +5,7 @@ import Button from 'components/ui/button'
 import SuggestedSkills from 'components/SuggestedSkills'
 import { DEFAULT_AVATAR, DEFAULT_BANNER, GROUP_ACCESSIBILITY, accessibilityIcon, accessibilityString, accessibilityDescription, visibilityIcon, visibilityString, visibilityDescription } from 'store/models/Group'
 import { cn } from 'util/index'
-import { groupUrl, groupDetailUrl } from 'util/navigation'
+import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 
 import Icon from 'components/Icon'
 
@@ -103,7 +103,7 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       )}
       <Button
         variant='secondary'
-        className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2'
+        className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2 whitespace-normal'
         disabled={!allQuestionsAnswered}
         onClick={() => joinGroup(group.id, questionAnswers)}
         data-tooltip-content={!allQuestionsAnswered ? t('You must answer all the questions to join') : ''}

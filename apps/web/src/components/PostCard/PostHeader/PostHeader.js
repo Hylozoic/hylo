@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
@@ -16,7 +16,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { cn } from 'util/index'
-import { personUrl, topicUrl } from 'util/navigation'
+import { personUrl, topicUrl } from '@hylo/navigation'
 
 class PostHeader extends PureComponent {
   static defaultProps = {
@@ -65,6 +65,8 @@ class PostHeader extends PureComponent {
       moderationActionsGroupUrl = '',
       fulfillPost,
       unfulfillPost,
+      savePost,
+      unsavePost,
       updateProposalOutcome,
       postUrl,
       t
@@ -81,7 +83,8 @@ class PostHeader extends PureComponent {
       id,
       endTime,
       startTime,
-      fulfilledAt
+      fulfilledAt,
+      savedAt
     } = post
 
     if (type === 'action') {
@@ -106,6 +109,7 @@ class PostHeader extends PureComponent {
     const dropdownItems = filter([
       { icon: 'Edit', label: t('Edit'), onClick: editPost },
       { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
+      { icon: savedAt ? <BookmarkCheck /> : <Bookmark />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
       { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
       { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
       { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
@@ -149,7 +153,7 @@ class PostHeader extends PureComponent {
     }
 
     return (
-      <div className={cn('relative', { 'mb-0 h-12 px-2': constrained }, className)}>
+      <div className={cn('relative', { 'mb-0 px-2': constrained }, className)}>
         <div className='w-full bg-transparent rounded-t-lg'>
           <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
@@ -165,10 +169,11 @@ class PostHeader extends PureComponent {
                 ))}
               </div> */}
               <div className='flex items-center ml-2'>
-                <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
-                  <Icon name={this.getTypeIcon(type)} className='text-sm' />
-                  {t(type)}
-                </div>
+                {type !== 'submission' && (
+                  <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
+                    <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                    {t(type)}
+                  </div>)}
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
                   {createdTimestamp}
                 </span>
@@ -202,7 +207,7 @@ class PostHeader extends PureComponent {
         <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('ml-2 -mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
+            <div className={cn('ml-2 mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}

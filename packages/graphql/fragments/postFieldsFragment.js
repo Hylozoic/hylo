@@ -28,6 +28,7 @@ export const postFieldsFragment = gql`
     editedAt
     projectManagementLink
     myEventResponse
+    savedAt
     commenters(first: 3) {
       id
       name
@@ -116,8 +117,6 @@ export const postFieldsFragment = gql`
     topics {
       id
       name
-      postsTotal
-      followersTotal
     }
     members {
       total

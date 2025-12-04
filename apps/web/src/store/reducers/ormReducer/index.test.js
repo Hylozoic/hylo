@@ -103,7 +103,7 @@ it('ignores an action with meta.extractModel that is a promise', () => {
 describe('on REACT_ON_POST_PENDING', () => {
   const session = orm.session(orm.getEmptyState())
 
-  session.Post.create({ id: '1', myReactions: [], postReactions: [] })
+  session.Post.create({ id: '1', postReactions: [] })
   session.Me.create({ id: '1', name: 'Mary' })
 
   const state = session.state
@@ -116,7 +116,6 @@ describe('on REACT_ON_POST_PENDING', () => {
     it('optimistically updates state', () => {
       const newState = ormReducer(state, { ...action, meta: { postId: '1', data: { emojiFull: '\uD83D\uDC4D' } } })
       const newSession = orm.session(newState)
-      expect(newSession.Post.withId('1').myReactions[0].emojiFull).toEqual('\uD83D\uDC4D')
       expect(newSession.Post.withId('1').postReactions[0].emojiFull).toEqual('\uD83D\uDC4D')
       expect(newSession.Post.withId('1').postReactions[0].user.name).toEqual('Mary')
     })

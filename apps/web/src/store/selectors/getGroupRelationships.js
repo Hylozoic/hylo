@@ -18,6 +18,14 @@ export const getParentGroups = ormCreateSelector(
   }
 )
 
+export const getPeerGroups = ormCreateSelector(
+  orm,
+  (state, group) => group,
+  (session, group) => {
+    return group?.peerGroups?.toModelArray().sort((a, b) => a.name.localeCompare(b.name)) || []
+  }
+)
+
 export const getGroupInvitesFrom = ormCreateSelector(
   orm,
   (state, group) => group,
@@ -66,13 +74,30 @@ export const getGroupRequestsToJoinThem = ormCreateSelector(
   }
 )
 
+export const getPeerGroupInvitesToUs = ormCreateSelector(
+  orm,
+  getGroupInvitesTo,
+  (session, invites) => {
+    return invites.filter(i => i.type === GROUP_RELATIONSHIP_TYPE.PeerToPeer)
+  }
+)
+
+export const getPeerGroupInvitesFromUs = ormCreateSelector(
+  orm,
+  getGroupInvitesFrom,
+  (session, invites) => {
+    return invites.filter(i => i.type === GROUP_RELATIONSHIP_TYPE.PeerToPeer)
+  }
+)
+
 export const getCurrentlyRelatedGroupIds = ormCreateSelector(
   orm,
   getParentGroups,
   getChildGroups,
+  getPeerGroups,
   getGroupInvitesTo,
   getGroupInvitesFrom,
-  (session, parents, children, invitesTo, invitesFrom) => {
-    return parents.map(g => g.id).concat(children.map(g => g.id)).concat(invitesTo.map(i => i.fromGroup.id)).concat(invitesFrom.map(i => i.toGroup.id))
+  (session, parents, children, peers, invitesTo, invitesFrom) => {
+    return parents.map(g => g.id).concat(children.map(g => g.id)).concat(peers.map(g => g.id)).concat(invitesTo.map(i => i.fromGroup.id)).concat(invitesFrom.map(i => i.toGroup.id))
   }
 )

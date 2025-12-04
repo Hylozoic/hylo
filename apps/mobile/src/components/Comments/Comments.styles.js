@@ -1,4 +1,4 @@
-import { caribbeanGreen } from 'style/colors'
+import { caribbeanGreen } from '@hylo/presenters/colors'
 
 export const childCommentIndentation = 30
 

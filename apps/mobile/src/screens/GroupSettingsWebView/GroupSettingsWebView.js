@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import useGroup from '@hylo/hooks/useGroup'
 import useRouteParams from 'hooks/useRouteParams'
 import HyloWebView from 'components/HyloWebView'
-import { amaranth, capeCod, rhino40, rhino80, twBackground } from 'style/colors'
+import { amaranth, capeCod, rhino40, rhino80, twBackground } from '@hylo/presenters/colors'
 
 export default function GroupSettingsWebView () {
   const navigation = useNavigation()
@@ -13,6 +13,16 @@ export default function GroupSettingsWebView () {
   const goToSettingsArea = useCallback(settingsArea => {
     navigation.push('Group Settings', { originalLinkingPath: `/groups/${groupSlug}/settings/${settingsArea}` })
   }, [groupSlug])
+
+  // Debug logging for notification navigation
+  if (__DEV__) {
+    console.log('🔍 GroupSettingsWebView Debug:', {
+      groupSlug,
+      settingsArea: routeSettingsArea,
+      originalLinkingPath,
+      allRouteParams: useRouteParams()
+    })
+  }
 
   // Always re-queries group onBlur
   useFocusEffect(

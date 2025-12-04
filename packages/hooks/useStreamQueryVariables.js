@@ -29,18 +29,21 @@ export default function useStreamQueryVariables ({
     childPostInclusion,
     context,
     createdBy: view === 'posts'
-      ? [currentUser.id]
+      ? [currentUser?.id]
       : null,
     filter: filterFromStreamType || filter || null,
     forCollection: customView?.collectionId,
     interactedWithBy: view === 'interactions'
-      ? [currentUser.id]
+      ? [currentUser?.id]
       : null,
     mentionsOf: view === 'mentions'
-      ? [currentUser.id]
+      ? [currentUser?.id]
       : null,
     order: streamType === 'event'
       ? (timeframe === 'future' ? 'asc' : 'desc')
+      : null,
+    savedBy: view === 'saved-posts'
+      ? [currentUser.id]
       : null,
     slug,
     sortBy,

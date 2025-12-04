@@ -1,42 +1,40 @@
 import React, { useCallback } from 'react'
 import { View, Text, Pressable, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, Settings, Users, UserCheck } from 'lucide-react-native'
-import clsx from 'clsx'
-import Button from 'components/Button'
+import { Users, UserCheck } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 
-function TrackCard({ track, groupSlug }) {
+function TrackCard ({ track, groupSlug }) {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canEdit = hasResponsibility(RESP_MANAGE_TRACKS)
   const openURL = useOpenURL()
 
-  const handlePublishTrack = useCallback((publishedAt) => {
-    Alert.alert(
-      t('Confirm'),
-      publishedAt 
-        ? t('Are you sure you want to publish this track?') 
-        : t('Are you sure you want to unpublish this track?'),
-      [
-        {
-          text: t('Cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('OK'),
-          onPress: () => {}
-        }
-      ]
-    )
-  }, [track.id])
+  // const handlePublishTrack = useCallback((publishedAt) => {
+  //   Alert.alert(
+  //     t('Confirm'),
+  //     publishedAt
+  //       ? t('Are you sure you want to publish this track?')
+  //       : t('Are you sure you want to unpublish this track?'),
+  //     [
+  //       {
+  //         text: t('Cancel'),
+  //         style: 'cancel'
+  //       },
+  //       {
+  //         text: t('OK'),
+  //         onPress: () => {}
+  //       }
+  //     ]
+  //   )
+  // }, [track.id])
 
-  const { actionDescriptor, actionDescriptorPlural, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, didComplete, isEnrolled } = track
+  const { actionDescriptor, actionDescriptorPlural, name, numActions, numPeopleCompleted, numPeopleEnrolled, didComplete, isEnrolled } = track
 
   const navigateToTrack = () => {
     const trackUrl = `${groupUrl(groupSlug || currentGroup?.slug, 'tracks')}/${track.id}`
@@ -45,7 +43,7 @@ function TrackCard({ track, groupSlug }) {
   }
 
   return (
-    <Pressable 
+    <Pressable
       onPress={navigateToTrack}
       className='mb-2'
     >
@@ -100,15 +98,19 @@ function TrackCard({ track, groupSlug }) {
               <UserCheck className='w-4 h-4 text-foreground' />
             </View>
 
-            {didComplete ? (
-              <View>
-                <Text className='text-foreground'>{t('You completed this track')}</Text>
-              </View>
-            ) : isEnrolled ? (
-              <View>
-                <Text className='text-foreground'>{t('You are enrolled')}</Text>
-              </View>
-            ) : null}
+            {didComplete
+              ? (
+                <View>
+                  <Text className='text-foreground'>{t('You completed this track')}</Text>
+                </View>
+                )
+              : isEnrolled
+                ? (
+                  <View>
+                    <Text className='text-foreground'>{t('You are enrolled')}</Text>
+                  </View>
+                  )
+                : null}
           </View>
         </View>
       </View>

@@ -6,6 +6,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+
+### Changed
+- When sending comment digest emails, use the group name as the sender name, instead of the team at Hylo
+
+### Fixed
+- Fix broken commenting on new posts
+
+## [6.2.1] - 2025-11-07
+
+### Changed
+- A number of fixes to try and address memory leaks:
+- Redis: Added cleanup handlers for Redis clients on process exit.
+  - Clients are now properly closed on SIGTERM, SIGINT, and exit.
+  - Uses connection pool with unique keys ('pubsub-publish', 'pubsub-subscribe')
+  - Implemented connection pooling to reuse connections
+  - Connections are tracked and cleaned up on process exit
+  - Dead connections are automatically removed from pool
+  - Added connection health checks
+- Websockets: Added cleanup handlers for socket.io-emitter Redis connection. Connection is properly closed on process exit. Cleanup handlers registered to prevent leaks
+- QueryMonitor: Added periodic cleanup (every 10 seconds) to remove stale queries. Maximum query age limit (30 seconds). Maximum queries tracked (1000) with automatic cleanup of oldest. Cleanup interval properly cleaned up on process exit
+- worker.js: Added uncaught exception handler to ensure queue cleanup. Added unhandled rejection logging
+- GraphQL Subscriptions:
+  - Added proper cleanup for async iterators in `allUpdates` subscription
+  - Iterators are now properly closed using `return()` method when subscription ends
+  - Added try/finally blocks to ensure cleanup even if errors occur
+  - Promises array is cleared on cleanup
+  - All 5 subscription iterators are properly closed when client disconnects
+  - Added development logging for cleanup tracking
+
+### Fixed
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Fix bug creating funding round drafts
+
+## [6.2.0] - 2025-11-04
+
+### Added
+- New feature: Funding Rounds! Group stewards can now create funding rounds that allows members to submit project proposals and vote on them to decide how to allocate funding. Funding rounds can be created for any group, and are visible to all members of the group. You can control who can submit proposals and vote by role.
+
+### Changed
+- Create a singleton socket io emitter to prevent memory leaks
+- Create a singleton kue queue to prevent memory leaks
+- Remove expired OIDC payloads in cron, not in every call to DBAdapter For performance reasons.
+
+## [6.1.23] - 2025-10-13
+
+### Added
+- Saving of posts! You can now save posts in the three dot menu on a post and view them in the My Home -> Saved Posts page
+
+### Changed
+- How we do some caching to improve performance, see if this fixes memory leaks
+
+### Fixed
+- Group member count issue when someone leaves and then rejoins a group
+- URL for chat rooms in digest emails
+
+## [6.1.21] - 2025-09-19
+
+### Changed
+- Add support for Node concurrency. Shoud improve performance on production
+
+## [6.1.20] - 2025-09-16
+
+### Fixed
+- Creating a peer group relationship when formerly the groups had a parent-child relationship.
+
+## [6.1.19] - 2025-09-15
+
+### Changed
+- Search results now load more recent posts and comments first higher up in the list.
+
+## [6.1.18] - 2025-09-05
+
+### Added
+- Support for peer to peer group relationships.
+
+s## [6.1.17] - 2025-08-27
+
+### Changed
+- If somehow trying to log in as a different user while already logged in, log out as current user andlog in as the new user
+- Much improved dummy data when setting up new dev/test environment
+
+### Fixed
+- Correct time for user's timezone in display of individual chats in chat digest emails
+- Fix group names in push notifications for group to group join requests/invites
+
+## [6.1.16] - 2025-08-23
+
+### Added
+- Send an email with event changes to folks RSVP'd to an event. Also updates the calendar attachement with the new event details.
+- Allow users to export their profile and content
+
+### Fixed
+- Not all chat rooms were appearing in the post editor's list.
+- Subscribing to chat rooms was not always working
+
+## [6.1.15] - 2025-08-21
+
+### Fixed
+- Display of times for upcoming events in digest emails
+- Times for event RSPV ical attachements
+- Bug where deleting a comment would remove the tag froms the parent post!
+
+## [6.1.14] - 2025-08-14
+
+### Fixed
+- Push notifications get sent right away after a post is created
+- Fixed bugs that were preventing some digest emails and comment digest emails from being sent
+
+## [6.1.13] - 2025-08-08
+
+### Changed
+- Chat digest emails come from the group name, instead of the Team from Hylo
+
+## [6.1.12] - 2025-07-31
+
+### Added
+- Tweaks to get notifications working in the desktop app
+
 ## [6.1.11] - 2025-07-23
 
 ### Added

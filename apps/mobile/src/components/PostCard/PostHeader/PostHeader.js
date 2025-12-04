@@ -23,6 +23,7 @@ export default function PostHeader ({
   isFlagged,
   hideMenu,
   postId,
+  savedAt,
   showMember,
   smallAvatar,
   style,
@@ -33,6 +34,7 @@ export default function PostHeader ({
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const { showPostActionSheet } = usePostActionSheet({
     postId,
+    savedAt,
     creator,
     title,
     closeOnDelete,
@@ -74,7 +76,7 @@ export default function PostHeader ({
         {announcement && (
           <Icon name='Announcement' style={styles.announcementIcon} />
         )}
-        {type && (
+        {type && type !== 'submission' && (
           <PostLabel type={type} condensed={isFlagged} />
         )}
         {!hideMenu && (

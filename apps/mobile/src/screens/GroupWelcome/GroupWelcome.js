@@ -22,7 +22,7 @@ import GroupWelcomeTabBar from 'screens/GroupWelcome/GroupWelcomeTabBar'
 import HyloHTML from 'components/HyloHTML'
 import Pill from 'components/Pill'
 import styles from 'screens/GroupWelcome/GroupWelcome.styles'
-import { caribbeanGreen } from 'style/colors'
+import { caribbeanGreen } from '@hylo/presenters/colors'
 
 export const addSkillMutation = gql`
   mutation AddSkillMutation ($name: String) {
@@ -50,7 +50,7 @@ export default function GroupWelcome () {
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const currentMemberships = currentUser?.memberships
-  const currentMembership = currentMemberships.find(m => m.group.id === currentGroup?.id)
+  const currentMembership = currentMemberships?.find(m => m.group.id === currentGroup?.id)
   const routeNames = getRouteNames(currentGroup, currentMembership)
 
   const { name, avatarUrl, purpose, bannerUrl, description, agreements, joinQuestions, settings, welcomePage } = currentGroup

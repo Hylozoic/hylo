@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import { debounce, includes, isEmpty } from 'lodash/fp'
+import { debounce } from 'lodash/fp'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
@@ -8,8 +8,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { createSelector as ormCreateSelector } from 'redux-orm'
+import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -29,24 +28,24 @@ import {
 } from '@/components/ui/select'
 import ChatPost from './ChatPost'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
-import orm from 'store/models'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
-import { makeDropQueryResults } from 'store/reducers/queryResults'
+import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reducers/queryResults'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { getHasMorePosts, getPostResults } from 'store/selectors/getPosts'
+import { getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { groupInviteUrl, groupUrl } from 'util/navigation'
+import { groupInviteUrl, groupUrl } from '@hylo/navigation'
 import isWebView from 'util/webView'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
@@ -56,19 +55,9 @@ import styles from './ChatRoom.module.scss'
 // include them under the same avatar and timestamp
 const MAX_MINS_TO_BATCH = 5
 
-const getPosts = ormCreateSelector(
-  orm,
-  getPostResults,
-  (session, results) => {
-    if (isEmpty(results)) return null
-    if (isEmpty(results.ids)) return []
-    return session.Post.all()
-      .filter(x => includes(x.id, results.ids))
-      .orderBy(p => Number(p.id))
-      .toModelArray()
-      .map(p => presentPost(p))
-  }
-)
+// IMPORTANT: Use a selector factory so multiple prop-driven queries don't thrash a single memo cache
+// Preserve the order defined by queryResults.ids and transform to presentPost
+const makeGetPostsSelector = () => makeQueryResultsModelSelector(getPostResults, 'Post', p => presentPost(p))
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
@@ -104,13 +93,17 @@ const getDisplayDay = (date) => {
 
 export default function ChatRoom (props) {
   const dispatch = useDispatch()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
-  const { context } = props
-  const { groupSlug, topicName, postId: selectedPostId } = routeParams
+  const { customTopicName } = props
+  const { groupSlug, postId: selectedPostId } = routeParams
+
+  const context = props.context || routeParams.context
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName.startsWith('‡')
 
   const socket = useMemo(() => getSocket(), [])
 
@@ -123,7 +116,6 @@ export default function ChatRoom (props) {
   const [postIdToStartAt, setPostIdToStartAt] = useState(querystringParams?.postId)
 
   const [container, setContainer] = React.useState(null)
-  const editorRef = useRef()
   const messageListRef = useRef(null)
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
@@ -141,14 +133,15 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
-  const numPostsToLoad = isWebView() || isMobile.any ? 18 : 30
+  // The number of posts that should fill a screen plus a few more to make sure we have enough posts to scroll through
+  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
     filter: 'chat',
-    first: numPostsToLoad,
+    first: Math.max(INITIAL_POSTS_TO_LOAD - topicFollow?.newPostCount, 3), // Always load at least 3 past posts
     order: 'desc',
     slug: groupSlug,
     search,
@@ -161,7 +154,7 @@ export default function ChatRoom (props) {
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',
-    first: numPostsToLoad,
+    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount),
     order: 'asc',
     slug: groupSlug,
     search,
@@ -169,16 +162,37 @@ export default function ChatRoom (props) {
     topic: topicFollow?.topic.id
   }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
 
-  const postsPast = useSelector(state => getPosts(state, fetchPostsPastParams))
-  const hasMorePostsPast = useSelector(state => getHasMorePosts(state, fetchPostsPastParams))
+  // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
+  const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
+  const getPostsFutureSelector = useMemo(() => makeGetPostsSelector(), [])
 
-  const postsFuture = useSelector(state => getPosts(state, fetchPostsFutureParams))
-  const hasMorePostsFuture = useSelector(state => getHasMorePosts(state, fetchPostsFutureParams))
+  const postsPast = useSelector(state => getPostsPastSelector(state, fetchPostsPastParams))
+  const hasMorePostsPast = useSelector(state => getPostResults(state, fetchPostsPastParams)?.hasMore)
+
+  const postsFuture = useSelector(state => getPostsFutureSelector(state, fetchPostsFutureParams))
+  const hasMorePostsFuture = useSelector(state => getPostResults(state, fetchPostsFutureParams)?.hasMore)
 
   const postsForDisplay = useMemo(() => {
     if (!postsPast && !postsFuture) return []
-    return (postsPast || []).concat(postsFuture || [])
+    const allPosts = [...(postsPast || []), ...(postsFuture || [])]
+    // Deduplicate posts by ID (can happen when socket adds posts to Redux while viewing another room)
+    const uniquePosts = Array.from(
+      new Map(allPosts.map(post => [post.id, post])).values()
+    )
+    return uniquePosts.sort((a, b) => Number(a.id) - Number(b.id))
   }, [postsPast, postsFuture])
+
+  // Keep the on-screen Virtuoso data in sync when any post updates elsewhere (edit, comment, react)
+  useEffect(() => {
+    if (!messageListRef.current) return
+    if (!postsForDisplay || postsForDisplay.length === 0) return
+
+    const byId = new Map(postsForDisplay.map(p => [p.id, p]))
+    messageListRef.current?.data.map(item => {
+      const updated = item?.id ? byId.get(item.id) : null
+      return updated ? { ...item, ...updated } : item
+    })
+  }, [postsForDisplay])
 
   const fetchPostsPast = useCallback((offset, extraParams = {}, force = false) => {
     if ((loadingPast || hasMorePostsPast === false) && !force) return Promise.resolve()
@@ -207,8 +221,26 @@ export default function ChatRoom (props) {
       } else {
         messageListRef.current?.data.append(newPosts || [])
       }
+      return newPosts.length
     })
   }, [fetchPostsFutureParams, loadingFuture, hasMorePostsFuture])
+
+  const loadToLatest = useCallback(async () => {
+    // If there are many new posts, reset to newest using the existing reset flow
+    if ((topicFollow?.newPostCount || 0) >= INITIAL_POSTS_TO_LOAD * 2) {
+      // Set a huge postId to trigger the reset effect to fetch around the newest posts
+      dispatch(changeQuerystringParam(location, 'postId', String(Number.MAX_SAFE_INTEGER), null, true))
+      return
+    }
+
+    let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
+    // Incrementally fetch remaining future pages
+    while (true) {
+      const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
+      if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
+      offset += fetched
+    }
+  }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length])
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
@@ -250,7 +282,8 @@ export default function ChatRoom (props) {
       } else {
         const postToScrollToIndex = postsForDisplay.findIndex(post => post.id === postToScrollTo)
         if (postToScrollToIndex !== -1) {
-          setInitialPostToScrollTo(postToScrollToIndex)
+          // Scroll to one before the post to scroll to, so the post is at the top of the screen and we can see one post of context
+          setInitialPostToScrollTo(Math.max(postToScrollToIndex - 1, 0))
         } else {
           // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
           // But more posts could have been added since we did this, so we if we can't find the last read post id, we scroll to the most recent post
@@ -260,7 +293,7 @@ export default function ChatRoom (props) {
     } else {
       setInitialPostToScrollTo(null)
     }
-  }, [loadedPast, loadedFuture, postsPast, postsFuture, postIdToStartAt])
+  }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
     // Load TopicFollow
@@ -278,15 +311,33 @@ export default function ChatRoom (props) {
   useEffect(() => {
     // New chat room loaded, reset everything
     if (topicFollow?.id) {
-      setLoadedFuture(false)
-      setNotificationsSetting(topicFollow?.settings?.notifications)
-      fetchPostsFuture(0).then(() => setLoadedFuture(true))
+      // Check if we already have cached data for this room
+      const hasCachedPastData = postsPast && postsPast.length > 0
+      const hasCachedFutureData = postsFuture && postsFuture.length > 0
+      const hasCachedData = hasCachedPastData || hasCachedFutureData
 
-      if (topicFollow.lastReadPostId) {
-        setLoadedPast(false)
-        fetchPostsPast(0).then(() => setLoadedPast(true))
-      } else {
+      setNotificationsSetting(topicFollow?.settings?.notifications)
+
+      messageListRef.current?.data.replace([], {
+        purgeItemSizes: true
+      })
+
+      if (hasCachedData) {
+        // We have cached data, use it immediately without showing loading state
         setLoadedPast(true)
+        setLoadedFuture(true)
+      } else {
+        // No cached data, fetch fresh
+        setLoadedFuture(false)
+        setLoadedPast(false)
+
+        if (topicFollow.newPostCount > 0) {
+          fetchPostsFuture(0).then(() => setLoadedFuture(true))
+        } else {
+          setLoadedFuture(true)
+        }
+
+        fetchPostsPast(0).then(() => setLoadedPast(true))
       }
 
       resetInitialPostToScrollTo()
@@ -294,13 +345,6 @@ export default function ChatRoom (props) {
       // Reset marker of new posts
       setLatestOldPostId(topicFollow.lastReadPostId)
     }
-
-    setTimeout(() => {
-      // In case we unmounted really quick and its no longer here
-      if (editorRef.current) {
-        editorRef.current.focus()
-      }
-    }, 1000)
   }, [topicFollow?.id])
 
   // Do once after loading posts for the room to get things ready
@@ -319,12 +363,25 @@ export default function ChatRoom (props) {
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
 
+  // Reset new_post_count when we're at the latest post but still showing a new post count
+  useEffect(() => {
+    if (loadedPast && loadedFuture &&
+        topicFollow?.newPostCount > 0 &&
+        !hasMorePostsFuture &&
+        postsForDisplay.length > 0) {
+      const latestPost = postsForDisplay[postsForDisplay.length - 1]
+      if (latestPost?.id && topicFollow?.id) {
+        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
+      }
+    }
+  }, [loadedPast, loadedFuture, topicFollow?.newPostCount, topicFollow?.id, hasMorePostsFuture, postsForDisplay])
+
   useEffect(() => {
     if (querystringParams?.postId) {
       setPostIdToStartAt(querystringParams?.postId)
-      const index = postsForDisplay.findIndex(post => post.id === querystringParams?.postId)
+      const index = messageListRef.current?.data.findIndex(post => post.id === querystringParams?.postId)
       if (index !== -1) {
-        messageListRef.current?.scrollToItem({ index, align: 'end', behavior: 'auto' })
+        messageListRef.current?.scrollToItem({ index, align: 'start-no-overflow', behavior: 'auto' })
       } else if (loadedFuture && loadedPast) {
         // Can't find the post in the list, so we need to load a new set of posts around the one we want to scroll to
         // Basically just reset the list
@@ -337,19 +394,24 @@ export default function ChatRoom (props) {
         setLoadedFuture(false)
         setLoadedPast(false)
 
+        messageListRef.current?.data.replace([], {
+          purgeItemSizes: true
+        })
+
         // Load new data centered around the target post
         Promise.all([
-          fetchPostsFuture(0, { cursor: querystringParams?.postId }, true)
+          // We don't know how many posts are before or after the target post, so we load the initial number of posts to fill the screen
+          fetchPostsFuture(0, { cursor: querystringParams?.postId, first: INITIAL_POSTS_TO_LOAD }, true)
             .then(() => setLoadedFuture(true)),
-          fetchPostsPast(0, { cursor: parseInt(querystringParams?.postId) + 1 }, true)
+          fetchPostsPast(0, { cursor: parseInt(querystringParams?.postId) + 1, first: INITIAL_POSTS_TO_LOAD }, true)
             .then(() => setLoadedPast(true))
-        ]).then(() => {
-          resetInitialPostToScrollTo()
-        })
+        ])
       }
 
-      // Remove the scroll to post from the url so we can click on a notification to scroll to it again
-      dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      // Remove the scroll to post from the url so we can click on a notification to scroll to it again but only if its the regular web app (not mobile webview)
+      if (!isWebView()) {
+        dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      }
     }
   }, [querystringParams?.postId])
 
@@ -357,9 +419,9 @@ export default function ChatRoom (props) {
     () => debounce(200, (location) => {
       if (!loadingPast && !loadingFuture) {
         if (location.listOffset > -100 && hasMorePostsPast) {
-          fetchPostsPast(postsPast.length)
+          fetchPostsPast(postsPast.length, { first: 10 })
         } else if (location.bottomOffset < 50 && hasMorePostsFuture) {
-          fetchPostsFuture(postsFuture.length)
+          fetchPostsFuture(postsFuture.length, { first: 10 })
         }
       }
     }),
@@ -397,7 +459,7 @@ export default function ChatRoom (props) {
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
   const onAddReaction = useCallback((post, emojiFull) => {
-    const optimisticUpdate = { myReactions: [...post.myReactions, { emojiFull }], postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
+    const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
@@ -407,7 +469,7 @@ export default function ChatRoom (props) {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
     })
-    const newPost = { ...post, myReactions: post.myReactions.filter(react => react.emojiFull !== emojiFull), postReactions }
+    const newPost = { ...post, postReactions: postReactions.filter(reaction => reaction.emojiFull !== emojiFull || reaction.user.id !== currentUser.id) }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
@@ -491,16 +553,12 @@ export default function ChatRoom (props) {
         return 'auto'
       }
     })
-    // Focus back on the chat box
-    editorRef.current?.focus()
     return true
   }, [])
 
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
-    // TODO: probably dont need this, backend should set last_read_post on the chat room when a chat is created
-    updateLastReadPost(post)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
       setNotificationsSetting('all')
@@ -513,7 +571,7 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({
+    !hiddenTopic && setHeaderDetails({
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
@@ -539,21 +597,19 @@ export default function ChatRoom (props) {
       info: '',
       search: !isWebView()
     })
-  }, [topicName, notificationsSetting])
-
-  if (initialPostToScrollTo === null || topicFollowLoading) return <Loading />
+  }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
-        {initialPostToScrollTo === null
-          ? <div className={styles.loadingContainer}><Loading /></div>
+        {initialPostToScrollTo === null || topicFollowLoading
+          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
           : (
-            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
+            <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
                 ref={messageListRef}
@@ -562,6 +618,8 @@ export default function ChatRoom (props) {
                   group,
                   initialAnimationComplete,
                   latestOldPostId,
+                  loadedFuture,
+                  loadedPast,
                   loadingFuture,
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,
@@ -573,12 +631,13 @@ export default function ChatRoom (props) {
                   onAddProposalVote,
                   onRemoveProposalVote,
                   onSwapProposalVote,
+                  loadToLatest,
                   postIdToStartAt,
                   selectedPostId,
                   topicName
                 }}
                 initialData={postsForDisplay}
-                initialLocation={{ index: initialPostToScrollTo, align: initialPostToScrollTo === 0 ? 'start' : 'end' }}
+                initialLocation={{ index: initialPostToScrollTo, align: 'start-no-overflow' }}
                 shortSizeAlign='bottom-smooth'
                 computeItemKey={({ data }) => data.id || data.localId}
                 onScroll={onScroll}
@@ -598,15 +657,18 @@ export default function ChatRoom (props) {
       <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
+          customTopicName={customTopicName}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}
         />
       </div>
-
-      <Routes>
-        <Route path='post/:postId' element={<PostDialog container={container} />} />
-      </Routes>
+      {/* This is hidden for webView in mobile; stops two different versions of a post detail view getting rendered */}
+      {!isWebView() && (
+        <Routes>
+          <Route path='post/:postId' element={<PostDialog container={container} />} />
+        </Routes>
+      )}
     </div>
   )
 }
@@ -616,7 +678,7 @@ const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
-      {context.loadingPast || context.loadingFuture
+      {!context.loadedPast || !context.loadedFuture
         ? <Loading />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
@@ -626,21 +688,23 @@ const EmptyPlaceholder = ({ context }) => {
 }
 
 const Header = ({ context }) => {
-  return context.loadingPast ? <div style={{ height: '30px' }}><Loading /></div> : null
+  return context.loadingPast ? <div className='absolute top-1 flex items-center justify-center w-full h-[30px]'><Loading /></div> : null
 }
 
 const Footer = ({ context }) => {
   return context.loadingFuture ? <div className={styles.loadingContainerBottom}><Loading /></div> : null
 }
 
-const StickyHeader = ({ data, prevData }) => {
+const StickyHeader = ({ data, prevData, context }) => {
   const firstItem = useCurrentlyRenderedData()[0]
   const createdAt = firstItem?.createdAt ? DateTimeHelpers.toDateTime(firstItem.createdAt, { locale: getLocaleFromLocalStorage() }) : null
   const displayDay = createdAt && getDisplayDay(createdAt)
 
+  if (!context.loadingPast && !context.loadingFuture && context.numPosts === 0) return null
+
   return (
-    <div className={cn(styles.displayDay, '!absolute top-0')}>
-      <div className={cn('absolute right-0 bottom-[15px] text-[11px] text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
+    <div className='!absolute top-0 w-full relative py-4'>
+      <div className={cn('absolute right-0 text-sm text-foreground/50 bg-background/50 hover:bg-background/100 hover:text-foreground/100 rounded-l-[15px] px-[10px] pl-[15px] h-[30px] leading-[30px] min-w-[130px] text-center')}>
         {displayDay}
       </div>
     </div>
@@ -658,12 +722,16 @@ const StickyFooter = ({ context }) => {
         right: 50
       }}
     >
-      {location.bottomOffset > 200 && (
+      {(location.bottomOffset > 200 || context.newPostCount > 0) && (
         <>
           <button
-            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:bg-foreground/10 hover:text-foreground'
+            className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
             onClick={() => {
-              virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+              // Ensure the newest posts are loaded before scrolling
+              Promise.resolve(context.loadToLatest?.())
+                .then(() => {
+                  virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                })
             }}
             data-tooltip-content='Jump to latest post'
             data-tooltip-id='jump-to-bottom-tt'
@@ -686,6 +754,7 @@ const StickyFooter = ({ context }) => {
 }
 
 const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
+  const { t } = useTranslation()
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
   const firstUnread = context.latestOldPostId === prevData?.id && post.creator.id !== context.currentUser.id
@@ -714,17 +783,12 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
 
   return (
     <>
-      {firstUnread && !displayDay && <div className={styles.firstUnread}><hr className='border-t-2 border-red-500' /></div>}
-      {firstUnread && displayDay &&
-        <div className={styles.unreadAndDay}>
+      {firstUnread &&
+        <div className='w-full relative py-3 text-sm'>
           <hr className='border-t-2 border-red-500' />
-          <div className='flex w-full items-center my-3'>
-            <div className='grow h-px bg-foreground/10' />
-            <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>
-            <div className='grow h-px bg-foreground/10' />
-          </div>
+          <span className='text-red-500 text-center w-full block'>{t('New posts')}</span>
         </div>}
-      {!firstUnread && displayDay && (
+      {displayDay && (
         <div className='w-full flex items-center my-3'>
           <div className='grow h-px bg-foreground/10' />
           <div className='mx-4 text-foreground/40 text-sm whitespace-nowrap'>{displayDay}</div>

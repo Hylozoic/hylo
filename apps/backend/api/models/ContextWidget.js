@@ -18,6 +18,7 @@ module.exports = bookshelf.Model.extend({
       if (model.get('view_group_id')) relationsToLoad.push('viewGroup')
       if (model.get('view_user_id')) relationsToLoad.push('viewUser')
       if (model.get('view_track_id')) relationsToLoad.push('viewTrack')
+      if (model.get('view_funding_round_id')) relationsToLoad.push('viewFundingRound')
       relationsToLoad.push('children')
 
       options.withRelated = options.withRelated.concat(relationsToLoad)
@@ -39,11 +40,22 @@ module.exports = bookshelf.Model.extend({
   },
 
   async highlightNumber (userId) {
-    if (userId && this.get('type') === 'chat') {
+    if (userId && this.get('view_chat_id')) {
       const tf = await this.topicFollow(userId).fetch()
       return tf ? tf.get('new_post_count') : 0
     }
     return 0
+  },
+
+  isSystemWidget () {
+    return !this.get('view_group_id') &&
+      !this.get('view_post_id') &&
+      !this.get('custom_view_id') &&
+      !this.get('view_user_id') &&
+      !this.get('view_chat_id') &&
+      !this.get('view_track_id') &&
+      !this.get('view_funding_round_id') &&
+      this.get('type') !== 'container'
   },
 
   secondaryNumber () {
@@ -109,6 +121,10 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(Tag, 'view_chat_id')
   },
 
+  viewFundingRound () {
+    return this.belongsTo(FundingRound, 'view_funding_round_id')
+  },
+
   viewGroup () {
     return this.belongsTo(Group, 'view_group_id')
   },
@@ -134,11 +150,12 @@ module.exports = bookshelf.Model.extend({
     USER: 'view_user_id',
     CUSTOM: 'custom_view_id',
     TRACK: 'view_track_id',
+    FUNDING_ROUND: 'view_funding_round_id',
     VIEW: 'view'
   },
 
   // Static methods
-  create: async function(data) {
+  create: async function (data) {
     return await bookshelf.transaction(async trx => {
       let customViewId = data.custom_view_id
 
@@ -176,6 +193,7 @@ module.exports = bookshelf.Model.extend({
         group_id: data.group_id,
         view: data.view,
         view_chat_id: data.view_chat_id,
+        view_funding_round_id: data.view_funding_round_id,
         view_group_id: data.view_group_id,
         view_post_id: data.view_post_id,
         view_track_id: data.view_track_id,
@@ -212,7 +230,7 @@ module.exports = bookshelf.Model.extend({
       .fetchAll(options)
   },
 
-  removeFromMenu: async function({ id, trx: existingTrx }) {
+  removeFromMenu: async function ({ id, trx: existingTrx }) {
     const doWork = async (trx) => {
       // Get the widget being removed
       const removedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
@@ -248,7 +266,7 @@ module.exports = bookshelf.Model.extend({
         await bookshelf.knex.raw(query).transacting(trx)
       }
 
-      if (removedWidget.get('view_post_id') || removedWidget.get('view_group_id') || removedWidget.get('view_track_id')) {
+      if (removedWidget.get('view_post_id') || removedWidget.get('view_group_id') || removedWidget.get('view_track_id') || removedWidget.get('view_funding_round_id')) {
         await removedWidget.destroy({ transacting: trx })
       } else {
         await removedWidget.refresh()
@@ -312,7 +330,7 @@ module.exports = bookshelf.Model.extend({
     return await bookshelf.transaction(trx => doWork(trx))
   },
 
-  setHomeWidget: async function({ id, groupId, trx: existingTrx }) {
+  setHomeWidget: async function ({ id, groupId, trx: existingTrx }) {
     const doWork = async (trx) => {
       const allWidgets = await ContextWidget.findForGroup(groupId, { transacting: trx })
         .map(widget => ({
@@ -351,7 +369,7 @@ module.exports = bookshelf.Model.extend({
     return await bookshelf.transaction(trx => doWork(trx))
   },
 
-  update: async function({ id, data, trx: existingTrx }) {
+  update: async function ({ id, data, trx: existingTrx }) {
     const doWork = async (trx) => {
       const widget = await this.where({ id }).fetch({ transacting: trx })
       if (!widget) throw new Error('Context widget not found')
@@ -384,6 +402,7 @@ module.exports = bookshelf.Model.extend({
         view: data.view,
         view_chat_id: data.view_chat_id,
         view_group_id: data.view_group_id,
+        view_funding_round_id: data.view_funding_round_id,
         view_post_id: data.view_post_id,
         view_track_id: data.view_track_id,
         view_user_id: data.view_user_id,

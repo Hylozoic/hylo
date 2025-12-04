@@ -4,7 +4,53 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [6.1.5] - 2025-07-23
+## [6.2.1] - 2025-11-11
+- 
+
+## [6.2.0] - 2025-11-11
+### Added
+- Funding rounds now visible in the app. You can add submissions and vote on them.
+- Long clicking on an emoji shows who reacted with each emoji on that post
+
+### Fixed
+- New comments are always loaded when you open a post details screen
+
+## [6.1.12] - 2025-10-20
+- Add save/unsave buttons to posts. View Saved Posts in the My Home screen.
+- Fix navigation bouncing for my and public options
+- Avoid deleting app cookie on crash reset
+- Avoid redundant navigation messaging from webview
+
+## [6.1.11] - 2025-09-02
+- Stop stale cache from crashing direct messages
+- Add safe area insets to modals, fixing some UI bugs
+- Fixed ios location related crash bug
+- Fixed keyboard-being-hidden bug
+- Fixed group deletion app-state
+
+## [6.1.10] - 2025-08-25
+- Fix blocking UI
+- "No posts" explainer will display for empty feeds
+- Preload some screens for faster view switching
+- Add app version number in user menu
+
+## [6.1.9] - 2025-08-20
+- Fix notifications list crashing
+- Fix location permissions
+- Allow any url link in post location field (zoom links, luma links, etc)
+
+## [6.1.8] - 2025-08-13
+- Fix authenication bug for real-time updates
+- Reduce query size to speed up response
+
+## [6.1.7] - 2025-07-31
+- Speed up stream loading
+
+## [6.1.6] - 2025-07-30
+- A user's pinned groups now show at the top of the nav menu
+- Fixed a bug causing occasional timeouts on requests for data
+
+## [6.1.5] - 2025-07-23
 - GDPR support
 - Several navigation fixes and tweaks, reducing double-bounce, and UI lock out
 - Comments are highlighted when appropriate
@@ -15,83 +61,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed header tag styling in html views
 - Updated queries for member profile to show more relevant content
 
-### [6.1.4] - 2025-06-29
+## [6.1.4] - 2025-06-29
 - Bug fix: Remove reference to listener function that has been removed
 
-### [6.1.3] - 2025-06-27
+## [6.1.3] - 2025-06-27
 - Update OneSignal SDK handling, for better push notifications
 
-### [6.1.2] - 2025-06-26
+## [6.1.2] - 2025-06-26
 - Fix for notification event crashing app
 - Fix for android deep-linking
 
-### [6.1.1] - 2025-06-23
+## [6.1.1] - 2025-06-23
 - Fix boolean bug with app initialization
 
-### [6.1.0] - 2025-06-12
+## [6.1.0] - 2025-06-12
 - Tracks and Actions available in the app
 - Updated emoji picker
 - Fixed a navigation bug on cold-start from notifications
 - Add "allow in public" section to group creation and group settings
 
-### [6.0.3] - 2025-04-16
+## [6.0.3] - 2025-04-16
 - Fixed a 'double-bounce' in some navigation actions
 - Fixed photo and file upload bugs
 - Fixed reaction deletion on comments
 
-### [6.0.2] - 2025-04-03
+## [6.0.2] - 2025-04-03
 - Fix layout of chatroom on mobile
 - Clean up Navigation menu styles
 - Updated in-app notifications rendering and i18n
 - Ensure group urls are handled correctly
 - Tweak Stream queries to speed up first load
 
-### [6.0.1] - 2025-03-26
+## [6.0.1] - 2025-03-26
 - Restored All Topics view
 - Fixed some 404s on Group Explorer and Group Explore
 - Several other bug fixes
 
-### [6.0.0] - 2025-03-16
+## [6.0.0] - 2025-03-16
 
 Major Hylo redesign! After 6 months of work, we've redesigned the entire app more reliable, more functional,and easier to use.
 There are many improvements across the board. A full CHANGELOG is coming soon, for now you can see the summary of all the changes here: [https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates](https://hylozoic.gitbook.io/hylo/product/hylo-redesign-product-updates)
 
-### [5.9.1] - 2024-10-29
+## [5.9.1] - 2024-10-29
 
 - Attempts to fix broken build
 
-### [5.9.0] - 2024-10-05
+## [5.9.0] - 2024-10-05
 
 - Add collective moderation features to groups
 
-### [5.8.2] - 2024-09-27
+## [5.8.2] - 2024-09-27
 
 - Fix missing function call blocking Apple account login
 - Android icon fix
 
-### [5.8.1] - 2024-09-10
+## [5.8.1] - 2024-09-10
 
 - Fix android push notification icon
 - child/parent group bug-fix
 
-### [5.8.0] - 2024-09-05
+## [5.8.0] - 2024-09-05
 
 - Add code of conduct, contribution guide and full license details
 - i18n bug-fix for location search
 - Update numerous dependencies
 
-### [5.7.0] - 2024-07-15
+## [5.7.0] - 2024-07-15
 
 - Add 'responsibilties' in place of 'moderators'
 
-### [5.6.0] - 2024-07-02
+## [5.6.0] - 2024-07-02
 
 - Add proposal views and voting options to posts
 - Add internationalization support and Spanish
 - Reduce app start-up times
 - Other performance, stability and bug fixes
 
-### [5.5.2] - 2024-06-04
+## [5.5.2] - 2024-06-04
 
 - Fixes #720 Search results sometimes crash app #723
 - Fixes crash on getting user details for a deleted user in header of a Message Thread #721
@@ -99,12 +145,12 @@ There are many improvements across the board. A full CHANGELOG is coming soon, f
 - Fixes #708 - Pressing on emoji doesn't do anything #715
 - Update to React Native 0.72.12 #719
 
-### [5.5.1] - 2023-02-21
+## [5.5.1] - 2023-02-21
 - Redesign Group Welcome
 - Include Agreements into Group Welcome
 - Include Join Questions in Group Welcome
 
-### [5.4.0] - 2023-12-11
+## [5.4.0] - 2023-12-11
 - My Home added to the menu navigation
 - Group Purpose added to group details
 - Notifications load faster
@@ -113,8 +159,8 @@ There are many improvements across the board. A full CHANGELOG is coming soon, f
 - Chat channels more readily accessible via group navigation menu
 - Bug fixes
 
-### [5.3.0] - 2023-08-22
-#### See related Milestone for more detail: https://github.com/Hylozoic/HyloReactNative/milestone/7?closed=1
+## [5.3.0] - 2023-08-22
+### See related Milestone for more detail: https://github.com/Hylozoic/HyloReactNative/milestone/7?closed=1
 - Upgrades to React Native 0.72.4 #648
 - Adds emojis to posts and comments #616
 - Adds Custom links/views for groups to navigation menu #560
@@ -123,22 +169,22 @@ There are many improvements across the board. A full CHANGELOG is coming soon, f
 - Makes project fields conditional #642 (Fixes [Issue #637](https://github.com/Hylozoic/HyloReactNative/issues/637))
 - Misc bug fixes...
 
-### [5.2.3] - 2023-03-31
+## [5.2.3] - 2023-03-31
 - Fixes topics not appearing when no image
 
-### [5.2.2] - 2023-02-03
+## [5.2.2] - 2023-02-03
 - Make groupIds be of graphql type ID
 
-### [5.2.0] - 2022-12-20
+## [5.2.0] - 2022-12-20
 - Adds Topic Chatroom Webview
 
-### [5.1.5] - 2022-12-05
+## [5.1.5] - 2022-12-05
 - Partially fixes #510 and #608 by enabling Android autoVerify on AppLinks. https://www.hylo.com/.well-known/assetlinks.json is validated and now being served.
 
-### [5.1.3] - 2022-12-03
+## [5.1.3] - 2022-12-03
 - Members not loading on initial navigation to screen
 
-### [5.1.2] - 2022-12-03
+## [5.1.2] - 2022-12-03
 ### Fixed
 - Terms of Service and Privacy Policy links on Login and Signup screens as per Facebook review
 - Comment Editor not expanding height after selecting Mention or Topic #614
@@ -147,11 +193,11 @@ There are many improvements across the board. A full CHANGELOG is coming soon, f
 - New Message > Add Participant search has weird results on adding 2nd participant #613
 - Should forward to Stream on launch #606
 
-### [5.1.1] - 2022-11-17
+## [5.1.1] - 2022-11-17
 ### Fixed
 - Amends iOS location permission string to be more specific as per App Store review feedback
 
-### [3.2.x-5.0.2] - 2022-10-24
+## [3.2.x-5.0.2] - 2022-10-24
 ### Added
 - `HyloWebViewEditor`: A WebView of `HyloMobileEditor` on Web. Replaces `InlineEditor` and includes rich text and interactive mention and topic suggestions
 - A mostly re-written Post Editor incorporating the new HyloEditor and improved UX throughout. Some new/updated features include: local image loading while being uploaded to server, modal Start and End time selection (vs inline),  updated prompts per Post Type, etc.

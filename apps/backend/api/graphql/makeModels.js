@@ -1,3 +1,4 @@
+/* global FundingRound */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -105,6 +106,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'viewPost',
         'viewUser',
         'viewChat',
+        'viewFundingRound',
         'viewTrack'
       ],
       getters: {
@@ -372,6 +374,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
               mentionsOf,
               offset,
               order,
+              savedBy,
               search,
               sortBy,
               topic,
@@ -395,6 +398,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 mentionsOf,
                 offset,
                 order,
+                savedBy,
                 search,
                 showPinnedFirst: false,
                 sortBy,
@@ -443,6 +447,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'accept_contributions',
         'announcement',
         'anonymous_voting',
+        'budget',
         'commentersTotal',
         'commentsTotal',
         'completion_action_settings',
@@ -474,6 +479,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         completedAt: p => p.completedAtForUser(userId),
         completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
+        fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
@@ -481,7 +487,20 @@ export default function makeModels (userId, isAdmin, apiClient) {
           userId && p.isEvent()
             ? p.userEventInvitation(userId).then(eventInvitation => eventInvitation ? eventInvitation.get('response') : '')
             : '',
-        sortOrder: p => p.pivot && p.pivot.get('sort_order') // For loading posts in order in a track
+        savedAt: p => p.savedAtForUser(userId),
+        sortOrder: p => p.pivot && p.pivot.get('sort_order'), // For loading posts in order in a track
+        tokensAllocated: async p => {
+          if (!userId) return null
+          const postUser = await PostUser.find(p.get('id'), userId)
+          return postUser ? postUser.get('tokens_allocated_to') || 0 : 0
+        },
+        totalTokensAllocated: async p => {
+          const result = await bookshelf.knex('posts_users')
+            .where('post_id', p.get('id'))
+            .sum('tokens_allocated_to as total')
+            .first()
+          return result?.total ? parseInt(result.total) : 0
+        }
       },
       relations: [
         { comments: { querySet: true } },
@@ -547,6 +566,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         order,
         proposalOutcome,
         proposalStatus,
+        savedBy,
         sortBy,
         search,
         topic,
@@ -569,11 +589,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
           limit: first,
           mentionsOf,
           offset,
-          onlyMyGroups: context === 'all',
+          onlyMyGroups: context === 'all' || context === 'my',
           onlyPublic: context === 'public',
           order,
           proposalOutcome,
           proposalStatus,
+          savedBy,
           sort: sortBy,
           term: search,
           topic,
@@ -654,6 +675,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         { parentGroups: { querySet: true } },
+        { peerGroups: { querySet: true } },
+        { peerGroupRelationships: { querySet: true } },
         {
           posts: {
             querySet: true,
@@ -746,6 +769,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 if (!GroupMembership.hasResponsibility(userId, relation.relatedData.parentId, Responsibility.constants.RESP_ADMINISTRATION)) {
                   q.whereNotNull('tracks.published_at')
                 }
+              })
+          }
+        },
+        {
+          fundingRounds: {
+            querySet: true,
+            filter: (relation, { sortBy, order }) =>
+              relation.query(q => {
+                q.where('deactivated_at', null)
+                q.orderBy(sortBy || 'id', order || 'asc')
               })
           }
         },
@@ -896,6 +929,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupRelationship,
       attributes: [
         'created_at',
+        'description',
+        'relationship_type',
         'role',
         'updated_at'
       ],
@@ -1197,7 +1232,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         followersTotal: gt => gt.followerCount(),
         isSubscribed: gt => userId ? gt.isFollowed(userId) : null,
         lastReadPostId: gt => userId ? gt.lastReadPostId(userId) : null,
-        newPostCount: gt => gt.newPostCount(userId)
+        newPostCount: gt => userId ? gt.newPostCount(userId) : null
       },
       relations: [
         'group',
@@ -1332,6 +1367,66 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: ['track', 'group', 'user']
     },
 
+    FundingRound: {
+      model: FundingRound,
+      attributes: [
+        'banner_url',
+        'created_at',
+        'criteria',
+        'description',
+        'max_token_allocation',
+        'min_token_allocation',
+        'num_participants',
+        'num_submissions',
+        'phase',
+        'published_at',
+        'require_budget',
+        'submission_descriptor_plural',
+        'submission_descriptor',
+        'submissions_close_at',
+        'submissions_open_at',
+        'title',
+        'token_type',
+        'total_tokens',
+        'updated_at',
+        'voting_closes_at',
+        'voting_method',
+        'voting_opens_at'
+      ],
+      getters: {
+        canSubmit: r => r && userId ? r.canUserSubmit(userId) : false,
+        canVote: r => r && userId ? r.canUserVote(userId) : false,
+        isParticipating: r => r && userId && r.isParticipating(userId),
+        joinedAt: r => r && userId ? r.joinedAt(userId) : null,
+        submitterRoles: r => r ? r.submitterRoles() : [],
+        allocations: r => r ? r.allocations() : [],
+        tokensRemaining: async r => {
+          if (!r || !userId) return null
+          return r.roundUser(userId).fetch().then(roundUser => roundUser ? roundUser.get('tokens_remaining') : null)
+        },
+        totalTokensAllocated: async r => {
+          if (!r) return null
+          const result = await bookshelf.knex('posts_users')
+            .join('funding_rounds_posts', 'posts_users.post_id', 'funding_rounds_posts.post_id')
+            .where('funding_rounds_posts.funding_round_id', r.get('id'))
+            .sum('posts_users.tokens_allocated_to as total')
+            .first()
+          return result?.total ? parseInt(result.total) : 0
+        },
+        userSettings: r => r && userId ? r.userSettings(userId) : null,
+        voterRoles: r => r ? r.voterRoles() : []
+      },
+      relations: [
+        'group',
+        { submissions: { querySet: true } },
+        { users: { querySet: true } }
+      ],
+      fetchMany: ({ first, order, offset = 0, published, search }) =>
+        searchQuerySet('funding_rounds', {
+          first, order, offset, published, search
+        })
+    },
+
     Notification: {
       model: Notification,
       relations: ['activity'],
@@ -1362,6 +1457,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'actor',
         'post',
         'comment',
+        'fundingRound',
         'group',
         'otherGroup',
         'track'

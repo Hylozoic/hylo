@@ -60,31 +60,12 @@ export default function CookiePreferencesPanel () {
         {/* Header and description */}
         <div className={cn('text-center sm:text-left')}>
           <h2 className={cn('text-lg font-bold mb-1')}>{t('Cookie Preferences')}</h2>
-          <h3 className={cn('text-xs font-semibold mt-2 text-muted-foreground')}>{t('Essential cookies')}</h3>
-          <p className={cn('text-sm text-muted-foreground')}>{t('We use cookies to help understand whether you are logged in and to understand your preferences and where you are in Hylo.')}</p>
+          <p className={cn('text-sm text-muted-foreground')}>{t('We use essential cookies to help understand whether you are logged in and to understand your preferences and where you are in Hylo.')}</p>
         </div>
 
-        {/* Buttons */}
-        <div className={cn('flex flex-col gap-2 w-full items-center')}>
-          <Button
-            size='sm'
-            onClick={handleRejectNonEssential}
-            className='w-full max-w-xs mx-auto justify-center'
-          >
-            {t('Reject Non-Essential')}
-          </Button>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={handleSave}
-            className='w-full max-w-xs mx-auto justify-center'
-          >
-            {t('Save Preferences')}
-          </Button>
-        </div>
-
+        <h3 className={cn('text-sm font-semibold mt-2 text-foreground mb-0 mt-0')}>{t('Other Cookies')}</h3>
         {/* Switches */}
-        <div className={cn('grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6 border-t border-border pt-2')}>
+        <div className={cn('grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6 border-t border-border pt-0')}>
           {/* Analytics Switch */}
           <div className={cn('flex flex-col items-center gap-1 md:flex-row md:items-center')}>
             <Switch
@@ -93,7 +74,7 @@ export default function CookiePreferencesPanel () {
             />
             <div className={cn('flex-1 text-center md:text-left')}>
               <div className={cn('flex items-center justify-center gap-2 md:justify-start flex-row')}>
-                <h3 className={cn('font-medium text-sm')}>{t('Analytics (Mixpanel)')}</h3>
+                <h3 className={cn('font-medium text-sm mt-0')}>{t('Analytics (Mixpanel)')}</h3>
                 <button
                   onClick={() => setShowInfo(!showInfo)}
                   className={cn('text-muted-foreground hover:text-foreground transition-colors')}
@@ -117,7 +98,7 @@ export default function CookiePreferencesPanel () {
             />
             <div className={cn('flex-1 text-center md:text-left')}>
               <div className={cn('flex items-center justify-center gap-2 md:justify-start flex-row')}>
-                <h3 className={cn('font-medium text-sm')}>{t('Support (Intercom)')}</h3>
+                <h3 className={cn('font-medium text-sm mt-0')}>{t('Support (Intercom)')}</h3>
                 <button
                   onClick={() => setShowInfo(!showInfo)}
                   className={cn('text-muted-foreground hover:text-foreground transition-colors')}
@@ -132,6 +113,24 @@ export default function CookiePreferencesPanel () {
               )}
             </div>
           </div>
+        </div>
+        {/* Buttons */}
+        <div className={cn('flex flex gap-2 w-full items-center')}>
+          <Button
+            size='sm'
+            onClick={handleRejectNonEssential}
+            className='w-full max-w-xs mx-auto justify-center'
+          >
+            {t('Reject Non-Essential')}
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleSave}
+            className='w-full max-w-xs mx-auto justify-center px-1'
+          >
+            {t('Save and Continue')}
+          </Button>
         </div>
       </div>
     </div>

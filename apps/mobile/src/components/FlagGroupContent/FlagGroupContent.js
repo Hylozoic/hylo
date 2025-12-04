@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Linking, Modal, TextInput } f
 import { useTranslation } from 'react-i18next'
 import { gql, useMutation, useQuery } from 'urql'
 import { isEmpty } from 'lodash'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import Icon from 'components/Icon'
 import Button from 'components/Button'
 import CheckBox from '@react-native-community/checkbox'
@@ -12,7 +12,7 @@ import createModerationActionMutation from '@hylo/graphql/mutations/createModera
 import { agreementsURL } from 'store/constants'
 import usePlatformAgreements from '@hylo/hooks/usePlatformAgreements'
 import GroupPresenter from '@hylo/presenters/GroupPresenter'
-import { mangoOrange } from 'style/colors'
+import { mangoOrange } from '@hylo/presenters/colors'
 
 const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
   const { t } = useTranslation()
@@ -29,7 +29,7 @@ const FlagGroupContent = ({ onClose, linkData, type = 'content' }) => {
               id
               description
               order
-              title        
+              title
             }
           }
         }

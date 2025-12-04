@@ -1,11 +1,14 @@
 import { convert as convertHtmlToText } from 'html-to-text'
-import { isURL } from 'validator'
+import validator from 'validator'
 import { marked } from 'marked'
-import merge from 'lodash/fp/merge'
+import merge from 'lodash/fp/merge.js' // Have to load this way for Electron ESM environment
 import { DateTime } from 'luxon'
 import prettyDate from 'pretty-date'
 import truncHTML from 'trunc-html'
 import truncText from 'trunc-text'
+
+// Have to load this way for Electron ESM environment
+const { isURL } = validator
 
 // Sanitization options
 export function insaneOptions (providedInsaneOptions) {
@@ -13,7 +16,7 @@ export function insaneOptions (providedInsaneOptions) {
     {
       allowedTags: providedInsaneOptions?.allowedTags || [
         'a', 'br', 'em', 'p', 's', 'strong',
-        'li', 'ol', 'ul',
+        'li', 'ol', 'ul', 'img',
         'div', 'iframe', 'mark', 'span',
         'blockquote', 'code', 'hr', 'pre',
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
@@ -38,6 +41,9 @@ export function insaneOptions (providedInsaneOptions) {
         ],
         div: [
           'class'
+        ],
+        img: [
+          'src', 'alt', 'title', 'class', 'width', 'height'
         ]
       }
     },

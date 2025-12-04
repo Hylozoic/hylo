@@ -4,9 +4,10 @@ import ReactDOM from 'react-dom'
 import { rootDomId } from 'client/util'
 
 const FlagGroupContentPortal = function (props) {
+  const container = document.getElementById('post-dialog-content') || document.getElementById(rootDomId)
   return ReactDOM.createPortal(
     <FlagGroupContent {...props} />,
-    document.getElementById(rootDomId)
+    container
   )
 }
 

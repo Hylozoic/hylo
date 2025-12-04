@@ -1,12 +1,5 @@
 import { GraphQLError } from 'graphql'
-import ical from 'ical-generator'
 import { values, includes } from 'lodash/fp'
-import { DateTimeHelpers } from '@hylo/shared'
-
-const going = (response) => {
-  return response === EventInvitation.RESPONSE.YES ||
-    response === EventInvitation.RESPONSE.INTERESTED
-}
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -35,41 +28,7 @@ export async function respondToEvent (userId, eventId, response) {
   }
 
   if (sendEmail) {
-    const cal = ical()
-    const calEvent = event.getCalEventData(userId, eventInvitation)
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
-    const user = await User.find(userId)
-    const groupNames = event.relations.groups.map(g => g.get('name')).join(', ')
-
-    const clickthroughParams = '?' + new URLSearchParams({
-      ctt: 'event_rsvp',
-      cti: userId
-    }).toString()
-
-    Queue.classMethod('Email', 'sendEventRsvpEmail', {
-      email: user.get('email'),
-      version: 'default',
-      data: {
-        date: DateTimeHelpers.formatDatePair({ start: event.get('start_time'), end: event.get('end_time'), timezone: event.get('timezone') }),
-        user_name: user.get('name'),
-        event_name: event.title(),
-        event_description: event.details(),
-        event_location: event.get('location'),
-        event_url: Frontend.Route.post(event, event.relations.groups.first(), clickthroughParams),
-        response: EventInvitation.getHumanResponse(response),
-        group_names: groupNames
-      },
-      files: [
-        {
-          id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
-        }
-      ]
-    }).then(() => {
-      // update the ical sequence number, no need to await
-      eventInvitation.incrementIcalSequence()
-    })
+    Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
   }
 
   return { success: true }

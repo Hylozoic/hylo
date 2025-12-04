@@ -2,7 +2,7 @@ import React from 'react'
 import { View, TouchableOpacity, TextInput, Text, StyleSheet } from 'react-native'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
-import { rhino50, havelockBlue } from 'style/colors'
+import { rhino50, havelockBlue } from '@hylo/presenters/colors'
 
 export default function SearchBar ({
   value,

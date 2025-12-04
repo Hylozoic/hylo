@@ -62,21 +62,21 @@ describe('canDeleteComment', () => {
   it('allows the creator to delete', () => {
     return canDeleteComment(u1.id, c)
       .then(canDelete => {
-        expect(canDelete).to.be.true
+        expect(canDelete).to.equal(true)
       })
   })
 
   it('allows a moderator of one of the comments groups to delete', () => {
     return canDeleteComment(u2.id, c)
       .then(canDelete => {
-        expect(canDelete).to.be.true
+        expect(canDelete).to.equal(true)
       })
   })
 
   it('does not allow anyone else to delete', () => {
     return canDeleteComment(u3.id, c)
       .then(canDelete => {
-        expect(canDelete).to.be.false
+        expect(canDelete).to.equal(false)
       })
   })
 })
@@ -87,11 +87,17 @@ describe('createMessage', () => {
   before(async () => {
     u1 = await factories.user().save() // creator
     u2 = await factories.user().save() // moderator
-    post = await factories.post({user_id: u1.id, active: true}).save()
+    post = await factories.post({ user_id: u1.id, active: true }).save()
     await post.addFollowers([u1.id, u2.id])
   })
 
   it('throws an error with a blocked user', async () => {
-    await createMessage(u1.id, {messageThreadId: post.id, text: 'la'})
+    // Block u1 from u2
+    await BlockedUser.forge({ user_id: u2.id, blocked_user_id: u1.id }).save()
+
+    // Try to create a message thread with u2 as the only other participant
+    return createMessage(u1.id, { messageThreadId: post.id, text: 'la' })
+      .then(() => expect.fail('should reject'))
+      .catch(e => expect(e.message).to.match(/cannot send a message to this thread/))
   })
 })

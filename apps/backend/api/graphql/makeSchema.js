@@ -21,6 +21,7 @@ import {
   addSkill,
   addSkillToLearn,
   addSuggestedSkillToGroup,
+  allocateTokensToSubmission,
   allowGroupInvites,
   blockUser,
   cancelGroupRelationshipInvite,
@@ -31,6 +32,7 @@ import {
   createCollection,
   createComment,
   createContextWidget,
+  createFundingRound,
   createGroup,
   createInvitation,
   createJoinRequest,
@@ -49,15 +51,19 @@ import {
   declineJoinRequest,
   deleteAffiliation,
   deleteComment,
+  deleteContextWidget,
+  deleteFundingRound,
   deleteGroup,
   deleteGroupRelationship,
   deleteGroupResponsibility,
   deleteGroupTopic,
+  deletePeerRelationship,
   deletePost,
   deleteProjectRole,
   deleteReaction,
   deleteSavedSearch,
   deleteZapierTrigger,
+  doPhaseTransition,
   duplicateTrack,
   enrollInTrack,
   expireInvitation,
@@ -67,9 +73,12 @@ import {
   flagInappropriateContent,
   fulfillPost,
   inviteGroupToGroup,
+  invitePeerRelationship,
   invitePeopleToEvent,
+  joinFundingRound,
   joinGroup,
   joinProject,
+  leaveFundingRound,
   leaveGroup,
   leaveProject,
   leaveTrack,
@@ -104,6 +113,7 @@ import {
   reorderPostInCollection,
   resendInvitation,
   respondToEvent,
+  savePost,
   sendEmailVerification,
   sendPasswordReset,
   setProposalOptions,
@@ -113,9 +123,11 @@ import {
   unblockUser,
   unfulfillPost,
   unlinkAccount,
+  unsavePost,
   updateAllMemberships,
   updateComment,
   updateContextWidget,
+  updateFundingRound,
   updateGroup,
   updateGroupResponsibility,
   updateGroupRole,
@@ -126,6 +138,7 @@ import {
   updateTrackActionOrder,
   updateMe,
   updateMembership,
+  updatePeerRelationship,
   updatePost,
   updateProposalOptions,
   updateProposalOutcome,
@@ -145,7 +158,76 @@ export default async function makeSchema ({ req }) {
   const userId = req.session.userId
   const isAdmin = Admin.isSignedIn(req)
   const models = makeModels(userId, isAdmin, req.api_client)
-  const { resolvers, fetchOne, fetchMany } = setupBridge(models)
+  const { resolvers, fetchOne, fetchMany, loaders } = setupBridge(models)
+
+  // Override Track, GroupTopic, and FundingRound resolvers to use DataLoaders for caching
+  if (userId && loaders) {
+    if (resolvers.Track) {
+      resolvers.Track.isEnrolled = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('enrolled_at') !== null
+      }
+      resolvers.Track.didComplete = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser && trackUser.get('completed_at') !== null
+      }
+      resolvers.Track.userSettings = async (track) => {
+        if (!track || !userId) return null
+        const trackUser = await loaders.trackUser.load({ trackId: track.get('id'), userId })
+        return trackUser ? trackUser.get('settings') : null
+      }
+    }
+
+    if (resolvers.GroupTopic) {
+      resolvers.GroupTopic.isSubscribed = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow !== null
+      }
+      resolvers.GroupTopic.lastReadPostId = async (groupTag) => {
+        if (!groupTag || !userId) return null
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('last_read_post_id') : null
+      }
+      resolvers.GroupTopic.newPostCount = async (groupTag) => {
+        if (!groupTag || !userId) return 0
+        const tagFollow = await loaders.tagFollow.load({
+          groupId: groupTag.get('group_id'),
+          tagId: groupTag.get('tag_id'),
+          userId
+        })
+        return tagFollow ? tagFollow.get('new_post_count') : 0
+      }
+    }
+
+    if (resolvers.FundingRound) {
+      resolvers.FundingRound.isParticipating = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return !!roundUser
+      }
+      resolvers.FundingRound.userSettings = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return roundUser ? roundUser.get('settings') : null
+      }
+      resolvers.FundingRound.tokensRemaining = async (fundingRound) => {
+        if (!fundingRound || !userId) return null
+        const roundUser = await loaders.fundingRoundUser.load({ fundingRoundId: fundingRound.get('id'), userId })
+        return roundUser ? roundUser.get('tokens_remaining') : null
+      }
+    }
+  }
 
   let allResolvers
   if (userId) {
@@ -191,19 +273,34 @@ export default async function makeSchema ({ req }) {
           if (foundType) return foundType
           throw new Error(`Unable to determine GraphQL type for instance: ${data}`)
         }
+      },
+      // Type resolver for the SubscriptionUpdate union type used in allUpdates subscription
+      SubscriptionUpdate: {
+        __resolveType (data, context, info) {
+          // Use makeModelsType if set by the subscription resolver
+          if (data?.makeModelsType) return data.makeModelsType
+
+          const foundType = getTypeForInstance(data, models)
+          if (foundType) return foundType
+          throw new Error(`Unable to determine GraphQL type for SubscriptionUpdate: ${data}`)
+        }
       }
     }
   } else if (req.api_client) {
     // TODO: check scope here, just api:write, just api:read, or both?
     allResolvers = {
       Query: makeApiQueries({ fetchOne, fetchMany }),
-      Mutation: makeApiMutations()
+      Mutation: makeApiMutations(),
+      // Provide Subscription resolvers even for API clients; resolvers self-guard on auth
+      Subscription: makeSubscriptions()
     }
   } else {
     // Not authenticated, only allow for public queries
     allResolvers = {
       Query: makePublicQueries({ fetchOne, fetchMany }),
-      Mutation: makePublicMutations({ fetchOne })
+      Mutation: makePublicMutations({ fetchOne }),
+      // Supply Subscription resolvers. They handle unauthenticated requests gracefully
+      Subscription: makeSubscriptions()
     }
   }
 
@@ -237,6 +334,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     comment: (root, { id }) => fetchOne('Comment', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
+    fundingRound: (root, { id }) => fetchOne('FundingRound', id),
     group: async (root, { id, slug, updateLastViewed }, context) => {
       // you can specify id or slug, but not both
       const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
@@ -268,7 +366,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
-      resetCount && User.resetNewNotificationCount(context.currentUserId)
+      resetCount && await User.resetNewNotificationCount(context.currentUserId)
       return notifications
     },
     people: (root, args) => fetchMany('Person', args),
@@ -341,6 +439,8 @@ export function makeMutations ({ fetchOne }) {
 
     addSuggestedSkillToGroup: (root, { groupId, name }, context) => addSuggestedSkillToGroup(context.currentUserId, groupId, name),
 
+    allocateTokensToSubmission: (root, { postId, tokens }, context) => allocateTokensToSubmission(context.currentUserId, postId, tokens),
+
     allowGroupInvites: (root, { groupId, data }) => allowGroupInvites(groupId, data),
 
     blockUser: (root, { blockedUserId }, context) => blockUser(context.currentUserId, blockedUserId),
@@ -360,6 +460,8 @@ export function makeMutations ({ fetchOne }) {
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
     createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data }),
+
+    createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
 
     createGroup: (root, { data }, context) => createGroup(context.currentUserId, data),
 
@@ -383,10 +485,6 @@ export function makeMutations ({ fetchOne }) {
 
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
-
-    joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
-
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 
     deactivateMe: (root, args, context) => deactivateUser({ sessionId: context.req.sessionId, userId: context.currentUserId }),
@@ -397,9 +495,15 @@ export function makeMutations ({ fetchOne }) {
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 
+    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId),
+
+    deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
+
     deleteGroup: (root, { id }, context) => deleteGroup(context.currentUserId, id),
 
     deleteGroupRelationship: (root, { parentId, childId }, context) => deleteGroupRelationship(context.currentUserId, parentId, childId, context),
+
+    deletePeerRelationship: (root, { relationshipId }, context) => deletePeerRelationship(context.currentUserId, relationshipId, context),
 
     deleteGroupResponsibility: (root, { responsibilityId, groupId }, context) => deleteGroupResponsibility({ userId: context.currentUserId, responsibilityId, groupId }),
 
@@ -416,6 +520,8 @@ export function makeMutations ({ fetchOne }) {
     deleteSavedSearch: (root, { id }, context) => deleteSavedSearch(id),
 
     deleteZapierTrigger: (root, { id }, context) => deleteZapierTrigger(context.currentUserId, id),
+
+    doPhaseTransition: (root, { id }, context) => doPhaseTransition(context.currentUserId, id),
 
     duplicateTrack: (root, { trackId }, context) => duplicateTrack(context.currentUserId, trackId),
 
@@ -435,7 +541,17 @@ export function makeMutations ({ fetchOne }) {
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
 
+    invitePeerRelationship: (root, { fromGroupId, toGroupId, description }, context) => invitePeerRelationship(context.currentUserId, fromGroupId, toGroupId, description, context),
+
     invitePeopleToEvent: (root, { eventId, inviteeIds }, context) => invitePeopleToEvent(context.currentUserId, eventId, inviteeIds),
+
+    joinFundingRound: (root, { id }, context) => joinFundingRound(context.currentUserId, id),
+
+    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
+
+    joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
+
+    leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 
@@ -507,6 +623,8 @@ export function makeMutations ({ fetchOne }) {
 
     respondToEvent: (root, { id, response }, context) => respondToEvent(context.currentUserId, id, response),
 
+    savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
+
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
 
     setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId }),
@@ -521,9 +639,13 @@ export function makeMutations ({ fetchOne }) {
 
     unlinkAccount: (root, { provider }, context) => unlinkAccount(context.currentUserId, provider),
 
+    unsavePost: (root, { postId }, context) => unsavePost(context.currentUserId, postId),
+
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
     updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data }),
+
+    updateFundingRound: (root, { id, data }, context) => updateFundingRound(context.currentUserId, id, data),
 
     updateGroupResponsibility: (root, { groupId, responsibilityId, title, description }, context) =>
       updateGroupResponsibility({ userId: context.currentUserId, groupId, responsibilityId, title, description }),
@@ -542,6 +664,8 @@ export function makeMutations ({ fetchOne }) {
     updateMe: (root, { changes }, context) => updateMe(context.req.sessionId, context.currentUserId, changes),
 
     updateMembership: (root, args, context) => updateMembership(context.currentUserId, args),
+
+    updatePeerRelationship: (root, { relationshipId, description }, context) => updatePeerRelationship(context.currentUserId, relationshipId, description, context),
 
     updatePost: (root, args, context) => updatePost(context.currentUserId, args),
 

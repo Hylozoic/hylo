@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { GroupCell } from 'components/GroupsList/GroupsList'
 import { inflectedTotal } from 'util/index'
-import { topicUrl } from 'util/navigation'
+import { topicUrl } from '@hylo/navigation'
 import classes from './AllTopics.module.scss'
 
 export default function TopicListItem ({ topic, singleGroup, routeParams, toggleSubscribe }) {

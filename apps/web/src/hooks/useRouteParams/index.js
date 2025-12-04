@@ -20,6 +20,11 @@ export default function useRouteParams () {
       const firstPart = pathParts[1]
       if (['groups', 'all', 'public', 'my', 'welcome', 'messages'].includes(firstPart)) {
         params.context = firstPart
+      } else if (['post'].includes(firstPart)) {
+        // Special case of hylo.com/post/postId
+        params.context = ''
+        params.view = 'post'
+        params.postId = pathParts[2]
       } else {
         params.context = 'all'
       }
@@ -30,9 +35,9 @@ export default function useRouteParams () {
       const pathParts = location.pathname.split('/')
       // Correctly track the view
       if (params.context === 'groups') {
-        params.view = !['create'].includes(pathParts[3]) ? pathParts[3] : 'stream'
+        params.view = !['create', 'post'].includes(pathParts[3]) ? pathParts[3] : ''
       } else {
-        params.view = !['create'].includes(pathParts[2]) ? pathParts[2] : 'stream'
+        params.view = !['create', 'post'].includes(pathParts[2]) ? pathParts[2] : ''
       }
     }
 
@@ -55,6 +60,13 @@ export default function useRouteParams () {
     // Set trackId
     if (params.view === 'tracks') {
       params.trackId = pathParts[4]
+      params.tab = pathParts[5]
+    }
+
+    // Set fundingRoundId
+    if (params.view === 'funding-rounds') {
+      params.fundingRoundId = pathParts[4]
+      params.tab = pathParts[5]
     }
 
     // If I'm in the group settings then I want the view to include the specific settings tab

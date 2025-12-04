@@ -1,4 +1,6 @@
 import {
+  BadgeDollarSign,
+  Bookmark,
   CircleHelp,
   Globe,
   Grid3x3,
@@ -8,10 +10,12 @@ import {
   Shapes,
   UserPlus
 } from 'lucide-react-native'
-import { black } from 'style/colors'
+import { black } from '@hylo/presenters/colors'
 
 // For app size reasons only add to this set as new Icons are required
 export const CustomIcons = {
+  BadgeDollarSign,
+  Bookmark,
   CircleHelp,
   Globe,
   Grid3x3,

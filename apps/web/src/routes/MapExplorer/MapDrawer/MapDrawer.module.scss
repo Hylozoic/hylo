@@ -1,12 +1,13 @@
 .container {
   height: 100%;
-  width: 500px;
+  width: 40%;
+  max-width: 400px;
   transition: all .25s ease;
   overflow-y: auto;
   z-index: 20;
   overflow-x: hidden;
   box-shadow: $box-shadow-default;
-  background: white;
+  background: hsl(var(--midground));
 
   &.noUser {
     height: 100%;
@@ -140,7 +141,7 @@
 
 .contentWrapper {
   clear: both;
-  background: white;
+  background: hsl(var(--midground));
   padding: 10px 10px 0 10px;
   overflow-y: auto;
   height: calc(100% - 110px);

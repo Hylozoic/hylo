@@ -21,6 +21,7 @@ posts(
   context: $context,
   order: $order,
   sortBy: $sortBy,
+  savedBy: $savedBy,
   search: $search,
   topic: $topic,
   topics: $topics,

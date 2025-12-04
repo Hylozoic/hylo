@@ -22,8 +22,10 @@ import Loading from 'components/Loading'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import FullPageModal from 'routes/FullPageModal'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
+import { WebViewMessageTypes } from '@hylo/shared'
+import isWebView, { sendMessageToWebView } from 'util/webView'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
-import { allGroupsUrl, groupUrl } from 'util/navigation'
+import { allGroupsUrl, groupUrl } from '@hylo/navigation'
 import presentGroup from 'store/presenters/presentGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
@@ -58,6 +60,13 @@ export default function GroupSettings () {
     if (group) {
       dispatch(deleteGroup(group.id)).then(({ error }) => {
         if (!error) {
+          // Send message to mobile app if in webview
+          if (isWebView()) {
+            sendMessageToWebView(WebViewMessageTypes.GROUP_DELETED, {
+              groupSlug: group.slug,
+              groupId: group.id
+            })
+          }
           window.location = allGroupsUrl()
         }
       })

@@ -1,6 +1,9 @@
 .wrapper {
   position: relative;
   width: 100%;
+  /* Prevent children (like suggestion list) from expanding layout horizontally */
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .input {
@@ -31,7 +34,9 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 380px;
+  /* Constrain suggestions to wrapper width to avoid horizontal overflow on Android WebView */
+  width: 100%;
+  max-width: 380px;
   background: white;
   margin: 4px -1px;
   padding: 0;
@@ -67,6 +72,7 @@
 
 @media screen and (max-width: 400px) {
   .suggestions {
-    width: 300px;
+    width: 100%;
+    max-width: 300px;
   }
 }

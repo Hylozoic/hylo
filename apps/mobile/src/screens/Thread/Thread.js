@@ -5,19 +5,20 @@ import { useTranslation } from 'react-i18next'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { gql, useMutation, useQuery } from 'urql'
 import { debounce } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import messageThreadMessagesQuery from '@hylo/graphql/queries/messageThreadMessagesQuery'
 import createMessageMutation from '@hylo/graphql/mutations/createMessageMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { trackWithConsent } from 'services/mixpanel'
 import useRouteParams from 'hooks/useRouteParams'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
 import Loading from 'components/Loading'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import NotificationOverlay from 'components/NotificationOverlay'
 import MessageCard from 'components/MessageCard'
 import MessageInput from 'components/MessageInput'
 import PeopleTyping from 'components/PeopleTyping'
 import ThreadHeaderTitle from './ThreadHeaderTitle'
-import { caribbeanGreen, twBackground } from 'style/colors'
+import { caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 
 const BOTTOM_THRESHOLD = 10
 const MESSAGE_PAGE_SIZE = 20
@@ -28,6 +29,7 @@ const markThreadReadMutation = gql`
     markThreadRead(messageThreadId: $messageThreadId) {
       id
       unreadCount
+      lastReadAt
     }
   }
 `
@@ -68,12 +70,14 @@ export default function Thread () {
   const peopleTypingRef = useRef()
   const [{ currentUser }] = useCurrentUser()
   const { id: threadId } = useRouteParams()
+  const keyboardHeight = useKeyboardHeight({ androidOffset: 0 })
 
   const [, createMessage] = useMutation(createMessageMutation)
   const [cursor, setCursor] = useState(null)
   const [{ data, fetching }] = useQuery({
     query: messageThreadMessagesQuery,
-    variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor }
+    variables: { id: threadId, first: MESSAGE_PAGE_SIZE, cursor },
+    requestPolicy: 'cache-and-network'
   })
   const messages = data?.messageThread?.messages?.items || []
   const [, providedMarkAsRead] = useMutation(markThreadReadMutation)
@@ -102,11 +106,21 @@ export default function Thread () {
   const handleSendTyping = () => peopleTypingRef?.current?.sendTyping()
 
   const handleSubmit = (text) => {
+    const messageText = TextHelpers.markdown(text)
+    
     createMessage({
       messageThreadId: threadId,
-      text: TextHelpers.markdown(text)
+      text: messageText
     })
+
+    // Track analytics for direct message sent
+    trackWithConsent(AnalyticsEvents.DIRECT_MESSAGE_SENT, {
+      messageLength: TextHelpers.textLengthHTML(messageText),
+      messageThreadId: threadId,
+      userId: currentUser?.id
+    }, currentUser)
   }
+
 
   useFocusEffect(
     useCallback(() => {
@@ -128,7 +142,7 @@ export default function Thread () {
   // }, [messages, atBottom])
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <View style={[styles.container, { marginBottom: keyboardHeight }]}>
       <FlashList
         style={styles.messageList}
         data={refineMessages(messages)}
@@ -137,7 +151,7 @@ export default function Thread () {
         inverted
         keyExtractor={(item) => item.id}
         keyboardDismissMode='on-drag'
-        keyboardShouldPersistTaps
+        keyboardShouldPersistTaps='always'
         refreshing={fetching}
         onEndReached={fetchMore}
         onEndReachedThreshold={0.3}
@@ -167,7 +181,7 @@ export default function Thread () {
           </View>
         }
       />
-    </KeyboardFriendlyView>
+    </View>
   )
 }
 

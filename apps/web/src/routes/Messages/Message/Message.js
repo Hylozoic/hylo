@@ -4,7 +4,7 @@ import React from 'react'
 import Avatar from 'components/Avatar'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
-import { personUrl } from 'util/navigation'
+import { personUrl } from '@hylo/navigation'
 import { TextHelpers } from '@hylo/shared'
 import classes from './Message.module.scss'
 

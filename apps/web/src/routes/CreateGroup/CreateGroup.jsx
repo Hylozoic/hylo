@@ -34,7 +34,7 @@ import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { bgImageStyle, cn } from 'util/index'
-import { groupUrl } from 'util/navigation'
+import { groupUrl } from '@hylo/navigation'
 import { onEnter } from 'util/textInput'
 import { createGroup, fetchGroupExists } from './CreateGroup.store'
 

@@ -53,8 +53,8 @@ module.exports = bookshelf.Model.extend({
       if (afterTime) q.where('posts.updated_at', '>', afterTime)
 
       q.where(q2 => {
-        q2.whereNull("posts_users.last_read_at")
-          .orWhereRaw(`posts_users.last_read_at < posts.updated_at`)
+        q2.whereNull('posts_users.last_read_at')
+          .orWhereRaw('posts_users.last_read_at < posts.updated_at')
       })
     })
   }

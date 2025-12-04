@@ -25,12 +25,17 @@ const TYPE = {
   GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
   GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest', // A child group is requesting to join a parent group
   GroupParentGroupJoinRequestAccepted: 'groupParentGroupJoinRequestAccepted',
+  GroupPeerGroupInvite: 'groupPeerGroupInvite',
+  GroupPeerGroupInviteAccepted: 'groupPeerGroupInviteAccepted',
   Message: 'message',
   Announcement: 'announcement',
   DonationTo: 'donation to',
   DonationFrom: 'donation from',
   TrackCompleted: 'trackCompleted',
-  TrackEnrollment: 'trackEnrollment'
+  TrackEnrollment: 'trackEnrollment',
+  FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
+  FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
+  FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
 }
 
 const MEDIUM = {
@@ -74,6 +79,10 @@ module.exports = bookshelf.Model.extend({
 
   track: function () {
     return this.related('activity').related('track')
+  },
+
+  fundingRound: function () {
+    return this.related('activity').related('fundingRound')
   },
 
   send: async function () {
@@ -125,6 +134,10 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestPush()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedPush()
+      case 'groupPeerGroupInvite':
+        return this.sendGroupPeerGroupInvitePush()
+      case 'groupPeerGroupInviteAccepted':
+        return this.sendGroupPeerGroupInviteAcceptedPush()
       case 'joinRequest':
         return this.sendJoinRequestPush()
       case 'memberJoinedGroup':
@@ -146,6 +159,12 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackEnrollmentPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
+      case 'fundingRoundNewSubmission':
+        return this.sendFundingRoundNewSubmissionPush()
+      case 'fundingRoundPhaseTransition':
+        return this.sendFundingRoundPhaseTransitionPush()
+      case 'fundingRoundReminder':
+        return this.sendFundingRoundReminderPush()
       default:
         return Promise.resolve()
     }
@@ -328,6 +347,28 @@ module.exports = bookshelf.Model.extend({
     return this.reader().sendPushNotification(alertText, alertPath)
   },
 
+  sendGroupPeerGroupInvitePush: async function () {
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const locale = this.locale()
+    if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
+    const path = new URL(Frontend.Route.groupRelationshipInvites(toGroup)).pathname
+    const alertText = PushNotification.textForGroupPeerGroupInvite(fromGroup, toGroup, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendGroupPeerGroupInviteAcceptedPush: async function () {
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const locale = this.locale()
+    if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
+
+    // Only moderators get peer relationship acceptance notifications
+    const alertPath = new URL(Frontend.Route.group(toGroup)).pathname
+    const alertText = PushNotification.textForGroupPeerGroupInviteAccepted(fromGroup, toGroup, this.actor(), locale)
+    return this.reader().sendPushNotification(alertText, alertPath)
+  },
+
   sendPushDonationTo: async function () {
     await this.load(['activity.projectContribution', 'activity.projectContribution.project', 'activity.projectContribution.user'])
     const projectContribution = this.projectContribution()
@@ -375,6 +416,10 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupParentGroupJoinRequestEmail()
       case 'groupParentGroupJoinRequestAccepted':
         return this.sendGroupParentGroupJoinRequestAcceptedEmail()
+      case 'groupPeerGroupInvite':
+        return this.sendGroupPeerGroupInviteEmail()
+      case 'groupPeerGroupInviteAccepted':
+        return this.sendGroupPeerGroupInviteAcceptedEmail()
       case 'joinRequest':
         return this.sendJoinRequestEmail()
       case 'memberJoinedGroup':
@@ -388,6 +433,12 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackCompletedEmail()
       case 'trackEnrollment':
         return this.sendTrackEnrollmentEmail()
+      case 'fundingRoundNewSubmission':
+        return this.sendFundingRoundNewSubmissionEmail()
+      case 'fundingRoundPhaseTransition':
+        return this.sendFundingRoundPhaseTransitionEmail()
+      case 'fundingRoundReminder':
+        return this.sendFundingRoundReminderEmail()
       default:
         return Promise.resolve()
     }
@@ -500,6 +551,85 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  sendGroupPeerGroupInviteEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    const invite = await GroupRelationshipInvite.forPair(fromGroup, toGroup).fetch()
+    const locale = this.locale()
+
+    if (!fromGroup || !toGroup || !invite) throw new Error('Missing group in activity')
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'group_peer_group_invite_email',
+      cti: reader.id
+    }).toString()
+
+    return Email.sendGroupPeerGroupInviteNotification({
+      email: reader.get('email'),
+      locale,
+      sender: {
+        name: `${actor.get('name')} from ${fromGroup.get('name')}`,
+        address: process.env.EMAIL_SENDER
+      },
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        description: invite.get('message'),
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
+      }
+    })
+  },
+
+  sendGroupPeerGroupInviteAcceptedEmail: async function () {
+    const actor = this.actor()
+    const reader = this.reader()
+    const fromGroup = await this.relations.activity.group().fetch()
+    const toGroup = await this.relations.activity.otherGroup().fetch()
+    if (!fromGroup || !toGroup) throw new Error('Missing group in activity')
+
+    const locale = this.locale()
+    const reason = this.relations.activity.get('meta').reasons[0]
+    const memberOf = reason.split(':')[1]
+    const memberType = reason.split(':')[2]
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'group_peer_group_invite_accepted_email',
+      cti: reader.id
+    }).toString()
+
+    return Email.sendGroupPeerGroupInviteAcceptedNotification({
+      email: reader.get('email'),
+      locale,
+      sender: {
+        name: 'The Team at Hylo',
+        address: process.env.EMAIL_SENDER
+      },
+      data: {
+        child_group_avatar_url: toGroup.get('avatar_url'),
+        child_group_name: toGroup.get('name'),
+        child_group_settings_url: Frontend.Route.groupRelationshipInvites(toGroup) + clickthroughParams,
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        inviter_avatar_url: actor.get('avatar_url'),
+        inviter_name: actor.get('name'),
+        inviter_profile_url: Frontend.Route.profile(actor) + clickthroughParams,
+        memberOf,
+        memberType,
+        parent_group_avatar_url: fromGroup.get('avatar_url'),
+        parent_group_name: fromGroup.get('name'),
+        parent_group_url: Frontend.Route.group(fromGroup) + clickthroughParams
+      }
+    })
+  },
+
   sendJoinRequestEmail: async function () {
     const actor = this.actor()
     const reader = this.reader()
@@ -520,7 +650,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -554,7 +684,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -895,6 +1025,162 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  sendFundingRoundNewSubmissionPush: async function () {
+    const fundingRound = this.fundingRound()
+    const post = this.post()
+    const actor = this.actor()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundNewSubmissionEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_new_submission_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    return Email.sendFundingRoundNewSubmissionEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        funding_round_title: fundingRound.get('title'),
+        funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        post: post.presentForEmail({ fundingRound, group, clickthroughParams, locale }),
+        tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
+      }
+    })
+  },
+
+  sendFundingRoundPhaseTransitionPush: async function () {
+    const fundingRound = this.fundingRound()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const meta = this.relations.activity.get('meta')
+    const phase = meta.phase
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(fundingRound, phase, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundPhaseTransitionEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const meta = this.relations.activity.get('meta')
+    const phase = meta.phase
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_phase_transition_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    // Check if user has appropriate roles for the phase
+    const canSubmit = await fundingRound.canUserSubmit(reader.id)
+    const canVote = await fundingRound.canUserVote(reader.id)
+
+    const data = {
+      email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+      funding_round_title: fundingRound.get('title'),
+      funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+      group_name: group.get('name'),
+      group_avatar_url: group.get('avatar_url')
+    }
+
+    switch (phase) {
+      case 'submissions':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, canSubmit ? 'submissions' : null) + clickthroughParams
+        data.button_text = canSubmit
+          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'submissions' })
+          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'submissions' })
+        break
+      case 'discussion':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
+        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'discussion' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'discussion' })
+        break
+      case 'voting':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, canVote ? 'voting' : null) + clickthroughParams
+        data.button_text = canVote
+          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'voting' })
+          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'voting' })
+        break
+      case 'completed':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
+        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'completed' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'completed' })
+        break
+    }
+
+    return Email.sendFundingRoundPhaseTransitionEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data
+    })
+  },
+
+  sendFundingRoundReminderPush: async function () {
+    const fundingRound = this.fundingRound()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const meta = this.relations.activity.get('meta')
+    const reminderType = meta.reminderType
+    const alertText = PushNotification.textForFundingRoundReminder(fundingRound, reminderType, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundReminderEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const meta = this.relations.activity.get('meta')
+    const reminderType = meta.reminderType
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_reminder_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    const phase = reminderType.startsWith('submissions') ? 'submissions' : 'voting'
+
+    return Email.sendFundingRoundReminderEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        funding_round_title: fundingRound.get('title'),
+        funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        action_url: Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams,
+        button_text: locales[locale].fundingRoundTransitionButtonText({ phase }),
+        transition_text: locales[locale].textForFundingRoundReminder({ reminderType })
+      }
+    })
+  },
+
   shouldBeBlocked: async function () {
     if (!this.get('user_id')) return Promise.resolve(false)
 
@@ -915,7 +1201,7 @@ module.exports = bookshelf.Model.extend({
 
   updateUserSocketRoom: async function (userId) {
     const { activity } = this.relations
-    const { actor, comment, group, otherGroup, post } = activity.relations
+    const { actor, comment, group, otherGroup, post, track, fundingRound } = activity.relations
     const action = Notification.priorityReason(activity.get('meta').reasons)
 
     const payload = {
@@ -928,11 +1214,16 @@ module.exports = bookshelf.Model.extend({
           comment: refineOne(comment, ['id', 'text']),
           group: refineOne(group, ['id', 'name', 'slug']),
           otherGroup: refineOne(otherGroup, ['id', 'name', 'slug']),
-          post: refineOne(
-            post,
-            ['id', 'name', 'description'],
-            { description: 'details', name: 'title' }
-          )
+          post: {
+            ...refineOne(
+              post,
+              ['id', 'name', 'description', 'type'],
+              { description: 'details', name: 'title' }
+            ),
+            topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
+          },
+          track: refineOne(track, ['id', 'name']),
+          fundingRound: refineOne(fundingRound, ['id', 'title'])
         }
       )
     }
@@ -945,7 +1236,7 @@ module.exports = bookshelf.Model.extend({
 
   find: function (id, options) {
     if (!id) return Promise.resolve(null)
-    return Notification.where({ id: id }).fetch(options)
+    return Notification.where({ id }).fetch(options)
   },
 
   findUnsent: function (options = {}) {
@@ -963,6 +1254,9 @@ module.exports = bookshelf.Model.extend({
       .fetchAll(options)
   },
 
+  // Process a bounded batch of unsent notifications and return.
+  // If there may be more to process, re-enqueue another job so we don't
+  // hold a Kue worker slot indefinitely.
   sendUnsent: function () {
     // FIXME empty out this withRelated list and just load things on demand when
     // creating push notifications / emails
@@ -985,26 +1279,33 @@ module.exports = bookshelf.Model.extend({
         'activity.otherGroup',
         'activity.reader',
         'activity.actor',
-        'activity.track'
+        'activity.track',
+        'activity.fundingRound'
       ]
     })
-      .then(ns => ns.length > 0 &&
-        Promise.each(ns.models,
-          n => n.send().catch(err => {
+      .then(async ns => {
+        if (!ns || ns.length === 0) return
+        await Promise.each(ns.models, n =>
+          n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
             rollbar.error(err, null, { notification: n.attributes })
             return n.save({ failed_at: new Date() }, { patch: true })
-          }))
-          .then(() => new Promise(resolve => {
-            setTimeout(() => resolve(Notification.sendUnsent()), 1000)
-          })))
+          })
+        )
+        // If we hit the limit (200), there may be more to process.
+        if (ns.length >= 200) {
+          // Re-enqueue another pass shortly.
+          Queue.classMethod('Notification', 'sendUnsent', {}, 1000)
+        }
+      })
   },
 
   priorityReason: function (reasons) {
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
+      'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

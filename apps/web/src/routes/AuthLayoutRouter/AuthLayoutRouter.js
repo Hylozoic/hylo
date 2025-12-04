@@ -1,9 +1,9 @@
+import isMobile from 'ismobilejs'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
-import Div100vh from 'react-div-100vh'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
@@ -18,6 +18,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
+import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
@@ -32,7 +33,7 @@ import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
   groupHomeUrl
-} from 'util/navigation'
+} from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
 import AllView from 'routes/AllView'
@@ -61,12 +62,15 @@ import Stream from 'routes/Stream'
 import Themes from 'routes/Themes'
 
 import TrackHome from 'routes/TrackHome'
+import FundingRounds from 'routes/FundingRounds'
+import FundingRoundHome from 'routes/FundingRoundHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
+import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -137,6 +141,13 @@ export default function AuthLayoutRouter (props) {
       setCurrentUserLoading(false)
       dispatch(fetchThreads())
     })()
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        await dispatch(checkForNewNotifications())
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   useEffect(() => {
@@ -223,7 +234,8 @@ export default function AuthLayoutRouter (props) {
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
-    currentGroupMembership.update({ lastViewedAt: (new Date()).toISOString() })
+    const lastViewedAt = (new Date()).toISOString()
+    dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
@@ -264,7 +276,7 @@ export default function AuthLayoutRouter (props) {
         )}
       </Routes>
 
-      <Div100vh className={cn('flex flex-row items-stretch bg-midground', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
@@ -304,7 +316,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
-              <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+              <Route path='groups/:groupSlug/funding-rounds/:fundingRoundId/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -400,6 +412,8 @@ export default function AuthLayoutRouter (props) {
                             <Route path='topics' element={<AllTopics context='groups' />} />
                             <Route path='tracks/:trackId/*' element={<TrackHome />} />
                             <Route path='tracks/*' element={<Tracks />} />
+                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
+                            <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
@@ -415,6 +429,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
                 <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
+                <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
@@ -468,7 +483,7 @@ export default function AuthLayoutRouter (props) {
           </div>
         </div>
         <CookieConsentLinker />
-      </Div100vh>
+      </div>
     </IntercomProvider>
   )
 }

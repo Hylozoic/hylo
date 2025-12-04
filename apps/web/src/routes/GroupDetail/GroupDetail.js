@@ -41,7 +41,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
-import { groupUrl, personUrl, removeGroupFromUrl } from 'util/navigation'
+import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
 
 import {
@@ -151,7 +151,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                       <div>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</div>
                     </div>
                   </span>
-                  <span className={g.memberCount}>{group.memberCount} {group.memberCount > 1 ? t('Members') : t('Member')}</span>
+                  <span className={g.memberCount}>{t('{{count}} Members', { count: group.memberCount })}</span>
                 </div>
                 <span className='text-white/70 text-sm'>{group.location}</span>
               </div>

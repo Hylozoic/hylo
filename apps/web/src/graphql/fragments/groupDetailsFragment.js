@@ -123,7 +123,6 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     groupTopics(first: 8) {
       items {
         id
-        lastReadPostId
         topic {
           id
           name
@@ -255,6 +254,17 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           viewChat {
             id
             name
+          }
+          viewFundingRound {
+            id
+            title
+            isParticipating
+            phase
+            publishedAt
+            submissionsOpenAt
+            submissionsCloseAt
+            votingOpensAt
+            votingClosesAt
           }
           viewTrack {
             id

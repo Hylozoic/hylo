@@ -76,6 +76,7 @@ module.exports.routes = {
   'POST   /noo/upload':                                   'UploadController.create',
 
   'GET    /noo/export/group':                             'ExportController.groupData',
+  'POST   /noo/export/user-account':                      'ExportController.userAccountData',
 
   // Role Stewardship endpoints
   'POST   /noo/role/:roleId/volunteer':                   'RoleStewardshipController.volunteer',

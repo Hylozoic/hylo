@@ -3,6 +3,7 @@ import { omit } from 'lodash/fp'
 import React, { useState, forwardRef, useEffect, useRef } from 'react'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
+import generateTempID from 'util/generateTempId'
 import { onEnter } from 'util/textInput'
 
 import styles from './TextInput.module.scss'
@@ -29,15 +30,16 @@ const TextInput = forwardRef(({
   internalLabel,
   ...props
 }, ref) => {
+  const hasValue = value != null && value !== ''
+  const [active, setActive] = useState(hasValue)
+  const inputEl = useRef(null)
+
   const onKeyDown = props.onEnter ? onEnter(props.onEnter) : () => {}
-  const onBlur = () => { props.onBlur && props.onBlur(); setActive(false) }
+  const onBlur = () => { props.onBlur && props.onBlur(); setActive(hasValue) }
   const onFocus = () => { props.onFocus && props.onFocus(); setActive(true) }
 
   const otherProps = omit(['onEnter', 'onBlur', 'onFocus'], props)
   const clear = () => onChange && onChange({ target: { name, value: '' } })
-
-  const [active, setActive] = useState(false)
-  const inputEl = useRef(null)
 
   // Combine forwarded ref and local ref
   useEffect(() => {
@@ -54,7 +56,8 @@ const TextInput = forwardRef(({
   useEffect(() => {
     if (!doCheckAutofill) return
     const checkAutofill = () => {
-      if (inputEl.current && inputEl.current.value) {
+      const val = inputEl.current?.value
+      if (val != null && val !== '') {
         setActive(true)
       }
     }
@@ -67,11 +70,13 @@ const TextInput = forwardRef(({
     setActive(e.animationName === 'onAutoFillStart')
   }
 
+  id = id || generateTempID()
+
   return (
 
     <div
       className={cn(
-        'flex items-center relative rounded bg-input h-fit',
+        'flex items-center relative rounded bg-input text-foreground h-fit',
         theme.wrapper,
         className
       )}
@@ -81,7 +86,7 @@ const TextInput = forwardRef(({
         value={value}
         type={props.type || 'text'}
         className={cn(
-          inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base'),
+          inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base placeholder:text-muted-foreground'),
           theme.input
         )}
         onAnimationStart={handleAnimation}
@@ -97,15 +102,15 @@ const TextInput = forwardRef(({
         <label
           htmlFor={id}
           className={cn(
-            'block absolute left-[18px] top-3 text-foreground/60 text-base transition-all duration-200',
-            (active || (value && value.length > 0)) && 'text-[10px] top-[3px] left-[14px]'
+            'block absolute left-[18px] top-[50%] -translate-y-1/2 text-foreground/60 text-base transition-all duration-200',
+            (active || hasValue) && 'text-[10px] top-[5%] translate-y-0 left-[14px]'
           )}
         >
           {internalLabel}
         </label>
       )}
 
-      {value && !noClearButton &&
+      {hasValue && !noClearButton && props.type !== 'number' &&
         <div
           className={cn(
             'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer mr-2 transition-colors text-foreground/60 hover:text-foreground/100'

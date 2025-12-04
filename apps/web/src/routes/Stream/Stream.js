@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
+import { Bookmark } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
@@ -30,7 +31,7 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -42,7 +43,7 @@ import { getHasMorePosts, getPosts } from 'store/selectors/getPosts'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
-import { createPostUrl } from 'util/navigation'
+import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 
@@ -154,6 +155,27 @@ export default function Stream (props) {
     if (view === 'events' || isCalendarViewMode) {
       dispatch(dropPostResults(params))
     }
+    if (context === CONTEXT_MY) {
+      switch (view) {
+        case VIEW_MENTIONS:
+          params.mentionsOf = [currentUser.id]
+          break
+        case VIEW_ANNOUNCEMENTS:
+          params.announcementsOnly = true
+          break
+        case VIEW_INTERACTIONS:
+          params.interactedWithBy = [currentUser.id]
+          break
+        case VIEW_POSTS:
+          params.createdBy = [currentUser.id]
+          break
+        case VIEW_SAVED_POSTS:
+          params.savedBy = [currentUser.id]
+          params.sortBy = 'saved'
+          params.filter = 'chat' // This means all posts + chat posts
+          break
+      }
+    }
     return params
   }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
@@ -168,22 +190,22 @@ export default function Stream (props) {
       case VIEW_MENTIONS:
         name = t('Mentions')
         icon = 'Email'
-        fetchPostsParam.mentionsOf = [currentUser.id]
         break
       case VIEW_ANNOUNCEMENTS:
         name = t('Announcements')
         icon = 'Announcement'
-        fetchPostsParam.announcementsOnly = true
         break
       case VIEW_INTERACTIONS:
         name = t('Interactions')
         icon = 'Support'
-        fetchPostsParam.interactedWithBy = [currentUser.id]
         break
       case VIEW_POSTS:
         name = t('Posts')
         icon = 'Posticon'
-        fetchPostsParam.createdBy = [currentUser.id]
+        break
+      case VIEW_SAVED_POSTS:
+        name = t('Saved Posts')
+        icon = <Bookmark />
         break
     }
   }
@@ -287,7 +309,7 @@ export default function Stream (props) {
       info,
       search: true
     })
-  }, [name, icon, info])
+  }, [name, info])
 
   return (
     <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>

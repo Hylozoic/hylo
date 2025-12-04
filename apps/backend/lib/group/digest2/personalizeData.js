@@ -72,12 +72,13 @@ const filterMyAndBlockedUserData = async (userId, data) => {
       if (key === 'posts_with_new_comments' && object.comments.length === 0) return null
 
       // Filter out chats that are older than the most recently read chat in that room by this user
+      // Also dont show chats in chat rooms that the user is not following
       if (key === 'chats') {
         if (!chatRooms[object.topic_name]) {
           const tag = await Tag.where({ name: object.topic_name }).fetch()
           chatRooms[object.topic_name] = await TagFollow.where({ tag_id: tag.id, group_id: data.group_id, user_id: userId }).fetch()
         }
-        if (object.id <= chatRooms[object.topic_name].get('last_read_post_id')) return null
+        if (!chatRooms[object.topic_name] || object.id <= chatRooms[object.topic_name].get('last_read_post_id')) return null
       }
       return object
     }))
@@ -95,7 +96,7 @@ const filterMyAndBlockedUserData = async (userId, data) => {
         topics[chat.topic_name] = {
           name: chat.topic_name,
           num_new_chats: 1,
-          url: Frontend.Route.topic(data.group_slug, chat.topic_name)
+          url: Frontend.Route.chat(data.group_slug, chat.topic_name)
         }
       }
     }

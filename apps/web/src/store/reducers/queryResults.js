@@ -21,7 +21,9 @@ import {
   FETCH_THREADS,
   FETCH_CHILD_COMMENTS,
   FETCH_COMMENTS,
-  REMOVE_POST_PENDING
+  REMOVE_POST_PENDING,
+  SAVE_POST_PENDING,
+  UNSAVE_POST_PENDING
 } from 'store/constants'
 import {
   CREATE_TOPIC
@@ -95,6 +97,32 @@ export default function (state = {}, action) {
         return {
           ...results,
           ids: results.ids.filter(id => id !== meta.postId)
+        }
+      })
+
+    case UNSAVE_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        // Only remove from query results that have savedBy parameter (i.e., saved posts view)
+        if (!get('params.savedBy', keyObject)) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.postId),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
+
+    case SAVE_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        // Only add to query results that have savedBy parameter (i.e., saved posts view)
+        if (!get('params.savedBy', keyObject)) return results
+        // Don't add if already present
+        if (results.ids.includes(meta.postId)) return results
+        return {
+          ...results,
+          ids: [meta.postId].concat(results.ids),
+          total: (results.total || results.total === 0) && results.total + 1
         }
       })
 
@@ -177,8 +205,8 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the future posts in a chat room (future because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room (past because of order: 'asc')
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 
@@ -334,6 +362,7 @@ export const queryParamWhitelist = [
   'order',
   'page',
   'parentSlugs',
+  'savedBy',
   'search',
   'slug',
   'sortBy',

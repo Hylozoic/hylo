@@ -8,30 +8,6 @@ const CommentFieldsFragment = `
     id
     name
     avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-         groupId
-         responsibilities {
-          items {
-            id
-            title
-            description
-          }
-         }
-       }
-     }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
   }
   attachments {
     id
@@ -40,10 +16,6 @@ const CommentFieldsFragment = `
     url
   }
   parentComment {
-    id
-  }
-  myReactions {
-    emojiFull
     id
   }
   commentReactions {
@@ -61,6 +33,7 @@ const CommentFieldsFragment = `
 const postFieldsFragment = (withComments, withCompletion = false, withAllCompletionResponses = false) => `
   id
   announcement
+  budget
   title
   details
   type
@@ -68,30 +41,6 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
     id
     name
     avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
   }
   createdAt
   clickthrough
@@ -107,6 +56,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   editedAt
   projectManagementLink
   myEventResponse
+  savedAt
   commenters(first: 3) {
     id
     name
@@ -208,10 +158,6 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
           avatarUrl
         }
       }
-  }
-  myReactions {
-    emojiFull
-    id
   }
   postReactions {
     emojiFull

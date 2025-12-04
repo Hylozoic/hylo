@@ -137,6 +137,11 @@ const HyloEditor = React.forwardRef(({
     Highlight
   ]
 
+  const onTouchMove = (e) => {
+    // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
+    editorRef.current.commands.blur()
+  }
+
   const editor = useEditor({
     content: contentHTML,
     extensions,
@@ -147,6 +152,21 @@ const HyloEditor = React.forwardRef(({
       // Don't call onUpdate until the editor is full initialized (including initial content added)
       if (!onUpdate || !initialized) return
       onUpdate(editor.getHTML())
+    },
+    onFocus: () => {
+      document.addEventListener('touchmove', onTouchMove, { passive: false })
+    },
+    onBlur: () => {
+      document.removeEventListener('touchmove', onTouchMove, { passive: false })
+    },
+    editorProps: {
+      transformPastedHTML (html) {
+        if (type === 'post') {
+          // Remove any images copied any pasted as HTML
+          return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
+        }
+        return html
+      }
     }
   })
 
@@ -188,7 +208,7 @@ const HyloEditor = React.forwardRef(({
     },
     focus: position => {
       if (editorRef.current) {
-        editorRef.current.commands.focus(position)
+        editorRef.current.commands.focus(position || 'start')
       }
     },
     getHTML: () => {

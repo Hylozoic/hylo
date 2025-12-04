@@ -14,8 +14,8 @@ import mixpanel from 'services/mixpanel'
 import { trackWithConsent } from 'services/mixpanel'
 import HyloEditorWebView from 'components/HyloEditorWebView'
 import Icon from 'components/Icon'
-import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
-import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from 'style/colors'
+import useKeyboardHeight from 'hooks/useKeyboardHeight'
+import { rhino80, gunsmoke, rhino10, amaranth, caribbeanGreen, twBackground } from '@hylo/presenters/colors'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from 'components/Toast'
 import { getTrackIdFromPath } from '@hylo/navigation'
@@ -36,6 +36,7 @@ export const CommentEditor = React.forwardRef(({
   const [hasContent, setHasContent] = useState()
   const editorRef = useRef()
   const [submitting, setSubmitting] = useState()
+  const keyboardHeight = useKeyboardHeight()
   const showToast = useToast()
   const { originalLinkingPath } = useRouteParams()
   const trackId = getTrackIdFromPath(originalLinkingPath)
@@ -56,10 +57,10 @@ export const CommentEditor = React.forwardRef(({
       const parentCommentId = replyingTo?.parentComment?.id || replyingTo?.id || null
       const postId = post.id
       const { error } = await createComment({ text: commentHTML, parentCommentId, postId })
-      
+
       // Required check for action posts
       if (!error && post?.type === 'action' && post?.completionAction === 'comment' && !post?.completedAt) {
-        const { error: completionError, data } = await completePost({ 
+        const { error: completionError, data } = await completePost({
           postId: post.id,
           completionResponse: ['comment']
         })
@@ -124,6 +125,7 @@ export const CommentEditor = React.forwardRef(({
     editorRef.current = newEditorRef
   }, [])
 
+
   // This is what is causing the bouncing
   useEffect(() => {
     if (replyingTo?.parentComment) {
@@ -142,7 +144,7 @@ export const CommentEditor = React.forwardRef(({
   }))
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <View style={[styles.container, { marginBottom: keyboardHeight }]}>
       {replyingTo?.creator?.name && (
         <View style={styles.prompt}>
           <TouchableOpacity onPress={handleDone}>
@@ -174,7 +176,7 @@ export const CommentEditor = React.forwardRef(({
               )}
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardFriendlyView>
+    </View>
   )
 })
 

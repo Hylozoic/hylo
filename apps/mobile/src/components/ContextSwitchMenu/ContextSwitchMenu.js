@@ -5,7 +5,7 @@ import Intercom from '@intercom/intercom-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { map, sortBy } from 'lodash/fp'
 import { clsx } from 'clsx'
-import GroupPresenter from '@hylo/presenters/GroupPresenter'
+import GroupPresenter, { isStaticContext } from '@hylo/presenters/GroupPresenter'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useStaticContexts from '@hylo/hooks/useStaticContexts'
@@ -13,7 +13,7 @@ import { useChangeToGroup } from 'hooks/useHandleCurrentGroup'
 import { isIOS } from 'util/platform'
 import useOpenURL from 'hooks/useOpenURL'
 import LucideIcon from 'components/LucideIcon'
-import { black, white } from 'style/colors'
+import { black, white } from '@hylo/presenters/colors'
 
 const STAY_EXPANDED_DURATION = 1500
 
@@ -24,9 +24,31 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
   const [{ currentUser }] = useCurrentUser()
   const [{ currentGroup }] = useCurrentGroup()
   const { myContext, publicContext } = useStaticContexts()
-  const myGroups = [myContext, publicContext].concat(
-    sortBy('name', map(m => m.group, currentUser?.memberships))
-  ).map(GroupPresenter)
+
+  // Separate memberships into pinned and unpinned
+  const memberships = currentUser?.memberships || []
+  const pinnedMemberships = memberships.filter(m => m.navOrder !== null && m.navOrder !== undefined)
+  const unpinnedMemberships = memberships.filter(m => m.navOrder === null || m.navOrder === undefined)
+
+  // Sort pinned by navOrder, unpinned by group name
+  const sortedPinnedGroups = pinnedMemberships
+    .sort((a, b) => a.navOrder - b.navOrder)
+    .map(m => m.group ? GroupPresenter(m.group) : null)
+    .filter(Boolean) // Remove null entries
+
+  const sortedUnpinnedGroups = unpinnedMemberships
+    .sort((a, b) => (a.group?.name || '').localeCompare(b.group?.name || ''))
+    .map(m => m.group ? GroupPresenter(m.group) : null)
+    .filter(Boolean) // Remove null entries
+
+  // Compose the final list with a divider marker
+  const myGroups = [
+    GroupPresenter(myContext),
+    GroupPresenter(publicContext),
+    ...sortedPinnedGroups,
+    { __divider: true, id: '__divider' },
+    ...sortedUnpinnedGroups
+  ]
 
   const collapseTimeout = useRef(null)
 
@@ -49,7 +71,14 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
   const handleOnPress = context => {
     clearTimeout(collapseTimeout.current)
     setIsExpanded(false)
-    changeToGroup(context?.slug, { navigateHome: true })
+    
+    // Use openURL for static contexts (public, my) to generate the correct path
+    if (isStaticContext(context?.slug)) {
+      const destination = context.slug === 'public' ? 'public/stream' : 'my/posts'
+      openURL(`/${destination}`, { reset: true })
+    } else {
+      changeToGroup(context?.slug, { navigateHome: true })
+    }
   }
 
   return (
@@ -59,14 +88,18 @@ export default function ContextSwitchMenu ({ isExpanded, setIsExpanded, fullView
     >
       <FlatList
         data={myGroups}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id || item.slug || Math.random().toString()}
         renderItem={({ item }) => (
-          <ContextRow
-            context={item}
-            isExpanded={isExpanded}
-            selected={item?.slug === currentGroup?.slug}
-            onPress={handleOnPress}
-          />
+          item.__divider ? (
+            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 8, marginHorizontal: 12 }} />
+          ) : (
+            <ContextRow
+              context={item}
+              isExpanded={isExpanded}
+              selected={item?.slug === currentGroup?.slug}
+              onPress={handleOnPress}
+            />
+          )
         )}
         showsVerticalScrollIndicator={false}
         onScrollBeginDrag={handleScroll}
@@ -131,7 +164,7 @@ function ContextRow ({
       {isExpanded && (
         <Text
           className={clsx(
-            'text-xl font-medium text-foreground ml-2',
+            'text-xl font-medium text-foreground ml-2'
             // (selected || bottomItem) && 'text-foreground'
           )}
         >
