@@ -31,7 +31,9 @@ const CreateModal = (props) => {
     // `closePath` is currently only passed in the case of arriving here
     // from the `WelcomeModal` when we want to go back on close or cancel.
     const closePathFromParam = querystringParams.get('closePath')
-    navigate(closePathFromParam || returnToLocation)
+    // Use replace to remove the create modal from history.
+    // This prevents the back button from re-opening the modal after closing it.
+    navigate(closePathFromParam || returnToLocation, { replace: true })
   }
 
   const confirmClose = () => {

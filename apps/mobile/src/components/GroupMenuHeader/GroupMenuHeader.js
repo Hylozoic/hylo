@@ -1,5 +1,9 @@
+// DEPRECATED: This component is only used by deprecated DrawerMenu.
+// Kept for reference only.
+
 import React, { useState, useEffect } from 'react'
-import { Settings, Users, ChevronRight } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Settings, Users, ChevronRight } from 'lucide-react-native'
 import { View, Text, TouchableOpacity } from 'react-native'
 import clsx from 'clsx'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'

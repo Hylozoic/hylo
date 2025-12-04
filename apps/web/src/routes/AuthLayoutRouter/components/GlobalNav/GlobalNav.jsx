@@ -38,6 +38,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import isWebView from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -414,7 +415,7 @@ export default function GlobalNav (props) {
               <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' onClick={handleSupportClick}>{t('Feedback & Support')}</span></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
+              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>}
               <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/100' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (

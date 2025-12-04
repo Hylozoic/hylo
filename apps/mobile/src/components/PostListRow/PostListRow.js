@@ -1,8 +1,12 @@
+// DEPRECATED: This component is only used by deprecated Moderation screen.
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { DateTime } from 'luxon'
+// DEPRECATED: luxon removed
+// import { DateTime } from 'luxon'
 
 import Avatar from 'components/Avatar'
 import HyloHTML from 'components/HyloHTML'
@@ -38,7 +42,8 @@ const PostListRow = (props) => {
   const creatorUrl = personUrl(creator.id, slug)
   const numOtherCommentors = commentersTotal - 1
   const unread = false
-  const start = DateTime.fromJSDate(post.startTime)
+  // DEPRECATED: DateTime removed with luxon package
+  const start = post.startTime ? new Date(post.startTime) : new Date()
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
   const { t } = useTranslation()
 
@@ -61,8 +66,9 @@ const PostListRow = (props) => {
             {post.type === 'event'
               ? (
                 <View style={styles.date}>
-                  <Text style={styles.dateText}>{start.toFormat('MMM')}</Text>
-                  <Text style={styles.dateText}>{start.toFormat('D')}</Text>
+                  {/* DEPRECATED: luxon formatting removed */}
+                  <Text style={styles.dateText}>{start.toLocaleDateString('en-US', { month: 'short' })}</Text>
+                  <Text style={styles.dateText}>{start.getDate()}</Text>
                 </View>
                 )
               : (

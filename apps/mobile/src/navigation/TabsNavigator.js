@@ -2,7 +2,9 @@
 // All navigation is now handled by the web app displayed in PrimaryWebView.
 // Bottom tabs (Home, Messages, Search) and their navigators have been replaced.
 // Kept for reference only.
+// Last used: 2025-01-28
 
+/*
 import React from 'react'
 import { StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
@@ -30,7 +32,6 @@ export default function TabsNavigator () {
 
   const navigatorProps = {
     screenOptions: ({ route }) => ({
-      // Set only for Android as it makes undesirable animation in iOS
       tabBarHideOnKeyboard: !isIOS,
       tabBarShowLabel: true,
       tabBarPressColor: gainsboro,
@@ -80,4 +81,10 @@ export default function TabsNavigator () {
       />
     </Tabs.Navigator>
   )
+}
+*/
+
+// No-op export - navigator is deprecated
+export default function TabsNavigator () {
+  return null
 }

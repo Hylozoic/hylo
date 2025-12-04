@@ -1,3 +1,10 @@
+// DEPRECATED: This header component is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Native modal headers have been replaced by web app headers.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import { Pressable, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { Header, getHeaderTitle } from '@react-navigation/elements'
 import { ChevronLeft } from 'lucide-react-native'
@@ -16,7 +23,6 @@ export default function ModalHeader ({
   back,
   headerLeft,
   headerRight,
-  // custom props
   headerLeftCloseIcon: providedHeaderLeftCloseIcon = true,
   headerLeftOnPress: providedHeaderLeftOnPress,
   headerLeftConfirm,
@@ -34,12 +40,8 @@ export default function ModalHeader ({
 }) {
   const confirmAlert = useConfirmAlert()
   const openURL = useOpenURL()
-  // Safely get params from the provided `route` prop instead of useRoute (headers aren't screens)
   const { originalLinkingPath, id } = getLastParams(route) || {}
 
-  // Based on the current linking table setup, when the app is opened from a link/notification,
-  // It will open the content in a modal but not open the containing screeen
-  // This function ensures that the user is returned to the original path when the modal is closed
   const respectOriginalPath = (() => {
     if (!id || !originalLinkingPath) return null
 
@@ -73,8 +75,6 @@ export default function ModalHeader ({
       fontFamily: 'Circular-Bold'
     },
     headerLeft: headerLeft || options.headerLeft || (props => {
-      // Based on the navigation context (the stack of screens and the path),
-      // we need to determine how to handle the closing of modals
       const headerLeftOnPress = options.headerLeftOnPress ||
         providedHeaderLeftOnPress || respectOriginalPath ||
         navigation.goBack
@@ -135,3 +135,13 @@ const styles = StyleSheet.create({
     fontWeight: 'normal'
   }
 })
+*/
+
+// No-op exports - header is deprecated
+export default function ModalHeader () {
+  return null
+}
+
+export function HeaderRightButton () {
+  return null
+}

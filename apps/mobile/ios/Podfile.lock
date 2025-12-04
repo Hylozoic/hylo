@@ -7,31 +7,7 @@ PODS:
     - AppAuth/Core
   - BEMCheckBox (1.4.1)
   - boost (1.84.0)
-  - BVLinearGradient (2.8.3):
-    - React-Core
   - DoubleConversion (1.1.6)
-  - EmojiPopup (0.3.3):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - MCEmojiPicker (= 1.2.3)
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
   - fast_float (6.1.4)
   - FBLazyVector (0.77.3)
   - fmt (11.0.2)
@@ -64,7 +40,6 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
-  - MCEmojiPicker (1.2.3)
   - Mixpanel-swift (4.3.0):
     - Mixpanel-swift/Complete (= 4.3.0)
   - Mixpanel-swift/Complete (4.3.0)
@@ -1319,33 +1294,10 @@ PODS:
     - React-jsiexecutor
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
-  - react-native-background-timer (2.4.1):
-    - React-Core
   - react-native-config (1.5.5):
     - react-native-config/App (= 1.5.5)
   - react-native-config/App (1.5.5):
     - React-Core
-  - react-native-date-picker (5.0.10):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
   - react-native-document-picker (10.1.7):
     - DoubleConversion
     - glog
@@ -1457,29 +1409,6 @@ PODS:
   - react-native-onesignal (5.2.13):
     - OneSignalXCFramework (= 5.2.14)
     - React (< 1.0.0, >= 0.13.0)
-  - react-native-pager-view (6.7.0):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
-  - react-native-render-html (6.3.4):
-    - React-Core
   - react-native-restart (0.0.27):
     - React-Core
   - react-native-safe-area-context (5.4.0):
@@ -1862,8 +1791,6 @@ PODS:
     - IQKeyboardManagerSwift (= 6.5.16)
     - React-Core
     - React-RCTText
-  - ReactNativeLocalization (2.3.2):
-    - React-Core
   - RNAppleAuthentication (2.4.0):
     - React-Core
   - RNBootSplash (6.3.2):
@@ -1959,27 +1886,6 @@ PODS:
     - React-Core
     - SDWebImage (~> 5.11.1)
     - SDWebImageWebPCoder (~> 0.8.4)
-  - RNFlashList (1.7.3):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
   - RNGestureHandler (2.28.0):
     - DoubleConversion
     - glog
@@ -2212,49 +2118,6 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSVG (15.12.1):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - RNSVG/common (= 15.12.1)
-    - Yoga
-  - RNSVG/common (15.12.1):
-    - DoubleConversion
-    - glog
-    - hermes-engine
-    - RCT-Folly (= 2024.11.18.00)
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - Yoga
   - RNVectorIcons (10.2.0):
     - DoubleConversion
     - glog
@@ -2288,9 +2151,7 @@ PODS:
 
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
-  - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
-  - EmojiPopup (from `../node_modules/react-native-emoji-popup`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
@@ -2331,17 +2192,13 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
-  - react-native-background-timer (from `../node_modules/react-native-background-timer`)
   - react-native-config (from `../node_modules/react-native-config`)
-  - react-native-date-picker (from `../node_modules/react-native-date-picker`)
   - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
   - react-native-onesignal (from `../node_modules/react-native-onesignal`)
-  - react-native-pager-view (from `../node_modules/react-native-pager-view`)
-  - react-native-render-html (from `../node_modules/react-native-render-html`)
   - react-native-restart (from `../node_modules/react-native-restart`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-webview (from `../node_modules/react-native-webview`)
@@ -2375,7 +2232,6 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeKeyboardManager (from `../node_modules/react-native-keyboard-manager`)
-  - ReactNativeLocalization (from `../node_modules/react-native-localization`)
   - "RNAppleAuthentication (from `../node_modules/@invertase/react-native-apple-authentication`)"
   - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
@@ -2384,14 +2240,12 @@ DEPENDENCIES:
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNDeviceInfo (from `../node_modules/react-native-device-info`)
   - RNFastImage (from `../node_modules/react-native-fast-image`)
-  - "RNFlashList (from `../node_modules/@shopify/flash-list`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - "RNSentry (from `../node_modules/@sentry/react-native`)"
   - RNShare (from `../node_modules/react-native-share`)
-  - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2404,7 +2258,6 @@ SPEC REPOS:
     - GTMSessionFetcher
     - Intercom
     - libwebp
-    - MCEmojiPicker
     - Mixpanel-swift
     - OneSignalXCFramework
     - SDWebImage
@@ -2415,12 +2268,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   boost:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
-  BVLinearGradient:
-    :path: "../node_modules/react-native-linear-gradient"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
-  EmojiPopup:
-    :path: "../node_modules/react-native-emoji-popup"
   fast_float:
     :podspec: "../node_modules/react-native/third-party-podspecs/fast_float.podspec"
   FBLazyVector:
@@ -2497,12 +2346,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
-  react-native-background-timer:
-    :path: "../node_modules/react-native-background-timer"
   react-native-config:
     :path: "../node_modules/react-native-config"
-  react-native-date-picker:
-    :path: "../node_modules/react-native-date-picker"
   react-native-document-picker:
     :path: "../node_modules/@react-native-documents/picker"
   react-native-geolocation:
@@ -2515,10 +2360,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/netinfo"
   react-native-onesignal:
     :path: "../node_modules/react-native-onesignal"
-  react-native-pager-view:
-    :path: "../node_modules/react-native-pager-view"
-  react-native-render-html:
-    :path: "../node_modules/react-native-render-html"
   react-native-restart:
     :path: "../node_modules/react-native-restart"
   react-native-safe-area-context:
@@ -2585,8 +2426,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   ReactNativeKeyboardManager:
     :path: "../node_modules/react-native-keyboard-manager"
-  ReactNativeLocalization:
-    :path: "../node_modules/react-native-localization"
   RNAppleAuthentication:
     :path: "../node_modules/@invertase/react-native-apple-authentication"
   RNBootSplash:
@@ -2603,8 +2442,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-device-info"
   RNFastImage:
     :path: "../node_modules/react-native-fast-image"
-  RNFlashList:
-    :path: "../node_modules/@shopify/flash-list"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleSignin:
@@ -2617,8 +2454,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@sentry/react-native"
   RNShare:
     :path: "../node_modules/react-native-share"
-  RNSVG:
-    :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   Yoga:
@@ -2633,9 +2468,7 @@ SPEC CHECKSUMS:
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   BEMCheckBox: 5ba6e37ade3d3657b36caecc35c8b75c6c2b1a4e
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
-  BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
-  EmojiPopup: 1295fc121fb05a5ab3bee795df9e9dbd775e16b6
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 23d8c5470c648a635893dc0956c6dbaead54b656
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
@@ -2648,7 +2481,6 @@ SPEC CHECKSUMS:
   intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  MCEmojiPicker: 6650cfa8d79fc8d71bf77dbed6166f946cee9c96
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
@@ -2681,17 +2513,13 @@ SPEC CHECKSUMS:
   React-logger: a23563f96a622637d7cce687bdf304929104effd
   React-Mapbuffer: 1864935968d15b9b73d8e413d29c780f0ab50038
   React-microtasksnativemodule: 3b784cf40f7c3c9500b9a5f9e4eec5c9bbfbef8f
-  react-native-background-timer: 4638ae3bee00320753647900b21260b10587b6f7
   react-native-config: 644074ab88db883fcfaa584f03520ec29589d7df
-  react-native-date-picker: de7cd19e54d0eaf899adae7ab9c3f0dd1d5dbc52
   react-native-document-picker: 4eea571bafacde686393413d5e3faaf96493ac6f
   react-native-geolocation: 66ddfd59066bb9365d0899967adc0a2cf2d0e6b2
   react-native-image-picker: df2b20cdfa981f7288f4019774d9baa26a4772c1
   react-native-keyboard-controller: 00dad4b39f7d55ecf11ce64c8dfd874c40cdda61
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-onesignal: 0829ce2a504db26dd80eaf14d4e0211ea626fe62
-  react-native-pager-view: cda3e94765176877702695c4b8c4b5ca69cb2f16
-  react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
   react-native-restart: 0bc732f4461709022a742bb29bcccf6bbc5b4863
   react-native-safe-area-context: afcc2e2b3e78ae8ef90d81e658aacee34ebc27ea
   react-native-webview: 449c3f27cdb926086a5eff7993421fd096cc5ae3
@@ -2725,7 +2553,6 @@ SPEC CHECKSUMS:
   ReactCodegen: eac5d74d85dff515b48a5c36f154bc4128f217e6
   ReactCommon: bf4612cba0fa356b529385029f470d5529dddde4
   ReactNativeKeyboardManager: 5abe57da962b386508945888c75abee4b93f382d
-  ReactNativeLocalization: 79b100588f6d7a68852b982ccbe57e329e8bb5a7
   RNAppleAuthentication: 8d313d93fe2238d6b7ff0a39c67ebcf298d96653
   RNBootSplash: 9196ed6143d4993795a35822b1b9134c93f709e2
   RNCAsyncStorage: a025c661a88f7db9d59d451d495decb375bb1b53
@@ -2734,14 +2561,12 @@ SPEC CHECKSUMS:
   RNCPicker: cfb51a08c6e10357d9a65832e791825b0747b483
   RNDeviceInfo: d863506092aef7e7af3a1c350c913d867d795047
   RNFastImage: 462a183c4b0b6b26fdfd639e1ed6ba37536c3b87
-  RNFlashList: d6f5c8e04ae8ce8e27693cd98c0297abce8f4c54
   RNGestureHandler: 212e71e875f993aef2f9f08ac8f61231c863ec44
   RNGoogleSignin: b8f09e3ec56e09497e1e53b0ff66d5a45916c6b1
   RNReanimated: 11826a4c433df9d37c12352ab34e48d6043fc751
   RNScreens: ef16970d0f91f1750ca82ba0db5d521fc0055fba
   RNSentry: 681b0d076e741ea60b62f26dbc3b01f463e1ea68
   RNShare: 8c835cefc565a56b5c2902ff4f3cdc62b48d102e
-  RNSVG: 8e602676fabc44efc555bed1aed031bf88a5fa5f
   RNVectorIcons: bd818296a51dc2bb8c3bd97a3ca399df1afe216d
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d

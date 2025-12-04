@@ -130,7 +130,12 @@ export default function PrimaryWebView() {
         path={webViewPath}
         messageHandler={messageHandler}
         onLoadEnd={handleLoadEnd}
-        enablePullToRefresh={true}
+        // NOTE: Pull-to-refresh is handled on the web side via usePullToRefresh hook
+        // Native pull-to-refresh doesn't work with AutoHeightWebView because:
+        // - AutoHeightWebView manages its own height based on content
+        // - Scrolling happens INSIDE the WebView (CSS/JS), not via native ScrollView
+        // - Native pull-to-refresh needs to detect when native scroll reaches top
+        // enablePullToRefresh={true}
         enableScrolling={true}
       />
     </SafeAreaView>

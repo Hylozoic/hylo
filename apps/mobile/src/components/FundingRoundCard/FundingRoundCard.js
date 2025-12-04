@@ -1,7 +1,11 @@
+// DEPRECATED: This component is only used by deprecated screens (FundingRounds).
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text, Pressable, Image } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { UserPlus } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { UserPlus } from 'lucide-react-native'
 import { DateTimeHelpers } from '@hylo/shared'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useOpenURL from 'hooks/useOpenURL'

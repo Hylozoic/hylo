@@ -1,3 +1,6 @@
+// DEPRECATED: This component is only used by deprecated screens (PostDetails).
+// Kept for reference only.
+
 import React, { useCallback, useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +11,8 @@ import { DateTimeHelpers } from '@hylo/shared'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'
 import useTrack from '@hylo/hooks/useTrack'
 import { useToast } from '../Toast'
-import { Check, Upload, Loading, Pencil } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Check, Upload, Loading, Pencil } from 'lucide-react-native'
 import RoundCheckbox from '../RoundCheckBox'
 import RadioButton from '../RadioButton'
 import { useDispatch } from 'react-redux'
