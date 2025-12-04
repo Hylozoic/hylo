@@ -125,7 +125,8 @@ export default function Stream (props) {
   const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
-    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
+    // DEPRECATED: Load same number of posts for all mobile (including webview)
+    const numPostsToLoad = isMobile.any ? 10 : 20
 
     const params = {
       activePostsOnly,

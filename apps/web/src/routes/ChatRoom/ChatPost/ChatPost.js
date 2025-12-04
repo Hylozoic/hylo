@@ -315,7 +315,8 @@ export default function ChatPost ({
             onEnter={handleEditSave}
             placeholder='Edit Post'
             ref={editorRef}
-            showMenu={!isWebView()}
+            // showMenu={!isWebView()}
+            showMenu
             className={cn(styles.editing, styles.postContent)}
           />
         )}

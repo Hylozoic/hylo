@@ -46,7 +46,8 @@ function MapDrawer ({
   const searchText = filters.search
 
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  // DEPRECATED: No longer treat webview differently
+  const withoutNav = /* isWebView() || */ hideNavLayout
   const [search, setSearch] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [currentTab, setCurrentTab] = useState(localizedTabNames.posts)
