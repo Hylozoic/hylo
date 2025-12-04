@@ -83,7 +83,6 @@
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "4.13.1",
     "react-native-share": "12.0.6",
-    "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-webview": "^13.13.1",
@@ -91,7 +90,6 @@
     "redux": "^4.2.0",
     "redux-mock-store": "^1.5.5",
     "redux-promise": "^0.6.0",
-    "reselect": "^4.1.6",
     "tailwindcss": "^3.4.17",
     "urql": "^4.2.1",
     "zustand": "5.0.3"
