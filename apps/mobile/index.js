@@ -27,7 +27,8 @@ import { KeyboardProvider } from 'react-native-keyboard-controller'
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
-import { ToastProvider } from 'components/Toast'
+// DEPRECATED: Toast only used by deprecated screens
+// import { ToastProvider } from 'components/Toast'
 import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
 // DEPRECATED: HyloHTML styles no longer needed - only deprecated screens used HyloHTML
@@ -176,10 +177,9 @@ export default function App () {
               <ActionSheetProvider>
                 {/* DEPRECATED: TRenderEngineProvider removed - only deprecated screens used HyloHTML */}
                 <Provider store={store}>
-                  <ToastProvider>
-                    <VersionCheck />
-                    <RootNavigator />
-                  </ToastProvider>
+                  {/* DEPRECATED: ToastProvider removed - only deprecated screens used Toast */}
+                  <VersionCheck />
+                  <RootNavigator />
                 </Provider>
               </ActionSheetProvider>
             </AuthProvider>

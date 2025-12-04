@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
-import { X } from 'lucide-react-native'
+// Replaced lucide-react-native X with FontAwesome5 to remove lucide dependency
+import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import { trackWithConsent } from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
@@ -52,7 +53,9 @@ export default function SignupSetLocation ({ navigation }) {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
           {locationObject?.fullText && (
-            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+            <TouchableOpacity onPress={() => setLocationObject()}>
+              <FontAwesome5Icon name='times' size={20} color={white80onCaribbeanGreen} />
+            </TouchableOpacity>
           )}
         </View>
         <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>

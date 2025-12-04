@@ -4,7 +4,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform } from 'react-native'
-import { DoorOpen, Check } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { DoorOpen, Check } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'

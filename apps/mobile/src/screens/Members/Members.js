@@ -7,7 +7,8 @@ import { get } from 'lodash/fp'
 import { View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
-import LinearGradient from 'react-native-linear-gradient'
+// DEPRECATED: react-native-linear-gradient removed
+// import LinearGradient from 'react-native-linear-gradient'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility, { RESP_ADD_MEMBERS } from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'
@@ -47,7 +48,9 @@ export function Banner ({ name, bannerUrl, showInviteButton, handleInviteOnPress
   return (
     <View style={styles.bannerContainer}>
       <FastImage source={{ uri: bannerUrl }} style={styles.image} />
-      <LinearGradient style={styles.gradient} colors={bannerlinearGradientColors} />
+      {/* DEPRECATED: LinearGradient removed */}
+      {/* <LinearGradient style={styles.gradient} colors={bannerlinearGradientColors} /> */}
+      <View style={styles.gradient} />
       <View style={styles.titleRow}>
         <Text style={styles.name}>{name}</Text>
       </View>

@@ -1,3 +1,8 @@
+// DEPRECATED: This header is only used by deprecated screens.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import { TouchableOpacity, StyleSheet } from 'react-native'
 import { X } from 'lucide-react-native'
 import { suvaGrey, white } from '@hylo/presenters/colors'
@@ -33,3 +38,9 @@ const styles = StyleSheet.create({
     alignSelf: 'center'
   }
 })
+*/
+
+// No-op export - header is deprecated
+export default function ModalHeaderTransparent () {
+  return {}
+}

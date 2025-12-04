@@ -2,7 +2,9 @@
 // All navigation is now handled by the web app displayed in PrimaryWebView.
 // Search functionality and screens have been replaced.
 // Kept for reference only.
+// Last used: 2025-01-28
 
+/*
 import React from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import ModalHeader from 'navigation/headers/ModalHeader'
@@ -18,11 +20,9 @@ export default function SearchNavigator () {
       header: headerProps => (
         <ModalHeader
           {...headerProps}
-          // Hides "X button
           headerLeft={() => {}}
         />
       )
-
     }
   }
 
@@ -34,4 +34,10 @@ export default function SearchNavigator () {
       />
     </Search.Navigator>
   )
+}
+*/
+
+// No-op export - navigator is deprecated
+export default function SearchNavigator () {
+  return null
 }
