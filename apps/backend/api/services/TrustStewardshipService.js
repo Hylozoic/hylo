@@ -405,12 +405,7 @@ const TrustStewardshipService = {
         myTrustExpressions[row.trustee_id] = row.value
       })
 
-      // Implement "Trust Inheritance": If user has not voted on a candidate, their slider defaults to the group average
-      peopleWithTrust.forEach(person => {
-        if (myTrustExpressions[person.id] === undefined) {
-          myTrustExpressions[person.id] = person.trustScore
-        }
-      })
+
 
       // Get all trust expressions for this role (for UI, e.g., showing who trusts whom)
       const allTrustRows = await bookshelf.knex('trust_expressions')
