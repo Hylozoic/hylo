@@ -24,6 +24,19 @@ const ViewHeader = () => {
   const { headerDetails } = useViewHeader()
   const { backButton, title, icon, info, search, centered } = headerDetails
 
+  // On small screens, the chevron always toggles the nav menu
+  // On larger screens (sm+), if backButton is true, it navigates back
+  const handleChevronClick = () => {
+    const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
+    if (isSmallScreen) {
+      dispatch(toggleNavMenu())
+    } else if (backButton) {
+      navigate(-1)
+    } else {
+      dispatch(toggleNavMenu())
+    }
+  }
+
   return (
     <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered
@@ -32,7 +45,7 @@ const ViewHeader = () => {
       {centered && backButton && (
         <button
           className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0', { 'sm:block': backButton })}
-          onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
+          onClick={handleChevronClick}
         >
           <ChevronLeft className='w-6 h-6' />
         </button>
@@ -43,7 +56,7 @@ const ViewHeader = () => {
         <>
           <button
             className={cn('sm:hidden p-2 -ml-1 mr-1 cursor-pointer', { 'sm:block': backButton })}
-            onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
+            onClick={handleChevronClick}
           >
             <ChevronLeft className='w-6 h-6' />
           </button>
