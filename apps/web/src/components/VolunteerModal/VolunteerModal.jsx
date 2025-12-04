@@ -1,4 +1,3 @@
-/* eslint-disable no-trailing-spaces, eol-last, indent */
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -185,12 +184,12 @@ export default function VolunteerModal ({ role, isOpen, onClose, onVolunteer, on
             >
               {selectedUser
                 ? t('Nominate {{name}}', { name: selectedUser.name })
-                : t('Select a member')
-              }
+                : t('Select a member')}
             </button>
           </div>
         </div>
       </div>
     </div>
   )
-} 
+}
+ 

@@ -62,7 +62,7 @@ export default function TrustSlider ({ value = 0, onChange, disabled = false, la
               disabled && 'opacity-50 cursor-not-allowed'
             )}
             style={{
-              background: `linear-gradient(to right, #e5e7eb ${sliderValue * 100}%, #3b82f6 ${sliderValue * 100}%)`
+              background: `linear-gradient(to right, #3b82f6 ${sliderValue * 100}%, #e5e7eb ${sliderValue * 100}%)`
             }}
           />
         </div>
