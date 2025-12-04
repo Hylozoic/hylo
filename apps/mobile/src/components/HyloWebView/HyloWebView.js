@@ -386,12 +386,13 @@ const HyloWebView = React.forwardRef(({
         uri,
         headers: { cookie }
       }}
-      // Pull-to-refresh support
-      // Note: Requires scrollEnabled={true} to work
-      // Pass enableScrolling={true} and enablePullToRefresh={true} to enable
-      pullToRefreshEnabled={enablePullToRefresh && enableScrolling}
-      onRefresh={enablePullToRefresh && enableScrolling ? handleRefresh : undefined}
-      refreshing={refreshing}
+      // DEPRECATED: Native pull-to-refresh doesn't work with AutoHeightWebView
+      // AutoHeightWebView manages its own height and scrolling happens inside the WebView
+      // (via CSS/JS), so the native layer can't detect scroll position.
+      // Pull-to-refresh is now handled on the web side via usePullToRefresh hook.
+      // pullToRefreshEnabled={enablePullToRefresh && enableScrolling}
+      // onRefresh={enablePullToRefresh && enableScrolling ? handleRefresh : undefined}
+      // refreshing={refreshing}
       style={[style, {
         // Avoids a known issue which can cause Android crashes
         // ref. https://github.com/iou90/react-native-autoheight-webview/issues/191

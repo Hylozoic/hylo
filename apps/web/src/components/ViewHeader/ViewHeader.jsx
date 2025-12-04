@@ -30,19 +30,23 @@ const ViewHeader = () => {
     })}
     >
       {centered && backButton && (
-        <ChevronLeft
-          className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+        <button
+          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0', { 'sm:block': backButton })}
           onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
-        />
+        >
+          <ChevronLeft className='w-6 h-6' />
+        </button>
       )}
       {/* DEPRECATED: Now always show back button/menu toggle */}
       {/* {!isWebView() && !centered && ( */}
       {!centered && (
         <>
-          <ChevronLeft
-            className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
+          <button
+            className={cn('sm:hidden p-2 -ml-1 mr-1 cursor-pointer', { 'sm:block': backButton })}
             onClick={() => backButton ? navigate(-1) : dispatch(toggleNavMenu())}
-          />
+          >
+            <ChevronLeft className='w-6 h-6' />
+          </button>
           {context !== 'messages' && (
             <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
               {context === 'groups'
