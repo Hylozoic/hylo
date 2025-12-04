@@ -358,7 +358,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const title = translateTitle(widget.title, t)
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const allView = widget.type === 'all-views'
-  const showEdit = allView && canAdminister
+  // Hide edit menu on mobile - editing is desktop-only
+  const showEdit = allView && canAdminister && !isMobile.any
   const canDnd = isEditing && !allView && widget.type !== 'home'
 
   if (isCreating) {
