@@ -104,7 +104,8 @@ export default function Stream (props) {
   if (view === 'events') {
     sortBy = 'start_time'
   }
-  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const defViewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const viewMode = defViewMode === 'calendar' && isMobile.any ? 'list' : defViewMode
   const activePostsOnly = querystringParams.activeOnly === 'true' || (customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'

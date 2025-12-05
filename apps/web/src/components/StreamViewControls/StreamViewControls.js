@@ -1,4 +1,5 @@
 import { ArrowDownWideNarrow } from 'lucide-react'
+import isMobile from 'ismobilejs'
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -169,7 +170,7 @@ const StreamViewControls = ({
             <Icon name='SmallGridView' className={classes.gridViewIcon} />
           </div>
 
-          {postHasDates && (
+          {postHasDates && !isMobile.any && (
             <div
               className={cn('rounded bg-midground shadow-sm px-1 cursor-pointer hover:bg-selected/50 hover:scale-125 transition-all items-center flex h-full', { 'bg-selected': viewMode === 'calendar' }, classes.calendar)}
               onClick={() => changeView('calendar')}
