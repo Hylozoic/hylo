@@ -16,8 +16,8 @@ export const FETCH_SEARCH = `${MODULE_NAME}/FETCH_SEARCH`
 // Actions
 
 const searchQuery =
-`query ($search: String, $type: String, $offset: Int) {
-  search(term: $search, first: 10, type: $type, offset: $offset) {
+`query Search ($search: String, $type: String, $offset: Int, $groupIds: [ID]) {
+  search(term: $search, first: 10, type: $type, offset: $offset, groupIds: $groupIds ) {
     total
     hasMore
     items {
@@ -63,12 +63,13 @@ const searchQuery =
   }
 }`
 
-export function fetchSearchResults ({ search, offset = 0, filter, query = searchQuery }) {
+export function fetchSearchResults ({ search, offset = 0, filter, query = searchQuery, groupIds = null }) {
   return {
     type: FETCH_SEARCH,
     graphql: {
       query,
       variables: {
+        groupIds,
         search,
         offset,
         type: filter
