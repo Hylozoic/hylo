@@ -18,6 +18,7 @@ export default function login (email, password) {
                 alreadySeenTour
                 dmNotifications
                 commentNotifications
+                rsvpCalendarSub
                 signupInProgress
                 streamChildPosts
                 streamViewMode

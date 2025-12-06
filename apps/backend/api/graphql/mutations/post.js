@@ -30,7 +30,10 @@ export function deletePost (userId, postId) {
       if (post.get('user_id') !== userId) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
-      post.isEvent() && Queue.classMethod('Post', 'sendEventCancelRsvps', { postId })
+      if (post.isEvent()) {
+        Queue.classMethod('Post', 'sendEventCancelRsvps', { postId })
+        Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId })
+      }
       return Post.deactivate(postId)
     }).then(() => ({ success: true }))
 }

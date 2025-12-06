@@ -45,6 +45,7 @@ export default {
 
     if (eventChanges.start_time || eventChanges.end_time || eventChanges.location) {
       Queue.classMethod('Post', 'sendEventUpdateRsvps', { postId: this.id, eventChanges })
+      Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId: this.id })
     }
 
     await this.removeEventInvitees(toRemove, opts)

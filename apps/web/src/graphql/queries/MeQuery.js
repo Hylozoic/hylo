@@ -55,6 +55,7 @@ export default gql`
       commentNotifications
       locale
       mapBaseLayer
+      rsvpCalendarSub
       signupInProgress
       streamChildPosts
       streamViewMode

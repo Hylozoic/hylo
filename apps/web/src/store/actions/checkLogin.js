@@ -18,6 +18,7 @@ export default function checkLogin () {
               alreadySeenTour
               dmNotifications
               commentNotifications
+              rsvpCalendarSub
               signupInProgress
               streamChildPosts
               streamViewMode

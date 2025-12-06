@@ -13,6 +13,7 @@ export default gql`
       dmNotifications
       commentNotifications
       locale
+      rsvpCalendarSub
       signupInProgress
       streamChildPosts
       streamViewMode
