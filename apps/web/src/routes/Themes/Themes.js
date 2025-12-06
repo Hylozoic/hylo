@@ -44,7 +44,7 @@ function ThemeColumn ({ title, isDark = false }) {
           <ColorSample colorName='Background' bgClass='bg-background' />
           <ColorSample colorName='Midground' bgClass='bg-midground' />
           <ColorSample colorName='Foreground' bgClass='bg-foreground' textClass='text-background' />
-          <ColorSample colorName='Black' bgClass='bg-black' textClass='text-background' />
+          <ColorSample colorName='Black' bgClass='bg-darkening' textClass='text-background' />
         </div>
 
         {/* Interactive Colors */}
@@ -78,7 +78,7 @@ function ThemeColumn ({ title, isDark = false }) {
         {/* Theme Colors */}
         <div className='mb-6'>
           <h3 className='text-lg font-semibold mb-3'>Theme Colors</h3>
-          <ColorSample colorName='Theme Background' bgClass='bg-theme-background' textClass='text-theme-foreground' />
+          <ColorSample colorName='Theme Background' bgClass='bg-theme-background' textClass='text-foreground' />
         </div>
 
         {/* Buttons */}
@@ -96,7 +96,6 @@ function ThemeColumn ({ title, isDark = false }) {
         {/* Form Controls */}
         <div className='mb-6'>
           <h3 className='text-lg font-semibold mb-3'>Form Controls</h3>
-
           <div className='space-y-4'>
             <div>
               <Label className='mb-2 block'>Input Field</Label>

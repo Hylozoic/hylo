@@ -218,15 +218,15 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}>
+      <div className={cn('ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
             : isPublicContext
               ? (
                 <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.6 }} />
+                  <div className='absolute top-0 left-0 w-full h-full bg-background z-0' />
                   {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
                   <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
                     <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
@@ -237,7 +237,7 @@ export default function ContextMenu (props) {
                 ? (
                   <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
                     <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
-                    <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                    <div className='absolute top-0 left-0 w-full h-full bg-background z-0' />
                     <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
                       <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
                     </div>

@@ -153,8 +153,8 @@ class PostHeader extends PureComponent {
     }
 
     return (
-      <div className={cn('relative', { 'mb-0 px-2': constrained }, className)}>
-        <div className='w-full bg-transparent rounded-t-lg'>
+      <div className={cn('relative !bg-transparent', { 'mb-0 px-2': constrained }, className)}>
+        <div className='w-full'>
           <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
@@ -207,7 +207,7 @@ class PostHeader extends PureComponent {
         <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('ml-2 mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
+            <div className={cn('ml-2 mb-1 bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}

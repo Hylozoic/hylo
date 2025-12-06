@@ -255,7 +255,7 @@ export default function ChatPost ({
       >
         <div className={
           cn(
-            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 delay-100 scale-0',
+            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-card dark:bg-darkening opacity-0 delay-100 scale-0',
             {
               'opacity-100 scale-100 scale-100': isHovered
             }
@@ -266,7 +266,7 @@ export default function ChatPost ({
             <button
               key={item.label}
               onClick={item.onClick}
-              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/50 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
               data-tooltip-content={item.tooltip}
               data-tooltip-id='action-tt'
             >
@@ -352,7 +352,7 @@ export default function ChatPost ({
         </div>
         {commentsTotal > 0 && (
           <div className='w-full' onClick={handleClick}>
-            <span className='ChatPost_commenters bg-black/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
+            <span className='ChatPost_commenters bg-darkening/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
               <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
               <span className='text-sm text-foreground' onClick={handleClick}>
                 {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
