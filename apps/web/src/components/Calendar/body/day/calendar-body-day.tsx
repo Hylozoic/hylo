@@ -1,4 +1,5 @@
 import React from 'react'
+import isMobile from 'ismobilejs'
 import { cn } from 'util/index'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -15,6 +16,11 @@ export default function CalendarBodyDay () {
   const dayEvents = events.filter((event) => includes(event.start, date, event.end))
   return (
     <div className='flex flex-grow p-0'>
+      {isMobile.any && (
+        <div className='lg:flex hidden flex-col flex-grow divide-y max-w-[276px]'>
+          <CalendarBodyDayCalendar />
+        </div>
+      )}
       <div className='flex flex-col flex-grow'>
         {dayEvents.map(event => {
           const post = event.post
@@ -31,9 +37,11 @@ export default function CalendarBodyDay () {
           )
         })}
       </div>
-      <div className='lg:flex hidden flex-col flex-grow divide-y max-w-[276px]'>
-        <CalendarBodyDayCalendar />
-      </div>
+      {!isMobile.any && (
+        <div className='lg:flex hidden flex-col flex-grow divide-y max-w-[276px]'>
+          <CalendarBodyDayCalendar />
+        </div>
+      )}
     </div>
   )
 }
