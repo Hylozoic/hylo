@@ -19,14 +19,13 @@ function Calendar ({
       showOutsideDays={showOutsideDays}
       locale={getLocaleForDayPicker()}
       className={cn('p-3', className)}
+      navLayout='around'
       classNames={{
-        months: 'flex-col sm:flex-row space-y-4 sm:space-y-0 justify-center',
-        month: 'flex flex-col items-center space-y-4',
-        month_caption: 'flex justify-center pt-1 relative items-center',
+        month: 'flex flex-col items-center relative',
+        month_caption: 'flex pt-1 relative pb-4',
         caption_label: 'text-sm font-medium',
-        nav: 'space-x-1 flex items-center ',
-        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100'),
-        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100'),
+        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100 justify-center absolute left-0 top-0'),
+        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100 justify-center absolute right-0 top-0'),
         month_grid: 'w-full border-collapse space-y-1',
         weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
         weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
