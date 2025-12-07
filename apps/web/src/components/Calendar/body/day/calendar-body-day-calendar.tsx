@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import isMobile from 'ismobilejs'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
@@ -29,7 +30,7 @@ export default function CalendarBodyDayCalendar () {
   }
 
   return (
-    <>
+    <div className={cn(isMobile.any && 'max-w-[225px]')}>
       <Calendar
         month={month}
         selected={selected}
@@ -38,8 +39,8 @@ export default function CalendarBodyDayCalendar () {
         mode='single'
         classNames={{
           // align formatted days vertically at top of cells, allow to wrap, and reduce lineheight
-          day: 'whitespace-pre-wrap h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
-          day_button: cn(buttonVariants({ variant: 'ghost' }), 'whitespace-pre-wrap leading-3 items-start h-9 w-9 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md')
+          day: 'whitespace-pre-wrap size-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
+          day_button: cn(buttonVariants({ variant: 'ghost' }), 'whitespace-pre-wrap leading-3 items-start size-9 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md')
         }}
         formatters={({
           formatDay: (date, options) => {
@@ -59,6 +60,6 @@ export default function CalendarBodyDayCalendar () {
         >
           {t('Go to Today')}
         </Button>}
-    </>
+    </div>
   )
 }
