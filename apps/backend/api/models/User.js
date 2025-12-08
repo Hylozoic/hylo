@@ -929,29 +929,32 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Fetch all EventInvitations for this user
-    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll()
-
-    // Array to store .ics strings for each event
-    const icsCalPromises = []
-
-    // Process each event invitation
+    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll({ withRelated: 'event' })
+    
+    // Create the calendar and add the events
+    const cal = ical()
     for (const eventInvitation of eventInvitations.models) {
-      // Fetch the post (event)
-      const post = await eventInvitation.event().fetch()
-      if (post?.isEvent()) {
-        icsCalPromises.push(post.createIcsCal({ userId: user.id, eventInvitation }))
+      const event = eventInvitation.relations.event
+      if (event?.isEvent()) {
+        // Load groups for URL generation
+        await event.load('groups')
+        const group = event.relations.groups?.first()
+        
+        // Get calendar event data
+        const calEvent = await event.getCalEventData({ 
+          eventInvitation, 
+          forUserId: userId, 
+          url: Frontend.Route.post(event, group)
+        })
+        
+        // Add event to calendar
+        cal.createEvent(calEvent).uid(calEvent.uid)
       }
     }
 
-    // Wait for all .ics strings to be created
-    const icsCals = await Promise.all(icsCalPromises)
-
-    // Combine all .ics strings into one calendar file
-    const combinedIcsString = combineIcsCalsToString(icsCals)
-
     // Write the combined calendar file to S3
     await writeStringToS3(
-      combinedIcsString,
+      cal.toString(),
       user.getRsvpCalendarPath(), {
       ContentType: 'text/calendar'
     })
@@ -965,53 +968,6 @@ module.exports = bookshelf.Model.extend(merge({
     await deleteFromS3(user.getRsvpCalendarPath())
   }
 })
-
-// Helper function to combine multiple .ics calendar strings into one
-function combineIcsCalsToString (icsCals) {
-  if (!icsCals || icsCals.length === 0) {
-    return ''
-  }
-
-  const icsStrings = icsCals.map(icsCal => icsCal.toString())
-
-  if (icsStrings.length === 1) {
-    return icsStrings[0]
-  }
-
-  // Extract VEVENT blocks from each calendar string
-  const vevents = []
-  
-  for (const icsString of icsStrings) {
-    if (!icsString) continue
-    
-    // Find all VEVENT blocks in this calendar
-    const veventMatches = icsString.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g)
-    if (veventMatches) {
-      vevents.push(...veventMatches)
-    }
-  }
-
-  if (vevents.length === 0) {
-    return icsStrings[0] // Return first calendar if no events found
-  }
-
-  // Use the first calendar's header and combine all VEVENT blocks
-  const firstCalendar = icsStrings[0]
-  const headerEnd = firstCalendar.indexOf('BEGIN:VEVENT')
-  const header = firstCalendar.substring(0, headerEnd).trim()
-  
-  // Find the footer (END:VCALENDAR)
-  const footer = '\r\nEND:VCALENDAR'
-
-  // Combine header, all VEVENT blocks, and footer
-  const combined = [
-    header,
-    ...vevents.map(vevent => vevent.trim()),
-    footer
-  ].join('\r\n')
-
-  return combined
-}
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
   if (has(attrs, 'password')) {
