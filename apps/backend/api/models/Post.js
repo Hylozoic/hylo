@@ -866,13 +866,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     await this.load('groups')
     const group = this.relations.groups?.first()
     
-    // Generate URL for the event
-    const clickthroughParams = '?' + new URLSearchParams({
-      ctt: 'event_rsvp',
-      cti: userId
-    }).toString()
-    const url = Frontend.Route.post(this, group, clickthroughParams)
-
     // Create a new ical calendar for this event
     const cal = ical()
     
@@ -881,14 +874,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
       eventInvitation, 
       forUserId: userId, 
       eventChanges: eventChanges, 
-      url 
+      url: Frontend.Route.post(this, group)
     })
     
     // Add event to calendar
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
     
-    // Convert calendar to .ics string and add to array
     return cal
   }
 
