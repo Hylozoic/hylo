@@ -82,6 +82,29 @@ const TrustStewardshipService = {
     return this.recalculateRole(roleId)
   },
 
+  async removeVolunteer ({ roleId, userId }) {
+    const role = await GroupRole.where({ id: roleId }).fetch()
+    if (!role) throw new Error('Role not found')
+
+    await bookshelf.knex('trust_expressions')
+      .where({
+        group_role_id: roleId,
+        trustee_id: userId
+      })
+      .del()
+
+    return this.recalculateRole(roleId)
+  },
+
+  async removeVolunteerForCommonRole ({ roleId, groupId, userId }) {
+    const groupRole = await this.findOrCreateGroupRoleForCommonRole({
+      commonRoleId: roleId,
+      groupId
+    })
+
+    return this.removeVolunteer({ roleId: groupRole.id, userId })
+  },
+
   /**
    * Create notification for trust expression
    */
@@ -144,19 +167,34 @@ const TrustStewardshipService = {
 
     const groupId = role.get('group_id')
     const oldStatus = role.get('status')
-    const thresholdRequired = role.get('threshold_required') // e.g., 0.51 for >50%
+
+    const memberCountRow = await bookshelf.knex('group_memberships')
+      .where({ group_id: groupId, active: true })
+      .count('user_id as count')
+      .first()
+    const activeMemberCount = parseInt(memberCountRow && memberCountRow.count, 10) || 0
+
+    let thresholdRequired = Number(role.get('threshold_required'))
+    if (!thresholdRequired || Number.isNaN(thresholdRequired)) {
+      thresholdRequired = 0.51
+    }
+    if (thresholdRequired > 1) {
+      thresholdRequired = activeMemberCount > 0
+        ? Math.min(1, thresholdRequired / activeMemberCount)
+        : 0.51
+    }
 
     // Fetch average trust per trustee.
     // The average includes all expressions, including a user's trust in themselves (volunteering).
     const trustRows = await bookshelf.knex('trust_expressions')
       .where({ group_role_id: roleId })
       .select('trustee_id')
-      .avg('value as average_trust')
+      .sum('value as total_trust')
       .groupBy('trustee_id')
-
     const trustAverages = trustRows.map(r => ({
       trustee_id: r.trustee_id,
-      average: parseFloat(r.average_trust || 0)
+      average: activeMemberCount > 0 ? (parseFloat(r.total_trust || 0) / activeMemberCount) : 0,
+      total: parseFloat(r.total_trust || 0)
     }))
 
     const top = maxBy(trustAverages, 'average')
@@ -175,6 +213,10 @@ const TrustStewardshipService = {
       newStatus = 'active' // One or more members have met the trust threshold.
     }
 
+    const previousStewards = await bookshelf.knex('group_memberships_group_roles')
+      .where({ group_role_id: roleId })
+      .pluck('user_id')
+
     // Save the new state of the role
     await role.save({
       threshold_current: current,
@@ -183,27 +225,40 @@ const TrustStewardshipService = {
     }, { patch: true })
 
     // Update membership assignments based on the new stewards list
-    if (newStatus === 'active') {
-      // Grant the role to all new stewards
-      await Promise.all(stewards.map(async userId => {
-        // Upsert for the group_roles_users pivot table
-        await bookshelf.knex('group_roles_users')
-          .insert({ group_role_id: roleId, user_id: userId, created_at: new Date(), updated_at: new Date() })
-          .onConflict(['group_role_id', 'user_id'])
-          .merge({ updated_at: new Date() })
-      }))
+    if (newStatus === 'active' && stewards.length > 0) {
+      const now = new Date()
+      await bookshelf.knex('group_memberships_group_roles')
+        .insert(stewards.map(userId => ({
+          group_role_id: roleId,
+          user_id: userId,
+          group_id: groupId,
+          active: true,
+          created_at: now,
+          updated_at: now
+        })))
+        .onConflict(['group_role_id', 'user_id', 'group_id'])
+        .merge({ active: true, updated_at: now })
+
+      await bookshelf.knex('group_memberships_group_roles')
+        .where({ group_role_id: roleId })
+        .whereNotIn('user_id', stewards)
+        .del()
+    } else {
+      await bookshelf.knex('group_memberships_group_roles')
+        .where({ group_role_id: roleId })
+        .del()
     }
-    // For any status, ensure only the current stewards are in the pivot table.
-    // This will deactivate members who no longer meet the threshold.
-    await bookshelf.knex('group_roles_users')
-      .where({ group_role_id: roleId })
-      .whereNotIn('user_id', stewards)
-      .del()
 
 
     // Create notifications for status changes
     if (oldStatus !== newStatus) {
-      await this.createStatusChangeNotification({ roleId, oldStatus, newStatus, stewards })
+      await this.createStatusChangeNotification({
+        roleId,
+        oldStatus,
+        newStatus,
+        stewards,
+        formerStewards: previousStewards
+      })
     }
 
     return role.refresh()
@@ -212,7 +267,7 @@ const TrustStewardshipService = {
   /**
    * Create notification for role status changes
    */
-  async createStatusChangeNotification ({ roleId, oldStatus, newStatus, stewards }) {
+  async createStatusChangeNotification ({ roleId, oldStatus, newStatus, stewards, formerStewards = [] }) {
     const role = await GroupRole.where({ id: roleId }).fetch({ withRelated: ['group'] })
     const group = role.relations.group
 
@@ -255,11 +310,13 @@ const TrustStewardshipService = {
       }))
     } else if (oldStatus === 'active' && newStatus !== 'active') {
       // Role became inactive - notify former stewards
-      const formerStewards = await bookshelf.knex('group_memberships_group_roles')
-        .where({ group_role_id: roleId, active: false })
-        .pluck('user_id')
+      const recipients = formerStewards.length > 0
+        ? formerStewards
+        : await bookshelf.knex('group_memberships_group_roles')
+          .where({ group_role_id: roleId })
+          .pluck('user_id')
 
-      await Promise.all(formerStewards.map(async stewardId => {
+      await Promise.all(recipients.map(async stewardId => {
         await Activity.createWithNotifications({
           actor_id: stewardId,
           reader_id: stewardId,
@@ -355,38 +412,88 @@ const TrustStewardshipService = {
         return { candidates: [], trustExpressions: [], myTrustExpressions: {} }
       }
 
-      // Get current stewards
-      const stewardRows = await bookshelf.knex('group_roles_users')
-        .join('users', 'group_roles_users.user_id', 'users.id')
-        .where({ 'group_roles_users.group_role_id': roleId })
-        .select('users.id', 'users.name', 'users.avatar_url')
-      const stewardIds = stewardRows.map(s => s.id)
+      const groupId = role.get('group_id')
+      const memberCountRow = await bookshelf.knex('group_memberships')
+        .where({ group_id: groupId, active: true })
+        .count('user_id as count')
+        .first()
+      const activeMemberCount = parseInt(memberCountRow && memberCountRow.count, 10) || 0
 
-      // Get all candidates (users who have volunteered for this role)
-      const candidateRows = await bookshelf.knex('trust_expressions')
-        .join('users', 'trust_expressions.trustee_id', 'users.id')
-        .where({
-          'trust_expressions.group_role_id': roleId,
-          'trust_expressions.trustor_id': bookshelf.knex.raw('trust_expressions.trustee_id')
-        })
-        .select('users.id', 'users.name', 'users.avatar_url')
+      // Get current stewards
+    const stewardRows = (await bookshelf.knex('group_memberships_group_roles')
+      .join('users', 'group_memberships_group_roles.user_id', 'users.id')
+      .where({ 'group_memberships_group_roles.group_role_id': roleId })
+      .where({ 'group_memberships_group_roles.active': true })
+      .select(
+        'users.id as id',
+        'users.name as name',
+        'users.avatar_url as avatarUrl',
+        'users.banner_url as bannerUrl'
+      ))
+    const stewardIds = stewardRows.map(s => s.id)
+
+    // Get all candidates (users who have volunteered for this role)
+    const candidateRows = (await bookshelf.knex('trust_expressions')
+      .join('users', 'trust_expressions.trustee_id', 'users.id')
+      .where({
+        'trust_expressions.group_role_id': roleId,
+        'trust_expressions.trustor_id': bookshelf.knex.raw('trust_expressions.trustee_id')
+      })
+      .select(
+        'users.id as id',
+        'users.name as name',
+        'users.avatar_url as avatarUrl',
+        'users.banner_url as bannerUrl'
+      ))
         
       const allPeopleRows = [...stewardRows, ...candidateRows.filter(c => !stewardIds.includes(c.id))]
 
-      // Get average trust scores for each person
-      const peopleWithTrust = await Promise.all(allPeopleRows.map(async person => {
-        const avgResult = await bookshelf.knex('trust_expressions')
-          .where({
-            group_role_id: roleId,
-            trustee_id: person.id
-          })
-          .avg('value as average_trust')
-          .first()
-        
-        return {
-          ...person,
-          trustScore: parseFloat(avgResult.average_trust || 0)
+      const detailedTrustExpressions = await bookshelf.knex('trust_expressions')
+        .leftJoin('users as trustor', 'trust_expressions.trustor_id', 'trustor.id')
+        .leftJoin('users as trustee', 'trust_expressions.trustee_id', 'trustee.id')
+        .where({ 'trust_expressions.group_role_id': roleId })
+        .select(
+          'trust_expressions.trustor_id',
+          'trust_expressions.trustee_id',
+          'trust_expressions.value',
+          'trustor.name as trustor_name',
+          'trustor.avatar_url as trustor_avatar',
+          'trustee.name as trustee_name'
+        )
+
+      const trustNetworkMap = new Map()
+      detailedTrustExpressions.forEach(expr => {
+        const existing = trustNetworkMap.get(expr.trustee_id) || {
+          trusteeId: expr.trustee_id,
+          trusteeName: expr.trustee_name,
+          total: 0,
+          expressions: []
         }
+        existing.total += Number(expr.value) || 0
+        existing.expressions.push({
+          trustorId: expr.trustor_id,
+          trustorName: expr.trustor_name,
+          trustorAvatarUrl: expr.trustor_avatar,
+          trusteeId: expr.trustee_id,
+          trusteeName: expr.trustee_name,
+          value: Number(expr.value) || 0
+        })
+        trustNetworkMap.set(expr.trustee_id, existing)
+      })
+
+      const trustNetwork = Array.from(trustNetworkMap.values()).map(entry => ({
+        ...entry,
+        average: activeMemberCount > 0 ? entry.total / activeMemberCount : 0
+      }))
+
+      const trustScoreLookup = trustNetwork.reduce((acc, entry) => {
+        acc[entry.trusteeId] = entry.average
+        return acc
+      }, {})
+
+      const peopleWithTrust = allPeopleRows.map(person => ({
+        ...person,
+        trustScore: trustScoreLookup[person.id] || 0
       }))
       
       const candidatesWithTrust = peopleWithTrust.filter(p => !stewardIds.includes(p.id))
@@ -407,15 +514,18 @@ const TrustStewardshipService = {
 
 
 
-      // Get all trust expressions for this role (for UI, e.g., showing who trusts whom)
-      const allTrustRows = await bookshelf.knex('trust_expressions')
-        .where({ group_role_id: roleId })
-        .select('trustor_id', 'trustee_id', 'value')
-
       return {
         candidates: candidatesWithTrust,
         stewards: stewardsWithTrust, // Add stewards to the payload
-        trustExpressions: allTrustRows,
+        trustExpressions: detailedTrustExpressions.map(expr => ({
+        trustorId: expr.trustor_id,
+        trustorName: expr.trustor_name,
+        trustorAvatarUrl: expr.trustor_avatar,
+        trusteeId: expr.trustee_id,
+        trusteeName: expr.trustee_name,
+        value: Number(expr.value) || 0
+      })),
+        trustNetwork,
         myTrustExpressions
       }
     } catch (error) {
@@ -445,7 +555,7 @@ const TrustStewardshipService = {
     const existingGroupRole = await GroupRole.where({ 
       group_id: groupId, 
       name: commonRole.get('name'),
-      assignment: 'trust' // Mark as trust-based since it's in a self-stewarded group
+      assignment: 'trust' // Mark as trust-based since it's in a member-led group
     }).fetch()
 
     if (existingGroupRole) {
@@ -461,7 +571,7 @@ const TrustStewardshipService = {
       assignment: 'trust',
       status: 'vacant',
       threshold_current: 0,
-      threshold_required: 1,
+      threshold_required: 0.51,
       bootstrap: false,
       active: true,
       created_at: new Date(),

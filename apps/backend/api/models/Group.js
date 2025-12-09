@@ -1,4 +1,4 @@
-/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound */
+/* global GroupToGroupJoinQuestion, Location, Slack, Widget, FundingRound, CommonRole */
 /* eslint-disable camelcase */
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
@@ -524,7 +524,9 @@ module.exports = bookshelf.Model.extend(merge({
       newMemberships.push(membership)
       // Based on the role attribute, add or remove the user to the Coordinator common role
       // TODO: RESP, change this to directly pass in and set commonRoles, instead of the role attribute
-      await MemberCommonRole.updateCoordinatorRole({ userId: id, groupId: this.id, role: updatedAttribs.role, transacting })
+      if (this.get('mode') !== 'member_led') {
+        await MemberCommonRole.updateCoordinatorRole({ userId: id, groupId: this.id, role: updatedAttribs.role, transacting })
+      }
 
       // Subscribe each user to the default tags in the group
       await User.followTags(id, this.id, defaultTagIds, transacting)
@@ -686,8 +688,8 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-custom-views', type: 'custom-views', order: 6 }
     ]
 
-    // Add roles widget for self-stewarded groups
-    if (this.get('mode') === 'self_stewarded') {
+    // Add roles widget for member-led groups
+    if (this.get('mode') === 'member_led') {
       orderedWidgets.push({ title: 'widget-roles', type: 'roles', view: 'roles', order: 7 })
     }
 
@@ -723,44 +725,72 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async setupBootstrapRole (userId, trx) {
-    // Create a basic Coordinator role for self-stewarded groups
-    const coordinatorRole = await GroupRole.forge({
-      group_id: this.id,
-      name: 'Coordinator',
-      description: 'Basic group administration and member management',
-      assignment: 'trust',
-      status: 'pending',
-      threshold_current: 1,
-      threshold_required: 10, // Will be recalculated based on group size
-      bootstrap: true,
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { transacting: trx })
+    const commonRoles = await CommonRole.fetchAll({ withRelated: ['responsibilities'] })
+    const now = new Date()
+    const groupRoleMap = {}
 
-    // Auto-volunteer the creator
-    await coordinatorRole.stewards().attach(userId, { transacting: trx })
+    await Promise.map(commonRoles.models, async commonRole => {
+      const groupRole = await GroupRole.forge({
+        group_id: this.id,
+        name: commonRole.get('name'),
+        description: commonRole.get('description'),
+        emoji: commonRole.get('emoji'),
+        assignment: 'trust',
+        status: 'pending',
+        threshold_current: 0,
+        threshold_required: 0.51,
+        bootstrap: true,
+        active: true,
+        created_at: now,
+        updated_at: now
+      }).save(null, { transacting: trx })
 
-    // Attach core responsibilities (Administration=1, Manage Content=3, Manage Members=4)
-    const coreRespIds = [1, 3, 4]
-    await Promise.all(coreRespIds.map(rid => bookshelf.knex('group_roles_responsibilities')
-      .insert({ group_role_id: coordinatorRole.id, responsibility_id: rid })
-      .onConflict(['group_role_id','responsibility_id']).ignore()
-      .transacting(trx)))
+      const responsibilityIds = await bookshelf.knex('common_roles_responsibilities')
+        .where({ common_role_id: commonRole.id })
+        .pluck('responsibility_id')
 
-    // Create initial trust expression from creator to creator
-    await TrustExpression.forge({
-      group_id: this.id,
-      group_role_id: coordinatorRole.id,
-      trustor_id: userId,
-      trustee_id: userId,
-      value: 1,
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { transacting: trx })
+      await Promise.all(responsibilityIds.map(rid => bookshelf.knex('group_roles_responsibilities')
+        .insert({ group_role_id: groupRole.id, responsibility_id: rid })
+        .onConflict(['group_role_id', 'responsibility_id']).ignore()
+        .transacting(trx)))
 
-    // Set status to active if group size < 3 (bootstrap override)
-    if (this.get('memberCount') < 3) {
-      await coordinatorRole.save({ status: 'active' }, { transacting: trx })
+      groupRoleMap[commonRole.id] = groupRole
+    })
+
+    const coordinatorRole = groupRoleMap[CommonRole.ROLES.Coordinator]
+
+    await bookshelf.knex('group_memberships_common_roles')
+      .where({ group_id: this.id, user_id: userId })
+      .del()
+      .transacting(trx)
+
+    if (coordinatorRole) {
+      await bookshelf.knex('group_memberships_group_roles')
+        .insert({
+          group_role_id: coordinatorRole.id,
+          user_id: userId,
+          group_id: this.id,
+          active: true,
+          created_at: now,
+          updated_at: now
+        })
+        .onConflict(['group_role_id', 'user_id', 'group_id'])
+        .merge({ active: true, updated_at: now })
+        .transacting(trx)
+
+      await TrustExpression.forge({
+        group_id: this.id,
+        group_role_id: coordinatorRole.id,
+        trustor_id: userId,
+        trustee_id: userId,
+        value: 1,
+        created_at: now,
+        updated_at: now
+      }).save(null, { transacting: trx })
+
+      if (this.get('memberCount') < 3) {
+        await coordinatorRole.save({ status: 'active' }, { transacting: trx })
+      }
     }
   },
 
@@ -973,9 +1003,9 @@ module.exports = bookshelf.Model.extend(merge({
     const members = await User.query(q => q.whereIn('id', newUserIds.concat(reactivatedUserIds))).fetchAll()
     const group = await Group.find(groupId)
 
-    // Auto-assign trust for new members in self-stewarded groups
-    if (group && group.get('mode') === 'self_stewarded' && newUserIds.length > 0) {
-      console.log(`[Group.afterAddMembers] Auto-assigning trust for ${newUserIds.length} new members in self-stewarded group ${groupId}`)
+    // Auto-assign trust for new members in member-led groups
+    if (group && group.get('mode') === 'member_led' && newUserIds.length > 0) {
+      console.log(`[Group.afterAddMembers] Auto-assigning trust for ${newUserIds.length} new members in member-led group ${groupId}`)
       
       try {
         // Get all trust-assigned roles in this group
@@ -1198,8 +1228,8 @@ module.exports = bookshelf.Model.extend(merge({
 
       await group.setupContextWidgets(trx)
 
-      // Bootstrap logic for self-stewarded groups
-      if (data.mode === 'self_stewarded') {
+    // Bootstrap logic for member-led groups
+    if (data.mode === 'member_led') {
         await group.setupBootstrapRole(userId, trx)
       }
 

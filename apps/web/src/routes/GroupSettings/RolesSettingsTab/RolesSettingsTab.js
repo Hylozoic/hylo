@@ -266,9 +266,10 @@ function RoleRow ({
   const { t } = useTranslation()
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
+  const isMemberLed = group?.mode === 'member_led'
   return (
     <div className={cn('bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
-      {!isCommonRole &&
+      {!isCommonRole && !isMemberLed &&
         <div className={styles.actionContainer}>
           {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
           {!isDraftRole && changed && (<span className={styles.action} onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
@@ -537,6 +538,9 @@ function RoleList ({
     })
   }
 
+  const allowManualMembershipChanges = group?.mode !== 'member_led'
+  const showTrustInfo = !allowManualMembershipChanges
+
   return (
     <div>
       <div className='p-2'>
@@ -564,26 +568,33 @@ function RoleList ({
         />)}
       <div className='p-2'>
         <h4>{t('Members')}</h4>
+        {showTrustInfo && (
+          <div className='text-foreground/70 text-xs mb-2'>
+            {t('Members earn this role automatically through trust expressions.')}
+          </div>
+        )}
         <div className='flex flex-col gap-2'>
           {membersForRole.map(m =>
             <RemovableListItem
               item={m}
               url={personUrl(m.id, slug)}
-              removeItem={handleRemoveRoleFromMember}
+              removeItem={allowManualMembershipChanges ? handleRemoveRoleFromMember : null}
               key={m.id}
             />)}
         </div>
       </div>
-      <AddMemberToRole
-        fetchSuggestions={fetchStewardSuggestions}
-        addRoleToMember={addRoleToMember}
-        memberSuggestions={memberSuggestions}
-        clearSuggestions={clearStewardSuggestions}
-        updateLocalMembersForRole={updateLocalMembersForRole}
-        roleId={roleId}
-        groupId={group.id}
-        isCommonRole={isCommonRole}
-      />
+      {allowManualMembershipChanges && (
+        <AddMemberToRole
+          fetchSuggestions={fetchStewardSuggestions}
+          addRoleToMember={addRoleToMember}
+          memberSuggestions={memberSuggestions}
+          clearSuggestions={clearStewardSuggestions}
+          updateLocalMembersForRole={updateLocalMembersForRole}
+          roleId={roleId}
+          groupId={group.id}
+          isCommonRole={isCommonRole}
+        />
+      )}
     </div>
   )
 }

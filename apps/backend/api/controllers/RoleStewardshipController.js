@@ -38,6 +38,33 @@ module.exports = {
     }
   },
 
+  async withdrawVolunteer (req, res) {
+    try {
+      const roleId = req.param('roleId')
+      const userId = req.session.userId
+      const { groupId } = req.body || {}
+
+      const isCommonRole = await TrustStewardshipService.isCommonRole(roleId)
+
+      if (isCommonRole) {
+        if (!groupId) return res.badRequest('groupId required for common role volunteer withdrawal')
+        await TrustStewardshipService.removeVolunteerForCommonRole({ roleId, groupId, userId })
+      } else {
+        await TrustStewardshipService.removeVolunteer({ roleId, userId })
+      }
+
+      Analytics.track({
+        userId,
+        event: 'Role Stewardship: Withdraw Volunteer',
+        properties: { roleId, isCommonRole }
+      })
+
+      res.ok({ success: true })
+    } catch (err) {
+      res.serverError(err)
+    }
+  },
+
   async nominate (req, res) {
     try {
       const roleId = req.param('roleId')

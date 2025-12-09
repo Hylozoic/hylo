@@ -147,7 +147,7 @@ module.exports = bookshelf.Model.extend({
         m.user_id
       FROM responsibilities r
       JOIN group_roles_responsibilities gr ON r.id = gr.responsibility_id
-      JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_id
+      JOIN group_memberships_group_roles m ON gr.group_role_id = m.group_role_id
       WHERE r.type = 'system' AND m.group_id = ${groupId}
 
       UNION

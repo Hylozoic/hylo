@@ -80,6 +80,7 @@ module.exports.routes = {
 
   // Role Stewardship endpoints
   'POST   /noo/role/:roleId/volunteer':                   'RoleStewardshipController.volunteer',
+  'DELETE /noo/role/:roleId/volunteer':                  'RoleStewardshipController.withdrawVolunteer',
   'POST   /noo/role/:roleId/nominate':                    'RoleStewardshipController.nominate',
   'POST   /noo/role/:roleId/trust':                       'RoleStewardshipController.trust',
   'GET    /noo/role/:roleId/trust-data':                  'RoleStewardshipController.trustData',

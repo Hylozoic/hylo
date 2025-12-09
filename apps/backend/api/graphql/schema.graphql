@@ -809,7 +809,7 @@ type Group {
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptorPlural: String
-  # Group mode: 'admined' for traditional groups with designated administrators, 'self_stewarded' for groups where members volunteer and earn trust
+  # Group mode: 'admined' for traditional groups with designated administrators, 'member_led' for groups where members volunteer and earn trust
   mode: String
   # Group name
   name: String
@@ -1354,9 +1354,9 @@ type GroupRole {
   # Current status of the role: 'vacant', 'pending', 'active', 'contested', 'dormant'
   status: String
   # Current trust threshold for this role
-  thresholdCurrent: Int
+  thresholdCurrent: Float
   # Required trust threshold for this role
-  thresholdRequired: Int
+  thresholdRequired: Float
   # Whether this role is in bootstrap mode (creator has temporary powers)
   bootstrap: Boolean
   # The users who are stewards of this role (for trust-based roles)
@@ -3465,7 +3465,7 @@ input GroupInput {
   moderatorDescriptor: String
   # Plural word used to describe admins/moderators of this group. Defaults to "Moderators". TODO: remove once mobile app switches to stewardDescriptor
   moderatorDescriptorPlural: String
-  # Group mode: 'admined' for traditional groups with designated administrators, 'self_stewarded' for groups where members volunteer and earn trust
+  # Group mode: 'admined' for traditional groups with designated administrators, 'member_led' for groups where members volunteer and earn trust
   mode: String
   # Group name
   name: String

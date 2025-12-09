@@ -331,8 +331,8 @@ function CreateGroup () {
           >
             <SelectTrigger className='inline-flex border-0'>
               <SelectValue>
-                <Icon name={mode === 'self_stewarded' ? 'Shield' : 'Users'} className='mr-2' />
-                <span>{mode === 'self_stewarded' ? t('Self-Stewarded') : t('Admined')}</span>
+                <Icon name={mode === 'member_led' ? 'Shield' : 'Users'} className='mr-2' />
+                <span>{mode === 'member_led' ? t('Member-Led') : t('Admined')}</span>
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -343,10 +343,10 @@ function CreateGroup () {
                   <span className=''> {t('Traditional group with designated administrators')}</span>
                 </div>
               </SelectItem>
-              <SelectItem value='self_stewarded' className='pl-2'>
+              <SelectItem value='member_led' className='pl-2'>
                 <div className=''>
                   <Icon name='Shield' />
-                  <b className='ml-2'>{t('Self-Stewarded')}:</b>
+                  <b className='ml-2'>{t('Member-Led')}:</b>
                   <span className=''> {t('Members volunteer and earn trust to steward roles')}</span>
                 </div>
               </SelectItem>

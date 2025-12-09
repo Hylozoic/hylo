@@ -1,19 +1,24 @@
 /* eslint-disable no-trailing-spaces, eol-last, indent */
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { Shield, Users, UserPlus, Clock, User } from 'lucide-react'
+import { Shield, UserPlus, X } from 'lucide-react'
 
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import getMe from 'store/selectors/getMe'
 import useRouteParams from 'hooks/useRouteParams'
+import { personUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 import VolunteerModal from 'components/VolunteerModal/VolunteerModal'
 import TrustSlider from 'components/TrustSlider/TrustSlider'
 import { removeRoleFromMember } from 'store/actions/roles'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
+import RoundImage from 'components/RoundImage'
+
+const DEFAULT_ROLE_BANNER = '/default-group-banner.svg'
 
 export default function RolesPanel () {
   const { t } = useTranslation()
@@ -22,6 +27,7 @@ export default function RolesPanel () {
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const commonRoles = useSelector(getCommonRoles)
   const currentUser = useSelector(getMe)
+  const groupSlug = group?.slug || routeParams.groupSlug
 
   const [volunteerModal, setVolunteerModal] = useState({ isOpen: false, role: null })
   const [rolesData, setRolesData] = useState([])
@@ -41,7 +47,7 @@ export default function RolesPanel () {
       ...commonRole,
       isCommonRole: true,
       // Set values for trust system fields based on group mode
-      assignment: group?.mode === 'self_stewarded' ? 'trust' : 'admin',
+      assignment: group?.mode === 'member_led' ? 'trust' : 'admin',
       status: 'vacant' // Default to vacant, will be updated if people have the role
     }))
 
@@ -98,7 +104,7 @@ export default function RolesPanel () {
       
       // For leaderless groups, all roles can use trust data
       // For admin groups, only trust-assigned roles use trust data
-      const rolesNeedingTrustData = group?.mode === 'self_stewarded' 
+      const rolesNeedingTrustData = group?.mode === 'member_led' 
         ? allRoles 
         : allRoles.filter(role => role.assignment === 'trust')
       
@@ -147,6 +153,7 @@ export default function RolesPanel () {
           stewards: trustData.stewards || [],
           trustExpressions: trustData.trustExpressions || [],
           myTrustExpressions: trustData.myTrustExpressions || {},
+          trustNetwork: trustData.trustNetwork || [],
           trustEnabled: true
         }
       })
@@ -250,19 +257,31 @@ export default function RolesPanel () {
     }
   }
 
-  const handleResign = async (roleId) => {
+  const handleResign = async (roleId, { isSteward = false } = {}) => {
     try {
       // Find the role to check if it's a common role
       const role = allRoles.find(r => r.id === roleId)
       const isCommonRole = role && role.isCommonRole
       
-      // Use the standard removeRoleFromMember action like RolesSettingsTab does
-      await dispatch(removeRoleFromMember({
-        personId: currentUser.id,
-        groupId: group.id,
-        roleId: roleId,
-        isCommonRole: isCommonRole
-      }))
+      if (isSteward) {
+        // Use the standard removeRoleFromMember action like RolesSettingsTab does
+        await dispatch(removeRoleFromMember({
+          personId: currentUser.id,
+          groupId: group.id,
+          roleId: roleId,
+          isCommonRole: isCommonRole
+        }))
+      }
+
+      const withdrawBody = role && role.isCommonRole ? { groupId: group.id } : null
+      const withdrawResponse = await fetch(`/noo/role/${roleId}/volunteer`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: withdrawBody ? JSON.stringify(withdrawBody) : undefined
+      })
+      if (!withdrawResponse.ok) {
+        throw new Error('Failed to withdraw volunteer status')
+      }
       
       // Refresh trust data after resignation
       await fetchRolesWithTrustData()
@@ -308,10 +327,10 @@ export default function RolesPanel () {
         <div>
           <div className='flex items-center gap-2 text-lg font-semibold text-foreground mb-2'>
             <Shield className='w-5 h-5' />
-            {group?.mode === 'self_stewarded' ? t('Role Stewardship') : t('Roles')}
+            {group?.mode === 'member_led' ? t('Role Stewardship') : t('Roles')}
           </div>
           <div className='text-sm text-foreground/50'>
-            {group?.mode === 'self_stewarded' ? t('Members volunteer and earn trust to steward roles in this group.') : t('Group roles and their current holders.')}
+            {group?.mode === 'member_led' ? t('Members volunteer and earn trust to steward roles in this group.') : t('Group roles and their current holders.')}
           </div>
         </div>
 
@@ -340,14 +359,15 @@ export default function RolesPanel () {
           : (
             <div className='space-y-6'>
               {rolesData.map(role => (
-                              <RoleCard
-                key={role.id}
-                role={role}
-                currentUser={currentUser}
-                onVolunteer={openVolunteerModal}
-                onTrust={handleTrust}
-                onResign={handleResign}
-              />
+                <RoleCard
+                  key={role.id}
+                  role={role}
+                  currentUser={currentUser}
+                  onVolunteer={openVolunteerModal}
+                  onTrust={handleTrust}
+                  onResign={handleResign}
+                  groupSlug={groupSlug}
+                />
               ))}
 
               <VolunteerModal
@@ -364,7 +384,7 @@ export default function RolesPanel () {
   )
 }
 
-function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
+function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign, groupSlug }) {
 
   const { t } = useTranslation()
 
@@ -379,36 +399,29 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
   const myTrustExpressions = role.myTrustExpressions || {}
 
   const trustEnabled = role.trustEnabled !== false // Default to true for backward compatibility
+  const getTrustDetails = (personId) => role.trustNetwork?.find(entry => entry.trusteeId === personId)
+  const derivedStatus = stewards.length > 0
+    ? 'active'
+    : (candidates.length > 0 ? 'pending' : status)
+
+  const isCurrentSteward = stewards.some(steward => steward.id === currentUser?.id)
+  const isCurrentVolunteer = candidates.some(candidate => candidate.id === currentUser?.id)
+  const canVolunteer = trustEnabled && !isCurrentSteward && !isCurrentVolunteer
+
+  const renderVolunteerCTA = () => (
+    <button
+      type='button'
+      onClick={() => onVolunteer(role)}
+      className='relative w-[12.6rem] min-h-[14.7rem] rounded-2xl border-2 border-foreground/20 bg-transparent text-foreground/70 flex flex-col items-center justify-center gap-3 text-center px-4 py-6 transition-colors hover:border-foreground/100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70'
+    >
+      <span className='inline-flex items-center justify-center w-12 h-12 rounded-2xl border border-foreground/20 text-foreground/80 bg-foreground/5'>
+        <UserPlus className='w-5 h-5' />
+      </span>
+      <span className='text-sm font-medium leading-tight'>{t('Volunteer to steward this role')}</span>
+    </button>
+  )
 
 
-
-  const getStatusIcon = (status) => {
-
-    switch (status) {
-
-      case 'active':
-
-        return <Shield className='w-4 h-4 text-green-500' />
-
-      case 'pending':
-
-        return <Clock className='w-4 h-4 text-yellow-500' />
-
-      case 'vacant':
-
-        return <Users className='w-4 h-4 text-gray-500' />
-
-      case 'contested':
-
-        return <Shield className='w-4 h-4 text-orange-500' />
-
-      default:
-
-        return <Shield className='w-4 h-4 text-blue-500' />
-
-    }
-
-  }
 
 
 
@@ -478,11 +491,13 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
 
       <div className='flex items-center justify-between mb-4'>
 
-        <div className='flex items-center gap-3'>
-
-          {getStatusIcon(status)}
-
-          <h3 className='text-lg font-medium text-foreground'>{role.name}</h3>
+      <div className='flex items-center gap-3'>
+        <h3 className='text-lg font-medium text-foreground flex items-center gap-2'>
+          {role.emoji && (
+            <span className='text-2xl leading-none'>{role.emoji}</span>
+          )}
+          {role.name}
+        </h3>
 
           {!trustEnabled && (
 
@@ -496,9 +511,11 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
 
         </div>
 
-        <span className={cn('text-xs px-3 py-1 rounded-full font-medium', getStatusColor(status))}>
+        <span className={cn('text-xs px-3 py-1 rounded-full font-medium', getStatusColor(derivedStatus))}>
 
-          {getStatusText(status)}
+          {(candidates.length === 0 && stewards.length === 0)
+            ? t('0 volunteers')
+            : getStatusText(derivedStatus)}
 
         </span>
 
@@ -517,71 +534,28 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
       {/* Current Stewards */}
 
       {stewards.length > 0 && (
-
         <div className='mb-6'>
-
           <label className='text-sm text-foreground/50 block mb-3'>
-
             {trustEnabled ? t('Current Stewards') : t('Role Holders')}
-
           </label>
-
-          {trustEnabled
-
-            ? (
-
-              <div className='space-y-3'>
-
-                {stewards.map(steward => (
-
-                                  <VolunteerCard
-
-                  key={steward.id}
-
-                  candidate={steward}
-
-                  role={role}
-
-                  currentUser={currentUser}
-
-                  myTrustValue={myTrustExpressions[steward.id] || 0}
-
-                  onTrust={onTrust}
-
-                  onResign={onResign}
-
-                  isSteward
-
-                />
-
-                ))}
-
-              </div>
-
-            )
-
-            : (
-
-              <div className='flex flex-wrap gap-2'>
-
-                {stewards.map(steward => (
-
-                  <div key={steward.id} className='flex items-center gap-2 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs'>
-
-                    <User className='w-3 h-3' />
-
-                    {steward.name}
-
-                  </div>
-
-                ))}
-
-              </div>
-
-            )}
-
+          <div className='flex flex-wrap gap-4'>
+            {stewards.map(steward => (
+              <VolunteerCard
+                key={steward.id}
+                candidate={steward}
+                role={role}
+                currentUser={currentUser}
+                myTrustValue={myTrustExpressions[steward.id] || 0}
+                onTrust={onTrust}
+                onResign={onResign}
+                isSteward
+                trustDetails={getTrustDetails(steward.id)}
+                groupSlug={groupSlug}
+              />
+            ))}
+            {canVolunteer && candidates.length === 0 && renderVolunteerCTA()}
+          </div>
         </div>
-
       )}
 
 
@@ -589,88 +563,36 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
       {/* Candidates/Volunteers - only for trust-enabled roles */}
 
       {trustEnabled && candidates.length > 0 && (
-
         <div className='mb-6'>
-
           <label className='text-sm text-foreground/50 block mb-3'>
-
             {t('Volunteers')} ({candidates.length})
-
           </label>
-
-          <div className='space-y-3'>
-
+          <div className='flex flex-wrap gap-4'>
             {candidates.map(candidate => (
-
               <VolunteerCard
-
                 key={candidate.id}
-
                 candidate={candidate}
-
                 role={role}
-
                 currentUser={currentUser}
-
                 myTrustValue={myTrustExpressions[candidate.id] || 0}
-
                 onTrust={onTrust}
-
                 onResign={onResign}
-
+                trustDetails={getTrustDetails(candidate.id)}
+                groupSlug={groupSlug}
               />
-
             ))}
-
+            {canVolunteer && renderVolunteerCTA()}
           </div>
-
         </div>
-
       )}
 
-
-
-      {/* Action Buttons */}
-
-      {trustEnabled && (() => {
-
-        // Check if current user is already a steward
-
-        const isCurrentSteward = stewards.some(steward => steward.id === currentUser?.id)
-
-        // Check if current user is already a volunteer 
-
-        const isCurrentVolunteer = candidates.some(candidate => candidate.id === currentUser?.id)
-
-        // Only show volunteer button if user is neither steward nor volunteer
-
-        const canVolunteer = !isCurrentSteward && !isCurrentVolunteer
-
-        
-
-        return canVolunteer && (
-
-          <div className='flex gap-3 pt-4'>
-
-            <button
-
-              onClick={() => onVolunteer(role)}
-
-              className='flex items-center gap-2 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium'
-
-            >
-
-              <UserPlus className='w-4 h-4' />
-
-              {t('Volunteer to steward this role')}
-
-            </button>
-
+      {canVolunteer && candidates.length === 0 && stewards.length === 0 && (
+        <div className='mb-6'>
+          <div className='flex flex-wrap gap-4'>
+            {renderVolunteerCTA()}
           </div>
-
-        )
-
-      })()}
+        </div>
+      )}
 
 
 
@@ -696,13 +618,16 @@ function RoleCard ({ role, currentUser, onVolunteer, onTrust, onResign }) {
 
 
 
-function VolunteerCard ({ candidate, role, currentUser, myTrustValue, onTrust, onResign, isSteward = false }) {
+function VolunteerCard ({ candidate, role, currentUser, myTrustValue, onTrust, onResign, isSteward = false, trustDetails, groupSlug }) {
 
   const { t } = useTranslation()
 
   const [trustValue, setTrustValue] = useState(myTrustValue)
 
   const [isUpdating, setIsUpdating] = useState(false)
+
+  const [showTrustModal, setShowTrustModal] = useState(false)
+  const profileUrl = personUrl(candidate.id, groupSlug)
 
 
 
@@ -747,147 +672,116 @@ function VolunteerCard ({ candidate, role, currentUser, myTrustValue, onTrust, o
 
 
   const isOwnCandidate = candidate.id === currentUser?.id
-
-
+  const bannerImage = candidate.bannerUrl || DEFAULT_ROLE_BANNER
+  const cardStyle = bannerImage
+    ? { backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.75), rgba(0,0,0,0.35)), url(${bannerImage})` }
+    : { backgroundImage: 'linear-gradient(135deg, rgba(0,0,0,0.75), rgba(0,0,0,0.35))' }
 
   return (
-
-    <div className={cn(
-
-      'rounded-lg p-4 border',
-
-      isSteward 
-
-        ? 'border-selected bg-green-500/10'
-
-        : 'border-foreground/20 bg-black/20'
-
-    )}>
-
-      <div className='flex items-center justify-between mb-3'>
-
-        <div className='flex items-center gap-3'>
-
-          <div className={cn(
-
-            'w-10 h-10 rounded-lg flex items-center justify-center',
-
-            isSteward ? 'bg-green-500' : 'bg-blue-500'
-
-          )}>
-
-            <span className='text-white text-sm font-bold'>
-
-              {candidate.name?.charAt(0)?.toUpperCase() || '?'}
-
-            </span>
-
-          </div>
-
-          <div>
-
-            <div className='flex items-center gap-2'>
-
-              <span className='text-sm font-medium text-foreground'>
-
-                {candidate.name}
-
-              </span>
-
-              {isSteward && (
-
-                <span className='text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded-full font-medium'>
-
-                  {t('Steward')}
-
-                </span>
-
-              )}
-
+    <div
+      className='relative w-[12.6rem] min-h-[14.7rem] rounded-2xl overflow-hidden shadow-lg flex flex-col text-white'
+      style={cardStyle}
+    >
+      <div className='absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.15),_transparent_45%)]' />
+      <div className='relative flex flex-col gap-4 p-3 grow'>
+        <div className='flex flex-col items-center gap-3 mt-6'>
+          <Link
+            to={profileUrl}
+            className='inline-flex rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70'
+          >
+            <RoundImage
+              url={candidate.avatarUrl}
+              large
+              className='w-20 h-20 rounded-2xl border-2 border-white/40 shadow-lg'
+            />
+          </Link>
+          <div className='w-full flex flex-col items-center gap-2 text-center text-white'>
+            <Link
+              to={profileUrl}
+              className='flex items-center justify-center gap-2 text-base font-semibold text-white hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 rounded-md px-2 py-1'
+            >
+              <span className='truncate max-w-[11rem]'>{candidate.name}</span>
               {isOwnCandidate && (
-
-                <span className='text-xs text-blue-500 font-medium'>({t('You')})</span>
-
+                <span className='text-xs text-blue-200 font-medium'>({t('You')})</span>
               )}
-
+            </Link>
+            <div className='relative pointer-events-auto w-full'>
+              <button
+                type='button'
+                onClick={() => trustDetails && setShowTrustModal(true)}
+                className='w-full flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide text-white/80 px-3 py-1 rounded-full bg-black/30 border border-white/10 cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-default disabled:opacity-70'
+                disabled={!trustDetails}
+                aria-label={t('View trust supporters')}
+              >
+                <span className='truncate w-full text-left'>{isSteward ? `${role.emoji ? role.emoji + ' ' : ''}${role.name}` : t('Volunteer')}</span>
+                {trustDetails && (
+                  <span className='font-semibold text-[10px] tracking-wide flex-shrink-0'>
+                    {Math.round((trustDetails.average || 0) * 100)}%
+                  </span>
+                )}
+              </button>
             </div>
-
           </div>
-
         </div>
 
-        
-
-        {candidate.trustScore && (
-
-          <div className='text-xs text-foreground/60'>
-
-            {t('Trust')}: {Math.round(candidate.trustScore * 100)}%
-
+        {!isOwnCandidate && (
+          <div className='bg-black/50 rounded-2xl p-3 border border-white/10'>
+            <div className='flex items-center justify-between text-xs text-white/70 mb-2'>
+              <span>{t('Your vote')}</span>
+              <span>{Math.round(trustValue * 100)}%</span>
+            </div>
+            <TrustSlider
+              value={trustValue}
+              onChange={handleTrustChange}
+              disabled={isUpdating}
+            />
           </div>
-
         )}
 
-      </div>
-
-      
-
-      {!isOwnCandidate && (
-
-        <div className='mt-3'>
-
-          <TrustSlider
-
-            value={trustValue}
-
-            onChange={handleTrustChange}
-
-            disabled={isUpdating}
-
-            label={t('Your trust level')}
-
-          />
-
-        </div>
-
-      )}
-
-      
-
-      {isOwnCandidate && isSteward && (
-
-        <div className='mt-3 pt-3 border-t border-foreground/10'>
-
+        {isOwnCandidate && (
           <button
-
-            onClick={() => onResign(role.id)}
-
-            className='flex items-center gap-2 px-3 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium'
-
+            onClick={() => onResign(role.id, { isSteward })}
+            className='flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-500/80 text-white rounded-xl hover:bg-red-500 transition-colors font-medium'
           >
-
             {t('Resign from this role')}
-
           </button>
+        )}
 
-        </div>
-
-      )}
-
-      
-
-      {isOwnCandidate && !isSteward && (
-
-        <div className='text-xs text-foreground/50 mt-3'>
-
-          {t('You cannot vote for yourself')}
-
-        </div>
-
-      )}
-
+        {showTrustModal && trustDetails && (
+          <div className='absolute inset-0 z-50 flex rounded-2xl'>
+            <div className='absolute inset-0 rounded-2xl bg-black/80 backdrop-blur-sm' />
+            <div className='relative z-10 flex flex-col w-full rounded-2xl border border-white/15 bg-black/95 p-4 text-white'>
+              <div className='flex items-start gap-2'>
+                <div className='text-sm font-semibold leading-tight'>{t('Votes')}</div>
+                <button
+                  type='button'
+                  onClick={() => setShowTrustModal(false)}
+                  className='ml-auto text-white/70 hover:text-white transition-colors'
+                  aria-label={t('Close')}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className='mt-3 flex-1 overflow-y-auto pr-1 space-y-2 text-xs'>
+                {trustDetails.expressions?.length > 0
+                  ? trustDetails.expressions.map(expr => (
+                    <Link
+                      key={`${expr.trustorId}-${expr.trusteeId}`}
+                      to={personUrl(expr.trustorId, groupSlug)}
+                      className='flex items-center gap-3 px-1 py-2 border-b border-white/15 last:border-b-0 text-white/90 hover:text-white hover:bg-white/10 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60'
+                    >
+                      <RoundImage url={expr.trustorAvatarUrl} small className='w-7 h-7 rounded-full border border-white/20 flex-shrink-0' />
+                      <span className='flex-1 font-medium truncate text-left'>{expr.trustorName || t('Member {{id}}', { id: expr.trustorId })}</span>
+                      <span className='text-sm font-semibold text-right ml-auto'>{Math.round((expr.value || 0) * 100)}%</span>
+                    </Link>
+                    ))
+                  : <div className='text-white/60'>{t('No expressions yet')}</div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-
   )
 
 }

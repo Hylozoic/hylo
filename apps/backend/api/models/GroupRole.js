@@ -18,7 +18,9 @@ module.exports = bookshelf.Model.extend({
   },
 
   stewards: function () {
-    return this.belongsToMany(User, 'group_roles_users', 'group_role_id', 'user_id')
+    // Use membership-role pivot so stewardship data stays in sync with responsibilities
+    return this.belongsToMany(User, 'group_memberships_group_roles', 'group_role_id', 'user_id')
+      .query(qb => qb.where('group_memberships_group_roles.active', true))
   },
 
   candidates: function () {
