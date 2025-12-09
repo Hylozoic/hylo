@@ -102,7 +102,8 @@ export default function ChatRoom (props) {
   const { groupSlug, postId: selectedPostId } = routeParams
 
   const context = props.context || routeParams.context
-  const topicName = customTopicName || routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName.startsWith('‡')
 
   const socket = useMemo(() => getSocket(), [])
 
@@ -570,7 +571,7 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    !customTopicName && setHeaderDetails({
+    !hiddenTopic && setHeaderDetails({
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
@@ -596,10 +597,10 @@ export default function ChatRoom (props) {
       info: '',
       search: !isWebView()
     })
-  }, [customTopicName, topicName, notificationsSetting])
+  }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -617,6 +618,8 @@ export default function ChatRoom (props) {
                   group,
                   initialAnimationComplete,
                   latestOldPostId,
+                  loadedFuture,
+                  loadedPast,
                   loadingFuture,
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,

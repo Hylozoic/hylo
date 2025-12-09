@@ -35,6 +35,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   const [flaggingVisible, setFlaggingVisible] = useState(false)
   const [validationError, setValidationError] = useState('')
+  const [isInputFocused, setIsInputFocused] = useState(false)
 
   const isFlagged = useMemo(() => post.flaggedGroups?.length > 0, [post.flaggedGroups])
   const flagPostData = useMemo(() => ({
@@ -45,7 +46,9 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   // Calculate available tokens including currently allocated tokens for this submission
   const availableTokens = useMemo(() => {
-    return (currentTokensRemaining || 0) + (localVoteAmount || 0)
+    const baseRemaining = currentTokensRemaining || 0
+    const currentAllocation = typeof localVoteAmount === 'number' ? localVoteAmount : parseInt(localVoteAmount, 10)
+    return baseRemaining + (Number.isNaN(currentAllocation) ? 0 : currentAllocation)
   }, [currentTokensRemaining, localVoteAmount])
 
   const tokenLabel = round?.tokenType || t('Votes')
@@ -101,7 +104,16 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, t])
 
   const handleVoteAmountChange = useCallback((e) => {
-    let newValue = parseInt(e.target.value) || 0
+    const rawValue = e.target.value
+
+    if (rawValue === '') {
+      setLocalVoteAmount('')
+      setValidationError('')
+      return
+    }
+
+    let newValue = parseInt(rawValue, 10)
+    if (Number.isNaN(newValue)) newValue = 0
     if (newValue < 0) newValue = 0
 
     // Enforce maximum constraints
@@ -120,10 +132,20 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   }, [availableTokens, round.maxTokenAllocation, validateVoteAmount, setLocalVoteAmount])
 
   const handleVoteAmountBlur = useCallback(async () => {
+    setIsInputFocused(false)
+
+    const numericValue = typeof localVoteAmount === 'number' ? localVoteAmount : parseInt(localVoteAmount, 10)
+    const valueToSubmit = Number.isNaN(numericValue) || localVoteAmount === '' ? 0 : numericValue
+
+    // Reset empty string to 0 when blurring
+    if (localVoteAmount === '' || Number.isNaN(numericValue)) {
+      setLocalVoteAmount(0)
+    }
+
     // Only submit if there's no validation error and the value changed
-    if (!validationError && localVoteAmount !== post.tokensAllocated) {
+    if (!validationError && valueToSubmit !== (post.tokensAllocated || 0)) {
       try {
-        await dispatch(allocateTokensToSubmission(post.id, localVoteAmount, routeParams.fundingRoundId))
+        await dispatch(allocateTokensToSubmission(post.id, valueToSubmit, routeParams.fundingRoundId))
       } catch (error) {
         console.error('Failed to allocate tokens:', error)
         // Reset to previous value on error
@@ -133,6 +155,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   }, [validationError, localVoteAmount, post.tokensAllocated, post.id, routeParams.fundingRoundId, dispatch, setLocalVoteAmount])
 
   const handleVoteAmountFocus = useCallback((e) => {
+    setIsInputFocused(true)
     // Select all text when focusing to avoid the "01" issue
     e.target.select()
   }, [])
@@ -154,6 +177,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
               to={creatorUrl}
               className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base')}
               onClick={e => e.stopPropagation()}
+              tabIndex={-1}
             >
               {creator.name}
             </Link>
@@ -170,7 +194,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             </TooltipContent>
           </Tooltip>
           <DropdownMenu>
-            <DropdownMenuTrigger className='outline-none' onClick={e => e.stopPropagation()}><EllipsisVertical /></DropdownMenuTrigger>
+            <DropdownMenuTrigger className='outline-none' onClick={e => e.stopPropagation()} tabIndex={-1}><EllipsisVertical /></DropdownMenuTrigger>
             <DropdownMenuContent sideOffset={-30} alignOffset={30} align='end'>
               {dropdownItems.map(item => (
                 <DropdownMenuItem key={item.label} onClick={item.onClick}>
@@ -204,7 +228,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
           <input
             type='number'
             min='0'
-            value={localVoteAmount}
+            value={localVoteAmount === '' || (localVoteAmount === 0 && isInputFocused) ? '' : localVoteAmount}
             onChange={handleVoteAmountChange}
             onBlur={handleVoteAmountBlur}
             onFocus={handleVoteAmountFocus}
@@ -223,7 +247,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
       )}
       {currentPhase === 'completed' && (
         <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-4 rounded-r-lg min-w-[160px]'>
-          {hasAllocations
+          {hasAllocations && canManageRound
             ? (
               <Tooltip>
                 <TooltipTrigger asChild>

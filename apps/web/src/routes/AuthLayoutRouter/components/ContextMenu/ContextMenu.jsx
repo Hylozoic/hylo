@@ -1,5 +1,6 @@
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import isMobile from 'ismobilejs'
 import { get } from 'lodash/fp'
 import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
@@ -219,7 +220,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-screen h-dvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />

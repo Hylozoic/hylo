@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.4] - 2025-12-05
+
+### Fixed
+- Bug where updating notification settings for all groups at the same time was not working
+
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+
+### Changed
+- When sending comment digest emails, use the group name as the sender name, instead of the team at Hylo
+
+### Fixed
+- Fix broken commenting on new posts
+
 ## [6.2.1] - 2025-11-07
 
 ### Changed

@@ -6,6 +6,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.4] - 2025-12-05
+
+### Changed
+- Only show vote results on funding rounds to stewards
+- When funding round is complete sort submissions by total votes descending
+
+### Fixed
+- Fix display issues of funding round has min of 0 votes
+
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
+### Changed
+- During funding round voting phase Submissions tab becomes Vote tab
+- Don't show Track and Funding Round in create menu when clicking on the map
+
+### Fixed
+- Infinite spinner in chat rooms that have no posts
+- Fix height of nav and context menu in Desktop app
+- Positioning of layers and create buttons on the map
+- Native lands map layer tooltip location
+
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+- Long pressing on an emoji on mobile shows the tooltip of all the people who reacted with that emoji
+
+### Changed
+- Update to the latest filestack library
+- When uploading multiple images to a post the order of the images matches the order of the files
+- Fully remove orange dot from Activity Bell after it is clicked on, even if there are unread notifications
+
+### Fixed
+- Fix reordering of image attachments in posts and comments
+
+### Changed
+
 ## [6.2.1] - 2025-11-07
 
 ### Changed
