@@ -1535,7 +1535,7 @@
   "farm valuation": "valoración de la granja",
   "filtered by topics:": "filtrado por temas:",
   "flaggingExplainer": "Informar una publicación la borrará para todos los miembros del grupo. \nLos miembros podrán ver el informe y sus detalles. \nLos moderadores pueden borrar informes o tomar otras acciones si es necesario.",
-  "flagsNeedACategory": "Todos los informes deben estar vinculados al menos a un acuerdo (grupo o plataforma)",
+  "flagsNeedACategory": "Todos los informes deben estar vinculados al menos a un acuerdo (grupo o plataforma), y debe proporcionar una explicación para por qué está informando esta publicación.",
   "for": "para",
   "from": "de",
   "funding round": "ronda de financiación",

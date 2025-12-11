@@ -1580,7 +1580,7 @@
   "farm valuation": "farm valuation",
   "filtered by topics:": "filtered by topics:",
   "flaggingExplainer": "Reporting a post will blur it for all group members. Members will be able to see the report and its details. Moderators can clear reports or take other actions if necessary.",
-  "flagsNeedACategory": "All reports need to be linked to at least one agreement (group or platform)",
+  "flagsNeedACategory": "All reports need to be linked to at least one agreement (group or platform), and you must provide an explanation for why you are flagging this post.",
   "for": "for",
   "from": "from",
   "funding round": "funding round",
