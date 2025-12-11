@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Hook to detect swipe-from-edge gestures for navigation menu
- * 
+ *
  * Detects:
  * - Left-to-right swipe starting from the left edge to open menu
  * - Right-to-left swipe to close menu (when onSwipeRight provided)
- * 
+ *
  * @param {Function} onSwipeFromLeft - Callback when swipe-from-left is detected (open menu)
  * @param {Object} options - Configuration options
  * @param {number} options.edgeWidth - Width of edge zone to detect swipe start (default: 30px)
@@ -53,17 +53,17 @@ export default function useSwipeGesture (onSwipeFromLeft, options = {}) {
       // Swipe from left edge to right (open menu)
       if (startedFromEdge.current && deltaX > minSwipeDistance) {
         onSwipeFromLeft()
-        
+
         // Reset to prevent multiple triggers
         touchStartX.current = null
         touchStartY.current = null
         startedFromEdge.current = false
       }
-      
+
       // Swipe from right to left (close menu)
       if (onSwipeRight && deltaX < -minSwipeDistance) {
         onSwipeRight()
-        
+
         // Reset to prevent multiple triggers
         touchStartX.current = null
         touchStartY.current = null
@@ -93,4 +93,3 @@ export default function useSwipeGesture (onSwipeFromLeft, options = {}) {
     }
   }, [onSwipeFromLeft, onSwipeRight, edgeWidth, minSwipeDistance, enabled])
 }
-

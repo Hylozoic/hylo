@@ -200,28 +200,6 @@ const HyloWebView = React.forwardRef(({
     setIsLoading(false)
   }, [])
 
-  /**
-   * Handle pull-to-refresh gesture
-   * Reloads the WebView content when user pulls down from top
-   */
-  const handleRefresh = useCallback(() => {
-    if (onRefresh) {
-      // Use custom refresh handler if provided
-      onRefresh()
-    } else {
-      // Default: reload the WebView
-      setRefreshing(true)
-      webViewRef?.current?.reload()
-      
-      // Reset refreshing state after a short delay
-      // (WebView reload doesn't have a completion callback)
-      setTimeout(() => {
-        setRefreshing(false)
-      }, 1000)
-    }
-  }, [onRefresh, webViewRef])
-
-
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
     const { type, data } = parsedMessage
