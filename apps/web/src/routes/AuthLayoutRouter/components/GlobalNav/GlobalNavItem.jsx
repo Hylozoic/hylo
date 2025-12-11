@@ -137,7 +137,13 @@ export default function GlobalNavItem ({
               },
               className
             )}
-            style={style}
+            style={{
+              ...style,
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              msUserSelect: 'none'
+            }}
             role='button'
           >
             {children}
