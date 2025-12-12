@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import isMobile from 'ismobilejs'
 import { useTranslation } from 'react-i18next'
 import { useCalendarContext } from '../../calendar-context'
 import { Calendar } from '@/components/ui/calendar'
@@ -30,7 +29,7 @@ export default function CalendarBodyDayCalendar () {
   }
 
   return (
-    <div className={cn(isMobile.any && 'max-w-[225px]')}>
+    <div className={cn('max-w-[225px] sm:max-w-[265px]')}>
       <Calendar
         month={month}
         selected={selected}
