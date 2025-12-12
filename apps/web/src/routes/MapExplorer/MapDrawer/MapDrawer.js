@@ -75,7 +75,7 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[330px] w-[40%] max-w-[400px] relative z-20 bg-background', { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer' id='map-drawer'>
+    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[330px] w-[40%] max-w-[400px] z-20 bg-background', styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer' id='map-drawer'>
       <div className='relative p-4 pb-0 ml-[55px]'>
         <input
           className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2 mb-0'

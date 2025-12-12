@@ -64,7 +64,18 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -255,6 +266,13 @@ export default function GlobalNav (props) {
     }
   }
 
+  // Prevent default browser context menu on mobile devices
+  const handleContextMenu = (e) => {
+    if (isMobileDevice()) {
+      e.preventDefault()
+    }
+  }
+
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
   useEffect(() => {
     const nav = document.querySelector('.globalNavContainer')
@@ -263,7 +281,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-background/90 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-background/90 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
@@ -331,7 +349,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -356,7 +374,7 @@ export default function GlobalNav (props) {
           const actualIndex = pinnedGroups.length + unpinnedIndex
           return (
             <RightClickMenu key={group.id}>
-              <RightClickMenuTrigger>
+              <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                 <GlobalNavItem
                   badgeCount={group.newPostCount ? '-' : 0}
                   img={group.avatarUrl}
