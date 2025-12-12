@@ -21,6 +21,7 @@ function Calendar ({
       className={cn('p-3', className)}
       navLayout='around'
       classNames={{
+        months: 'flex-col sm:flex-row space-y-4 sm:space-y-0 justify-center',
         month: 'flex flex-col items-center relative',
         month_caption: 'flex pt-1 relative pb-4',
         caption_label: 'text-sm font-medium',
