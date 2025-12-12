@@ -2757,10 +2757,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@date-fns/tz@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@date-fns/tz@npm:1.2.0"
-  checksum: 10/a9c2d32f98a5a5c655a7d3843046a5a36779b2ef0db803c608291976e6254e594a085777bf738379f50c7e9fc2ffebbf8bb836e9e9759a5ef2b703f91bb785de
+"@date-fns/tz@npm:^1.4.1":
+  version: 1.4.1
+  resolution: "@date-fns/tz@npm:1.4.1"
+  checksum: 10/062097590005cce3da4c7d9880f9c77d386cff5b4dd58fa3dde3c346a8b2e4f4a8025a613306351a7cad8eb71178a0f67b4840d5884f73aa4c759085fac92063
   languageName: node
   linkType: hard
 
@@ -32273,16 +32273,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:^9":
-  version: 9.5.1
-  resolution: "react-day-picker@npm:9.5.1"
+"react-day-picker@npm:^9.11.0":
+  version: 9.12.0
+  resolution: "react-day-picker@npm:9.12.0"
   dependencies:
-    "@date-fns/tz": "npm:^1.2.0"
+    "@date-fns/tz": "npm:^1.4.1"
     date-fns: "npm:^4.1.0"
     date-fns-jalali: "npm:^4.1.0-0"
   peerDependencies:
     react: ">=16.8.0"
-  checksum: 10/e458e082a6712adb5d40fcc28c54cd20d415b5e2f5b2156f7a0d3fac0efd0f09b6721dd0fdce7993743c0e2d0d95abecc0bda47157f348e581eb1484a99b28fb
+  checksum: 10/b5ba64991b28a588b9b8684094a2755f34af47994084db74be487b47a9648998bc22a38da5c9ace4adbc083816f6e4f3a83225a3b1e84ad53617b5aad18f4cdc
   languageName: node
   linkType: hard
 
@@ -39469,7 +39469,7 @@ __metadata:
     react-cool-inview: "npm:^3.0.1"
     react-copy-to-clipboard: "npm:^5.1.0"
     react-datetime: "npm:^3.2.0"
-    react-day-picker: "npm:^9"
+    react-day-picker: "npm:^9.11.0"
     react-div-100vh: "npm:^0.7.0"
     react-dom: "npm:^18.3.1"
     react-helmet: "npm:^6.1.0"

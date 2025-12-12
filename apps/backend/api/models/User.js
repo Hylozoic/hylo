@@ -11,6 +11,9 @@ import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
+import ical from 'ical-generator'
+import Frontend from '../services/Frontend'
+import { writeStringToS3, deleteFromS3 } from '../../lib/uploader/storage'
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -511,7 +514,7 @@ module.exports = bookshelf.Model.extend(merge({
       'avatar_url', 'banner_url', 'bio', 'email', 'contact_email', 'contact_phone',
       'extra_info', 'facebook_url', 'intention', 'linkedin_url', 'location', 'location_id',
       'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
-      'new_notification_count'
+      'new_notification_count', 'calendar_token'
     ])
 
     return bookshelf.transaction(async (transacting) => {
@@ -637,7 +640,17 @@ module.exports = bookshelf.Model.extend(merge({
 
   hasStripeAccount () {
     return !!this.get('stripe_account_id')
-  }
+  },
+
+  getRsvpCalendarPath () {
+    return `${process.env.UPLOADER_PATH_PREFIX}/user/${this.id}/calendar-${this.get('calendar_token')}.ics`
+  },
+
+  rsvpCalendarUrl () {
+    return this.get('calendar_token')
+      ? `${process.env.AWS_S3_CONTENT_URL}/${this.getRsvpCalendarPath()}`
+      : null
+  },
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
@@ -903,8 +916,57 @@ module.exports = bookshelf.Model.extend(merge({
         }
       })
     }
-  }
+  },
 
+  async updateUserRsvpCalendarSubscriptions ({ userId }) {
+    const user = await User.find(userId)
+    if (!user) return
+
+    // Ensure user has calendar token
+    if (!user.get('calendar_token')) {
+      await user.save({ calendar_token: uuidv4() }, { patch: true })
+      await user.refresh()
+    }
+
+    // Fetch all EventInvitations for this user
+    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll({ withRelated: 'event' })
+    
+    // Create the calendar and add the events
+    const cal = ical()
+    for (const eventInvitation of eventInvitations.models) {
+      const event = eventInvitation.relations.event
+      if (event?.isEvent()) {
+        // Load groups for URL generation
+        await event.load('groups')
+        const group = event.relations.groups?.first()
+        
+        // Get calendar event data
+        const calEvent = await event.getCalEventData({ 
+          eventInvitation, 
+          forUserId: userId, 
+          url: Frontend.Route.post(event, group)
+        })
+        
+        // Add event to calendar
+        cal.createEvent(calEvent).uid(calEvent.uid)
+      }
+    }
+
+    // Write the combined calendar file to S3
+    await writeStringToS3(
+      cal.toString(),
+      user.getRsvpCalendarPath(), {
+      ContentType: 'text/calendar'
+    })
+  },
+
+  async clearUserRsvpCalendarSubscriptions ({ userId }) {
+    const user = await User.find(userId)
+    if (!user) return
+
+    // Delete the calendar file from S3
+    await deleteFromS3(user.getRsvpCalendarPath())
+  }
 })
 
 function validateUserAttributes (attrs, { existingUser, transacting } = {}) {

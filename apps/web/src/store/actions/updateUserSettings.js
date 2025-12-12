@@ -18,6 +18,7 @@ export default function updateUserSettings (changes) {
               alreadySeenTour
               dmNotifications
               commentNotifications
+              rsvpCalendarSub
               signupInProgress
               streamChildPosts
               streamViewMode

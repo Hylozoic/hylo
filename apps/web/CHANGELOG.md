@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.4] - 2025-12-05
+
+### Changed
+- Only show vote results on funding rounds to stewards
+- When funding round is complete sort submissions by total votes descending
+
+### Fixed
+- Fix display issues of funding round has min of 0 votes
+
 ## [6.2.3] - 2025-11-20
 
 ### Added

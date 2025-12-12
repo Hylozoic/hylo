@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.4] - 2025-12-05
+
+### Fixed
+- Bug where updating notification settings for all groups at the same time was not working
+
 ## [6.2.3] - 2025-11-20
 
 ### Added

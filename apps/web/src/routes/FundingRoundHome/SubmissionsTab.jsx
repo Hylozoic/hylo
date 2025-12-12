@@ -17,6 +17,7 @@ import { getRoundPhaseMeta } from './phaseUtils'
 const getPosts = ormCreateSelector(
   orm,
   (session, round, sortByTokens) => round.submissions,
+  (session, round, sortByTokens) => sortByTokens,
   (session, posts, sortByTokens) => {
     if (isEmpty(posts)) return []
     const sorted = posts.sort((a, b) => {
