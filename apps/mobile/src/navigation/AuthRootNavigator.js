@@ -18,8 +18,10 @@ import { version as hyloAppVersion } from '../../package.json'
 import { HyloHTMLConfigProvider } from 'components/HyloHTML/HyloHTML'
 import PrimaryWebView from 'screens/PrimaryWebView'
 import LoadingScreen from 'screens/LoadingScreen'
+import NoInternetConnection from 'screens/NoInternetConnection'
 import { twBackground } from '@hylo/presenters/colors'
 import useUnifiedSubscription from '@hylo/hooks/useUnifiedSubscription'
+import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
@@ -30,7 +32,11 @@ export default function AuthRootNavigator () {
   // lower in the stack where it may get called in any loops and such.
   const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
-  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ requestPolicy: 'network-only' })
+  const { isConnected, isInternetReachable } = useNetworkConnectivity()
+  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ 
+    requestPolicy: 'network-only',
+    pause: !isConnected || !isInternetReachable // Don't fetch if no internet
+  })
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
@@ -38,10 +44,12 @@ export default function AuthRootNavigator () {
   // ANDROID SSE LIMIT: Use unified subscription instead of individual ones
   // This stays within Android's 4 concurrent SSE connection limit
   // Pause until we have a currentUser to avoid unauthenticated subscription attempts
-  useUnifiedSubscription({ pause: !currentUser })
+  // Also pause if no internet connectivity
+  useUnifiedSubscription({ pause: !currentUser || !isConnected || !isInternetReachable })
 
-  useQuery({ query: notificationsQuery })
-  useQuery({ query: commonRolesQuery })
+  // Pause queries if no internet connectivity
+  useQuery({ query: notificationsQuery, pause: !isConnected || !isInternetReachable })
+  useQuery({ query: commonRolesQuery, pause: !isConnected || !isInternetReachable })
   usePlatformAgreements()
   useHandleLinking()
 
@@ -108,6 +116,19 @@ export default function AuthRootNavigator () {
 
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
+  
+  // Check internet connectivity before attempting to load app
+  // This prevents crashes from network calls when offline
+  if (!isConnected || !isInternetReachable) {
+    return (
+      <NoInternetConnection 
+        onRetry={() => {
+          // Retry will happen automatically when connectivity is restored
+          // via the useEffect in NoInternetConnection component
+        }} 
+      />
+    )
+  }
   
   // Initial loading state before auth completes
   // This is different from PrimaryWebView's loading state which handles WebView content loading

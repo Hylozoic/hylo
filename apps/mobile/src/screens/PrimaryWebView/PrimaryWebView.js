@@ -3,9 +3,11 @@ import { View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import HyloWebView from 'components/HyloWebView'
 import Loading from 'components/Loading'
+import NoInternetConnection from 'screens/NoInternetConnection'
 import useLogout from 'hooks/useLogout'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
+import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -27,13 +29,16 @@ import useRouteParams from 'hooks/useRouteParams'
 export default function PrimaryWebView() {
   const webViewRef = useRef(null)
   const logout = useLogout()
+  const { isConnected, isInternetReachable } = useNetworkConnectivity()
   
   // Verify user is authenticated before showing WebView
   // This provides an additional auth check at the component level
   const [{ currentUser, fetching: fetchingUser, error: userError }] = useCurrentUser({ 
-    requestPolicy: 'network-only'
+    requestPolicy: 'network-only',
+    pause: !isConnected || !isInternetReachable // Don't fetch if no internet
   })
   const [isWebViewLoading, setIsWebViewLoading] = useState(true)
+  const [webViewError, setWebViewError] = useState(null)
   
   // Get the path from the route params
   // This comes from the linking table catch-all: ':path(.*)' -> Main
@@ -52,6 +57,20 @@ export default function PrimaryWebView() {
     })
   }
   
+  // Check internet connectivity - show error screen if offline
+  if (!isConnected || !isInternetReachable) {
+    return (
+      <NoInternetConnection 
+        onRetry={() => {
+          // Clear any WebView error state when retrying
+          setWebViewError(null)
+          // Retry will happen automatically when connectivity is restored
+          // via the useEffect in NoInternetConnection component
+        }} 
+      />
+    )
+  }
+
   // Handle user authentication errors
   if (userError) {
     console.error('📱 PrimaryWebView: Error loading current user:', userError)
@@ -107,8 +126,44 @@ export default function PrimaryWebView() {
    */
   const handleLoadEnd = useCallback(() => {
     setIsWebViewLoading(false)
+    // Clear error state on successful load
+    setWebViewError(null)
+  }, [])
+
+  /**
+   * Handle WebView load errors (e.g., network failures)
+   */
+  const handleError = useCallback((syntheticEvent) => {
+    const { nativeEvent } = syntheticEvent
+    console.error('📱 PrimaryWebView: WebView load error:', nativeEvent)
+    setIsWebViewLoading(false)
+    setWebViewError(nativeEvent)
+  }, [])
+
+  /**
+   * Handle HTTP errors (e.g., 404, 500, network timeouts)
+   */
+  const handleHttpError = useCallback((syntheticEvent) => {
+    const { nativeEvent } = syntheticEvent
+    console.error('📱 PrimaryWebView: WebView HTTP error:', nativeEvent)
+    setIsWebViewLoading(false)
+    setWebViewError(nativeEvent)
   }, [])
   
+  // Show error screen if WebView failed to load due to network issues
+  if (webViewError && (!isConnected || !isInternetReachable)) {
+    return (
+      <NoInternetConnection 
+        onRetry={() => {
+          // Clear error and reload WebView
+          setWebViewError(null)
+          setIsWebViewLoading(true)
+          // WebView will reload when component re-renders
+        }} 
+      />
+    )
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
       {isWebViewLoading && (
@@ -130,6 +185,8 @@ export default function PrimaryWebView() {
         path={webViewPath}
         messageHandler={messageHandler}
         onLoadEnd={handleLoadEnd}
+        onError={handleError}
+        onHttpError={handleHttpError}
         // NOTE: Pull-to-refresh is handled on the web side via usePullToRefresh hook
         // Native pull-to-refresh doesn't work with AutoHeightWebView because:
         // - AutoHeightWebView manages its own height based on content
