@@ -85,7 +85,7 @@ const UserSettings = () => {
     },
     {
       name: t('Language'),
-      path: 'language',
+      path: 'locale',
       component: <LocaleTab currentUser={currentUser} />
     },
     {
