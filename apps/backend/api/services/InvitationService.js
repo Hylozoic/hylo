@@ -148,22 +148,35 @@ module.exports = {
     })
   },
 
-  check: (token, accessCode) => {
+  /**
+   * Check if an invitation is valid and return group information for redirect
+   * @param token {String} invitation token from email invite
+   * @param accessCode {String} access code from invite link
+   * @returns {Object} { valid, groupSlug, email }
+   */
+  check: async (token, accessCode) => {
     if (accessCode) {
-      return Group.queryByAccessCode(accessCode)
-        .count()
-        .then(count => {
-          return {valid: count !== '0'}
-        })
+      const group = await Group.queryByAccessCode(accessCode).fetch()
+      return {
+        valid: !!group,
+        groupSlug: group ? group.get('slug') : null
       }
-    if (token) {
-      return Invitation.query()
-        .where({ token, used_by_id: null, expired_by_id: null })
-        .count()
-        .then(result => {
-          return { valid: result[0].count !== '0' }
-        })
     }
+    if (token) {
+      const invitation = await Invitation.query()
+        .where({ token, used_by_id: null, expired_by_id: null })
+        .first()
+      if (invitation) {
+        const group = await Group.find(invitation.group_id)
+        return {
+          valid: true,
+          groupSlug: group ? group.get('slug') : null,
+          email: invitation.email
+        }
+      }
+      return { valid: false }
+    }
+    return { valid: false }
   },
 
   async use (userId, token, accessCode) {

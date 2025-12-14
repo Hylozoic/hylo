@@ -329,8 +329,19 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
-    // Can only access public communities and posts
-    group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC }),
+    // Can only access public communities and posts, unless a valid invitation is provided
+    group: async (root, { id, slug, accessCode, invitationToken }) => {
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (inviteCheck?.valid) {
+          // Fetch group without visibility restriction
+          return Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: only allow PUBLIC visibility groups
+      return fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC })
+    },
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
@@ -353,9 +364,20 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     connections: (root, args) => fetchMany('PersonConnection', args),
     contentAccess: (root, args) => fetchMany('ContentAccess', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
-    group: async (root, { id, slug, updateLastViewed }, context) => {
-      // you can specify id or slug, but not both
-      const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+    group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
+      let group
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (inviteCheck?.valid) {
+          // Fetch group directly without normal visibility filter
+          group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: use normal fetch with group filter applied
+      if (!group) {
+        group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+      }
       if (updateLastViewed && group) {
         // Resets new post count to 0
         await GroupMembership.updateLastViewedAt(context.currentUserId, group)

@@ -92,7 +92,11 @@ type Query {
     id: ID,
     slug: String,
     # Set to true to mark all notifications as read for this group by the current logged in user
-    updateLastViewed: Boolean
+    updateLastViewed: Boolean,
+    # Access code from invitation link - allows viewing the about page for restricted/hidden groups
+    accessCode: String,
+    # Invitation token from email invite - allows viewing the about page for restricted/hidden groups
+    invitationToken: String
   ): Group
 
   # Check whether a Group exists by URL slug
@@ -583,6 +587,10 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The slug of the group for redirect purposes
+  groupSlug: String
+  # The email address from the invitation (for token-based invites)
+  email: String
 }
 
 type Collection {

@@ -43,6 +43,7 @@ import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
 import {
   createJoinRequest,
@@ -75,9 +76,20 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const responsibilityTitles = useMemo(() => responsibilities.map(r => r.title), [responsibilities])
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
 
+  // Read invitation params from URL (passed by JoinGroup redirect)
+  const accessCode = getQuerystringParam('accessCode', location)
+  const invitationToken = getQuerystringParam('token', location)
+
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({ slug, withContextWidgets: false, withWidgets: true, withPrerequisites: !!currentUser }))
-  }, [dispatch, slug, currentUser])
+    dispatch(fetchGroupDetails({
+      slug,
+      accessCode,
+      invitationToken,
+      withContextWidgets: false,
+      withWidgets: true,
+      withPrerequisites: !!currentUser
+    }))
+  }, [dispatch, slug, accessCode, invitationToken, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
     await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))

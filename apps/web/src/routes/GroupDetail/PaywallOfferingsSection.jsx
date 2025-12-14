@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
@@ -6,6 +6,7 @@ import { DollarSign, CreditCard } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
+import { offeringGrantsGroupAccess } from 'util/accessGrants'
 
 /**
  * PaywallOfferingsSection Component
@@ -112,45 +113,128 @@ export default function PaywallOfferingsSection ({ group }) {
       </p>
       <div className='flex flex-col gap-3'>
         {offerings.map(offering => (
-          <div
+          <OfferingCard
             key={offering.id}
-            className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'
-          >
-            <div className='flex items-start justify-between mb-2'>
-              <div className='flex-1'>
-                <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
-                {offering.description && (
-                  <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
-                )}
-                <div className='flex items-center gap-4 text-sm text-foreground/60'>
-                  {offering.priceInCents && (
-                    <span>
-                      {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
-                    </span>
-                  )}
-                  {offering.duration && (
-                    <span>
-                      {t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}
-                    </span>
-                  )}
-                  {!offering.duration && (
-                    <span>{t('Duration')}: {t('Lifetime')}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <Button
-              variant='secondary'
-              className='w-full mt-3 flex items-center justify-center gap-2'
-              onClick={() => handlePurchase(offering)}
-              disabled={checkoutLoading === offering.id}
-            >
-              <CreditCard className='w-4 h-4' />
-              {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
-            </Button>
-          </div>
+            offering={offering}
+            group={group}
+            checkoutLoading={checkoutLoading}
+            onPurchase={handlePurchase}
+            t={t}
+          />
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * OfferingCard Component
+ *
+ * Displays a single offering with its details and what access it grants
+ */
+function OfferingCard ({ offering, group, checkoutLoading, onPurchase, t }) {
+  const grantsGroupAccess = useMemo(() => {
+    if (!group?.id || !offering) return false
+    return offeringGrantsGroupAccess(offering, group.id)
+  }, [offering, group?.id])
+
+  const hasTracks = offering.tracks && offering.tracks.length > 0
+  const hasRoles = offering.roles && offering.roles.length > 0
+  const hasAccessGrants = grantsGroupAccess || hasTracks || hasRoles
+
+  return (
+    <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'>
+      <div className='flex items-start justify-between mb-2'>
+        <div className='flex-1'>
+          <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
+          {offering.description && (
+            <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
+          )}
+          <div className='flex items-center gap-4 text-sm text-foreground/60'>
+            {offering.priceInCents && (
+              <span>
+                {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
+              </span>
+            )}
+            {offering.duration && (
+              <span>
+                {t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}
+              </span>
+            )}
+            {!offering.duration && (
+              <span>{t('Duration')}: {t('Lifetime')}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Access Grants Section */}
+      {hasAccessGrants && (
+        <div className='border-t border-foreground/10 pt-3 mt-3'>
+          {grantsGroupAccess && (
+            <p className='text-sm font-semibold text-foreground mb-2'>
+              {t('Grants access to the group')}
+            </p>
+          )}
+
+          {(hasTracks || hasRoles) && (
+            <div className='flex flex-col gap-2'>
+              {hasTracks && (
+                <div>
+                  <span className='text-xs font-medium text-foreground/70 mb-1 block'>
+                    {t('Tracks')}:
+                  </span>
+                  <div className='flex flex-wrap gap-1'>
+                    {offering.tracks.map(track => (
+                      <div
+                        key={track.id}
+                        className='inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
+                      >
+                        {track.bannerUrl && (
+                          <img
+                            src={track.bannerUrl}
+                            alt={track.name}
+                            className='w-5 h-5 rounded object-cover'
+                          />
+                        )}
+                        <span>{track.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {hasRoles && (
+                <div>
+                  <span className='text-xs font-medium text-foreground/70 mb-1 block'>
+                    {t('Roles')}:
+                  </span>
+                  <div className='flex flex-wrap gap-1'>
+                    {offering.roles.map(role => (
+                      <span
+                        key={role.id}
+                        className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
+                      >
+                        {role.emoji && <span>{role.emoji}</span>}
+                        <span>{role.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Button
+        variant='secondary'
+        className='w-full mt-3 flex items-center justify-center gap-2'
+        onClick={() => onPurchase(offering)}
+        disabled={checkoutLoading === offering.id}
+      >
+        <CreditCard className='w-4 h-4' />
+        {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
+      </Button>
     </div>
   )
 }
