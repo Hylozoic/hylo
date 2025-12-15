@@ -5,16 +5,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 21px;
-  height: 21px;
+  width: 16px;
+  height: 16px;
 }
 
 @mixin badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 21px;
-  height: 21px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   color: hsl(var(--accent-foreground));
   background-color: hsl(var(--accent));

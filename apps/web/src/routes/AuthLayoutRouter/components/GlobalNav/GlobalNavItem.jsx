@@ -133,7 +133,7 @@ export default function GlobalNavItem ({
               'scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl',
               {
                 'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
-                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!'
+                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!' || badgeCount === '-'
               },
               className
             )}

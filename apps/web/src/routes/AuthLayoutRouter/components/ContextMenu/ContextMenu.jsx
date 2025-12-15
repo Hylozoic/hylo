@@ -218,7 +218,7 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}>
+      <div className={cn('ContextMenu bg-background z-20 isolate pointer-events-auto h-full w-[250px] xs:w-[300px] sm:w-[320px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}>
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
             ? <GroupMenuHeader group={group} />
@@ -822,7 +822,7 @@ function GroupSettingsMenu ({ group }) {
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 
   return (
-    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background/60 z-[1050]'>
+    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] md:left-[80px] w-[270px] xs:w-[320px] sm:w-[330px] bg-background/60 z-[1050] overflow-y-auto '>
       <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
