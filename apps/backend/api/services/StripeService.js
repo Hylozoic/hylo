@@ -561,7 +561,7 @@ module.exports = {
       if (mode === 'subscription') {
         // For subscriptions, use subscription_data with platform fee
         sessionConfig.subscription_data = {
-          application_fee_percent: 10.0, // Platform takes 10% of each subscription payment
+          application_fee_percent: 7.0, // Platform takes 7% of each subscription payment
           metadata // Metadata flows to subscription
         }
       } else {

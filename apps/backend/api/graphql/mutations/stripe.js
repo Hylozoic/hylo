@@ -698,10 +698,9 @@ module.exports = {
       // Calculate the total amount (price * quantity)
       const totalAmount = priceObject.unit_amount * (quantity || 1)
 
-      // Calculate application fee (10% of total as example)
-      // TODO STRIPE: Adjust this percentage or calculation based on your business model
-      // You can make this configurable per group or product
-      const applicationFeePercentage = 0.10 // 10%
+      // Calculate application fee (7% of total)
+      // TODO STRIPE: Consider making this configurable per group or product
+      const applicationFeePercentage = 0.07 // 7%
       const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
 
       // Create the checkout session
