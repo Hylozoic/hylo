@@ -3201,7 +3201,9 @@ type Mutation {
   # Join a funding round
   joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
-  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
+  # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
+  # Set acceptAgreements to true if user has accepted agreements during join flow.
+  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round

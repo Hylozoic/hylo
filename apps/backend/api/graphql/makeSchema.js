@@ -598,7 +598,7 @@ export function makeMutations ({ fetchOne }) {
 
     joinFundingRound: (root, { id }, context) => joinFundingRound(context.currentUserId, id),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
+    joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 

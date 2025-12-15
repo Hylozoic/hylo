@@ -92,13 +92,20 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [dispatch, slug, accessCode, invitationToken, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
-    await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+    // Pass acceptAgreements: true since user can only reach this point after accepting all barriers
+    await dispatch(joinGroup(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
+      accessCode,
+      invitationToken,
+      true // acceptAgreements - user accepted during join flow
+    ))
     if (isWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
     } else {
       navigate(groupUrl(group.slug))
     }
-  }, [dispatch, group])
+  }, [dispatch, group, accessCode, invitationToken])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
@@ -203,32 +210,18 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
-        {group.agreements?.length > 0
-          ? (
-            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
-              <h2>{t('Agreements')}</h2>
-              {group.agreements.map((agreement, i) => {
-                return (
-                  <div key={i}>
-                    <strong>{parseInt(i) + 1}) {agreement.title}</strong>
-                    <ClickCatcher>
-                      <HyloHTML element='span' html={TextHelpers.markdown(agreement.description)} />
-                    </ClickCatcher>
-                  </div>
-                )
-              })}
-            </div>)
-          : ''}
         {!isAboutCurrentGroup
           ? group.paywall
             ? (
               <div>
                 <JoinSection
+                  accessCode={accessCode}
                   addSkill={addSkill}
                   currentUser={currentUser}
                   fullPage={fullPage}
                   group={group}
                   groupsWithPendingRequests={groupsWithPendingRequests}
+                  invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
                   requestToJoinGroup={requestToJoinGroup}
                   removeSkill={removeSkill}
@@ -253,11 +246,13 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   : (
                     <div>
                       <JoinSection
+                        accessCode={accessCode}
                         addSkill={addSkill}
                         currentUser={currentUser}
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}
+                        invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}
                         requestToJoinGroup={requestToJoinGroup}
                         removeSkill={removeSkill}

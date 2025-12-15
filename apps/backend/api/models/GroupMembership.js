@@ -59,9 +59,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   async acceptAgreements (transacting) {
-    this.addSetting({ agreementsAcceptedAt: (new Date()).toISOString() })
     const groupId = this.get('group_id')
     const groupAgreements = await GroupAgreement.where({ group_id: groupId }).fetchAll({ transacting })
+
+    // Only set agreementsAcceptedAt if the group actually has agreements
+    // This prevents falsely recording acceptance when there's nothing to accept
+    if (groupAgreements.length === 0) {
+      return
+    }
+
+    this.addSetting({ agreementsAcceptedAt: (new Date()).toISOString() })
+
     for (const ga of groupAgreements) {
       const attrs = { group_id: groupId, user_id: this.get('user_id'), agreement_id: ga.get('agreement_id') }
       await UserGroupAgreement

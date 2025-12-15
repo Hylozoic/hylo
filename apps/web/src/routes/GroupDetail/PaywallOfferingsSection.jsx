@@ -7,12 +7,14 @@ import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess } from 'util/accessGrants'
+import { JoinBarriers } from './JoinSection'
 
 /**
  * PaywallOfferingsSection Component
  *
  * Displays available offerings for a paywalled group and allows users
- * to purchase access via Stripe checkout.
+ * to purchase access via Stripe checkout. Includes barriers (agreements/questions)
+ * that must be satisfied before purchase.
  */
 export default function PaywallOfferingsSection ({ group }) {
   const { t } = useTranslation()
@@ -20,6 +22,17 @@ export default function PaywallOfferingsSection ({ group }) {
   const [offerings, setOfferings] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(null)
+
+  // Barriers state - track whether agreements/questions are satisfied
+  const [barriersState, setBarriersState] = useState({ canProceed: true, questionAnswers: [], hasBarriers: false })
+  const [barriersExpanded, setBarriersExpanded] = useState(false)
+
+  // Determine if purchase buttons should be disabled
+  const isPurchaseDisabled = barriersExpanded && barriersState.hasBarriers && !barriersState.canProceed
+
+  const handleBarriersStateChange = useCallback((state) => {
+    setBarriersState(state)
+  }, [])
 
   // Fetch offerings for the group using public query
   useEffect(() => {
@@ -48,10 +61,22 @@ export default function PaywallOfferingsSection ({ group }) {
 
   /**
    * Creates a Stripe checkout session and redirects to payment
+   * First click expands barriers if they exist, subsequent clicks proceed with payment
    */
   const handlePurchase = useCallback(async (offering) => {
     if (!group?.id || !offering?.id) {
       alert(t('Unable to process payment. Please contact support.'))
+      return
+    }
+
+    // If barriers exist and not expanded, expand them first
+    if (barriersState.hasBarriers && !barriersExpanded) {
+      setBarriersExpanded(true)
+      return
+    }
+
+    // If barriers exist but not satisfied, don't proceed
+    if (barriersState.hasBarriers && !barriersState.canProceed) {
       return
     }
 
@@ -80,7 +105,7 @@ export default function PaywallOfferingsSection ({ group }) {
       alert(t('Failed to start payment process: {{error}}', { error: error.message }))
       setCheckoutLoading(null)
     }
-  }, [group, t])
+  }, [group, barriersState, barriersExpanded])
 
   if (loading) {
     return (
@@ -111,6 +136,15 @@ export default function PaywallOfferingsSection ({ group }) {
       <p className='text-foreground/70 text-sm mb-4'>
         {t('Choose a payment option below to gain access to this group:')}
       </p>
+
+      {/* Barriers Section - shown when expanded */}
+      {barriersExpanded && (
+        <JoinBarriers
+          group={group}
+          onBarriersStateChange={handleBarriersStateChange}
+        />
+      )}
+
       <div className='flex flex-col gap-3'>
         {offerings.map(offering => (
           <OfferingCard
@@ -119,7 +153,7 @@ export default function PaywallOfferingsSection ({ group }) {
             group={group}
             checkoutLoading={checkoutLoading}
             onPurchase={handlePurchase}
-            t={t}
+            isPurchaseDisabled={isPurchaseDisabled}
           />
         ))}
       </div>
@@ -132,7 +166,8 @@ export default function PaywallOfferingsSection ({ group }) {
  *
  * Displays a single offering with its details and what access it grants
  */
-function OfferingCard ({ offering, group, checkoutLoading, onPurchase, t }) {
+function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled }) {
+  const { t } = useTranslation()
   const grantsGroupAccess = useMemo(() => {
     if (!group?.id || !offering) return false
     return offeringGrantsGroupAccess(offering, group.id)
@@ -230,7 +265,7 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, t }) {
         variant='secondary'
         className='w-full mt-3 flex items-center justify-center gap-2'
         onClick={() => onPurchase(offering)}
-        disabled={checkoutLoading === offering.id}
+        disabled={checkoutLoading === offering.id || isPurchaseDisabled}
       >
         <CreditCard className='w-4 h-4' />
         {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}

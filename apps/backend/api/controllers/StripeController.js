@@ -323,9 +323,14 @@ module.exports = {
       // Ensure user is a member of all groups that received access and pin to nav
       for (const accessGroupId of groupsToJoin) {
         try {
-          await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
             role: GroupMembership.Role.DEFAULT
           })
+
+          // Record agreement acceptance - user accepted agreements before purchase
+          if (membership) {
+            await membership.acceptAgreements()
+          }
 
           // Pin the purchased group to the user's global navigation
           await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
@@ -509,9 +514,14 @@ module.exports = {
 
       for (const accessGroupId of groupsToJoin) {
         try {
-          await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
             role: GroupMembership.Role.DEFAULT
           })
+
+          // Record agreement acceptance - user accepted agreements before purchase
+          if (membership) {
+            await membership.acceptAgreements()
+          }
 
           // Pin the purchased group to the user's global navigation
           await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
