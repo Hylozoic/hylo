@@ -273,16 +273,37 @@ module.exports = {
       // Convert database ID to external account ID if needed
       const externalAccountId = await getExternalAccountId(accountId)
 
+      // Determine billing interval based on duration for recurring products
+      // Map duration to Stripe interval and interval_count
+      let billingInterval = null
+      let billingIntervalCount = 1
+      if (duration === 'month') {
+        billingInterval = 'month'
+        billingIntervalCount = 1
+      } else if (duration === 'season') {
+        billingInterval = 'month'
+        billingIntervalCount = 3 // Quarterly - every 3 months
+      } else if (duration === 'annual') {
+        billingInterval = 'year'
+        billingIntervalCount = 1
+      }
+      // lifetime and null duration = one-time payment (no interval)
+
       // Create the product on the connected account
       const product = await StripeService.createProduct({
         accountId: externalAccountId,
         name,
         description,
         priceInCents,
-        currency: currency || 'usd'
+        currency: currency || 'usd',
+        billingInterval,
+        billingIntervalCount
       })
 
       // Save offering to database for tracking and association with content
+      // Default renewal_policy to 'automatic' for subscription-based products
+      const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
+
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -292,7 +313,7 @@ module.exports = {
         price_in_cents: priceInCents,
         currency: currency || 'usd',
         access_grants: accessGrants || {},
-        renewal_policy: renewalPolicy || 'manual',
+        renewal_policy: effectiveRenewalPolicy,
         duration: duration || null,
         publish_status: publishStatus || 'unpublished'
       })
@@ -703,6 +724,11 @@ module.exports = {
       const applicationFeePercentage = 0.07 // 7%
       const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
 
+      // Determine checkout mode based on renewal policy
+      // If automatic renewal, use subscription mode; otherwise payment mode
+      const renewalPolicy = offering.get('renewal_policy')
+      const checkoutMode = renewalPolicy === 'automatic' ? 'subscription' : 'payment'
+
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
         accountId: externalAccountId,
@@ -711,6 +737,7 @@ module.exports = {
         applicationFeeAmount,
         successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
         cancelUrl,
+        mode: checkoutMode,
         metadata: {
           groupId,
           offeringId,

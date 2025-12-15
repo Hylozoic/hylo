@@ -266,9 +266,11 @@ module.exports = {
    * @param {String} params.description - Product description
    * @param {Number} params.priceInCents - Price in cents (e.g. 2000 = $20.00)
    * @param {String} params.currency - Three-letter currency code (e.g. 'usd')
+   * @param {String} params.billingInterval - Optional: 'month', 'year', or null for one-time
+   * @param {Number} params.billingIntervalCount - Optional: number of intervals (e.g., 3 for quarterly)
    * @returns {Promise<Object>} The created product with default price
    */
-  async createProduct ({ accountId, name, description, priceInCents, currency = 'usd' }) {
+  async createProduct ({ accountId, name, description, priceInCents, currency = 'usd', billingInterval = null, billingIntervalCount = 1 }) {
     try {
       // Validate required parameters
       if (!accountId) {
@@ -287,14 +289,24 @@ module.exports = {
         throw new Error('Price must be a positive number')
       }
 
+      // Build price data - add recurring if billingInterval specified
+      const priceData = {
+        unit_amount: priceInCents,
+        currency: currency.toLowerCase()
+      }
+
+      if (billingInterval) {
+        priceData.recurring = {
+          interval: billingInterval, // 'day', 'week', 'month', or 'year'
+          interval_count: billingIntervalCount // e.g., 3 for quarterly (every 3 months)
+        }
+      }
+
       // Create product on the connected account using stripeAccount parameter
       const product = await stripe.products.create({
         name,
         description: description || '',
-        default_price_data: {
-          unit_amount: priceInCents,
-          currency: currency.toLowerCase()
-        }
+        default_price_data: priceData
       }, {
         stripeAccount: accountId // This header creates the product on the connected account
       })
