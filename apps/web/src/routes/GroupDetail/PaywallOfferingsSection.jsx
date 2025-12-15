@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { DollarSign, CreditCard } from 'lucide-react'
@@ -7,6 +7,7 @@ import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess } from 'util/accessGrants'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import { JoinBarriers } from './JoinSection'
 
 /**
@@ -19,6 +20,10 @@ import { JoinBarriers } from './JoinSection'
 export default function PaywallOfferingsSection ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const myMemberships = useSelector(getMyMemberships)
+  const hasMembership = useMemo(() =>
+    group?.id && myMemberships?.some(m => m.group?.id === group.id),
+  [group?.id, myMemberships])
   const [offerings, setOfferings] = useState([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(null)
@@ -35,6 +40,7 @@ export default function PaywallOfferingsSection ({ group }) {
   }, [])
 
   // Fetch offerings for the group using public query
+  // Filter to only show offerings that grant access to this group
   useEffect(() => {
     if (!group?.paywall || !group?.id) {
       setLoading(false)
@@ -47,7 +53,11 @@ export default function PaywallOfferingsSection ({ group }) {
         const responseData = result.payload?.getData ? result.payload.getData() : result.payload?.data?.publicStripeOfferings
 
         if (responseData?.offerings) {
-          setOfferings(responseData.offerings)
+          // Filter to only include offerings that grant access to this group
+          const groupAccessOfferings = responseData.offerings.filter(offering =>
+            offeringGrantsGroupAccess(offering, group.id)
+          )
+          setOfferings(groupAccessOfferings)
         }
       } catch (error) {
         console.error('Error loading offerings:', error)
@@ -127,12 +137,21 @@ export default function PaywallOfferingsSection ({ group }) {
     )
   }
 
+  // Check if user has membership but no access (lapsed/revoked)
+  // Only show lapsed message if user has a membership but canAccess is false
+  const isLapsedMember = hasMembership && group?.canAccess === false
+
   return (
     <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
       <div className='flex items-center gap-2 mb-4'>
         <DollarSign className='w-6 h-6 text-foreground' />
         <h3 className='text-lg font-semibold'>{t('This group requires a fee to join')}</h3>
       </div>
+      {isLapsedMember && (
+        <p className='text-foreground/70 text-sm mb-2 italic'>
+          {t('Either your membership has lapsed or the group stewards have added a paywall to the group.')}
+        </p>
+      )}
       <p className='text-foreground/70 text-sm mb-4'>
         {t('Choose a payment option below to gain access to this group:')}
       </p>
