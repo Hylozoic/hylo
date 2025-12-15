@@ -17,10 +17,9 @@ export const SIGNUP_PATH = '/signup'
  * @param groupSlug {string} the group slug
  * @param accessCode {string|null} the access code if present
  * @param invitationToken {string|null} the invitation token if present
- * @param email {string|null} the email from the invitation
  * @returns {string} the redirect URL with query params
  */
-function buildAboutRedirectUrl (groupSlug, accessCode, invitationToken, email) {
+function buildAboutRedirectUrl (groupSlug, accessCode, invitationToken) {
   const baseRedirectUrl = groupUrl(groupSlug, 'about')
   const params = new URLSearchParams()
 
@@ -28,9 +27,6 @@ function buildAboutRedirectUrl (groupSlug, accessCode, invitationToken, email) {
     params.set('accessCode', accessCode)
   } else if (invitationToken) {
     params.set('token', invitationToken)
-    if (email) {
-      params.set('email', email)
-    }
   }
 
   const queryString = params.toString()
@@ -69,7 +65,7 @@ export default function JoinGroup (props) {
           throw new Error(t('Invalid invitation'))
         }
 
-        const { groupSlug, email } = checkResult
+        const { groupSlug } = checkResult
 
         if (!groupSlug) {
           throw new Error(t('Could not determine group from invitation'))
@@ -77,10 +73,10 @@ export default function JoinGroup (props) {
 
         if (signupComplete) {
           // Redirect authenticated users to the group about page with invitation params
-          setRedirectTo(buildAboutRedirectUrl(groupSlug, accessCode, invitationToken, email))
+          setRedirectTo(buildAboutRedirectUrl(groupSlug, accessCode, invitationToken))
         } else {
           // Redirect non-authenticated users to signup, then back to group about page
-          const returnToUrl = buildAboutRedirectUrl(groupSlug, accessCode, invitationToken, email)
+          const returnToUrl = buildAboutRedirectUrl(groupSlug, accessCode, invitationToken)
           dispatch(setReturnToPath(returnToUrl))
           setRedirectTo(SIGNUP_PATH)
         }

@@ -1,5 +1,5 @@
 import { keyBy } from 'lodash'
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +19,7 @@ import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
@@ -80,6 +81,29 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const accessCode = getQuerystringParam('accessCode', location)
   const invitationToken = getQuerystringParam('token', location)
 
+  // For email invites, fetch the associated email from backend (not URL for security)
+  const [invitationEmail, setInvitationEmail] = useState(null)
+  const [invitationChecked, setInvitationChecked] = useState(false)
+
+  useEffect(() => {
+    if (invitationToken && currentUser && !invitationChecked) {
+      (async () => {
+        const result = await dispatch(checkInvitation({ invitationToken }))
+        const checkResult = result?.payload?.getData()
+        if (checkResult?.email) {
+          setInvitationEmail(checkResult.email)
+        }
+        setInvitationChecked(true)
+      })()
+    }
+  }, [invitationToken, currentUser, invitationChecked, dispatch])
+
+  // For email invites, validate that logged-in user's email matches the invitation email
+  const hasEmailInvite = !!(invitationToken && invitationEmail)
+  const userEmail = currentUser?.email?.toLowerCase()
+  const inviteEmailLower = invitationEmail?.toLowerCase()
+  const emailMismatch = hasEmailInvite && currentUser && userEmail !== inviteEmailLower
+
   const fetchGroup = useCallback(() => {
     dispatch(fetchGroupDetails({
       slug,
@@ -136,6 +160,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   if (!group && !pending) return <NotFound />
   if (pending) return <Loading />
+
+  // Wait for invitation check to complete before showing content (for email invites)
+  if (invitationToken && currentUser && !invitationChecked) return <Loading />
+
+  // Show error if email invite doesn't match logged-in user's email
+  if (emailMismatch) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[400px] p-8 text-center'>
+        <Icon name='AlertTriangle' className='w-16 h-16 text-warning mb-4' />
+        <h2 className='text-xl font-bold text-foreground mb-2'>
+          {t('This invitation is not for your account')}
+        </h2>
+        <p className='text-foreground/70 mb-4'>
+          {t('This invitation was sent to {{email}}. You are currently logged in as {{userEmail}}.', {
+            email: invitationEmail,
+            userEmail: currentUser?.email
+          })}
+        </p>
+        <p className='text-foreground/70 text-sm'>
+          {t('Please log in with the correct account or request a new invitation.')}
+        </p>
+      </div>
+    )
+  }
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
