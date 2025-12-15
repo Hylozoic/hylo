@@ -13,8 +13,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  min-width: 21px;
+  height: 21px;
   border-radius: 50%;
   color: hsl(var(--accent-foreground));
   background-color: hsl(var(--accent));
