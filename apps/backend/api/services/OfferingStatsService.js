@@ -213,21 +213,84 @@ module.exports = {
   },
 
   /**
-   * Calculate monthly revenue for an offering from Stripe subscriptions
+   * Calculate monthly revenue for an offering
    *
-   * Fetches active subscriptions from Stripe in a single API call and calculates
-   * the normalized monthly revenue by converting all billing intervals to monthly equivalents.
+   * For subscription offerings (renewal_policy = 'automatic'):
+   *   Fetches active subscriptions from Stripe and normalizes to monthly revenue.
+   *
+   * For one-time payment offerings (renewal_policy = 'manual'):
+   *   Calculates the sum of purchases from the last 30 days based on content_access records.
    *
    * @param {String|Number} productId - The StripeProduct ID
    * @returns {Promise<Object>} - { monthlyRevenueCents: Number, currency: String }
    */
   async calculateMonthlyRevenue (productId) {
-    // Get the offering to find the group and Stripe price ID
+    // Get the offering to find the group, price, and duration
     const offering = await StripeProduct.where({ id: productId }).fetch()
     if (!offering) {
       return { monthlyRevenueCents: 0, currency: 'usd' }
     }
 
+    const duration = offering.get('duration')
+
+    // Check if this is a subscription offering (has a recurring duration)
+    const isSubscription = ['annual', 'month', 'season'].includes(duration)
+
+    // For one-time payments (no duration/lifetime), calculate from last 30 days of purchases
+    if (!isSubscription) {
+      return this.calculateOneTimePaymentRevenue(productId, offering)
+    }
+
+    // For subscriptions, calculate from active Stripe subscriptions
+    return this.calculateSubscriptionRevenue(productId, offering)
+  },
+
+  /**
+   * Calculate revenue from one-time payment purchases in the last 30 days
+   *
+   * Uses content_access records to count purchases and multiplies by the offering price.
+   * Note: If the price has changed, this reflects the current price, not the historical purchase price.
+   *
+   * @param {String|Number} productId - The StripeProduct ID
+   * @param {Object} offering - The StripeProduct model instance
+   * @returns {Promise<Object>} - { monthlyRevenueCents: Number, currency: String }
+   */
+  async calculateOneTimePaymentRevenue (productId, offering) {
+    const currency = offering.get('currency') || 'usd'
+    const priceInCents = offering.get('price_in_cents') || 0
+
+    // Calculate date 30 days ago
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    // Count purchases in the last 30 days
+    const result = await bookshelf.knex('content_access')
+      .where({ product_id: productId })
+      .where('created_at', '>=', thirtyDaysAgo)
+      .whereNull('stripe_subscription_id') // One-time payments don't have subscription IDs
+      .count('* as count')
+      .first()
+
+    const purchaseCount = parseInt(result.count, 10) || 0
+    const monthlyRevenueCents = purchaseCount * priceInCents
+
+    return {
+      monthlyRevenueCents,
+      currency
+    }
+  },
+
+  /**
+   * Calculate monthly revenue from active Stripe subscriptions
+   *
+   * Fetches active subscriptions from Stripe in a single API call and calculates
+   * the normalized monthly revenue by converting all billing intervals to monthly equivalents.
+   *
+   * @param {String|Number} productId - The StripeProduct ID
+   * @param {Object} offering - The StripeProduct model instance
+   * @returns {Promise<Object>} - { monthlyRevenueCents: Number, currency: String }
+   */
+  async calculateSubscriptionRevenue (productId, offering) {
     const groupId = offering.get('group_id')
     const currency = offering.get('currency') || 'usd'
     const stripePriceId = offering.get('stripe_price_id')
