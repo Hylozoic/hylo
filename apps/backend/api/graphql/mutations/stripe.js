@@ -9,6 +9,7 @@
  */
 
 import { GraphQLError } from 'graphql'
+import StripeService from '../../services/StripeService'
 
 /* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
 
@@ -165,60 +166,6 @@ module.exports = {
   },
 
   /**
-   * Retrieves the status of a connected account
-   *
-   * This query fetches the current onboarding status and capabilities
-   * of a connected account directly from Stripe.
-   *
-   * Usage:
-   *   query {
-   *     stripeAccountStatus(
-   *       groupId: "123"
-   *       accountId: "acct_xxx"
-   *     ) {
-   *       chargesEnabled
-   *       payoutsEnabled
-   *       detailsSubmitted
-   *     }
-   *   }
-   */
-  stripeAccountStatus: async (userId, { groupId, accountId }) => {
-    try {
-      // Check if user is authenticated
-      if (!userId) {
-        throw new GraphQLError('You must be logged in to view account status')
-      }
-
-      // Verify user has permission for this group
-      const hasMembership = await GroupMembership.hasActiveMembership(userId, groupId)
-      if (!hasMembership) {
-        throw new GraphQLError('You must be a member of this group to view payment status')
-      }
-
-      // Convert database ID to external account ID if needed
-      const externalAccountId = await getExternalAccountId(accountId)
-
-      // Get account status from Stripe using the external account ID
-      const status = await StripeService.getAccountStatus(externalAccountId)
-
-      return {
-        accountId: status.id,
-        chargesEnabled: status.charges_enabled,
-        payoutsEnabled: status.payouts_enabled,
-        detailsSubmitted: status.details_submitted,
-        email: status.email,
-        requirements: status.requirements
-      }
-    } catch (error) {
-      if (error instanceof GraphQLError) {
-        throw error
-      }
-      console.error('Error in stripeAccountStatus:', error)
-      throw new GraphQLError(`Failed to retrieve account status: ${error.message}`)
-    }
-  },
-
-  /**
    * Creates an offering on the connected account
    *
    * Offerings represent subscription tiers, content access, or other
@@ -233,7 +180,7 @@ module.exports = {
    *       description: "Access to all premium content"
    *       priceInCents: 2000
    *       currency: "usd"
-   *       contentAccess: {
+   *       accessGrants: {
    *         trackIds: [456, 789]
    *         roleIds: [1, 2]
    *         groupIds: [123]
@@ -253,7 +200,7 @@ module.exports = {
     description,
     priceInCents,
     currency,
-    contentAccess,
+    accessGrants,
     renewalPolicy,
     duration,
     publishStatus
@@ -273,16 +220,37 @@ module.exports = {
       // Convert database ID to external account ID if needed
       const externalAccountId = await getExternalAccountId(accountId)
 
+      // Determine billing interval based on duration for recurring products
+      // Map duration to Stripe interval and interval_count
+      let billingInterval = null
+      let billingIntervalCount = 1
+      if (duration === 'month') {
+        billingInterval = 'month'
+        billingIntervalCount = 1
+      } else if (duration === 'season') {
+        billingInterval = 'month'
+        billingIntervalCount = 3 // Quarterly - every 3 months
+      } else if (duration === 'annual') {
+        billingInterval = 'year'
+        billingIntervalCount = 1
+      }
+      // lifetime and null duration = one-time payment (no interval)
+
       // Create the product on the connected account
       const product = await StripeService.createProduct({
         accountId: externalAccountId,
         name,
         description,
         priceInCents,
-        currency: currency || 'usd'
+        currency: currency || 'usd',
+        billingInterval,
+        billingIntervalCount
       })
 
       // Save offering to database for tracking and association with content
+      // Default renewal_policy to 'automatic' for subscription-based products
+      const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
+
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -291,8 +259,8 @@ module.exports = {
         description: product.description,
         price_in_cents: priceInCents,
         currency: currency || 'usd',
-        content_access: contentAccess || {},
-        renewal_policy: renewalPolicy || 'manual',
+        access_grants: accessGrants || {},
+        renewal_policy: effectiveRenewalPolicy,
         duration: duration || null,
         publish_status: publishStatus || 'unpublished'
       })
@@ -327,7 +295,7 @@ module.exports = {
    *       name: "Updated Premium Membership"
    *       description: "Updated description"
    *       priceInCents: 2500
-   *       contentAccess: {
+   *       accessGrants: {
    *         trackIds: [456, 789]
    *         roleIds: [1, 2]
    *         groupIds: [123]
@@ -345,7 +313,7 @@ module.exports = {
     description,
     priceInCents,
     currency,
-    contentAccess,
+    accessGrants,
     renewalPolicy,
     duration,
     publishStatus
@@ -390,7 +358,7 @@ module.exports = {
       }
 
       // Fields that are platform-only (don't sync with Stripe)
-      if (contentAccess !== undefined) updateAttrs.content_access = contentAccess
+      if (accessGrants !== undefined) updateAttrs.access_grants = accessGrants
       if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
       if (duration !== undefined) updateAttrs.duration = duration
       if (publishStatus !== undefined) {
@@ -453,60 +421,6 @@ module.exports = {
   },
 
   /**
-   * Lists all offerings for a connected account
-   *
-   * Fetches offerings from the database (not from Stripe API) to ensure
-   * we show all offerings including those that may not be synced to Stripe yet.
-   *
-   * Usage:
-   *   query {
-   *     stripeOfferings(
-   *       groupId: "123"
-   *       accountId: "acct_xxx"
-   *     ) {
-   *       offerings {
-   *         id
-   *         name
-   *         description
-   *         priceInCents
-   *         currency
-   *         stripeProductId
-   *         stripePriceId
-   *       }
-   *     }
-   *   }
-   */
-  stripeOfferings: async (userId, { groupId, accountId }) => {
-    try {
-      // Check if user is authenticated
-      if (!userId) {
-        throw new GraphQLError('You must be logged in to view offerings')
-      }
-
-      // Verify user has permission for this group
-      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
-      if (!hasAdmin) {
-        throw new GraphQLError('You must be a group administrator to view offerings')
-      }
-
-      // Fetch offerings from database for this group
-      // Return Bookshelf model instances so GraphQL can use the getters defined in makeModels.js
-      const products = await StripeProduct.where({ group_id: groupId }).fetchAll()
-
-      return {
-        offerings: products.models,
-        success: true
-      }
-    } catch (error) {
-      if (error instanceof GraphQLError) {
-        throw error
-      }
-      console.error('Error in stripeOfferings:', error)
-      throw new GraphQLError(`Failed to retrieve offerings: ${error.message}`)
-    }
-  },
-
-  /**
    * Creates a checkout session for purchasing a product
    *
    * This mutation creates a Stripe Checkout session and returns a URL
@@ -529,8 +443,7 @@ module.exports = {
    */
   createStripeCheckoutSession: async (userId, {
     groupId,
-    accountId,
-    priceId,
+    offeringId,
     quantity,
     successUrl,
     cancelUrl,
@@ -540,31 +453,66 @@ module.exports = {
       // Authentication is optional for checkout - you may want to allow guests
       // For this demo, we'll allow unauthenticated purchases
 
+      // Look up the offering from the database
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+      if (!offering) {
+        throw new GraphQLError('Offering not found')
+      }
+
+      // Verify the offering belongs to the specified group
+      const offeringGroupId = offering.get('group_id')
+      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
+        throw new GraphQLError('Offering does not belong to the specified group')
+      }
+
+      // Get the group to access its Stripe account ID
+      const group = await Group.where({ id: groupId }).fetch()
+      if (!group) {
+        throw new GraphQLError('Group not found')
+      }
+
+      const stripeAccountId = group.get('stripe_account_id')
+      if (!stripeAccountId) {
+        throw new GraphQLError('Group does not have a Stripe account configured')
+      }
+
+      // Get the Stripe price ID from the offering
+      const stripePriceId = offering.get('stripe_price_id')
+      if (!stripePriceId) {
+        throw new GraphQLError('Offering does not have a Stripe price ID')
+      }
+
       // Convert database ID to external account ID if needed
-      const externalAccountId = await getExternalAccountId(accountId)
+      const externalAccountId = await getExternalAccountId(stripeAccountId)
 
       // Fetch the actual price from Stripe to calculate the application fee accurately
-      const priceObject = await StripeService.getPrice(externalAccountId, priceId)
+      const priceObject = await StripeService.getPrice(externalAccountId, stripePriceId)
 
       // Calculate the total amount (price * quantity)
       const totalAmount = priceObject.unit_amount * (quantity || 1)
 
-      // Calculate application fee (10% of total as example)
-      // TODO STRIPE: Adjust this percentage or calculation based on your business model
-      // You can make this configurable per group or product
-      const applicationFeePercentage = 0.10 // 10%
+      // Calculate application fee (7% of total)
+      // TODO STRIPE: Consider making this configurable per group or product
+      const applicationFeePercentage = 0.07 // 7%
       const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+
+      // Determine checkout mode based on renewal policy
+      // If automatic renewal, use subscription mode; otherwise payment mode
+      const renewalPolicy = offering.get('renewal_policy')
+      const checkoutMode = renewalPolicy === 'automatic' ? 'subscription' : 'payment'
 
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
         accountId: externalAccountId,
-        priceId,
+        priceId: stripePriceId,
         quantity: quantity || 1,
         applicationFeeAmount,
-        successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&account_id=${accountId}`,
+        successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
         cancelUrl,
+        mode: checkoutMode,
         metadata: {
           groupId,
+          offeringId,
           userId,
           priceAmount: priceObject.unit_amount,
           currency: priceObject.currency,

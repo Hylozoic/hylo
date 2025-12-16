@@ -140,7 +140,8 @@ module.exports = {
           isString: typeof accountId === 'string'
         })
       }
-      const retrievedAccount = await stripe.accounts.retrieve(accountId)
+      // Verify account exists (will throw if not found)
+      await stripe.accounts.retrieve(accountId)
 
       // Account exists and is valid - we can proceed with connection
       // No need to check verification status here as UI will handle that
@@ -265,9 +266,11 @@ module.exports = {
    * @param {String} params.description - Product description
    * @param {Number} params.priceInCents - Price in cents (e.g. 2000 = $20.00)
    * @param {String} params.currency - Three-letter currency code (e.g. 'usd')
+   * @param {String} params.billingInterval - Optional: 'month', 'year', or null for one-time
+   * @param {Number} params.billingIntervalCount - Optional: number of intervals (e.g., 3 for quarterly)
    * @returns {Promise<Object>} The created product with default price
    */
-  async createProduct ({ accountId, name, description, priceInCents, currency = 'usd' }) {
+  async createProduct ({ accountId, name, description, priceInCents, currency = 'usd', billingInterval = null, billingIntervalCount = 1 }) {
     try {
       // Validate required parameters
       if (!accountId) {
@@ -286,14 +289,24 @@ module.exports = {
         throw new Error('Price must be a positive number')
       }
 
+      // Build price data - add recurring if billingInterval specified
+      const priceData = {
+        unit_amount: priceInCents,
+        currency: currency.toLowerCase()
+      }
+
+      if (billingInterval) {
+        priceData.recurring = {
+          interval: billingInterval, // 'day', 'week', 'month', or 'year'
+          interval_count: billingIntervalCount // e.g., 3 for quarterly (every 3 months)
+        }
+      }
+
       // Create product on the connected account using stripeAccount parameter
       const product = await stripe.products.create({
         name,
         description: description || '',
-        default_price_data: {
-          unit_amount: priceInCents,
-          currency: currency.toLowerCase()
-        }
+        default_price_data: priceData
       }, {
         stripeAccount: accountId // This header creates the product on the connected account
       })
@@ -512,6 +525,7 @@ module.exports = {
    * @param {Number} params.applicationFeeAmount - Platform fee in cents
    * @param {String} params.successUrl - URL to redirect on success
    * @param {String} params.cancelUrl - URL to redirect on cancel
+   * @param {String} params.mode - Checkout mode: 'payment' or 'subscription'
    * @param {Object} params.metadata - Optional metadata to attach
    * @returns {Promise<Object>} Checkout session with url to redirect customer
    */
@@ -522,6 +536,7 @@ module.exports = {
     applicationFeeAmount,
     successUrl,
     cancelUrl,
+    mode = 'payment',
     metadata = {}
   }) {
     try {
@@ -542,32 +557,57 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
-      // Create checkout session on the connected account
-      const session = await stripe.checkout.sessions.create({
+      // Build session configuration based on mode
+      const sessionConfig = {
         line_items: [{
           price: priceId,
           quantity
         }],
-        mode: 'payment',
-        // Direct charge with application fee
-        payment_intent_data: {
+        mode,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata
+      }
+
+      // Configure for payment or subscription mode
+      if (mode === 'subscription') {
+        // For subscriptions, use subscription_data with platform fee
+        sessionConfig.subscription_data = {
+          application_fee_percent: 7.0, // Platform takes 7% of each subscription payment
+          metadata // Metadata flows to subscription
+        }
+      } else {
+        // For one-time payments, use payment_intent_data
+        sessionConfig.payment_intent_data = {
           application_fee_amount: applicationFeeAmount,
           metadata: {
             session_id: 'placeholder' // Will be updated after session creation
           }
-        },
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        metadata
-      }, {
+        }
+      }
+
+      // Create checkout session on the connected account
+      const session = await stripe.checkout.sessions.create(sessionConfig, {
         stripeAccount: accountId // Process payment on connected account
       })
 
-      // Update the payment intent metadata with the actual session ID
-      if (session.payment_intent) {
+      // For one-time payments, update payment intent with session ID for refund tracking
+      if (mode === 'payment' && session.payment_intent) {
         await stripe.paymentIntents.update(session.payment_intent, {
           metadata: {
             session_id: session.id
+          }
+        }, {
+          stripeAccount: accountId
+        })
+      }
+
+      // For subscriptions, update subscription with session ID
+      if (mode === 'subscription' && session.subscription) {
+        await stripe.subscriptions.update(session.subscription, {
+          metadata: {
+            ...metadata,
+            sessionId: session.id
           }
         }, {
           stripeAccount: accountId
@@ -614,6 +654,111 @@ module.exports = {
       console.error('Error retrieving checkout session:', error)
       throw new Error(`Failed to retrieve checkout session: ${error.message}`)
     }
+  },
+
+  /**
+   * Lists all subscriptions for a specific price on a connected account
+   *
+   * Fetches all subscriptions in one API call, filtered by price ID.
+   * Much more efficient than fetching individual subscriptions.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} priceId - The price ID to filter by
+   * @param {String} status - Filter by status: 'active', 'canceled', 'all', etc. (default: 'active')
+   * @param {Number} limit - Maximum number of subscriptions to return (default: 100)
+   * @returns {Promise<Array<Object>>} Array of subscription objects
+   */
+  async listSubscriptionsByPrice (accountId, priceId, { status = 'active', limit = 100 } = {}) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to list subscriptions')
+      }
+
+      if (!priceId) {
+        throw new Error('Price ID is required to list subscriptions')
+      }
+
+      const params = {
+        price: priceId,
+        limit,
+        expand: ['data.items.data.price']
+      }
+
+      // Only add status filter if not 'all'
+      if (status !== 'all') {
+        params.status = status
+      }
+
+      const subscriptions = await stripe.subscriptions.list(params, {
+        stripeAccount: accountId
+      })
+
+      return subscriptions.data
+    } catch (error) {
+      console.error('Error listing subscriptions by price:', error)
+      throw new Error(`Failed to list subscriptions: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves a subscription from Stripe
+   *
+   * Used to get subscription details for individual lookups.
+   * Expands the items to get price information.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} subscriptionId - The subscription ID to retrieve
+   * @returns {Promise<Object>} Subscription object with expanded items
+   */
+  async getSubscription (accountId, subscriptionId) {
+    try {
+      // Validate required parameters
+      if (!accountId) {
+        throw new Error('Account ID is required to retrieve a subscription')
+      }
+
+      if (!subscriptionId) {
+        throw new Error('Subscription ID is required')
+      }
+
+      // Retrieve the subscription with expanded items to get price info
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price']
+      }, {
+        stripeAccount: accountId
+      })
+
+      return subscription
+    } catch (error) {
+      console.error('Error retrieving subscription:', error)
+      throw new Error(`Failed to retrieve subscription: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves multiple subscriptions from Stripe
+   *
+   * Fetches multiple subscriptions in a single batch for efficiency.
+   * Returns an array of subscription objects.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {Array<String>} subscriptionIds - Array of subscription IDs to retrieve
+   * @returns {Promise<Array<Object>>} Array of subscription objects
+   */
+  async getSubscriptions (accountId, subscriptionIds) {
+    if (!accountId || !subscriptionIds || subscriptionIds.length === 0) {
+      return []
+    }
+
+    // Fetch subscriptions in parallel with error handling for individual failures
+    const results = await Promise.allSettled(
+      subscriptionIds.map(subId => this.getSubscription(accountId, subId))
+    )
+
+    // Return only successful results
+    return results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
   },
 
   /**

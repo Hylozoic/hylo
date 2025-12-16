@@ -15,6 +15,9 @@ export default function (app) {
   // XXX: has to come before bodyParser?
   app.use('/noo/oauth', oidc.callback())
 
+  // Capture raw body for Stripe webhook before JSON parsing
+  app.use('/noo/stripe/webhook', bodyParser.raw({ type: 'application/json' }))
+
   app.use(bodyParser.urlencoded({extended: true}))
   app.use(bodyParser.json())
 

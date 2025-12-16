@@ -47,6 +47,32 @@ type Query {
 
   collection(id: ID): Collection
 
+  # Query for content access records
+  contentAccess(
+    # Filter by one or more group IDs (groups that granted the access)
+    groupIds: [ID],
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
+
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
@@ -66,7 +92,11 @@ type Query {
     id: ID,
     slug: String,
     # Set to true to mark all notifications as read for this group by the current logged in user
-    updateLastViewed: Boolean
+    updateLastViewed: Boolean,
+    # Access code from invitation link - allows viewing the about page for restricted/hidden groups
+    accessCode: String,
+    # Invitation token from email invite - allows viewing the about page for restricted/hidden groups
+    invitationToken: String
   ): Group
 
   # Check whether a Group exists by URL slug
@@ -332,6 +362,35 @@ type Query {
     accountId: String!
   ): StripeOfferingsResult
 
+  # List published offerings for a group (public, no auth required)
+  publicStripeOfferings(
+    groupId: ID!
+  ): StripeOfferingsResult
+  # Get a single offering by ID (public, no auth required, includes unlisted)
+  publicStripeOffering(
+    offeringId: ID!
+  ): StripeOffering
+
+  # Get subscription stats for an offering (active count, lapsed count, revenue)
+  offeringSubscriptionStats(
+    offeringId: ID!
+    groupId: ID!
+  ): OfferingSubscriptionStats
+
+  # Get paginated list of subscribers for an offering
+  offeringSubscribers(
+    # The offering (StripeProduct) ID
+    offeringId: ID!
+    # The group ID (for permission checks)
+    groupId: ID!
+    # Page number (1-indexed, default 1)
+    page: Int
+    # Number of results per page (default 50, max 100)
+    pageSize: Int
+    # If true, only return lapsed subscribers
+    lapsedOnly: Boolean
+  ): OfferingSubscribersQuerySet
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -548,6 +607,10 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The slug of the group for redirect purposes
+  groupSlug: String
+  # The email address from the invitation (for token-based invites)
+  email: String
 }
 
 type Collection {
@@ -650,6 +713,13 @@ type CommentQuerySet {
   total: Int
   hasMore: Boolean
   items: [Comment]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ContentAccessQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ContentAccess]
 }
 
 # Common Roles are standard roles that are always available in all groups
@@ -808,6 +878,8 @@ union FeedItemContent = Post | Interstitial
 # A Hylo Group
 type Group {
   id: ID
+  # Whether the current user has access to this group (via scope system or free access)
+  canAccess: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -1210,6 +1282,30 @@ type Group {
     types: [String]
   ): PostQuerySet
 
+  # Content access records for this group (purchased or granted)
+  contentAccess(
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
+
   # Widgets used on the Explore page
   widgets: GroupWidgetQuerySet
 }
@@ -1368,6 +1464,8 @@ type GroupRelationshipInviteQuerySet {
 type GroupRole {
   # Whether this role is active
   active: Boolean
+  # Whether the current user has access to this role (via scope system)
+  canAccess: Boolean
   # When this role was created
   createdAt: Date
   # The description of the role
@@ -2587,6 +2685,8 @@ type Track {
   id: ID
   # Whether this track requires purchased access (paid content)
   accessControlled: Boolean
+  # Whether the current user has access to this track (via scope system or free access)
+  canAccess: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions
@@ -2687,7 +2787,11 @@ type StripeOffering {
   track: Track
   trackId: ID
   # JSONB object defining what access this offering grants
-  contentAccess: JSON
+  accessGrants: JSON
+  # Tracks this offering grants access to (resolved from accessGrants.trackIds)
+  tracks: [Track]
+  # Roles this offering grants access to (resolved from accessGrants.roleIds)
+  roles: [GroupRole]
   # Renewal policy: automatic or manual
   renewalPolicy: String
   # Duration: month, season, annual, lifetime, or null for no expiration
@@ -2722,8 +2826,8 @@ type ContentAccess {
   accessType: String
   # Stripe session ID (for purchases)
   stripeSessionId: String
-  # Stripe payment intent ID (for purchases)
-  stripePaymentIntentId: String
+  # Stripe subscription ID (for recurring purchases)
+  stripeSubscriptionId: String
   # Current status: active, expired, revoked
   status: String
   # User who granted access (for admin grants)
@@ -3008,7 +3112,7 @@ type Mutation {
     trackId: ID,
     roleId: ID,
     sessionId: String!,
-    paymentIntentId: String,
+    stripeSubscriptionId: String,
     amountPaid: Int,
     currency: String,
     expiresAt: Date,
@@ -3121,7 +3225,9 @@ type Mutation {
   # Join a funding round
   joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
-  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
+  # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
+  # Set acceptAgreements to true if user has accepted agreements during join flow.
+  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
@@ -3359,7 +3465,7 @@ type Mutation {
     description: String
     priceInCents: Int
     currency: String
-    contentAccess: JSON
+    accessGrants: JSON
     renewalPolicy: String
     duration: String
     publishStatus: PublishStatus
@@ -3368,8 +3474,7 @@ type Mutation {
   # Create a checkout session for purchasing a product
   createStripeCheckoutSession(
     groupId: ID!
-    accountId: String!
-    priceId: String!
+    offeringId: ID!
     quantity: Int
     successUrl: String!
     cancelUrl: String!
@@ -3488,6 +3593,56 @@ type StripeCheckoutSessionResult {
   sessionId: String
   url: String
   success: Boolean
+}
+
+# Stats for an offering's subscribers
+type OfferingSubscriptionStats {
+  # Number of currently active subscribers
+  activeCount: Int
+  # Number of lapsed (expired/revoked) subscribers
+  lapsedCount: Int
+  # Monthly revenue in cents (requires Stripe API call)
+  monthlyRevenueCents: Int
+  # Currency of the offering
+  currency: String
+  success: Boolean
+  message: String
+}
+
+# A subscriber to an offering (StripeProduct)
+type OfferingSubscriber {
+  # The content access record ID
+  id: ID
+  # The user ID of the subscriber
+  userId: ID
+  # The subscriber's name
+  userName: String
+  # The subscriber's avatar URL
+  userAvatarUrl: String
+  # Subscription status: 'active' or 'lapsed'
+  status: String
+  # When the user subscribed/purchased
+  joinedAt: Date
+  # When access expires (if applicable)
+  expiresAt: Date
+  # The Stripe subscription ID (if applicable)
+  stripeSubscriptionId: String
+}
+
+# Paginated list of subscribers for an offering
+type OfferingSubscribersQuerySet {
+  # Total number of subscribers matching the filter
+  total: Int
+  # Whether there are more pages to load
+  hasMore: Boolean
+  # The subscribers on this page
+  items: [OfferingSubscriber]
+  # Current page number (1-indexed)
+  page: Int
+  # Number of items per page
+  pageSize: Int
+  # Total number of pages
+  totalPages: Int
 }
 
 # An Affilation with an organization added to a User profile
@@ -3855,7 +4010,7 @@ input StripeOfferingInput {
   currency: String
   # JSONB object defining what access this offering grants
   # Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
-  contentAccess: JSON
+  accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
   # Duration: month, season, annual, lifetime, or null for no expiration

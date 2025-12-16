@@ -9,11 +9,12 @@
  * - View onboarding status
  */
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
-import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X } from 'lucide-react'
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X, Link2, Users, ChevronDown, ChevronUp } from 'lucide-react'
+import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
@@ -28,7 +29,9 @@ import {
   checkStripeStatus,
   createOffering,
   fetchOfferings,
-  updateOffering
+  updateOffering,
+  fetchContentAccess,
+  getContentAccessRecords
 } from './PaidContentTab.store'
 import { fetchGroupSettings, updateGroupSettings } from '../GroupSettings.store'
 import { getHost } from 'store/middleware/apiMiddleware'
@@ -37,6 +40,8 @@ import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
+import { queryHyloAPI } from 'util/graphql'
 
 /**
  * Main PaidContentTab component
@@ -244,10 +249,25 @@ function PaidContentTab ({ group, currentUser }) {
       const result = await dispatch(fetchOfferings(group.id, state.accountId))
 
       if (result.error) {
+        console.error('Error in fetchOfferings:', result.error)
         throw new Error(result.error.message)
       }
 
-      const offerings = result.payload?.data?.stripeOfferings?.offerings || []
+      // Use getData() helper from graphqlMiddleware to get the root query result
+      const responseData = result.payload?.getData
+        ? result.payload.getData()
+        : result.payload?.data?.stripeOfferings
+
+      if (!responseData) {
+        console.error('No response data from stripeOfferings query. Full result:', {
+          payload: result.payload,
+          payloadData: result.payload?.data,
+          getDataResult: result.payload?.getData ? result.payload.getData() : null,
+          errors: result.payload?.errors
+        })
+      }
+
+      const offerings = responseData?.offerings || []
 
       setState(prev => ({
         ...prev,
@@ -298,7 +318,7 @@ function PaidContentTab ({ group, currentUser }) {
       setState(prev => ({ ...prev, loading: false, error: null }))
 
       // Reload live account status to reflect the updates
-    loadAccountStatus()
+      loadAccountStatus()
     } catch (error) {
       console.error('Error checking Stripe status:', error)
       setState(prev => ({
@@ -372,7 +392,7 @@ function PaidContentTab ({ group, currentUser }) {
       <div className='flex-1'>
         <Routes>
           <Route path='offerings' element={<OfferingsTab group={group} accountId={accountId} offerings={offerings} onRefreshOfferings={loadOfferings} />} />
-          <Route path='content-access' element={<ContentAccessTab group={group} />} />
+          <Route path='content-access' element={<ContentAccessTab group={group} offerings={offerings} />} />
           <Route
             path='*'
             element={
@@ -380,12 +400,12 @@ function PaidContentTab ({ group, currentUser }) {
                 group={group}
                 currentUser={currentUser}
                 accountId={accountId}
-            loading={loading}
-            onCreateAccount={handleCreateAccount}
+                loading={loading}
+                onCreateAccount={handleCreateAccount}
                 onCheckStatus={handleCheckStripeStatus}
-              onStartOnboarding={handleStartOnboarding}
-              t={t}
-            />
+                onStartOnboarding={handleStartOnboarding}
+                t={t}
+              />
             }
           />
         </Routes>
@@ -437,6 +457,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const commonRoles = useSelector(getCommonRoles)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
+  const editFormRef = useRef(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -454,6 +475,16 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [updating, setUpdating] = useState(false)
   const [updatingPaywall, setUpdatingPaywall] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [accessFilter, setAccessFilter] = useState('all')
+  const [expandedOfferingId, setExpandedOfferingId] = useState(null)
+
+  /**
+   * Toggle subscriber view for an offering
+   * Implements accordion behavior - only one offering can be expanded at a time
+   */
+  const handleToggleSubscribers = useCallback((offeringId) => {
+    setExpandedOfferingId(prevId => prevId === offeringId ? null : offeringId)
+  }, [])
 
   // Fetch tracks when needed for content access editing and display
   useEffect(() => {
@@ -461,6 +492,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       dispatch(fetchGroupTracks(group.id, { published: true }))
     }
   }, [dispatch, group?.id, showCreateForm, editingOffering, offerings?.length])
+
+  // Scroll to edit form when it opens
+  useEffect(() => {
+    if (editingOffering && editFormRef.current) {
+      editFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingOffering])
 
   /**
    * Validates if a group is ready to have a paywall enabled
@@ -495,28 +533,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return false
       }
 
-      if (!offering.contentAccess) {
-        return false
-      }
-
-      // Parse contentAccess (might be string or object)
-      let contentAccess = {}
-      if (typeof offering.contentAccess === 'string') {
-        try {
-          contentAccess = JSON.parse(offering.contentAccess)
-        } catch {
-          return false
-        }
-      } else {
-        contentAccess = offering.contentAccess
-      }
-
-      // Check if contentAccess includes the current group's ID
-      if (contentAccess.groupIds && Array.isArray(contentAccess.groupIds)) {
-        return contentAccess.groupIds.some(groupId => parseInt(groupId) === parseInt(group?.id))
-      }
-
-      return false
+      // Check if this offering grants access to the current group
+      return offeringGrantsGroupAccess(offering, group?.id)
     })
 
     return hasGroupAccessOffering
@@ -561,17 +579,17 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Invalid price'))
       }
 
-      // Format contentAccess from line items
+      // Format accessGrants from line items
       // Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
-      const contentAccess = {}
+      const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
-        contentAccess.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
+        accessGrants.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        contentAccess.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
       }
       if (formData.lineItems.groups.length > 0) {
-        contentAccess.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
+        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
 
       const result = await dispatch(createOffering(
@@ -581,7 +599,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         formData.description,
         priceInCents,
         formData.currency,
-        Object.keys(contentAccess).length > 0 ? contentAccess : null,
+        Object.keys(accessGrants).length > 0 ? accessGrants : null,
         formData.duration || null,
         formData.publishStatus || 'unpublished'
       ))
@@ -617,38 +635,27 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         throw new Error(t('Cannot update offering: missing offering ID'))
       }
 
-      // Format contentAccess from line items
-      const contentAccess = {}
+      // Format accessGrants from line items
+      const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
-        contentAccess.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
+        accessGrants.trackIds = formData.lineItems.tracks.map(t => parseInt(t.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        contentAccess.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
       }
       if (formData.lineItems.groups.length > 0) {
-        contentAccess.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
+        accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
 
-      // Parse existing contentAccess for comparison
-      let existingContentAccess = {}
-      if (editingOffering.contentAccess) {
-        if (typeof editingOffering.contentAccess === 'string') {
-          try {
-            existingContentAccess = JSON.parse(editingOffering.contentAccess)
-          } catch {
-            existingContentAccess = {}
-          }
-        } else {
-          existingContentAccess = editingOffering.contentAccess
-        }
-      }
+      // Parse existing accessGrants for comparison
+      const existingAccessGrants = parseAccessGrants(editingOffering.accessGrants)
 
       // Normalize for comparison
-      const normalizeContentAccess = (ca) => {
+      const normalizeAccessGrants = (ag) => {
         const normalized = {}
-        if (ca.trackIds && ca.trackIds.length > 0) normalized.trackIds = [...ca.trackIds].sort()
-        if (ca.roleIds && ca.roleIds.length > 0) normalized.roleIds = [...ca.roleIds].sort()
-        if (ca.groupIds && ca.groupIds.length > 0) normalized.groupIds = [...ca.groupIds].sort()
+        if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
+        if (ag.roleIds && ag.roleIds.length > 0) normalized.roleIds = [...ag.roleIds].sort()
+        if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         return normalized
       }
 
@@ -658,12 +665,12 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       if (formData.duration !== (editingOffering.duration || '')) updates.duration = formData.duration || null
       if (formData.publishStatus !== (editingOffering.publishStatus || 'unpublished')) updates.publishStatus = formData.publishStatus || 'unpublished'
 
-      // Compare contentAccess
-      const normalizedNew = normalizeContentAccess(contentAccess)
-      const normalizedExisting = normalizeContentAccess(existingContentAccess)
-      const contentAccessChanged = JSON.stringify(normalizedNew) !== JSON.stringify(normalizedExisting)
-      if (contentAccessChanged) {
-        updates.contentAccess = Object.keys(contentAccess).length > 0 ? contentAccess : null
+      // Compare accessGrants
+      const normalizedNew = normalizeAccessGrants(accessGrants)
+      const normalizedExisting = normalizeAccessGrants(existingAccessGrants)
+      const accessGrantsChanged = JSON.stringify(normalizedNew) !== JSON.stringify(normalizedExisting)
+      if (accessGrantsChanged) {
+        updates.accessGrants = Object.keys(accessGrants).length > 0 ? accessGrants : null
       }
 
       if (Object.keys(updates).length === 0) {
@@ -697,53 +704,23 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
   const handleStartEdit = useCallback((offering) => {
-    console.log('Starting edit for offering:', offering)
-    // Parse contentAccess and convert to lineItems format
-    let contentAccess = {}
-    if (offering.contentAccess) {
-      if (typeof offering.contentAccess === 'string') {
-        try {
-          contentAccess = JSON.parse(offering.contentAccess)
-          console.log('Parsed contentAccess from string:', contentAccess)
-        } catch (e) {
-          console.error('Error parsing contentAccess JSON:', e, offering.contentAccess)
-          contentAccess = {}
-        }
-      } else {
-        contentAccess = offering.contentAccess
-        console.log('Using contentAccess as object:', contentAccess)
-      }
-    } else {
-      console.log('No contentAccess found in offering')
-    }
+    // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
+    const offeringTracks = offering.tracks || []
+    const offeringRoles = offering.roles || []
+    const accessGrants = parseAccessGrants(offering.accessGrants)
 
-    // Get roles for lookup
-    const groupRoles = group?.groupRoles?.items || []
-    const allRoles = [
-      ...commonRoles.map(role => ({ ...role, type: 'common' })),
-      ...groupRoles.map(role => ({ ...role, type: 'group' }))
-    ]
-
-    console.log('Available tracks:', tracks.length, tracks.map(t => ({ id: t.id, name: t.name })))
-    console.log('Available roles:', allRoles.length, allRoles.map(r => ({ id: r.id, name: r.name })))
-
-    // Convert IDs to objects
+    // Convert tracks relation to lineItems format
     const lineItems = {
-      tracks: (contentAccess.trackIds || []).map(trackId => {
-        const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-        if (!track) {
-          console.warn('Track not found for ID:', trackId)
-        }
-        return track ? { id: track.id, name: track.name } : null
-      }).filter(Boolean),
-      roles: (contentAccess.roleIds || []).map(roleId => {
-        const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-        if (!role) {
-          console.warn('Role not found for ID:', roleId)
-        }
-        return role ? { id: role.id, name: role.name, emoji: role.emoji } : null
-      }).filter(Boolean),
-      groups: (contentAccess.groupIds || []).map(groupId => {
+      tracks: offeringTracks.map(track => ({
+        id: track.id,
+        name: track.name
+      })),
+      roles: offeringRoles.map(role => ({
+        id: role.id,
+        name: role.name,
+        emoji: role.emoji
+      })),
+      groups: (accessGrants.groupIds || []).map(groupId => {
         // For groups, we can use the current group if it matches, or create a placeholder
         if (parseInt(groupId) === parseInt(group?.id)) {
           return { id: group.id, name: group.name }
@@ -751,8 +728,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return { id: groupId, name: t('Group {{id}}', { id: groupId }) }
       })
     }
-
-    console.log('Converted lineItems:', lineItems)
 
     setEditingOffering(offering)
     setFormData({
@@ -799,9 +774,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 </span>
               </div>
               <div className='text-xs mt-1'>
-                {isPaywallReady
-                  ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
-                  : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE offering that allows access to the group')}</span>)}
+                {isPaywallReady && group?.paywall
+                  ? (<span className='text-accent'>{t('Paywall enabled')}</span>)
+                  : isPaywallReady
+                    ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
+                    : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE published offering that allows access to the group')}</span>)}
               </div>
             </div>
           )}
@@ -929,7 +906,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       )}
 
       {editingOffering && (
-        <div className='border-2 border-foreground/20 rounded-lg p-4'>
+        <div ref={editFormRef} className='border-2 border-foreground/20 rounded-lg p-4'>
           <h3 className='text-lg font-semibold mb-3'>{t('Edit Offering')}</h3>
           <form onSubmit={handleUpdateOffering} className='space-y-3'>
             <SettingsControl
@@ -996,15 +973,28 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 {updating ? t('Updating...') : t('Update Offering')}
               </Button>
-          </div>
-        </form>
+            </div>
+          </form>
         </div>
       )}
 
       <div className='border-2 border-foreground/20 rounded-lg p-4'>
         <div className='flex items-center justify-between mb-4'>
           <h3 className='text-xl font-semibold'>{t('Offerings')}</h3>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-4'>
+            <div className='flex items-center gap-2'>
+              <label className='text-sm text-foreground/70'>{t('Offerings with')}:</label>
+              <select
+                value={accessFilter}
+                onChange={(e) => setAccessFilter(e.target.value)}
+                className='text-sm px-2 py-1 rounded-md bg-background border border-border text-foreground'
+              >
+                <option value='all'>{t('All')}</option>
+                <option value='group'>{t('Group access')}</option>
+                <option value='track'>{t('Track access')}</option>
+                <option value='role'>{t('Role access')}</option>
+              </select>
+            </div>
             <label className='text-sm text-foreground/70 flex items-center gap-2 cursor-pointer'>
               <input
                 type='checkbox'
@@ -1018,17 +1008,33 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         </div>
         <div className='flex flex-col gap-3'>
           {(() => {
-            const filteredOfferings = showArchived
+            // First filter by archived status
+            let filteredOfferings = showArchived
               ? offerings
               : offerings.filter(offering => offering.publishStatus !== 'archived')
 
+            // Then filter by access type
+            if (accessFilter !== 'all') {
+              filteredOfferings = filteredOfferings.filter(offering => {
+                if (accessFilter === 'group') {
+                  return offeringHasGroupAccess(offering)
+                } else if (accessFilter === 'track') {
+                  return offeringHasTrackAccess(offering)
+                } else if (accessFilter === 'role') {
+                  return offeringHasRoleAccess(offering)
+                }
+
+                return false
+              })
+            }
+
             if (filteredOfferings.length === 0) {
               return (
-        <div className='text-center py-8 text-foreground/70'>
-          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+                <div className='text-center py-8 text-foreground/70'>
+                  <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
                   <p>{t('No offerings yet')}</p>
                   <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
-        </div>
+                </div>
               )
             }
 
@@ -1039,8 +1045,10 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 onEdit={handleStartEdit}
                 group={group}
                 isEditing={editingOffering?.id === offering.id}
-              t={t}
-            />
+                isExpanded={expandedOfferingId === offering.id}
+                onToggleSubscribers={handleToggleSubscribers}
+                t={t}
+              />
             ))
           })()}
         </div>
@@ -1052,20 +1060,309 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 /**
  * Content Access Tab Component
  *
- * Placeholder component for managing content access
+ * Displays and manages content access records for the group
  */
-function ContentAccessTab ({ group }) {
+function ContentAccessTab ({ group, offerings = [] }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
+  const commonRoles = useSelector(getCommonRoles)
+  const contentAccessData = useSelector(getContentAccessRecords)
+
+  const [search, setSearch] = useState('')
+  const [accessTypeFilter, setAccessTypeFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [offeringFilter, setOfferingFilter] = useState('all')
+  const [trackFilter, setTrackFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [offset, setOffset] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  const debouncedSearch = useDebounce(search, 500)
+
+  const { items: contentAccessRecords = [], total = 0, hasMore = false } = contentAccessData
+
+  // Function to fetch content access records
+  const fetchContentAccessRecords = useCallback(() => {
+    if (!group?.id) return
+
+    setLoading(true)
+    const params = {
+      groupIds: [group.id],
+      search: debouncedSearch || undefined,
+      accessType: accessTypeFilter !== 'all' ? accessTypeFilter : null,
+      status: statusFilter !== 'all' ? statusFilter : null,
+      offeringId: offeringFilter !== 'all' ? offeringFilter : null,
+      trackId: trackFilter !== 'all' ? trackFilter : null,
+      roleId: roleFilter !== 'all' ? roleFilter : null,
+      first: 20,
+      offset,
+      sortBy: 'created_at',
+      order: 'desc'
+    }
+
+    dispatch(fetchContentAccess(params))
+      .finally(() => setLoading(false))
+  }, [dispatch, group?.id, debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter, offset])
+
+  // Initial load on mount
+  useEffect(() => {
+    fetchContentAccessRecords()
+  }, [fetchContentAccessRecords])
+
+  // Fetch tracks when needed
+  useEffect(() => {
+    if (group?.id) {
+      dispatch(fetchGroupTracks(group.id, { published: true }))
+    }
+  }, [dispatch, group?.id])
+
+  // Reset offset when filters change
+  useEffect(() => {
+    setOffset(0)
+  }, [debouncedSearch, accessTypeFilter, statusFilter, offeringFilter, trackFilter, roleFilter])
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      setOffset(offset + 20)
+    }
+  }
 
   return (
     <SettingsSection>
-      <div className='bg-card p-6 rounded-md text-foreground shadow-xl'>
-        <h3 className='text-lg font-semibold mb-2'>{t('Content Access')}</h3>
-        <p className='text-sm text-foreground/70'>
-          {t('Manage content access settings for your group offerings.')}
-        </p>
+      <div className='flex flex-col gap-4'>
+        {/* Header */}
+        <div className='bg-card p-4 rounded-md text-foreground shadow-md'>
+          <h3 className='text-lg font-semibold mb-1'>{t('Content Access Records')}</h3>
+          <p className='text-sm text-foreground/70'>
+            {t('View and manage all content access grants for your group')}
+          </p>
+        </div>
+
+        {/* Search and Filters */}
+        <div className='bg-card p-4 rounded-md shadow-md'>
+          {/* Search Input */}
+          <div className='mb-4'>
+            <label className='block text-sm font-medium text-foreground mb-2'>
+              {t('Search by member name')}
+            </label>
+            <input
+              type='text'
+              className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground placeholder-foreground/50 focus:border-focus focus:outline-none'
+              placeholder={t('Type member name...')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+            {/* Access Type Filter */}
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Access Type')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={accessTypeFilter}
+                onChange={(e) => setAccessTypeFilter(e.target.value)}
+              >
+                <option value='all'>{t('All Types')}</option>
+                <option value='stripe_purchase'>{t('Stripe Purchase')}</option>
+                <option value='admin_grant'>{t('Admin Grant')}</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Status')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value='all'>{t('All Status')}</option>
+                <option value='active'>{t('Active')}</option>
+                <option value='expired'>{t('Expired')}</option>
+                <option value='revoked'>{t('Revoked')}</option>
+              </select>
+            </div>
+
+            {/* Offering Filter */}
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Offering')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={offeringFilter}
+                onChange={(e) => setOfferingFilter(e.target.value)}
+                disabled={!offerings || offerings.length === 0}
+              >
+                <option value='all'>
+                  {offerings && offerings.length > 0 ? t('All Offerings') : t('No offerings available')}
+                </option>
+                {offerings && offerings.map(offering => (
+                  <option key={offering.id} value={offering.id}>
+                    {offering.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Track Filter */}
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Track')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={trackFilter}
+                onChange={(e) => setTrackFilter(e.target.value)}
+              >
+                <option value='all'>{t('All Tracks')}</option>
+                {tracks?.map(track => (
+                  <option key={track.id} value={track.id}>
+                    {track.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Role Filter */}
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Role')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <option value='all'>{t('All Roles')}</option>
+                {commonRoles?.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.emoji} {role.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className='text-sm text-foreground/70'>
+          {t('Showing {{count}} of {{total}} records', { count: contentAccessRecords.length, total })}
+        </div>
+
+        {/* Content Access List */}
+        {loading && contentAccessRecords.length === 0 && <Loading />}
+        {!loading && contentAccessRecords.length === 0 && (
+          <div className='bg-card p-8 rounded-md shadow-md text-center text-foreground/70'>
+            <p>{t('No content access records found')}</p>
+          </div>
+        )}
+        {contentAccessRecords.length > 0 && (
+          <div className='flex flex-col gap-2'>
+            {contentAccessRecords.map(record => (
+              <ContentAccessRecordItem key={record.id} record={record} t={t} />
+            ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className='flex justify-center mt-4'>
+            <button
+              onClick={handleLoadMore}
+              disabled={loading}
+              className='px-6 py-2 bg-accent text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50'
+            >
+              {loading ? t('Loading...') : t('Load More')}
+            </button>
+          </div>
+        )}
       </div>
     </SettingsSection>
+  )
+}
+
+/**
+ * Content Access Record Item Component
+ *
+ * Displays a single content access record
+ */
+function ContentAccessRecordItem ({ record, t }) {
+  const { user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy } = record
+
+  const getAccessTypeBadge = (type) => {
+    if (type === 'stripe_purchase') {
+      return <span className='px-2 py-1 text-xs rounded bg-accent/20 text-accent'>{t('Purchased')}</span>
+    }
+    return <span className='px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400'>{t('Admin Grant')}</span>
+  }
+
+  const getStatusBadge = (status) => {
+    if (status === 'active') {
+      return <span className='px-2 py-1 text-xs rounded bg-green-500/20 text-green-400'>{t('Active')}</span>
+    }
+    if (status === 'expired') {
+      return <span className='px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-400'>{t('Expired')}</span>
+    }
+    return <span className='px-2 py-1 text-xs rounded bg-red-500/20 text-red-400'>{t('Revoked')}</span>
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return null
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  return (
+    <div className='bg-card p-4 rounded-md shadow-md hover:shadow-lg transition-shadow'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+        {/* User Info */}
+        <div className='flex items-center gap-3 flex-1'>
+          {user?.avatarUrl && (
+            <img
+              src={user.avatarUrl}
+              alt={user.name}
+              className='w-10 h-10 rounded-full'
+            />
+          )}
+          <div>
+            <div className='font-medium text-foreground'>{user?.name}</div>
+            <div className='text-sm text-foreground/70'>
+              {offering && <span>{offering.name}</span>}
+              {track && <span> • {track.name}</span>}
+              {role && <span> • {role.emoji} {role.name}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Badges and Info */}
+        <div className='flex flex-wrap items-center gap-2'>
+          {getAccessTypeBadge(accessType)}
+          {getStatusBadge(status)}
+          <div className='text-xs text-foreground/60'>
+            {t('Granted')}: {formatDate(createdAt)}
+          </div>
+          {expiresAt && (
+            <div className='text-xs text-foreground/60'>
+              {t('Expires')}: {formatDate(expiresAt)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Granted By Info */}
+      {grantedBy && (
+        <div className='mt-2 text-xs text-foreground/60'>
+          {t('Granted by')}: {grantedBy.name}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1255,13 +1552,13 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         <div className='mb-4'>
           <a
             href={group.stripeDashboardUrl}
-              target='_blank'
-              rel='noopener noreferrer'
+            target='_blank'
+            rel='noopener noreferrer'
             className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
-            >
+          >
             <ExternalLink className='w-4 h-4' />
             {t('Open Stripe Dashboard')}
-            </a>
+          </a>
         </div>
       )}
 
@@ -1294,90 +1591,365 @@ function StatusBadge ({ label, value, t }) {
 }
 
 /**
+ * GraphQL query for fetching offering subscription stats
+ */
+const OFFERING_SUBSCRIPTION_STATS_QUERY = `
+  query OfferingSubscriptionStats($offeringId: ID!, $groupId: ID!) {
+    offeringSubscriptionStats(offeringId: $offeringId, groupId: $groupId) {
+      activeCount
+      lapsedCount
+      monthlyRevenueCents
+      currency
+      success
+      message
+    }
+  }
+`
+
+/**
+ * GraphQL query for fetching paginated subscribers
+ */
+const OFFERING_SUBSCRIBERS_QUERY = `
+  query OfferingSubscribers($offeringId: ID!, $groupId: ID!, $page: Int, $pageSize: Int, $lapsedOnly: Boolean) {
+    offeringSubscribers(offeringId: $offeringId, groupId: $groupId, page: $page, pageSize: $pageSize, lapsedOnly: $lapsedOnly) {
+      total
+      hasMore
+      page
+      pageSize
+      totalPages
+      items {
+        id
+        userId
+        userName
+        userAvatarUrl
+        status
+        joinedAt
+        expiresAt
+      }
+    }
+  }
+`
+
+/**
+ * Subscribers Panel Component
+ *
+ * Displays subscription statistics and a list of subscribers for an offering.
+ * Fetches data via GraphQL when rendered.
+ */
+function SubscribersPanel ({ offering, group, t }) {
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState(null)
+  const [subscribers, setSubscribers] = useState([])
+  const [subscribersPage, setSubscribersPage] = useState(1)
+  const [subscribersMeta, setSubscribersMeta] = useState({ total: 0, hasMore: false, totalPages: 0 })
+  const [showLapsedOnly, setShowLapsedOnly] = useState(false)
+  const [error, setError] = useState(null)
+
+  /**
+   * Fetch subscription stats from GraphQL API
+   */
+  const fetchStats = useCallback(async () => {
+    if (!offering?.id || !group?.id) return
+
+    try {
+      const response = await queryHyloAPI({
+        query: OFFERING_SUBSCRIPTION_STATS_QUERY,
+        variables: {
+          offeringId: offering.id,
+          groupId: group.id
+        }
+      })
+
+      if (response.errors) {
+        throw new Error(response.errors[0]?.message || 'Failed to fetch stats')
+      }
+
+      const statsData = response.data?.offeringSubscriptionStats
+      if (statsData?.success) {
+        setStats(statsData)
+      } else {
+        throw new Error(statsData?.message || 'Failed to fetch stats')
+      }
+    } catch (err) {
+      console.error('Error fetching subscription stats:', err)
+      throw err
+    }
+  }, [offering?.id, group?.id])
+
+  /**
+   * Fetch subscribers list from GraphQL API
+   */
+  const fetchSubscribers = useCallback(async (page = 1, lapsedOnly = false) => {
+    if (!offering?.id || !group?.id) return
+
+    try {
+      const response = await queryHyloAPI({
+        query: OFFERING_SUBSCRIBERS_QUERY,
+        variables: {
+          offeringId: offering.id,
+          groupId: group.id,
+          page,
+          pageSize: 50,
+          lapsedOnly
+        }
+      })
+
+      if (response.errors) {
+        throw new Error(response.errors[0]?.message || 'Failed to fetch subscribers')
+      }
+
+      const subscribersData = response.data?.offeringSubscribers
+      if (subscribersData) {
+        setSubscribers(subscribersData.items || [])
+        setSubscribersMeta({
+          total: subscribersData.total,
+          hasMore: subscribersData.hasMore,
+          totalPages: subscribersData.totalPages
+        })
+        setSubscribersPage(subscribersData.page)
+      }
+    } catch (err) {
+      console.error('Error fetching subscribers:', err)
+      throw err
+    }
+  }, [offering?.id, group?.id])
+
+  /**
+   * Initial data fetch when component mounts or offering/group changes
+   */
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchSubscribers(1, showLapsedOnly)
+        ])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [fetchStats, fetchSubscribers, showLapsedOnly])
+
+  /**
+   * Handle page change for pagination
+   */
+  const handlePageChange = useCallback(async (newPage) => {
+    setLoading(true)
+    try {
+      await fetchSubscribers(newPage, showLapsedOnly)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchSubscribers, showLapsedOnly])
+
+  /**
+   * Handle lapsed filter toggle
+   */
+  const handleLapsedFilterToggle = useCallback(async () => {
+    const newLapsedOnly = !showLapsedOnly
+    setShowLapsedOnly(newLapsedOnly)
+    setLoading(true)
+    try {
+      await fetchSubscribers(1, newLapsedOnly)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [showLapsedOnly, fetchSubscribers])
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center py-8'>
+        <Loading />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='text-center py-4 text-red-500'>
+        <AlertCircle className='w-8 h-8 mx-auto mb-2' />
+        <p>{t('Error loading subscriber data')}: {error}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className='space-y-4'>
+      {/* Summary Stats */}
+      <div className='grid grid-cols-3 gap-4'>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground'>{stats?.activeCount || 0}</p>
+          <p className='text-xs text-foreground/70'>{t('Active Subscribers')}</p>
+        </div>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground'>
+            ${((stats?.monthlyRevenueCents || 0) / 100).toFixed(2)}
+          </p>
+          <p className='text-xs text-foreground/70'>{t('Monthly Revenue')}</p>
+        </div>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground/50'>{stats?.lapsedCount || 0}</p>
+          <p className='text-xs text-foreground/70'>{t('Lapsed')}</p>
+        </div>
+      </div>
+
+      {/* Subscriber List Section */}
+      <div className='border-t border-foreground/10 pt-4'>
+        {/* Filter Toggle */}
+        <div className='flex items-center justify-between mb-3'>
+          <p className='text-sm font-medium text-foreground'>
+            {showLapsedOnly ? t('Lapsed Members') : t('Active Members')}
+            <span className='text-foreground/50 ml-2'>({subscribersMeta.total})</span>
+          </p>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleLapsedFilterToggle}
+            className='text-xs'
+          >
+            {showLapsedOnly ? t('Show Active') : t('Show Lapsed')}
+          </Button>
+        </div>
+
+        {/* Subscriber List */}
+        {subscribers.length === 0 && (
+          <div className='text-center py-4 text-foreground/50 text-sm'>
+            <Users className='w-6 h-6 mx-auto mb-2 opacity-50' />
+            <p>
+              {showLapsedOnly
+                ? t('No lapsed members')
+                : t('No active subscribers yet')}
+            </p>
+          </div>
+        )}
+        {subscribers.length > 0 && (
+          <div className='space-y-2'>
+            {subscribers.map(subscriber => (
+              <div
+                key={subscriber.id}
+                className='flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 transition-colors'
+              >
+                {subscriber.userAvatarUrl
+                  ? (
+                    <img
+                      src={subscriber.userAvatarUrl}
+                      alt={subscriber.userName}
+                      className='w-8 h-8 rounded-full object-cover'
+                    />
+                    )
+                  : (
+                    <div className='w-8 h-8 rounded-full bg-foreground/20 flex items-center justify-center'>
+                      <Users className='w-4 h-4 text-foreground/50' />
+                    </div>
+                    )}
+                <div className='flex-1 min-w-0'>
+                  <p className='text-sm font-medium text-foreground truncate'>
+                    {subscriber.userName}
+                  </p>
+                  <p className='text-xs text-foreground/50'>
+                    {subscriber.status === 'active'
+                      ? t('Active')
+                      : t('Lapsed')}
+                    {subscriber.joinedAt && (
+                      <span className='ml-2'>
+                        {t('Joined')}: {new Date(subscriber.joinedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {subscriber.status === 'lapsed' && subscriber.expiresAt && (
+                  <span className='text-xs text-foreground/40'>
+                    {t('Expired')}: {new Date(subscriber.expiresAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {subscribersMeta.totalPages > 1 && (
+          <div className='flex items-center justify-center gap-2 mt-4'>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => handlePageChange(subscribersPage - 1)}
+              disabled={subscribersPage <= 1}
+            >
+              {t('Previous')}
+            </Button>
+            <span className='text-sm text-foreground/70'>
+              {t('Page')} {subscribersPage} {t('of')} {subscribersMeta.totalPages}
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => handlePageChange(subscribersPage + 1)}
+              disabled={!subscribersMeta.hasMore}
+            >
+              {t('Next')}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
  * List item displaying a single offering with details
  * Used in the OfferingsTab list view
  */
-function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
-  // Parse contentAccess JSON
-  const contentAccess = useMemo(() => {
-    if (!offering.contentAccess) {
-      return {}
-    }
-    // If it's a string, parse it
-    if (typeof offering.contentAccess === 'string') {
-      try {
-        return JSON.parse(offering.contentAccess)
-      } catch (e) {
-        console.error('Error parsing contentAccess JSON:', e, offering.contentAccess)
-        return {}
-      }
-    }
-    // If it's already an object, use it directly
-    return offering.contentAccess || {}
-  }, [offering.contentAccess])
+function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onToggleSubscribers, t }) {
+  const [copied, setCopied] = useState(false)
 
-  // Get tracks, roles, and groups from the group data
-  const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
-  const commonRoles = useSelector(getCommonRoles)
-  const groupRoles = useMemo(() => group?.groupRoles?.items || [], [group?.groupRoles?.items])
-  const allRoles = useMemo(() => [
-    ...commonRoles.map(role => ({ ...role, type: 'common' })),
-    ...groupRoles.map(role => ({ ...role, type: 'group' }))
-  ], [commonRoles, groupRoles])
+  /**
+   * Handle toggle click for subscriber view
+   */
+  const handleToggleClick = useCallback(() => {
+    if (onToggleSubscribers) {
+      onToggleSubscribers(offering.id)
+    }
+  }, [onToggleSubscribers, offering.id])
+  const baseUrl = getHost()
+  const offeringUrl = `${baseUrl}/offerings/${offering.id}`
 
-  // Get track and role objects for display (keep full objects for chips)
+  // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
+  const accessGrants = useMemo(() => {
+    return parseAccessGrants(offering.accessGrants)
+  }, [offering.accessGrants])
+
+  // Get track and role objects for display using relations
   const accessDetails = useMemo(() => {
     const details = {
-      tracks: [],
-      roles: [],
+      tracks: offering.tracks || [],
+      roles: offering.roles || [],
       hasGroups: false
     }
 
-    // Debug: log what we're working with
-    if (offering.contentAccess) {
-      console.log('Offering contentAccess:', offering.contentAccess, 'Parsed:', contentAccess)
-      console.log('Available tracks:', tracks.length, tracks.map(t => ({ id: t.id, name: t.name })))
-      console.log('Available roles:', allRoles.length, allRoles.map(r => ({ id: r.id, name: r.name })))
-    }
-
-    if (contentAccess.trackIds && Array.isArray(contentAccess.trackIds)) {
-      details.tracks = contentAccess.trackIds
-        .map(trackId => {
-          const track = tracks.find(t => parseInt(t.id) === parseInt(trackId))
-          if (!track) {
-            console.warn('Track not found for ID:', trackId, 'Available tracks:', tracks.map(t => t.id))
-          }
-          return track
-        })
-        .filter(Boolean)
-    }
-
-    if (contentAccess.roleIds && Array.isArray(contentAccess.roleIds)) {
-      details.roles = contentAccess.roleIds
-        .map(roleId => {
-          const role = allRoles.find(r => parseInt(r.id) === parseInt(roleId))
-          if (!role) {
-            console.warn('Role not found for ID:', roleId, 'Available roles:', allRoles.map(r => r.id))
-          }
-          return role
-        })
-        .filter(Boolean)
-    }
-
     // Since we only allow the current group, just check if groups exist
-    if (contentAccess.groupIds && Array.isArray(contentAccess.groupIds) && contentAccess.groupIds.length > 0) {
+    if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0) {
       details.hasGroups = true
     }
 
     return details
-  }, [contentAccess, tracks, allRoles, offering.contentAccess])
+  }, [offering.tracks, offering.roles, accessGrants])
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
   return (
     <div className={`border-2 rounded-lg p-4 transition-all ${isEditing ? 'border-blue-500 bg-blue-500/10 opacity-75' : 'border-foreground/20 hover:border-foreground/40'}`}>
       <div className='flex items-start justify-between'>
-      <div className='flex-1'>
+        <div className='flex-1'>
           <div className='flex items-center gap-2 mb-2'>
             <h4 className='font-semibold text-foreground'>{offering.name}</h4>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -1388,8 +1960,15 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
                   : offering.publishStatus === 'archived'
                     ? 'bg-gray-500/20 text-gray-600'
                     : 'bg-yellow-500/20 text-yellow-600'
-            }`}>
-              {offering.publishStatus === 'published' ? t('Published') : offering.publishStatus === 'unlisted' ? t('Unlisted') : offering.publishStatus === 'archived' ? t('Archived') : t('Unpublished')}
+            }`}
+            >
+              {offering.publishStatus === 'published'
+                ? t('Published')
+                : offering.publishStatus === 'unlisted'
+                  ? t('Unlisted')
+                  : offering.publishStatus === 'archived'
+                    ? t('Archived')
+                    : t('Unpublished')}
             </span>
           </div>
           {offering.description && (
@@ -1400,12 +1979,20 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
               <span>{t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}</span>
             )}
             {offering.duration && (
-              <span>{t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}</span>
+              <span>
+                {t('Duration')}: {offering.duration === 'month'
+                  ? t('1 Month')
+                  : offering.duration === 'season'
+                    ? t('1 Season')
+                    : offering.duration === 'annual'
+                      ? t('1 Year')
+                      : offering.duration}
+              </span>
             )}
             {!offering.duration && (
               <span>{t('Duration')}: {t('Lifetime')}</span>
-        )}
-      </div>
+            )}
+          </div>
           {hasAccessContent && (
             <div className='mt-3 pt-3 border-t border-foreground/10'>
               {accessDetails.hasGroups && (
@@ -1454,19 +2041,58 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
             </div>
           )}
         </div>
-        {onEdit && (
+        <div className='flex items-center gap-2 ml-4'>
           <Button
             variant='outline'
             size='sm'
-            onClick={() => !isEditing && onEdit(offering)}
-            disabled={isEditing}
-            className='ml-4'
+            onClick={handleToggleClick}
+            className='flex items-center gap-1'
+            title={t('View subscribed users')}
           >
-            <Edit className='w-4 h-4 mr-1' />
-            {isEditing ? t('Editing...') : t('Edit')}
+            <Users className='w-4 h-4' />
+            {isExpanded ? <ChevronUp className='w-3 h-3' /> : <ChevronDown className='w-3 h-3' />}
           </Button>
-        )}
+          <CopyToClipboard
+            text={offeringUrl}
+            onCopy={() => {
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            }}
+          >
+            <Button
+              variant='outline'
+              size='sm'
+              className='flex items-center gap-1'
+              title={copied ? t('Copied!') : t('Copy Link')}
+            >
+              <Link2 className='w-4 h-4' />
+              {copied ? t('Copied!') : t('Link')}
+            </Button>
+          </CopyToClipboard>
+          {onEdit && (
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => !isEditing && onEdit(offering)}
+              disabled={isEditing}
+            >
+              <Edit className='w-4 h-4 mr-1' />
+              {isEditing ? t('Editing...') : t('Edit')}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Subscribers Panel - shown when expanded */}
+      {isExpanded && (
+        <div className='mt-4 pt-4 border-t border-foreground/20'>
+          <SubscribersPanel
+            offering={offering}
+            group={group}
+            t={t}
+          />
+        </div>
+      )}
     </div>
   )
 }

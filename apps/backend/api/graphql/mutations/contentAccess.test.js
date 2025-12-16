@@ -4,7 +4,6 @@ import factories from '../../../test/setup/factories'
 import {
   grantContentAccess,
   revokeContentAccess,
-  checkContentAccess,
   recordStripePurchase
 } from './contentAccess'
 const { expect } = require('chai')
@@ -214,61 +213,9 @@ describe('Content Access Mutations', () => {
     })
   })
 
-  describe('checkContentAccess', () => {
-    beforeEach(async () => {
-      // Create an active access record
-      await ContentAccess.create({
-        user_id: user.id,
-        granted_by_group_id: group.id,
-        product_id: product.id,
-        access_type: 'admin_grant',
-        status: 'active',
-        metadata: { reason: 'Test access' }
-      })
-    })
-
-    it('returns access information for user with access', async () => {
-      const result = await checkContentAccess(user.id, {
-        userId: user.id,
-        grantedByGroupId: group.id,
-        productId: product.id
-      })
-
-      expect(result.hasAccess).to.be.true
-      expect(result.accessType).to.equal('admin_grant')
-      expect(result.grantedAt).to.exist
-    })
-
-    it('returns no access for user without access', async () => {
-      const otherUser = await factories.user().save()
-
-      const result = await checkContentAccess(otherUser.id, {
-        userId: otherUser.id,
-        grantedByGroupId: group.id,
-        productId: product.id
-      })
-
-      expect(result.hasAccess).to.be.false
-      expect(result.accessType).to.be.null
-      expect(result.expiresAt).to.be.null
-      expect(result.grantedAt).to.be.null
-    })
-
-    it('returns no access for non-existent product', async () => {
-      const result = await checkContentAccess(user.id, {
-        userId: user.id,
-        grantedByGroupId: group.id,
-        productId: 99999
-      })
-
-      expect(result.hasAccess).to.be.false
-    })
-  })
-
   describe('recordStripePurchase', () => {
     it('records a successful Stripe purchase', async () => {
       const sessionId = 'cs_test_123'
-      const paymentIntentId = 'pi_test_123'
       const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
 
       const result = await recordStripePurchase(adminUser.id, {
@@ -276,7 +223,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         productId: product.id,
         sessionId,
-        paymentIntentId,
         expiresAt,
         metadata: { source: 'webhook' }
       })
@@ -291,7 +237,6 @@ describe('Content Access Mutations', () => {
       expect(access.get('product_id')).to.equal(product.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
       expect(access.get('stripe_session_id')).to.equal(sessionId)
-      expect(access.get('stripe_payment_intent_id')).to.equal(paymentIntentId)
       expect(access.get('expires_at')).to.be.closeToTime(expiresAt, 1000)
       expect(access.get('metadata')).to.deep.include({ source: 'webhook' })
     })
@@ -302,7 +247,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         trackId: track.id,
         sessionId: 'cs_test_456',
-        paymentIntentId: 'pi_test_456',
         metadata: { source: 'webhook' }
       })
 
@@ -328,7 +272,6 @@ describe('Content Access Mutations', () => {
         grantedByGroupId: group.id,
         roleId: role.id,
         sessionId: 'cs_test_789',
-        paymentIntentId: 'pi_test_789',
         metadata: { source: 'webhook' }
       })
 

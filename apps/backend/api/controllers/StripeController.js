@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
 
-/* global StripeAccount */
+/* global StripeAccount, StripeProduct, ContentAccess, GroupMembership */
 
 module.exports = {
 
@@ -103,7 +103,13 @@ module.exports = {
         return res.status(400).json({ error: 'Missing signature' })
       }
 
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        console.error('STRIPE_WEBHOOK_SECRET environment variable is not set')
+        return res.status(500).json({ error: 'Webhook secret not configured' })
+      }
+
       // Verify webhook signature
+      // req.body should be a Buffer from bodyParser.raw() middleware
       let event
       try {
         event = stripe.webhooks.constructEvent(
@@ -121,25 +127,39 @@ module.exports = {
       }
 
       // Handle different event types
+      // Use module.exports to access handler methods (this context is lost in Sails controllers)
+      const handlers = module.exports
       switch (event.type) {
         case 'account.updated':
-          await this.handleAccountUpdated(event)
-          break
-
-        case 'payment_intent.succeeded':
-          await this.handlePaymentIntentSucceeded(event)
-          break
-
-        case 'payment_intent.payment_failed':
-          await this.handlePaymentIntentFailed(event)
+          await handlers.handleAccountUpdated(event)
           break
 
         case 'checkout.session.completed':
-          await this.handleCheckoutSessionCompleted(event)
+          await handlers.handleCheckoutSessionCompleted(event)
           break
 
         case 'product.updated':
-          await this.handleProductUpdated(event)
+          await handlers.handleProductUpdated(event)
+          break
+
+        case 'customer.subscription.created':
+          await handlers.handleSubscriptionCreated(event)
+          break
+
+        case 'customer.subscription.deleted':
+          await handlers.handleSubscriptionDeleted(event)
+          break
+
+        case 'invoice.paid':
+          await handlers.handleInvoicePaid(event)
+          break
+
+        case 'invoice.payment_failed':
+          await handlers.handleInvoicePaymentFailed(event)
+          break
+
+        case 'charge.refunded':
+          await handlers.handleChargeRefunded(event)
           break
 
         default:
@@ -217,134 +237,8 @@ module.exports = {
   },
 
   /**
-   * Handle payment_intent.succeeded webhook events
-   * Grants access to content when payment is successful
-   */
-  handlePaymentIntentSucceeded: async function (event) {
-    try {
-      const paymentIntent = event.data.object
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Payment succeeded: ${paymentIntent.id}`)
-      }
-
-      // Get the checkout session to find the product and user info
-      const sessionId = paymentIntent.metadata?.session_id
-      if (!sessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in payment intent metadata: ${paymentIntent.id}`)
-        }
-        return
-      }
-
-      // Retrieve the checkout session
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items']
-      })
-
-      if (!session) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No checkout session found: ${sessionId}`)
-        }
-        return
-      }
-
-      // Extract user and product info from session metadata
-      const userId = session.metadata?.userId
-      const groupId = session.metadata?.groupId
-      const accountId = session.metadata?.accountId
-
-      if (!userId || !groupId || !accountId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Missing required metadata in session ${sessionId}:`, {
-            userId: !!userId,
-            groupId: !!groupId,
-            accountId: !!accountId
-          })
-        }
-        return
-      }
-
-      // Find the Stripe product for this purchase
-      const lineItem = session.line_items?.data?.[0]
-      if (!lineItem) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No line items found in session: ${sessionId}`)
-        }
-        return
-      }
-
-      const product = await StripeProduct.findByStripeId(lineItem.price.product)
-      if (!product) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No product found for Stripe product ID: ${lineItem.price.product}`)
-        }
-        return
-      }
-
-      // Generate content access records
-      const accessRecords = await product.generateContentAccessRecords({
-        userId: parseInt(userId, 10),
-        sessionId,
-        paymentIntentId: paymentIntent.id,
-        metadata: {
-          paymentAmount: paymentIntent.amount,
-          currency: paymentIntent.currency,
-          purchasedAt: new Date().toISOString()
-        }
-      })
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
-      }
-
-      // TODO STRIPE: Send confirmation email to user
-      // TODO STRIPE: Send notification to group admins
-    } catch (error) {
-      console.error('Error handling payment_intent.succeeded:', error)
-      throw error
-    }
-  },
-
-  /**
-   * Handle payment_intent.payment_failed webhook events
-   * Notifies user and logs failed payments
-   * TODO STRIPE: This needs to actually log to somewhere specific, and otherwise be more useful. Need to be able to access the checkout session from stripe
-   */
-  handlePaymentIntentFailed: async function (event) {
-    try {
-      const paymentIntent = event.data.object
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Payment failed: ${paymentIntent.id}`)
-      }
-
-      // Get the checkout session to find user info
-      const sessionId = paymentIntent.metadata?.session_id
-      if (!sessionId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No session_id found in failed payment intent metadata: ${paymentIntent.id}`)
-        }
-        return
-      }
-
-      const session = await stripe.checkout.sessions.retrieve(sessionId)
-      const userId = session.metadata?.userId
-
-      if (userId) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Payment failed for user ${userId}, session ${sessionId}`)
-        }
-        // TODO STRIPE: Send failure notification email to user
-        // TODO STRIPE: Log for analytics
-      }
-    } catch (error) {
-      console.error('Error handling payment_intent.payment_failed:', error)
-      throw error
-    }
-  },
-
-  /**
    * Handle checkout.session.completed webhook events
-   * Final verification that checkout completed successfully
+   * Grants access to content when checkout completes successfully
    */
   handleCheckoutSessionCompleted: async function (event) {
     try {
@@ -361,11 +255,97 @@ module.exports = {
         return
       }
 
-      // The actual access granting is handled by payment_intent.succeeded
-      // This is just for logging and verification
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Checkout session ${session.id} completed successfully`)
+      // Extract user and product info from session metadata
+      const userId = session.metadata?.userId
+      const groupId = session.metadata?.groupId
+      const offeringId = session.metadata?.offeringId
+
+      if (!userId || !groupId || !offeringId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Missing required metadata in session ${session.id}:`, {
+            userId: !!userId,
+            groupId: !!groupId,
+            offeringId: !!offeringId
+          })
+        }
+        return
       }
+
+      // Find the offering (StripeProduct) by database ID
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+      if (!offering) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No offering found for ID: ${offeringId}`)
+        }
+        return
+      }
+
+      // Verify the offering belongs to the specified group
+      const offeringGroupId = offering.get('group_id')
+      if (parseInt(offeringGroupId) !== parseInt(groupId)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Offering ${offeringId} does not belong to group ${groupId}`)
+        }
+        return
+      }
+
+      // Determine if this is a subscription based on session mode
+      const stripeSubscriptionId = session.subscription || null
+
+      // Generate content access records
+      const accessRecords = await offering.generateContentAccessRecords({
+        userId: parseInt(userId, 10),
+        sessionId: session.id,
+        stripeSubscriptionId,
+        metadata: {
+          paymentAmount: session.amount_total,
+          currency: session.currency,
+          purchasedAt: new Date().toISOString()
+        }
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
+      }
+
+      // Grant group membership for any groups that received access
+      const userIdNum = parseInt(userId, 10)
+
+      // Collect unique group IDs that received access
+      const groupsToJoin = new Set()
+      for (const accessRecord of accessRecords) {
+        const accessGroupId = accessRecord.get('group_id')
+        if (accessGroupId) {
+          groupsToJoin.add(parseInt(accessGroupId, 10))
+        }
+      }
+
+      // Ensure user is a member of all groups that received access and pin to nav
+      for (const accessGroupId of groupsToJoin) {
+        try {
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
+            role: GroupMembership.Role.DEFAULT
+          })
+
+          // Record agreement acceptance - user accepted agreements before purchase
+          if (membership) {
+            await membership.acceptAgreements()
+          }
+
+          // Pin the purchased group to the user's global navigation
+          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
+          }
+        } catch (error) {
+          console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
+          // Continue processing other groups even if one fails
+        }
+      }
+
+      // TODO STRIPE: Send confirmation email to user
+      // TODO STRIPE: Send notification to group admins
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
       throw error
@@ -433,6 +413,372 @@ module.exports = {
       }
     } catch (error) {
       console.error('Error handling product.updated:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle customer.subscription.created webhook events
+   * Confirms subscription was created after checkout completes
+   * Note: Initial access is typically granted by checkout.session.completed
+   */
+  handleSubscriptionCreated: async function (event) {
+    try {
+      const subscription = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription created: ${subscription.id}`)
+      }
+
+      // Check if this subscription already has access records
+      // (should exist if created via checkout.session.completed)
+      const existingAccess = await ContentAccess.findBySubscriptionId(subscription.id)
+
+      if (existingAccess && existingAccess.length > 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Subscription ${subscription.id} already has ${existingAccess.length} access records (created via checkout)`)
+        }
+        return
+      }
+
+      // No access records exist - check if this is expected or an error
+      // Try to get metadata from subscription first
+      let offeringId = subscription.metadata?.offeringId
+      let userId = subscription.metadata?.userId
+      let sessionId = subscription.metadata?.sessionId
+
+      // If metadata is missing, try to find the checkout session
+      if (!offeringId || !userId) {
+        const sessions = await stripe.checkout.sessions.list({
+          subscription: subscription.id,
+          limit: 1
+        })
+
+        if (sessions && sessions.data.length > 0) {
+          const session = sessions.data[0]
+          offeringId = offeringId || session.metadata?.offeringId
+          userId = userId || session.metadata?.userId
+          sessionId = sessionId || session.id
+        }
+      }
+
+      if (!offeringId || !userId) {
+        console.warn(`Subscription ${subscription.id} missing required metadata (offeringId: ${!!offeringId}, userId: ${!!userId}). Cannot validate or create access.`)
+        return
+      }
+
+      // Find the offering to check if access grants are defined
+      const offering = await StripeProduct.where({ id: offeringId }).fetch()
+      if (!offering) {
+        console.warn(`Offering ${offeringId} not found for subscription ${subscription.id}`)
+        return
+      }
+
+      const accessGrants = offering.get('access_grants') || {}
+
+      // If access_grants is empty, this is expected (e.g., voluntary contribution)
+      if (Object.keys(accessGrants).length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Subscription ${subscription.id} has no access grants defined - this is expected for voluntary contributions`)
+        }
+        return
+      }
+
+      // Access grants exist but no access records - something went wrong!
+      // Create the missing access records now
+      console.warn(`Subscription ${subscription.id} should have access records but none exist. Creating now...`)
+
+      const accessRecords = await offering.generateContentAccessRecords({
+        userId: parseInt(userId, 10),
+        sessionId: sessionId || subscription.id, // Use subscription ID if no session
+        stripeSubscriptionId: subscription.id,
+        metadata: {
+          created_via_webhook: 'customer.subscription.created',
+          subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+        }
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Created ${accessRecords.length} missing access records for subscription ${subscription.id}`)
+      }
+
+      // Grant group membership for any groups that received access
+      const userIdNum = parseInt(userId, 10)
+      const groupsToJoin = new Set()
+      for (const accessRecord of accessRecords) {
+        const accessGroupId = accessRecord.get('group_id')
+        if (accessGroupId) {
+          groupsToJoin.add(parseInt(accessGroupId, 10))
+        }
+      }
+
+      for (const accessGroupId of groupsToJoin) {
+        try {
+          const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
+            role: GroupMembership.Role.DEFAULT
+          })
+
+          // Record agreement acceptance - user accepted agreements before purchase
+          if (membership) {
+            await membership.acceptAgreements()
+          }
+
+          // Pin the purchased group to the user's global navigation
+          await GroupMembership.pinGroupToNav(userIdNum, accessGroupId)
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Ensured group membership for user ${userIdNum} in group ${accessGroupId}`)
+          }
+        } catch (error) {
+          console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling customer.subscription.created:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle customer.subscription.deleted webhook events
+   * Expires access when subscription is canceled or ends
+   */
+  handleSubscriptionDeleted: async function (event) {
+    try {
+      const subscription = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription deleted: ${subscription.id}`)
+      }
+
+      // Find content access records associated with this subscription
+      const accessRecords = await ContentAccess.findBySubscriptionId(subscription.id)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscription.id}`)
+        }
+        return
+      }
+
+      // Update all associated records to expired status
+      await Promise.all(accessRecords.map(async (access) => {
+        const metadata = access.get('metadata') || {}
+        metadata.subscription_canceled_at = new Date().toISOString()
+        metadata.subscription_cancel_reason = subscription.cancellation_details?.reason || 'Subscription ended'
+
+        await access.save({
+          status: ContentAccess.Status.EXPIRED,
+          metadata
+        })
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Expired ${accessRecords.length} access records for deleted subscription ${subscription.id}`)
+      }
+    } catch (error) {
+      console.error('Error handling customer.subscription.deleted:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle invoice.paid webhook events
+   * Extends access when subscription renewal payment succeeds
+   */
+  handleInvoicePaid: async function (event) {
+    try {
+      const invoice = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Invoice paid: ${invoice.id}`)
+      }
+
+      // Only handle invoices for subscriptions
+      if (!invoice.subscription) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Invoice ${invoice.id} is not for a subscription, skipping`)
+        }
+        return
+      }
+
+      // Check if this is the first invoice (initial payment)
+      // Initial payment is handled by checkout.session.completed
+      if (invoice.billing_reason === 'subscription_create') {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Invoice ${invoice.id} is for initial subscription creation, already handled by checkout`)
+        }
+        return
+      }
+
+      const subscriptionId = invoice.subscription
+
+      // Find content access records for this subscription
+      const accessRecords = await ContentAccess.findBySubscriptionId(subscriptionId)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscriptionId}`)
+        }
+        return
+      }
+
+      // Check renewal_policy from the offering
+      const firstAccess = accessRecords.at(0)
+      const productId = firstAccess.get('product_id')
+
+      if (productId) {
+        const offering = await StripeProduct.where({ id: productId }).fetch()
+
+        if (offering && offering.get('renewal_policy') === StripeProduct.RenewalPolicy.MANUAL) {
+          // This offering should not auto-renew
+          console.warn(`Subscription ${subscriptionId} attempted to renew but offering ${productId} has renewal_policy='manual'. Canceling subscription.`)
+
+          // Cancel the subscription at period end
+          await stripe.subscriptions.update(subscriptionId, {
+            cancel_at_period_end: true
+          })
+
+          // Don't extend access - let it expire naturally
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Subscription ${subscriptionId} set to cancel at period end. Access will expire.`)
+          }
+
+          return
+        }
+      }
+
+      // Get subscription details to get the new period end
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      const newExpiresAt = new Date(subscription.current_period_end * 1000)
+
+      // Extend access for all associated records
+      await Promise.all(accessRecords.map(async (access) => {
+        await ContentAccess.extendAccess(
+          access.id,
+          newExpiresAt,
+          {
+            renewed_at: new Date().toISOString(),
+            invoice_id: invoice.id,
+            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            subscription_period_end: newExpiresAt.toISOString(),
+            billing_reason: invoice.billing_reason
+          }
+        )
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Extended ${accessRecords.length} access records for subscription ${subscriptionId} until ${newExpiresAt.toISOString()}`)
+      }
+    } catch (error) {
+      console.error('Error handling invoice.paid:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle invoice.payment_failed webhook events
+   * Logs failed subscription renewal payments
+   */
+  handleInvoicePaymentFailed: async function (event) {
+    try {
+      const invoice = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Invoice payment failed: ${invoice.id}`)
+      }
+
+      // Only handle invoices for subscriptions
+      if (!invoice.subscription) {
+        return
+      }
+
+      const subscriptionId = invoice.subscription
+
+      // Find content access records for this subscription
+      const accessRecords = await ContentAccess.findBySubscriptionId(subscriptionId)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscriptionId}`)
+        }
+        return
+      }
+
+      // Log the failed payment in metadata (don't revoke access yet - Stripe retries)
+      await Promise.all(accessRecords.map(async (access) => {
+        const metadata = access.get('metadata') || {}
+        metadata.last_payment_failure = new Date().toISOString()
+        metadata.last_payment_failure_invoice = invoice.id
+
+        await access.save({ metadata })
+      }))
+
+      console.warn(`Payment failed for subscription ${subscriptionId} affecting ${accessRecords.length} access records. Stripe will retry payment.`)
+
+      // TODO STRIPE: Send notification email to user about payment failure
+    } catch (error) {
+      console.error('Error handling invoice.payment_failed:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.refunded webhook events
+   * Revokes access when payment is refunded
+   */
+  handleChargeRefunded: async function (event) {
+    try {
+      const charge = event.data.object
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Charge refunded: ${charge.id}`)
+      }
+
+      // Get the payment intent to find the checkout session
+      const paymentIntentId = charge.payment_intent
+      if (!paymentIntentId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No payment intent found for charge ${charge.id}`)
+        }
+        return
+      }
+
+      // Retrieve the payment intent to get session_id from metadata
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      const sessionId = paymentIntent.metadata?.session_id
+
+      if (!sessionId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No session_id found in payment intent metadata for ${paymentIntentId}`)
+        }
+        return
+      }
+
+      // Find content access records associated with this session
+      const accessRecords = await ContentAccess.findBySessionId(sessionId)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for session ${sessionId}`)
+        }
+        return
+      }
+
+      // Revoke all associated access records
+      await Promise.all(accessRecords.map(async (access) => {
+        const metadata = access.get('metadata') || {}
+        metadata.refunded_at = new Date().toISOString()
+        metadata.refund_amount = charge.amount_refunded
+        metadata.refund_reason = charge.refund?.reason || 'Payment refunded'
+
+        await access.save({
+          status: ContentAccess.Status.REVOKED,
+          metadata
+        })
+      }))
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Revoked ${accessRecords.length} access records for refunded charge ${charge.id}`)
+      }
+    } catch (error) {
+      console.error('Error handling charge.refunded:', error)
       throw error
     }
   },

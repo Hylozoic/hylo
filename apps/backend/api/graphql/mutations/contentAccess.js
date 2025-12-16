@@ -4,7 +4,7 @@
  * Provides GraphQL API for managing content access grants:
  * - Admin-granted free access to content
  * - Recording Stripe purchases
- * - Checking and revoking access
+ * - Revoking access
  */
 
 import { GraphQLError } from 'graphql'
@@ -172,62 +172,6 @@ module.exports = {
   },
 
   /**
-   * Check if user has access to content
-   *
-   * Query to check if a user has active access to specific content.
-   * Can be used by the frontend to gate content display.
-   *
-   * Usage:
-   *   query {
-   *     checkContentAccess(
-   *       userId: "456"
-   *       grantedByGroupId: "123"
-   *       groupId: "789"  // optional - for group-specific access
-   *       productId: "789"  // optional - or trackId: "101" or roleId: "202"
-   *     ) {
-   *       hasAccess
-   *       accessType
-   *       expiresAt
-   *     }
-   *   }
-   */
-  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, roleId }) => {
-    try {
-      // Check access using the model method
-      const access = await ContentAccess.checkAccess({
-        userId,
-        grantedByGroupId,
-        groupId,
-        productId,
-        trackId,
-        roleId
-      })
-
-      if (!access) {
-        return {
-          hasAccess: false,
-          accessType: null,
-          expiresAt: null,
-          grantedAt: null
-        }
-      }
-
-      return {
-        hasAccess: true,
-        accessType: access.get('access_type'),
-        expiresAt: access.get('expires_at'),
-        grantedAt: access.get('created_at')
-      }
-    } catch (error) {
-      if (error instanceof GraphQLError) {
-        throw error
-      }
-      console.error('Error in checkContentAccess:', error)
-      throw new GraphQLError(`Failed to check access: ${error.message}`)
-    }
-  },
-
-  /**
    * Record a Stripe purchase
    *
    * Internal mutation to record successful Stripe purchases.
@@ -244,7 +188,7 @@ module.exports = {
    *       trackId: "101"  // optional
    *       roleId: "202"   // optional
    *       sessionId: "cs_xxx"
-   *       paymentIntentId: "pi_xxx"
+   *       stripeSubscriptionId: "sub_xxx"  // optional, for recurring
    *     ) {
    *       id
    *       success
@@ -259,7 +203,7 @@ module.exports = {
     trackId,
     roleId,
     sessionId,
-    paymentIntentId,
+    stripeSubscriptionId,
     amountPaid,
     currency,
     expiresAt,
@@ -278,7 +222,7 @@ module.exports = {
         trackId,
         roleId,
         sessionId,
-        paymentIntentId,
+        stripeSubscriptionId,
         amountPaid,
         currency,
         expiresAt,

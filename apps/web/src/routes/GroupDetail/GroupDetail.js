@@ -1,5 +1,5 @@
 import { keyBy } from 'lodash'
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +19,7 @@ import NotFound from 'components/NotFound'
 import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import JoinSection from './JoinSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import checkInvitation from 'store/actions/checkInvitation'
 import fetchGroupDetails from 'store/actions/fetchGroupDetails'
 import { FETCH_GROUP_DETAILS, RESP_ADMINISTRATION } from 'store/constants'
 import {
@@ -43,6 +44,7 @@ import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
 import isWebView, { sendMessageToWebView } from 'util/webView'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
 import {
   createJoinRequest,
@@ -75,19 +77,59 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const responsibilityTitles = useMemo(() => responsibilities.map(r => r.title), [responsibilities])
   const pending = useSelector(state => state.pending[FETCH_GROUP_DETAILS])
 
+  // Read invitation params from URL (passed by JoinGroup redirect)
+  const accessCode = getQuerystringParam('accessCode', location)
+  const invitationToken = getQuerystringParam('token', location)
+
+  // For email invites, fetch the associated email from backend (not URL for security)
+  const [invitationEmail, setInvitationEmail] = useState(null)
+  const [invitationChecked, setInvitationChecked] = useState(false)
+
+  useEffect(() => {
+    if (invitationToken && currentUser && !invitationChecked) {
+      (async () => {
+        const result = await dispatch(checkInvitation({ invitationToken }))
+        const checkResult = result?.payload?.getData()
+        if (checkResult?.email) {
+          setInvitationEmail(checkResult.email)
+        }
+        setInvitationChecked(true)
+      })()
+    }
+  }, [invitationToken, currentUser, invitationChecked, dispatch])
+
+  // For email invites, validate that logged-in user's email matches the invitation email
+  const hasEmailInvite = !!(invitationToken && invitationEmail)
+  const userEmail = currentUser?.email?.toLowerCase()
+  const inviteEmailLower = invitationEmail?.toLowerCase()
+  const emailMismatch = hasEmailInvite && currentUser && userEmail !== inviteEmailLower
+
   const fetchGroup = useCallback(() => {
-    dispatch(fetchGroupDetails({ slug, withContextWidgets: false, withWidgets: true, withPrerequisites: !!currentUser }))
-  }, [dispatch, slug, currentUser])
+    dispatch(fetchGroupDetails({
+      slug,
+      accessCode,
+      invitationToken,
+      withContextWidgets: false,
+      withWidgets: true,
+      withPrerequisites: !!currentUser
+    }))
+  }, [dispatch, slug, accessCode, invitationToken, currentUser])
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
-    await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+    // Pass acceptAgreements: true since user can only reach this point after accepting all barriers
+    await dispatch(joinGroup(
+      groupId,
+      questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer })),
+      accessCode,
+      invitationToken,
+      true // acceptAgreements - user accepted during join flow
+    ))
     // DEPRECATED: No longer send message to mobile app - web handles all navigation
     // if (isWebView()) {
     //   sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
     // } else {
-      navigate(groupUrl(group.slug))
-    // }
-  }, [dispatch, group])
+    navigate(groupUrl(group.slug))
+  }, [dispatch, group, accessCode, invitationToken])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
@@ -118,6 +160,30 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   if (!group && !pending) return <NotFound />
   if (pending) return <Loading />
+
+  // Wait for invitation check to complete before showing content (for email invites)
+  if (invitationToken && currentUser && !invitationChecked) return <Loading />
+
+  // Show error if email invite doesn't match logged-in user's email
+  if (emailMismatch) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[400px] p-8 text-center'>
+        <Icon name='AlertTriangle' className='w-16 h-16 text-warning mb-4' />
+        <h2 className='text-xl font-bold text-foreground mb-2'>
+          {t('This invitation is not for your account')}
+        </h2>
+        <p className='text-foreground/70 mb-4'>
+          {t('This invitation was sent to {{email}}. You are currently logged in as {{userEmail}}.', {
+            email: invitationEmail,
+            userEmail: currentUser?.email
+          })}
+        </p>
+        <p className='text-foreground/70 text-sm'>
+          {t('Please log in with the correct account or request a new invitation.')}
+        </p>
+      </div>
+    )
+  }
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
@@ -193,53 +259,57 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
-        {group.agreements?.length > 0
-          ? (
-            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
-              <h2>{t('Agreements')}</h2>
-              {group.agreements.map((agreement, i) => {
-                return (
-                  <div key={i}>
-                    <strong>{parseInt(i) + 1}) {agreement.title}</strong>
-                    <ClickCatcher>
-                      <HyloHTML element='span' html={TextHelpers.markdown(agreement.description)} />
-                    </ClickCatcher>
-                  </div>
-                )
-              })}
-            </div>)
-          : ''}
         {!isAboutCurrentGroup
-          ? !currentUser
-              ? (
-                <div className={g.signupButton}>
-                  <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
-                    {t('Signup or Login to connect with')}{' '}
-                    <span className={g.requestGroup}>{group.name}</span>
-                  </Link>
-                </div>)
-              : isMember
+          ? group.paywall
+            ? (
+              <div>
+                <JoinSection
+                  accessCode={accessCode}
+                  addSkill={addSkill}
+                  currentUser={currentUser}
+                  fullPage={fullPage}
+                  group={group}
+                  groupsWithPendingRequests={groupsWithPendingRequests}
+                  invitationToken={invitationToken}
+                  joinGroup={joinGroupHandler}
+                  requestToJoinGroup={requestToJoinGroup}
+                  removeSkill={removeSkill}
+                  routeParams={routeParams}
+                  t={t}
+                />
+              </div>)
+            : !currentUser
                 ? (
-                  <div className={g.existingMember}>
-                    {t('You are a member of ')}
-                    <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                  <div className={g.signupButton}>
+                    <Link to={'/login?returnToUrl=' + location.pathname} target={inIframe() ? '_blank' : ''} className={g.requestButton}>
+                      {t('Signup or Login to connect with')}{' '}
+                      <span className={g.requestGroup}>{group.name}</span>
+                    </Link>
                   </div>)
-                : (
-                  <div>
-                    <JoinSection
-                      addSkill={addSkill}
-                      currentUser={currentUser}
-                      fullPage={fullPage}
-                      group={group}
-                      groupsWithPendingRequests={groupsWithPendingRequests}
-                      joinGroup={joinGroupHandler}
-                      requestToJoinGroup={requestToJoinGroup}
-                      removeSkill={removeSkill}
-                      routeParams={routeParams}
-                      t={t}
-                    />
-                  </div>
-                  )
+                : isMember
+                  ? (
+                    <div className={g.existingMember}>
+                      {t('You are a member of ')}
+                      <Link to={groupUrl(group.slug)}>{group.name}</Link>
+                    </div>)
+                  : (
+                    <div>
+                      <JoinSection
+                        accessCode={accessCode}
+                        addSkill={addSkill}
+                        currentUser={currentUser}
+                        fullPage={fullPage}
+                        group={group}
+                        groupsWithPendingRequests={groupsWithPendingRequests}
+                        invitationToken={invitationToken}
+                        joinGroup={joinGroupHandler}
+                        requestToJoinGroup={requestToJoinGroup}
+                        removeSkill={removeSkill}
+                        routeParams={routeParams}
+                        t={t}
+                      />
+                    </div>
+                    )
           : ''}
       </div>
       <Tooltip

@@ -1,4 +1,4 @@
-/* global FundingRound */
+/* global FundingRound ContentAccess */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -17,9 +17,11 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import InvitationService from '../services/InvitationService'
 import {
+  filterAndSortContentAccess,
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
+const { createGroupRoleScope } = require('../../lib/scopes')
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -787,6 +789,23 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         {
+          contentAccess: {
+            querySet: true,
+            filter: (relation, { search, accessType, status, offeringId, trackId, roleId, sortBy, order }) =>
+              relation.query(filterAndSortContentAccess({
+                groupIds: [relation.relatedData.parentId],
+                search,
+                accessType,
+                status,
+                offeringId,
+                trackId,
+                roleId,
+                sortBy,
+                order
+              }))
+          }
+        },
+        {
           viewPosts: {
             querySet: true,
             arguments: () => [userId],
@@ -815,6 +834,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       ],
       getters: {
         // commonRoles: async g => g.commonRoles(),
+        canAccess: g => g ? g.canAccess(userId) : false,
         homeWidget: g => g.homeWidget(),
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
@@ -970,7 +990,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'group',
         { responsibilities: { querySet: true } }
-      ]
+      ],
+      getters: {
+        canAccess: gr => {
+          if (!gr || !userId) return false
+          // Check if user has the group_role scope
+          const requiredScope = createGroupRoleScope(gr.get('id'))
+          return UserScope.canAccess(userId, requiredScope)
+        }
+      }
     },
 
     CustomView: {
@@ -1314,6 +1342,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
+        canAccess: t => t ? t.canAccess(userId) : false,
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
         userSettings: t => t && userId ? t.userSettings(userId) : null,
@@ -1570,7 +1599,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'price_in_cents',
         'currency',
         'track_id',
-        'content_access',
+        'access_grants',
         'renewal_policy',
         'duration',
         'publish_status'
@@ -1584,9 +1613,68 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripePriceId: sp => sp.get('stripe_price_id'),
         priceInCents: sp => sp.get('price_in_cents'),
         trackId: sp => sp.get('track_id'),
-        contentAccess: sp => sp.get('content_access'),
+        accessGrants: sp => sp.get('access_grants'),
         renewalPolicy: sp => sp.get('renewal_policy'),
-        publishStatus: sp => sp.get('publish_status')
+        publishStatus: sp => sp.get('publish_status'),
+        tracks: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          // Parse accessGrants (might be string or object)
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          // Extract all trackIds from all groups
+          const trackIds = []
+          if (grants.trackIds && Array.isArray(grants.trackIds)) {
+            trackIds.push(...grants.trackIds.map(id => parseInt(id)))
+          }
+
+          if (trackIds.length === 0) return []
+
+          // Fetch tracks
+          const tracks = await Track.where('id', 'in', trackIds).fetchAll()
+          return tracks.models || []
+        },
+        roles: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          // Parse accessGrants (might be string or object)
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          // Extract all roleIds from all groups
+          const roleIds = []
+          if (grants.roleIds && Array.isArray(grants.roleIds)) {
+            roleIds.push(...grants.roleIds.map(id => parseInt(id)))
+          }
+
+          if (roleIds.length === 0) return []
+
+          // Fetch group roles
+          const groupRoles = await GroupRole.where('id', 'in', roleIds).fetchAll()
+
+          return groupRoles.models || []
+        }
       }
     },
 
@@ -1604,7 +1692,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'role_id',
         'access_type',
         'stripe_session_id',
-        'stripe_payment_intent_id',
+        'stripe_subscription_id',
         'status',
         'granted_by_id',
         'expires_at',
@@ -1619,6 +1707,74 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'role',
         'grantedBy'
       ],
+      fetchMany: (args) => {
+        // Store args for use in filter function
+        ContentAccess._fetchManyArgs = args
+        return ContentAccess
+      },
+      filter: (relation) => {
+        const args = ContentAccess._fetchManyArgs || {}
+        const { groupIds, search, accessType, status, offeringId, trackId, roleId, sortBy = 'created_at', order } = args
+
+        return relation.query(q => {
+          // Filter by group IDs (groups that granted the access)
+          if (groupIds && groupIds.length > 0) {
+            q.whereIn('content_access.granted_by_group_id', groupIds)
+          }
+
+          // Filter by user name search
+          if (search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+            q.whereRaw('users.name ilike ?', `%${search}%`)
+          }
+
+          // Filter by access type
+          if (accessType) {
+            q.where('content_access.access_type', accessType)
+          }
+
+          // Filter by status
+          if (status) {
+            q.where('content_access.status', status)
+          }
+
+          // Filter by offering ID
+          if (offeringId) {
+            q.where('content_access.product_id', offeringId)
+          }
+
+          // Filter by track ID
+          if (trackId) {
+            q.where('content_access.track_id', trackId)
+          }
+
+          // Filter by role ID
+          if (roleId) {
+            q.where('content_access.role_id', roleId)
+          }
+
+          // Apply sorting
+          const validSortColumns = {
+            created_at: 'content_access.created_at',
+            expires_at: 'content_access.expires_at',
+            user_name: 'users.name'
+          }
+
+          const sortColumn = validSortColumns[sortBy] || validSortColumns.created_at
+
+          // If sorting by user name and not already joined, join users table
+          if (sortBy === 'user_name' && !search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+          }
+
+          // Apply sorting
+          if (sortBy === 'user_name') {
+            q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+          } else {
+            q.orderBy(sortColumn, order || 'desc')
+          }
+        })
+      },
       getters: {
         userId: ca => ca.get('user_id'),
         grantedByGroupId: ca => ca.get('granted_by_group_id'),
@@ -1628,7 +1784,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         roleId: ca => ca.get('role_id'),
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
-        stripePaymentIntentId: ca => ca.get('stripe_payment_intent_id'),
+        stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),
         grantedById: ca => ca.get('granted_by_id')
       }
     }

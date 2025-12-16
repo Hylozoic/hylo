@@ -26,7 +26,6 @@ import {
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
-  checkContentAccess,
   clearModerationAction,
   completePost,
   createAffiliation,
@@ -151,14 +150,21 @@ import {
   useInvitation,
   createStripeConnectedAccount,
   createStripeAccountLink,
-  stripeAccountStatus,
   createStripeOffering,
   updateStripeOffering,
-  stripeOfferings,
   createStripeCheckoutSession,
   checkStripeStatus,
   verifyEmail
 } from './mutations'
+import {
+  stripeAccountStatus,
+  stripeOfferings,
+  publicStripeOfferings,
+  publicStripeOffering,
+  offeringSubscriptionStats,
+  offeringSubscribers,
+  checkContentAccess
+} from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
@@ -327,12 +333,25 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
-    // Can only access public communities and posts
-    group: async (root, { id, slug }) => fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC }),
+    // Can only access public communities and posts, unless a valid invitation is provided
+    group: async (root, { id, slug, accessCode, invitationToken }) => {
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (inviteCheck?.valid) {
+          // Fetch group without visibility restriction
+          return Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: only allow PUBLIC visibility groups
+      return fetchOne('Group', slug || id, slug ? 'slug' : 'id', { visibility: Group.Visibility.PUBLIC })
+    },
     groups: (root, args) => fetchMany('Group', Object.assign(args, { visibility: Group.Visibility.PUBLIC })),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
-    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true }))
+    posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
   }
 }
 
@@ -347,10 +366,22 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     comment: (root, { id }) => fetchOne('Comment', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
+    contentAccess: (root, args) => fetchMany('ContentAccess', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
-    group: async (root, { id, slug, updateLastViewed }, context) => {
-      // you can specify id or slug, but not both
-      const group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+    group: async (root, { id, slug, updateLastViewed, accessCode, invitationToken }, context) => {
+      let group
+      // If invitation credentials are provided, validate and bypass visibility filter
+      if (accessCode || invitationToken) {
+        const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+        if (inviteCheck?.valid) {
+          // Fetch group directly without normal visibility filter
+          group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
+        }
+      }
+      // Default: use normal fetch with group filter applied
+      if (!group) {
+        group = await fetchOne('Group', slug || id, slug ? 'slug' : 'id')
+      }
       if (updateLastViewed && group) {
         // Resets new post count to 0
         await GroupMembership.updateLastViewedAt(context.currentUserId, group)
@@ -403,6 +434,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     skills: (root, args) => fetchMany('Skill', args),
     stripeAccountStatus: (root, { groupId, accountId }, context) => stripeAccountStatus(context.currentUserId, { groupId, accountId }),
     stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
+    publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    offeringSubscriptionStats: (root, { offeringId, groupId }, context) => offeringSubscriptionStats(context.currentUserId, { offeringId, groupId }),
+    offeringSubscribers: (root, { offeringId, groupId, page, pageSize, lapsedOnly }, context) => offeringSubscribers(context.currentUserId, { offeringId, groupId, page, pageSize, lapsedOnly }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
@@ -418,7 +453,8 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
-    verifyEmail: verifyEmail(fetchOne)
+    verifyEmail: verifyEmail(fetchOne),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata })
   }
 }
 
@@ -568,7 +604,7 @@ export function makeMutations ({ fetchOne }) {
 
     joinFundingRound: (root, { id }, context) => joinFundingRound(context.currentUserId, id),
 
-    joinGroup: (root, { groupId, questionAnswers }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, context),
+    joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
@@ -615,7 +651,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, accountId, priceId, quantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 

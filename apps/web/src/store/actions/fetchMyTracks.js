@@ -15,6 +15,8 @@ query FetchMyTracks (
     tracksEnrolledIn (autocomplete: $autocomplete, first: $first, offset: $offset, sortBy: $sortBy, order: $order) {
       items {
         id
+        accessControlled
+        canAccess
         bannerUrl
         actionDescriptor
         actionDescriptorPlural

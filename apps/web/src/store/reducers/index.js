@@ -21,6 +21,7 @@ import Messages from 'routes/Messages/Messages.store'
 import Members from 'routes/Members/Members.store'
 import MembershipRequests from 'routes/GroupSettings/MembershipRequestsTab/MembershipRequestsTab.store'
 import MemberSelector from 'components/MemberSelector/MemberSelector.store'
+import PaidContentTab from 'routes/GroupSettings/PaidContentTab/PaidContentTab.store'
 import RoleSettings from 'routes/GroupSettings/RolesSettingsTab/RolesSettingsTab.store'
 import PeopleTyping from 'components/PeopleTyping/PeopleTyping.store'
 import PostEditor from 'components/PostEditor/PostEditor.store'
@@ -54,6 +55,7 @@ export const createCombinedReducers = routerReducer => combineReducers({
   Members,
   MemberSelector,
   Messages,
+  PaidContentTab,
   RoleSettings,
   PeopleTyping,
   AuthLayoutRouter,

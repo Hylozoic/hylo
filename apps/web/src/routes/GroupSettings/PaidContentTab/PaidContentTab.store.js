@@ -6,6 +6,7 @@
  */
 
 import { get } from 'lodash/fp'
+import contentAccessQuery from '@graphql/queries/contentAccessQuery'
 
 export const MODULE_NAME = 'PaidContentTab'
 
@@ -16,6 +17,7 @@ export const CHECK_STRIPE_STATUS = `${MODULE_NAME}/CHECK_STRIPE_STATUS`
 export const CREATE_OFFERING = `${MODULE_NAME}/CREATE_OFFERING`
 export const UPDATE_OFFERING = `${MODULE_NAME}/UPDATE_OFFERING`
 export const FETCH_OFFERINGS = `${MODULE_NAME}/FETCH_OFFERINGS`
+export const FETCH_CONTENT_ACCESS = `${MODULE_NAME}/FETCH_CONTENT_ACCESS`
 
 /**
  * Creates a Stripe Connected Account for the group
@@ -120,7 +122,7 @@ export function fetchAccountStatus (groupId, accountId) {
  * Offerings represent subscription tiers, content access, or other offerings
  * that the group wants to sell.
  */
-export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd', contentAccess = null, duration = null, publishStatus = 'unpublished') {
+export function createOffering (groupId, accountId, name, description, priceInCents, currency = 'usd', accessGrants = null, duration = null, publishStatus = 'unpublished') {
   return {
     type: CREATE_OFFERING,
     graphql: {
@@ -141,7 +143,7 @@ export function createOffering (groupId, accountId, name, description, priceInCe
           description,
           priceInCents,
           currency,
-          contentAccess,
+          accessGrants,
           duration,
           publishStatus
         }
@@ -198,9 +200,20 @@ export function fetchOfferings (groupId, accountId) {
             currency
             stripeProductId
             stripePriceId
-            contentAccess
+            accessGrants
             publishStatus
             duration
+            tracks {
+              id
+              name
+              bannerUrl
+              description
+            }
+            roles {
+              id
+              name
+              emoji
+            }
           }
           success
         }
@@ -219,19 +232,19 @@ export function fetchOfferings (groupId, accountId) {
  * Allows updating offering details including name, description, price, etc.
  */
 export function updateOffering (offeringId, updates) {
-  const { name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus } = updates || {}
+  const { name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus } = updates || {}
 
   return {
     type: UPDATE_OFFERING,
     graphql: {
-      query: `mutation ($offeringId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $contentAccess: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
+      query: `mutation ($offeringId: ID!, $name: String, $description: String, $priceInCents: Int, $currency: String, $accessGrants: JSON, $renewalPolicy: String, $duration: String, $publishStatus: PublishStatus) {
         updateStripeOffering(
           offeringId: $offeringId
           name: $name
           description: $description
           priceInCents: $priceInCents
           currency: $currency
-          contentAccess: $contentAccess
+          accessGrants: $accessGrants
           renewalPolicy: $renewalPolicy
           duration: $duration
           publishStatus: $publishStatus
@@ -246,10 +259,50 @@ export function updateOffering (offeringId, updates) {
         description,
         priceInCents,
         currency,
-        contentAccess,
+        accessGrants,
         renewalPolicy,
         duration,
         publishStatus
+      }
+    }
+  }
+}
+
+/**
+ * Fetches content access records for a group
+ *
+ * Lists all content access grants (purchased and admin-granted) for the group.
+ * Supports filtering and pagination.
+ */
+export function fetchContentAccess ({
+  groupIds,
+  search = '',
+  accessType = null,
+  status = null,
+  offeringId = null,
+  trackId = null,
+  roleId = null,
+  first = 20,
+  offset = 0,
+  order = 'desc',
+  sortBy = 'created_at'
+}) {
+  return {
+    type: FETCH_CONTENT_ACCESS,
+    graphql: {
+      query: contentAccessQuery,
+      variables: {
+        groupIds,
+        search,
+        accessType,
+        status,
+        offeringId,
+        trackId,
+        roleId,
+        first,
+        offset,
+        order,
+        sortBy
       }
     }
   }
@@ -267,6 +320,13 @@ export function getAccountStatus (state) {
  */
 export function getOfferings (state) {
   return get('PaidContentTab.offerings', state) || []
+}
+
+/**
+ * Selector to get content access records directly from state
+ */
+export function getContentAccessRecords (state) {
+  return get('PaidContentTab.contentAccess', state) || { items: [], total: 0, hasMore: false }
 }
 
 /**
@@ -288,6 +348,12 @@ export default function reducer (state = {}, action) {
       return {
         ...state,
         offerings: payload?.data?.stripeOfferings?.offerings || []
+      }
+
+    case FETCH_CONTENT_ACCESS:
+      return {
+        ...state,
+        contentAccess: payload?.data?.contentAccess || { items: [], total: 0, hasMore: false }
       }
 
     default:
