@@ -657,6 +657,111 @@ module.exports = {
   },
 
   /**
+   * Lists all subscriptions for a specific price on a connected account
+   *
+   * Fetches all subscriptions in one API call, filtered by price ID.
+   * Much more efficient than fetching individual subscriptions.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} priceId - The price ID to filter by
+   * @param {String} status - Filter by status: 'active', 'canceled', 'all', etc. (default: 'active')
+   * @param {Number} limit - Maximum number of subscriptions to return (default: 100)
+   * @returns {Promise<Array<Object>>} Array of subscription objects
+   */
+  async listSubscriptionsByPrice (accountId, priceId, { status = 'active', limit = 100 } = {}) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to list subscriptions')
+      }
+
+      if (!priceId) {
+        throw new Error('Price ID is required to list subscriptions')
+      }
+
+      const params = {
+        price: priceId,
+        limit,
+        expand: ['data.items.data.price']
+      }
+
+      // Only add status filter if not 'all'
+      if (status !== 'all') {
+        params.status = status
+      }
+
+      const subscriptions = await stripe.subscriptions.list(params, {
+        stripeAccount: accountId
+      })
+
+      return subscriptions.data
+    } catch (error) {
+      console.error('Error listing subscriptions by price:', error)
+      throw new Error(`Failed to list subscriptions: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves a subscription from Stripe
+   *
+   * Used to get subscription details for individual lookups.
+   * Expands the items to get price information.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} subscriptionId - The subscription ID to retrieve
+   * @returns {Promise<Object>} Subscription object with expanded items
+   */
+  async getSubscription (accountId, subscriptionId) {
+    try {
+      // Validate required parameters
+      if (!accountId) {
+        throw new Error('Account ID is required to retrieve a subscription')
+      }
+
+      if (!subscriptionId) {
+        throw new Error('Subscription ID is required')
+      }
+
+      // Retrieve the subscription with expanded items to get price info
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price']
+      }, {
+        stripeAccount: accountId
+      })
+
+      return subscription
+    } catch (error) {
+      console.error('Error retrieving subscription:', error)
+      throw new Error(`Failed to retrieve subscription: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves multiple subscriptions from Stripe
+   *
+   * Fetches multiple subscriptions in a single batch for efficiency.
+   * Returns an array of subscription objects.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {Array<String>} subscriptionIds - Array of subscription IDs to retrieve
+   * @returns {Promise<Array<Object>>} Array of subscription objects
+   */
+  async getSubscriptions (accountId, subscriptionIds) {
+    if (!accountId || !subscriptionIds || subscriptionIds.length === 0) {
+      return []
+    }
+
+    // Fetch subscriptions in parallel with error handling for individual failures
+    const results = await Promise.allSettled(
+      subscriptionIds.map(subId => this.getSubscription(accountId, subId))
+    )
+
+    // Return only successful results
+    return results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
+  },
+
+  /**
    * Utility function to format price from cents to display string
    *
    * @param {Number} cents - Price in cents

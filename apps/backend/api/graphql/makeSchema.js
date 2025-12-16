@@ -162,6 +162,7 @@ import {
   publicStripeOfferings,
   publicStripeOffering,
   offeringSubscriptionStats,
+  offeringSubscribers,
   checkContentAccess
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
@@ -436,6 +437,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
     publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
     offeringSubscriptionStats: (root, { offeringId, groupId }, context) => offeringSubscriptionStats(context.currentUserId, { offeringId, groupId }),
+    offeringSubscribers: (root, { offeringId, groupId, page, pageSize, lapsedOnly }, context) => offeringSubscribers(context.currentUserId, { offeringId, groupId, page, pageSize, lapsedOnly }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),

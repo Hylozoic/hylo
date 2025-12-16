@@ -9,7 +9,8 @@ export {
   stripeOfferings,
   publicStripeOfferings,
   publicStripeOffering,
-  offeringSubscriptionStats
+  offeringSubscriptionStats,
+  offeringSubscribers
 } from './stripe'
 
 export {

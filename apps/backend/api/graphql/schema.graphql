@@ -377,6 +377,20 @@ type Query {
     groupId: ID!
   ): OfferingSubscriptionStats
 
+  # Get paginated list of subscribers for an offering
+  offeringSubscribers(
+    # The offering (StripeProduct) ID
+    offeringId: ID!
+    # The group ID (for permission checks)
+    groupId: ID!
+    # Page number (1-indexed, default 1)
+    page: Int
+    # Number of results per page (default 50, max 100)
+    pageSize: Int
+    # If true, only return lapsed subscribers
+    lapsedOnly: Boolean
+  ): OfferingSubscribersQuerySet
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -3589,6 +3603,42 @@ type OfferingSubscriptionStats {
   currency: String
   success: Boolean
   message: String
+}
+
+# A subscriber to an offering (StripeProduct)
+type OfferingSubscriber {
+  # The content access record ID
+  id: ID
+  # The user ID of the subscriber
+  userId: ID
+  # The subscriber's name
+  userName: String
+  # The subscriber's avatar URL
+  userAvatarUrl: String
+  # Subscription status: 'active' or 'lapsed'
+  status: String
+  # When the user subscribed/purchased
+  joinedAt: Date
+  # When access expires (if applicable)
+  expiresAt: Date
+  # The Stripe subscription ID (if applicable)
+  stripeSubscriptionId: String
+}
+
+# Paginated list of subscribers for an offering
+type OfferingSubscribersQuerySet {
+  # Total number of subscribers matching the filter
+  total: Int
+  # Whether there are more pages to load
+  hasMore: Boolean
+  # The subscribers on this page
+  items: [OfferingSubscriber]
+  # Current page number (1-indexed)
+  page: Int
+  # Number of items per page
+  pageSize: Int
+  # Total number of pages
+  totalPages: Int
 }
 
 # An Affilation with an organization added to a User profile

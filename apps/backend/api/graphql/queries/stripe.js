@@ -302,13 +302,14 @@ module.exports = {
       // Get stats from OfferingStatsService
       const stats = await OfferingStatsService.getSubscriptionStats(offeringId)
 
-      // Note: monthlyRevenueCents will be implemented in backend-5 (Stripe API integration)
-      // For now, return null for revenue
+      // Calculate monthly revenue from Stripe subscriptions
+      const revenueData = await OfferingStatsService.calculateMonthlyRevenue(offeringId)
+
       return {
         activeCount: stats.activeCount,
         lapsedCount: stats.lapsedCount,
-        monthlyRevenueCents: null, // TODO: Implement in backend-5 via Stripe API
-        currency: offering.get('currency') || 'usd',
+        monthlyRevenueCents: revenueData.monthlyRevenueCents,
+        currency: revenueData.currency || offering.get('currency') || 'usd',
         success: true,
         message: null
       }
@@ -318,6 +319,78 @@ module.exports = {
       }
       console.error('Error in offeringSubscriptionStats:', error)
       throw new GraphQLError(`Failed to retrieve offering stats: ${error.message}`)
+    }
+  },
+
+  /**
+   * Get paginated list of subscribers for an offering
+   *
+   * Returns a paginated list of users who have subscribed/purchased an offering.
+   * Requires group admin permissions.
+   *
+   * Usage:
+   *   query {
+   *     offeringSubscribers(offeringId: "123", groupId: "456", page: 1, pageSize: 50, lapsedOnly: false) {
+   *       total
+   *       hasMore
+   *       page
+   *       pageSize
+   *       totalPages
+   *       items {
+   *         id
+   *         userId
+   *         userName
+   *         userAvatarUrl
+   *         status
+   *         joinedAt
+   *         expiresAt
+   *       }
+   *     }
+   *   }
+   */
+  offeringSubscribers: async (userId, { offeringId, groupId, page = 1, pageSize = 50, lapsedOnly = false }) => {
+    try {
+      // Check if user is authenticated
+      if (!userId) {
+        throw new GraphQLError('You must be logged in to view subscribers')
+      }
+
+      // Verify user has admin permission for this group
+      const hasAdmin = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
+      if (!hasAdmin) {
+        throw new GraphQLError('You must be a group administrator to view subscribers')
+      }
+
+      // Verify the offering belongs to this group
+      const offering = await StripeProduct.where({ id: offeringId, group_id: groupId }).fetch()
+      if (!offering) {
+        throw new GraphQLError('Offering not found or does not belong to this group')
+      }
+
+      // Validate pageSize (max 100)
+      const validPageSize = Math.min(Math.max(1, pageSize), 100)
+
+      // Get subscribers from OfferingStatsService
+      const result = await OfferingStatsService.getSubscribers(offeringId, {
+        page,
+        pageSize: validPageSize,
+        lapsedOnly
+      })
+
+      return {
+        total: result.total,
+        hasMore: result.page < result.totalPages,
+        items: result.subscribers,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages
+      }
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in offeringSubscribers:', error)
+      throw new GraphQLError(`Failed to retrieve subscribers: ${error.message}`)
     }
   }
 }

@@ -33,7 +33,29 @@ const mockOfferingStatsService = {
   getSubscriptionStats: async (productId) => ({
     activeCount: 5,
     lapsedCount: 2
-  })
+  }),
+  calculateMonthlyRevenue: async (productId) => ({
+    monthlyRevenueCents: 10000, // $100/month mock revenue
+    currency: 'usd'
+  }),
+  getSubscribers: async (productId, { page = 1, pageSize = 50, lapsedOnly = false } = {}) => {
+    const allSubscribers = [
+      { id: 1, userId: 101, userName: 'Active User 1', userAvatarUrl: 'http://example.com/avatar1.jpg', status: 'active', joinedAt: new Date(), expiresAt: null, stripeSubscriptionId: 'sub_123' },
+      { id: 2, userId: 102, userName: 'Active User 2', userAvatarUrl: 'http://example.com/avatar2.jpg', status: 'active', joinedAt: new Date(), expiresAt: null, stripeSubscriptionId: 'sub_124' },
+      { id: 3, userId: 103, userName: 'Lapsed User 1', userAvatarUrl: 'http://example.com/avatar3.jpg', status: 'lapsed', joinedAt: new Date(), expiresAt: new Date('2023-01-01'), stripeSubscriptionId: 'sub_125' }
+    ]
+    const filtered = lapsedOnly ? allSubscribers.filter(s => s.status === 'lapsed') : allSubscribers
+    const total = filtered.length
+    const start = (page - 1) * pageSize
+    const subscribers = filtered.slice(start, start + pageSize)
+    return {
+      subscribers,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    }
+  }
 }
 
 // Mock the services BEFORE importing the queries
@@ -46,7 +68,8 @@ const {
   stripeOfferings,
   publicStripeOfferings,
   publicStripeOffering,
-  offeringSubscriptionStats
+  offeringSubscriptionStats,
+  offeringSubscribers
 } = mock.reRequire('./stripe')
 
 describe('Stripe Queries', () => {
@@ -326,6 +349,7 @@ describe('Stripe Queries', () => {
       expect(result.success).to.be.true
       expect(result.activeCount).to.equal(5)
       expect(result.lapsedCount).to.equal(2)
+      expect(result.monthlyRevenueCents).to.equal(10000) // From mock
       expect(result.currency).to.equal('usd')
     })
 
@@ -370,5 +394,102 @@ describe('Stripe Queries', () => {
       ).to.be.rejectedWith('Offering not found or does not belong to this group')
     })
   })
-})
 
+  describe('offeringSubscribers', () => {
+    let testOffering
+
+    before(async () => {
+      testOffering = await StripeProduct.create({
+        group_id: group.id,
+        stripe_product_id: 'prod_subscribers_test',
+        stripe_price_id: 'price_subscribers_test',
+        name: 'Subscribers Test Offering',
+        description: 'An offering for testing subscribers list',
+        price_in_cents: 2500,
+        currency: 'usd',
+        publish_status: 'published'
+      })
+    })
+
+    it('returns paginated subscribers for group admins', async () => {
+      const result = await offeringSubscribers(adminUser.id, {
+        offeringId: testOffering.id,
+        groupId: group.id,
+        page: 1,
+        pageSize: 50
+      })
+
+      expect(result.total).to.equal(3)
+      expect(result.page).to.equal(1)
+      expect(result.pageSize).to.equal(50)
+      expect(result.totalPages).to.equal(1)
+      expect(result.hasMore).to.be.false
+      expect(result.items).to.have.length(3)
+      expect(result.items[0].userName).to.equal('Active User 1')
+      expect(result.items[0].status).to.equal('active')
+    })
+
+    it('filters lapsed subscribers when lapsedOnly is true', async () => {
+      const result = await offeringSubscribers(adminUser.id, {
+        offeringId: testOffering.id,
+        groupId: group.id,
+        lapsedOnly: true
+      })
+
+      expect(result.total).to.equal(1)
+      expect(result.items).to.have.length(1)
+      expect(result.items[0].userName).to.equal('Lapsed User 1')
+      expect(result.items[0].status).to.equal('lapsed')
+    })
+
+    it('limits pageSize to 100 maximum', async () => {
+      const result = await offeringSubscribers(adminUser.id, {
+        offeringId: testOffering.id,
+        groupId: group.id,
+        pageSize: 200 // Should be limited to 100
+      })
+
+      // The mock returns all 3, but the resolver should have passed 100 as pageSize
+      expect(result.pageSize).to.equal(100)
+    })
+
+    it('rejects subscribers query for non-authenticated users', async () => {
+      await expect(
+        offeringSubscribers(null, {
+          offeringId: testOffering.id,
+          groupId: group.id
+        })
+      ).to.be.rejectedWith('You must be logged in to view subscribers')
+    })
+
+    it('rejects subscribers query for non-admin users', async () => {
+      await expect(
+        offeringSubscribers(user.id, {
+          offeringId: testOffering.id,
+          groupId: group.id
+        })
+      ).to.be.rejectedWith('You must be a group administrator to view subscribers')
+    })
+
+    it('rejects subscribers query for non-existent offering', async () => {
+      await expect(
+        offeringSubscribers(adminUser.id, {
+          offeringId: 99999,
+          groupId: group.id
+        })
+      ).to.be.rejectedWith('Offering not found or does not belong to this group')
+    })
+
+    it('rejects subscribers query when offering belongs to different group', async () => {
+      const otherGroup = await factories.group().save()
+      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
+
+      await expect(
+        offeringSubscribers(adminUser.id, {
+          offeringId: testOffering.id,
+          groupId: otherGroup.id
+        })
+      ).to.be.rejectedWith('Offering not found or does not belong to this group')
+    })
+  })
+})

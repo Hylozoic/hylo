@@ -7,6 +7,10 @@
  * Revenue calculations require Stripe API integration (see StripeService).
  */
 
+/* global bookshelf, StripeProduct, Group, StripeAccount */
+
+const StripeService = require('./StripeService')
+
 module.exports = {
   /**
    * Get subscription stats for an offering (StripeProduct)
@@ -206,6 +210,126 @@ module.exports = {
       .distinct()
 
     return rows.map(row => row.stripe_subscription_id)
+  },
+
+  /**
+   * Calculate monthly revenue for an offering from Stripe subscriptions
+   *
+   * Fetches active subscriptions from Stripe in a single API call and calculates
+   * the normalized monthly revenue by converting all billing intervals to monthly equivalents.
+   *
+   * @param {String|Number} productId - The StripeProduct ID
+   * @returns {Promise<Object>} - { monthlyRevenueCents: Number, currency: String }
+   */
+  async calculateMonthlyRevenue (productId) {
+    // Get the offering to find the group and Stripe price ID
+    const offering = await StripeProduct.where({ id: productId }).fetch()
+    if (!offering) {
+      return { monthlyRevenueCents: 0, currency: 'usd' }
+    }
+
+    const groupId = offering.get('group_id')
+    const currency = offering.get('currency') || 'usd'
+    const stripePriceId = offering.get('stripe_price_id')
+
+    // If no Stripe price ID, can't fetch from Stripe
+    if (!stripePriceId) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    // Get the group to find the Stripe account
+    const group = await Group.where({ id: groupId }).fetch()
+    if (!group) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    const stripeAccountId = group.get('stripe_account_id')
+    if (!stripeAccountId) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    // Get the external account ID
+    const stripeAccount = await StripeAccount.where({ id: stripeAccountId }).fetch()
+    if (!stripeAccount) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    const externalAccountId = stripeAccount.get('stripe_account_external_id')
+    if (!externalAccountId) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    // Fetch all active subscriptions for this price in one API call
+    const subscriptions = await StripeService.listSubscriptionsByPrice(
+      externalAccountId,
+      stripePriceId,
+      { status: 'active' }
+    )
+
+    if (subscriptions.length === 0) {
+      return { monthlyRevenueCents: 0, currency }
+    }
+
+    // Calculate monthly revenue from subscriptions
+    let monthlyRevenueCents = 0
+
+    for (const subscription of subscriptions) {
+      // Process each subscription item (usually just one)
+      for (const item of subscription.items.data) {
+        const price = item.price
+        if (!price || !price.unit_amount) continue
+
+        const amountCents = price.unit_amount
+        const interval = price.recurring?.interval
+        const intervalCount = price.recurring?.interval_count || 1
+
+        // Normalize to monthly revenue
+        const monthlyAmount = this.normalizeToMonthly(amountCents, interval, intervalCount)
+        monthlyRevenueCents += monthlyAmount
+      }
+    }
+
+    return {
+      monthlyRevenueCents: Math.round(monthlyRevenueCents),
+      currency
+    }
+  },
+
+  /**
+   * Normalize a subscription amount to monthly revenue
+   *
+   * @param {Number} amountCents - The subscription amount in cents
+   * @param {String} interval - The billing interval: 'day', 'week', 'month', 'year'
+   * @param {Number} intervalCount - Number of intervals between billings
+   * @returns {Number} - Monthly equivalent in cents
+   */
+  normalizeToMonthly (amountCents, interval, intervalCount = 1) {
+    if (!interval || !amountCents) {
+      return 0
+    }
+
+    // Calculate months per billing cycle
+    let monthsPerCycle
+    switch (interval) {
+      case 'day':
+        // Approximate: 30.44 days per month
+        monthsPerCycle = (intervalCount / 30.44)
+        break
+      case 'week':
+        // Approximate: 4.35 weeks per month
+        monthsPerCycle = (intervalCount / 4.35)
+        break
+      case 'month':
+        monthsPerCycle = intervalCount
+        break
+      case 'year':
+        monthsPerCycle = intervalCount * 12
+        break
+      default:
+        return 0
+    }
+
+    // Monthly revenue = amount / months per billing cycle
+    return amountCents / monthsPerCycle
   }
 }
-
