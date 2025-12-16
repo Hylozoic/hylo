@@ -132,7 +132,7 @@ export default function Search (props) {
     setHeaderDetails({
       title: <SearchInput />,
       centered: true,
-      backButton: true, // TODO: mavigate back 1 doesnt work with postdialog, how to remember what to go back to?
+      backButton: true,
       backTo: backDestination,
       icon: undefined,
       search: false
