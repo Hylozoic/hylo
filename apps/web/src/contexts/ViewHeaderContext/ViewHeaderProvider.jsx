@@ -5,6 +5,7 @@ import { ViewHeaderContext } from './index'
 export const ViewHeaderProvider = ({ children }) => {
   const [headerDetails, setHeaderDetails] = useState({
     backButton: false,
+    backTo: null,
     icon: '',
     info: '',
     title: {
