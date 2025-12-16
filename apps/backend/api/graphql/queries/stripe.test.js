@@ -36,18 +36,18 @@ const mockOfferingStatsService = {
   })
 }
 
-// Mock the services before importing the queries
+// Mock the services BEFORE importing the queries
 mock('../../services/StripeService', mockStripeService)
 mock('../../services/OfferingStatsService', mockOfferingStatsService)
 
-// Import after mocking
-import {
+// Now import the queries after the mocks are set up
+const {
   stripeAccountStatus,
   stripeOfferings,
   publicStripeOfferings,
   publicStripeOffering,
   offeringSubscriptionStats
-} from './stripe'
+} = mock.reRequire('./stripe')
 
 describe('Stripe Queries', () => {
   let user, adminUser, group
@@ -358,6 +358,9 @@ describe('Stripe Queries', () => {
 
     it('rejects stats when offering belongs to different group', async () => {
       const otherGroup = await factories.group().save()
+      // Make adminUser an admin of otherGroup so the admin check passes
+      // and we can test the offering ownership check
+      await adminUser.joinGroup(otherGroup, { role: GroupMembership.Role.MODERATOR })
 
       await expect(
         offeringSubscriptionStats(adminUser.id, {

@@ -2,13 +2,6 @@
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import mock from 'mock-require'
-import {
-  createStripeConnectedAccount,
-  createStripeAccountLink,
-  createStripeOffering,
-  updateStripeOffering,
-  createStripeCheckoutSession
-} from './stripe'
 const { expect } = require('chai')
 
 /* global StripeAccount, GroupMembership, StripeProduct */
@@ -91,8 +84,17 @@ const mockStripeService = {
   })
 }
 
-// Mock the StripeService before importing the mutations
+// Mock the StripeService BEFORE importing the mutations
 mock('../../services/StripeService', mockStripeService)
+
+// Now import the mutations after the mock is set up
+const {
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  createStripeOffering,
+  updateStripeOffering,
+  createStripeCheckoutSession
+} = mock.reRequire('./stripe')
 
 describe('Stripe Mutations', () => {
   let user, adminUser, group
