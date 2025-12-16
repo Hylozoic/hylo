@@ -332,6 +332,8 @@ type Query {
   search(
     # Number of results to return
     first: Int,
+    # Search only in these group ids
+    groupIds: [ID]
     # For pagination, return results after this offset
     offset: Int,
     # Search term
