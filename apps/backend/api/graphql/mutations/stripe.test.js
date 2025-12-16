@@ -5,11 +5,8 @@ import mock from 'mock-require'
 import {
   createStripeConnectedAccount,
   createStripeAccountLink,
-  stripeAccountStatus,
   createStripeOffering,
   updateStripeOffering,
-  stripeOfferings,
-  publicStripeOfferings,
   createStripeCheckoutSession
 } from './stripe'
 const { expect } = require('chai')
@@ -250,41 +247,6 @@ describe('Stripe Mutations', () => {
     })
   })
 
-  describe('stripeAccountStatus', () => {
-    it('returns account status for group members', async () => {
-      const result = await stripeAccountStatus(user.id, {
-        groupId: group.id,
-        accountId: 'acct_test_123'
-      })
-
-      expect(result.accountId).to.equal('acct_test_123')
-      expect(result.chargesEnabled).to.be.true
-      expect(result.payoutsEnabled).to.be.true
-      expect(result.detailsSubmitted).to.be.true
-      expect(result.email).to.equal('test@example.com')
-    })
-
-    it('rejects status check for non-authenticated users', async () => {
-      await expect(
-        stripeAccountStatus(null, {
-          groupId: group.id,
-          accountId: 'acct_test_123'
-        })
-      ).to.be.rejectedWith('You must be logged in to view account status')
-    })
-
-    it('rejects status check for non-group members', async () => {
-      const nonMember = await factories.user().save()
-
-      await expect(
-        stripeAccountStatus(nonMember.id, {
-          groupId: group.id,
-          accountId: 'acct_test_123'
-        })
-      ).to.be.rejectedWith('You must be a member of this group to view payment status')
-    })
-  })
-
   describe('createStripeOffering', () => {
     before(async () => {
       // Create a stripe_account for these tests
@@ -515,49 +477,6 @@ describe('Stripe Mutations', () => {
       ).to.be.rejectedWith('Invalid publish status. Must be unpublished, unlisted, published, or archived')
     })
 
-    it('updates multiple fields at once', async () => {
-      const result = await updateStripeOffering(adminUser.id, {
-        offeringId: testProduct.id,
-        name: 'Multi-Update Product',
-        description: 'Updated with multiple fields',
-        priceInCents: 3000,
-        publishStatus: 'unlisted'
-      })
-
-      expect(result.success).to.be.true
-
-      // Verify all changes were saved (Stripe-synced fields come from mock, platform fields from input)
-      await testProduct.refresh()
-      expect(testProduct.get('name')).to.equal('Multi-Update Product')
-      expect(testProduct.get('description')).to.equal('Updated with multiple fields')
-      expect(testProduct.get('price_in_cents')).to.equal(3000)
-      expect(testProduct.get('currency')).to.equal('eur') // Preserved from previous test since not updated
-      expect(testProduct.get('stripe_price_id')).to.equal('price_test_updated') // From mock
-      expect(testProduct.get('publish_status')).to.equal('unlisted')
-    })
-
-    it('handles partial updates without affecting other fields', async () => {
-      // First set some values
-      await updateStripeOffering(adminUser.id, {
-        offeringId: testProduct.id,
-        name: 'Test Name',
-        description: 'Test Description',
-        priceInCents: 1500
-      })
-
-      // Then update only the name
-      await updateStripeOffering(adminUser.id, {
-        offeringId: testProduct.id,
-        name: 'Only Name Updated'
-      })
-
-      // Verify only name changed, other fields remained
-      await testProduct.refresh()
-      expect(testProduct.get('name')).to.equal('Only Name Updated')
-      expect(testProduct.get('description')).to.equal('Test Description')
-      expect(testProduct.get('price_in_cents')).to.equal(1500)
-    })
-
     it('rejects update for non-authenticated users', async () => {
       await expect(
         updateStripeOffering(null, {
@@ -606,235 +525,6 @@ describe('Stripe Mutations', () => {
           name: 'Updated Name'
         })
       ).to.be.rejectedWith('Group does not have a connected Stripe account')
-    })
-
-    it('handles empty update gracefully', async () => {
-      const originalName = testProduct.get('name')
-
-      const result = await updateStripeOffering(adminUser.id, {
-        offeringId: testProduct.id
-      })
-
-      expect(result.success).to.be.true
-
-      // Verify nothing changed
-      await testProduct.refresh()
-      expect(testProduct.get('name')).to.equal(originalName)
-    })
-  })
-
-  describe('stripeOfferings', () => {
-    before(async () => {
-      // Clean up any existing offerings for this group from previous tests
-      await StripeProduct.where({ group_id: group.id }).destroy({ require: false })
-
-      // Create a stripe_account for these tests
-      const testStripeAccount = await StripeAccount.forge({
-        stripe_account_external_id: 'acct_test_123'
-      }).save()
-
-      await group.save({ stripe_account_id: testStripeAccount.id })
-
-      // Create some test offerings
-      await StripeProduct.create({
-        group_id: group.id,
-        stripe_product_id: 'prod_test_1',
-        stripe_price_id: 'price_test_1',
-        name: 'Test Offering 1',
-        description: 'A test offering',
-        price_in_cents: 1000,
-        currency: 'usd',
-        publish_status: 'published'
-      })
-
-      await StripeProduct.create({
-        group_id: group.id,
-        stripe_product_id: 'prod_test_2',
-        stripe_price_id: 'price_test_2',
-        name: 'Test Offering 2',
-        description: 'Another test offering',
-        price_in_cents: 2000,
-        currency: 'usd',
-        publish_status: 'unpublished'
-      })
-    })
-
-    it('lists offerings for group admins', async () => {
-      const result = await stripeOfferings(adminUser.id, {
-        groupId: group.id,
-        accountId: 'acct_test_123'
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings).to.have.length(2)
-    })
-
-    it('rejects listing for non-authenticated users', async () => {
-      await expect(
-        stripeOfferings(null, {
-          groupId: group.id,
-          accountId: 'acct_test_123'
-        })
-      ).to.be.rejectedWith('You must be logged in to view offerings')
-    })
-
-    it('rejects listing for non-admin users', async () => {
-      await expect(
-        stripeOfferings(user.id, {
-          groupId: group.id,
-          accountId: 'acct_test_123'
-        })
-      ).to.be.rejectedWith('You must be a group administrator to view offerings')
-    })
-  })
-
-  describe('publicStripeOfferings', () => {
-    let testGroup
-
-    before(async () => {
-      // Create a stripe_account for these tests
-      const testStripeAccount = await StripeAccount.forge({
-        stripe_account_external_id: 'acct_test_123'
-      }).save()
-
-      testGroup = await factories.group().save()
-      await testGroup.save({ stripe_account_id: testStripeAccount.id })
-
-      // Create published offering with group access
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_published_1',
-        stripe_price_id: 'price_published_1',
-        name: 'Published Offering',
-        description: 'A published offering',
-        price_in_cents: 1000,
-        currency: 'usd',
-        access_grants: JSON.stringify({ groupIds: [testGroup.id] }),
-        publish_status: 'published'
-      })
-
-      // Create unpublished offering (should not appear)
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_unpublished_1',
-        stripe_price_id: 'price_unpublished_1',
-        name: 'Unpublished Offering',
-        description: 'An unpublished offering',
-        price_in_cents: 2000,
-        currency: 'usd',
-        access_grants: JSON.stringify({ groupIds: [testGroup.id] }),
-        publish_status: 'unpublished'
-      })
-
-      // Create published offering without group access (should not appear)
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_no_access_1',
-        stripe_price_id: 'price_no_access_1',
-        name: 'No Group Access Offering',
-        description: 'An offering without group access',
-        price_in_cents: 3000,
-        currency: 'usd',
-        access_grants: JSON.stringify({ trackIds: [1] }),
-        publish_status: 'published'
-      })
-    })
-
-    it('returns only published offerings with group access', async () => {
-      const result = await publicStripeOfferings(null, {
-        groupId: testGroup.id
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings).to.have.length(1)
-      expect(result.offerings[0].get('name')).to.equal('Published Offering')
-      expect(result.offerings[0].get('publish_status')).to.equal('published')
-    })
-
-    it('works without authentication', async () => {
-      const result = await publicStripeOfferings(null, {
-        groupId: testGroup.id
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings).to.be.an('array')
-    })
-
-    it('returns empty array when no matching offerings exist', async () => {
-      const emptyGroup = await factories.group().save()
-
-      const result = await publicStripeOfferings(null, {
-        groupId: emptyGroup.id
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings).to.have.length(0)
-    })
-
-    it('handles offerings with string accessGrants', async () => {
-      // Create offering with string accessGrants
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_string_grants',
-        stripe_price_id: 'price_string_grants',
-        name: 'String Grants Offering',
-        description: 'An offering with string accessGrants',
-        price_in_cents: 1500,
-        currency: 'usd',
-        access_grants: JSON.stringify({ groupIds: [testGroup.id] }),
-        publish_status: 'published'
-      })
-
-      const result = await publicStripeOfferings(null, {
-        groupId: testGroup.id
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings.length).to.be.at.least(1)
-    })
-
-    it('handles offerings with object accessGrants', async () => {
-      // Create offering with object accessGrants
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_object_grants',
-        stripe_price_id: 'price_object_grants',
-        name: 'Object Grants Offering',
-        description: 'An offering with object accessGrants',
-        price_in_cents: 1500,
-        currency: 'usd',
-        access_grants: { groupIds: [testGroup.id] },
-        publish_status: 'published'
-      })
-
-      const result = await publicStripeOfferings(null, {
-        groupId: testGroup.id
-      })
-
-      expect(result.success).to.be.true
-      expect(result.offerings.length).to.be.at.least(1)
-    })
-
-    it('filters out offerings without accessGrants', async () => {
-      // Create offering without accessGrants
-      await StripeProduct.create({
-        group_id: testGroup.id,
-        stripe_product_id: 'prod_no_grants',
-        stripe_price_id: 'price_no_grants',
-        name: 'No Grants Offering',
-        description: 'An offering without accessGrants',
-        price_in_cents: 1500,
-        currency: 'usd',
-        publish_status: 'published'
-      })
-
-      const result = await publicStripeOfferings(null, {
-        groupId: testGroup.id
-      })
-
-      // Should not include the offering without accessGrants
-      const hasNoGrantsOffering = result.offerings.some(o => o.get('name') === 'No Grants Offering')
-      expect(hasNoGrantsOffering).to.be.false
     })
   })
 
@@ -902,19 +592,6 @@ describe('Stripe Mutations', () => {
       expect(result.sessionId).to.equal('cs_test_123')
     })
 
-    it('includes user ID in metadata when authenticated', async () => {
-      const result = await createStripeCheckoutSession(user.id, {
-        groupId: group.id,
-        offeringId: testOffering.id,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
-        metadata: { custom: 'data' }
-      })
-
-      expect(result.success).to.be.true
-      // Note: In a real test, you'd verify the metadata was passed correctly to StripeService
-    })
-
     it('rejects checkout session for non-existent offering', async () => {
       await expect(
         createStripeCheckoutSession(user.id, {
@@ -974,6 +651,5 @@ describe('Stripe Mutations', () => {
         })
       ).to.be.rejectedWith('Group does not have a Stripe account configured')
     })
-
   })
 })

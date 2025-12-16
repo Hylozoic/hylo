@@ -15,7 +15,6 @@ export {
 export {
   grantContentAccess,
   revokeContentAccess,
-  checkContentAccess,
   recordStripePurchase
 } from './contentAccess'
 export {
@@ -167,12 +166,8 @@ export {
 export {
   createStripeConnectedAccount,
   createStripeAccountLink,
-  stripeAccountStatus,
   createStripeOffering,
   updateStripeOffering,
-  stripeOfferings,
-  publicStripeOfferings,
-  publicStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus
 } from './stripe'

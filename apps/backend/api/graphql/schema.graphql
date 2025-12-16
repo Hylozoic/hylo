@@ -371,6 +371,12 @@ type Query {
     offeringId: ID!
   ): StripeOffering
 
+  # Get subscription stats for an offering (active count, lapsed count, revenue)
+  offeringSubscriptionStats(
+    offeringId: ID!
+    groupId: ID!
+  ): OfferingSubscriptionStats
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -3569,6 +3575,20 @@ type StripeCheckoutSessionResult {
   sessionId: String
   url: String
   success: Boolean
+}
+
+# Stats for an offering's subscribers
+type OfferingSubscriptionStats {
+  # Number of currently active subscribers
+  activeCount: Int
+  # Number of lapsed (expired/revoked) subscribers
+  lapsedCount: Int
+  # Monthly revenue in cents (requires Stripe API call)
+  monthlyRevenueCents: Int
+  # Currency of the offering
+  currency: String
+  success: Boolean
+  message: String
 }
 
 # An Affilation with an organization added to a User profile

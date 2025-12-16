@@ -26,7 +26,6 @@ import {
   blockUser,
   cancelGroupRelationshipInvite,
   cancelJoinRequest,
-  checkContentAccess,
   clearModerationAction,
   completePost,
   createAffiliation,
@@ -151,16 +150,20 @@ import {
   useInvitation,
   createStripeConnectedAccount,
   createStripeAccountLink,
-  stripeAccountStatus,
   createStripeOffering,
   updateStripeOffering,
-  stripeOfferings,
-  publicStripeOfferings,
-  publicStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
   verifyEmail
 } from './mutations'
+import {
+  stripeAccountStatus,
+  stripeOfferings,
+  publicStripeOfferings,
+  publicStripeOffering,
+  offeringSubscriptionStats,
+  checkContentAccess
+} from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
@@ -432,6 +435,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     stripeOfferings: (root, { groupId, accountId }, context) => stripeOfferings(context.currentUserId, { groupId, accountId }),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
     publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    offeringSubscriptionStats: (root, { offeringId, groupId }, context) => offeringSubscriptionStats(context.currentUserId, { offeringId, groupId }),
     // you can specify id or name, but not both
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
