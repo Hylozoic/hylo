@@ -13,7 +13,7 @@ import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
-import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X, Link2 } from 'lucide-react'
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink, PlusCircle, Edit, X, Link2, Users, ChevronDown, ChevronUp } from 'lucide-react'
 import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
@@ -41,6 +41,7 @@ import useDebounce from 'hooks/useDebounce'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
+import { queryHyloAPI } from 'util/graphql'
 
 /**
  * Main PaidContentTab component
@@ -317,7 +318,7 @@ function PaidContentTab ({ group, currentUser }) {
       setState(prev => ({ ...prev, loading: false, error: null }))
 
       // Reload live account status to reflect the updates
-    loadAccountStatus()
+      loadAccountStatus()
     } catch (error) {
       console.error('Error checking Stripe status:', error)
       setState(prev => ({
@@ -399,12 +400,12 @@ function PaidContentTab ({ group, currentUser }) {
                 group={group}
                 currentUser={currentUser}
                 accountId={accountId}
-            loading={loading}
-            onCreateAccount={handleCreateAccount}
+                loading={loading}
+                onCreateAccount={handleCreateAccount}
                 onCheckStatus={handleCheckStripeStatus}
-              onStartOnboarding={handleStartOnboarding}
-              t={t}
-            />
+                onStartOnboarding={handleStartOnboarding}
+                t={t}
+              />
             }
           />
         </Routes>
@@ -475,6 +476,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [updatingPaywall, setUpdatingPaywall] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [accessFilter, setAccessFilter] = useState('all')
+  const [expandedOfferingId, setExpandedOfferingId] = useState(null)
+
+  /**
+   * Toggle subscriber view for an offering
+   * Implements accordion behavior - only one offering can be expanded at a time
+   */
+  const handleToggleSubscribers = useCallback((offeringId) => {
+    setExpandedOfferingId(prevId => prevId === offeringId ? null : offeringId)
+  }, [])
 
   // Fetch tracks when needed for content access editing and display
   useEffect(() => {
@@ -762,11 +772,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 <span className='text-sm text-foreground/70'>
                   {group?.paywall ? t('Yes') : t('No')}
                 </span>
-        </div>
+              </div>
               <div className='text-xs mt-1'>
-                {isPaywallReady
-                  ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
-                  : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE published offering that allows access to the group')}</span>)}
+                {isPaywallReady && group?.paywall
+                  ? (<span className='text-accent'>{t('Paywall enabled')}</span>)
+                  : isPaywallReady
+                    ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
+                    : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE published offering that allows access to the group')}</span>)}
               </div>
             </div>
           )}
@@ -961,8 +973,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               >
                 {updating ? t('Updating...') : t('Update Offering')}
               </Button>
-          </div>
-        </form>
+            </div>
+          </form>
         </div>
       )}
 
@@ -1018,11 +1030,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
             if (filteredOfferings.length === 0) {
               return (
-        <div className='text-center py-8 text-foreground/70'>
-          <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
+                <div className='text-center py-8 text-foreground/70'>
+                  <CreditCard className='w-12 h-12 mx-auto mb-2 opacity-50' />
                   <p>{t('No offerings yet')}</p>
                   <p className='text-sm'>{t('Create your first offering to start accepting payments')}</p>
-        </div>
+                </div>
               )
             }
 
@@ -1033,8 +1045,10 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 onEdit={handleStartEdit}
                 group={group}
                 isEditing={editingOffering?.id === offering.id}
-              t={t}
-            />
+                isExpanded={expandedOfferingId === offering.id}
+                onToggleSubscribers={handleToggleSubscribers}
+                t={t}
+              />
             ))
           })()}
         </div>
@@ -1120,7 +1134,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
         {/* Header */}
         <div className='bg-card p-4 rounded-md text-foreground shadow-md'>
           <h3 className='text-lg font-semibold mb-1'>{t('Content Access Records')}</h3>
-        <p className='text-sm text-foreground/70'>
+          <p className='text-sm text-foreground/70'>
             {t('View and manage all content access grants for your group')}
           </p>
         </div>
@@ -1244,13 +1258,13 @@ function ContentAccessTab ({ group, offerings = [] }) {
         </div>
 
         {/* Content Access List */}
-        {loading && contentAccessRecords.length === 0 ? (
-          <Loading />
-        ) : contentAccessRecords.length === 0 ? (
+        {loading && contentAccessRecords.length === 0 && <Loading />}
+        {!loading && contentAccessRecords.length === 0 && (
           <div className='bg-card p-8 rounded-md shadow-md text-center text-foreground/70'>
             <p>{t('No content access records found')}</p>
           </div>
-        ) : (
+        )}
+        {contentAccessRecords.length > 0 && (
           <div className='flex flex-col gap-2'>
             {contentAccessRecords.map(record => (
               <ContentAccessRecordItem key={record.id} record={record} t={t} />
@@ -1538,13 +1552,13 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         <div className='mb-4'>
           <a
             href={group.stripeDashboardUrl}
-              target='_blank'
-              rel='noopener noreferrer'
+            target='_blank'
+            rel='noopener noreferrer'
             className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
-            >
+          >
             <ExternalLink className='w-4 h-4' />
             {t('Open Stripe Dashboard')}
-            </a>
+          </a>
         </div>
       )}
 
@@ -1577,11 +1591,335 @@ function StatusBadge ({ label, value, t }) {
 }
 
 /**
+ * GraphQL query for fetching offering subscription stats
+ */
+const OFFERING_SUBSCRIPTION_STATS_QUERY = `
+  query OfferingSubscriptionStats($offeringId: ID!, $groupId: ID!) {
+    offeringSubscriptionStats(offeringId: $offeringId, groupId: $groupId) {
+      activeCount
+      lapsedCount
+      monthlyRevenueCents
+      currency
+      success
+      message
+    }
+  }
+`
+
+/**
+ * GraphQL query for fetching paginated subscribers
+ */
+const OFFERING_SUBSCRIBERS_QUERY = `
+  query OfferingSubscribers($offeringId: ID!, $groupId: ID!, $page: Int, $pageSize: Int, $lapsedOnly: Boolean) {
+    offeringSubscribers(offeringId: $offeringId, groupId: $groupId, page: $page, pageSize: $pageSize, lapsedOnly: $lapsedOnly) {
+      total
+      hasMore
+      page
+      pageSize
+      totalPages
+      items {
+        id
+        userId
+        userName
+        userAvatarUrl
+        status
+        joinedAt
+        expiresAt
+      }
+    }
+  }
+`
+
+/**
+ * Subscribers Panel Component
+ *
+ * Displays subscription statistics and a list of subscribers for an offering.
+ * Fetches data via GraphQL when rendered.
+ */
+function SubscribersPanel ({ offering, group, t }) {
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState(null)
+  const [subscribers, setSubscribers] = useState([])
+  const [subscribersPage, setSubscribersPage] = useState(1)
+  const [subscribersMeta, setSubscribersMeta] = useState({ total: 0, hasMore: false, totalPages: 0 })
+  const [showLapsedOnly, setShowLapsedOnly] = useState(false)
+  const [error, setError] = useState(null)
+
+  /**
+   * Fetch subscription stats from GraphQL API
+   */
+  const fetchStats = useCallback(async () => {
+    if (!offering?.id || !group?.id) return
+
+    try {
+      const response = await queryHyloAPI({
+        query: OFFERING_SUBSCRIPTION_STATS_QUERY,
+        variables: {
+          offeringId: offering.id,
+          groupId: group.id
+        }
+      })
+
+      if (response.errors) {
+        throw new Error(response.errors[0]?.message || 'Failed to fetch stats')
+      }
+
+      const statsData = response.data?.offeringSubscriptionStats
+      if (statsData?.success) {
+        setStats(statsData)
+      } else {
+        throw new Error(statsData?.message || 'Failed to fetch stats')
+      }
+    } catch (err) {
+      console.error('Error fetching subscription stats:', err)
+      throw err
+    }
+  }, [offering?.id, group?.id])
+
+  /**
+   * Fetch subscribers list from GraphQL API
+   */
+  const fetchSubscribers = useCallback(async (page = 1, lapsedOnly = false) => {
+    if (!offering?.id || !group?.id) return
+
+    try {
+      const response = await queryHyloAPI({
+        query: OFFERING_SUBSCRIBERS_QUERY,
+        variables: {
+          offeringId: offering.id,
+          groupId: group.id,
+          page,
+          pageSize: 50,
+          lapsedOnly
+        }
+      })
+
+      if (response.errors) {
+        throw new Error(response.errors[0]?.message || 'Failed to fetch subscribers')
+      }
+
+      const subscribersData = response.data?.offeringSubscribers
+      if (subscribersData) {
+        setSubscribers(subscribersData.items || [])
+        setSubscribersMeta({
+          total: subscribersData.total,
+          hasMore: subscribersData.hasMore,
+          totalPages: subscribersData.totalPages
+        })
+        setSubscribersPage(subscribersData.page)
+      }
+    } catch (err) {
+      console.error('Error fetching subscribers:', err)
+      throw err
+    }
+  }, [offering?.id, group?.id])
+
+  /**
+   * Initial data fetch when component mounts or offering/group changes
+   */
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchSubscribers(1, showLapsedOnly)
+        ])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [fetchStats, fetchSubscribers, showLapsedOnly])
+
+  /**
+   * Handle page change for pagination
+   */
+  const handlePageChange = useCallback(async (newPage) => {
+    setLoading(true)
+    try {
+      await fetchSubscribers(newPage, showLapsedOnly)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchSubscribers, showLapsedOnly])
+
+  /**
+   * Handle lapsed filter toggle
+   */
+  const handleLapsedFilterToggle = useCallback(async () => {
+    const newLapsedOnly = !showLapsedOnly
+    setShowLapsedOnly(newLapsedOnly)
+    setLoading(true)
+    try {
+      await fetchSubscribers(1, newLapsedOnly)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [showLapsedOnly, fetchSubscribers])
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center py-8'>
+        <Loading />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className='text-center py-4 text-red-500'>
+        <AlertCircle className='w-8 h-8 mx-auto mb-2' />
+        <p>{t('Error loading subscriber data')}: {error}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className='space-y-4'>
+      {/* Summary Stats */}
+      <div className='grid grid-cols-3 gap-4'>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground'>{stats?.activeCount || 0}</p>
+          <p className='text-xs text-foreground/70'>{t('Active Subscribers')}</p>
+        </div>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground'>
+            ${((stats?.monthlyRevenueCents || 0) / 100).toFixed(2)}
+          </p>
+          <p className='text-xs text-foreground/70'>{t('Monthly Revenue')}</p>
+        </div>
+        <div className='bg-background/50 rounded-lg p-3 text-center'>
+          <p className='text-2xl font-bold text-foreground/50'>{stats?.lapsedCount || 0}</p>
+          <p className='text-xs text-foreground/70'>{t('Lapsed')}</p>
+        </div>
+      </div>
+
+      {/* Subscriber List Section */}
+      <div className='border-t border-foreground/10 pt-4'>
+        {/* Filter Toggle */}
+        <div className='flex items-center justify-between mb-3'>
+          <p className='text-sm font-medium text-foreground'>
+            {showLapsedOnly ? t('Lapsed Members') : t('Active Members')}
+            <span className='text-foreground/50 ml-2'>({subscribersMeta.total})</span>
+          </p>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleLapsedFilterToggle}
+            className='text-xs'
+          >
+            {showLapsedOnly ? t('Show Active') : t('Show Lapsed')}
+          </Button>
+        </div>
+
+        {/* Subscriber List */}
+        {subscribers.length === 0 && (
+          <div className='text-center py-4 text-foreground/50 text-sm'>
+            <Users className='w-6 h-6 mx-auto mb-2 opacity-50' />
+            <p>
+              {showLapsedOnly
+                ? t('No lapsed members')
+                : t('No active subscribers yet')}
+            </p>
+          </div>
+        )}
+        {subscribers.length > 0 && (
+          <div className='space-y-2'>
+            {subscribers.map(subscriber => (
+              <div
+                key={subscriber.id}
+                className='flex items-center gap-3 p-2 rounded-lg hover:bg-background/50 transition-colors'
+              >
+                {subscriber.userAvatarUrl
+                  ? (
+                    <img
+                      src={subscriber.userAvatarUrl}
+                      alt={subscriber.userName}
+                      className='w-8 h-8 rounded-full object-cover'
+                    />
+                    )
+                  : (
+                    <div className='w-8 h-8 rounded-full bg-foreground/20 flex items-center justify-center'>
+                      <Users className='w-4 h-4 text-foreground/50' />
+                    </div>
+                    )}
+                <div className='flex-1 min-w-0'>
+                  <p className='text-sm font-medium text-foreground truncate'>
+                    {subscriber.userName}
+                  </p>
+                  <p className='text-xs text-foreground/50'>
+                    {subscriber.status === 'active'
+                      ? t('Active')
+                      : t('Lapsed')}
+                    {subscriber.joinedAt && (
+                      <span className='ml-2'>
+                        {t('Joined')}: {new Date(subscriber.joinedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {subscriber.status === 'lapsed' && subscriber.expiresAt && (
+                  <span className='text-xs text-foreground/40'>
+                    {t('Expired')}: {new Date(subscriber.expiresAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {subscribersMeta.totalPages > 1 && (
+          <div className='flex items-center justify-center gap-2 mt-4'>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => handlePageChange(subscribersPage - 1)}
+              disabled={subscribersPage <= 1}
+            >
+              {t('Previous')}
+            </Button>
+            <span className='text-sm text-foreground/70'>
+              {t('Page')} {subscribersPage} {t('of')} {subscribersMeta.totalPages}
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => handlePageChange(subscribersPage + 1)}
+              disabled={!subscribersMeta.hasMore}
+            >
+              {t('Next')}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
  * List item displaying a single offering with details
  * Used in the OfferingsTab list view
  */
-function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
+function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onToggleSubscribers, t }) {
   const [copied, setCopied] = useState(false)
+
+  /**
+   * Handle toggle click for subscriber view
+   */
+  const handleToggleClick = useCallback(() => {
+    if (onToggleSubscribers) {
+      onToggleSubscribers(offering.id)
+    }
+  }, [onToggleSubscribers, offering.id])
   const baseUrl = getHost()
   const offeringUrl = `${baseUrl}/offerings/${offering.id}`
 
@@ -1611,7 +1949,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
   return (
     <div className={`border-2 rounded-lg p-4 transition-all ${isEditing ? 'border-blue-500 bg-blue-500/10 opacity-75' : 'border-foreground/20 hover:border-foreground/40'}`}>
       <div className='flex items-start justify-between'>
-      <div className='flex-1'>
+        <div className='flex-1'>
           <div className='flex items-center gap-2 mb-2'>
             <h4 className='font-semibold text-foreground'>{offering.name}</h4>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -1622,8 +1960,15 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
                   : offering.publishStatus === 'archived'
                     ? 'bg-gray-500/20 text-gray-600'
                     : 'bg-yellow-500/20 text-yellow-600'
-            }`}>
-              {offering.publishStatus === 'published' ? t('Published') : offering.publishStatus === 'unlisted' ? t('Unlisted') : offering.publishStatus === 'archived' ? t('Archived') : t('Unpublished')}
+            }`}
+            >
+              {offering.publishStatus === 'published'
+                ? t('Published')
+                : offering.publishStatus === 'unlisted'
+                  ? t('Unlisted')
+                  : offering.publishStatus === 'archived'
+                    ? t('Archived')
+                    : t('Unpublished')}
             </span>
           </div>
           {offering.description && (
@@ -1634,12 +1979,20 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
               <span>{t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}</span>
             )}
             {offering.duration && (
-              <span>{t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}</span>
+              <span>
+                {t('Duration')}: {offering.duration === 'month'
+                  ? t('1 Month')
+                  : offering.duration === 'season'
+                    ? t('1 Season')
+                    : offering.duration === 'annual'
+                      ? t('1 Year')
+                      : offering.duration}
+              </span>
             )}
             {!offering.duration && (
               <span>{t('Duration')}: {t('Lifetime')}</span>
-        )}
-      </div>
+            )}
+          </div>
           {hasAccessContent && (
             <div className='mt-3 pt-3 border-t border-foreground/10'>
               {accessDetails.hasGroups && (
@@ -1689,6 +2042,16 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
           )}
         </div>
         <div className='flex items-center gap-2 ml-4'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={handleToggleClick}
+            className='flex items-center gap-1'
+            title={t('View subscribed users')}
+          >
+            <Users className='w-4 h-4' />
+            {isExpanded ? <ChevronUp className='w-3 h-3' /> : <ChevronDown className='w-3 h-3' />}
+          </Button>
           <CopyToClipboard
             text={offeringUrl}
             onCopy={() => {
@@ -1719,6 +2082,17 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, t }) {
           )}
         </div>
       </div>
+
+      {/* Subscribers Panel - shown when expanded */}
+      {isExpanded && (
+        <div className='mt-4 pt-4 border-t border-foreground/20'>
+          <SubscribersPanel
+            offering={offering}
+            group={group}
+            t={t}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -24,7 +24,6 @@ export function getHyloAPIEndpointURL () {
 }
 
 // For directly querying our API outside of the Redux store.
-// Currently only used in the WebView HyloEditor
 export async function queryHyloAPI ({ query: unknownGraphql, variables }) {
   const params = { query: graphqlToString(unknownGraphql), variables }
   const response = await fetch(getHyloAPIEndpointURL(), {
