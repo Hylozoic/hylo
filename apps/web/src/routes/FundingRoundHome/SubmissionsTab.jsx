@@ -10,6 +10,7 @@ import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
+import { seededShuffle } from 'util/seededRandom'
 import SubmissionCard from './SubmissionCard'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import { getRoundPhaseMeta } from './phaseUtils'
@@ -17,6 +18,7 @@ import { getRoundPhaseMeta } from './phaseUtils'
 const getPosts = ormCreateSelector(
   orm,
   (session, round, sortByTokens) => round.submissions,
+  (session, round, sortByTokens) => sortByTokens,
   (session, posts, sortByTokens) => {
     if (isEmpty(posts)) return []
     const sorted = posts.sort((a, b) => {
@@ -43,7 +45,19 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
 
   const posts = useSelector(state => getPosts(state, round, currentPhase === 'completed'))
   // During submission phase, only show posts created by the current user unless you are a steward
-  const postsForDisplay = useMemo(() => ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound ? posts : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id)), [canManageRound, posts, currentPhase, currentUser.id])
+  // In voting mode, shuffle posts randomly but consistently per user using their ID as seed
+  const postsForDisplay = useMemo(() => {
+    let filtered = ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound
+      ? posts
+      : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id))
+
+    // In voting mode, shuffle using user ID as seed for consistent randomization
+    if (currentPhase === 'voting' && currentUser?.id) {
+      filtered = seededShuffle(filtered, currentUser.id)
+    }
+
+    return filtered
+  }, [canManageRound, posts, currentPhase, currentUser?.id])
 
   const allocationsBySubmission = useMemo(() => {
     const map = {}

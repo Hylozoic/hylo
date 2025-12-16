@@ -3,6 +3,7 @@ import { connect } from 'react-redux'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPerson from 'store/selectors/getPerson'
+import { addQuerystringToPath } from '@hylo/navigation'
 import {
   addSkill,
   addSkillToGroup,
@@ -43,7 +44,12 @@ export function mapDispatchToProps (dispatch, props) {
     fetchMemberSkills: (id, limit) => dispatch(fetchMemberSkills(id, limit)),
     setSearch: search => dispatch(setSearch(search)),
     searchForSkill: (skill) => {
-      dispatch(push('/search?t=' + skill))
+      const from = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : ''
+      const path = addQuerystringToPath('/search', {
+        t: skill,
+        from: from && !from.startsWith('/search') ? from : undefined
+      })
+      dispatch(push(path))
     }
   }
 }

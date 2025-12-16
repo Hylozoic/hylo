@@ -97,10 +97,10 @@ function FundingRoundHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
+      <div className='pt-2 sm:pt-4 px-2 sm:px-4 w-full h-full relative flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
           {(fundingRound.isParticipating || canManageRound) && (
-            <div className='flex gap-2 w-full justify-center items-center bg-black/10 rounded-md p-2 mb-2'>
+            <div className='flex flex-wrap gap-2 w-full justify-center items-center bg-black/10 rounded-md p-2 mb-2'>
               <Link
                 className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to=''
@@ -108,13 +108,18 @@ function FundingRoundHome () {
                 {t('About')}
               </Link>
               <Link
-                className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'submissions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={`py-1 px-3 sm:px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'submissions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to='submissions'
               >
                 {fundingRound?.phase === 'voting' ? t('Vote') : fundingRound.submissionDescriptorPlural}
+                {fundingRound.numSubmissions > 0 && (
+                  <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                    {fundingRound.numSubmissions}
+                  </span>
+                )}
               </Link>
               <Link
-                className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'participants' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={`py-1 px-3 sm:px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'participants' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to='participants'
               >
                 {t('Participants')}
@@ -125,14 +130,14 @@ function FundingRoundHome () {
                 )}
               </Link>
               <Link
-                className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'chat' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={`py-1 px-3 sm:px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'chat' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to='chat'
               >
                 {t('Chat')}
               </Link>
               {canManageRound && (
                 <Link
-                  className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                  className={`py-1 px-3 sm:px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                   to='manage'
                 >
                   {t('Manage')}

@@ -285,6 +285,8 @@ type Query {
   search(
     # Number of results to return
     first: Int,
+    # Search only in these group ids
+    groupIds: [ID]
     # For pagination, return results after this offset
     offset: Int,
     # Search term
@@ -1612,6 +1614,8 @@ type Me {
   newNotificationCount: Int
   # The number of Posts the logged in user has created
   postsTotal: Int
+  # RSVP calendar URL for subscriptions
+  rsvpCalendarUrl: String
   # The logged in user's settings
   settings: UserSettings
   # Short tagline
@@ -2714,6 +2718,8 @@ type UserSettings {
   mapBaseLayer: String
   # How this person wants to receive notifications for each post in their groups. none, important, or all
   postNotifications: String
+  # Whether to enable RSVP calendar subscription
+  rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream
@@ -3901,6 +3907,8 @@ input UserSettingsInput {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
+  # Whether to enable RSVP calendar subscription
+  rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream
