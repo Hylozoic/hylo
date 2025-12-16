@@ -164,10 +164,10 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
 
   return (
     <div
-      className='SubmissionCard flex flex-row gap-2 bg-card/50 rounded-lg border-2 border-card/30 shadow-xl mb-4 relative duration-400 cursor-pointer'
+      className='SubmissionCard flex flex-row bg-card/50 rounded-lg border-2 border-card/30 shadow-xl mb-4 relative duration-400 cursor-pointer'
     >
-      <div className='flex flex-col flex-1 gap-2 py-2 px-4'>
-        <div className='flex flex-row gap-2 items-center'>
+      <div className='flex flex-col flex-1 gap-2 py-2 px-2 sm:px-3'>
+        <div className='flex flex-row gap-1 items-center'>
           <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3')} medium />
           <div
             className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'
@@ -221,7 +221,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
         />
       </div>
       {currentPhase === 'voting' && canVote && (
-        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-4 rounded-r-lg min-w-[120px]'>
+        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg min-w-[100px] sm:min-w-[120px]'>
           <label className='text-xs font-bold text-foreground/60 uppercase'>
             {t('Your {{tokenType}}', { tokenType: tokenLabel })}
           </label>
@@ -239,14 +239,14 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             )}
           />
           {validationError && (
-            <span className='text-xs text-red-500 text-center max-w-[120px] leading-tight'>
+            <span className='text-xs text-red-500 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
               {validationError}
             </span>
           )}
         </div>
       )}
       {currentPhase === 'completed' && (
-        <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-4 rounded-r-lg min-w-[160px]'>
+        <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-2 sm:p-4 rounded-r-lg min-w-[100px] sm:min-w-[160px]'>
           {hasAllocations && canManageRound
             ? (
               <Tooltip>
