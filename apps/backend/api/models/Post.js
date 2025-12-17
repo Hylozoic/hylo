@@ -869,22 +869,22 @@ module.exports = bookshelf.Model.extend(Object.assign({
     // Load groups for URL generation
     await this.load('groups')
     const group = this.relations.groups?.first()
-    
+
     // Create a new ical calendar for this event
     const cal = ical()
-    
+
     // Get calendar event data
-    const calEvent = await this.getCalEventData({ 
-      eventInvitation, 
-      forUserId: userId, 
-      eventChanges: eventChanges, 
+    const calEvent = await this.getCalEventData({
+      eventInvitation,
+      forUserId: userId,
+      eventChanges,
       url: Frontend.Route.post(this, group)
     })
-    
+
     // Add event to calendar
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
-    
+
     return cal
   }
 

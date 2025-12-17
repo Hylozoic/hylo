@@ -930,23 +930,23 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Fetch all EventInvitations for this user
     const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll({ withRelated: 'event' })
-    
+
     // Create the calendar and add the events
-    const cal = ical()
+    const cal = ical({ name: 'My Hylo Events', description: 'All the events I have RSVPed to on Hylo' })
     for (const eventInvitation of eventInvitations.models) {
       const event = eventInvitation.relations.event
       if (event?.isEvent()) {
         // Load groups for URL generation
         await event.load('groups')
         const group = event.relations.groups?.first()
-        
+
         // Get calendar event data
-        const calEvent = await event.getCalEventData({ 
-          eventInvitation, 
-          forUserId: userId, 
+        const calEvent = await event.getCalEventData({
+          eventInvitation,
+          forUserId: userId,
           url: Frontend.Route.post(event, group)
         })
-        
+
         // Add event to calendar
         cal.createEvent(calEvent).uid(calEvent.uid)
       }
