@@ -305,7 +305,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
           className={`ContextMenuContextWidgetListItem items-start animate-slide-up invisible ${
             widget.childWidgets?.length > 0 ||
             ['container', 'home', 'chats', 'members'].includes(widget.type)
-              ? 'mb-6 mt-6'
+              ? 'mt-6'
               : (isEditing ? 'mb-2' : 'mb-0')
           }`}
           style={{ '--delay': `${index * 35}ms` }}
