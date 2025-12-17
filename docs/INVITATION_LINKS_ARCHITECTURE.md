@@ -828,97 +828,378 @@ This section provides test scenarios to verify the invitation link flows work co
 
 ---
 
-### Detailed Test Cases
+### Detailed Test Cases for Manual Testing
 
-#### TC-1: Join Link to Public Open Group (Logged In)
+These test cases are designed for testers using the staging environment. Each test includes setup instructions, step-by-step actions, and expected results.
 
-**Preconditions:**
-- Group: Public visibility, Open accessibility, no paywall
-- User: Logged in, not a member
-
-**Steps:**
-1. Navigate to `/groups/:slug/join/:accessCode`
-2. Observe redirect to `/groups/:slug/about?accessCode=:accessCode`
-3. Verify group details are visible
-4. Click "Join" button
-5. If group has barriers, verify they expand
-6. Complete barriers and click again
-7. Verify membership created and redirected to group
-
-**Expected:** User joins group successfully
+**Before You Begin:**
+- You'll need access to the staging environment
+- Create multiple test email accounts (e.g., using Gmail's + trick: `yourname+test1@gmail.com`, `yourname+test2@gmail.com`)
+- Keep a virtual notepad open to save any join links or invitation links you create
+- use different browsers and/or incognito sessions to be logged in as multiple users at the same time (for example, steward of group and non-member user)
 
 ---
 
-#### TC-2: Join Link to Protected Restricted Group (Not Logged In)
+#### TC-1: Join a Public Open Group with Barriers (No Special Link Needed)
 
-**Preconditions:**
-- Group: Protected visibility, Restricted accessibility, no paywall
-- User: Not logged in
+**Goal:** Verify that a logged-in user can join a public open group by simply navigating to it, and must complete any agreements/questions before joining.
 
-**Steps:**
-1. Navigate to `/groups/:slug/join/:accessCode`
-2. Observe redirect to `/signup` with returnTo set
-3. Complete signup/login
-4. Observe redirect to `/groups/:slug/about?accessCode=:accessCode`
-5. Verify group details are visible (despite Protected visibility)
-6. Verify "Join" button shown (not "Request Membership" - pre-approved)
-7. Complete barriers if any
-8. Click "Join" button
-9. Verify membership created
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage (or create a new test group)
+3. Go to **Group Settings** → **Privacy & Access**
+4. Set **Visibility** to "Public" and **Accessibility** to "Open"
+5. Make sure **Paywall** is turned OFF
+6. Go to **Group Settings** → **Agreements** tab
+7. Create at least 1 agreement (e.g., "Community Guidelines" - add some text describing the rules)
+8. Go to **Group Settings** → **Join Questions** tab
+9. Create at least 1 required question (e.g., "How did you hear about us?")
+10. Note the group's name or URL slug (e.g., if the URL is `https://staging.hylo.com/groups/my-test-group`, the slug is `my-test-group`)
 
-**Expected:** User joins directly without approval wait
+**Test Steps (as Test User):**
+1. In a different browser or incognito window, log in with a test account that is NOT a member of the group
+2. Navigate directly to the group's About page by typing the URL: `https://staging.hylo.com/groups/[group-slug]/about`
+   - Or search for the group using the search feature
+3. You should see the group's About page with the group name, description, and details
+4. Look for the "Join" button
+5. Click the "Join" button
+6. A panel should expand showing:
+   - The agreement(s) you created, each with a checkbox
+   - The join question(s) you created, each with an input field
+7. Notice the "Join" button is now disabled
+8. Check the agreement checkbox(es)
+9. Fill in an answer to the join question(s)
+10. The "Join" button should now be enabled
+11. Click "Join" again
+12. You should now be a member and see the group's activity stream
 
----
-
-#### TC-3: Email Invite - Email Mismatch
-
-**Preconditions:**
-- Email invitation sent to `invited@example.com`
-- User logged in as `different@example.com`
-
-**Steps:**
-1. Navigate to `/h/use-invitation?token=:token&email=invited@example.com`
-2. Observe redirect to `/groups/:slug/about?token=:token&email=invited@example.com`
-3. Verify error message shown about email mismatch
-4. Verify group details are hidden
-
-**Expected:** Access denied with clear error message
-
----
-
-#### TC-4: Paywall Group with Barriers
-
-**Preconditions:**
-- Group: Public, Open, has paywall, has some agreements, has some join questions
-- User: Logged in, not a member
-
-**Steps:**
-1. Navigate to group about page
-2. Verify PaywallOfferingsSection is shown with offerings
-3. Click "Purchase Access" on an offering
-4. Verify barriers (agreements + question) are revealed
-5. Verify purchase button is disabled
-6. Check first agreement checkbox
-7. Verify purchase button still disabled
-8. Check second agreement checkbox
-9. Verify purchase button still disabled
-10. Fill in the join question answer
-11. Verify purchase button becomes enabled
-12. Click "Purchase Access"
-13. Verify redirect to Stripe checkout
-
-**Expected:** Cannot purchase until all barriers completed
+**Expected Result:** 
+- Public Open groups are discoverable and joinable without any special link
+- The About page loads with full group details visible
+- First click on Join reveals the barriers (agreements + questions)
+- Cannot complete join until all agreements are accepted and questions answered
+- After completing barriers and clicking Join, you become a member immediately
 
 ---
 
-### Edge Cases to Test
+#### TC-2: Join Link to Hidden/Restricted Group (New User Signup)
 
-| # | Scenario | Expected Behavior |
-|---|----------|-------------------|
-| E1 | Invalid/non-existent access code | Show error, don't reveal group |
-| E2 | Access code for different group than URL slug | Should fail validation |
-| E3 | User already a member clicks join link | Should redirect to group (no re-join) |
-| E4 | Join link to Closed group | Should not allow join (Closed = invite by admin only) |
+**Goal:** Verify that a join link allows access to a normally hidden group, and new users can sign up and join directly (bypassing the normal "Request Membership" flow).
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage (or create a new test group)
+3. Go to **Group Settings** → **Privacy & Access**
+4. Set **Visibility** to "Hidden" and **Accessibility** to "Restricted"
+5. Make sure **Paywall** is turned OFF
+6. Go to **Group Settings** → **Agreements** tab
+7. Create at least 1 agreement (e.g., "Membership Agreement")
+8. Go to **Group Settings** → **Join Questions** tab
+9. Create at least 1 required question (e.g., "What's your goal in joining?")
+10. Go to **Group Settings** → **Invite** tab
+11. Copy the "Join Link"
+12. Save this link in your virtual notepad
+
+**Test Steps (as New User):**
+1. Open a private/incognito browser window (to ensure you're logged out)
+2. Paste the join link into the address bar and press Enter
+3. You should be redirected to the signup/login page
+4. Click "Sign Up" and create a new account with a fresh email address
+5. Complete the signup process
+6. After signup, you should be automatically taken to the group's About page
+7. Verify you can see the group name, description, and details (even though it's a "Hidden" group)
+8. Look for a "Join" button (NOT "Request Membership" - the join link gives you pre-approved access)
+9. Click "Join"
+10. A panel should expand showing agreements and join questions
+11. Check the agreement checkbox(es)
+12. Fill in answers to the join question(s)
+13. Click "Join" again
+14. You should now be a member and see the group's activity stream
+
+**Expected Result:**
+- The join link allows you to see the hidden group's details
+- You see "Join" button, not "Request Membership" (join link bypasses approval)
+- First click reveals barriers, second click (after completing them) joins
+- After joining, you're a full member immediately (no waiting for approval)
+
+---
+
+#### TC-3: Email Invitation - Email Mismatch Error
+
+**Goal:** Verify that email invitations can only be used by the person they were sent to.
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage
+3. Go to **Group Settings** → **Invite** tab
+4. In the "Invite by Email" section, enter an email address: `testinvite+recipient@gmail.com`
+5. Click "Send Invitation"
+6. Check the inbox for `testinvite+recipient@gmail.com` (or check your email testing tool)
+7. Open the invitation email and copy the invitation link
+8. Save this link in your notepad
+9. Log out
+
+**Test Steps (as Wrong User):**
+1. Log into the staging app with a DIFFERENT account (one that does NOT use the email `testinvite+recipient@gmail.com`)
+2. Paste the invitation link into the browser address bar and press Enter
+3. Look for an error message
+
+**Expected Result:**
+- You should see an error message saying the invitation is for a different email address
+- The group details should NOT be visible
+- You should NOT be able to join the group using this link
+
+**Follow-up Test (as Correct User):**
+1. Log out and log in (or sign up) with the correct email: `testinvite+recipient@gmail.com`
+2. Paste the same invitation link
+3. You should now see the group details and be able to join
+
+---
+
+#### TC-4: Paywall Group with Agreements and Questions
+
+**Goal:** Verify that users must complete all requirements (agreements + questions) before purchasing access to a paywall group.
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage that has Stripe payments enabled
+3. Go to **Group Settings** → **Privacy & Access**
+4. Set **Visibility** to "Public" and **Accessibility** to "Open"
+5. Enable **Paywall** (toggle it ON)
+6. Go to **Group Settings** → **Agreements** tab
+7. Create at least 2 agreements (e.g., "Code of Conduct", "Terms of Service")
+8. Go to **Group Settings** → **Join Questions** tab
+9. Create at least 1 question (e.g., "Why do you want to join?")
+10. Go to **Group Settings** → **Paid Content** → **Offerings** tab
+11. Ensure there's at least one published offering that grants group access
+12. Note the group name/URL
+13. Log out
+
+**Test Steps (as Test User):**
+1. Log in with a test account that is NOT a member of the group
+2. Navigate to the group (search for it, or go directly to its URL)
+3. You should see the group's About page with a payment section showing available offerings
+4. Click "Purchase Access" on one of the offerings
+5. A section should expand showing:
+   - Checkboxes for each agreement
+   - Text fields for each join question
+6. Notice the "Purchase Access" button is disabled (grayed out)
+7. Check the FIRST agreement checkbox only
+8. Notice the button is still disabled
+9. Check the SECOND agreement checkbox
+10. Notice the button is still disabled (if there's a required question)
+11. Fill in an answer to the join question
+12. The "Purchase Access" button should now be enabled (clickable)
+13. Click "Purchase Access"
+14. You should be redirected to Stripe's checkout page
+
+**Expected Result:**
+- Cannot proceed to payment until ALL agreements are checked
+- Cannot proceed to payment until ALL required questions are answered
+- Only after completing everything does the purchase button become active
+- Clicking purchase takes you to Stripe checkout
+
+---
+
+#### TC-5: Join Link Without Login (Redirect Flow)
+
+**Goal:** Verify that non-logged-in users are properly redirected to login and then back to the group.
+
+**Setup:**
+1. Get a join link for any group (Public or Protected)
+2. Save it in your notepad
+
+**Test Steps:**
+1. Open a private/incognito browser window
+2. Make sure you're completely logged out
+3. Paste the join link and press Enter
+4. You should be redirected to the login/signup page
+5. Notice the URL - it should contain a "returnTo" or similar parameter
+6. Log in with an existing test account
+7. After login, you should be automatically redirected to the group's About page
+8. The join link parameters should still be in effect (you should see the group details and Join button)
+
+**Expected Result:**
+- Non-logged-in users are sent to login first
+- After login, they're returned to the group About page
+- The join link's special access is preserved through the login flow
+
+---
+
+#### TC-6: Direct Group URL vs Join Link (Hidden Group with Join Questions)
+
+**Goal:** Verify that hidden groups are only accessible via join/invite links, and that join questions work correctly.
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Create or find a group and go to **Group Settings** → **Privacy & Access**
+3. Set **Visibility** to "Hidden"
+4. Go to **Group Settings** → **Join Questions** tab
+5. Create 2 required questions:
+   - "What brings you to this community?"
+   - "How did you find out about us?"
+6. Go to **Group Settings** → **Invite** tab
+7. Copy the "Join Link"
+8. Note both:
+   - The direct group URL (e.g., `https://staging.hylo.com/groups/hidden-group/about`)
+   - The join link you just copied
+
+**Test Steps (as Test User):**
+1. In a different browser, log in with an account that is NOT a member of the hidden group
+2. Try to access the group using the DIRECT URL (without join code)
+3. You should see a "Group not found" or access denied message
+4. Now paste the JOIN LINK into the browser
+5. You should now see the group's About page with full details
+6. Click the "Join" button
+7. A panel should expand showing the 2 join questions
+8. Fill in answers to both questions
+9. Click "Join" again
+10. You should now be a member
+
+**Expected Result:**
+- Direct URL to hidden group = Access denied
+- Join link to same hidden group = Access granted (can see About page)
+- Join questions are displayed and must be answered before joining
+- After completing questions, user becomes a member
+
+
+---
+
+#### TC-7: Setting Up and Testing a Paywall Group (Full Setup)
+
+**Goal:** Verify the complete paywall setup process and that users must pay to access a paywalled group.
+
+**Prerequisites:**
+- You need a Stripe account for testing (can use Stripe test mode)
+- Have Stripe test card numbers ready: `4242 4242 4242 4242` (success), any future expiry, any CVC
+
+**Setup Part 1 - Connect Stripe Account (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage (or create a new test group)
+3. Go to **Group Settings** → **Paid Content** tab
+4. You should see the "Account" sub-tab with setup instructions; setup a connected stripe account if the group hasn't already got one (this process requires Stripe verification that can delay progress)
+5. Fill in the form:
+   - **Email**: Your email address
+   - **Business Name**: Any name (e.g., "Test Organization")
+   - **Country**: Select your country
+6. Click "Create Account"
+7. You'll be redirected to Stripe's onboarding flow
+8. Complete Stripe's onboarding (in test mode, you can use test data)
+9. After completing onboarding, you'll be returned to Hylo
+10. Verify that the Account tab now shows "Account Active" with green checkmarks for:
+    - Accept Payments: Yes
+    - Receive Payouts: Yes
+    - Details Submitted: Yes
+
+**Setup Part 2 - Create an Offering (as Group Admin):**
+1. Still in **Group Settings** → **Paid Content**, click the **Offerings** sub-tab
+2. Click "Create Offering"
+3. Fill in the form:
+   - **Offering Name**: "Group Access - Monthly" (or any name)
+   - **Description**: "Access to the group for one month"
+   - **Price**: 10.00 (or any amount)
+   - **Currency**: USD
+   - **Duration**: Select "1 Month" (for a subscription)
+   - **Publish Status**: Select "Published"
+4. In the **Content Access** section, click "Add Group"
+5. Select your current group from the list (this makes the offering grant access to the group)
+6. Click "Save"
+7. Verify the offering appears in the list with a green "Published" badge
+
+**Setup Part 3 - Enable the Paywall (as Group Admin):**
+1. Still on the **Offerings** sub-tab, look at the top section
+2. Find the "Group Paywall Enabled" toggle
+3. You should see a green message: "This group is ready to have a paywall added"
+4. Check the checkbox to enable the paywall
+5. The message should change to "Paywall enabled"
+6. Note the group's URL slug for the next steps
+
+**Test Steps (as Test User - Non-Member):**
+1. In a different browser or incognito window, log in with a test account that is NOT a member of the paywalled group
+2. Navigate to the group's About page: `https://staging.hylo.com/groups/[group-slug]/about`
+3. You should see the group details but NOT be able to access the group content
+4. Look for a section showing available payment options/offerings
+5. You should see the offering you created (e.g., "Group Access - Monthly" for $10.00)
+6. Click "Purchase Access" on the offering
+7. You should be redirected to Stripe's checkout page
+8. Enter the test card number: `4242 4242 4242 4242`
+9. Enter any future expiry date (e.g., 12/30) and any CVC (e.g., 123)
+10. Complete the checkout
+11. You should be redirected back to Hylo
+12. You should now have access to the group and see the activity stream
+
+**Expected Result:**
+- Stripe account connects successfully
+- Offering is created and published
+- Paywall toggle becomes available once offering exists
+- Non-members see the paywall with purchase options
+- After successful payment, user gains immediate access to the group
+
+**Verification (as Group Admin):**
+1. Go back to your admin browser
+2. Go to **Group Settings** → **Paid Content** → **Content Access** sub-tab
+3. You should see a new record showing the test user's purchase
+4. The record should show:
+   - The user's name
+   - "Purchased" badge
+   - "Active" status
+   - The offering name
+
+---
+
+#### TC-5: Exploratory Testing - Offerings and Paid Content Features
+
+**Goal:** Explore and validate the various offering types and paid content management features.
+
+**Prerequisites:**
+- Have a group where you are an admin
+- Have Stripe connected (from TC-4 or separately)
+
+**Areas to Explore:**
+
+**1. Different Offering Types:**
+- Create a **one-time payment** offering (Duration: "Lifetime" or leave empty)
+- Create a **monthly subscription** offering (Duration: "1 Month")
+- Create a **seasonal/quarterly subscription** offering (Duration: "3 Months")  
+- Create an **annual subscription** offering (Duration: "1 Year")
+- Try different price points and currencies
+
+**2. Offering Management:**
+- Create an offering but leave it as "Unpublished" - verify it doesn't appear to users
+- Edit an existing offering's name, description, or price
+- Try creating an offering WITHOUT granting group access (just content access)
+- Create multiple offerings and see how they display to potential members
+
+**3. Subscriber Tracking (Admin View):**
+- After a test user purchases an offering, go to **Group Settings** → **Paid Content** → **Offerings**
+- Click the "View subscribed users" toggle (users icon) on an offering
+- Verify you can see:
+  - Number of active subscribers
+  - Monthly revenue (estimated)
+  - Number of lapsed subscribers
+  - List of individual subscribers with their status
+
+**4. Content Access Management:**
+- Go to **Content Access** sub-tab
+- Try manually granting access to a user (click "+ Grant Access")
+- Try revoking access from a user
+- Observe how granted vs purchased access is displayed differently
+
+**5. Paywall Toggle Behavior:**
+- With offerings created, toggle the paywall on and off
+- Verify non-members see the paywall when enabled
+- Verify the group is open when paywall is disabled
+
+**6. Edge Cases to Try:**
+- What happens if you delete an offering that has active subscribers?
+- Can you create an offering with a $0 price?
+- What if you disconnect Stripe while paywall is enabled?
+
+**Notes for Testers:**
+- Document any unexpected behavior or confusing UI
+- Take screenshots of anything that seems wrong
+- Note any features that feel missing or could be improved
+- For Stripe testing, always use test card: `4242 4242 4242 4242`
 
 ---
 
