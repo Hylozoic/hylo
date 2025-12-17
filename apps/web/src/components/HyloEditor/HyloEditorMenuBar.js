@@ -41,7 +41,7 @@ function setVideo (editor) {
   }
 
   // validate url is from youtube or vimeo
-  if (!input.match(/youtube|vimeo/)) {
+  if (!input.match(/youtube|youtu\.be|vimeo/)) {
     return window.alert('Sorry, your video must be hosted on YouTube or Vimeo.')
   }
 
@@ -50,7 +50,7 @@ function setVideo (editor) {
   let src = srcCheck ? srcCheck.groups.src : input
 
   // check youtube url is correct
-  if (input.match(/youtube/) && !src.match(/^https:\/\/www\.youtube\.com\/embed\//)) {
+  if (input.match(/youtube|youtu\.be/) && !src.match(/^https:\/\/www\.youtube\.com\/embed\//)) {
     // try to convert regular youtube url to embed url
     const youtubeMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
     if (youtubeMatch) {
