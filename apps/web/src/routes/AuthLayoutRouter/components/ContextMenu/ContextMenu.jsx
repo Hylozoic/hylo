@@ -851,7 +851,7 @@ function GroupSettingsMenu ({ group }) {
                 to={groupUrl(groupSlug, item.url)}
                 className={cn(
                   'text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100',
-                  { 'text-secondary border-secondary': location.pathname === groupUrl(groupSlug, item.url) }
+                  { 'border-secondary': location.pathname === groupUrl(groupSlug, item.url) }
                 )}
               >
                 {t(item.title)}
