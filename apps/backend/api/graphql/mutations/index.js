@@ -178,16 +178,16 @@ export { default as findOrCreateThread } from '../../models/post/findOrCreateThr
 export async function updateMe (sessionId, userId, changes) {
   const user = await User.find(userId)
   const convertedChanges = convertGraphqlData(changes)
-  
+
   // Generate calendar token if RSVP calendar subscription is enabled and token doesn't exist
   if (convertedChanges.settings?.rsvp_calendar_sub) {
     !user.get('calendar_token') && (convertedChanges.calendar_token = uuidv4())
-    Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId: user.id })    
+    Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId: user.id })
   }
   if (convertedChanges.settings?.rsvp_calendar_sub === false) {
-    Queue.classMethod('User', 'clearUserRsvpCalendarSubscriptions', { userId: user.id })    
+    Queue.classMethod('User', 'clearUserRsvpCalendarSubscriptions', { userId: user.id })
   }
-  
+
   return user.validateAndSave(sessionId, convertedChanges)
 }
 
