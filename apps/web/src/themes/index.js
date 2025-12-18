@@ -26,7 +26,8 @@ export const baseTheme = {
     border: '240 5.9% 90%',
     input: '42 5.9% 100%',
     ring: '240 10% 3.9%',
-    'theme-background': '60 12% 5%'
+    'theme-background': '60 12% 5%',
+    'theme-highlight': '60 12% 5%'
   },
   dark: {
     darkening: '180 2% 0%',
@@ -53,7 +54,8 @@ export const baseTheme = {
     border: '240 3.7% 15.9%',
     input: '200 2.7% 8.9%',
     ring: '240 4.9% 83.9%',
-    'theme-background': '180 2% 8%'
+    'theme-background': '180 2% 8%',
+    'theme-highlight': '180 2% 8%'    
   }
 }
 
@@ -72,7 +74,8 @@ export const forestTheme = {
     'card-foreground': '95 10% 10%',
     muted: '95 10% 90%',
     'muted-foreground': '95 10% 40%',
-    'theme-background': '95 20% 8%'
+    'theme-background': '95 20% 8%',
+    'theme-highlight': '68 54% 17%'
   },
   dark: {
     ...baseTheme.dark,
@@ -88,7 +91,8 @@ export const forestTheme = {
     'card-foreground': '95 10% 90%',
     muted: '95 15% 18%',
     'muted-foreground': '95 10% 60%',
-    'theme-background': '95 25% 6%'
+    'theme-background': '95 25% 6%',
+    'theme-highlight': '68 54% 17%'
   }
 }
 
@@ -107,7 +111,8 @@ export const oceanTheme = {
     'card-foreground': '200 30% 10%',
     muted: '200 15% 90%',
     'muted-foreground': '200 20% 40%',
-    'theme-background': '190 20% 8%'
+    'theme-background': '190 20% 8%',
+    'theme-highlight': '202 81% 14%'
   },
   dark: {
     ...baseTheme.dark,
@@ -142,7 +147,8 @@ export const desertTheme = {
     'card-foreground': '35 35% 10%',
     muted: '35 20% 90%',
     'muted-foreground': '35 25% 40%',
-    'theme-background': '35 50% 8%'
+    'theme-background': '35 50% 8%',
+    'theme-highlight': '27 42% 24%'
   },
   dark: {
     ...baseTheme.dark,
@@ -158,7 +164,8 @@ export const desertTheme = {
     'card-foreground': '25 10% 90%',
     muted: '25 30% 18%',
     'muted-foreground': '25 20% 60%',
-    'theme-background': '25 20% 6%'
+    'theme-background': '25 20% 6%',
+    'theme-highlight': '27 42% 24%'
   }
 }
 
@@ -177,7 +184,8 @@ export const snowTheme = {
     'card-foreground': '210 20% 10%',
     muted: '210 10% 92%',
     'muted-foreground': '210 15% 40%',
-    'theme-background': '210 15% 8%'
+    'theme-background': '210 15% 8%',
+    'theme-highlight': '210 54% 21%'
   },
   dark: {
     ...baseTheme.dark,
@@ -193,7 +201,8 @@ export const snowTheme = {
     'card-foreground': '210 10% 95%',
     muted: '210 15% 20%',
     'muted-foreground': '210 10% 70%',
-    'theme-background': '210 20% 7%'
+    'theme-background': '210 20% 7%',
+    'theme-highlight': '210 54% 21%'
   }
 }
 
@@ -212,7 +221,8 @@ export const jungleTheme = {
     'card-foreground': '150 45% 10%',
     muted: '150 30% 90%',
     'muted-foreground': '150 35% 40%',
-    'theme-background': '150 40% 8%'
+    'theme-background': '150 40% 8%',
+    'theme-highlight': '331 38% 20%'
   },
   dark: {
     ...baseTheme.dark,
