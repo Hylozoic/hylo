@@ -22,7 +22,7 @@ module.exports = bookshelf.Model.extend({
     return this.get('ical_sequence') || 0
   },
 
-  incrementIcalSequence: function () {
+  incrementIcalSequence: async function () {
     this.save({ ical_sequence: this.getIcalSequence() + 1 })
   },
 
