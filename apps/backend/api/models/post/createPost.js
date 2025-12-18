@@ -35,6 +35,7 @@ export function afterCreatingPost (post, opts) {
     // Add creator to RSVPs
     post.get('type') === 'event' &&
       EventInvitation.create({ userId, inviterId: userId, eventId: post.id, response: EventInvitation.RESPONSE.YES }, trxOpts),
+    post.get('type') === 'event' && post.updateGroupEventCalendars(),
 
     // Add media, if any
     // redux version

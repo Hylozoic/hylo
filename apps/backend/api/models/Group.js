@@ -3,10 +3,13 @@
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
 import randomstring from 'randomstring'
 import wkx from 'wkx'
+import ical from 'ical-generator'
+import { writeStringToS3 } from '../../lib/uploader/storage'
 
 import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers } from '@hylo/shared'
@@ -108,6 +111,16 @@ module.exports = bookshelf.Model.extend(merge({
       q.where({
         'groups_posts.group_id': this.id,
         'comments.active': true
+      })
+    })
+  },
+
+  posts: function() {
+    return Post.collection().query(q => {
+      q.join('groups_posts', 'groups_posts.post_id', 'posts.id')
+      q.where({
+        'groups_posts.group_id': this.id,
+        'posts.active': true
       })
     })
   },
@@ -896,6 +909,16 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return Promise.resolve()
+  },
+
+  getEventCalendarPath: function () {
+    return `${process.env.UPLOADER_PATH_PREFIX}/group/${this.id}/calendar-${this.get('calendar_token')}.ics`
+  },
+
+  eventCalendarUrl: function () {
+    return this.get('calendar_token')
+      ? `${process.env.AWS_S3_CONTENT_URL}/${this.getEventCalendarPath()}`
+      : null
   }
 }, HasSettings), {
   // ****** Class constants ****** //
@@ -986,6 +1009,39 @@ module.exports = bookshelf.Model.extend(merge({
         groupId: [groupId]
       })
     }
+  },
+
+  // create a calendar subscription for group events
+  async createGroupEventsCalendarSubscriptions ({ groupId, eventChanges }) {
+    const group = await Group.find(groupId)
+    if (!group) return
+
+    if (!group.get('calendar_token')) {
+      await group.save({ calendar_token: uuidv4() }, { patch: true })
+      await group.refresh()
+    }
+
+    // Fetch all events for this group
+    const events = await group.posts().where('posts.type', 'event').fetch()
+
+    // Create the calendar and add the events
+    const cal = ical()
+    for (const event of events.models) {
+      const calEvent = await event.getGroupCalEventData({
+        eventInvitation: null,
+        forUserId: null,
+        url: Frontend.Route.post(event, group),
+        eventChanges: !eventChanges.new && eventChanges.event.id === event.id ? eventChanges : null
+      })
+      cal.createEvent(calEvent).uid(calEvent.uid)
+    }
+
+    // Write the combined calendar file to S3
+    await writeStringToS3(
+      cal.toString(),
+      group.getEventCalendarPath(), {
+      ContentType: 'text/calendar'
+    })
   },
 
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)

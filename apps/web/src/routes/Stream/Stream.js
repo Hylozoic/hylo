@@ -1,6 +1,6 @@
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
-import { Bookmark } from 'lucide-react'
+import { Bookmark, Link } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
@@ -116,6 +116,9 @@ export default function Stream (props) {
   }, [customView, systemView])
 
   const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
+
+  const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
+  const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -369,6 +372,18 @@ export default function Stream (props) {
         )}
         {!pending && isCalendarViewMode && (
           <div className='calendarView'>
+            {eventCalendarUrl && (
+              <div className='flex flex-row gap-2 justify-end'>
+                <Link className='inline' to={eventCalendarUrl} />
+                <a href={eventCalendarUrl}> Group Calendar URL</a>
+              </div>
+            )}
+            {rsvpCalendarUrl && (
+              <div className='flex flex-row gap-2 justify-end'>
+                <Link className='inline' to={rsvpCalendarUrl} />
+                <a href={rsvpCalendarUrl}> RSVP Calendar URL</a>
+              </div>
+            )}
             <Calendar
               posts={posts}
               group={group}

@@ -360,7 +360,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   // for event objects, for use in icalendar
   // must eager load the user relation
-  getCalEventData: async function ({ eventInvitation, forUserId, eventChanges = {}, url }) {
+  getRsvpCalEventData: async function ({ eventInvitation, forUserId, eventChanges = {}, url }) {
     const organizer = await this.user().fetch()
 
     return {
@@ -374,6 +374,29 @@ module.exports = bookshelf.Model.extend(Object.assign({
       status: eventInvitation.notGoing() ? ICalEventStatus.CANCELLED : ICalEventStatus.CONFIRMED,
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
+      uid: this.iCalUid(),
+      url: url,
+      organizer: {
+        name: organizer.get('name'),
+        email: organizer.get('email')
+      }
+    }
+  },
+
+  // for event objects, for use in icalendar
+  // must eager load the user relation
+  getGroupCalEventData: async function ({ forUserId, eventChanges, url }) {
+    const organizer = await this.user().fetch()
+
+    return {
+      summary: this.title(),
+      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
+      location: eventChanges?.location || this.get('location'),
+      start: eventChanges?.start_time || this.get('start_time'),
+      end: eventChanges?.end_time || this.get('end_time'),
+      // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
+      // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
+      sequence: this.getIcalSequence(),
       uid: this.iCalUid(),
       url: url,
       organizer: {
@@ -874,7 +897,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const cal = ical()
     
     // Get calendar event data
-    const calEvent = await this.getCalEventData({ 
+    const calEvent = await this.getRsvpCalEventData({ 
       eventInvitation, 
       forUserId: userId, 
       eventChanges: eventChanges, 
@@ -886,6 +909,29 @@ module.exports = bookshelf.Model.extend(Object.assign({
     cal.createEvent(calEvent).uid(calEvent.uid)
     
     return cal
+  },
+
+  getIcalSequence: function () {
+    return this.get('ical_sequence') || 0
+  },
+
+  incrementIcalSequence: async function () {
+    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+  },
+
+  updateGroupEventCalendars: async function ({ eventChanges = { new: true } }) {
+    if (!eventChanges.new) {
+      // don't update if updating event and no significant changes
+      if (!eventChanges.deleted && !eventChanges.start_time && !eventChanges.end_time && !eventChanges.location) return
+      // otherwise increment sequence number if updated or deleted
+      await this.incrementIcalSequence()
+      eventChanges.event = this
+    }
+
+    const groupIds = (await this.groups().fetch()).pluck('id')
+    groupIds.forEach(groupId => {
+      Queue.classMethod('Group', 'createGroupEventsCalendarSubscriptions', { groupId, eventChanges })
+    })
   }
 
 }, EnsureLoad, ProjectMixin, EventMixin), {

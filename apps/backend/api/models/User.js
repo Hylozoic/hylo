@@ -941,7 +941,7 @@ module.exports = bookshelf.Model.extend(merge({
         const group = event.relations.groups?.first()
         
         // Get calendar event data
-        const calEvent = await event.getCalEventData({ 
+        const calEvent = await event.getRsvpCalEventData({ 
           eventInvitation, 
           forUserId: userId, 
           url: Frontend.Route.post(event, group)
