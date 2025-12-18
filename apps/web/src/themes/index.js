@@ -60,6 +60,7 @@ export const baseTheme = {
 export const forestTheme = {
   light: {
     ...baseTheme.light,
+    darkening: '95 15% 3%',
     background: '95 15% 92%',
     midground: '95 12% 96%',
     foreground: '95 10% 10%',
@@ -75,6 +76,7 @@ export const forestTheme = {
   },
   dark: {
     ...baseTheme.dark,
+    darkening: '95 20% 2%',
     background: '95 20% 14%',
     midground: '95 15% 18%',
     foreground: '95 10% 90%',
@@ -93,6 +95,7 @@ export const forestTheme = {
 export const oceanTheme = {
   light: {
     ...baseTheme.light,
+    darkening: '200 25% 3%',
     background: '190 16% 92%',
     midground: '200 25% 96%',
     foreground: '200 30% 10%',
@@ -108,6 +111,7 @@ export const oceanTheme = {
   },
   dark: {
     ...baseTheme.dark,
+    darkening: '200 30% 2%',
     background: '200 25% 14%',
     midground: '200 30% 18%',
     foreground: '200 10% 90%',
@@ -126,6 +130,7 @@ export const oceanTheme = {
 export const desertTheme = {
   light: {
     ...baseTheme.light,
+    darkening: '30 40% 4%',
     background: '35 50% 92%',
     midground: '35 50% 96%',
     foreground: '35 35% 10%',
@@ -141,6 +146,7 @@ export const desertTheme = {
   },
   dark: {
     ...baseTheme.dark,
+    darkening: '25 20% 3%',
     background: '25 14% 14%',
     midground: '25 14% 18%',
     foreground: '25 10% 90%',
@@ -159,6 +165,7 @@ export const desertTheme = {
 export const snowTheme = {
   light: {
     ...baseTheme.light,
+    darkening: '210 15% 4%',
     background: '210 10% 95%',
     midground: '210 15% 98%',
     foreground: '210 20% 10%',
@@ -174,6 +181,7 @@ export const snowTheme = {
   },
   dark: {
     ...baseTheme.dark,
+    darkening: '210 20% 3%',
     background: '210 15% 15%',
     midground: '210 20% 18%',
     foreground: '210 10% 95%',
@@ -192,6 +200,7 @@ export const snowTheme = {
 export const jungleTheme = {
   light: {
     ...baseTheme.light,
+    darkening: '150 35% 3%',
     background: '150 35% 92%',
     midground: '150 40% 96%',
     foreground: '150 45% 10%',
@@ -207,6 +216,7 @@ export const jungleTheme = {
   },
   dark: {
     ...baseTheme.dark,
+    darkening: '150 40% 2%',
     background: '150 40% 12%',
     midground: '150 45% 14%',
     foreground: '150 10% 90%',
