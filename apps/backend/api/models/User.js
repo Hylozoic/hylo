@@ -929,8 +929,13 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Fetch all EventInvitations for this user
-    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll({ withRelated: 'event' })
-    
+    const eventInvitations = await EventInvitation
+      .query(q => {
+        q.join('posts', 'event_invitations.event_id', 'posts.id')
+        q.where({ 'event_invitations.user_id': userId, 'posts.active': true })
+      })
+      .fetchAll({ withRelated: 'event' })
+
     // Create the calendar and add the events
     const cal = ical()
     for (const eventInvitation of eventInvitations.models) {
