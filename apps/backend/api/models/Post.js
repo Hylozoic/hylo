@@ -1385,7 +1385,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   updatePostRsvpCalendarSubscriptions: async function ({ postId }) {
-    const post = await Post.find(postId)
+    const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
     if (!post) return
 
     const eventInvitations = await post.eventInvitations().fetch()
