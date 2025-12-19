@@ -1055,6 +1055,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return Post.where({ id, 'posts.active': true }).fetch(options)
   },
 
+  findActiveAgnostic: function (id, options) {
+    return Post.where({ id }).fetch(options)
+  },
+
   createdInTimeRange: function (collection, startTime, endTime) {
     if (endTime === undefined) {
       endTime = startTime
@@ -1374,7 +1378,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   sendEventCancelRsvps: async function ({ postId }) {
-    const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
+    const post = await Post.findActiveAgnostic({ id: postId })
     const eventInvitationIds = (await post.eventInvitations().fetch()).pluck('id')
     for (const eventInvitationId of eventInvitationIds) {
       const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
@@ -1385,7 +1389,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   updatePostRsvpCalendarSubscriptions: async function ({ postId }) {
-    const post = await Post.where({ id: postId }).fetch() // post is likely deactive, so fetch manuely
+    const post = await Post.findActiveAgnostic({ id: postId })
     if (!post) return
 
     const eventInvitations = await post.eventInvitations().fetch()
