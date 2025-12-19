@@ -94,6 +94,7 @@ export default function GlobalNav (props) {
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
   const navContainerRef = useRef(null)
 
   useEffect(() => {
@@ -135,6 +136,23 @@ export default function GlobalNav (props) {
       }
     }
   }, [isContainerHovered])
+
+  // Detect if the nav container is overflowing
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const checkOverflow = () => {
+      setIsOverflowing(container.scrollHeight > container.clientHeight)
+    }
+
+    checkOverflow()
+
+    const resizeObserver = new ResizeObserver(checkOverflow)
+    resizeObserver.observe(container)
+
+    return () => resizeObserver.disconnect()
+  }, [sortedGroups.length])
 
   // Add effect to handle scroll position updates for tooltips
   useEffect(() => {
@@ -263,9 +281,7 @@ export default function GlobalNav (props) {
   return (
     <div
       className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
-      style={{
-        boxShadow: 'inset 0 8px 12px 10px rgba(0,0,0,0.1)'
-      }}
+      style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)' }}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
@@ -277,7 +293,8 @@ export default function GlobalNav (props) {
         ref={navContainerRef}
         className={cn(
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
-          styles.globalNavContainer
+          styles.globalNavContainer,
+          { 'pr-1': isOverflowing }
         )}
         onMouseEnter={handleContainerMouseEnter}
       >
@@ -374,8 +391,6 @@ export default function GlobalNav (props) {
             </RightClickMenu>
           )
         })}
-        <div className='sticky bottom-0 dark:-bottom-2 w-full bg-gradient-to-t from-theme-background/30 dark:from-theme-background/90 to-theme-background/0 h-[40px] z-20 blur-sm '>&nbsp;</div>
-
       </div>
 
       <div
@@ -394,10 +409,11 @@ export default function GlobalNav (props) {
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 130px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
+      <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2 relative'>
+        {isOverflowing && <div className='absolute -top-[10px] z-0 w-12 bg-gradient-to-t from-theme-background/60 dark:from-theme-background/90 to-theme-background/0 h-[20px] z-20 blur-sm '>&nbsp;</div>}
         <Popover>
           <PopoverTrigger>
-            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
+            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
               <PlusCircle className='w-7 h-7' />
             </div>
           </PopoverTrigger>

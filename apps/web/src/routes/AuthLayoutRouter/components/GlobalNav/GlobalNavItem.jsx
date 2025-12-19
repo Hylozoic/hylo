@@ -129,13 +129,13 @@ export default function GlobalNavItem ({
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             className={cn(
-              'bg-primary relative transition-all ease-in-out duration-250 overflow-hidden',
+              'bg-primary relative transition-all ease-in-out duration-250 overflow-visible',
               'flex flex-col items-center justify-center w-14 h-14 min-h-10',
               'rounded-lg drop-shadow-md opacity-60 hover:opacity-100',
               'scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl',
               {
                 'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
-                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!',
+                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',
                 'bg-darkening': isDefaultAvatar
               },
               className
@@ -145,7 +145,7 @@ export default function GlobalNavItem ({
           >
             {isDefaultAvatar && (
               <div
-                className='absolute inset-0 opacity-70'
+                className='absolute inset-0 opacity-70 rounded-md overflow-hidden'
                 style={{
                   background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))'
                 }}
@@ -153,8 +153,8 @@ export default function GlobalNavItem ({
             )}
             {children}
             {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
-            {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-2 -left-2' expanded />}
-            {badgeCount === '-' && <Badge number='&nbsp;' className='absolute -top-2 -left-2' expanded />}
+            {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-3 -left-3' expanded />}
+            {badgeCount === '-' && <Badge number='-' className='absolute -top-3 -left-3' expanded />}
           </div>
         </TooltipTrigger>
         {tooltip && (
