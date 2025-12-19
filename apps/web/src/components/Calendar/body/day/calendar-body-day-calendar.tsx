@@ -29,7 +29,7 @@ export default function CalendarBodyDayCalendar () {
   }
 
   return (
-    <div className={cn('max-w-[225px] sm:max-w-[265px]')}>
+    <div className={cn('w-full')}>
       <Calendar
         month={month}
         selected={selected}
