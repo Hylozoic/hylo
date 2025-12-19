@@ -1031,7 +1031,7 @@ module.exports = bookshelf.Model.extend(merge({
         eventInvitation: null,
         forUserId: null,
         url: Frontend.Route.post(event, group),
-        eventChanges: !eventChanges.new && eventChanges.event.id === event.id ? eventChanges : null
+        eventChanges: eventChanges.event?.id === event.id ? eventChanges : null
       })
       cal.createEvent(calEvent).uid(calEvent.uid)
     }

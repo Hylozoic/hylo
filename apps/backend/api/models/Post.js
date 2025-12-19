@@ -920,9 +920,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   updateGroupEventCalendars: async function ({ eventChanges = { new: true } }) {
-    if (!eventChanges.new) {
+    if (!eventChanges.new && !eventChanges.deleted) {
       // don't update if updating event and no significant changes
-      if (!eventChanges.deleted && !eventChanges.start_time && !eventChanges.end_time && !eventChanges.location) return
+      if (!eventChanges.start_time && !eventChanges.end_time && !eventChanges.location) return
       // otherwise increment sequence number if updated or deleted
       await this.incrementIcalSequence()
       eventChanges.event = this
@@ -1399,6 +1399,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
         Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId })
       }
     })
+  },
+
+  updatePostGroupEventCalendars: async function ({ postId, eventChanges = {deleted: true}}) {
+    const post = await Post.findActiveAgnostic({ id: postId })
+    if (!post) return
+
+    await post.updateGroupEventCalendars({ eventChanges })
   },
 
   async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {

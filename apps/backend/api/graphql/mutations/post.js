@@ -33,6 +33,7 @@ export function deletePost (userId, postId) {
       if (post.isEvent()) {
         Queue.classMethod('Post', 'sendEventCancelRsvps', { postId })
         Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId })
+        Queue.classMethod('Post', 'updatePostGroupEventCalendars', { postId })
       }
       return Post.deactivate(postId)
     }).then(() => ({ success: true }))
