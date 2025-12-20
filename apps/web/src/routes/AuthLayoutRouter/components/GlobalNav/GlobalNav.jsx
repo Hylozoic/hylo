@@ -281,7 +281,9 @@ export default function GlobalNav (props) {
   return (
     <div
       className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
-      style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)' }}
+      style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)',
+        webkitScrollbarColor: 'red'
+       }}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}

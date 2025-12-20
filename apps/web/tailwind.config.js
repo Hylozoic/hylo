@@ -134,7 +134,8 @@ export default {
           5: 'hsl(var(--chart-5))'
         },
         'theme-background': 'hsl(var(--theme-background))',
-        'theme-highlight': 'hsl(var(--theme-highlight) / <alpha-value>)'
+        'theme-highlight': 'hsl(var(--theme-highlight) / <alpha-value>)',
+        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)'
       },
       fontSize: {
         '2xs': '0.625rem'

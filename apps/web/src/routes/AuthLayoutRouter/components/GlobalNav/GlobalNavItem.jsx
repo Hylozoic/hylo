@@ -145,7 +145,7 @@ export default function GlobalNavItem ({
           >
             {isDefaultAvatar && (
               <div
-                className='absolute inset-0 opacity-70 rounded-md overflow-hidden'
+                className='absolute inset-0 opacity-80 rounded-md overflow-hidden'
                 style={{
                   background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))'
                 }}
@@ -163,7 +163,7 @@ export default function GlobalNavItem ({
             className={cn(
               'transition-all duration-100 ease-out transform',
               {
-                'opacity-60 translate-x-0 scale-80': parentShowTooltip && !isHovered && shouldAnimate,
+                'opacity-80 translate-x-0 scale-80': parentShowTooltip && !isHovered && shouldAnimate,
                 'opacity-100 translate-x-0 scale-110': isHovered,
                 'opacity-0 -translate-x-2': !shouldAnimate
               }
