@@ -95,6 +95,7 @@ export default function GlobalNav (props) {
   const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const [isOverflowing, setIsOverflowing] = useState(false)
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const navContainerRef = useRef(null)
 
   useEffect(() => {
@@ -137,21 +138,48 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
-  // Detect if the nav container is overflowing
+  // Detect scrollbar width and if the nav container is overflowing
   useEffect(() => {
     const container = navContainerRef.current
     if (!container) return
 
-    const checkOverflow = () => {
-      setIsOverflowing(container.scrollHeight > container.clientHeight)
+    const checkOverflowAndScrollbar = () => {
+      const hasOverflow = container.scrollHeight > container.clientHeight
+      setIsOverflowing(hasOverflow)
+
+      if (hasOverflow) {
+        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
+        // This tells us if the scrollbar is currently taking up layout space
+        const width = container.offsetWidth - container.clientWidth
+
+        // If width is 0, scrollbar is overlay-only (not taking space)
+        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
+        setScrollbarWidth(width > 0 ? width : 0)
+      } else {
+        setScrollbarWidth(0)
+      }
     }
 
-    checkOverflow()
+    // Initial check
+    checkOverflowAndScrollbar()
 
-    const resizeObserver = new ResizeObserver(checkOverflow)
+    // Use a small delay to ensure layout is complete
+    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Small delay to ensure scrollbar state is updated
+      setTimeout(checkOverflowAndScrollbar, 50)
+    })
     resizeObserver.observe(container)
 
-    return () => resizeObserver.disconnect()
+    // Also check on window resize to catch scrollbar visibility changes
+    window.addEventListener('resize', checkOverflowAndScrollbar)
+
+    return () => {
+      clearTimeout(timeoutId)
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', checkOverflowAndScrollbar)
+    }
   }, [sortedGroups.length])
 
   // Add effect to handle scroll position updates for tooltips
@@ -295,9 +323,14 @@ export default function GlobalNav (props) {
         ref={navContainerRef}
         className={cn(
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
-          styles.globalNavContainer,
-          { 'pr-1': isOverflowing }
+          styles.globalNavContainer
         )}
+        style={{
+          // When scrollbar is taking up space (always visible), add padding to compensate
+          // This keeps content centered regardless of scrollbar visibility mode
+          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
+          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
+        }}
         onMouseEnter={handleContainerMouseEnter}
       >
         <GlobalNavItem
