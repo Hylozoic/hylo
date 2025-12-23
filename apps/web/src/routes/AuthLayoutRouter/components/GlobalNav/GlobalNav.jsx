@@ -34,6 +34,7 @@ import {
 } from 'components/ui/popover'
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
+import VirtualScrollbar from 'components/VirtualScrollbar'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
@@ -319,15 +320,15 @@ export default function GlobalNav (props) {
       onTouchEnd={handleContainerTouchEnd}
     >
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
-      <div
+      <VirtualScrollbar
         ref={navContainerRef}
-        className={cn(
-          'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
+        className='relative z-10 grow w-full'
+        scrollbarOffset={14}
+        viewportClassName={cn(
+          'pt-4 flex flex-col items-center px-3 overflow-x-visible overflow-y-scroll grow',
           styles.globalNavContainer
         )}
-        style={{
-          // When scrollbar is taking up space (always visible), add padding to compensate
-          // This keeps content centered regardless of scrollbar visibility mode
+        viewportStyle={{
           paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
           paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
         }}
@@ -426,7 +427,7 @@ export default function GlobalNav (props) {
             </RightClickMenu>
           )
         })}
-      </div>
+      </VirtualScrollbar>
 
       <div
         className={cn(

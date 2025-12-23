@@ -17,6 +17,7 @@ import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
+import VirtualScrollbar from 'components/VirtualScrollbar'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
@@ -350,7 +351,12 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <VirtualScrollbar
+              className='AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 transition-all duration-450'
+              viewportClassName={cn('flex flex-col h-full overflow-y-auto overflow-x-hidden', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })}
+              viewportStyle={{ minHeight: '100%' }}
+              scrollbarOffset={14}
+            >
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -444,7 +450,7 @@ export default function AuthLayoutRouter (props) {
                 {/* **** Default Route (404) **** */}
                 <Route path='*' element={<Navigate to={lastViewedGroup ? `/groups/${lastViewedGroup.slug}` : '/all'} replace />} />
               </Routes>
-            </div>
+            </VirtualScrollbar>
 
             <div className={cn('bg-gradient-to-b from-midground to-theme-background shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>

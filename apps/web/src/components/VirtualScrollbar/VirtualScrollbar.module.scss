@@ -1,0 +1,94 @@
+.wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hasVirtual {
+  --vs-scrollbar-offset: 18px;
+}
+
+.viewport {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.viewportVirtual {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  padding-right: var(--vs-scrollbar-offset, 18px);
+  margin-right: calc(var(--vs-scrollbar-offset, 18px) * -1);
+  scrollbar-width: none;
+}
+
+.viewportVirtual::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.track {
+  position: absolute;
+  top: 0;
+  right: calc(var(--vs-scrollbar-offset, 18px) * 0.25);
+  bottom: 0;
+  width: 8px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hasVirtual .track {
+  pointer-events: auto;
+}
+
+.wrapper:hover .track,
+.dragging .track {
+  opacity: 1;
+}
+
+.dragging {
+  user-select: none;
+}
+
+.thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  border-radius: 999px;
+  background: hsl(240 10% 3.9% / 0.2);
+  border: none;
+  cursor: grab;
+  transition: background 150ms ease;
+}
+
+.thumb:active,
+.thumb:hover {
+  cursor: grabbing;
+  background: hsl(240 10% 3.9% / 0.35);
+}
+
+.trackBackground {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+:global(.dark) :local(.thumb) {
+  background: hsl(40 100% 99% / 0.2);
+  border: none;
+}
+
+:global(.dark) :local(.thumb):hover,
+:global(.dark) :local(.thumb):active {
+  background: hsl(40 100% 99% / 0.35);
+}

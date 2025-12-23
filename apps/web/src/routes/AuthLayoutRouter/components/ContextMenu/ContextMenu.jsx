@@ -35,6 +35,7 @@ import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'
+import VirtualScrollbar from 'components/VirtualScrollbar'
 import MenuLink from './MenuLink'
 import useGatherItems from 'hooks/useGatherItems'
 import useRouteParams from 'hooks/useRouteParams'
@@ -218,9 +219,11 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div
-        className={cn('ContextMenu bg-gradient-to-b from-context-menu-background to-theme-background/10  dark:to-theme-background/40 relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
-        style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
+      <VirtualScrollbar
+        className={cn('relative z-20 pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any })}
+        scrollbarOffset={14}
+        viewportClassName={cn('ContextMenu flex flex-col bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 isolate', className)}
+        viewportStyle={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       >
         <div className='ContextDetails w-full z-20 relative'>
           {routeParams.context === 'groups'
@@ -281,7 +284,7 @@ export default function ContextMenu (props) {
           </div>
         )}
         {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
-      </div>
+      </VirtualScrollbar>
     </ContextMenuProvider>
   )
 }
