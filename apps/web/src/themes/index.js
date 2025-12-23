@@ -1,10 +1,10 @@
 // Theme definitions for Hylo
 export const baseTheme = {
   light: {
-    darkening: '50 9% 2%',
-    background: '60 12% 88%',
-    'context-menu-background': '166 3% 88%',
-    midground: '166 3% 96%',
+    darkening: '39 9% 2%',
+    background: '39 20% 88%',
+    'context-menu-background': '39 20% 88%',
+    midground: '39 3% 96%',
     foreground: '166 10% 3.9%',
     selected: '145 50% 62%',
     card: '40 100% 99%',
@@ -27,16 +27,16 @@ export const baseTheme = {
     border: '240 5.9% 90%',
     input: '42 5.9% 100%',
     ring: '240 10% 3.9%',
-    'theme-background': '166 3% 5%',
-    'theme-highlight': '166 5% 5%'
+    'theme-background': '39 3% 5%',
+    'theme-highlight': '39 5% 5%'
   },
   dark: {
-    darkening: '166 2% 0%',
-    background: '166 3% 18%',
-    'context-menu-background': '166 3% 20%',
-    midground: '166 3% 22%',
+    darkening: '39 2% 0%',
+    background: '39 3% 18%',
+    'context-menu-background': '39 3% 20%',
+    midground: '39 3% 22%',
     foreground: '40 100% 99%',
-    card: '166 3% 25%',
+    card: '39 3% 25%',
     'card-foreground': '40 100% 99%',
     popover: '240 10% 3.9%',
     'popover-foreground': '0 0% 98%',
@@ -57,8 +57,8 @@ export const baseTheme = {
     border: '240 3.7% 15.9%',
     input: '200 2.7% 8.9%',
     ring: '240 4.9% 83.9%',
-    'theme-background': '166 2% 8%',
-    'theme-highlight': '166 2% 8%'
+    'theme-background': '39 2% 8%',
+    'theme-highlight': '39 2% 8%'
   }
 }
 
