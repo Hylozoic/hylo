@@ -135,7 +135,7 @@ export default function GlobalNavItem ({
               'scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl',
               {
                 'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
-                'border-3 border-accent opacity-100 scale-100': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',
+                'border-3 border-accent opacity-100 scale-100 hover:scale-105': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',
                 'bg-darkening': isDefaultAvatar
               },
               className
@@ -154,7 +154,7 @@ export default function GlobalNavItem ({
             {children}
             {isDefaultAvatar && <span className='GlobalNavItemDefaultAvatarText relative z-10 text-center text-white text-2xl drop-shadow-md'>{tooltip?.split(' ').slice(0, 2).map(word => word[0]?.toUpperCase()).join('')}</span>}
             {badgeCount > 0 && <Badge number={badgeCount} className='absolute -top-3 -left-3' expanded />}
-            {badgeCount === '-' && <Badge number='-' className='absolute -top-3 -left-3' expanded />}
+            {badgeCount === '-' && <Badge number='-' className='absolute -top-3 -left-3 scale-[70%]' expanded />}
           </div>
         </TooltipTrigger>
         {tooltip && (

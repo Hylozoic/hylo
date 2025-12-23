@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown } from 'lucide-react'
+import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -46,7 +46,7 @@ import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGrou
 import styles from './GlobalNav.module.scss'
 
 // Sortable wrapper for GlobalNavItem
-function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered }) {
+function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
   const {
     attributes,
     listeners,
@@ -62,8 +62,16 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     opacity: isDragging ? 0.5 : 1
   }
 
+  // Combined ref handler for both sortable and tracking
+  const handleRef = (node) => {
+    setNodeRef(node)
+    if (node && groupRefsMap) {
+      groupRefsMap.current.set(group.id, node)
+    }
+  }
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={handleRef} style={style} {...attributes} {...listeners}>
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -96,7 +104,9 @@ export default function GlobalNav (props) {
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
+  const groupRefsMap = useRef(new Map())
 
   useEffect(() => {
     const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
@@ -201,6 +211,85 @@ export default function GlobalNav (props) {
       }
     }
   }, [])
+
+  // Track groups that have badges (new posts)
+  const groupsWithBadges = useMemo(() => {
+    return sortedGroups.filter(group => group.newPostCount > 0)
+  }, [sortedGroups])
+
+  // Calculate how many badged groups are hidden below the fold
+  const calculateHiddenBadges = useCallback(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    let hiddenCount = 0
+    const containerRect = container.getBoundingClientRect()
+    const containerBottom = containerRect.bottom
+
+    groupsWithBadges.forEach(group => {
+      const element = groupRefsMap.current.get(group.id)
+      if (element) {
+        const elementRect = element.getBoundingClientRect()
+        // If the element's top is below the container's visible bottom, it's hidden
+        if (elementRect.top > containerBottom) {
+          hiddenCount++
+        }
+      }
+    })
+
+    setHiddenBadgeCount(hiddenCount)
+  }, [groupsWithBadges])
+
+  // Update hidden badge count on scroll and resize
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    calculateHiddenBadges()
+
+    const handleScrollOrResize = () => {
+      calculateHiddenBadges()
+    }
+
+    container.addEventListener('scroll', handleScrollOrResize)
+    window.addEventListener('resize', handleScrollOrResize)
+
+    return () => {
+      container.removeEventListener('scroll', handleScrollOrResize)
+      window.removeEventListener('resize', handleScrollOrResize)
+    }
+  }, [calculateHiddenBadges])
+
+  // Scroll to next badged group that is below the fold
+  const scrollToNextBadgedGroup = useCallback(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const containerRect = container.getBoundingClientRect()
+    const containerBottom = containerRect.bottom
+
+    // Find the first badged group that is below the visible area
+    for (const group of groupsWithBadges) {
+      const element = groupRefsMap.current.get(group.id)
+      if (element) {
+        const elementRect = element.getBoundingClientRect()
+        if (elementRect.top > containerBottom - 50) {
+          // Scroll this element into view with smooth animation
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+      }
+    }
+
+    // If no hidden badges found, scroll to the first one (cycle back)
+    if (groupsWithBadges.length > 0) {
+      const firstGroup = groupsWithBadges[0]
+      const element = groupRefsMap.current.get(firstGroup.id)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [groupsWithBadges])
 
   const isVisible = (index) => {
     // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
@@ -309,9 +398,10 @@ export default function GlobalNav (props) {
   return (
     <div
       className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
-      style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)',
+      style={{
+        boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)',
         webkitScrollbarColor: 'red'
-       }}
+      }}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
@@ -392,6 +482,7 @@ export default function GlobalNav (props) {
                     isVisible={isVisible(4 + pinnedIndex)}
                     showTooltip={isContainerHovered}
                     isContainerHovered={isContainerHovered}
+                    groupRefsMap={groupRefsMap}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -409,21 +500,28 @@ export default function GlobalNav (props) {
         {unpinnedGroups.map((group, unpinnedIndex) => {
           const actualIndex = pinnedGroups.length + unpinnedIndex
           return (
-            <RightClickMenu key={group.id}>
-              <RightClickMenuTrigger>
-                <GlobalNavItem
-                  badgeCount={group.newPostCount ? '-' : 0}
-                  img={group.avatarUrl}
-                  tooltip={group.name}
-                  url={`/groups/${group.slug}`}
-                  className={isVisible(4 + actualIndex)}
-                  showTooltip={isContainerHovered}
-                />
-              </RightClickMenuTrigger>
-              <RightClickMenuContent>
-                <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
-              </RightClickMenuContent>
-            </RightClickMenu>
+            <div
+              key={group.id}
+              ref={(node) => {
+                if (node) groupRefsMap.current.set(group.id, node)
+              }}
+            >
+              <RightClickMenu>
+                <RightClickMenuTrigger>
+                  <GlobalNavItem
+                    badgeCount={group.newPostCount ? '-' : 0}
+                    img={group.avatarUrl}
+                    tooltip={group.name}
+                    url={`/groups/${group.slug}`}
+                    className={isVisible(4 + actualIndex)}
+                    showTooltip={isContainerHovered}
+                  />
+                </RightClickMenuTrigger>
+                <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
+                </RightClickMenuContent>
+              </RightClickMenu>
+            </div>
           )
         })}
       </div>
@@ -446,6 +544,27 @@ export default function GlobalNav (props) {
       />
       <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2 relative'>
         {isOverflowing && <div className='absolute -top-[10px] z-0 w-12 bg-gradient-to-t from-theme-background/60 dark:from-theme-background/90 to-theme-background/0 h-[20px] z-20 blur-sm '>&nbsp;</div>}
+
+        {/* Hidden badges indicator - shows when there are badged groups below the fold */}
+        {hiddenBadgeCount > 0 && (
+          <div
+            onClick={scrollToNextBadgedGroup}
+            className={cn(
+              'relative cursor-pointer transition-all ease-in-out duration-250',
+              'flex flex-col items-center justify-center w-10 h-10',
+              'rounded-full bg-accent drop-shadow-md',
+              'scale-90 hover:scale-105 hover:drop-shadow-lg',
+              'absolute -top-12'
+            )}
+            title={t('{{count}} groups with new posts below', { count: hiddenBadgeCount })}
+          >
+            <ChevronDown className='w-5 h-5 text-white' />
+            <span className='absolute -top-1 -right-1 bg-white text-accent text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md'>
+              {hiddenBadgeCount}
+            </span>
+          </div>
+        )}
+
         <Popover>
           <PopoverTrigger>
             <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
