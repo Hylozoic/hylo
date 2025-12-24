@@ -529,7 +529,7 @@ export default function GlobalNav (props) {
       <div
         className={cn(
           'fixed z-0 bottom-0 w-[400px] h-full',
-          'transition-all duration-300 ease-out transform  backdrop-blur-sm translate-x-0',
+          'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
             'opacity-80 translate-x-0': !showGradient,
             'opacity-0 -translate-x-full': !showGradient
