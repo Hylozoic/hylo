@@ -1025,8 +1025,8 @@ module.exports = bookshelf.Model.extend(merge({
     const fromDate = Post.eventCalSubDateLimit().toISO()
     const events = await group.posts().query(q => {
       q.where({ 'posts.type': 'event' })
-      q.andWhere('posts.active', true)
-      q.andWhere('posts.start_time', '>', fromDate)
+      q.where('posts.active', true)
+      q.where('posts.start_time', '>', fromDate)
     }).fetch()
 
     // Create the calendar and add the events
