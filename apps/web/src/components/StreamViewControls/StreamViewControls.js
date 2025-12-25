@@ -66,8 +66,10 @@ const StreamViewControls = ({
   postTypeFilter,
   postTypesAvailable,
   searchValue,
+  showCalendarLinks,
   sortBy,
   timeframe,
+  toggleCalendarLinks,
   view,
   viewMode
 }) => {
@@ -122,7 +124,7 @@ const StreamViewControls = ({
           >
             <Icon name='Checkmark' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': activePostsOnly })} />
           </div>
-          {![CONTEXT_MY, 'all', 'public'].includes(context) &&
+          {![CONTEXT_MY, 'all', 'public'].includes(context) && (
             <div
               className={cn('bg-midground shadow-sm rounded text-foreground px-1 flex items-center transition-all hover:scale-125 group cursor-pointer')}
               onClick={handleChildPostInclusion}
@@ -130,7 +132,18 @@ const StreamViewControls = ({
               data-tooltip-id='stream-controls-tip'
             >
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
-            </div>}
+            </div>
+          )}
+          {view === 'events' && (
+            <div
+              className={cn('bg-background border-foreground/20 border-2 shadow-xl rounded px-1 flex items-center transition-all cursor-pointer', { 'bg-selected': showCalendarLinks })}
+              onClick={toggleCalendarLinks}
+              data-tooltip-content={showCalendarLinks ? t('Hide calendar subscription links') : t('Show calendar subscription links')}
+              data-tooltip-id='stream-controls-tip'
+            >
+              <Icon name='Eye' className={cn(classes.toggleIcon, { [classes.active]: showCalendarLinks })} />
+            </div>
+          )}
         </div>
         <div className='bg-background border-foreground/20 border-2 shadow-xl rounded p-1 flex gap-2 items-center'>
           <div
