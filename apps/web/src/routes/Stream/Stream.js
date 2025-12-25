@@ -10,6 +10,7 @@ import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
+import { Switch } from 'components/ui/switch'
 
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
@@ -75,15 +76,16 @@ export default function Stream (props) {
   const { t } = useTranslation()
   const { groupSlug, topicName, customViewId } = routeParams
   const context = props.context
+  const currentUser = useSelector(getMe)
 
   const [container, setContainer] = useState(null)
   const [groupCalendarCopied, setGroupCalendarCopied] = useState(false)
   const [rsvpCalendarCopied, setRsvpCalendarCopied] = useState(false)
   const [showCalendarLinks, setShowCalendarLinks] = useState(false)
+  const [rsvpCalendarSubIsEnabled, setRsvpCalendarSubIsEnabled] = useState(currentUser?.settings?.rsvpCalendarSub)
 
   const view = props.view || routeParams.view
 
-  const currentUser = useSelector(getMe)
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
@@ -124,7 +126,11 @@ export default function Stream (props) {
   const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
 
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
-  const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
+  const rsvpCalendarUrl = useMemo(() => rsvpCalendarSubIsEnabled ? currentUser?.rsvpCalendarUrl || '' : '', [currentUser, rsvpCalendarSubIsEnabled])
+
+  useEffect(() => {
+    setRsvpCalendarSubIsEnabled(!!currentUser?.settings?.rsvpCalendarSub)
+  }, [currentUser?.settings?.rsvpCalendarSub])
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
@@ -290,6 +296,15 @@ export default function Stream (props) {
   const onCopyGroupCalendar = () => setTemporaryState(setGroupCalendarCopied, true)
   const onCopyRsvpCalendar = () => setTemporaryState(setRsvpCalendarCopied, true)
 
+  const handleToggleRSVPCalendarSub = useCallback((checked) => {
+    setRsvpCalendarSubIsEnabled(checked)
+    dispatch(updateUserSettings({
+      settings: {
+        rsvpCalendarSub: checked
+      }
+    }))
+  }, [dispatch])
+
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
   const ViewComponent = viewComponent[viewMode]
@@ -376,7 +391,7 @@ export default function Stream (props) {
                   <>
                     <CopyToClipboard text={eventCalendarUrl} onCopy={onCopyGroupCalendar}>
                       <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='group-cal-link-tooltip'>
-                        <span className='text-selected truncate w-[80%] max-w-[450px]'>{`All ${group.name} events`}</span>
+                        <span className='text-selected truncate w-[80%] max-w-[450px]'>{t(`All ${group.name} events`)}</span>
                         <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                           <Icon name='Copy' /> {t('Copy')}
                         </div>
@@ -404,7 +419,7 @@ export default function Stream (props) {
                   <>
                     <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopyRsvpCalendar}>
                       <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='rsvp-cal-link-tooltip'>
-                        <span className='text-selected truncate w-[80%] max-w-[450px]'>All Hylo group events you RSVP </span>
+                        <span className='text-selected truncate w-[80%] max-w-[450px]'>{t('All Hylo group events you RSVP to')}</span>
                         <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                           <Icon name='Copy' /> {t('Copy')}
                         </div>
@@ -426,6 +441,18 @@ export default function Stream (props) {
                 )}
               </div>
             )}
+            {!rsvpCalendarUrl && (
+              <div className='flex flex-row gap-2 justify-end mb-2'>
+                <div className='flex items-center gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2'>
+                  <span className='text-foreground text-sm'>{t('Enable RSVP Calendar Subscription')}</span>
+                  <Switch
+                    checked={rsvpCalendarSubIsEnabled}
+                    onCheckedChange={handleToggleRSVPCalendarSub}
+                  />
+                </div>
+              </div>
+            )}
+
           </>
         )}
         {!isCalendarViewMode && (

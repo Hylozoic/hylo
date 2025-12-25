@@ -412,7 +412,7 @@ function AccountSettingsTab ({
           <div className='flex items-center justify-between'>
             <div className='space-y-1'>
               <div className='flex items-center gap-2'>
-                <h4 className='text-foreground font-medium'>{t('RSVP Calendar Subscription')}</h4>
+                <h4 className='text-foreground font-medium'>{t('Enable RSVP Calendar Subscription')}</h4>
               </div>
             </div>
             <Switch
