@@ -429,7 +429,7 @@ function AccountSettingsTab ({
               {!copied && (
                 <>
                   <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopy}>
-                    <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                    <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='rsvp-cal-link-tooltip'>
                       <span className='text-selected truncate w-[80%] max-w-[450px]'>{rsvpCalendarUrl}</span>
                       <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                         <Icon name='Copy' /> Copy
@@ -440,7 +440,7 @@ function AccountSettingsTab ({
                     <Tooltip
                       place='top'
                       type='dark'
-                      id='invite-link-tooltip'
+                      id='rsvp-cal-link-tooltip'
                       effect='solid'
                       delayShow={500}
                     />
