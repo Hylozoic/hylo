@@ -24,7 +24,7 @@ export default {
   removeEventInvitees: async function (userIds, opts) {
     const eventId = this.id
     // keep the event owner invitation for rsvp emails
-      userIds = userIds.filter(userId => userId !== this.get('user_id'))
+    userIds = userIds.filter(userId => userId !== this.get('user_id'))
 
     return Promise.map(userIds, async userId => {
       const invitation = await EventInvitation.find({ userId, eventId })
