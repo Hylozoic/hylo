@@ -923,7 +923,7 @@ module.exports = bookshelf.Model.extend(merge({
     const user = await User.find(userId)
     if (!user) return
 
-    // Ensure user has enabled RSVP calendar subscription
+    // Ensure user enabled RSVP calendar subscription at least once upon a time
     if (!user.get('calendar_token')) return
 
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
