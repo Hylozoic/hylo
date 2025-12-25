@@ -8,6 +8,7 @@ import Tooltip from 'components/Tooltip'
 import { CONTEXT_MY } from 'store/constants'
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { cn } from 'util/index'
+import VisibilityToggle from 'components/VisibilityToggle'
 
 import classes from './StreamViewControls.module.scss'
 
@@ -136,12 +137,17 @@ const StreamViewControls = ({
           )}
           {view === 'events' && (
             <div
-              className={cn('bg-background border-foreground/20 border-2 shadow-xl rounded px-1 flex items-center transition-all cursor-pointer', { 'bg-selected': showCalendarLinks })}
-              onClick={toggleCalendarLinks}
+              className={classes.visibilitySettings}
               data-tooltip-content={showCalendarLinks ? t('Hide calendar subscription links') : t('Show calendar subscription links')}
-              data-tooltip-id='stream-controls-tip'
+              data-tooltip-id='show-calendar-links-tip'
             >
-              <Icon name='Eye' className={cn(classes.toggleIcon, { [classes.active]: showCalendarLinks })} />
+              <VisibilityToggle
+                checked={showCalendarLinks}
+                onChange={() => toggleCalendarLinks(!showCalendarLinks)}
+                className={classes.widgetVisibility}
+                backgroundColor={showCalendarLinks ? 'gray' : 'black'}
+              />
+              <Tooltip id='show-calendar-links-tip' position='bottom' />
             </div>
           )}
         </div>
