@@ -102,9 +102,9 @@ export default {
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: !deleted && (newLocation || this.get('location')),
-      start: !deleted && (newStart || this.get('start_time')),
-      end: !deleted && (newEnd || this.get('end_time')),
+      location: newLocation || this.get('location'),
+      start: newStart || this.get('start_time'),
+      end: newEnd || this.get('end_time'),
       // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
       // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
       status: deleted || notGoing ? ICalEventStatus.CANCELLED : going && ICalEventStatus.CONFIRMED,

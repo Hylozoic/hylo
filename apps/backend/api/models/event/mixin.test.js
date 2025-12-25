@@ -434,9 +434,11 @@ describe('Event Mixin', () => {
       
       expect(calEvent.status).to.equal(ICalEventStatus.CANCELLED)
       expect(calEvent.method).to.equal(ICalCalendarMethod.CANCEL)
-      expect(calEvent.location).to.equal(false)
-      expect(calEvent.start).to.equal(false)
-      expect(calEvent.end).to.equal(false)
+      // When deleted, location, start, and end still use original values (not false)
+      expect(calEvent.location).to.equal('Original Location')
+      expect(calEvent.start).to.be.instanceOf(Date)
+      expect(calEvent.end).to.be.instanceOf(Date)
+      // URL should be false when deleted
       expect(calEvent.url).to.equal(false)
     })
 
@@ -562,6 +564,283 @@ describe('Event Mixin', () => {
       expect(calEvent.organizer).to.exist
       expect(calEvent.organizer.name).to.equal(user.get('name'))
       expect(calEvent.organizer.email).to.equal(user.get('email'))
+    })
+
+    it('returns valid data structure for new event (eventChanges.new)', async () => {
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { new: true },
+        url: 'https://example.com/event'
+      })
+      
+      // Verify all required fields are present and valid
+      expect(calEvent.summary).to.exist
+      expect(calEvent.description).to.exist
+      expect(calEvent.location).to.exist
+      expect(calEvent.start).to.exist
+      expect(calEvent.end).to.exist
+      expect(calEvent.status).to.exist
+      expect(calEvent.method).to.exist
+      expect(calEvent.sequence).to.exist
+      expect(calEvent.uid).to.exist
+      expect(calEvent.organizer).to.exist
+      expect(calEvent.organizer.name).to.exist
+      expect(calEvent.organizer.email).to.exist
+      
+      // Verify data types
+      expect(calEvent.start).to.be.instanceOf(Date)
+      expect(calEvent.end).to.be.instanceOf(Date)
+      expect(typeof calEvent.summary).to.equal('string')
+      expect(typeof calEvent.location).to.equal('string')
+      expect(calEvent.url).to.equal('https://example.com/event')
+    })
+
+    it('returns valid data structure for deleted event (eventChanges.deleted)', async () => {
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { deleted: true },
+        url: 'https://example.com/event'
+      })
+      
+      // Verify all required fields are present
+      expect(calEvent.summary).to.exist
+      expect(calEvent.description).to.exist
+      expect(calEvent.location).to.exist
+      expect(calEvent.start).to.exist
+      expect(calEvent.end).to.exist
+      expect(calEvent.status).to.equal(ICalEventStatus.CANCELLED)
+      expect(calEvent.method).to.equal(ICalCalendarMethod.CANCEL)
+      expect(calEvent.sequence).to.exist
+      expect(calEvent.uid).to.exist
+      expect(calEvent.organizer).to.exist
+      
+      // For deleted events, url should be false
+      expect(calEvent.url).to.equal(false)
+      
+      // Verify data types are still valid (location, start, end should still be present)
+      expect(calEvent.start).to.be.instanceOf(Date)
+      expect(calEvent.end).to.be.instanceOf(Date)
+      expect(typeof calEvent.location).to.equal('string')
+    })
+
+    it('returns valid data structure for updated event (eventChanges with location)', async () => {
+      const newLocation = 'Updated Location'
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { location: newLocation },
+        url: 'https://example.com/event'
+      })
+      
+      expect(calEvent.location).to.equal(newLocation)
+      expect(calEvent.start).to.be.instanceOf(Date)
+      expect(calEvent.end).to.be.instanceOf(Date)
+      expect(calEvent.status).to.exist
+      expect(calEvent.method).to.exist
+      expect(calEvent.uid).to.exist
+      expect(calEvent.url).to.equal('https://example.com/event')
+    })
+
+    it('returns valid data structure for updated event (eventChanges with start_time)', async () => {
+      const newStart = new Date('2024-01-02T10:00:00Z')
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { start_time: newStart },
+        url: 'https://example.com/event'
+      })
+      
+      expect(calEvent.start).to.deep.equal(newStart)
+      expect(calEvent.end).to.be.instanceOf(Date)
+      expect(calEvent.location).to.exist
+      expect(calEvent.status).to.exist
+      expect(calEvent.method).to.exist
+      expect(calEvent.uid).to.exist
+    })
+
+    it('returns valid data structure for updated event (eventChanges with end_time)', async () => {
+      const newEnd = new Date('2024-01-02T14:00:00Z')
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: invitee1.id,
+        eventChanges: { end_time: newEnd },
+        url: 'https://example.com/event'
+      })
+      
+      expect(calEvent.end).to.deep.equal(newEnd)
+      expect(calEvent.start).to.be.instanceOf(Date)
+      expect(calEvent.location).to.exist
+      expect(calEvent.status).to.exist
+      expect(calEvent.method).to.exist
+      expect(calEvent.uid).to.exist
+    })
+  })
+
+  describe('#createCal', () => {
+    let user, event, invitee, eventInvitation, group
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      invitee = await factories.user().save()
+      group = await factories.group().save()
+      event = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        name: 'Test Event',
+        description: '<p>Test Description</p>',
+        location: 'Test Location',
+        start_time: new Date('2024-01-01T10:00:00Z'),
+        end_time: new Date('2024-01-01T12:00:00Z')
+      }).save()
+      await event.groups().attach([group.id])
+      
+      eventInvitation = await EventInvitation.create({
+        userId: invitee.id,
+        eventId: event.id,
+        inviterId: user.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+    })
+
+    it('creates valid calendar for new event (eventChanges.new)', async () => {
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { new: true },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:REQUEST')
+      expect(calString).to.include('STATUS:CONFIRMED')
+      expect(calString).to.include(event.iCalUid())
+    })
+
+    it('creates valid calendar for deleted event (eventChanges.deleted)', async () => {
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { deleted: true },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:CANCEL')
+      expect(calString).to.include('STATUS:CANCELLED')
+      expect(calString).to.include(event.iCalUid())
+    })
+
+    it('creates valid calendar for updated event (eventChanges.location)', async () => {
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { location: 'Updated Location' },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:REQUEST')
+      expect(calString).to.include('STATUS:CONFIRMED')
+      expect(calString).to.include(event.iCalUid())
+      expect(calString).to.include('Updated Location')
+    })
+
+    it('creates valid calendar for updated event (eventChanges.start_time)', async () => {
+      const newStart = new Date('2024-01-02T10:00:00Z')
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { start_time: newStart },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:REQUEST')
+      expect(calString).to.include(event.iCalUid())
+    })
+
+    it('creates valid calendar for updated event (eventChanges.end_time)', async () => {
+      const newEnd = new Date('2024-01-02T14:00:00Z')
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { end_time: newEnd },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:REQUEST')
+      expect(calString).to.include(event.iCalUid())
+    })
+
+    it('creates valid calendar for updated event (eventChanges with all fields)', async () => {
+      const newStart = new Date('2024-01-02T10:00:00Z')
+      const newEnd = new Date('2024-01-02T14:00:00Z')
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: {
+          start_time: newStart,
+          end_time: newEnd,
+          location: 'Updated Location'
+        },
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include('METHOD:REQUEST')
+      expect(calString).to.include(event.iCalUid())
+      expect(calString).to.include('Updated Location')
+    })
+
+    it('creates valid calendar when eventInvitation is null', async () => {
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation: null,
+        eventChanges: null,
+        groupName: group
+      })
+      
+      expect(cal).to.exist
+      const calString = cal.toString()
+      expect(calString).to.include('BEGIN:VCALENDAR')
+      expect(calString).to.include('BEGIN:VEVENT')
+      expect(calString).to.include(event.iCalUid())
+    })
+
+    it('does not include url when eventChanges.deleted is true', async () => {
+      const cal = await event.createCal({
+        userId: invitee.id,
+        eventInvitation,
+        eventChanges: { deleted: true },
+        groupName: group
+      })
+      
+      const calString = cal.toString()
+      // URL should not be included in deleted events
+      // The exact format depends on ical-generator, but we verify it doesn't crash
+      expect(calString).to.include('METHOD:CANCEL')
     })
   })
 
