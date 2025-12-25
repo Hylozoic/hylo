@@ -129,9 +129,7 @@ export default {
 
   createUserRsvpCalendarSubscriptions: async function () {
     const userIds = await this.getEventInviteeRsvpIds()
-    userIds.forEach(userId => {
-      Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
-    })
+    userIds.forEach(userId => createUserRsvpCalendarSubscription({ userId }))
   },
 
   createUserRsvpCalendarSubscription: async function ({ userId }) {
