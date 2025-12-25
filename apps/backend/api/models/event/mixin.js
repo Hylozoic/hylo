@@ -1,6 +1,6 @@
 import { uniq, difference } from 'lodash/fp'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
-import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
+import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 
 export default {
   isEvent () {
