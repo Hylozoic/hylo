@@ -926,7 +926,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Ensure user has enabled RSVP calendar subscription
     if (!user.get('calendar_token')) return
 
-    // Fetch all EventInvitations for this user
+    // Fetch all EventInvitations for this user with YES or INTERESTED responses
     const fromDate = Post.eventCalSubDateLimit().toISO()
     const eventInvitations = await EventInvitation
       .query(q => {
@@ -934,6 +934,10 @@ module.exports = bookshelf.Model.extend(merge({
         q.where('event_invitations.user_id', userId)
         q.andWhere('posts.active', true)
         q.andWhere('posts.start_time', '>=', fromDate)
+        q.whereIn('event_invitations.response', [
+          EventInvitation.RESPONSE.YES,
+          EventInvitation.RESPONSE.INTERESTED
+        ])
       })
       .fetchAll({ withRelated: 'event' })
 

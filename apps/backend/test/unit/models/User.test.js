@@ -794,6 +794,97 @@ describe('User', function () {
       expect(storageModule.writeStringToS3).to.not.have.been.called
     })
 
+    it('includes only events where user responded YES or INTERESTED', async () => {
+      // Create events with different RSVP responses
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDateYes = new Date(now.getTime() + 4 * oneHour)
+      const futureDateInterested = new Date(now.getTime() + 5 * oneHour)
+      const futureDateNo = new Date(now.getTime() + 6 * oneHour)
+      const futureDateNull = new Date(now.getTime() + 7 * oneHour)
+
+      const eventYes = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event YES',
+        start_time: futureDateYes,
+        end_time: new Date(futureDateYes.getTime() + oneHour)
+      }).save()
+
+      const eventInterested = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event INTERESTED',
+        start_time: futureDateInterested,
+        end_time: new Date(futureDateInterested.getTime() + oneHour)
+      }).save()
+
+      const eventNo = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NO',
+        start_time: futureDateNo,
+        end_time: new Date(futureDateNo.getTime() + oneHour)
+      }).save()
+
+      const eventNull = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NULL',
+        start_time: futureDateNull,
+        end_time: new Date(futureDateNull.getTime() + oneHour)
+      }).save()
+
+      await eventYes.groups().attach([group.id])
+      await eventInterested.groups().attach([group.id])
+      await eventNo.groups().attach([group.id])
+      await eventNull.groups().attach([group.id])
+
+      // Create EventInvitations with different responses
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventYes.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventInterested.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.INTERESTED
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventNo.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.NO
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventNull.id,
+        inviterId: eventOwner.id,
+        response: null
+      })
+
+      // Generate calendar subscription
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+
+      // Verify YES and INTERESTED events are included
+      expect(calendarContent).to.include(eventYes.iCalUid())
+      expect(calendarContent).to.include(eventInterested.iCalUid())
+
+      // Verify NO and NULL response events are NOT included
+      expect(calendarContent).to.not.include(eventNo.iCalUid())
+      expect(calendarContent).to.not.include(eventNull.iCalUid())
+    })
+
     it('writes calendar to correct S3 path', async () => {
       await User.createRsvpCalendarSubscription({ userId: user.id })
 
