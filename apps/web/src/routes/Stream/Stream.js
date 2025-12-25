@@ -383,77 +383,78 @@ export default function Stream (props) {
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
           showCalendarLinks={showCalendarLinks} toggleCalendarLinks={() => setShowCalendarLinks(!showCalendarLinks)}
         />
-        {view === 'events' && showCalendarLinks && (
-          <>
-            {eventCalendarUrl && (
-              <div className='flex flex-row gap-2 justify-end mb-2'>
-                {!groupCalendarCopied && (
-                  <>
-                    <CopyToClipboard text={eventCalendarUrl} onCopy={onCopyGroupCalendar}>
-                      <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='group-cal-link-tooltip'>
-                        <span className='text-selected truncate w-[80%] max-w-[450px]'>{t(`All ${group.name} events`)}</span>
-                        <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                          <Icon name='Copy' /> {t('Copy')}
-                        </div>
-                      </button>
-                    </CopyToClipboard>
-                    {!isMobile.any && (
-                      <Tooltip
-                        place='top'
-                        type='dark'
-                        id='group-cal-link-tooltip'
-                        effect='solid'
-                        delayShow={500}
-                      />
-                    )}
-                  </>
-                )}
-                {groupCalendarCopied && (
-                  <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
-                )}
-              </div>
-            )}
-            {rsvpCalendarUrl && (
-              <div className='flex flex-row gap-2 justify-end mb-2'>
-                {!rsvpCalendarCopied && (
-                  <>
-                    <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopyRsvpCalendar}>
-                      <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='rsvp-cal-link-tooltip'>
-                        <span className='text-selected truncate w-[80%] max-w-[450px]'>{t('All Hylo group events you RSVP to')}</span>
-                        <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                          <Icon name='Copy' /> {t('Copy')}
-                        </div>
-                      </button>
-                    </CopyToClipboard>
-                    {!isMobile.any && (
-                      <Tooltip
-                        place='top'
-                        type='dark'
-                        id='rsvp-cal-link-tooltip'
-                        effect='solid'
-                        delayShow={500}
-                      />
-                    )}
-                  </>
-                )}
-                {rsvpCalendarCopied && (
-                  <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
-                )}
-              </div>
-            )}
-            {!rsvpCalendarUrl && (
-              <div className='flex flex-row gap-2 justify-end mb-2'>
-                <div className='flex items-center gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2'>
-                  <span className='text-foreground text-sm'>{t('Enable RSVP Calendar Subscription')}</span>
-                  <Switch
-                    checked={rsvpCalendarSubIsEnabled}
-                    onCheckedChange={handleToggleRSVPCalendarSub}
-                  />
+        {view === 'events' && (
+          <div className={cn(styles.calendarLinksContainer, showCalendarLinks && styles.open)}>
+            <div>
+              {eventCalendarUrl && (
+                <div className='flex flex-row gap-2 justify-end mb-2'>
+                  {!groupCalendarCopied && (
+                    <>
+                      <CopyToClipboard text={eventCalendarUrl} onCopy={onCopyGroupCalendar}>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='group-cal-link-tooltip'>
+                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{t(`All ${group.name} events`)}</span>
+                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                            <Icon name='Copy' /> {t('Copy')}
+                          </div>
+                        </button>
+                      </CopyToClipboard>
+                      {!isMobile.any && (
+                        <Tooltip
+                          place='top'
+                          type='dark'
+                          id='group-cal-link-tooltip'
+                          effect='solid'
+                          delayShow={500}
+                        />
+                      )}
+                    </>
+                  )}
+                  {groupCalendarCopied && (
+                    <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
+                  )}
                 </div>
-              </div>
-            )}
-
-          </>
+              )}
+              {rsvpCalendarUrl && (
+                <div className='flex flex-row gap-2 justify-end mb-2'>
+                  {!rsvpCalendarCopied && (
+                    <>
+                      <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopyRsvpCalendar}>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='rsvp-cal-link-tooltip'>
+                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{t('All Hylo group events you RSVP to')}</span>
+                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                            <Icon name='Copy' /> {t('Copy')}
+                          </div>
+                        </button>
+                      </CopyToClipboard>
+                      {!isMobile.any && (
+                        <Tooltip
+                          place='top'
+                          type='dark'
+                          id='rsvp-cal-link-tooltip'
+                          effect='solid'
+                          delayShow={500}
+                        />
+                      )}
+                    </>
+                  )}
+                  {rsvpCalendarCopied && (
+                    <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
+                  )}
+                </div>
+              )}
+              {!rsvpCalendarUrl && (
+                <div className='flex flex-row gap-2 justify-end mb-2'>
+                  <div className='flex items-center gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2'>
+                    <span className='text-foreground text-sm'>{t('Enable RSVP Calendar Subscription')}</span>
+                    <Switch
+                      checked={rsvpCalendarSubIsEnabled}
+                      onCheckedChange={handleToggleRSVPCalendarSub}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
         {!isCalendarViewMode && (
           <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
