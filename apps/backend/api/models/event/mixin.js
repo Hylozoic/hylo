@@ -189,9 +189,7 @@ export default {
     const userIds = await this.getEventInviteeRsvpIds()
     return Promise.map(userIds, async userId => {
       const eventInvitation = await EventInvitation.find({ userId, eventId: this.id })
-      if (eventInvitation) {
-        return this.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges })
-      }
+      return eventInvitation && this.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges })
     })
   }
 }
