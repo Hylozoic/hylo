@@ -920,7 +920,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   find: function (id, options) {
     return Post.query(q => {
       q.where('posts.id', id)
-      if (!options?.includeInactive) q.where('posts.active', true)
+      !options?.includeInactive && q.where('posts.active', true)
     }).fetch(options)
   },
 
