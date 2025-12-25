@@ -928,18 +928,20 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
     const fromDate = Post.eventCalSubDateLimit().toISO()
-    const eventInvitations = await EventInvitation
-      .query(q => {
-        q.join('posts', 'event_invitations.event_id', 'posts.id')
-        q.where('event_invitations.user_id', userId)
-        q.where('posts.active', true)
-        q.where('posts.start_time', '>=', fromDate)
-        q.whereIn('event_invitations.response', [
-          EventInvitation.RESPONSE.YES,
-          EventInvitation.RESPONSE.INTERESTED
-        ])
-      })
-      .fetchAll({ withRelated: 'event' })
+    const eventInvitations = user.get('settings').rsvp_calendar_sub ?
+      await EventInvitation
+        .query(q => {
+          q.join('posts', 'event_invitations.event_id', 'posts.id')
+          q.where('event_invitations.user_id', userId)
+          q.where('posts.active', true)
+          q.where('posts.start_time', '>=', fromDate)
+          q.whereIn('event_invitations.response', [
+            EventInvitation.RESPONSE.YES,
+            EventInvitation.RESPONSE.INTERESTED
+          ])
+        })
+        .fetchAll({ withRelated: 'event' })
+      : { models: [] }
 
     // Create the calendar and add the events
     const cal = ical({ name: 'My Hylo Events', description: 'All the events I have RSVPed to on Hylo' })
@@ -952,14 +954,14 @@ module.exports = bookshelf.Model.extend(merge({
       const group = event.relations.groups?.first()
 
       // Get calendar event data
-      const calEvent = await event.getCalEventData({
+      const calEventData = await event.getCalEventData({
         eventInvitation,
         forUserId: userId,
         url: Frontend.Route.post(event, group)
       })
 
       // Add event to calendar
-      cal.createEvent(calEvent).uid(calEvent.uid)
+      cal.createEvent(calEventData).uid(calEventData.uid)
     }
 
     // Write the combined calendar file to S3
@@ -968,14 +970,6 @@ module.exports = bookshelf.Model.extend(merge({
       user.getRsvpCalendarPath(), {
       ContentType: 'text/calendar'
     })
-  },
-
-  async deleteRsvpCalendarSubscription ({ userId }) {
-    const user = await User.find(userId)
-    if (!user) return
-
-    // Delete the calendar file from S3
-    await deleteFromS3(user.getRsvpCalendarPath())
   }
 })
 

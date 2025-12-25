@@ -171,8 +171,9 @@ export async function updateMe (sessionId, userId, changes) {
     !user.get('calendar_token') && (convertedChanges.calendar_token = uuidv4())
     Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })    
   }
-  if (convertedChanges.settings?.rsvp_calendar_sub === false) {
-    Queue.classMethod('User', 'deleteRsvpCalendarSubscription', { userId: user.id })    
+  // if disabling, the subscription will become empty, same as unsubscribing
+  if (convertedChanges.settings?.rsvp_calendar_sub === false && user.get('calendar_token')) {
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId: user.id })    
   }
 
   return user.validateAndSave(sessionId, convertedChanges)
