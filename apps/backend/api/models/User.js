@@ -927,6 +927,7 @@ module.exports = bookshelf.Model.extend(merge({
     if (!user.get('calendar_token')) return
 
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
+    // but returnempty collection if RSVP calendar subscription is disabled
     const fromDate = Post.eventCalSubDateLimit().toISO()
     const eventInvitations = user.get('settings').rsvp_calendar_sub ?
       await EventInvitation
@@ -949,18 +950,15 @@ module.exports = bookshelf.Model.extend(merge({
       const event = eventInvitation.relations.event
       if (!event.isEvent()) continue
 
-      // Load groups for URL generation
       await event.load('groups')
       const group = event.relations.groups?.first()
 
-      // Get calendar event data
       const calEventData = await event.getCalEventData({
         eventInvitation,
         forUserId: userId,
         url: Frontend.Route.post(event, group)
       })
 
-      // Add event to calendar
       cal.createEvent(calEventData).uid(calEventData.uid)
     }
 
