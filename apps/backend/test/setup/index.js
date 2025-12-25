@@ -73,7 +73,7 @@ TestSetup.prototype.createSchema = function () {
       .then(() => {
         const script = fs.readFileSync(root('migrations/schema.sql')).toString()
         return script.split(/\n/)
-          .filter(line => !line.startsWith('--'))
+          .filter(line => !line.startsWith('--') && !line.startsWith('\\'))
           .join(' ')
           .replace(/\s+/g, ' ')
           .split(/;\s?/)
