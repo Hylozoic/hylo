@@ -669,26 +669,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(flatten(members))
-
-      // Create activities for tag followers (for non-chat posts)
-      const tagFollows = await TagFollow.query(qb => {
-        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
-        qb.where('group_memberships.active', true)
-        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
-        qb.whereIn('tag_id', tags.map('id'))
-        qb.whereIn('tag_follows.group_id', groups.map('id'))
-      })
-        .fetchAll({ withRelated: ['tag'], transacting: trx })
-
-      const tagFollowers = tagFollows.map(tagFollow => ({
-        reader_id: tagFollow.get('user_id'),
-        post_id: this.id,
-        actor_id: this.get('user_id'),
-        group_id: tagFollow.get('group_id'),
-        reason: `tag: ${tagFollow.relations.tag.get('name')}`
-      }))
-
-      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
     }
 
     const eventInvitations = await EventInvitation.query(qb => {
