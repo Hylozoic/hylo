@@ -13,8 +13,7 @@ export async function respondToEvent (userId, eventId, response) {
 
   let eventInvitation = await EventInvitation.find({ userId, eventId })
   // determine if we send an rsvp email before updating eventInvitation
-  const sendRsvp = (!eventInvitation && EventInvitation.going(response)) ||
-    (!eventInvitation?.going() && EventInvitation.going(response)) ||
+  const sendRsvp = (!eventInvitation?.going() && EventInvitation.going(response)) ||
     (eventInvitation?.going() && !EventInvitation.going(response))
 
   if (eventInvitation) {
