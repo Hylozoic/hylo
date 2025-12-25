@@ -142,10 +142,9 @@ const StreamViewControls = ({
               data-tooltip-id='show-calendar-links-tip'
             >
               <VisibilityToggle
-                checked={showCalendarLinks}
+                checked={!showCalendarLinks}
                 onChange={() => toggleCalendarLinks(!showCalendarLinks)}
                 className={classes.widgetVisibility}
-                backgroundColor={showCalendarLinks ? 'gray' : 'black'}
               />
               <Tooltip id='show-calendar-links-tip' position='bottom' />
             </div>
