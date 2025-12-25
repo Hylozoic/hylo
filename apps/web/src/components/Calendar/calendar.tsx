@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import isMobile from 'ismobilejs'
 import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
@@ -53,23 +52,19 @@ export default function Calendar ({
       setDate={setDate}
       calendarIconIsToday={calendarIconIsToday}
     >
-      {isMobile.any && (
-        <>
-          <CalendarBodyDayCalendar />
-          <CalendarBodyDay />
-        </>
-      )}
-      {!isMobile.any && (
-        <>
-          <CalendarHeader>
-            <CalendarHeaderDateChevrons />
-            <CalendarHeaderActions>
-              <CalendarHeaderActionsMode />
-            </CalendarHeaderActions>
-          </CalendarHeader>
-          <CalendarBody />
-        </>
-      )}
+      <div className='lg:hidden'>
+        <CalendarBodyDayCalendar />
+        <CalendarBodyDay />
+      </div>
+      <div className='hidden lg:block'>
+        <CalendarHeader>
+          <CalendarHeaderDateChevrons />
+          <CalendarHeaderActions>
+            <CalendarHeaderActionsMode />
+          </CalendarHeaderActions>
+        </CalendarHeader>
+        <CalendarBody />
+      </div>
     </CalendarProvider>
   )
 }
