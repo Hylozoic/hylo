@@ -723,6 +723,49 @@ describe('User', function () {
       expect(calendarContent).to.not.include(eventInactive.iCalUid())
     })
 
+    it('excludes deleted (active: false) events from calendar subscription', async () => {
+      // Create a new active event with an invitation for the user
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDate = new Date(now.getTime() + oneHour)
+      
+      const activeEvent = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event to be Deleted',
+        start_time: futureDate,
+        end_time: new Date(futureDate.getTime() + oneHour)
+      }).save()
+      
+      await activeEvent.groups().attach([group.id])
+      
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: activeEvent.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+
+      // First, verify the active event is included
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+      expect(calendarContent).to.include(activeEvent.iCalUid())
+
+      // Now delete the event (set active: false)
+      await activeEvent.save({ active: false }, { patch: true })
+
+      // Regenerate the calendar subscription
+      calendarContent = null
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      // Verify the deleted event is NOT included
+      expect(calendarContent).to.not.include(activeEvent.iCalUid())
+      // But other active events should still be included
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+    })
+
     it('includes events within the past year (up to one year ago)', async () => {
       await User.createRsvpCalendarSubscription({ userId: user.id })
 

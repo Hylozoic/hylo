@@ -887,4 +887,56 @@ describe('Post', function () {
       ])
     })
   })
+
+  describe('.find', () => {
+    let user, activePost, inactivePost
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      activePost = await factories.post({ user_id: user.id, active: true }).save()
+      inactivePost = await factories.post({ user_id: user.id, active: false }).save()
+    })
+
+    it('filters by active=true when includeInactive option is missing', async () => {
+      const foundPost = await Post.find(activePost.id)
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+      expect(foundPost.get('active')).to.equal(true)
+
+      const notFoundPost = await Post.find(inactivePost.id)
+      expect(notFoundPost).to.not.exist
+    })
+
+    it('filters by active=true when includeInactive is false', async () => {
+      const foundPost = await Post.find(activePost.id, { includeInactive: false })
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+      expect(foundPost.get('active')).to.equal(true)
+
+      const notFoundPost = await Post.find(inactivePost.id, { includeInactive: false })
+      expect(notFoundPost).to.not.exist
+    })
+
+    it('finds inactive posts when includeInactive is true', async () => {
+      const foundActivePost = await Post.find(activePost.id, { includeInactive: true })
+      expect(foundActivePost).to.exist
+      expect(foundActivePost.id).to.equal(activePost.id)
+      expect(foundActivePost.get('active')).to.equal(true)
+
+      const foundInactivePost = await Post.find(inactivePost.id, { includeInactive: true })
+      expect(foundInactivePost).to.exist
+      expect(foundInactivePost.id).to.equal(inactivePost.id)
+      expect(foundInactivePost.get('active')).to.equal(false)
+    })
+
+    it('filters by active=true when options is undefined', async () => {
+      const foundPost = await Post.find(activePost.id, undefined)
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+
+      const notFoundPost = await Post.find(inactivePost.id, undefined)
+      expect(notFoundPost).to.not.exist
+    })
+  })
 })

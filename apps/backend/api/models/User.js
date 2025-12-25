@@ -931,8 +931,9 @@ module.exports = bookshelf.Model.extend(merge({
     const eventInvitations = await EventInvitation
       .query(q => {
         q.join('posts', 'event_invitations.event_id', 'posts.id')
-        q.where({ 'event_invitations.user_id': userId, 'posts.active': true })
-        q.where('posts.start_time', '>=', fromDate)
+        q.where('event_invitations.user_id', userId)
+        q.andWhere('posts.active', true)
+        q.andWhere('posts.start_time', '>=', fromDate)
       })
       .fetchAll({ withRelated: 'event' })
 

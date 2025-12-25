@@ -938,7 +938,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   find: function (id, options) {
-    return Post.where({ id, 'posts.active': true }).fetch(options)
+    return Post.query(q => {
+      q.where('posts.id', id)
+      if (!options?.includeInactive) q.where('posts.active', true)
+    }).fetch(options)
   },
 
   createdInTimeRange: function (collection, startTime, endTime) {

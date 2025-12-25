@@ -129,7 +129,7 @@ export default {
 
   createUserRsvpCalendarSubscriptions: async function () {
     const userIds = await this.getEventInviteeRsvpIds()
-    userIds.forEach(userId => createUserRsvpCalendarSubscription({ userId }))
+    userIds.forEach(userId => this.createUserRsvpCalendarSubscription({ userId }))
   },
 
   createUserRsvpCalendarSubscription: async function ({ userId }) {
