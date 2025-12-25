@@ -368,7 +368,7 @@ export default function Stream (props) {
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
           showCalendarLinks={showCalendarLinks} toggleCalendarLinks={() => setShowCalendarLinks(!showCalendarLinks)}
         />
-        {!pending && view === 'events' && showCalendarLinks && (
+        {view === 'events' && showCalendarLinks && (
           <>
             {eventCalendarUrl && (
               <div className='flex flex-row gap-2 justify-end mb-2'>
