@@ -356,26 +356,6 @@ describe('Group', function () {
     })
 
     it('includes active events when creating calendar subscription', async () => {
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(group.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            // Column doesn't exist, but we've stored it
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       await Group.createEventCalendarSubscription({ groupId: group.id })
 
       expect(storageModule.writeStringToS3).to.have.been.called
@@ -385,30 +365,9 @@ describe('Group', function () {
       expect(calendarContent).to.include(event1.iCalUid())
       expect(calendarContent).to.include(event2.iCalUid())
       expect(calendarContent).to.include(event3.iCalUid())
-      
-      Group.find = originalFind
     })
 
     it('includes events within the past year (up to one year ago)', async () => {
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(group.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       await Group.createEventCalendarSubscription({ groupId: group.id })
 
       expect(storageModule.writeStringToS3).to.have.been.called
@@ -416,30 +375,9 @@ describe('Group', function () {
       
       // Verify event within the past year is included
       expect(calendarContent).to.include(eventPastYear.iCalUid())
-      
-      Group.find = originalFind
     })
 
     it('excludes events older than one year', async () => {
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(group.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       await Group.createEventCalendarSubscription({ groupId: group.id })
 
       expect(storageModule.writeStringToS3).to.have.been.called
@@ -447,8 +385,6 @@ describe('Group', function () {
       
       // Verify event older than one year is excluded
       expect(calendarContent).to.not.include(eventOlderThanYear.iCalUid())
-      
-      Group.find = originalFind
     })
 
     it('verifies Post.eventCalSubDateLimit returns date one year in the past', () => {
@@ -464,25 +400,6 @@ describe('Group', function () {
     })
 
     it('excludes inactive events when creating calendar subscription', async () => {
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(group.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       // Deactivate event2
       await event2.save({ active: false }, { patch: true })
       
@@ -497,30 +414,9 @@ describe('Group', function () {
       
       // Verify inactive event is excluded
       expect(calendarContent).to.not.include(event2.iCalUid())
-      
-      Group.find = originalFind
     })
 
     it('includes only active events after some are deactivated', async () => {
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(group.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       // Reactivate event2 first
       await event2.save({ active: true }, { patch: true })
       // Deactivate event1 and event3
@@ -536,39 +432,14 @@ describe('Group', function () {
       expect(calendarContent).to.include(event2.iCalUid())
       expect(calendarContent).to.not.include(event1.iCalUid())
       expect(calendarContent).to.not.include(event3.iCalUid())
-      
-      Group.find = originalFind
     })
 
     it('creates calendar_token if it does not exist', async () => {
       const groupWithoutToken = await factories.group().save()
       
-      // Mock Group.find to return a group with mocked save method
-      const originalFind = Group.find
-      const mockGroup = await Group.find(groupWithoutToken.id)
-      const originalSave = mockGroup.save.bind(mockGroup)
-      mockGroup.save = async function(attrs, opts) {
-        if (attrs && attrs.calendar_token) {
-          this._calendarToken = attrs.calendar_token
-        }
-        try {
-          return await originalSave(attrs, opts)
-        } catch (e) {
-          if (e.message && e.message.includes('calendar_token')) {
-            // Column doesn't exist, but we've stored it
-            return this
-          }
-          throw e
-        }
-      }
-      Group.find = () => Promise.resolve(mockGroup)
-      
       await Group.createEventCalendarSubscription({ groupId: groupWithoutToken.id })
       
-      // Check if calendar_token was set (stored in _calendarToken if column doesn't exist)
-      expect(mockGroup._calendarToken || mockGroup.get('calendar_token')).to.exist
-      
-      Group.find = originalFind
+      expect(groupWithoutToken.refresh().get('calendar_token')).to.exist
     })
 
     it('does not create calendar_token if it already exists', async () => {
