@@ -945,21 +945,21 @@ module.exports = bookshelf.Model.extend(merge({
     const cal = ical({ name: 'My Hylo Events', description: 'All the events I have RSVPed to on Hylo' })
     for (const eventInvitation of eventInvitations.models) {
       const event = eventInvitation.relations.event
-      if (event.isEvent()) {
-        // Load groups for URL generation
-        await event.load('groups')
-        const group = event.relations.groups?.first()
+      if (!event.isEvent()) continue
 
-        // Get calendar event data
-        const calEvent = await event.getCalEventData({
-          eventInvitation,
-          forUserId: userId,
-          url: Frontend.Route.post(event, group)
-        })
+      // Load groups for URL generation
+      await event.load('groups')
+      const group = event.relations.groups?.first()
 
-        // Add event to calendar
-        cal.createEvent(calEvent).uid(calEvent.uid)
-      }
+      // Get calendar event data
+      const calEvent = await event.getCalEventData({
+        eventInvitation,
+        forUserId: userId,
+        url: Frontend.Route.post(event, group)
+      })
+
+      // Add event to calendar
+      cal.createEvent(calEvent).uid(calEvent.uid)
     }
 
     // Write the combined calendar file to S3
