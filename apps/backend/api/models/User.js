@@ -14,6 +14,7 @@ import MemberCommonRole from './MemberCommonRole'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 import { writeStringToS3, deleteFromS3 } from '../../lib/uploader/storage'
+const { DateTime } = require('luxon')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -918,21 +919,19 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async updateUserRsvpCalendarSubscriptions ({ userId }) {
+  async createRsvpCalendarSubscription ({ userId }) {
     const user = await User.find(userId)
     if (!user) return
 
-    // Ensure user has calendar token
-    if (!user.get('calendar_token')) {
-      await user.save({ calendar_token: uuidv4() }, { patch: true })
-      await user.refresh()
-    }
+    // Ensure user has enabled RSVP calendar subscription
+    if (!user.get('calendar_token')) return
 
     // Fetch all EventInvitations for this user
+    const fromDate = Post.eventCalSubDateLimit().toISO()
     const eventInvitations = await EventInvitation
       .query(q => {
         q.join('posts', 'event_invitations.event_id', 'posts.id')
-        q.where({ 'event_invitations.user_id': userId, 'posts.active': true })
+        q.where({ 'event_invitations.user_id': userId, 'posts.active': true }).andWhere('posts.start_time', '>=', fromDate)
       })
       .fetchAll({ withRelated: 'event' })
 
@@ -946,7 +945,7 @@ module.exports = bookshelf.Model.extend(merge({
         const group = event.relations.groups?.first()
         
         // Get calendar event data
-        const calEvent = await event.getRsvpCalEventData({ 
+        const calEvent = await event.getCalEventData({ 
           eventInvitation, 
           forUserId: userId, 
           url: Frontend.Route.post(event, group)
@@ -965,7 +964,7 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  async clearUserRsvpCalendarSubscriptions ({ userId }) {
+  async deleteRsvpCalendarSubscription ({ userId }) {
     const user = await User.find(userId)
     if (!user) return
 

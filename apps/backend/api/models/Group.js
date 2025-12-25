@@ -1012,7 +1012,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   // create a calendar subscription for group events
-  async createGroupEventsCalendarSubscriptions ({ groupId, eventChanges }) {
+  async createEventCalendarSubscription ({ groupId }) {
     const group = await Group.find(groupId)
     if (!group) return
 
@@ -1022,17 +1022,20 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Fetch all events for this group
-    const events = await group.posts().where('posts.type', 'event').fetch()
+    const fromDate = Post.eventCalSubDateLimit().toISO()
+    const events = await group.posts().query(q => {
+      q.where({ 'posts.type': 'event' })
+      q.andWhere('posts.active', true)
+      q.andWhere('posts.start_time', '>', fromDate)
+    }).fetch()
 
     // Create the calendar and add the events
-    const cal = ical()
+    const cal = ical({
+      name: `All Events for ${group.get('name')}`,
+      description: `All the events in group ${group.get('name')} on Hylo`
+    })
     for (const event of events.models) {
-      const calEvent = await event.getGroupCalEventData({
-        eventInvitation: null,
-        forUserId: null,
-        url: Frontend.Route.post(event, group),
-        eventChanges: eventChanges.event?.id === event.id ? eventChanges : null
-      })
+      const calEvent = await event.getCalEventData({ url: Frontend.Route.post(event, group) })
       cal.createEvent(calEvent).uid(calEvent.uid)
     }
 

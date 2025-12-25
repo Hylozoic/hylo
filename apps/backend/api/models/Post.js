@@ -358,93 +358,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return `event-${this.id}-hylo.com`
   },
 
-  // for event objects, for use in icalendar
-  // must eager load the user relation
-  getRsvpCalEventData: async function ({ eventInvitation, forUserId, eventChanges = {}, url }) {
-    const organizer = await this.user().fetch()
-
-    return {
-      summary: this.title(),
-      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: eventChanges.location || this.get('location'),
-      start: eventChanges.start_time || this.get('start_time'),
-      end: eventChanges.end_time || this.get('end_time'),
-      // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
-      // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
-      status: eventInvitation.notGoing() ? ICalEventStatus.CANCELLED : ICalEventStatus.CONFIRMED,
-      method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
-      sequence: eventInvitation.getIcalSequence(),
-      uid: this.iCalUid(),
-      url: url,
-      organizer: {
-        name: organizer.get('name'),
-        email: organizer.get('email')
-      }
-    }
-  },
-
-  // for event objects, for use in icalendar
-  // must eager load the user relation
-  getGroupCalEventData: async function ({ forUserId, eventChanges, url }) {
-    const organizer = await this.user().fetch()
-
-    return {
-      summary: this.title(),
-      description: TextHelpers.presentHTMLToText(this.details(forUserId)),
-      location: eventChanges?.location || this.get('location'),
-      start: eventChanges?.start_time || this.get('start_time'),
-      end: eventChanges?.end_time || this.get('end_time'),
-      // see https://github.com/sebbo2002/ical-generator#-date-time--timezones
-      // timezone: this.get('timezone'), // recommendation is to use UTC as much as possible
-      sequence: this.getIcalSequence(),
-      uid: this.iCalUid(),
-      url: url,
-      organizer: {
-        name: organizer.get('name'),
-        email: organizer.get('email')
-      }
-    }
-  },
-
-  // for event objects, for use in icalendar
-  // must eager load the user relation
-  getCalEventCancelData: async function (eventInvitation) {
-    return {
-      summary: this.title(),
-      status: ICalEventStatus.CANCELLED,
-      method: ICalCalendarMethod.CANCEL,
-      sequence: eventInvitation.getIcalSequence(),
-      uid: this.iCalUid()
-    }
-  },
-
-  async sendEventCancelRsvp (eventInvitation) {
-    const cal = ical()
-    const user = await eventInvitation.user().fetch()
-    const calEvent = await this.getCalEventCancelData(eventInvitation)
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
-    const groupNames = this.relations.groups?.map(g => g.get('name')).join(', ')
-
-    Queue.classMethod('Email', 'sendEventCancelEmail', {
-      email: user.get('email'),
-      version: 'default',
-      data: {
-        user_name: user.get('name'),
-        event_name: this.title(),
-        event_description: this.details(),
-        event_location: this.get('location'),
-        group_names: groupNames
-      },
-      files: [
-        {
-          id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
-        }
-      ]
-    })
-  },
-
   async clickthroughForUser (userId) {
     if (!userId) return null
     const pu = await this.loadPostInfoForUser(userId)
@@ -756,6 +669,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(flatten(members))
+
+      // Create activities for tag followers (for non-chat posts)
+      const tagFollows = await TagFollow.query(qb => {
+        qb.join('group_memberships', 'group_memberships.group_id', 'tag_follows.group_id')
+        qb.where('group_memberships.active', true)
+        qb.whereRaw('group_memberships.user_id = tag_follows.user_id')
+        qb.whereIn('tag_id', tags.map('id'))
+        qb.whereIn('tag_follows.group_id', groups.map('id'))
+      })
+        .fetchAll({ withRelated: ['tag'], transacting: trx })
+
+      const tagFollowers = tagFollows.map(tagFollow => ({
+        reader_id: tagFollow.get('user_id'),
+        post_id: this.id,
+        actor_id: this.get('user_id'),
+        group_id: tagFollow.get('group_id'),
+        reason: `tag: ${tagFollow.relations.tag.get('name')}`
+      }))
+
+      activitiesToCreate = activitiesToCreate.concat(tagFollowers)
     }
 
     const eventInvitations = await EventInvitation.query(qb => {
@@ -886,54 +819,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   removeFromGroup: function (idOrSlug) {
     return PostMembership.find(this.id, idOrSlug)
       .then(membership => membership.destroy())
-  },
-
-  createIcsCal: async function({ userId, eventInvitation, eventChanges = {}}) {
-    // Load groups for URL generation
-    await this.load('groups')
-    const group = this.relations.groups?.first()
-    
-    // Create a new ical calendar for this event
-    const cal = ical()
-    
-    // Get calendar event data
-    const calEvent = await this.getRsvpCalEventData({ 
-      eventInvitation, 
-      forUserId: userId, 
-      eventChanges: eventChanges, 
-      url: Frontend.Route.post(this, group)
-    })
-    
-    // Add event to calendar
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
-    
-    return cal
-  },
-
-  getIcalSequence: function () {
-    return this.get('ical_sequence') || 0
-  },
-
-  incrementIcalSequence: async function () {
-    this.save({ ical_sequence: this.getIcalSequence() + 1 })
-  },
-
-  updateGroupEventCalendars: async function ({ eventChanges = { new: true } }) {
-    if (!eventChanges.new && !eventChanges.deleted) {
-      // don't update if updating event and no significant changes
-      if (!eventChanges.start_time && !eventChanges.end_time && !eventChanges.location) return
-      // otherwise increment sequence number if updated or deleted
-      await this.incrementIcalSequence()
-      eventChanges.event = this
-    }
-
-    const groupIds = (await this.groups().fetch()).pluck('id')
-    groupIds.forEach(groupId => {
-      Queue.classMethod('Group', 'createGroupEventsCalendarSubscriptions', { groupId, eventChanges })
-    })
   }
-
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
 
@@ -1053,10 +939,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   find: function (id, options) {
     return Post.where({ id, 'posts.active': true }).fetch(options)
-  },
-
-  findActiveAgnostic: function (id, options) {
-    return Post.where({ id }).fetch(options)
   },
 
   createdInTimeRange: function (collection, startTime, endTime) {
@@ -1366,85 +1248,53 @@ module.exports = bookshelf.Model.extend(Object.assign({
     Queue.classMethod('Post', 'publishPostUpdates', { postId, options }, 0)
   },
 
-  sendEventUpdateRsvps: async function ({ postId, eventChanges }) {
+  processEventCreated: async function ({ postId, eventInviteeIds, userId, params }) {
     const post = await Post.find(postId)
-    const eventInvitations = await post.eventInvitations().fetch()
-
-    eventInvitations.forEach(eventInvitation => {
-      if (!eventInvitation.notGoing()) {
-        Post.sendEventRsvp({eventId: postId, eventInvitationId: eventInvitation.id, eventChanges})
-      }
-    })
-  },
-
-  sendEventCancelRsvps: async function ({ postId }) {
-    const post = await Post.findActiveAgnostic({ id: postId })
-    const eventInvitationIds = (await post.eventInvitations().fetch()).pluck('id')
-    for (const eventInvitationId of eventInvitationIds) {
-      const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
-      if (eventInvitation && !eventInvitation.notGoing()) {
-        post.sendEventCancelRsvp(eventInvitation)
-      }
-    }
-  },
-
-  updatePostRsvpCalendarSubscriptions: async function ({ postId }) {
-    const post = await Post.findActiveAgnostic({ id: postId })
     if (!post) return
 
-    const eventInvitations = await post.eventInvitations().fetch()
-    eventInvitations.forEach(eventInvitation => {
-      const userId = eventInvitation.get('user_id')
-      if (userId) {
-        Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId })
-      }
+    // create event invitation for event owner so they get an rsvp email
+    const eventInvitation = await EventInvitation.create({
+      userId,
+      eventId: postId,
+      inviterId: userId,
+      response: EventInvitation.RESPONSE.YES
     })
+
+    // NOTE: method names that are plural affect collections
+    // methods that are singular affect a single object
+    await post.updateEventInvitees({ eventInviteeIds, params })
+    await post.createUserRsvpCalendarSubscription({ userId })
+    await post.createGroupEventCalendarSubscriptions()
+    await post.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges: { new: true } })
   },
 
-  updatePostGroupEventCalendars: async function ({ postId, eventChanges = {deleted: true}}) {
-    const post = await Post.findActiveAgnostic({ id: postId })
+  processEventUpdated: async function ({ postId, eventInviteeIds, eventChanges }) {
+    const post = await Post.find(postId)
     if (!post) return
 
-    await post.updateGroupEventCalendars({ eventChanges })
+    const eventChanged = eventChanges.start_time || eventChanges.end_time || eventChanges.location
+
+    // NOTE: method names that are plural affect collections
+    // methods that are singular affect a single object
+    await post.updateEventInvitees({ eventInviteeIds })
+    await post.createUserRsvpCalendarSubscriptions()
+    await post.createGroupEventCalendarSubscriptions()
+    eventChanged && await post.sendUserRsvps({ eventChanges })
   },
 
-  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
-    const post = await Post.where({ id: eventId }).fetch()
-    const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
-    const user = await eventInvitation.user().fetch()
-    await post.load('groups')
-    const groupNames = post.relations.groups.map(g => g.get('name')).join(', ')
-    const icsCal = await post.createIcsCal({ userId: user.id, eventInvitation, eventChanges })
-    const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
-    const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
-    const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: post.get('timezone')}) : null
-    const newLocation = eventChanges.location
+  processEventDeleted: async function ({ postId }) {
+    const post = await Post.find(postId)
+    if (!post) return
 
-    Queue.classMethod('Email', emailTemplate, {
-      email: user.get('email'),
-      version: 'default',
-      data: {
-        date: DateTimeHelpers.formatDatePair({start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone')}),
-        user_name: user.get('name'),
-        event_name: post.title(),
-        event_description: post.details(),
-        event_location: post.get('location'),
-        event_url: icsCal.url,
-        response: eventInvitation.getHumanResponse(),
-        group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
-      },
-      files: [
-        {
-          id: 'invite.ics',
-          data: Buffer.from(icsCal.toString(), 'utf8').toString('base64')
-        }
-      ]
-    }).then(() => {
-      // update the ical sequence number, no need to await
-      eventInvitation.incrementIcalSequence()
-    })
+    // NOTE: method names that are plural affect collections
+    // methods that are singular affect a single object
+    await post.createUserRsvpCalendarSubscriptions()
+    await post.createGroupEventCalendarSubscriptions()
+    await post.sendUserRsvps({ eventChanges: { deleted: true } })
+  },
+
+  // limits past events for calendar subscriptions to this date forward
+  eventCalSubDateLimit: function () {
+    return DateTime.now().minus({ years: 1 })
   }
 })

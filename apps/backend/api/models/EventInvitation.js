@@ -30,6 +30,10 @@ module.exports = bookshelf.Model.extend({
     return this.get('response') === EventInvitation.RESPONSE.NO
   },
 
+  going: function () {
+    return EventInvitation.going(this)
+  },
+
   getHumanResponse: function () {
     const responseMap = {
       [EventInvitation.RESPONSE.YES]: 'Going to',

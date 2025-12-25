@@ -32,11 +32,6 @@ export function afterCreatingPost (post, opts) {
     // Add mentioned users and creator as followers
     post.addFollowers(followerIds, {}, trxOpts),
 
-    // Add creator to RSVPs
-    post.get('type') === 'event' &&
-      EventInvitation.create({ userId, inviterId: userId, eventId: post.id, response: EventInvitation.RESPONSE.YES }, trxOpts),
-    post.get('type') === 'event' && post.updateGroupEventCalendars(trxOpts),
-
     // Add media, if any
     // redux version
     opts.imageUrl && Media.createForSubject({
@@ -82,7 +77,7 @@ export function afterCreatingPost (post, opts) {
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
-    .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))
+    .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventCreated', { postId: post.id, eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
