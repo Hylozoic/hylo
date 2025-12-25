@@ -1,35 +1,38 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from 'util/index'
-import RoundImage from 'components/RoundImage'
 import { TextHelpers } from '@hylo/shared'
+import RoundImage from 'components/RoundImage'
 import Highlight from 'components/Highlight'
 import HyloHTML from 'components/HyloHTML'
 import ClickCatcher from 'components/ClickCatcher'
 import CardImageAttachments from 'components/CardImageAttachments'
 import CardFileAttachments from 'components/CardFileAttachments'
+import useViewPostDetails from 'hooks/useViewPostDetails'
+import { cn } from 'util/index'
 import classes from './CommentCard.module.scss'
 
 export default function CommentCard ({
   comment,
-  showDetails,
   expanded = true,
   highlightProps
 }) {
-  const { creator, post, slug, createdAt, editedAt, attachments } = comment
-  const timestamp = (editedAt ? 'Edited ' : 'Commented ') + TextHelpers.humanDate(editedAt || createdAt)
-  const postTitle = post.title
-    ? TextHelpers.truncateText(post.title, 25)
-    : post.details
-      ? TextHelpers.truncateHTML(post.details, 25)
-      : 'a post' // Fallback when both title and details are empty
-
-  const commentText = expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144)
-
   const { t } = useTranslation()
+  const viewPostDetails = useViewPostDetails()
+
+  const { creator, post, slug, createdAt, editedAt, attachments } = comment
+  const timestamp = useMemo(() => (editedAt ? 'Edited ' : 'Commented ') + TextHelpers.humanDate(editedAt || createdAt), [editedAt, createdAt])
+  const postTitle = useMemo(() => {
+    return post.title
+      ? TextHelpers.truncateText(post.title, 25)
+      : post.details
+        ? TextHelpers.truncateHTML(post.details, 25)
+        : 'a post' // Fallback when both title and details are empty
+  }, [post.title, post.details])
+
+  const commentText = useMemo(() => expanded ? comment.text : TextHelpers.truncateHTML(comment.text, 144), [expanded, comment.text])
 
   return (
-    <span onClick={() => showDetails(comment.post.id)} className={classes.link} data-testid='comment-card'>
+    <span onClick={() => viewPostDetails(comment.post)} className={classes.link} data-testid='comment-card'>
       <div className={cn(
         'rounded-xl cursor-pointer relative flex flex-col transition-all bg-card/40 border-2 border-card/30 shadow-md hover:shadow-lg mb-4 hover:z-50 hover:scale-105 duration-400',
         classes.commentCard,
