@@ -1,11 +1,13 @@
 /* eslint-disable no-unused-expressions */
 
 import '../../setup'
+import root from 'root-path'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { wait } from '../../setup/helpers'
+import { wait, spyify, unspyify } from '../../setup/helpers'
 import { times } from 'lodash'
+import setup from '../../setup'
 
 describe('User', function () {
   let cat
@@ -540,6 +542,291 @@ describe('User', function () {
         phone_number: user.get('contact_phone'),
         phone_number_verified: false
       })
+    })
+  })
+
+  describe('.createRsvpCalendarSubscription', () => {
+    let user, eventOwner, group, event1, event2, event3, eventInactive, eventPastYear, eventOlderThanYear
+    let storageModule, calendarContent
+    let originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      eventOwner = await factories.user().save()
+      group = await factories.group().save()
+      
+      // Create calendar_token for user
+      try {
+        await user.save({ calendar_token: 'test-token-123' }, { patch: true })
+      } catch (e) {
+        // Column might not exist, store it in a custom property
+        user._calendarToken = 'test-token-123'
+      }
+
+      // Create events with different dates
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDate1 = new Date(now.getTime() + oneHour)
+      const futureDate2 = new Date(now.getTime() + 2 * oneHour)
+      const futureDate3 = new Date(now.getTime() + 3 * oneHour)
+      const pastYearDate = Post.eventCalSubDateLimit().plus({ hours: 1 }).toJSDate()
+      const olderThanYearDate = Post.eventCalSubDateLimit().minus({ hours: 1 }).toJSDate()
+
+      event1 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 1',
+        start_time: futureDate1,
+        end_time: new Date(futureDate1.getTime() + oneHour)
+      }).save()
+
+      event2 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 2',
+        start_time: futureDate2,
+        end_time: new Date(futureDate2.getTime() + oneHour)
+      }).save()
+
+      event3 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 3',
+        start_time: futureDate3,
+        end_time: new Date(futureDate3.getTime() + oneHour)
+      }).save()
+
+      eventInactive = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: false,
+        name: 'Inactive Event',
+        start_time: futureDate1,
+        end_time: new Date(futureDate1.getTime() + oneHour)
+      }).save()
+
+      eventPastYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event Past Year',
+        start_time: pastYearDate,
+        end_time: new Date(pastYearDate.getTime() + oneHour)
+      }).save()
+
+      eventOlderThanYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event Older Than Year',
+        start_time: olderThanYearDate,
+        end_time: new Date(olderThanYearDate.getTime() + oneHour)
+      }).save()
+
+      await event1.groups().attach([group.id])
+      await event2.groups().attach([group.id])
+      await event3.groups().attach([group.id])
+      await eventInactive.groups().attach([group.id])
+      await eventPastYear.groups().attach([group.id])
+      await eventOlderThanYear.groups().attach([group.id])
+
+      // Create EventInvitations for user
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event1.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event2.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.INTERESTED
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event3.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventInactive.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventPastYear.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventOlderThanYear.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+
+      originalFind = User.find
+    })
+
+    beforeEach(async () => {
+      calendarContent = null
+      // Mock writeStringToS3 to capture calendar content
+      storageModule = require(root('lib/uploader/storage'))
+      spyify(storageModule, 'writeStringToS3', (content) => {
+        calendarContent = content
+        return Promise.resolve({ url: 'https://example.com/calendar.ics' })
+      })
+
+      // Mock User.find to return user with calendar_token
+      const mockUser = await User.find(user.id)
+      if (!mockUser.get('calendar_token') && user._calendarToken) {
+        const originalGet = mockUser.get.bind(mockUser)
+        mockUser.get = function(key) {
+          if (key === 'calendar_token') {
+            return user._calendarToken
+          }
+          return originalGet(key)
+        }
+      }
+      User.find = () => Promise.resolve(mockUser)
+    })
+
+    afterEach(() => {
+      unspyify(storageModule, 'writeStringToS3')
+      if (User.find !== originalFind) {
+        User.find = originalFind
+      }
+    })
+
+    it('creates calendar subscription with active events', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify active events are included
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+    })
+
+    it('excludes inactive events', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.not.include(eventInactive.iCalUid())
+    })
+
+    it('includes events within the past year (up to one year ago)', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.include(eventPastYear.iCalUid())
+    })
+
+    it('excludes events older than one year', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.not.include(eventOlderThanYear.iCalUid())
+    })
+
+    it('returns early if user does not exist', async () => {
+      User.find = () => Promise.resolve(null)
+      await User.createRsvpCalendarSubscription({ userId: 99999 })
+
+      expect(storageModule.writeStringToS3).to.not.have.been.called
+    })
+
+    it('returns early if user does not have calendar_token', async () => {
+      const userWithoutToken = await factories.user().save()
+      User.find = () => Promise.resolve(userWithoutToken)
+      
+      await User.createRsvpCalendarSubscription({ userId: userWithoutToken.id })
+
+      expect(storageModule.writeStringToS3).to.not.have.been.called
+    })
+
+    it('writes calendar to correct S3 path', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      const callArgs = storageModule.writeStringToS3.__spy.calls[0]
+      const path = callArgs[1]
+      const calendarToken = user.get('calendar_token') || user._calendarToken
+      expect(path).to.include(`user/${user.id}/calendar-${calendarToken}.ics`)
+      expect(callArgs[2].ContentType).to.equal('text/calendar')
+    })
+  })
+
+  describe('.deleteRsvpCalendarSubscription', () => {
+    let user, storageModule
+    let originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      
+      // Create calendar_token for user
+      try {
+        await user.save({ calendar_token: 'test-token-456' }, { patch: true })
+      } catch (e) {
+        // Column might not exist, store it in a custom property
+        user._calendarToken = 'test-token-456'
+      }
+
+      originalFind = User.find
+    })
+
+    beforeEach(async () => {
+      storageModule = require(root('lib/uploader/storage'))
+      spyify(storageModule, 'deleteFromS3', () => Promise.resolve())
+
+      // Mock User.find to return user with calendar_token
+      const mockUser = await User.find(user.id)
+      if (!mockUser.get('calendar_token') && user._calendarToken) {
+        const originalGet = mockUser.get.bind(mockUser)
+        mockUser.get = function(key) {
+          if (key === 'calendar_token') {
+            return user._calendarToken
+          }
+          return originalGet(key)
+        }
+      }
+      User.find = () => Promise.resolve(mockUser)
+    })
+
+    afterEach(() => {
+      unspyify(storageModule, 'deleteFromS3')
+      if (User.find !== originalFind) {
+        User.find = originalFind
+      }
+    })
+
+    it('deletes calendar file from S3', async () => {
+      await User.deleteRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.deleteFromS3).to.have.been.called
+    })
+
+    it('deletes calendar from correct S3 path', async () => {
+      await User.deleteRsvpCalendarSubscription({ userId: user.id })
+
+      const callArgs = storageModule.deleteFromS3.__spy.calls[0]
+      const path = callArgs[0]
+      const calendarToken = user.get('calendar_token') || user._calendarToken
+      expect(path).to.include(`user/${user.id}/calendar-${calendarToken}.ics`)
+    })
+
+    it('returns early if user does not exist', async () => {
+      User.find = () => Promise.resolve(null)
+      await User.deleteRsvpCalendarSubscription({ userId: 99999 })
+
+      expect(storageModule.deleteFromS3).to.not.have.been.called
     })
   })
 })
