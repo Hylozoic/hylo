@@ -1283,7 +1283,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   },
 
   processEventDeleted: async function ({ postId }) {
-    const post = await Post.find(postId)
+    const post = await Post.find(postId, { includeInactive: true })
     if (!post) return
 
     // NOTE: method names that are plural affect collections
