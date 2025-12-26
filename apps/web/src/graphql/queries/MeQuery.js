@@ -105,6 +105,7 @@ export default gql`
         postNotifications
         sendEmail
         sendPushNotifications
+        sendEventRsvpEmail
         showJoinForm
       }
       group {

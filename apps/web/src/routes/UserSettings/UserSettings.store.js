@@ -172,6 +172,16 @@ export function updateMembershipSettings (groupId, settings, acceptAgreements = 
         mutation UpdateMembershipSettings ($groupId: ID, $data: MembershipInput) {
           updateMembership(groupId: $groupId, data: $data) {
             id
+            settings {
+              agreementsAcceptedAt
+              joinQuestionsAnsweredAt
+              sendEmail
+              sendPushNotifications
+              sendEventRsvpEmail
+              showJoinForm
+              digestFrequency
+              postNotifications
+            }
           }
         }
       `,
@@ -188,7 +198,13 @@ export function updateMembershipSettings (groupId, settings, acceptAgreements = 
       groupId,
       acceptAgreements,
       settings,
-      optimistic: true
+      optimistic: true,
+      extractModel: [
+        {
+          getRoot: get('updateMembership'),
+          modelName: 'Membership'
+        }
+      ]
     }
   }
 }

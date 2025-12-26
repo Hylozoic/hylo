@@ -1852,6 +1852,8 @@ type MembershipSettings {
   showJoinForm: Boolean
   # Whether the user wants to get mobile app push notifications from this group
   sendPushNotifications: Boolean
+  # Whether the user wants to receive email notifications for event RSVPs in this group
+  sendEventRsvpEmail: Boolean
 }
 
 # A direct message sent in a specific thread
@@ -3650,6 +3652,8 @@ input MembershipSettingsInput {
   showJoinForm: Boolean
   # Whether to mobile push notifications for this Group
   sendPushNotifications: Boolean
+  # Whether to receive email notifications for event RSVPs in this Group
+  sendEventRsvpEmail: Boolean
 }
 
 # Data for updating a message in a direct message thread

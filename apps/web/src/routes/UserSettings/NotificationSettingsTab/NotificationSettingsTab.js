@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue
 } from 'components/ui/select'
+import { Switch } from 'components/ui/switch'
 import InfoButton from 'components/ui/info'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getMe from 'store/selectors/getMe'
@@ -53,6 +54,7 @@ const getAllGroupsSettings = createSelector(
   memberships => ({
     sendEmail: every(m => m.settings?.sendEmail, memberships),
     sendPushNotifications: every(m => m.settings?.sendPushNotifications, memberships),
+    sendEventRsvpEmail: every(m => m.settings?.sendEventRsvpEmail, memberships),
     postNotifications: memberships.length > 0 && every(m => m.settings?.postNotifications === memberships[0].settings?.postNotifications, memberships)
       ? memberships[0].settings?.postNotifications
       : 'mixed',
@@ -175,7 +177,7 @@ function NotificationSettingsTab ({
                 </SelectContent>
               </Select>
             </div>
-            <div className='flex items-center justify-between mt-2'>
+            <div className='flex items-center justify-between mt-2 border-b-2 border-foreground/20 pb-2'>
               <span className=''>{t('Send me an email digest for this group')}</span>
               <Select
                 value={allGroupsSettings.digestFrequency}
@@ -191,6 +193,13 @@ function NotificationSettingsTab ({
                   <SelectItem value='mixed' disabled>{t('~ Mixed ~')}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className='flex items-center justify-between mt-2'>
+              <span>{t('Send me an event RSVP via email')}</span>
+              <Switch
+                checked={allGroupsSettings.sendEventRsvpEmail ?? false}
+                onCheckedChange={value => updateAllGroupsAlert({ sendEventRsvpEmail: value })}
+              />
             </div>
           </div>
         </div>

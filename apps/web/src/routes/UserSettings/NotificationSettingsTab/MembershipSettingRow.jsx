@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from 'components/ui/select'
+import { Switch } from 'components/ui/switch'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
 import SettingsToggles from './SettingToggles'
 
@@ -21,6 +22,7 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
   const [isOpen, setIsOpen] = useState(open)
 
   const chatRooms = useMemo(() => (membership.group?.chatRooms.toModelArray() || []).filter(cr => cr.topicFollow), [membership.group?.chatRooms])
+  console.log('membership.settings.sendEventRsvpEmail =', membership.settings.sendEventRsvpEmail)
 
   return (
     <div id={`group-${membership.group.id}`} className={cn('p-4 bg-card/60 hover:bg-card/100 rounded-lg shadow-lg mb-2 scale-100 hover:scale-102 transition-all group', { 'bg-card/100': isOpen })}>
@@ -54,6 +56,13 @@ export default function MembershipSettingsRow ({ membership, open, updateMembers
                 <SelectItem value='never'>{t('Never')}</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className='flex items-center justify-between py-3 border-b-2 border-foreground/20'>
+            <span>{t('Send me an event RSVP via email')}</span>
+            <Switch
+              checked={membership.settings.sendEventRsvpEmail ?? true}
+              onCheckedChange={value => updateMembershipSettings({ sendEventRsvpEmail: value })}
+            />
           </div>
           <div className='flex items-center justify-between py-3'>
             <span>Send new post notifications in this group for</span>

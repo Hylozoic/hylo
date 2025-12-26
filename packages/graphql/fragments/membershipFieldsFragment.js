@@ -15,7 +15,10 @@ export default gql`
       joinQuestionsAnsweredAt
       sendEmail
       sendPushNotifications
+      sendEventRsvpEmail
       showJoinForm
+      digestFrequency
+      postNotifications
     }
     group {
       id

@@ -28,6 +28,16 @@ export default function fetchUserSettings () {
             }
             memberships {
               id
+              settings {
+                agreementsAcceptedAt
+                joinQuestionsAnsweredAt
+                sendEmail
+                sendPushNotifications
+                sendEventRsvpEmail
+                showJoinForm
+                digestFrequency
+                postNotifications
+              }
               group {
                 id
                 name

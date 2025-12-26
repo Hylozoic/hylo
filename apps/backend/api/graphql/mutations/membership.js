@@ -2,7 +2,8 @@
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase } from 'lodash'
 
-export async function updateMembership (userId, { groupId, data, data: { settings } }) {
+export async function updateMembership (userId, { groupId, data, data: { settings: settingsParam } }) {
+  const settings = settingsParam || {}
   const whitelist = mapKeys(pick(data, [
     'newPostCount',
     'navOrder'
@@ -82,7 +83,7 @@ export async function updateMembership (userId, { groupId, data, data: { setting
 }
 
 export function updateAllMemberships (userId, { data: { settings } }) {
-  const whitelist = pick(settings, ['sendEmail', 'sendPushNotifications', 'postNotifications', 'digestFrequency'])
+  const whitelist = pick(settings, ['sendEmail', 'sendPushNotifications', 'postNotifications', 'digestFrequency', 'sendEventRsvpEmail'])
   if (isEmpty(whitelist)) return Promise.resolve(null)
   const whitelistString = Object.entries(whitelist).map(([key, value]) => typeof value === 'boolean' ? `'${key}', ${value}` : `'${key}', '${value}'`).join(', ')
   return bookshelf.knex.raw('update group_memberships set settings = settings || jsonb_build_object(' + whitelistString + ') where user_id = ' + userId)
