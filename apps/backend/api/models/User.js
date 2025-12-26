@@ -945,7 +945,11 @@ module.exports = bookshelf.Model.extend(merge({
       : { models: [] }
 
     // Create the calendar and add the events
-    const cal = ical({ name: 'My Hylo Events', description: 'All the events I have RSVPed to on Hylo' })
+    const cal = ical({
+      name: 'My Hylo Events',
+      description: 'All the events I have RSVPed to on Hylo',
+      scale: 'gregorian'
+    })
     for (const eventInvitation of eventInvitations.models) {
       const event = eventInvitation.relations.event
       if (!event.isEvent()) continue

@@ -1032,7 +1032,8 @@ module.exports = bookshelf.Model.extend(merge({
     // Create the calendar and add the events
     const cal = ical({
       name: `All Events for ${group.get('name')}`,
-      description: `All the events in group ${group.get('name')} on Hylo`
+      description: `All the events in group ${group.get('name')} on Hylo`,
+      scale: 'gregorian'
     })
     for (const event of events.models) {
       const calEvent = await event.getCalEventData({ url: Frontend.Route.post(event, group) })

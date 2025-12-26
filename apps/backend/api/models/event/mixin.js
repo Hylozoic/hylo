@@ -84,6 +84,7 @@ export default {
     const cal = ical()
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
+    cal.scale('gregorian')
     
     return cal
   },
