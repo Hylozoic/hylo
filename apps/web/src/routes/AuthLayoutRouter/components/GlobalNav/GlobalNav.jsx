@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown } from 'lucide-react'
+import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -47,7 +47,7 @@ import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGrou
 import styles from './GlobalNav.module.scss'
 
 // Sortable wrapper for GlobalNavItem
-function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered }) {
+function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContainerHovered, groupRefsMap }) {
   const {
     attributes,
     listeners,
@@ -63,9 +63,17 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
     opacity: isDragging ? 0.5 : 1
   }
 
+  // Combined ref handler for both sortable and tracking
+  const handleRef = (node) => {
+    setNodeRef(node)
+    if (node && groupRefsMap) {
+      groupRefsMap.current.set(group.id, node)
+    }
+  }
+
   return (
     <div
-      ref={setNodeRef}
+      ref={handleRef}
       style={{
         ...style,
         WebkitTouchCallout: 'none',
@@ -106,7 +114,11 @@ export default function GlobalNav (props) {
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
+  const groupRefsMap = useRef(new Map())
 
   useEffect(() => {
     const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
@@ -148,6 +160,50 @@ export default function GlobalNav (props) {
     }
   }, [isContainerHovered])
 
+  // Detect scrollbar width and if the nav container is overflowing
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const checkOverflowAndScrollbar = () => {
+      const hasOverflow = container.scrollHeight > container.clientHeight
+      setIsOverflowing(hasOverflow)
+
+      if (hasOverflow) {
+        // Detect scrollbar width by comparing offsetWidth (includes scrollbar) with clientWidth (excludes scrollbar)
+        // This tells us if the scrollbar is currently taking up layout space
+        const width = container.offsetWidth - container.clientWidth
+
+        // If width is 0, scrollbar is overlay-only (not taking space)
+        // If width > 0, scrollbar is always visible (taking space) - we need to compensate
+        setScrollbarWidth(width > 0 ? width : 0)
+      } else {
+        setScrollbarWidth(0)
+      }
+    }
+
+    // Initial check
+    checkOverflowAndScrollbar()
+
+    // Use a small delay to ensure layout is complete
+    const timeoutId = setTimeout(checkOverflowAndScrollbar, 100)
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Small delay to ensure scrollbar state is updated
+      setTimeout(checkOverflowAndScrollbar, 50)
+    })
+    resizeObserver.observe(container)
+
+    // Also check on window resize to catch scrollbar visibility changes
+    window.addEventListener('resize', checkOverflowAndScrollbar)
+
+    return () => {
+      clearTimeout(timeoutId)
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', checkOverflowAndScrollbar)
+    }
+  }, [sortedGroups.length])
+
   // Add effect to handle scroll position updates for tooltips
   useEffect(() => {
     const handleScroll = () => {
@@ -167,6 +223,85 @@ export default function GlobalNav (props) {
       }
     }
   }, [])
+
+  // Track groups that have badges (new posts)
+  const groupsWithBadges = useMemo(() => {
+    return sortedGroups.filter(group => group.newPostCount > 0)
+  }, [sortedGroups])
+
+  // Calculate how many badged groups are hidden below the fold
+  const calculateHiddenBadges = useCallback(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    let hiddenCount = 0
+    const containerRect = container.getBoundingClientRect()
+    const containerBottom = containerRect.bottom
+
+    groupsWithBadges.forEach(group => {
+      const element = groupRefsMap.current.get(group.id)
+      if (element) {
+        const elementRect = element.getBoundingClientRect()
+        // If the element's top is below the container's visible bottom, it's hidden
+        if (elementRect.top > containerBottom) {
+          hiddenCount++
+        }
+      }
+    })
+
+    setHiddenBadgeCount(hiddenCount)
+  }, [groupsWithBadges])
+
+  // Update hidden badge count on scroll and resize
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    calculateHiddenBadges()
+
+    const handleScrollOrResize = () => {
+      calculateHiddenBadges()
+    }
+
+    container.addEventListener('scroll', handleScrollOrResize)
+    window.addEventListener('resize', handleScrollOrResize)
+
+    return () => {
+      container.removeEventListener('scroll', handleScrollOrResize)
+      window.removeEventListener('resize', handleScrollOrResize)
+    }
+  }, [calculateHiddenBadges])
+
+  // Scroll to next badged group that is below the fold
+  const scrollToNextBadgedGroup = useCallback(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const containerRect = container.getBoundingClientRect()
+    const containerBottom = containerRect.bottom
+
+    // Find the first badged group that is below the visible area
+    for (const group of groupsWithBadges) {
+      const element = groupRefsMap.current.get(group.id)
+      if (element) {
+        const elementRect = element.getBoundingClientRect()
+        if (elementRect.top > containerBottom - 50) {
+          // Scroll this element into view with smooth animation
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          return
+        }
+      }
+    }
+
+    // If no hidden badges found, scroll to the first one (cycle back)
+    if (groupsWithBadges.length > 0) {
+      const firstGroup = groupsWithBadges[0]
+      const element = groupRefsMap.current.get(firstGroup.id)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [groupsWithBadges])
 
   const isVisible = (index) => {
     // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
@@ -281,7 +416,11 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-background/90 dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-background/100 h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      style={{
+        boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)',
+        webkitScrollbarColor: 'red'
+      }}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
@@ -295,6 +434,12 @@ export default function GlobalNav (props) {
           'pt-4 flex flex-col items-center relative z-10 px-3 overflow-x-visible overflow-y-scroll grow',
           styles.globalNavContainer
         )}
+        style={{
+          // When scrollbar is taking up space (always visible), add padding to compensate
+          // This keeps content centered regardless of scrollbar visibility mode
+          paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
+          paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
+        }}
         onMouseEnter={handleContainerMouseEnter}
       >
         <GlobalNavItem
@@ -356,6 +501,7 @@ export default function GlobalNav (props) {
                     isVisible={isVisible(4 + pinnedIndex)}
                     showTooltip={isContainerHovered}
                     isContainerHovered={isContainerHovered}
+                    groupRefsMap={groupRefsMap}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
@@ -373,31 +519,36 @@ export default function GlobalNav (props) {
         {unpinnedGroups.map((group, unpinnedIndex) => {
           const actualIndex = pinnedGroups.length + unpinnedIndex
           return (
-            <RightClickMenu key={group.id}>
-              <RightClickMenuTrigger onContextMenu={handleContextMenu}>
-                <GlobalNavItem
-                  badgeCount={group.newPostCount ? '-' : 0}
-                  img={group.avatarUrl}
-                  tooltip={group.name}
-                  url={`/groups/${group.slug}`}
-                  className={isVisible(4 + actualIndex)}
-                  showTooltip={isContainerHovered}
-                />
-              </RightClickMenuTrigger>
-              <RightClickMenuContent>
-                <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
-              </RightClickMenuContent>
-            </RightClickMenu>
+            <div
+              key={group.id}
+              ref={(node) => {
+                if (node) groupRefsMap.current.set(group.id, node)
+              }}
+            >
+              <RightClickMenu>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
+                  <GlobalNavItem
+                    badgeCount={group.newPostCount ? '-' : 0}
+                    img={group.avatarUrl}
+                    tooltip={group.name}
+                    url={`/groups/${group.slug}`}
+                    className={isVisible(4 + actualIndex)}
+                    showTooltip={isContainerHovered}
+                  />
+                </RightClickMenuTrigger>
+                <RightClickMenuContent>
+                  <RightClickMenuItem onClick={() => handlePinGroup(group.id)}>{t('Pin to top')}</RightClickMenuItem>
+                </RightClickMenuContent>
+              </RightClickMenu>
+            </div>
           )
         })}
-        <div className='sticky bottom-0 dark:-bottom-2 w-full bg-gradient-to-t from-theme-background/30 dark:from-theme-background/90 to-theme-background/0 h-[40px] z-20 blur-sm '>&nbsp;</div>
-
       </div>
 
       <div
         className={cn(
           'fixed z-0 bottom-0 w-[400px] h-full',
-          'transition-all duration-300 ease-out transform  backdrop-blur-sm translate-x-0',
+          'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
             'opacity-80 translate-x-0': !showGradient,
             'opacity-0 -translate-x-full': !showGradient
@@ -410,10 +561,32 @@ export default function GlobalNav (props) {
           WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) calc(100% - 130px), rgba(0,0,0,0) 100%)'
         }}
       />
-      <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2'>
+      <div className='flex flex-col gap-2 justify-end w-full items-center z-50 pb-2 relative'>
+        {isOverflowing && <div className='absolute -top-[10px] z-0 w-12 bg-gradient-to-t from-theme-background/60 dark:from-theme-background/90 to-theme-background/0 h-[20px] z-20 blur-sm '>&nbsp;</div>}
+
+        {/* Hidden badges indicator - shows when there are badged groups below the fold */}
+        {hiddenBadgeCount > 0 && (
+          <div
+            onClick={scrollToNextBadgedGroup}
+            className={cn(
+              'relative cursor-pointer transition-all ease-in-out duration-250',
+              'flex flex-col items-center justify-center w-10 h-10',
+              'rounded-full bg-accent drop-shadow-md',
+              'scale-90 hover:scale-105 hover:drop-shadow-lg',
+              'absolute -top-12'
+            )}
+            title={t('{{count}} groups with new posts below', { count: hiddenBadgeCount })}
+          >
+            <ChevronDown className='w-5 h-5 text-white' />
+            <span className='absolute -top-1 -right-1 bg-white text-accent text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md'>
+              {hiddenBadgeCount}
+            </span>
+          </div>
+        )}
+
         <Popover>
           <PopoverTrigger>
-            <div className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
+            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/100')}>
               <PlusCircle className='w-7 h-7' />
             </div>
           </PopoverTrigger>

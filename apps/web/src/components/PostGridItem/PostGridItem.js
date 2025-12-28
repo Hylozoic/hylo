@@ -41,7 +41,7 @@ export default function PostGridItem ({
   const viewPostDetails = useViewPostDetails()
 
   return (
-    <div className={cn('h-[160px] w-full bg-background rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={() => viewPostDetails(post)}>
+    <div className={cn('h-[160px] w-full bg-card rounded-lg shadow-lg relative hover:scale-105 transition-all overflow-hidden', { [classes.unread]: unread, [classes.expanded]: expanded }, classes[attachmentType])} onClick={() => viewPostDetails(post)}>
       <div className={classes.contentSummary}>
         {childPost &&
           <div
@@ -58,7 +58,7 @@ export default function PostGridItem ({
               id={'childgroup-tt' + post.id}
             />
           </div>}
-        <h3 className={cn('text-base text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
+        <h3 className={cn('text-sm text-foreground m-0 px-2', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>{title}</h3>
         {attachmentType === 'image'
           ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} />
           : attachmentType === 'file'
@@ -74,21 +74,21 @@ export default function PostGridItem ({
             : ' '}
         {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
 
-        <div className={cn('text-foreground text-xs px-2 opacity-75', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+        <div className={cn('flex text-foreground break-words text-xs px-2 opacity-75 min-h-[100px] items-center justify-center', { [classes.isFlagged]: isFlagged && !post.clickthrough })}>
           <HyloHTML html={details} />
         </div>
         <div className={classes.gridMeta}>
-          <div className={classes.gridMetaRow1}>
-            <div className={classes.typeAuthor}>
+          <div className='flex items-center justify-between text-xs text-foreground/80'>
+            <div className='flex items-center gap-2'>
               <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
               {creator.name}
             </div>
-            <span className={classes.timestamp}>
+            <span>
               {createdTimestamp}
             </span>
           </div>
         </div>
-        <div className='absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-background to-transparent' />
+        <div className='absolute bottom-0 left-0 right-0 h-[20px] bg-background/80' />
       </div>
     </div>
   )
