@@ -7,6 +7,13 @@ enum LocationDisplayPrecision {
   region
 }
 
+enum PublishStatus {
+  unpublished
+  unlisted
+  published
+  archived
+}
+
 enum FundingRoundPhase {
   draft
   published
@@ -20,6 +27,16 @@ type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
 
+  # Check if a user has access to content
+  checkContentAccess(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID
+  ): ContentAccessCheckResult
+
   # Check if a group invitation is still valid
   checkInvitation(invitationToken: String, accessCode: String): CheckInvitationResult
 
@@ -29,6 +46,32 @@ type Query {
   commonRoles: [CommonRole]
 
   collection(id: ID): Collection
+
+  # Query for content access records
+  contentAccess(
+    # Filter by one or more group IDs (groups that granted the access)
+    groupIds: [ID],
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
 
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
@@ -49,7 +92,11 @@ type Query {
     id: ID,
     slug: String,
     # Set to true to mark all notifications as read for this group by the current logged in user
-    updateLastViewed: Boolean
+    updateLastViewed: Boolean,
+    # Access code from invitation link - allows viewing the about page for restricted/hidden groups
+    accessCode: String,
+    # Invitation token from email invite - allows viewing the about page for restricted/hidden groups
+    invitationToken: String
   ): Group
 
   # Check whether a Group exists by URL slug
@@ -305,6 +352,47 @@ type Query {
     offset: Int
   ): SkillQuerySet,
 
+  # Get the status of a connected Stripe account
+  stripeAccountStatus(
+    groupId: ID!
+    accountId: String!
+  ): StripeAccountStatusResult
+
+  # List all offerings for a connected Stripe account
+  stripeOfferings(
+    groupId: ID!
+    accountId: String!
+  ): StripeOfferingsResult
+
+  # List published offerings for a group (public, no auth required)
+  publicStripeOfferings(
+    groupId: ID!
+  ): StripeOfferingsResult
+  # Get a single offering by ID (public, no auth required, includes unlisted)
+  publicStripeOffering(
+    offeringId: ID!
+  ): StripeOffering
+
+  # Get subscription stats for an offering (active count, lapsed count, revenue)
+  offeringSubscriptionStats(
+    offeringId: ID!
+    groupId: ID!
+  ): OfferingSubscriptionStats
+
+  # Get paginated list of subscribers for an offering
+  offeringSubscribers(
+    # The offering (StripeProduct) ID
+    offeringId: ID!
+    # The group ID (for permission checks)
+    groupId: ID!
+    # Page number (1-indexed, default 1)
+    page: Int
+    # Number of results per page (default 50, max 100)
+    pageSize: Int
+    # If true, only return lapsed subscribers
+    lapsedOnly: Boolean
+  ): OfferingSubscribersQuerySet
+
   # Find a Topic by ID or by name (text)
   topic(id: ID, name: String): Topic
 
@@ -521,6 +609,10 @@ type Attachment {
 type CheckInvitationResult {
   # Whether the invitation is still valid or not
   valid: Boolean
+  # The slug of the group for redirect purposes
+  groupSlug: String
+  # The email address from the invitation (for token-based invites)
+  email: String
 }
 
 type Collection {
@@ -623,6 +715,13 @@ type CommentQuerySet {
   total: Int
   hasMore: Boolean
   items: [Comment]
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type ContentAccessQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [ContentAccess]
 }
 
 # Common Roles are standard roles that are always available in all groups
@@ -781,6 +880,8 @@ union FeedItemContent = Post | Interstitial
 # A Hylo Group
 type Group {
   id: ID
+  # Whether the current user has access to this group (via scope system or free access)
+  canAccess: Boolean
   # URL for a video to display at the top of the about text
   aboutVideoUri: String,
   # Either 0 = Closed (invite only), 1 = Restricted (Anyone can request to join), 2 = Open (anyone can join if they can find/see the group)
@@ -815,6 +916,8 @@ type Group {
   name: String
   # For the current logged in user how many prerequisite groups must they join before they can join this one
   numPrerequisitesLeft: Int
+  # Whether this group requires purchased membership (paywall enabled)
+  paywall: Boolean
   # Total number of posts in this group
   postCount: Int
   # The purpose statement for the group
@@ -827,6 +930,16 @@ type Group {
   stewardDescriptor: String
   # Plural word used to describe stewards of this group. Defaults to "Stewards"
   stewardDescriptorPlural: String
+  # Stripe Connected Account ID for accepting payments
+  stripeAccountId: String
+  # Direct link to the Stripe Dashboard for this group's connected account
+  stripeDashboardUrl: String
+  # Whether the Stripe account can accept charges
+  stripeChargesEnabled: Boolean
+  # Whether the Stripe account can receive payouts
+  stripePayoutsEnabled: Boolean
+  # Whether all required Stripe details have been submitted
+  stripeDetailsSubmitted: Boolean
   # Right now can either by 'farm' or null
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
@@ -1171,6 +1284,30 @@ type Group {
     types: [String]
   ): PostQuerySet
 
+  # Content access records for this group (purchased or granted)
+  contentAccess(
+    # Search by user name
+    search: String,
+    # Filter by access type: 'stripe_purchase' or 'admin_grant'
+    accessType: String,
+    # Filter by status: 'active', 'expired', or 'revoked'
+    status: String,
+    # Filter by offering ID
+    offeringId: ID,
+    # Filter by track ID
+    trackId: ID,
+    # Filter by role ID
+    roleId: ID,
+    # Number of records to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Sort by 'created_at', 'expires_at', 'user_name'
+    sortBy: String
+  ): ContentAccessQuerySet
+
   # Widgets used on the Explore page
   widgets: GroupWidgetQuerySet
 }
@@ -1329,6 +1466,8 @@ type GroupRelationshipInviteQuerySet {
 type GroupRole {
   # Whether this role is active
   active: Boolean
+  # Whether the current user has access to this role (via scope system)
+  canAccess: Boolean
   # When this role was created
   createdAt: Date
   # The description of the role
@@ -1747,6 +1886,8 @@ type Membership {
   createdAt: Date
   # The common roles this member has in this group
   commonRoles: CommonRoleQuerySet
+  # When this membership expires (mirrored from content_access table)
+  expiresAt: Date
   groupId: ID
   group: Group
   # Is this group membership a moderator role. TODO: remove once mobile app has been updated to use new roles
@@ -1818,6 +1959,8 @@ type MembershipCommonRoleQuerySet {
 type MembershipGroupRole {
   id: ID
   createdAt: Date
+  # When this role membership expires (mirrored from content_access table)
+  expiresAt: Date
   group: Group
   groupId: ID
   groupRoleId: ID
@@ -1968,6 +2111,8 @@ type Person {
   contactPhone: String
   # When loading through a track this is when they were enrolled in the track
   enrolledAt: Date
+  # When loading through a track this is when their access to the track expires (from content_access via tracks_users)
+  expiresAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2540,6 +2685,10 @@ type TopicFollowSettings {
 
 type Track {
   id: ID
+  # Whether this track requires purchased access (paid content)
+  accessControlled: Boolean
+  # Whether the current user has access to this track (via scope system or free access)
+  canAccess: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions
@@ -2562,6 +2711,8 @@ type Track {
   didComplete: Boolean
   # The users enrolled in this track
   enrolledUsers: PersonQuerySet
+  # When the current user's access to this track expires (from content_access via tracks_users)
+  expiresAt: Date
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -2605,11 +2756,109 @@ type TrackUser {
   completedAt: Date
   createdAt: Date
   enrolledAt: Date
+  # When this user's access to the track expires (mirrored from content_access table)
+  expiresAt: Date
   settings: JSON
   updatedAt: Date
   group: Group
   track: Track
   user: Person
+}
+
+# Stripe offering for paid content access
+type StripeOffering {
+  id: ID
+  createdAt: Date
+  updatedAt: Date
+  # The group this offering belongs to
+  group: Group
+  groupId: ID
+  # Stripe product ID from Stripe API
+  stripeProductId: String
+  # Stripe price ID from Stripe API
+  stripePriceId: String
+  # Offering name
+  name: String
+  # Offering description
+  description: String
+  # Price in cents
+  priceInCents: Int
+  # Currency code (e.g. 'usd')
+  currency: String
+  # Optional track this offering grants access to (legacy field)
+  track: Track
+  trackId: ID
+  # JSONB object defining what access this offering grants
+  accessGrants: JSON
+  # Tracks this offering grants access to (resolved from accessGrants.trackIds)
+  tracks: [Track]
+  # Roles this offering grants access to (resolved from accessGrants.roleIds)
+  roles: [GroupRole]
+  # Renewal policy: automatic or manual
+  renewalPolicy: String
+  # Duration: month, season, annual, lifetime, or null for no expiration
+  duration: String
+  # Publish status: unpublished, unlisted, published
+  publishStatus: PublishStatus
+}
+
+type ContentAccess {
+  id: ID
+  createdAt: Date
+  updatedAt: Date
+  # User who has access
+  user: Person
+  userId: ID
+  # Group that granted the access
+  grantedByGroup: Group
+  grantedByGroupId: ID
+  # Group access is for (optional)
+  group: Group
+  groupId: ID
+  # Stripe offering (if purchased)
+  offering: StripeOffering
+  offeringId: ID
+  # Track access is for (optional)
+  track: Track
+  trackId: ID
+  # Role access is for (optional)
+  role: GroupRole
+  roleId: ID
+  # How access was granted: stripe_purchase or admin_grant
+  accessType: String
+  # Stripe session ID (for purchases)
+  stripeSessionId: String
+  # Stripe subscription ID (for recurring purchases)
+  stripeSubscriptionId: String
+  # Current status: active, expired, revoked
+  status: String
+  # User who granted access (for admin grants)
+  grantedBy: Person
+  grantedById: ID
+  # When access expires (optional)
+  expiresAt: Date
+  # Additional metadata
+  metadata: JSON
+}
+
+type ContentAccessResult {
+  id: ID
+  userId: ID
+  grantedByGroupId: ID
+  groupId: ID
+  productId: ID
+  trackId: ID
+  roleId: ID
+  accessType: String
+  status: String
+  success: Boolean
+  message: String
+}
+
+type ContentAccessCheckResult {
+  hasAccess: Boolean
+  accessType: String
+  expiresAt: Date
 }
 
 # A participatory funding round
@@ -2840,6 +3089,37 @@ type Mutation {
   cancelJoinRequest(joinRequestId: ID): GenericResult
   # Clear a moderation action; only a 'content manager' or initial reporter can do this.
   clearModerationAction(postId: ID, groupId: ID, moderationActionId: ID): GenericResult
+  # Grant content access to a user (admin only)
+  grantContentAccess(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID,
+    expiresAt: Date,
+    reason: String
+  ): ContentAccessResult
+  # Revoke content access (admin only)
+  revokeContentAccess(
+    accessId: ID!,
+    reason: String
+  ): GenericResult
+  # Record a Stripe purchase (internal use)
+  recordStripePurchase(
+    userId: ID!,
+    grantedByGroupId: ID!,
+    groupId: ID,
+    productId: ID,
+    trackId: ID,
+    roleId: ID,
+    sessionId: String!,
+    stripeSubscriptionId: String,
+    amountPaid: Int,
+    currency: String,
+    expiresAt: Date,
+    metadata: JSON
+  ): ContentAccessResult
   # Mark a post as completed
   completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
@@ -2947,7 +3227,9 @@ type Mutation {
   # Join a funding round
   joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
-  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
+  # For Restricted groups, provide accessCode or invitationToken for pre-approved join.
+  # Set acceptAgreements to true if user has accepted agreements during join flow.
+  joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput], accessCode: String, invitationToken: String, acceptAgreements: Boolean): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
   # Leave a funding round
@@ -3157,6 +3439,52 @@ type Mutation {
   ): SignupResult
   # Upvote a post, or remove upvote. DEPRECATED, use reactOn instead
   vote(postId: ID, isUpvote: Boolean): Post
+
+  # Stripe Connect mutations
+  # Create a Stripe Connected Account for a group
+  createStripeConnectedAccount(
+    groupId: ID!
+    email: String!
+    businessName: String!
+    country: String
+  ): StripeConnectedAccountResult
+
+  # Create an Account Link for onboarding
+  createStripeAccountLink(
+    groupId: ID!
+    accountId: String!
+    returnUrl: String!
+    refreshUrl: String!
+  ): StripeAccountLinkResult
+
+  # Create an offering on the connected account
+  createStripeOffering(input: StripeOfferingInput!): StripeOfferingResult
+
+  # Update an existing Stripe offering
+  updateStripeOffering(
+    offeringId: ID!
+    name: String
+    description: String
+    priceInCents: Int
+    currency: String
+    accessGrants: JSON
+    renewalPolicy: String
+    duration: String
+    publishStatus: PublishStatus
+  ): StripeOfferingUpdateResult
+
+  # Create a checkout session for purchasing a product
+  createStripeCheckoutSession(
+    groupId: ID!
+    offeringId: ID!
+    quantity: Int
+    successUrl: String!
+    cancelUrl: String!
+    metadata: JSON
+  ): StripeCheckoutSessionResult
+
+  # Check Stripe account status and update database values
+  checkStripeStatus(groupId: ID!): StripeStatusCheckResult
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -3210,6 +3538,113 @@ type SignupResult {
   error: String
   # If the mutation succeeded return the data for the current user logging in or signup up
   me: Me
+}
+
+# Stripe Connect result types
+type StripeConnectedAccountResult {
+  id: ID
+  accountId: String
+  success: Boolean
+  message: String
+}
+
+type StripeAccountLinkResult {
+  url: String
+  expiresAt: Date
+  success: Boolean
+}
+
+type StripeAccountStatusResult {
+  accountId: String
+  chargesEnabled: Boolean
+  payoutsEnabled: Boolean
+  detailsSubmitted: Boolean
+  email: String
+  requirements: JSON
+}
+
+type StripeStatusCheckResult {
+  success: Boolean
+  message: String
+  chargesEnabled: Boolean
+  payoutsEnabled: Boolean
+  detailsSubmitted: Boolean
+}
+
+type StripeOfferingResult {
+  productId: String
+  priceId: String
+  name: String
+  databaseId: ID
+  success: Boolean
+  message: String
+}
+
+type StripeOfferingsResult {
+  offerings: [StripeOffering]
+  success: Boolean
+}
+
+type StripeOfferingUpdateResult {
+  offering: StripeOffering
+  success: Boolean
+  message: String
+}
+
+type StripeCheckoutSessionResult {
+  sessionId: String
+  url: String
+  success: Boolean
+}
+
+# Stats for an offering's subscribers
+type OfferingSubscriptionStats {
+  # Number of currently active subscribers
+  activeCount: Int
+  # Number of lapsed (expired/revoked) subscribers
+  lapsedCount: Int
+  # Monthly revenue in cents (requires Stripe API call)
+  monthlyRevenueCents: Int
+  # Currency of the offering
+  currency: String
+  success: Boolean
+  message: String
+}
+
+# A subscriber to an offering (StripeProduct)
+type OfferingSubscriber {
+  # The content access record ID
+  id: ID
+  # The user ID of the subscriber
+  userId: ID
+  # The subscriber's name
+  userName: String
+  # The subscriber's avatar URL
+  userAvatarUrl: String
+  # Subscription status: 'active' or 'lapsed'
+  status: String
+  # When the user subscribed/purchased
+  joinedAt: Date
+  # When access expires (if applicable)
+  expiresAt: Date
+  # The Stripe subscription ID (if applicable)
+  stripeSubscriptionId: String
+}
+
+# Paginated list of subscribers for an offering
+type OfferingSubscribersQuerySet {
+  # Total number of subscribers matching the filter
+  total: Int
+  # Whether there are more pages to load
+  hasMore: Boolean
+  # The subscribers on this page
+  items: [OfferingSubscriber]
+  # Current page number (1-indexed)
+  page: Int
+  # Number of items per page
+  pageSize: Int
+  # Total number of pages
+  totalPages: Int
 }
 
 # An Affilation with an organization added to a User profile
@@ -3457,6 +3892,8 @@ input GroupInput {
   name: String
   # IDs of parent Groups to add this Group to
   parentIds: [ID]
+  # Whether this group requires purchased membership (paywall enabled)
+  paywall: Boolean
   # IDs of Groups that someone must join before they can join this one
   prerequisiteGroupIds: [ID]
   # Purpose statement
@@ -3475,6 +3912,8 @@ input GroupInput {
   stewardDescriptor: String
   # Word used to describe stewards of this group (people with a Common Role). Defaults to "Stewards"
   stewardDescriptorPlural: String
+  # Stripe Connected Account ID for accepting payments
+  stripeAccountId: String
   # Right now can either by 'farm' or empty
   type: String
   # Word used to describe this type of group. Defaults to Group, or if type is set then defaults to the type (e.g. Farm)
@@ -3555,6 +3994,31 @@ input GroupWidgetSettingsInput {
   text: String
   # The title of the widget, for Widgets that use this
   title: String
+}
+
+# Input for creating Stripe offerings
+input StripeOfferingInput {
+  # The group this offering belongs to
+  groupId: ID!
+  # Stripe connected account ID
+  accountId: String!
+  # Offering name
+  name: String!
+  # Offering description
+  description: String
+  # Price in cents
+  priceInCents: Int!
+  # Currency code (e.g. 'usd')
+  currency: String
+  # JSONB object defining what access this offering grants
+  # Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
+  accessGrants: JSON
+  # Renewal policy: automatic or manual
+  renewalPolicy: String
+  # Duration: month, season, annual, lifetime, or null for no expiration
+  duration: String
+  # Publish status: unpublished, unlisted, published, archived
+  publishStatus: PublishStatus
 }
 
 # Details passed along when Flagging a Post
@@ -3818,6 +4282,8 @@ input SavedSearchInput {
 }
 
 input TrackInput {
+  # Whether this track requires purchased access (paid content)
+  accessControlled: Boolean
   # The word used in this track to describe an action
   actionDescriptor: String
   # The word used in this track to describe multiple actions

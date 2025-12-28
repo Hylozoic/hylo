@@ -1,5 +1,10 @@
 import { CHECK_INVITATION } from 'store/constants'
 
+/**
+ * Check if an invitation is valid and get group info for redirect
+ * @param inviteCodes {{ invitationToken?: string, accessCode?: string }}
+ * @returns {{ valid: boolean, groupSlug?: string, email?: string }}
+ */
 export default function checkInvitation (inviteCodes) {
   const { invitationToken, accessCode } = inviteCodes
   return {
@@ -9,6 +14,8 @@ export default function checkInvitation (inviteCodes) {
         query CheckInvitation ($invitationToken: String, $accessCode: String) {
           checkInvitation (invitationToken: $invitationToken, accessCode: $accessCode) {
             valid
+            groupSlug
+            email
           }
         }
       `,

@@ -16,6 +16,7 @@ import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -32,6 +33,7 @@ import { bgImageStyle, cn } from 'util/index'
 import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 
 import ActionSummary from './ActionSummary'
+import TrackPaywallOfferingsSection from './TrackPaywallOfferingsSection'
 
 const getPosts = ormCreateSelector(
   orm,
@@ -87,10 +89,24 @@ function TrackHome () {
   if (isLoading) return <Loading />
   if (!currentTrack) return <Loading />
 
-  const { didComplete, isEnrolled, publishedAt } = currentTrack
+  const { didComplete, isEnrolled, publishedAt, accessControlled, canAccess } = currentTrack
+  const hasAccess = canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
 
   if (!canEdit && !publishedAt) {
     return <NotFound />
+  }
+
+  // Show paywall offerings if track is access-controlled and user doesn't have access
+  if (accessControlled && !hasAccess) {
+    return (
+      <div className='w-full h-full'>
+        <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
+          <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
+            <TrackPaywallOfferingsSection track={currentTrack} />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -179,12 +195,21 @@ function TrackHome () {
                 : (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
-                    <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                    <button
+                      className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed'
+                      onClick={handleEnrollInTrack}
+                      disabled={accessControlled && canAccess === false}
+                      data-tooltip-id='enroll-tooltip'
+                      data-tooltip-content={accessControlled && canAccess === false ? t('You need to purchase access to enroll in this track') : ''}
+                    >
+                      <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
+                    </button>
                   </div>
                   )}
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
+        <Tooltip id='enroll-tooltip' />
       </div>
     </div>
   )
@@ -208,12 +233,22 @@ function AboutTab ({ track }) {
 }
 
 function ActionsTab ({ track, container }) {
+  const { t } = useTranslation()
   const posts = useSelector(state => getPosts(state, track))
-  const { isEnrolled } = track
+  const { isEnrolled, accessControlled, canAccess } = track
+  const hasAccess = canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
+
+  // Block access if track is access-controlled and user doesn't have access
+  const canViewActions = isEnrolled && (!accessControlled || hasAccess)
 
   return (
-    <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
+    <div className={cn({ 'pointer-events-none opacity-50': !canViewActions })}>
       <h1>{track.actionDescriptorPlural}</h1>
+      {!canViewActions && accessControlled && !hasAccess && (
+        <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 text-center my-4'>
+          <p className='text-foreground/70'>{t('You need to be granted access to view the actions in this track.')}</p>
+        </div>
+      )}
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} />
       ))}

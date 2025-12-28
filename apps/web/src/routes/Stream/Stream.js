@@ -12,6 +12,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
+import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import { DateTimeHelpers } from '@hylo/shared'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
@@ -81,6 +82,7 @@ export default function Stream (props) {
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
+  const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const systemView = COMMON_VIEWS[view]
@@ -346,27 +348,37 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
         />
-        {!isCalendarViewMode && (
-          <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
-            {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
-            {posts.map(post => {
-              const groupSlugs = post.groups.map(group => group.slug)
-              return (
-                <ViewComponent
-                  className={cn({ [styles.cardItem]: viewMode === 'cards' })}
-                  routeParams={routeParams}
-                  post={post}
-                  group={group}
-                  key={post.id}
-                  currentGroupId={group && group.id}
-                  currentUser={currentUser}
-                  querystringParams={querystringParams}
-                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
-                />
-              )
-            })}
-          </div>
-        )}
+        {group?.paywall && !hasAccess && context !== CONTEXT_MY && context !== 'public' && groupSlug
+          ? (
+            <div className='mt-4'>
+              <PaywallOfferingsSection group={group} />
+            </div>
+            )
+          : (
+            <>
+              {!isCalendarViewMode && (
+                <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
+                  {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {posts.map(post => {
+                    const groupSlugs = post.groups.map(group => group.slug)
+                    return (
+                      <ViewComponent
+                        className={cn({ [styles.cardItem]: viewMode === 'cards' })}
+                        routeParams={routeParams}
+                        post={post}
+                        group={group}
+                        key={post.id}
+                        currentGroupId={group && group.id}
+                        currentUser={currentUser}
+                        querystringParams={querystringParams}
+                        childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </>
+            )}
         {!pending && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar

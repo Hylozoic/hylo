@@ -243,3 +243,82 @@ export const filterAndSortGroups = curry((opts, q) => {
 
   q.orderBy(sortBy || 'name', order || sortBy === 'size' ? 'desc' : 'asc')
 })
+
+export const filterAndSortContentAccess = curry((opts, q) => {
+  const {
+    groupIds,
+    search,
+    accessType,
+    status,
+    offeringId,
+    trackId,
+    roleId,
+    sortBy = 'created_at',
+    order
+  } = opts
+
+  // Filter by group IDs (groups that granted the access)
+  if (groupIds && groupIds.length > 0) {
+    q.whereIn('content_access.granted_by_group_id', groupIds)
+  }
+
+  // Filter by user name search
+  if (search) {
+    q.join('users', 'users.id', '=', 'content_access.user_id')
+    q.whereRaw('users.name ilike ?', `%${search}%`)
+  }
+
+  // Filter by access type
+  if (accessType) {
+    q.where('content_access.access_type', accessType)
+  }
+
+  // Filter by status
+  if (status) {
+    q.where('content_access.status', status)
+  }
+
+  // Filter by offering ID
+  if (offeringId) {
+    q.where('content_access.product_id', offeringId)
+  }
+
+  // Filter by track ID
+  if (trackId) {
+    q.where('content_access.track_id', trackId)
+  }
+
+  // Filter by role ID
+  if (roleId) {
+    q.where('content_access.role_id', roleId)
+  }
+
+  // Validate sortBy
+  const validSortColumns = {
+    created_at: 'content_access.created_at',
+    expires_at: 'content_access.expires_at',
+    user_name: 'users.name'
+  }
+
+  const sortColumn = validSortColumns[sortBy]
+  if (!sortColumn) {
+    throw new GraphQLError(`Cannot sort by "${sortBy}"`)
+  }
+
+  // Validate order
+  if (order && !['asc', 'desc'].includes(order.toLowerCase())) {
+    throw new GraphQLError(`Cannot use sort order "${order}"`)
+  }
+
+  // If sorting by user name and not already joined, join users table
+  if (sortBy === 'user_name' && !search) {
+    q.join('users', 'users.id', '=', 'content_access.user_id')
+  }
+
+  // Apply sorting
+  if (sortBy === 'user_name') {
+    q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+  } else {
+    q.orderBy(sortColumn, order || 'desc')
+  }
+})
