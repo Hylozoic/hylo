@@ -353,6 +353,7 @@ export const queryParamWhitelist = [
   'farmQuery',
   'filter',
   'forCollection',
+  'groupIds',
   'groupSlug',
   'groupSlugs',
   'groupType',

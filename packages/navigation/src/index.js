@@ -10,9 +10,10 @@ export const ALL_GROUPS_CONTEXT_SLUG = 'all'
 export const MESSAGES_CONTEXT_SLUG = 'messages'
 export const MY_CONTEXT_SLUG = 'my'
 export const PUBLIC_CONTEXT_SLUG = 'public'
+export const SEARCH_CONTEXT_SLUG = 'search'
 
 export const isStaticContext = contextOrSlug =>
-  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG, SEARCH_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -50,6 +51,10 @@ export function myHomeUrl () {
   return '/my'
 }
 
+export function searchUrl () {
+  return '/search'
+}
+
 export function baseUrl ({
   context,
   customViewId,
@@ -76,6 +81,9 @@ export function baseUrl ({
     return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
   } else if (view) {
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
+  } else if (context === SEARCH_CONTEXT_SLUG) {
+    // Has to come before groupSlug check because we use groupSlug as a param in searching
+    return searchUrl()
   } else if (groupSlug) {
     return groupUrl(groupSlug)
   } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
