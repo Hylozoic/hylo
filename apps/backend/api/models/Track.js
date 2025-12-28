@@ -3,6 +3,7 @@
 import { GraphQLError } from 'graphql'
 import HasSettings from './mixins/HasSettings' // TODO: does it have settings?
 import uniq from 'lodash/uniq'
+const { createTrackScope } = require('../../lib/scopes')
 
 module.exports = bookshelf.Model.extend(Object.assign({
   tableName: 'tracks',
@@ -20,7 +21,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   enrolledUsers: function () {
     return this.belongsToMany(User, 'tracks_users', 'track_id', 'user_id').query(q => {
       q.whereNotNull('tracks_users.enrolled_at')
-    }).orderBy('users.name', 'asc').withPivot(['enrolled_at', 'completed_at'])
+    }).orderBy('users.name', 'asc').withPivot(['enrolled_at', 'completed_at', 'expires_at'])
   },
 
   groups: function () {
@@ -57,6 +58,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   didComplete: function (userId) {
     return this.trackUser(userId).fetch().then(trackUser => trackUser && trackUser.get('completed_at') !== null)
+  },
+
+  /**
+   * Check if a user has access to this track
+   * If track is not access controlled, returns true (free access)
+   * Otherwise checks: 1) full-access responsibilities in parent group, 2) scope-based access
+   * @param {String|Number} userId - User ID to check
+   * @returns {Promise<Boolean>}
+   */
+  canAccess: async function (userId) {
+    // If track is not access controlled, it's freely accessible
+    if (!this.get('access_controlled')) {
+      return true
+    }
+
+    if (!userId) {
+      return false
+    }
+    
+    // Check if user has full-access responsibility in parent group (admin or content manager)
+    const groupId = this.get('group_id')
+    if (groupId) {
+      const hasFullAccess = await Group.hasFullAccessResponsibility(userId, groupId)
+      if (hasFullAccess) {
+        return true
+      }
+    }
+    
+    // Check scope-based access (purchased or granted)
+    const trackId = this.get('id')
+    const requiredScope = createTrackScope(trackId)
+    return await UserScope.canAccess(userId, requiredScope)
   },
 
   enrolledCount: function () {

@@ -1,12 +1,48 @@
+/* eslint-disable import/first */
 process.env.NODE_ENV = 'test'
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes'
+process.env.STRIPE_API_KEY = process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
 
 import nock from 'nock'
 import './core'
+const mock = require('mock-require')
 const skiff = require('../../lib/skiff')
 const fs = require('fs')
 const path = require('path')
 const Promise = require('bluebird')
 const root = require('root-path')
+
+// Mock Stripe before any modules are loaded
+const mockStripe = function (apiKey) {
+  return {
+    accounts: {
+      create: async () => ({}),
+      retrieve: async () => ({}),
+      update: async () => ({})
+    },
+    accountLinks: {
+      create: async () => ({})
+    },
+    products: {
+      create: async () => ({}),
+      update: async () => ({}),
+      list: async () => ({})
+    },
+    prices: {
+      create: async () => ({}),
+      retrieve: async () => ({})
+    },
+    checkout: {
+      sessions: {
+        create: async () => ({}),
+        retrieve: async () => ({})
+      }
+    }
+  }
+}
+
+// Set up mock-require to intercept all Stripe imports
+mock('stripe', mockStripe)
 
 const TestSetup = function () {
   this.tables = []
@@ -23,7 +59,7 @@ before(function (done) {
   global.sails = skiff.sails
 
   skiff.lift({
-    log: {level: process.env.LOG_LEVEL || 'warn'},
+    log: { level: process.env.LOG_LEVEL || 'warn' },
     silent: true,
     start: function () {
       const { database } = bookshelf.knex.client.connectionSettings
@@ -72,13 +108,45 @@ TestSetup.prototype.createSchema = function () {
       .then(() => bookshelf.knex.raw('create schema public').transacting(trx))
       .then(() => {
         const script = fs.readFileSync(root('migrations/schema.sql')).toString()
-        return script.split(/\n/)
+
+        // Remove comment lines
+        const cleaned = script.split(/\n/)
           .filter(line => !line.startsWith('--'))
           .join(' ')
           .replace(/\s+/g, ' ')
-          .split(/;\s?/)
-          .map(line => line.trim())
-          .filter(line => line !== '')
+
+        // Split by semicolon but preserve dollar-quoted strings
+        const commands = []
+        let inDollarQuote = false
+        let currentCommand = ''
+
+        for (let i = 0; i < cleaned.length; i++) {
+          const char = cleaned[i]
+          const nextChar = cleaned[i + 1] || ''
+
+          // Check if we're entering or exiting a dollar-quoted string
+          if (char === '$' && nextChar === '$') {
+            inDollarQuote = !inDollarQuote
+            currentCommand += char
+            if (nextChar) currentCommand += cleaned[++i]
+          } else if (char === ';' && !inDollarQuote) {
+            currentCommand += char
+            const trimmed = currentCommand.trim()
+            if (trimmed) {
+              commands.push(trimmed)
+            }
+            currentCommand = ''
+          } else {
+            currentCommand += char
+          }
+        }
+
+        // Add the last command if any
+        if (currentCommand.trim()) {
+          commands.push(currentCommand.trim())
+        }
+
+        return commands.filter(line => line !== '')
       })
       .then(commands => {
         return Promise.map(commands, command => {
@@ -94,6 +162,10 @@ TestSetup.prototype.createSchema = function () {
 TestSetup.prototype.clearDb = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.knex.transaction(trx => trx.raw('set constraints all deferred')
+    .then(() => {
+      // Delete from user_scopes first to avoid foreign key constraint violations
+      return trx.raw('delete from public.user_scopes')
+    })
     .then(() => Promise.map(this.tables, table => { if (!['public.common_roles', 'public.responsibilities', 'public.common_roles_responsibilities', 'public.tags', 'public.platform_agreements'].includes(table)) { return trx.raw('delete from ' + table) } })))
 }
 
