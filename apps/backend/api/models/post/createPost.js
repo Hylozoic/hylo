@@ -81,7 +81,7 @@ export function afterCreatingPost (post, opts) {
     opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
-    .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))
+    .then(() => post.isEvent() && post.updateEventInvitees({ userIds: (opts.eventInviteeIds || []).concat(userId), inviterId: userId, opts: trxOpts }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
@@ -90,7 +90,10 @@ export function afterCreatingPost (post, opts) {
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
-    .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
+    .catch((err) => {
+      console.error('afterCreatingPost failed: ', err)
+      throw new GraphQLError(`afterCreatingPost failed: ${err}`)
+    })
 }
 
 async function updateTagsAndGroups (post, localId, trx) {
