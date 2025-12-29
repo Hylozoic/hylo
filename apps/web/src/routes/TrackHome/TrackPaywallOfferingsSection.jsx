@@ -73,8 +73,9 @@ export default function TrackPaywallOfferingsSection ({ track }) {
 
     try {
       const baseUrl = getHost()
-      const successUrl = `${baseUrl}/groups/${group.slug}/payment/success`
-      const cancelUrl = `${baseUrl}/groups/${group.slug}/payment/cancel`
+      // Redirect back to the track after successful purchase
+      const successUrl = `${baseUrl}/groups/${group.slug}/tracks/${track.id}?purchase=success`
+      const cancelUrl = `${baseUrl}/groups/${group.slug}/tracks/${track.id}?purchase=cancelled`
 
       const checkoutData = await createStripeCheckoutSession({
         groupId: group.id,
@@ -109,9 +110,9 @@ export default function TrackPaywallOfferingsSection ({ track }) {
     return (
       <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 text-center'>
         <DollarSign className='w-12 h-12 mx-auto mb-2 text-foreground/50' />
-        <h3 className='text-lg font-semibold mb-2'>{t('This track requires payment to access')}</h3>
+        <h3 className='text-lg font-semibold mb-2'>{t('This track has controlled access')}</h3>
         <p className='text-foreground/70 text-sm'>
-          {t('Access to this track is granted by administrators. Please contact the track administrators to request access.')}
+          {t('Access to this track is granted by administrators. Please contact a group admin to request access.')}
         </p>
       </div>
     )

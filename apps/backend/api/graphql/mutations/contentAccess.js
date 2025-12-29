@@ -9,7 +9,7 @@
 
 import { GraphQLError } from 'graphql'
 
-/* global ContentAccess, GroupMembership, User, Group, Responsibility */
+/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track */
 
 module.exports = {
 
@@ -96,6 +96,16 @@ module.exports = {
         expiresAt,
         reason
       })
+
+      // Auto-enroll user in track when access is granted
+      if (trackId) {
+        try {
+          await Track.enroll(trackId, userId)
+        } catch (enrollError) {
+          // Log but don't fail the access grant if enrollment fails
+          console.warn(`Auto-enrollment in track ${trackId} failed for user ${userId}:`, enrollError.message)
+        }
+      }
 
       return {
         id: access.id,

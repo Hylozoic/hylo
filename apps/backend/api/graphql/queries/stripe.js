@@ -175,8 +175,9 @@ module.exports = {
         publish_status: 'published'
       }).fetchAll()
 
-      // Filter to only offerings that grant access to this group
-      const groupAccessOfferings = products.models.filter(product => {
+      // Filter to offerings that grant access to this group OR to any track
+      // (track offerings will be filtered client-side by track ID)
+      const accessOfferings = products.models.filter(product => {
         const accessGrants = product.get('access_grants')
         if (!accessGrants) {
           return false
@@ -197,14 +198,21 @@ module.exports = {
 
         // Check if it includes the current group's ID
         if (grants.groupIds && Array.isArray(grants.groupIds)) {
-          return grants.groupIds.some(gId => parseInt(gId) === parseInt(groupId))
+          if (grants.groupIds.some(gId => parseInt(gId) === parseInt(groupId))) {
+            return true
+          }
+        }
+
+        // Also include offerings that grant track access (for track paywalls)
+        if (grants.trackIds && Array.isArray(grants.trackIds) && grants.trackIds.length > 0) {
+          return true
         }
 
         return false
       })
 
       return {
-        offerings: groupAccessOfferings,
+        offerings: accessOfferings,
         success: true
       }
     } catch (error) {

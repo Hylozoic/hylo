@@ -2111,8 +2111,6 @@ type Person {
   contactPhone: String
   # When loading through a track this is when they were enrolled in the track
   enrolledAt: Date
-  # When loading through a track this is when their access to the track expires (from content_access via tracks_users)
-  expiresAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2711,8 +2709,6 @@ type Track {
   didComplete: Boolean
   # The users enrolled in this track
   enrolledUsers: PersonQuerySet
-  # When the current user's access to this track expires (from content_access via tracks_users)
-  expiresAt: Date
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -2756,8 +2752,6 @@ type TrackUser {
   completedAt: Date
   createdAt: Date
   enrolledAt: Date
-  # When this user's access to the track expires (mirrored from content_access table)
-  expiresAt: Date
   settings: JSON
   updatedAt: Date
   group: Group

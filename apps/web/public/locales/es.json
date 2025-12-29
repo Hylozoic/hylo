@@ -1868,5 +1868,18 @@
   "Roles": "Roles",
   "This group requires a fee to join": "Este grupo requiere una cuota para unirse",
   "This group requires payment to join": "Este grupo requiere un pago para unirse",
-  "Unable to process payment. Please contact support.": "No se puede procesar el pago. Por favor, contacta al soporte."
+  "Unable to process payment. Please contact support.": "No se puede procesar el pago. Por favor, contacta al soporte.",
+  "Checking access options...": "Verificando opciones de acceso...",
+  "Request access from a group admin to enroll": "Solicita acceso a un administrador del grupo para inscribirte",
+  "This track has controlled access": "Este track tiene acceso controlado",
+  "Access to this track is granted by administrators. Please contact a group admin to request access.": "El acceso a este track es otorgado por administradores. Por favor, contacta a un administrador del grupo para solicitar acceso.",
+  "This track requires a fee to access": "Este track requiere una cuota para acceder",
+  "Choose a payment option below to gain access to this track:": "Elige una opción de pago a continuación para obtener acceso a este track:",
+  "Access Controlled": "Acceso Controlado",
+  "Free Access": "Acceso Libre",
+  "When enabled, users will need to purchase access or be granted access by an admin before they can enroll in this track.": "Cuando está habilitado, los usuarios deberán comprar acceso o recibir acceso de un administrador antes de poder inscribirse en este track.",
+  "You must create an offering that includes this track for users to purchase access.": "Debes crear una oferta que incluya este track para que los usuarios puedan comprar acceso.",
+  "Go to Paid Content Settings": "Ir a Configuración de Contenido de Pago",
+  "You need to be granted access to view the actions in this track.": "Necesitas que se te otorgue acceso para ver las acciones en este track.",
+  "Ready to jump in?": "¿Listo para comenzar?"
 }

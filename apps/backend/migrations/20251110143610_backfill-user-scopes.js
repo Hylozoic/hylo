@@ -48,4 +48,3 @@ exports.down = async function (knex) {
 
   console.log('User_scopes table cleared')
 }
-

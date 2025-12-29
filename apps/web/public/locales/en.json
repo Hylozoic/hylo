@@ -1925,5 +1925,18 @@
   "Roles": "Roles",
   "This group requires a fee to join": "This group requires a fee to join",
   "This group requires payment to join": "This group requires payment to join",
-  "Unable to process payment. Please contact support.": "Unable to process payment. Please contact support."
+  "Unable to process payment. Please contact support.": "Unable to process payment. Please contact support.",
+  "Checking access options...": "Checking access options...",
+  "Request access from a group admin to enroll": "Request access from a group admin to enroll",
+  "This track has controlled access": "This track has controlled access",
+  "Access to this track is granted by administrators. Please contact a group admin to request access.": "Access to this track is granted by administrators. Please contact a group admin to request access.",
+  "This track requires a fee to access": "This track requires a fee to access",
+  "Choose a payment option below to gain access to this track:": "Choose a payment option below to gain access to this track:",
+  "Access Controlled": "Access Controlled",
+  "Free Access": "Free Access",
+  "When enabled, users will need to purchase access or be granted access by an admin before they can enroll in this track.": "When enabled, users will need to purchase access or be granted access by an admin before they can enroll in this track.",
+  "You must create an offering that includes this track for users to purchase access.": "You must create an offering that includes this track for users to purchase access.",
+  "Go to Paid Content Settings": "Go to Paid Content Settings",
+  "You need to be granted access to view the actions in this track.": "You need to be granted access to view the actions in this track.",
+  "Ready to jump in?": "Ready to jump in?"
 }

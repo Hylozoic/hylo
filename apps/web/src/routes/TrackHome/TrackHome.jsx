@@ -90,30 +90,20 @@ function TrackHome () {
   if (!currentTrack) return <Loading />
 
   const { didComplete, isEnrolled, publishedAt, accessControlled, canAccess } = currentTrack
-  const hasAccess = canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
+  const hasAccess = !accessControlled || canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
 
   if (!canEdit && !publishedAt) {
     return <NotFound />
   }
 
-  // Show paywall offerings if track is access-controlled and user doesn't have access
-  if (accessControlled && !hasAccess) {
-    return (
-      <div className='w-full h-full'>
-        <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
-          <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
-            <TrackPaywallOfferingsSection track={currentTrack} />
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Users without access can only see the About tab
+  const canViewFullTrack = hasAccess || canEdit
 
   return (
     <div className='w-full h-full' ref={setContainer}>
       <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
-          {(isEnrolled || canEdit) && (
+          {(isEnrolled || canEdit) && canViewFullTrack && (
             <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
               <Link
                 className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
@@ -152,60 +142,58 @@ function TrackHome () {
             </div>
           )}
 
-          <Routes>
-            <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-            <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-            <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-            <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-            <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-            <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-            <Route path='*' element={<AboutTab track={currentTrack} />} />
-          </Routes>
+          {canViewFullTrack
+            ? (
+              <Routes>
+                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                <Route path='*' element={<AboutTab track={currentTrack} />} />
+              </Routes>
+              )
+            : (
+              <AboutTab track={currentTrack} showPaywall />
+              )}
         </div>
 
         <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
-          {!publishedAt
-            ? (
-              <>
-                <span className='flex-1'>{t('This track is not yet published')}</span>
-                <Button
-                  variant='secondary'
-                  onClick={(e) => handlePublishTrack(new Date().toISOString())}
-                >
-                  <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-                </Button>
-              </>
-              )
-            : didComplete
-              ? (
-                <>
-                  <Check className='w-4 h-4 text-selected' />
-                  <span>{t('You completed this track')}</span>
-                </>
-                )
-              : isEnrolled
-                ? (
-                  <>
-                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-                    </div>
-                  </>
-                  )
-                : (
-                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                    <span>{t('Ready to jump in?')}</span>
-                    <button
-                      className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed'
-                      onClick={handleEnrollInTrack}
-                      disabled={accessControlled && canAccess === false}
-                      data-tooltip-id='enroll-tooltip'
-                      data-tooltip-content={accessControlled && canAccess === false ? t('You need to purchase access to enroll in this track') : ''}
-                    >
-                      <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
-                    </button>
-                  </div>
-                  )}
+          {!publishedAt && (
+            <>
+              <span className='flex-1'>{t('This track is not yet published')}</span>
+              <Button
+                variant='secondary'
+                onClick={(e) => handlePublishTrack(new Date().toISOString())}
+              >
+                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+              </Button>
+            </>
+          )}
+          {publishedAt && didComplete && (
+            <>
+              <Check className='w-4 h-4 text-selected' />
+              <span>{t('You completed this track')}</span>
+            </>
+          )}
+          {publishedAt && !didComplete && isEnrolled && (
+            <div className='flex flex-row gap-2 items-center justify-between w-full'>
+              <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+              <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+            </div>
+          )}
+          {publishedAt && !didComplete && !isEnrolled && hasAccess && (
+            <div className='flex flex-row gap-2 items-center justify-between w-full'>
+              <span>{t('Ready to jump in?')}</span>
+              <button
+                className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center'
+                onClick={handleEnrollInTrack}
+              >
+                <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
+              </button>
+            </div>
+          )}
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
@@ -215,7 +203,7 @@ function TrackHome () {
   )
 }
 
-function AboutTab ({ track }) {
+function AboutTab ({ track, showPaywall = false }) {
   const { bannerUrl, name, description } = track
 
   return (
@@ -228,6 +216,11 @@ function AboutTab ({ track }) {
         <h1 className='text-white text-4xl font-bold z-20 px-1 text-center'>{name}</h1>
       </div>
       <HyloHTML html={description} />
+      {showPaywall && (
+        <div className='mt-6 mb-4'>
+          <TrackPaywallOfferingsSection track={track} />
+        </div>
+      )}
     </>
   )
 }
