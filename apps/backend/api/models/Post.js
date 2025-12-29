@@ -1351,7 +1351,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
+  async sendEventRsvp ({ eventId, eventInvitationId, eventChanges = {} }) {
     const post = await Post.where({ id: eventId }).fetch()
     const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
     const user = await eventInvitation.user().fetch()
@@ -1376,8 +1376,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
         event_url: icsCal.url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
+        newDate,
+        newLocation
       },
       files: [
         {
