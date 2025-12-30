@@ -699,8 +699,8 @@ function SpecialTopElementRenderer ({ widget }) {
             <span>{group.memberCount || 0}</span>
           </MenuLink>
         </div>
-        <MenuLink to={groupUrl(groupSlug, 'settings/invite')}>
-          <div className='flex items-center px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
+        <MenuLink to={groupUrl(groupSlug, 'settings/invite')} className='m-0 p-0'>
+          <div className='flex items-center px-2 py-2 text-base font-medium text-foreground bg-foreground/10 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
             <UserPlus className='inline-block h-[20px] mr-1' />
             <span className='flex-1'>{t('Add Members')}</span>
             <span
