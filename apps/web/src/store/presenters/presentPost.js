@@ -11,12 +11,14 @@ export default function presentPost (post, groupId) {
 
   try {
     const createdAtHumanDate = DateTimeHelpers.humanDate(post.createdAt)
+    const createdAtHumanDateShort = DateTimeHelpers.humanDate(post.createdAt, true)
     const editedAtHumanDate = DateTimeHelpers.humanDate(post.editedAt)
 
     const finalPost = {
       ...(rawPost ? post : post.ref),
       attachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).sort((a, b) => a.position - b.position),
       createdTimestamp: createdAtHumanDate,
+      createdTimestampShort: createdAtHumanDateShort,
       creator: post.creator, // needed to load the creator object
       commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
