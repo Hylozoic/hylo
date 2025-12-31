@@ -4,7 +4,7 @@ import {
   List, ListOrdered, Link, Unlink,
   IndentIncrease, Code, ImagePlus,
   Undo2, Redo2, RemoveFormatting,
-  Heading1, Heading2, Heading3
+  Heading1, Heading2, Heading3, Video
 } from 'lucide-react'
 import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
@@ -18,6 +18,65 @@ import { cn } from 'util/index'
 //     editor.chain().focus().setIframe({ src: url }).run()
 //   }
 // }
+
+/**
+ * Handle adding or updating a video embed
+ * Validates YouTube and Vimeo URLs and inserts/updates the video node
+ */
+function setVideo (editor) {
+  const videoSrc = editor.getAttributes('video').src
+  const input = window.prompt('Video URL', videoSrc)
+
+  // cancelled
+  if (input === null) {
+    return
+  }
+
+  // empty
+  if (input === '') {
+    if (editor.isActive('video')) {
+      editor.commands.deleteSelection()
+    }
+    return
+  }
+
+  // validate url is from youtube or vimeo
+  if (!input.match(/youtube|vimeo/)) {
+    return window.alert('Sorry, your video must be hosted on YouTube or Vimeo.')
+  }
+
+  // get the src value from embed code if all pasted in
+  const srcCheck = input.match(/src="(?<src>.+?)"/)
+  let src = srcCheck ? srcCheck.groups.src : input
+
+  // check youtube url is correct
+  if (input.match(/youtube/) && !src.match(/^https:\/\/www\.youtube\.com\/embed\//)) {
+    // try to convert regular youtube url to embed url
+    const youtubeMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/)
+    if (youtubeMatch) {
+      src = `https://www.youtube.com/embed/${youtubeMatch[1]}`
+    } else {
+      return window.alert('Sorry, your YouTube URL should be a valid YouTube video URL.')
+    }
+  }
+
+  // check vimeo url is correct
+  if (input.match(/vimeo/) && !src.match(/^https:\/\/player\.vimeo\.com\/video\//)) {
+    // try to convert regular vimeo url to embed url
+    const vimeoMatch = src.match(/vimeo\.com\/(\d+)/)
+    if (vimeoMatch) {
+      src = `https://player.vimeo.com/video/${vimeoMatch[1]}`
+    } else {
+      return window.alert('Sorry, your Vimeo URL should be a valid Vimeo video URL.')
+    }
+  }
+
+  if (editor.isActive('video')) {
+    editor.commands.updateAttributes('video', { src })
+  } else {
+    editor.chain().focus().insertContent(`<video data-type="embed" src="${src}"></video>`).run()
+  }
+}
 
 export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -115,6 +174,13 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         >
           <HyloEditorMenuBarButton Icon={ImagePlus} />
         </UploadAttachmentButton>
+      )}
+
+      {extendedMenu && (
+        <HyloEditorMenuBarButton
+          Icon={Video}
+          onClick={() => setVideo(editor)}
+        />
       )}
 
       <div className={cn('bg-foreground bg-opacity-30 w-px')} />
