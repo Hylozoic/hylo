@@ -32273,7 +32273,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-day-picker@npm:^9.11":
+"react-day-picker@npm:9.12.0":
   version: 9.12.0
   resolution: "react-day-picker@npm:9.12.0"
   dependencies:
@@ -39469,7 +39469,7 @@ __metadata:
     react-cool-inview: "npm:^3.0.1"
     react-copy-to-clipboard: "npm:^5.1.0"
     react-datetime: "npm:^3.2.0"
-    react-day-picker: "npm:^9.11"
+    react-day-picker: "npm:9.12.0"
     react-div-100vh: "npm:^0.7.0"
     react-dom: "npm:^18.3.1"
     react-helmet: "npm:^6.1.0"

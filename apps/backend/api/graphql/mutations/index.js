@@ -1,6 +1,5 @@
 import { GraphQLError } from 'graphql'
 import { isEmpty, mapKeys, pick, snakeCase, size, trim } from 'lodash'
-import Queue from '../../services/Queue'
 import { v4 as uuidv4 } from 'uuid'
 import convertGraphqlData from './convertGraphqlData'
 

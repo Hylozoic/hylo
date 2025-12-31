@@ -1,7 +1,4 @@
 module.exports = async function checkAndSetMembership (req, res, next) {
-  if (Admin.isSignedIn(req)) return next()
-  if (res.locals.publicAccessAllowed) return next()
-
   const groupId = req.param('groupId')
 
   // if no group id is specified, continue.
@@ -13,6 +10,9 @@ module.exports = async function checkAndSetMembership (req, res, next) {
   const group = await Group.findActive(groupId)
   if (!group) return res.notFound()
   res.locals.group = group
+
+  if (Admin.isSignedIn(req)) return next()
+  if (res.locals.publicAccessAllowed) return next()
 
   const { userId } = req.session
   const membership = await GroupMembership.forPair(userId, group).fetch()

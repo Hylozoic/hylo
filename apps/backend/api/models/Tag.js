@@ -119,7 +119,7 @@ module.exports = bookshelf.Model.extend({
       // the catch above is for the case where another user just created the
       // GroupTag (race condition): the save fails, but we don't care about
       // the result
-      .then(groupTag => groupTag && groupTag.save({ updated_at: new Date(), is_default }))
+      .then(groupTag => groupTag && groupTag.save({ updated_at: new Date(), is_default }, opts))
       .then(() => user_id && isSubscribing &&
         TagFollow.findOrCreate({ groupId: group_id, tagId: tag_id, userId: user_id, isSubscribing, isChatRoom }, opts))
   },
