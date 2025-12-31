@@ -38,6 +38,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import isWebView from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -63,7 +64,18 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -254,6 +266,13 @@ export default function GlobalNav (props) {
     }
   }
 
+  // Prevent default browser context menu on mobile devices
+  const handleContextMenu = (e) => {
+    if (isMobileDevice()) {
+      e.preventDefault()
+    }
+  }
+
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
   useEffect(() => {
     const nav = document.querySelector('.globalNavContainer')
@@ -262,7 +281,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-theme-background h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-theme-background h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
       onClick={handleClick}
       onMouseLeave={handleContainerMouseLeave}
       onMouseEnter={handleContainerMouseEnter}
@@ -329,7 +348,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -354,7 +373,7 @@ export default function GlobalNav (props) {
           const actualIndex = pinnedGroups.length + unpinnedIndex
           return (
             <RightClickMenu key={group.id}>
-              <RightClickMenuTrigger>
+              <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                 <GlobalNavItem
                   badgeCount={group.newPostCount ? '-' : 0}
                   img={group.avatarUrl}
@@ -411,7 +430,7 @@ export default function GlobalNav (props) {
               <li><span className='text-foreground hover:text-secondary/80 cursor-pointer' onClick={handleSupportClick}>{t('Feedback & Support')}</span></li>
               <li><a className='text-foreground hover:text-secondary/80' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
               <li><a className='text-foreground hover:text-secondary/80' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
+              {!isWebView() && <li><span className={cn('text-foreground hover:text-secondary/80 cursor-pointer', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>}
               <li><a className='text-foreground hover:text-secondary/80' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (

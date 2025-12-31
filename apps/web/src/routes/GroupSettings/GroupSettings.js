@@ -60,13 +60,13 @@ export default function GroupSettings () {
     if (group) {
       dispatch(deleteGroup(group.id)).then(({ error }) => {
         if (!error) {
-          // Send message to mobile app if in webview
-          if (isWebView()) {
-            sendMessageToWebView(WebViewMessageTypes.GROUP_DELETED, {
-              groupSlug: group.slug,
-              groupId: group.id
-            })
-          }
+          // DEPRECATED: No longer send message to mobile app - web handles all navigation
+          // if (isWebView()) {
+          //   sendMessageToWebView(WebViewMessageTypes.GROUP_DELETED, {
+          //     groupSlug: group.slug,
+          //     groupId: group.id
+          //   })
+          // }
           window.location = allGroupsUrl()
         }
       })

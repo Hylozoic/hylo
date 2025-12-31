@@ -241,7 +241,17 @@ input[type="number"] {
   appearance: textfield; /* Standard property for other browsers */
 }
 
-@media (max-width: 500px) {
+@media (max-width: 430px) {
+  html {
+    font-size: 15px;
+  }
+
+  .text-base {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 320px) {
   html {
     font-size: 14px; // or 12px for even smaller
   }

@@ -117,11 +117,15 @@ const HyloWebView = React.forwardRef(({
   style,
   source,
   customStyle: providedCustomStyle = '',
+  enablePullToRefresh = false,
+  enableScrolling = false,
+  onRefresh,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
@@ -196,12 +200,15 @@ const HyloWebView = React.forwardRef(({
     setIsLoading(false)
   }, [])
 
-
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
     const { type, data } = parsedMessage
 
     switch (type) {
+      // DEPRECATED: NAVIGATION message type no longer used
+      // Web app now handles all navigation internally
+      // Kept commented for reference in case we need to revisit
+      /*
       case WebViewMessageTypes.NAVIGATION: {
         if (nativeRouteHandler) {
           const { handled, pathname, search } = data
@@ -227,6 +234,12 @@ const HyloWebView = React.forwardRef(({
         }
         break
       }
+      */
+      
+      // DEPRECATED: GROUP_DELETED message type no longer used
+      // Web app now handles group deletion navigation
+      // Kept commented for reference in case we need native notification
+      /*
       case WebViewMessageTypes.GROUP_DELETED: {
         // Handle group deletion from webview
         if (data?.groupSlug) {
@@ -243,6 +256,13 @@ const HyloWebView = React.forwardRef(({
         }
         break
       }
+      */
+      
+      default:
+        // Log unknown message types in development for debugging
+        if (__DEV__ && type) {
+          console.log('📱 Unhandled WebView message type:', type, data)
+        }
     }
 
     messageHandler && messageHandler(parsedMessage)
@@ -335,14 +355,22 @@ const HyloWebView = React.forwardRef(({
       ]}
       ref={webViewRef}
       scalesPageToFit={false}
-      // Needs to remain false for AutoHeight
-      scrollEnabled={false}
+      // AutoHeight requires scrollEnabled={false}
+      // Full-screen WebViews should set enableScrolling={true} for pull-to-refresh
+      scrollEnabled={enableScrolling}
       setSupportMultipleWindows={false}
       sharedCookiesEnabled
       source={{
         uri,
         headers: { cookie }
       }}
+      // DEPRECATED: Native pull-to-refresh doesn't work with AutoHeightWebView
+      // AutoHeightWebView manages its own height and scrolling happens inside the WebView
+      // (via CSS/JS), so the native layer can't detect scroll position.
+      // Pull-to-refresh is now handled on the web side via usePullToRefresh hook.
+      // pullToRefreshEnabled={enablePullToRefresh && enableScrolling}
+      // onRefresh={enablePullToRefresh && enableScrolling ? handleRefresh : undefined}
+      // refreshing={refreshing}
       style={[style, {
         // Avoids a known issue which can cause Android crashes
         // ref. https://github.com/iou90/react-native-autoheight-webview/issues/191
