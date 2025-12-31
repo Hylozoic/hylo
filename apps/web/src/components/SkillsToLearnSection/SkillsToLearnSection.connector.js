@@ -13,6 +13,7 @@ import {
   getSearch,
   setSearch
 } from './SkillsToLearnSection.store'
+import { addQuerystringToPath } from '@hylo/navigation'
 
 export function mapStateToProps (state, props) {
   const person = getPerson(state, props)
@@ -37,7 +38,12 @@ export function mapDispatchToProps (dispatch) {
     fetchMemberSkills: (id, limit) => dispatch(fetchMemberSkills(id, limit)),
     setSearch: search => dispatch(setSearch(search)),
     searchForSkill: (skill) => {
-      dispatch(push('/search?t=' + skill))
+      const from = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : ''
+      const path = addQuerystringToPath('/search', {
+        t: skill,
+        from: from && !from.startsWith('/search') ? from : undefined
+      })
+      dispatch(push(path))
     }
   }
 }
