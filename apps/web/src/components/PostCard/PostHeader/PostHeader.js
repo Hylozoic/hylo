@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
@@ -107,13 +107,13 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Edit', label: t('Edit'), onClick: editPost },
-      { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
-      { icon: savedAt ? <BookmarkCheck /> : <Bookmark />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
-      { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
-      { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
-      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
-      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: editPost },
+      { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
+      { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: this.flagPostFunc() },
+      { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
     const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']

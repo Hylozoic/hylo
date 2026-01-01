@@ -1,4 +1,5 @@
 import { filter, isFunction } from 'lodash'
+import { Pencil, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -160,8 +161,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     { iconName: 'Public', value: person.url, onClick: () => gotoExternalUrl(person.url) }
   ]
   const actionDropdownItems = [
-    { icon: 'Edit', label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
-    { icon: 'Ex', label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
+    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
   ]
   const {
     title: currentContentTitle,

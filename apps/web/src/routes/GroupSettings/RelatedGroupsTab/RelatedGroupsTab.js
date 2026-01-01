@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Trash2 } from 'lucide-react'
 import { get } from 'lodash/fp'
 import { bgImageStyle } from 'util/index'
 import Button from 'components/ui/button'
@@ -132,7 +133,7 @@ function RelatedGroupsTab () {
     if (type === GROUP_RELATIONSHIP_TYPE.PeerToPeer) {
       return [
         {
-          icon: 'Trash',
+          icon: <Trash2 className='w-4 h-4 text-destructive' />,
           label: t('Remove Peer Relationship'),
           onClick: () => {
             if (window.confirm(t('Are you sure you want to remove the peer relationship with {{groupName}}?', { groupName: toGroup.name }))) {
@@ -147,7 +148,7 @@ function RelatedGroupsTab () {
 
     return [
       {
-        icon: 'Trash',
+        icon: <Trash2 className='w-4 h-4 text-destructive' />,
         label: type === GROUP_RELATIONSHIP_TYPE.ParentToChild ? t('Remove Child') : t('Leave Parent'),
         onClick: () => {
           if (window.confirm(type === GROUP_RELATIONSHIP_TYPE.ParentToChild
