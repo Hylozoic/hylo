@@ -1205,9 +1205,6 @@ These test cases are designed for testers using the staging environment. Each te
 
 ## Potential Improvements to Consider
 
-1. **Consolidate flows**: Both link types end up at the same `JoinGroup` component
-2. **Better paywall integration**: Define clear behavior for paid groups
-3. **Expiration for access codes**: Currently access codes never expire unless regenerated
-4. **Rate limiting**: No apparent rate limiting on invitation creation or use
-5. **Audit logging**: Track invitation usage for security
+1. **Rate limiting**: No apparent rate limiting on invitation creation or use
+2. **Audit logging**: Track invitation usage for security
 

@@ -79,9 +79,9 @@ module.exports = {
         }
       }
 
-      // Must provide either productId, trackId, or roleId
-      if (!productId && !trackId && !roleId) {
-        throw new GraphQLError('Must specify either productId, trackId, or roleId')
+      // Must provide either groupId, productId, trackId, or roleId
+      if (!groupId && !productId && !trackId && !roleId) {
+        throw new GraphQLError('Must specify either groupId, productId, trackId, or roleId')
       }
 
       // Grant access using the ContentAccess model
@@ -104,6 +104,21 @@ module.exports = {
         } catch (enrollError) {
           // Log but don't fail the access grant if enrollment fails
           console.warn(`Auto-enrollment in track ${trackId} failed for user ${userId}:`, enrollError.message)
+        }
+      }
+
+      if (groupId) {
+        try {
+          await GroupMembership.ensureMembership(userId, groupId, {
+            role: GroupMembership.Role.DEFAULT
+          })
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Created group membership for user ${userId} in group ${groupId} via admin grant`)
+          }
+        } catch (membershipError) {
+          // Log but don't fail the access grant if membership creation fails
+          console.warn(`Group membership creation failed for user ${userId} in group ${groupId}:`, membershipError.message)
         }
       }
 

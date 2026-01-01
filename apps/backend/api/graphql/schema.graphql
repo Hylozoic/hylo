@@ -613,6 +613,10 @@ type CheckInvitationResult {
   groupSlug: String
   # The email address from the invitation (for token-based invites)
   email: String
+  # The common role that will be assigned when this invitation is used
+  commonRole: CommonRole
+  # The group-specific role that will be assigned when this invitation is used
+  groupRole: GroupRole
 }
 
 type Collection {
@@ -4028,6 +4032,10 @@ input InappropriateContentInput {
 input InviteInput {
   emails: [String]
   message: String
+  # Common role ID to assign when the invitation is used (Coordinator=1, Moderator=2, Host=3)
+  commonRoleId: ID
+  # Group-specific role ID to assign when the invitation is used
+  groupRoleId: ID
 }
 
 # A link to a Post or a Person who has been Flagged
