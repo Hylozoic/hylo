@@ -29,7 +29,7 @@ export async function respondToEvent (userId, eventId, response) {
 
   if (sendEmail) {
     Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
-    Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { eventId, eventInvitationId: eventInvitation.id })
+    Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId: eventId })
   }
 
   return { success: true }

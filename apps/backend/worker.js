@@ -60,9 +60,9 @@ function setupQueue (name, handler) {
 
 const throttledLog = throttle(error => {
   if (rollbar.disabled) {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
   } else {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
     rollbar.error(error)
   }
 }, 30000)

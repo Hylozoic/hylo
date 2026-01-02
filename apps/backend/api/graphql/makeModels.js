@@ -1379,6 +1379,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'phase',
         'published_at',
         'require_budget',
+        'hide_final_results_from_participants',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',

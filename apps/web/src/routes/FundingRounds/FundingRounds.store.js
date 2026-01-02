@@ -129,21 +129,22 @@ export function fetchFundingRound (id) {
           bannerUrl
           canSubmit
           canVote
-          createdAt,
-          criteria,
-          description,
+          createdAt
+          criteria
+          description
           group { id name slug }
+          hideFinalResultsFromParticipants
           isParticipating
           joinedAt
-          maxTokenAllocation,
-          minTokenAllocation,
-          numParticipants,
-          numSubmissions,
-          phase,
-          publishedAt,
-          requireBudget,
-          submissionDescriptor,
-          submissionDescriptorPlural,
+          maxTokenAllocation
+          minTokenAllocation
+          numParticipants
+          numSubmissions
+          phase
+          publishedAt
+          requireBudget
+          submissionDescriptor
+          submissionDescriptorPlural
           submissions {
             items {
               ${PostFieldsFragment}

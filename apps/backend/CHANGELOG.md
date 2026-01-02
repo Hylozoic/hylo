@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.5] - 2025-12-31
+
+### Added
+- MVP of a calendar subscription URL for all event RSVPs.
+- Ability to search within a specific group
+
+### Fixed
+- Access to admin view of kue jobs
+
 ## [6.2.4] - 2025-12-05
 
 ### Fixed

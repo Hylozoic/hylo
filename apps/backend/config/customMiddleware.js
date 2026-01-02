@@ -18,17 +18,17 @@ export default function (app) {
   // Capture raw body for Stripe webhook before JSON parsing
   app.use('/noo/stripe/webhook', bodyParser.raw({ type: 'application/json' }))
 
-  app.use(bodyParser.urlencoded({extended: true}))
+  app.use(bodyParser.urlencoded({ extended: true }))
   app.use(bodyParser.json())
 
   kueUI.setup({
-    apiURL: '/admin/kue/api',
-    baseURL: '/admin/kue'
+    apiURL: '/noo/admin/kue/api',
+    baseURL: '/noo/admin/kue'
   })
 
-  app.use('/admin/kue', isAdmin)
-  app.use('/admin/kue/api', kue.app)
-  app.use('/admin/kue', kueUI.app)
+  app.use('/noo/admin/kue', isAdmin)
+  app.use('/noo/admin/kue/api', kue.app)
+  app.use('/noo/admin/kue', kueUI.app)
 
   app.use(GRAPHQL_ENDPOINT, cors({
     origin: '*',
