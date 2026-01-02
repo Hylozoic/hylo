@@ -551,6 +551,7 @@
   "Hidden": "Oculto",
   "Hide": "Esconder",
   "Hide complete posts, show only active ones": "Ocultar publicaciones completas, mostrar solo las activas",
+  "Hide final voting results from participants": "Ocultar los resultados finales de la votación a los participantes",
   "Hide posts from child groups": "Ocultar publicaciones de subgrupos",
   "Hide posts from child groups you are a member of": "Ocultar publicaciones de subgrupos de los que eres miembro",
   "Hide {{postType}} Data": "Ocultar datos de {{postType}}",
