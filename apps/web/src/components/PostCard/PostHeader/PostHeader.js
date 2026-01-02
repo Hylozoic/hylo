@@ -47,6 +47,7 @@ class PostHeader extends PureComponent {
 
   render () {
     const {
+      chat,
       routeParams,
       post,
       canEdit,
@@ -150,6 +151,11 @@ class PostHeader extends PureComponent {
       timeWindow = endString
     } else if (startString) {
       timeWindow = startString
+    }
+
+    // Chat mode: all header content is shown in the outer chat header in PostCard
+    if (chat) {
+      return null
     }
 
     return (

@@ -238,7 +238,8 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 -mx-2 py-2 -mb-1 mt-2 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/100',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 py-1 -my-1 -mx-2 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/100',
+          showHeader ? 'py-1 mt-2' : ' ',
           className,
           styles.container,
           {
@@ -255,7 +256,7 @@ export default function ChatPost ({
       >
         <div className={
           cn(
-            'flex p-1 gap-2 absolute z-10 right-3 top-3 transition-all rounded-lg cursor-normal bg-background/100 dark:bg-darkening opacity-0 delay-100 scale-0',
+            'flex p-1 gap-2 absolute z-10 right-1 -top-0 transition-all rounded-lg cursor-normal bg-background/100 dark:bg-darkening opacity-0 delay-100 scale-0',
             {
               'opacity-100 scale-102': isHovered
             }
@@ -320,13 +321,13 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cn(styles.editing, styles.postContent)}
+            className={cn(styles.editing, 'p-0 m-0')}
           />
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
-              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
+            <div className={cn('ml-12', { [styles.isFlagged]: isFlagged })}>
+              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0' html={details} />
             </div>
           </ClickCatcher>
         )}
@@ -355,8 +356,8 @@ export default function ChatPost ({
           />
         </div>
         {commentsTotal > 0 && (
-          <div className='w-full' onClick={handleClick}>
-            <span className='ChatPost_commenters bg-darkening/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
+          <div className='w-full mt-2' onClick={handleClick}>
+            <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 xs:ml-[48px] mb-[2px] items-center justify-center inline-flex'>
               <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
               <span className='text-sm text-foreground' onClick={handleClick}>
                 {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
