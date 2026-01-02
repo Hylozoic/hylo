@@ -2,7 +2,7 @@ import { isEmpty } from 'lodash/fp'
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
 import useRouteParams from 'hooks/useRouteParams'
@@ -11,6 +11,8 @@ import presentPost from 'store/presenters/presentPost'
 import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import { seededShuffle } from 'util/seededRandom'
+import CreateModal from 'components/CreateModal'
+import PostDialog from 'components/PostDialog'
 import SubmissionCard from './SubmissionCard'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import { getRoundPhaseMeta } from './phaseUtils'
@@ -163,6 +165,10 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
           />
         ))}
       </div>
+      <Routes>
+        {['submissions', 'discussion'].includes(currentPhase) && <Route path='post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />}
+        <Route path='post/:postId' element={<PostDialog />} />
+      </Routes>
     </div>
   )
 }

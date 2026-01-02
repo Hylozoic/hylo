@@ -149,8 +149,6 @@ function FundingRoundHome () {
             <Routes>
               <Route path='create/*' element={<CreateModal context='groups' />} />
               <Route path=':tab/create/*' element={<CreateModal context='groups' />} />
-              <Route path='submissions/post/:postId' element={<PostDialog container={container} />} />
-              {['submissions', 'discussion'].includes(fundingRound?.phase) && <Route path='submissions/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />}
               <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} canVote={canVote} canSubmit={canSubmit} />} />
               <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} canVote={canVote} canSubmit={canSubmit} />} />
               <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
