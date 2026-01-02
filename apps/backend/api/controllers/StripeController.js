@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
 
-/* global StripeAccount, StripeProduct, ContentAccess, GroupMembership */
+/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership */
 
 module.exports = {
 
@@ -144,6 +144,10 @@ module.exports = {
 
         case 'customer.subscription.created':
           await handlers.handleSubscriptionCreated(event)
+          break
+
+        case 'customer.subscription.updated':
+          await handlers.handleSubscriptionUpdated(event)
           break
 
         case 'customer.subscription.deleted':
@@ -535,6 +539,133 @@ module.exports = {
       }
     } catch (error) {
       console.error('Error handling customer.subscription.created:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle customer.subscription.updated webhook events
+   * Updates content access records when subscription status changes
+   * (e.g., when subscription is set to cancel at period end)
+   */
+  handleSubscriptionUpdated: async function (event) {
+    try {
+      const subscription = event.data.object
+      // Determine if subscription is scheduled to be cancelled
+      // Stripe has two cancellation modes:
+      // 1. cancel_at_period_end: true - Cancel at end of billing period
+      // 2. cancel_at: <timestamp> - Cancel at a specific date
+      const isScheduledToCancel = subscription.cancel_at_period_end || subscription.cancel_at !== null
+      const cancelAt = subscription.cancel_at
+        ? new Date(subscription.cancel_at * 1000)
+        : (subscription.cancel_at_period_end ? new Date(subscription.current_period_end * 1000) : null)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription updated: ${subscription.id}`, {
+          status: subscription.status,
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          cancel_at: subscription.cancel_at,
+          isScheduledToCancel,
+          cancelAt
+        })
+      }
+
+      // Find content access records associated with this subscription
+      const accessRecords = await ContentAccess.findBySubscriptionId(subscription.id)
+
+      if (!accessRecords || accessRecords.length === 0) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No content access records found for subscription ${subscription.id}`)
+        }
+        return
+      }
+
+      // Check if subscription is scheduled to be cancelled (either mode)
+      if (isScheduledToCancel) {
+        // Subscription has been set to cancel at period end
+        // Keep status as ACTIVE (access continues until period end)
+        // But update metadata to indicate cancellation is scheduled
+        await Promise.all(accessRecords.map(async (access) => {
+          const existingMetadata = access.get('metadata') || {}
+          const updatedMetadata = {
+            ...existingMetadata,
+            subscription_cancellation_scheduled_at: new Date().toISOString(),
+            subscription_cancel_at_period_end: true,
+            subscription_period_end: cancelAt.toISOString(),
+            subscription_cancel_reason: subscription.cancellation_details?.reason || 'User requested cancellation'
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Updating content_access ${access.id} with cancellation metadata:`, {
+              metadata_before: existingMetadata,
+              metadata_after: updatedMetadata
+            })
+          }
+
+          // Update using raw knex to ensure JSONB is properly updated
+          await bookshelf.knex('content_access')
+            .where({ id: access.id })
+            .update({
+              metadata: JSON.stringify(updatedMetadata),
+              updated_at: new Date()
+            })
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Successfully updated content_access ${access.id}`)
+          }
+        }))
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Marked ${accessRecords.length} access records for subscription ${subscription.id} as scheduled to cancel at ${cancelAt.toISOString()}`)
+        }
+      } else if (subscription.status === 'active' && !isScheduledToCancel) {
+        // Subscription was reactivated (cancellation was undone)
+        // Only clear metadata if it was previously set
+        await Promise.all(accessRecords.map(async (access) => {
+          const existingMetadata = access.get('metadata') || {}
+          const hadCancellationMetadata = existingMetadata.subscription_cancel_at_period_end
+
+          if (hadCancellationMetadata) {
+            // Create a new metadata object without cancellation fields
+            const updatedMetadata = { ...existingMetadata }
+            delete updatedMetadata.subscription_cancellation_scheduled_at
+            delete updatedMetadata.subscription_cancel_at_period_end
+            delete updatedMetadata.subscription_cancel_reason
+            delete updatedMetadata.subscription_period_end
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Clearing cancellation metadata from content_access ${access.id}:`, {
+                metadata_before: existingMetadata,
+                metadata_after: updatedMetadata
+              })
+            }
+
+            // Update using raw knex to ensure JSONB is properly updated
+            await bookshelf.knex('content_access')
+              .where({ id: access.id })
+              .update({
+                metadata: JSON.stringify(updatedMetadata),
+                updated_at: new Date()
+              })
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Successfully cleared metadata from content_access ${access.id}`)
+            }
+          }
+        }))
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Cleared cancellation metadata for ${accessRecords.length} access records - subscription ${subscription.id} reactivated (status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end})`)
+        }
+      } else {
+        // Subscription status changed but not to cancel_at_period_end or reactivated
+        // Log for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Subscription ${subscription.id} updated but no action taken (status: ${subscription.status}, cancel_at_period_end: ${subscription.cancel_at_period_end})`)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling customer.subscription.updated:', error)
       throw error
     }
   },

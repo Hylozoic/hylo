@@ -84,7 +84,12 @@ async function enrichWithStripeData (item) {
       // Generate billing portal URL if we have a customer ID
       if (stripeData.customerId) {
         try {
-          const returnUrl = `${FRONTEND_URL}/my/transactions`
+          // Build return URL to the group page (not /my/transactions)
+          const groupSlug = item.group?.get ? item.group.get('slug') : null
+          const returnUrl = groupSlug
+            ? `${FRONTEND_URL}/groups/${groupSlug}`
+            : `${FRONTEND_URL}/my/transactions` // Fallback if no group slug
+
           const portalSession = await StripeService.createBillingPortalSession(
             _stripeAccountId,
             stripeData.customerId,
@@ -195,6 +200,9 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
       // Determine payment type based on stripe_subscription_id presence
       const paymentType = record.get('stripe_subscription_id') ? 'subscription' : 'one_time'
 
+      // Get metadata for cancellation info
+      const metadata = record.get('metadata') || {}
+
       // Get the actual Stripe account external ID (acct_xxx) for API calls
       const stripeAccountExternalId = await getStripeAccountExternalId(group)
 
@@ -215,6 +223,12 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
 
         // Payment type
         paymentType,
+
+        // Subscription cancellation info (from metadata)
+        subscriptionCancelAtPeriodEnd: metadata.subscription_cancel_at_period_end === true || false,
+        subscriptionPeriodEnd: metadata.subscription_period_end ? new Date(metadata.subscription_period_end) : null,
+        subscriptionCancellationScheduledAt: metadata.subscription_cancellation_scheduled_at ? new Date(metadata.subscription_cancellation_scheduled_at) : null,
+        subscriptionCancelReason: metadata.subscription_cancel_reason || null,
 
         // Stripe data placeholders - will be enriched below
         subscriptionStatus: null,

@@ -35,6 +35,10 @@ query FetchMyTransactions (
       paymentType
       subscriptionStatus
       currentPeriodEnd
+      subscriptionCancelAtPeriodEnd
+      subscriptionPeriodEnd
+      subscriptionCancellationScheduledAt
+      subscriptionCancelReason
       amountPaid
       currency
       manageUrl

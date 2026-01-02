@@ -2849,6 +2849,11 @@ type ContentAccess {
   expiresAt: Date
   # Additional metadata
   metadata: JSON
+  # Subscription cancellation info (extracted from metadata)
+  subscriptionCancelAtPeriodEnd: Boolean
+  subscriptionPeriodEnd: Date
+  subscriptionCancellationScheduledAt: Date
+  subscriptionCancelReason: String
 }
 
 type ContentAccessResult {
@@ -2901,6 +2906,11 @@ type UserTransaction {
   subscriptionStatus: String
   # When the current billing period ends / next renewal date
   currentPeriodEnd: Date
+  # Subscription cancellation info (extracted from metadata)
+  subscriptionCancelAtPeriodEnd: Boolean
+  subscriptionPeriodEnd: Date
+  subscriptionCancellationScheduledAt: Date
+  subscriptionCancelReason: String
   # Amount paid in cents
   amountPaid: Int
   # Currency code (e.g., 'usd')

@@ -1779,7 +1779,23 @@ export default function makeModels (userId, isAdmin, apiClient) {
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
         stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),
-        grantedById: ca => ca.get('granted_by_id')
+        grantedById: ca => ca.get('granted_by_id'),
+        subscriptionCancelAtPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_at_period_end === true
+        },
+        subscriptionPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_period_end ? new Date(metadata.subscription_period_end) : null
+        },
+        subscriptionCancellationScheduledAt: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancellation_scheduled_at ? new Date(metadata.subscription_cancellation_scheduled_at) : null
+        },
+        subscriptionCancelReason: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_reason || null
+        }
       }
     }
   }

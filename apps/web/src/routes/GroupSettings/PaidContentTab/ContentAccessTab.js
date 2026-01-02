@@ -303,7 +303,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
  * Displays a single content access record
  */
 function ContentAccessRecordItem ({ record, t }) {
-  const { user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy } = record
+  const { user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
 
   const getAccessTypeBadge = (type) => {
     if (type === 'stripe_purchase') {
@@ -312,7 +312,10 @@ function ContentAccessRecordItem ({ record, t }) {
     return <span className='px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400'>{t('Admin Grant')}</span>
   }
 
-  const getStatusBadge = (statusValue) => {
+  const getStatusBadge = (statusValue, isCancelling) => {
+    if (isCancelling) {
+      return <span className='px-2 py-1 text-xs rounded bg-orange-500/20 text-orange-400'>{t('Cancelling')}</span>
+    }
     if (statusValue === 'active') {
       return <span className='px-2 py-1 text-xs rounded bg-green-500/20 text-green-400'>{t('Active')}</span>
     }
@@ -352,11 +355,16 @@ function ContentAccessRecordItem ({ record, t }) {
         {/* Badges and Info */}
         <div className='flex flex-wrap items-center gap-2'>
           {getAccessTypeBadge(accessType)}
-          {getStatusBadge(status)}
+          {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
           <div className='text-xs text-foreground/60'>
             {t('Granted')}: {formatDate(createdAt)}
           </div>
-          {expiresAt && (
+          {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
+            <div className='text-xs text-orange-400'>
+              {t('Cancels')}: {formatDate(subscriptionPeriodEnd)}
+            </div>
+          )}
+          {!subscriptionCancelAtPeriodEnd && expiresAt && (
             <div className='text-xs text-foreground/60'>
               {t('Expires')}: {formatDate(expiresAt)}
             </div>

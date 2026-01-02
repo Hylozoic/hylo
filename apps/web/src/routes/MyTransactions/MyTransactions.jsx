@@ -54,6 +54,8 @@ function TransactionCard ({ transaction, t }) {
     paymentType,
     subscriptionStatus,
     currentPeriodEnd,
+    subscriptionCancelAtPeriodEnd,
+    subscriptionPeriodEnd,
     amountPaid,
     currency,
     manageUrl,
@@ -62,10 +64,19 @@ function TransactionCard ({ transaction, t }) {
 
   // Determine status badge color
   const getStatusColor = () => {
+    if (subscriptionCancelAtPeriodEnd) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
     if (status === 'active') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
     if (status === 'expired') return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
     if (status === 'revoked') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
     return 'bg-gray-100 text-gray-800'
+  }
+
+  // Get status label
+  const getStatusLabel = () => {
+    if (subscriptionCancelAtPeriodEnd) return t('Cancelling')
+    if (status === 'active') return t('Active')
+    if (status === 'expired') return t('Expired')
+    return t('Revoked')
   }
 
   // Format access type for display
@@ -92,7 +103,7 @@ function TransactionCard ({ transaction, t }) {
           {offeringName || t('Unnamed Offering')}
         </h3>
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
-          {status === 'active' ? t('Active') : status === 'expired' ? t('Expired') : t('Revoked')}
+          {getStatusLabel()}
         </span>
       </div>
 
@@ -144,16 +155,28 @@ function TransactionCard ({ transaction, t }) {
         <div className='text-foreground'>{formatDate(purchaseDate)}</div>
 
         {/* Renewal/Expiration */}
-        {paymentType === 'subscription' && currentPeriodEnd && (
+        {paymentType === 'subscription' && (
           <>
-            <div className='text-muted-foreground'>
-              {subscriptionStatus === 'active' ? t('Renews') : t('Status')}:
-            </div>
-            <div className='text-foreground'>
-              {subscriptionStatus === 'active'
-                ? formatDate(currentPeriodEnd)
-                : subscriptionStatus}
-            </div>
+            {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
+              <>
+                <div className='text-muted-foreground'>{t('Cancels')}:</div>
+                <div className='text-orange-600 dark:text-orange-400'>
+                  {formatDate(subscriptionPeriodEnd)}
+                </div>
+              </>
+            )}
+            {!subscriptionCancelAtPeriodEnd && currentPeriodEnd && (
+              <>
+                <div className='text-muted-foreground'>
+                  {subscriptionStatus === 'active' ? t('Renews') : t('Status')}:
+                </div>
+                <div className='text-foreground'>
+                  {subscriptionStatus === 'active'
+                    ? formatDate(currentPeriodEnd)
+                    : subscriptionStatus}
+                </div>
+              </>
+            )}
           </>
         )}
         {paymentType === 'one_time' && expiresAt && (
