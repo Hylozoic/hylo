@@ -195,6 +195,13 @@ export async function allocateTokensToSubmission (userId, postId, tokens) {
   const canVote = await round.canUserVote(userId)
   if (!canVote) throw new GraphQLError('You do not have the required role to vote in this funding round')
 
+  // Check if self-voting is allowed
+  const allowSelfVoting = round.get('allow_self_voting')
+  const postCreatorId = post.get('user_id')
+  if (!allowSelfVoting && parseInt(postCreatorId) === parseInt(userId)) {
+    throw new GraphQLError('You cannot vote on your own submission')
+  }
+
   // Check if tokens have been distributed (voting phase has started)
   const phase = round.get('phase')
   if (phase !== FundingRound.PHASES.VOTING && phase !== FundingRound.PHASES.COMPLETED) {

@@ -97,14 +97,15 @@ function FundingRoundEditor (props) {
   const canManage = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
   const [fundingRoundState, setFundingRoundState] = useState({
+    allowSelfVoting: false,
     bannerUrl: null,
     criteria: '',
     description: '',
+    hideFinalResultsFromParticipants: false,
     maxTokenAllocation: 1,
     minTokenAllocation: 1,
     publishedAt: null,
     requireBudget: false,
-    hideFinalResultsFromParticipants: false,
     submissionDescriptor: 'Submission',
     submissionDescriptorPlural: 'Submissions',
     title: '',
@@ -121,6 +122,7 @@ function FundingRoundEditor (props) {
   })
 
   const {
+    allowSelfVoting,
     bannerUrl,
     criteria,
     description,
@@ -279,15 +281,16 @@ function FundingRoundEditor (props) {
 
     const result = await dispatch(save({
       id: editingRound?.id,
+      allowSelfVoting,
       bannerUrl,
       criteria: criteriaHTML,
       description: descriptionHTML,
       groupId: currentGroup.id,
+      hideFinalResultsFromParticipants,
       maxTokenAllocation: maxTokenAllocation ? Number(maxTokenAllocation) : null,
       minTokenAllocation: minTokenAllocation ? Number(minTokenAllocation) : null,
       publishedAt,
       requireBudget,
-      hideFinalResultsFromParticipants,
       submissionDescriptor,
       submissionDescriptorPlural,
       submitterRoles,
@@ -536,6 +539,14 @@ function FundingRoundEditor (props) {
             label={t('Hide final voting results from participants')}
             checked={hideFinalResultsFromParticipants}
             onChange={updateFundingRoundState('hideFinalResultsFromParticipants')}
+          />
+        </div>
+
+        <div>
+          <CheckBox
+            label={t('Allow participants to vote on their own submissions')}
+            checked={allowSelfVoting}
+            onChange={updateFundingRoundState('allowSelfVoting')}
           />
         </div>
 

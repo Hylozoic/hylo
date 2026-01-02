@@ -85,6 +85,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   const creatorUrl = useMemo(() => personUrl(creator.id, routeParams.groupSlug), [creator.id, routeParams.groupSlug])
 
   const validateVoteAmount = useCallback((value) => {
+    // Check if self-voting is allowed
+    if (!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && value > 0) {
+      return t('You cannot vote on your own submission')
+    }
+
     // Check if exceeds available tokens
     if (value > availableTokens) {
       return t('Not enough tokens available')
@@ -101,7 +106,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     }
 
     return ''
-  }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, t])
+  }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, round.allowSelfVoting, post.creator.id, currentUser?.id, t])
 
   const handleVoteAmountChange = useCallback((e) => {
     const rawValue = e.target.value
@@ -221,7 +226,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
         />
       </div>
       {currentPhase === 'voting' && canVote && (
-        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg min-w-[100px] sm:min-w-[120px]'>
+        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg w-[100px] sm:w-[120px]'>
           <label className='text-xs font-bold text-foreground/60 uppercase'>
             {t('Your {{tokenType}}', { tokenType: tokenLabel })}
           </label>
@@ -233,14 +238,21 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             onBlur={handleVoteAmountBlur}
             onFocus={handleVoteAmountFocus}
             onClick={(e) => e.stopPropagation()}
+            disabled={!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id)}
             className={cn(
               'w-20 h-12 text-center text-2xl font-bold bg-input border-2 rounded-md focus:outline-none',
-              validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected'
+              validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected',
+              !round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) ? 'opacity-50 cursor-not-allowed' : ''
             )}
           />
           {validationError && (
             <span className='text-xs text-red-500 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
               {validationError}
+            </span>
+          )}
+          {!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && (
+            <span className='text-xs text-foreground/60 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
+              {t('Cannot vote on your own submission')}
             </span>
           )}
         </div>
