@@ -58,6 +58,7 @@ import Messages from 'routes/Messages'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import MyTransactions from 'routes/MyTransactions'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
@@ -447,6 +448,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Other Routes **** */}

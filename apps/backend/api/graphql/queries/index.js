@@ -16,3 +16,7 @@ export {
 export {
   checkContentAccess
 } from './contentAccess'
+
+export {
+  myTransactions
+} from './transactions'

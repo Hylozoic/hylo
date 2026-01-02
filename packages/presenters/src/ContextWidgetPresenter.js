@@ -317,7 +317,8 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 7, parentId: 'widget-myself' },
   { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
   { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 9, parentId: 'widget-myself' },
-  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 10, parentId: 'widget-myself' },
+  { context: 'my', view: 'transactions', iconName: 'CreditCard', title: 'widget-my-transactions', id: 'widget-my-transactions', order: 10, parentId: 'widget-myself' },
+  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 11, parentId: 'widget-myself' },
   { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
 ]
 

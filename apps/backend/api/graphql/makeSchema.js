@@ -163,7 +163,8 @@ import {
   publicStripeOffering,
   offeringSubscriptionStats,
   offeringSubscribers,
-  checkContentAccess
+  checkContentAccess,
+  myTransactions
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
@@ -406,6 +407,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     groups: (root, args) => fetchMany('Group', args),
     joinRequests: (root, args) => fetchMany('JoinRequest', args),
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
+    myTransactions: (root, args, context) => myTransactions(context.currentUserId, args),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {

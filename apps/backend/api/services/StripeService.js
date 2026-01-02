@@ -762,6 +762,131 @@ module.exports = {
   },
 
   /**
+   * Creates a Billing Portal session for a customer
+   *
+   * Generates a URL where customers can manage their subscriptions,
+   * update payment methods, and view invoices.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} customerId - The Stripe customer ID
+   * @param {String} returnUrl - URL to redirect after portal session
+   * @returns {Promise<Object>} Billing portal session with url property
+   */
+  async createBillingPortalSession (accountId, customerId, returnUrl) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to create a billing portal session')
+      }
+
+      if (!customerId) {
+        throw new Error('Customer ID is required to create a billing portal session')
+      }
+
+      if (!returnUrl) {
+        throw new Error('Return URL is required')
+      }
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl
+      }, {
+        stripeAccount: accountId
+      })
+
+      return session
+    } catch (error) {
+      console.error('Error creating billing portal session:', error)
+      throw new Error(`Failed to create billing portal session: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves enriched transaction data from Stripe
+   *
+   * Fetches subscription or checkout session data to enrich our
+   * transaction records with payment details.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} subscriptionId - Optional subscription ID
+   * @param {String} sessionId - Optional checkout session ID
+   * @returns {Promise<Object>} Enriched data object
+   */
+  async getTransactionDetails (accountId, { subscriptionId, sessionId }) {
+    try {
+      if (!accountId) {
+        return null
+      }
+
+      const result = {
+        subscriptionStatus: null,
+        currentPeriodEnd: null,
+        amountPaid: null,
+        currency: null,
+        customerId: null,
+        receiptUrl: null
+      }
+
+      // If we have a subscription ID, get subscription details
+      if (subscriptionId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['latest_invoice', 'items.data.price']
+          }, {
+            stripeAccount: accountId
+          })
+
+          result.subscriptionStatus = subscription.status
+          result.currentPeriodEnd = subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null
+          result.customerId = subscription.customer
+
+          // Get amount from the subscription items
+          if (subscription.items?.data?.[0]?.price) {
+            result.amountPaid = subscription.items.data[0].price.unit_amount
+            result.currency = subscription.items.data[0].price.currency
+          }
+
+          // Get receipt URL from latest invoice
+          if (subscription.latest_invoice?.hosted_invoice_url) {
+            result.receiptUrl = subscription.latest_invoice.hosted_invoice_url
+          }
+        } catch (subError) {
+          console.error('Error fetching subscription:', subscriptionId, subError.message)
+          // Continue - we may still have session data
+        }
+      }
+
+      // If we have a session ID and no subscription data, get session details
+      if (sessionId && !result.customerId) {
+        try {
+          const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['payment_intent', 'line_items']
+          }, {
+            stripeAccount: accountId
+          })
+
+          result.customerId = session.customer
+          result.amountPaid = session.amount_total
+          result.currency = session.currency
+
+          // For one-time payments, get receipt from payment intent
+          if (session.payment_intent?.charges?.data?.[0]?.receipt_url) {
+            result.receiptUrl = session.payment_intent.charges.data[0].receipt_url
+          }
+        } catch (sessError) {
+          console.error('Error fetching checkout session:', sessionId, sessError.message)
+        }
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error getting transaction details:', error)
+      return null
+    }
+  },
+
+  /**
    * Utility function to format price from cents to display string
    *
    * @param {Number} cents - Price in cents
