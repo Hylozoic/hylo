@@ -45,21 +45,29 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
   // Determine current phase first to know if we should sort by tokens
   const { currentPhase } = getRoundPhaseMeta(round)
 
-  const posts = useSelector(state => getPosts(state, round, currentPhase === 'completed'))
+  // When hiding results from participants, don't sort by tokens - use voting order instead
+  // Managers should always see sorted results even when results are hidden from participants
+  const shouldSortByTokens = currentPhase === 'completed' && (!round.hideFinalResultsFromParticipants || canManageRound)
+  const posts = useSelector(state => getPosts(state, round, shouldSortByTokens))
+
   // During submission phase, only show posts created by the current user unless you are a steward
   // In voting mode, shuffle posts randomly but consistently per user using their ID as seed
+  // In completed phase with hidden results, use the same voting order
   const postsForDisplay = useMemo(() => {
     let filtered = ['voting', 'discussion', 'completed'].includes(currentPhase) || canManageRound
       ? posts
       : posts.filter(post => parseInt(post.creator.id) === parseInt(currentUser.id))
 
-    // In voting mode, shuffle using user ID as seed for consistent randomization
-    if (currentPhase === 'voting' && currentUser?.id) {
+    // In voting mode or completed phase with hidden results, shuffle using user ID as seed for consistent randomization
+    if (currentUser?.id && (
+      currentPhase === 'voting' ||
+      (currentPhase === 'completed' && round.hideFinalResultsFromParticipants && !canManageRound)
+    )) {
       filtered = seededShuffle(filtered, currentUser.id)
     }
 
     return filtered
-  }, [canManageRound, posts, currentPhase, currentUser?.id])
+  }, [canManageRound, posts, currentPhase, currentUser?.id, round.hideFinalResultsFromParticipants])
 
   const allocationsBySubmission = useMemo(() => {
     const map = {}
@@ -155,7 +163,7 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
             key={post.id}
             post={post}
             canManageRound={canManageRound}
-            canVote={canVote}
+            canVote={canVote && !(currentPhase === 'completed' && round.hideFinalResultsFromParticipants && !canManageRound)}
             currentPhase={currentPhase}
             round={round}
             localVoteAmount={localVoteAmounts[post.id] ?? 0}

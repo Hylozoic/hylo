@@ -2628,6 +2628,8 @@ type FundingRound {
   description: String
   # The group that the funding round belongs to
   group: Group
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Whether the current user is participating in this round
   isParticipating: Boolean
   # When the current user joined this funding round
@@ -3860,6 +3862,8 @@ input FundingRoundInput {
   description: String
   # The group that this funding round belongs to
   groupId: ID
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Maximum tokens a voter can allocate
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate
