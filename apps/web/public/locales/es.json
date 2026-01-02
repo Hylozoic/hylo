@@ -1790,6 +1790,7 @@
   "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}} to {{totalSubmissions}} {{submissionDescriptorPlural}}!": "{{numParticipants}} ¡Los participantes asignaron {{totalTokens}} {{tokenType}} a {{totalSubmissions}} {{submissionDescriptorPlural}}!",
   "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!": "¡{{numParticipants}} participantes asignaron {{totalTokens}} {{tokenType}}!",
   "{{numPeopleEnrolled}} people enrolled": "{{numPeopleEnrolled}} personas inscritas",
+  "{{numSubmissions}} total {{submissionDescriptorPlural}}": "{{numSubmissions}} total {{submissionDescriptorPlural}}",
   "{{numSubmissions}} {{submissionDescriptorPlural}} received": "{{numSubmissions}} {{submissionDescriptorPlural}} recibido",
   "{{othersCount}} others": "{{othersCount}} otros",
   "{{parentGroup.name}} requires groups to answer the following questions before joining": "{{parentGroup.name}} requiere que los grupos respondan las siguientes preguntas antes de unirse",

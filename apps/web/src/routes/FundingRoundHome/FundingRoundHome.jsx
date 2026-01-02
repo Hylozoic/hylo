@@ -1,12 +1,11 @@
 import { BadgeDollarSign } from 'lucide-react'
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link, Routes, Route } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import CreateModal from 'components/CreateModal'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-import PostDialog from 'components/PostDialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import ChatRoom from 'routes/ChatRoom'
 import { FETCH_FUNDING_ROUND, fetchFundingRound, doPhaseTransition, needsPhaseTransition } from 'routes/FundingRounds/FundingRounds.store'
@@ -31,7 +30,6 @@ function FundingRoundHome () {
   const fundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
   const isLoading = useSelector(state => state.pending && state.pending[FETCH_FUNDING_ROUND])
   const canManageRound = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_ROUNDS, groupId: currentGroup?.id }))
-  const [container, setContainer] = useState(null)
 
   const currentTab = routeParams.tab || 'about'
 
@@ -96,7 +94,7 @@ function FundingRoundHome () {
   if (!isLoading && !fundingRound) return <NotFound />
 
   return (
-    <div className='w-full h-full' ref={setContainer}>
+    <div className='w-full h-full'>
       <div className='pt-2 sm:pt-4 px-2 sm:px-4 w-full h-full relative flex flex-col'>
         <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
           {(fundingRound.isParticipating || canManageRound) && (

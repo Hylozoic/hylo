@@ -160,6 +160,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     e.target.select()
   }, [])
 
+  const handleVoteAmountWheel = useCallback((e) => {
+    // Prevent scroll wheel from changing the input value
+    e.target.blur()
+  }, [])
+
   const openPostDetails = useCallback(() => navigate(postUrl(post.id, routeParams, querystringParams)), [post.id, routeParams, querystringParams])
 
   return (
@@ -232,6 +237,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             onChange={handleVoteAmountChange}
             onBlur={handleVoteAmountBlur}
             onFocus={handleVoteAmountFocus}
+            onWheel={handleVoteAmountWheel}
             onClick={(e) => e.stopPropagation()}
             className={cn(
               'w-20 h-12 text-center text-2xl font-bold bg-input border-2 rounded-md focus:outline-none',

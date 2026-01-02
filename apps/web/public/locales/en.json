@@ -1847,6 +1847,7 @@
   "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}} to {{totalSubmissions}} {{submissionDescriptorPlural}}!": "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}} to {{totalSubmissions}} {{submissionDescriptorPlural}}!",
   "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!": "{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!",
   "{{numPeopleEnrolled}} people enrolled": "{{numPeopleEnrolled}} people enrolled",
+  "{{numSubmissions}} total {{submissionDescriptorPlural}}": "{{numSubmissions}} total {{submissionDescriptorPlural}}",
   "{{numSubmissions}} {{submissionDescriptorPlural}} received": "{{numSubmissions}} {{submissionDescriptorPlural}} received",
   "{{othersCount}} others": "{{othersCount}} others",
   "{{parentGroup.name}} requires groups to answer the following questions before joining": "{{parentGroup.name}} requires groups to answer the following questions before joining",
