@@ -819,6 +819,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
             style={animationStyle}
           >
             <PostCard
+              chat
               group={context.group}
               expanded={expanded}
               highlighted={highlighted}
@@ -826,6 +827,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onFlagPost={context.onFlagPost}
               onAddProposalVote={context.onAddProposalVote}
               onRemoveProposalVote={context.onRemoveProposalVote}
               onSwapProposalVote={context.onSwapProposalVote}
