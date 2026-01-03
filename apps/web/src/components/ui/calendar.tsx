@@ -19,20 +19,20 @@ function Calendar ({
       showOutsideDays={showOutsideDays}
       locale={getLocaleForDayPicker()}
       className={cn('p-3', className)}
+      navLayout='around'
       classNames={{
-        months: 'flex-col sm:flex-row space-y-4 sm:space-y-0 justify-center',
-        month: 'flex flex-col items-center space-y-4',
-        month_caption: 'flex justify-center pt-1 relative items-center',
+        months: 'flex-col sm:flex-row space-y-4 sm:space-y-0 justify-center w-full',
+        month: 'flex flex-col items-center relative w-full',
+        month_caption: 'flex pt-1 relative pb-4',
         caption_label: 'text-sm font-medium',
-        nav: 'space-x-1 flex items-center ',
-        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100'),
-        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 p-0 opacity-50 hover:opacity-100'),
-        month_grid: 'w-full border-collapse space-y-1',
-        weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
-        weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
-        week: 'flex w-full mt-2',
-        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
-        day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
+        button_previous: cn(buttonVariants({ variant: 'outline' }), 'size-7 p-0 opacity-50 hover:opacity-100 justify-center absolute left-5 lg:left-0 top-0'),
+        button_next: cn(buttonVariants({ variant: 'outline' }), 'size-7 p-0 opacity-50 hover:opacity-100 justify-center absolute right-5 lg:right-0 top-0'),
+        month_grid: 'border-collapse space-y-1 w-full table-fixed [&_tbody]:w-full [&_tr]:w-full [&_td]:w-[14.2857%]',
+        weekdays: cn('w-full', props.showWeekNumber && 'justify-end'),
+        weekday: 'text-muted-foreground w-full rounded-md font-normal text-[0.8rem]',
+        week: 'w-full',
+        day: 'w-full text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
+        day_button: cn(buttonVariants({ variant: 'ghost' }), 'w-full h-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
         range_end: 'day-range-end',
         selected: cn(props.mode !== 'multiple' && 'rounded-md text-primary-foreground', 'bg-selected focus:bg-primary focus:text-primary-foreground'),
         today: cn(props.mode !== 'multiple' && 'rounded-md', 'bg-gray-400 text-accent-foreground'),

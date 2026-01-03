@@ -192,6 +192,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: () => isAdmin || false,
+        rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
     },
@@ -1339,6 +1340,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'phase',
         'published_at',
         'require_budget',
+        'hide_final_results_from_participants',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',

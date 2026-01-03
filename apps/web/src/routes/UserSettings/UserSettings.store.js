@@ -1,3 +1,4 @@
+import { get } from 'lodash/fp'
 import {
   FETCH_SAVED_SEARCHES,
   DELETE_SAVED_SEARCH,
@@ -59,6 +60,7 @@ export function updateUserSettings (changes) {
       query: `mutation ($changes: MeInput) {
         updateMe(changes: $changes) {
           id
+          rsvpCalendarUrl
         }
       }`,
       variables: {
@@ -66,6 +68,12 @@ export function updateUserSettings (changes) {
       }
     },
     meta: {
+      extractModel: [
+        {
+          getRoot: get('updateMe'),
+          modelName: 'Me'
+        }
+      ],
       optimistic: true,
       changes
     }

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
@@ -11,6 +11,8 @@ const PostDialog = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+
+  const portalContainer = useMemo(() => container || document.getElementById('center-column-container'))
 
   const handleOpenChange = useCallback((open) => {
     if (!open) {
@@ -39,7 +41,7 @@ const PostDialog = ({
 
   return (
     <Dialog.Root defaultOpen onOpenChange={handleOpenChange}>
-      <Dialog.Portal container={container}>
+      <Dialog.Portal container={portalContainer}>
         <Dialog.Overlay
           className='PostDialog-Overlay bg-darkening/50 dark:bg-darkening/90 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-200'
         >

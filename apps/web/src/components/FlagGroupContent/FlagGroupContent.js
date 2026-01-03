@@ -51,7 +51,7 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
 
   const isValid = () => {
     if (isEmpty(agreementsSelected) && isEmpty(platformAgreementsSelected)) return false
-    if (explanation.length < 5) return false
+    if (explanation.length < 1) return false
     return true
   }
 
