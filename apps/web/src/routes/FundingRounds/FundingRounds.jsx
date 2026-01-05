@@ -169,9 +169,10 @@ function FundingRounds () {
                     ))}
                   </div>
                 )}
-                <span className='whitespace-nowrap'>
-                  {t('participants', { count: participantCount })}
-                </span>
+                <div className='flex items-center gap-2'>
+                  <span className='whitespace-nowrap'>{participantCount === 1 ? t('participant') : t('participants')}</span>
+                  <span className='px-2 py-0.5 rounded-full bg-foreground/20 text-xs font-medium'>{participantCount}</span>
+                </div>
               </Link>
               {fr.publishedAt && (
                 fr.isParticipating
