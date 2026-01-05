@@ -9,20 +9,23 @@ import TrackCard from 'components/TrackCard'
 import StreamHeader from '../Stream/StreamHeader'
 import Loading from 'components/Loading'
 
-function Tracks() {
+function Tracks () {
   const { t } = useTranslation()
   const [{ currentGroup }] = useCurrentGroup()
   const hasResponsibility = useHasResponsibility({ forCurrentGroup: true, forCurrentUser: true })
   const canManageTracks = hasResponsibility(RESP_MANAGE_TRACKS)
-  const [tracks, { fetching, error }] = useTracks({ 
+  const [tracks, { fetching, error }] = useTracks({
     groupId: currentGroup?.id,
     hideUnpublished: !canManageTracks
   })
-  if (error) return (
-    <Text className='text-error text-center py-4'>
-      {t('Error loading tracks')}
-    </Text>
-  )
+
+  if (error) {
+    return (
+      <Text className='text-error text-center py-4'>
+        {t('Error loading tracks')}
+      </Text>
+    )
+  }
 
   const renderTrack = ({ item: track }) => (
     <TrackCard track={track} />

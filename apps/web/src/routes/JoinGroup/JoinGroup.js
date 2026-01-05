@@ -34,7 +34,7 @@ export default function JoinGroup (props) {
           accessCode: routeParams.accessCode
         }
         if (every(isEmpty, invitationTokenAndCode)) {
-          throw new Error(t('Please provide either a `token` query string parameter or `accessCode` route param'))
+          throw new Error(t('Please provide either a token query string parameter or accessCode route param'))
         }
 
         if (signupComplete) {

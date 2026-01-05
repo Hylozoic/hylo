@@ -7,6 +7,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import useOpenURL from 'hooks/useOpenURL'
 import FocusAwareStatusBar from 'components/FocusAwareStatusBar'
 import { black10onRhino, rhino05, rhino80, rhino10, havelockBlue, ghost, rhino } from '@hylo/presenters/colors'
+import { getLastParams } from 'hooks/useRouteParams'
 
 export default function ModalHeader ({
   navigation,
@@ -33,7 +34,8 @@ export default function ModalHeader ({
 }) {
   const confirmAlert = useConfirmAlert()
   const openURL = useOpenURL()
-  const { originalLinkingPath, id, commentId } = useRouteParams()
+  // Safely get params from the provided `route` prop instead of useRoute (headers aren't screens)
+  const { originalLinkingPath, id } = getLastParams(route) || {}
 
   // Based on the current linking table setup, when the app is opened from a link/notification,
   // It will open the content in a modal but not open the containing screeen

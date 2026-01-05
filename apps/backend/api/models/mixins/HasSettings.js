@@ -5,8 +5,8 @@ export default {
     this.set('settings', merge({}, this.get('settings'), value))
     if (save) {
       const options = { patch: true }
-      if (transacting) options['transacting'] = transacting
-      return this.save({settings: this.get('settings')}, options)
+      if (transacting) options.transacting = transacting
+      return this.save({ settings: this.get('settings') }, options)
     }
     return this
   },
@@ -14,7 +14,7 @@ export default {
   removeSetting: function (path, save = false) {
     unset(this.get('settings'), path)
     if (save) {
-      return this.save({settings: this.get('settings')}, {patch: true})
+      return this.save({ settings: this.get('settings') }, { patch: true })
     }
     return this
   },

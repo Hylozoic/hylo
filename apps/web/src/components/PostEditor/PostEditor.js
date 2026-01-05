@@ -1,4 +1,5 @@
 /* eslint-disable import/first */
+/* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
@@ -49,6 +50,7 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
 import presentPost from 'store/presenters/presentPost'
+import getFundingRound from 'store/selectors/getFundingRound'
 import getTopicForCurrentRoute from 'store/selectors/getTopicForCurrentRoute'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -81,6 +83,8 @@ import generateTempID from 'util/generateTempId'
 import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
+import HyloHTML from 'components/HyloHTML'
+import styles from './PostEditor.module.scss'
 import useDraftStorage, { hasDraftContent } from 'hooks/useDraftStorage'
 
 const serializeTopics = (topics = []) =>
@@ -139,8 +143,6 @@ const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
   }
 }
 
-import styles from './PostEditor.module.scss'
-
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
 
@@ -172,6 +174,7 @@ const getMyAdminGroups = createSelector(
 
 function PostEditorInner ({
   context,
+  customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   modal = true,
   post: propsPost,
   editing = false,
@@ -193,6 +196,7 @@ function PostEditorInner ({
   const currentUser = useSelector(getMe)
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
+  const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
@@ -214,7 +218,8 @@ function PostEditorInner ({
   const draftLoadedRef = useRef(false)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const topicName = routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
@@ -224,8 +229,14 @@ function PostEditorInner ({
   const attachmentPostId = (editingPostId || fromPostId)
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
-  const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const imageAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
+  const fileAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
@@ -287,6 +298,9 @@ function PostEditorInner ({
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
+  const [showAllSubmissionCriteria, setShowAllSubmissionCriteria] = useState(false)
+  const [shouldShowSubmissionCriteriaToggle, setShouldShowSubmissionCriteriaToggle] = useState(false)
+  const submissionCriteriaRef = useRef(null)
   const [titleLengthError, setTitleLengthError] = useState(initialPost.title?.length >= MAX_TITLE_LENGTH)
   const [dateError, setDateError] = useState(false)
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
@@ -575,6 +589,11 @@ function PostEditorInner ({
     setCurrentPost(prev => ({ ...prev, details: html }))
   }, [setCurrentPost])
 
+  const handleBudgetChange = useCallback((evt) => {
+    const budget = evt.target.value
+    setCurrentPost({ ...currentPost, budget })
+  }, [currentPost])
+
   /**
    * Validates time inputs to ensure end time is after start time
    * @param {Date} startTime - The start time to validate
@@ -686,7 +705,7 @@ function PostEditorInner ({
    * Checks various conditions based on post type and sets error messages
    */
   const isValid = useMemo(() => {
-    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions } = currentPost
+    const { type, title, groups, startTime, endTime, donationsLink, projectManagementLink, proposalOptions, budget } = currentPost
 
     const errorMessages = []
 
@@ -704,6 +723,11 @@ function PostEditorInner ({
       case 'proposal':
         if (proposalOptions?.length === 0) {
           errorMessages.push(t('At least one proposal option required'))
+        }
+        break
+      case 'submission':
+        if (currentFundingRound?.requireBudget && !budget) {
+          errorMessages.push(t('Budget is required for this submission'))
         }
         break
     }
@@ -727,7 +751,7 @@ function PostEditorInner ({
     }
 
     return errorMessages.length === 0
-  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions])
+  }, [hasDescription, currentPost.type, currentPost.title, currentPost.groups, currentPost.startTime, currentPost.endTime, currentPost.donationsLink, currentPost.projectManagementLink, currentPost.proposalOptions, currentPost.budget, currentFundingRound?.requireBudget])
 
   // const handleCancel = () => {
   //   if (onCancel) {
@@ -743,6 +767,7 @@ function PostEditorInner ({
   const save = useCallback(async () => {
     const {
       acceptContributions,
+      budget,
       completionAction,
       completionActionSettings,
       donationsLink,
@@ -790,6 +815,7 @@ function PostEditorInner ({
     const postToSave = {
       id,
       acceptContributions,
+      budget,
       commenters: [], // For optimistic display of the new post
       createdAt: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO(), // For optimistic display of the new post
       creator: currentUser, // For optimistic display of the new post
@@ -801,6 +827,7 @@ function PostEditorInner ({
       eventInviteeIds,
       fileAttachments, // For optimistic display of the new post
       fileUrls,
+      fundingRoundId: currentFundingRound?.id,
       groups,
       imageAttachments, // For optimistic display of the new post
       imageUrls,
@@ -839,7 +866,7 @@ function PostEditorInner ({
       clearDraft()
       setIsDirty(false)
     }
-  }, [afterSave, announcementSelected, clearDraft, currentPost, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -909,7 +936,7 @@ function PostEditorInner ({
    * @returns {boolean} - True if user has admin rights in all selected groups
    */
   const canMakeAnnouncement = useCallback(() => {
-    if (currentPost.type === 'action') return false
+    if (currentPost.type === 'action' || currentPost.type === 'submission') return false
     const { groups = [] } = currentPost
     const myAdminGroupsSlugs = myAdminGroups.map(group => group.slug)
     for (let index = 0; index < groups.length; index++) {
@@ -918,10 +945,11 @@ function PostEditorInner ({
     return true
   }, [currentPost, myAdminGroups])
 
-  const canHaveTimes = currentPost.type !== 'discussion' && currentPost.type !== 'chat' && currentPost.type !== 'action'
+  const canHaveTimes = !['discussion', 'chat', 'action', 'submission'].includes(currentPost.type)
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
+  const isSubmission = currentPost.type === 'submission'
   /**
    * Handles the To field container click, focusing the actual ToField
    * This improves UX by making the entire container clickable
@@ -929,6 +957,28 @@ function PostEditorInner ({
   const handleToFieldContainerClick = () => {
     toFieldRef.current?.focus() // This will call the focus method on ToField
   }
+
+  useEffect(() => {
+    setShowAllSubmissionCriteria(false)
+    setShouldShowSubmissionCriteriaToggle(false)
+  }, [isSubmission, currentFundingRound?.id])
+
+  const showSubmissionCriteria = useMemo(() => isSubmission && currentFundingRound?.criteria && !!(new DOMParser().parseFromString(currentFundingRound.criteria, 'text/html').body.textContent?.trim()), [isSubmission, currentFundingRound?.criteria])
+
+  useEffect(() => {
+    if (!showSubmissionCriteria) {
+      setShouldShowSubmissionCriteriaToggle(false)
+      return
+    }
+
+    if (showAllSubmissionCriteria) return
+
+    const node = submissionCriteriaRef.current
+    if (!node) return
+
+    const isOverflowing = node.scrollHeight > node.clientHeight + 1
+    setShouldShowSubmissionCriteriaToggle(isOverflowing)
+  }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
     <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
@@ -940,21 +990,51 @@ function PostEditorInner ({
         }}
       />
       <div className={cn('PostEditorHeader relative')}>
-        {!isAction
+        {isAction
           ? (
-            <PostTypeSelect
-              disabled={loading}
-              includeChat={!modal}
-              postType={currentPost.type}
-              setPostType={handlePostTypeSelection}
-              className={cn({ 'absolute top-3 right-1 z-10': isChat })}
-            />
-            )
-          : (
             <div className=''>{isEditing ? t('Edit {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor }) : t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}</div>
-            )}
+            )
+          : isSubmission
+            ? (
+              <div className=''>{isEditing ? t('Edit {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor }) : t('Add {{submissionDescriptor}}', { submissionDescriptor: currentFundingRound?.submissionDescriptor })}</div>
+              )
+            : (
+              <PostTypeSelect
+                disabled={loading}
+                includeChat={!modal}
+                postType={currentPost.type}
+                setPostType={handlePostTypeSelection}
+                className={cn({ 'absolute top-3 right-1 z-10': isChat, hidden: !!currentFundingRound })}
+              />
+              )}
       </div>
-      {!isChat && !isAction && (
+      {showSubmissionCriteria && (
+        <div className='flex flex-col gap-2 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-xs text-foreground/80'>
+          <div className='text-xs uppercase tracking-wide text-foreground/60'>{t('Submission Criteria')}</div>
+          <div
+            ref={submissionCriteriaRef}
+            className={cn(
+              'leading-relaxed space-y-2',
+              !showAllSubmissionCriteria && 'line-clamp-2'
+            )}
+          >
+            <HyloHTML
+              html={currentFundingRound.criteria}
+              className={cn(!showAllSubmissionCriteria && 'child:first:mt-0 child:first:mb-0')}
+            />
+          </div>
+          {shouldShowSubmissionCriteriaToggle && (
+            <button
+              type='button'
+              onClick={() => setShowAllSubmissionCriteria(prev => !prev)}
+              className='self-start text-xs font-semibold text-foreground underline'
+            >
+              {showAllSubmissionCriteria ? t('Hide') : t('Show all')}
+            </button>
+          )}
+        </div>
+      )}
+      {!isChat && !isAction && !isSubmission && (
         <div
           className={cn('PostEditorTo flex items-center border-2 border-transparent transition-all', styles.section, { 'border-2 border-focus': toFieldFocused })}
           onClick={handleToFieldContainerClick}
@@ -1008,7 +1088,7 @@ function PostEditorInner ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to #{{topicName}}', { topicName: currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
@@ -1055,7 +1135,7 @@ function PostEditorInner ({
               forGroups={currentPost.groups}
               readOnly={loading}
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50 pt-0'
-              backgroundClassName='bg-midground rounded-lg p-2 shadow-md'
+              backgroundClassName='bg-midground rounded-lg p-1 shadow-md'
             />
           </div>
         </div>
@@ -1070,7 +1150,7 @@ function PostEditorInner ({
           />
         </div>
       </div> */}
-      {!isChat && !isAction && (
+      {!isChat && !isAction && !isSubmission && (
         <div className={cn('PostEditorPublic', styles.section)}>
           <PublicToggle
             togglePublic={togglePublic}
@@ -1324,9 +1404,7 @@ function PostEditorInner ({
               />
               {!currentPost.acceptContributions && (
                 <div className={styles.acceptContributionsHelp}>
-                  {t(`If you turn 'Accept Contributions' on, people will be able
-                  to send money to your Stripe connected account to support
-                  this project.`)}
+                  {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
                 </div>
               )}
             </div>
@@ -1371,6 +1449,22 @@ function PostEditorInner ({
               placeholder={t('Add a project management link (must be valid URL)')}
               value={currentPost.projectManagementLink || ''}
               onChange={handleProjectManagementLinkChange}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
+      {(currentPost.type === 'project' || currentPost.type === 'submission') && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
+          <div className='text-xs text-foreground/50 mr-2 whitespace-nowrap'>
+            {t('Budget Total')}{currentPost.type === 'submission' && currentFundingRound?.requireBudget ? '*' : ''}
+          </div>
+          <div className={styles.sectionGroups}>
+            <input
+              type='text'
+              className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
+              value={currentPost.budget || ''}
+              onChange={handleBudgetChange}
               disabled={loading}
             />
           </div>

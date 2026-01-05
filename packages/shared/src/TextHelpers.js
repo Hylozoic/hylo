@@ -16,7 +16,7 @@ export function insaneOptions (providedInsaneOptions) {
     {
       allowedTags: providedInsaneOptions?.allowedTags || [
         'a', 'br', 'em', 'p', 's', 'strong',
-        'li', 'ol', 'ul',
+        'li', 'ol', 'ul', 'img',
         'div', 'iframe', 'mark', 'span',
         'blockquote', 'code', 'hr', 'pre',
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
@@ -41,6 +41,9 @@ export function insaneOptions (providedInsaneOptions) {
         ],
         div: [
           'class'
+        ],
+        img: [
+          'src', 'alt', 'title', 'class', 'width', 'height'
         ]
       }
     },

@@ -1,8 +1,6 @@
 var passport = require('passport')
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
 var GoogleTokenStrategy = require('passport-google-token').Strategy
-var FacebookStrategy = require('passport-facebook').Strategy
-var FacebookTokenStrategy = require('passport-facebook-token')
 var LinkedinStrategy = require('passport-linkedin-oauth2').Strategy
 var LinkedInTokenStrategy = require('passport-linkedin-token-oauth2').Strategy
 import { getPublicKeyFromPem } from '../lib/util'
@@ -69,27 +67,6 @@ var googleStrategy = new GoogleStrategy({
   done(null, formatProfile(profile))
 })
 passport.use(googleStrategy)
-
-var facebookStrategy = new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID,
-  clientSecret: process.env.FACEBOOK_APP_SECRET,
-  callbackURL: url('/noo/login/facebook/oauth'),
-  scope: ['public_profile', 'email', 'user_friends', 'user_about_me', 'user_likes', 'user_location'],
-  profileFields: ['id', 'displayName', 'email', 'link']
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile, accessToken, refreshToken))
-})
-passport.use(facebookStrategy)
-
-var facebookTokenStrategy = new FacebookTokenStrategy({
-  clientID: process.env.FACEBOOK_APP_ID,
-  clientSecret: process.env.FACEBOOK_APP_SECRET,
-  scope: ['public_profile', 'email', 'user_friends', 'user_about_me', 'user_likes', 'user_location'],
-  profileFields: ['id', 'displayName', 'email', 'link']
-}, function (accessToken, refreshToken, profile, done) {
-  done(null, formatProfile(profile, accessToken, refreshToken))
-})
-passport.use(facebookTokenStrategy)
 
 var googleTokenStrategy = new GoogleTokenStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,

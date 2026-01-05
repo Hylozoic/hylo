@@ -25,6 +25,7 @@ export default async function setupPostAttrs (userId, params, create = false) {
     updated_at: new Date(),
     user_id: userId
   }, pick(params,
+    'budget',
     'created_from',
     'description',
     'link_preview_featured',

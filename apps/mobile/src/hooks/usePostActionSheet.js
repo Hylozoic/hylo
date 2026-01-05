@@ -32,11 +32,30 @@ export const removePostMutation = gql`
   }
 `
 
+export const savePostMutation = gql`
+  mutation SavePostMutation ($postId: ID) {
+    savePost(postId: $postId) {
+      id
+      savedAt
+    }
+  }
+`
+
+export const unsavePostMutation = gql`
+  mutation UnsavePostMutation ($postId: ID) {
+    unsavePost(postId: $postId) {
+      id
+      savedAt
+    }
+  }
+`
+
 export default function usePostActionSheet ({
   baseHostURL = Config.HYLO_WEB_BASE_URL,
   closeOnDelete,
   creator,
   postId,
+  savedAt,
   setFlaggingVisible,
   title
 }) {
@@ -44,6 +63,8 @@ export default function usePostActionSheet ({
   const navigation = useNavigation()
   const [, deletePost] = useMutation(deletePostMutation)
   const [, removePost] = useMutation(removePostMutation)
+  const [, savePost] = useMutation(savePostMutation)
+  const [, unsavePost] = useMutation(unsavePostMutation)
   const { showHyloActionSheet } = useHyloActionSheet()
   const [{ currentGroup }] = useCurrentGroup()
   const [{ currentUser }] = useCurrentUser()
@@ -139,22 +160,25 @@ export default function usePostActionSheet ({
       [t('Edit'), editPost, {
         icon: <FontAwesome5Icon name='pencil-alt' style={styles.actionSheetIcon} />
       }],
-      [t('Delete'), deletePostWithConfirm, {
-        icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
-        destructive: true
-      }],
-      [t('Remove From Group'), removePostWithConfirm, {
-        icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
-        destructive: true
-      }],
       [t('Share'), share, {
         icon: <FontAwesome5Icon name='share' style={styles.actionSheetIcon} />
       }],
       [t('Copy Link'), copyLink, {
         icon: <Icon name='Copy' style={styles.actionSheetIcon} />
       }],
+      [savedAt ? t('Unsave Post') : t('Save Post'), savedAt ? () => unsavePost({ postId }) : () => savePost({ postId }), {
+        icon: savedAt ? <Icon name='Bookmark' style={styles.actionSheetIcon} /> : <Icon name='BookmarkCheck' style={styles.actionSheetIcon} />
+      }],
       [t('Flag'), flagPost, {
         icon: <FontAwesome5Icon name='flag' style={styles.actionSheetIcon} />,
+        destructive: true
+      }],
+      [t('Delete'), deletePostWithConfirm, {
+        icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
+        destructive: true
+      }],
+      [t('Remove From Group'), removePostWithConfirm, {
+        icon: <FontAwesome5Icon name='trash-alt' style={styles.actionSheetIcon} />,
         destructive: true
       }]
     ])

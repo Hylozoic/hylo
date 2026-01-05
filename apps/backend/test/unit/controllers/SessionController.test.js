@@ -16,9 +16,9 @@ describe('SessionController.findUser', () => {
   describe('with no directly linked user', () => {
     it('picks a user with matching email address', () => {
       return findUser('facebook', u2.get('email'), 'foo')
-      .then(user => {
-        expect(user.id).to.equal(u2.id)
-      })
+        .then(user => {
+          expect(user.id).to.equal(u2.id)
+        })
     })
   })
 
@@ -33,9 +33,9 @@ describe('SessionController.findUser', () => {
 
     it('returns that user, not one with a matching email address', () => {
       return findUser('facebook', u2.get('email'), 'foo')
-      .then(user => {
-        expect(user.id).to.equal(u1.id)
-      })
+        .then(user => {
+          expect(user.id).to.equal(u1.id)
+        })
     })
   })
 })
@@ -54,9 +54,9 @@ describe('SessionController.upsertLinkedAccount', () => {
     }
     user = factories.user()
     return user.save()
-    .then(() => {
-      req = {session: {userId: user.id}}
-    })
+      .then(() => {
+        req = {session: {userId: user.id}}
+      })
   })
 
   describe('with a directly linked user ', () => {
@@ -70,10 +70,10 @@ describe('SessionController.upsertLinkedAccount', () => {
 
     it('updates the user facebook_url', () => {
       return upsertLinkedAccount(req, 'facebook', profile)
-      .then(() => user.refresh())
-      .then(() => {
-        expect(user.get('facebook_url')).to.equal(facebookUrl)
-      })
+        .then(() => user.refresh())
+        .then(() => {
+          expect(user.get('facebook_url')).to.equal(facebookUrl)
+        })
     })
   })
 })
@@ -106,13 +106,13 @@ describe('SessionController', function () {
 
     it('works with a valid username and password', function () {
       return SessionController.create(req, res)
-      .then(() => User.find(cat.id))
-      .then(user => {
-        expect(res.status).not.to.have.been.called()
-        expect(res.ok).to.have.been.called()
-        expect(req.session.userId).to.equal(cat.id)
-        expect(user.get('last_login_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
-      })
+        .then(() => User.find(cat.id))
+        .then(user => {
+          expect(res.status).not.to.have.been.called()
+          expect(res.ok).to.have.been.called()
+          expect(req.session.userId).to.equal(cat.id)
+          expect(user.get('last_login_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
+        })
     })
   })
 
@@ -123,8 +123,8 @@ describe('SessionController', function () {
       UserSession.login = spy(UserSession.login)
       user = factories.user()
       return user.save({created_at: new Date()})
-      .then(() => user.generateToken())
-      .then(t => token = t)
+        .then(() => user.generateToken())
+        .then(t => token = t)
     })
 
     it('logs a user in and redirects (Web/GET request)', () => {
@@ -132,11 +132,11 @@ describe('SessionController', function () {
       req.method = 'GET'
 
       return SessionController.createWithToken(req, res)
-      .then(() => {
-        expect(UserSession.login).to.have.been.called()
-        expect(res.redirect).to.have.been.called()
-        expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
-      })
+        .then(() => {
+          expect(UserSession.login).to.have.been.called()
+          expect(res.redirect).to.have.been.called()
+          expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
+        })
     })
 
     it("logs a user in doesn't redirect (API/POST request)", () => {
@@ -145,11 +145,11 @@ describe('SessionController', function () {
 
       res = factories.mock.response()
       return SessionController.createWithToken(req, res)
-      .then(() => {
-        expect(UserSession.login).to.have.been.called()
-        expect(res.redirect).not.to.have.been.called()
-        expect(res.ok).to.have.been.called()
-      })
+        .then(() => {
+          expect(UserSession.login).to.have.been.called()
+          expect(res.redirect).not.to.have.been.called()
+          expect(res.ok).to.have.been.called()
+        })
     })
 
     it('rejects an invalid token', () => {
@@ -158,10 +158,10 @@ describe('SessionController', function () {
       res.send = spy(function (msg) { error = msg })
 
       return SessionController.createWithToken(req, res)
-      .then(() => {
-        expect(res.send).to.have.been.called()
-        expect(error).to.equal('Link expired')
-      })
+        .then(() => {
+          expect(res.send).to.have.been.called()
+          expect(error).to.equal('Link expired')
+        })
     })
   })
 
@@ -182,10 +182,10 @@ describe('SessionController', function () {
       req.session.authenticated = true
 
       return SessionController.createWithJWT(req, res)
-      .then(() => {
-        expect(res.redirect).to.have.been.called()
-        expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
-      })
+        .then(() => {
+          expect(res.redirect).to.have.been.called()
+          expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
+        })
     })
 
     it('for valid JWT and POST returns success', () => {
@@ -194,9 +194,9 @@ describe('SessionController', function () {
       req.session.authenticated = true
 
       return SessionController.createWithJWT(req, res)
-      .then(() => {
-        expect(res.ok).to.have.been.called()
-      })
+        .then(() => {
+          expect(res.ok).to.have.been.called()
+        })
     })
 
     it('for invalid token and GET it will still redirect', () => {
@@ -204,10 +204,10 @@ describe('SessionController', function () {
       req.session.authenticated = false
 
       return SessionController.createWithJWT(req, res)
-      .then(() => {
-        expect(res.redirect).to.have.been.called()
-        expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
-      })
+        .then(() => {
+          expect(res.redirect).to.have.been.called()
+          expect(res.redirected).to.equal(Frontend.Route.evo.passwordSetting())
+        })
     })
 
     it('for invalid token and POST it returns error', () => {
@@ -218,177 +218,10 @@ describe('SessionController', function () {
       req.session.userId = null
 
       return SessionController.createWithJWT(req, res)
-      .then(() => {
-        expect(res.status).to.have.been.called()
-        expect(error).to.equal('Invalid link, please try again')
-      })
-    })
-  })
-
-  describe('.finishFacebookOAuth', () => {
-    var req, res, origPassportAuthenticate
-
-    var mockProfile = {
-      displayName: 'Lawrence Wang',
-      email: 'l@lw.io',
-      emails: [ { value: 'l@lw.io' } ],
-      gender: 'male',
-      id: '100101',
-      name: 'Lawrence Wang',
-      profileUrl: 'http://www.facebook.com/100101',
-      provider: 'facebook'
-    }
-
-    const expectMatchMockProfile = userId => {
-      return User.find(userId, {withRelated: 'linkedAccounts'})
-      .then(user => {
-        var account = user.relations.linkedAccounts.first()
-        expect(account).to.exist
-        expect(account.get('provider_key')).to.equal('facebook')
-        expect(user.get('facebook_url')).to.equal(mockProfile.profileUrl)
-        expect(user.get('avatar_url')).to.equal('https://graph.facebook.com/100101/picture?type=large&access_token=186895474801147|ppppppp')
-        return user
-      })
-    }
-
-    before(() => {
-      origPassportAuthenticate = passport.authenticate
-    })
-
-    beforeEach(() => {
-      req = factories.mock.request()
-      res = factories.mock.response()
-
-      UserSession.login = spy(UserSession.login)
-      User.create = spy(User.create)
-
-      passport.authenticate = spy(function (strategy, callback) {
-        return () => callback(null, mockProfile)
-      })
-
-      return setup.clearDb()
-    })
-
-    afterEach(() => {
-      passport.authenticate = origPassportAuthenticate
-    })
-
-    it('creates a new user', () => {
-      return SessionController.finishFacebookOAuth(req, res)
-      .then(() => {
-        expect(UserSession.login).to.have.been.called()
-        expect(User.create).to.have.been.called()
-        expect(res.view).to.have.been.called()
-        expect(res.viewTemplate).to.equal('popupDone')
-        expect(res.viewAttrs.error).not.to.exist
-
-        return User.find('l@lw.io', {withRelated: 'linkedAccounts'})
-      })
-      .then(user => {
-        expect(user).to.exist
-        expect(user.get('facebook_url')).to.equal('http://www.facebook.com/100101')
-        var account = user.relations.linkedAccounts.find(a => a.get('provider_key') === 'facebook')
-        expect(account).to.exist
-      })
-    })
-
-    describe('with no email in the auth response', () => {
-      beforeEach(() => {
-        var profile = _.merge(_.cloneDeep(mockProfile), {email: null, emails: null})
-        passport.authenticate = spy((strategy, callback) => () => callback(null, profile))
-      })
-
-      afterEach(() => {
-        passport.authenticate = origPassportAuthenticate
-      })
-
-      it('sets an error in the view parameters', () => {
-        return SessionController.finishFacebookOAuth(req, res)
         .then(() => {
-          expect(UserSession.login).not.to.have.been.called()
-          expect(res.view).to.have.been.called()
-          expect(res.viewTemplate).to.equal('popupDone')
-          expect(res.viewAttrs.error).to.equal('no email')
+          expect(res.status).to.have.been.called()
+          expect(error).to.equal('Invalid link, please try again')
         })
-      })
-    })
-
-    describe('with no user in the auth response', () => {
-      beforeEach(() => {
-        passport.authenticate = spy(function (strategy, callback) {
-          return () => callback(null, null)
-        })
-      })
-
-      afterEach(() => {
-        passport.authenticate = origPassportAuthenticate
-      })
-
-      it('sets an error in the view parameters', () => {
-        return SessionController.finishFacebookOAuth(req, res)
-        .then(() => {
-          expect(res.view).to.have.been.called()
-          expect(res.viewAttrs.error).to.equal('no user')
-        })
-      })
-    })
-
-    describe('for an existing user', () => {
-      var user
-
-      beforeEach(() => {
-        user = factories.user()
-        mockProfile.email = user.get('email')
-        return user.save()
-      })
-
-      it.skip('creates a new linked account', () => {
-        return SessionController.finishFacebookOAuth(req, res)
-        .then(() => expectMatchMockProfile(user.id))
-      })
-
-      describe('with an existing Facebook account', () => {
-        beforeEach(() => LinkedAccount.create(user.id, {type: 'facebook', profile: {id: 'foo'}}))
-
-        it('leaves the existing account unchanged', () => {
-          return SessionController.finishFacebookOAuth(req, res)
-          .then(() => user.load('linkedAccounts'))
-          .then(user => {
-            expect(user.relations.linkedAccounts.length).to.equal(2)
-            var account = user.relations.linkedAccounts.first()
-            expect(account.get('provider_user_id')).to.equal('foo')
-          })
-        })
-      })
-    })
-
-    describe('for a logged-in user', () => {
-      var user
-
-      beforeEach(() => {
-        user = factories.user()
-        return user.save().then(() => req.login(user.id))
-      })
-
-      it('creates a new linked account even if the email does not match', () => {
-        return SessionController.finishFacebookOAuth(req, res)
-        .then(() => expectMatchMockProfile(user.id))
-      })
-
-      describe('with a linked account that belongs to a different user', () => {
-        var account
-        beforeEach(() => {
-          return factories.user().save()
-          .then(u2 => LinkedAccount.create(u2.id, {type: 'facebook', profile: {id: mockProfile.id}}))
-          .then(a => { account = a; return a})
-        })
-
-        it('changes ownership', () => {
-          return SessionController.finishFacebookOAuth(req, res)
-          .then(() => expectMatchMockProfile(user.id))
-          .then(user => expect(user.relations.linkedAccounts.first().id).to.equal(account.id))
-        })
-      })
     })
   })
 })

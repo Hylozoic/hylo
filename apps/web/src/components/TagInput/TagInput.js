@@ -38,10 +38,10 @@ class TagInput extends Component {
   static defaultProps = {
     theme: {
       root: 'root',
-      selected: 'selected',
+      selected: 'selected pl-2 py-1',
       selectedTag: 'selectedTag',
       selectedTagName: 'selectedTagName',
-      selectedTagRemove: 'selectedTagRemove',
+      selectedTagRemove: 'selectedTagRemove ml-1',
       search: 'search',
       searchInput: 'searchInput',
       suggestions: 'suggestions',
@@ -141,7 +141,7 @@ class TagInput extends Component {
     const optionalHashtag = addLeadingHashtag ? '#' : ''
 
     const selectedItems = uniqBy('id', tags).map(t =>
-      <li key={t.id} className='inline-flex items-center relative top-[2px] mr-2'>
+      <li key={t.id} className='inline-flex items-center relative mr-2'>
         {t.avatarUrl && <RoundImage url={t.avatarUrl} small className={theme.selectedTagImage} />}
         <span className='text-foreground'>
           {optionalHashtag}{t.label || t.name}
@@ -208,14 +208,14 @@ class TagInput extends Component {
                   onChange={maxReached ? this.resetInput : this.select}
                   theme={{
                     items: 'TagInput-KeyControlledList-items p-0 m-0 text-foreground',
-                    item: cn('TagInput-KeyControlledList-item p-2 hover:bg-selected/100 text-foreground m-0 mt-1 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
+                    item: cn('TagInput-KeyControlledList-item p-2 hover:bg-selected/100 text-foreground m-0 hover:text-foreground rounded-md', { [styles.error]: maxReached }),
                     itemActive: 'TagInput-KeyControlledList-item text-foreground',
                     itemLink: 'TagInput-KeyControlledList-itemLink text-foreground hover:text-foreground'
                   }}
                   ref={this.list}
                   tabChooses={this.props.tabChooses}
                   spaceChooses={this.props.spaceChooses}
-                  backgroundClassName={this.props.backgroundClassName || 'bg-primary'}
+                  backgroundClassName={this.props.backgroundClassName || 'bg-input border border-border rounded-md shadow-lg'}
                 />
               </div>}
           </li>

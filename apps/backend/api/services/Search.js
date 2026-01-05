@@ -15,6 +15,33 @@ module.exports = {
 
   forModerationActions,
 
+  forFundingRounds: function (opts) {
+    return FundingRound.query(qb => {
+      qb.where('funding_rounds.deactivated_at', null)
+
+      if (opts.search) {
+        qb.whereRaw('funding_rounds.title ilike ?', opts.search + '%')
+      }
+
+      if (opts.limit || opts.first) {
+        qb.limit(opts.limit || opts.first)
+      }
+      if (opts.offset) {
+        qb.offset(opts.offset)
+      }
+
+      if (!isNil(opts.published)) {
+        if (opts.published) {
+          qb.where('funding_rounds.published_at', 'is not', null)
+        } else {
+          qb.where('funding_rounds.published_at', null)
+        }
+      }
+
+      qb.orderBy(opts.sortBy || 'id', opts.order || 'asc')
+    })
+  },
+
   forGroups: function (opts) {
     return Group.query(qb => {
       if (opts.nearCoord) {
@@ -104,6 +131,7 @@ module.exports = {
       q.join('groups', 'groups.id', '=', 'groups_tags.group_id')
       q.whereIn('groups.id', Group.selectIdsForMember(opts.userId))
       q.where('groups.active', true)
+      q.whereRaw('tags.name not ilike ?', '‡%') // Don't return special system tags like the ones used for funding round chat rooms
 
       if (opts.groupSlug) {
         q.where('groups.slug', '=', opts.groupSlug)

@@ -6,6 +6,7 @@ import { UPDATE_POST } from 'store/constants'
 export default function updatePost (post, query = updatePostMutation) {
   const {
     acceptContributions,
+    budget,
     completionAction,
     completionActionSettings,
     details,
@@ -43,6 +44,7 @@ export default function updatePost (post, query = updatePostMutation) {
       query,
       variables: {
         acceptContributions,
+        budget,
         completionAction,
         completionActionSettings,
         details,

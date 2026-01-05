@@ -30,41 +30,14 @@ sudo systemctl enable redis
 sudo systemctl start redis
 ```
 
-Create a `.env` file in the root directory by copying .env.example. Values below are team specific and should be supplied as needed:
+Create a `.env` file in the root directory by copying .env.example. More info about specific keys below:
 
-```
-ADMIN_GOOGLE_CLIENT_ID=[ client id ]
-ADMIN_GOOGLE_CLIENT_SECRET=[ client secret ]
-AWS_S3_BUCKET=[ bucket name ]
-AWS_SECRET_ACCESS_KEY=[ secret access key ]
-AWS_ACCESS_KEY_ID=[ access key id ]
-COOKIE_NAME=[ any string without spaces ]
-COOKIE_SECRET=[ any string without spaces ]
-EMAIL_SENDER=[ email ]
-FACEBOOK_APP_ID=[ app id ]
-FACEBOOK_APP_SECRET=[ app secret ]
-GOOGLE_CLIENT_ID=[ client id ]
-GOOGLE_CLIENT_SECRET=[ client secret ]
-HYLO_ADMINS=[ your user id ]
-JWT_SECRET=[a string without spaces]
-LINKEDIN_API_KEY=[ api key ]
-LINKEDIN_API_SECRET=[ api secret ]
-INBOUND_EMAIL_DOMAIN=[ domain ]
-INBOUND_EMAIL_SALT=[ salt ]
-MAPBOX_TOKEN=[ key ]
-PLAY_APP_SECRET=[ app secret ]
-ROLLBAR_SERVER_TOKEN=[ token ]
-SEGMENT_KEY=[ key ]
-SENDWITHUS_KEY=[ key ]
-SLACK_APP_CLIENT_ID=[ client id ]
-SLACK_APP_CLIENT_SECRET=[ client secret ]
-UPLOADER_HOST=[ hostname ]
-UPLOADER_PATH_PREFIX=[ path ]
-```
 * `ADMIN_GOOGLE_CLIENT_*`: To access the admin console.  Get these values from the [hylo-admin Google project](https://console.developers.google.com/project/hylo-admin).
 * `DEBUG_SQL`: set to `true` if you want to output the SQL used within knex/bookshelf
 * `DATABASE_URL`: set to your local DB instance
-* `PLAY_APP_SECRET`: set to a string over length 16 to avoid the code erroring. real value only needed for running in production environment
+* `EMAIL_SENDER`: set to your email address
+* `MAPBOX_TOKEN`: get a token from [Mapbox](https://www.mapbox.com/) or email dev@hylo.com for one
+* `OIDC_KEYS`: set to a base64 string of a RSA key, you can generate one with `openssl genrsa 2048 | base64`
 * `ROLLBAR_SERVER_TOKEN`: use the `post_server_item` token in  [Rollbar](https://rollbar.com/hylo_dev/Hylo/settings/access_tokens/)
 * `SENDWITHUS_KEY`: set up a test key in SendWithUs to send all email only to you (ask someone with admin rights to set this up)
 * `SLACK_APP_CLIENT_ID`: set up an app on Slack and reference its' client id, optional for dev installation

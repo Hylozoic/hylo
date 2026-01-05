@@ -1,4 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
+import { BookmarkCheck, Bookmark } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +19,7 @@ import HyloEditor from 'components/HyloEditor'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Feature from 'components/PostCard/Feature'
+import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.store'
 import LinkPreview from 'components/LinkPreview'
 import RoundImageRow from 'components/RoundImageRow'
 import Tooltip from 'components/Tooltip'
@@ -60,7 +62,8 @@ export default function ChatPost ({
     id,
     linkPreview,
     linkPreviewFeatured,
-    postReactions
+    postReactions,
+    savedAt
   } = post
 
   const dispatch = useDispatch()
@@ -186,14 +189,23 @@ export default function ChatPost ({
     return true
   })
 
+  const handleSavePost = useCallback(() => {
+    if (savedAt) {
+      dispatch(unsavePost(id))
+    } else {
+      dispatch(savePost(id))
+    }
+  }, [savedAt, id])
+
   const actionItems = filter(item => isFunction(item.onClick), [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
-    { icon: 'Replies', label: 'Reply', onClick: showPost },
+    { icon: 'Replies', label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
-    { icon: 'Edit', label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null },
-    { icon: 'Flag', label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null },
-    { icon: 'Trash', label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true },
-    { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true }
+    { icon: 'Edit', label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
+    { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
+    { icon: 'Flag', label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
+    { icon: 'Trash', label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
+    { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
   ])
 
   const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
@@ -255,10 +267,16 @@ export default function ChatPost ({
               key={item.label}
               onClick={item.onClick}
               className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+              data-tooltip-content={item.tooltip}
+              data-tooltip-id='action-tt'
             >
-              <Icon name={item.icon} />
+              {typeof item.icon === 'string' ? <Icon name={item.icon} /> : item.icon}
             </button>
           ))}
+          <Tooltip
+            delay={50}
+            id='action-tt'
+          />
           <EmojiPicker
             className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}

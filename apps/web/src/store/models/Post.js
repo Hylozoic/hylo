@@ -96,6 +96,8 @@ Post.fields = {
   startsAt: attr(),
   timezone: attr(),
   title: attr(),
+  tokensAllocated: attr(), // Tokens allocated by current user in a funding round
+  totalTokensAllocated: attr(), // Total tokens allocated to this post in a funding round
   type: attr(),
   commenters: many({
     to: 'Person',

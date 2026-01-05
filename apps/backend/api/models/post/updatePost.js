@@ -23,7 +23,8 @@ export default function updatePost (userId, id, params) {
           Post.Type.PROJECT,
           Post.Type.PROPOSAL,
           Post.Type.REQUEST,
-          Post.Type.RESOURCE
+          Post.Type.RESOURCE,
+          Post.Type.SUBMISSION
         ]
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")

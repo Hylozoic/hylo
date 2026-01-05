@@ -7,6 +7,15 @@ enum LocationDisplayPrecision {
   region
 }
 
+enum FundingRoundPhase {
+  draft
+  published
+  submissions
+  discussion
+  voting
+  completed
+}
+
 type Query {
   # Find an Activity by ID
   activity(id: ID): Activity
@@ -30,6 +39,10 @@ type Query {
     # Start loading at this offset
     offset: Int
   ): PersonConnectionQuerySet
+
+
+  # Query for a FundingRound by ID
+  fundingRound(id: ID): FundingRound
 
   # Read a group by id or by slug
   group(
@@ -272,6 +285,8 @@ type Query {
   search(
     # Number of results to return
     first: Int,
+    # Search only in these group ids
+    groupIds: [ID]
     # For pagination, return results after this offset
     offset: Int,
     # Search term
@@ -366,6 +381,8 @@ type Subscription {
 
 # The meta data associated with an Activity
 type ActivityMeta {
+  # The phase of the funding round that this activity is related to
+  phase: String
   """
     The reasons for this activity, options are:
       'mention' = // you are mentioned in a post or comment
@@ -386,8 +403,13 @@ type ActivityMeta {
       'memberJoinedGroup' = someone joined a group
       'trackCompleted' = someone completed a track
       'trackEnrollment' = someone enrolled in a track
+      'fundingRoundNewSubmission' = someone submitted a new submission to a funding round
+      'fundingRoundPhaseTransition' = a phase transition in a funding round
+      'fundingRoundReminder' = a reminder of a funding round deadline
   """
   reasons: [String]
+  # The type of reminder for this activity if it is a reminder (for funding rounds)
+  reminderType: String
 }
 
 # An activity that someone may want to be notified about
@@ -423,6 +445,8 @@ type Activity {
   contributionAmount: Int
   # Additional metadata about the Activity
   meta: ActivityMeta
+  # If this activity involved a funding round then this is the FundingRound
+  fundingRound: FundingRound
   # The Group related to the activity
   group: Group
   # The other Group related to this activity for ones involving multiple groups
@@ -658,6 +682,8 @@ type ContextWidget {
   topicFollow: TopicFollow
   # Chat this widget is pointing at
   viewChat: Topic
+  # Funding round this widget is pointing at
+  viewFundingRound: FundingRound
   # Group this widget is pointing at
   viewGroup: Group
   # Post this widget is pointing at
@@ -1087,6 +1113,22 @@ type Group {
     sortBy: String
   ): TrackQuerySet
 
+  # Funding rounds in this group
+  fundingRounds(
+    # Number of funding rounds to return
+    first: Int,
+    # Only return funding rounds that are published
+    published: Boolean,
+    # For pagination, return results after this offset
+    offset: Int,
+    # Determines sort order, either 'ASC' or 'DESC'
+    order: String,
+    # Filter funding rounds by a search string
+    search: String,
+    # Sort by 'id' or 'created_at'
+    sortBy: String
+  ): FundingRoundQuerySet
+
   # Posts to display in this group's stream. This includes posts from child groups that the logged in user is a member of
   viewPosts(
     # Only return posts that are not past their end date and have not been completed
@@ -1131,6 +1173,12 @@ type Group {
 
   # Widgets used on the Explore page
   widgets: GroupWidgetQuerySet
+}
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type FundingRoundQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [FundingRound]
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -1566,6 +1614,8 @@ type Me {
   newNotificationCount: Int
   # The number of Posts the logged in user has created
   postsTotal: Int
+  # RSVP calendar URL for subscriptions
+  rsvpCalendarUrl: String
   # The logged in user's settings
   settings: UserSettings
   # Short tagline
@@ -2093,6 +2143,8 @@ type Post {
   announcement: Boolean
   # Number of attachments on this post
   attachmentsTotal: Int
+  # Budget for project or submission posts
+  budget: String
   # Number of people who have commented on this post
   commentersTotal: Int
   # Total number of comments on this post
@@ -2124,6 +2176,8 @@ type Post {
   followersTotal: Int
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
+  # The funding round this post is associated with
+  fundingRound: FundingRound
   # Number of groups this has been posted to
   groupsTotal: Int
   # Whether who votes on this proposal is visible or not
@@ -2176,6 +2230,10 @@ type Post {
   timezone: String
   # The title text for the post
   title: String
+  # Number of tokens allocated to this post by the current user (for funding round submissions)
+  tokensAllocated: Int
+  # Total number of tokens allocated to this post by all users (for funding round submissions)
+  totalTokensAllocated: Int
   # Number of topics added to the post
   topicsTotal: Int
   # NOT USED RIGHT NOW
@@ -2554,6 +2612,96 @@ type TrackUser {
   user: Person
 }
 
+# A participatory funding round
+type FundingRound {
+  id: ID
+  # The URL for the banner image of the round
+  bannerUrl: String
+  # Whether the current user can submit to this funding round
+  canSubmit: Boolean
+  # Whether the current user can vote in this funding round
+  canVote: Boolean
+  createdAt: Date
+  # Criteria for submitting projects/submissions
+  criteria: String
+  # Description of the round
+  description: String
+  # The group that the funding round belongs to
+  group: Group
+  # Whether the current user is participating in this round
+  isParticipating: Boolean
+  # When the current user joined this funding round
+  joinedAt: Date
+  # Maximum tokens a voter can allocate
+  maxTokenAllocation: Int
+  # Minimum tokens a voter can allocate
+  minTokenAllocation: Int
+  # Number of participants in the round
+  numParticipants: Int
+  # Number of submissions in the round
+  numSubmissions: Int
+  # The current phase of the round: draft, published, submissions, discussion, voting, completed
+  phase: FundingRoundPhase
+  # When the round was published
+  publishedAt: Date
+  # Whether a budget is required for submissions
+  requireBudget: Boolean
+  # The term used to describe a submission to the round
+  submissionDescriptor: String
+  # # The plural term used to describe submissions to the round
+  submissionDescriptorPlural: String
+  # The submission posts for the round
+  submissions: PostQuerySet
+  # Total number of submission
+  submissionsTotal: Int
+  # The date submissions close (optional)
+  submissionsCloseAt: Date
+  # The date submissions open (optional)
+  submissionsOpenAt: Date
+  # The roles or badges required to add a submission to the round
+  submitterRoles: [Role]
+  # The title of the funding round
+  title: String
+  # When tokens were distributed to users
+  tokensDistributedAt: Date
+  # The number of tokens remaining for the current user to allocate
+  tokensRemaining: Int
+  # Total tokens available to allocate
+  totalTokens: Int
+  # Total number of tokens allocated across all submissions in this round
+  totalTokensAllocated: Int
+  # Token type used for voting/allocation
+  tokenType: String
+  updatedAt: Date
+  # The users that have joined this funding round
+  users: PersonQuerySet
+  # Total number of users joined
+  usersTotal: Int
+  # The settings for the current user in this track
+  userSettings: JSON
+  # The roles/badges required to vote on submissions
+  voterRoles: [Role]
+  # When voting opens (optional)
+  votingClosesAt: Date
+  # When voting closes (optional)
+  votingOpensAt: Date
+  # Voting method to be used (current options: token_allocation_constant, token_allocation_divide)
+  votingMethod: String
+  # Token allocations for this funding round. Each entry pairs a voter (Person) with
+  # a submission (Post) and the tokens they allocated so the UI can render per-user results.
+  allocations: [FundingRoundAllocation]
+}
+
+# Token allocation for a submission by a user within a funding round
+type FundingRoundAllocation {
+  # The user who allocated tokens
+  user: Person
+  # The submission that received the tokens
+  submission: Post
+  # Number of tokens allocated to the submission
+  tokensAllocated: Int
+}
+
 # Current user's personal settings
 type UserSettings {
   # Has this person seen the tour that displays the first time someone logs in
@@ -2570,6 +2718,8 @@ type UserSettings {
   mapBaseLayer: String
   # How this person wants to receive notifications for each post in their groups. none, important, or all
   postNotifications: String
+  # Whether to enable RSVP calendar subscription
+  rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream
@@ -2678,6 +2828,8 @@ type Mutation {
   addSkillToLearn(name: String): Skill
   # Add a suggested skill to a Group. Only a group steward can do this.
   addSuggestedSkillToGroup(groupId: ID, name: String): Skill
+  # Allocate tokens from the current user to a submission post
+  allocateTokensToSubmission(postId: ID, tokens: Int): Post
   # NOT USED RIGHT NOW. Toggle whether a Group allows non-hosts to invite new people to the Group. Only a group steward can call this.
   allowGroupInvites(groupId: ID, data: Boolean): Group
   # For logged in user to block a user, meaning they will no longer see the user's posts and that user can no longer see theirs or message them.
@@ -2698,6 +2850,8 @@ type Mutation {
   createComment(data: CommentInput): Comment
   # Create a new context widget
   createContextWidget(data: ContextWidgetInput, groupId: ID): ContextWidget
+  # Create a new funding round
+  createFundingRound(data: FundingRoundInput): FundingRound
   # Create a new Group
   createGroup(
     data: GroupInput,
@@ -2736,6 +2890,10 @@ type Mutation {
   deleteAffiliation(id: ID): ID
   # Delete a comment
   deleteComment(id: ID): GenericResult
+  # Delete a context widget (can only delete user added ones)
+  deleteContextWidget(contextWidgetId: ID): GenericResult
+  # Delete a funding round
+  deleteFundingRound(id: ID): GenericResult
   # Delete a group that you are a steward of
   deleteGroup(id: ID): GenericResult
   # Remove the relationship between two groups if you are a steward of one of them
@@ -2760,6 +2918,8 @@ type Mutation {
   deleteSavedSearch(id: ID): ID
   # Delete a Zapier trigger (called by Zapier)
   deleteZapierTrigger(id: ID): Boolean
+  # Perform a phase transition for a funding round
+  doPhaseTransition(id: ID): FundingRound
   # Duplicate a track
   duplicateTrack(trackId: ID): Track
   # Enroll in a track
@@ -2784,10 +2944,14 @@ type Mutation {
   updatePeerRelationship(relationshipId: ID, description: String): GroupRelationship
   # Invite one or more people to an event Post
   invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
+  # Join a funding round
+  joinFundingRound(id: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
+  # Leave a funding round
+  leaveFundingRound(id: ID): FundingRound
   # Leave a group
   leaveGroup(id: ID): ID
   # Remove yourself as a member of a project Post
@@ -2920,6 +3084,8 @@ type Mutation {
   updateComment(id: ID, data: CommentInput): Comment
   # Update a context widget
   updateContextWidget(contextWidgetId: ID, data: ContextWidgetInput): ContextWidget
+  # Update a funding round
+  updateFundingRound(id: ID, data: FundingRoundInput): FundingRound
   # Update a Group's settings. Only a group steward can call this.
   updateGroupSettings(id: ID, changes: GroupInput): Group
   # Update a Group's settings. Only can be called via API key.
@@ -3149,6 +3315,9 @@ input ContextWidgetInput {
 
   # Chat this widget is pointing at
   viewChatId: ID
+
+  # Funding round this widget is pointing at
+  viewFundingRoundId: ID
 
   # Group this widget is pointing at
   viewGroupId: ID
@@ -3521,6 +3690,8 @@ input PostInput {
   acceptContributions: Boolean
   # Was this post marked an announcement by a group moderator?
   announcement: Boolean
+  # Budget for project or submission posts
+  budget: String
   # The action that people can take to complete this post. 'button', 'comment', 'reaction', 'selectMultiple', 'selectOne', 'text', or 'uploadFile'
   completionAction: String
   # The options associated with the completion action. e.g. for 'selectMultiple', this is an array of options
@@ -3535,6 +3706,8 @@ input PostInput {
   eventInviteeIds: [ID]
   # URLs for file attachments
   fileUrls: [String]
+  # The FundingRound this post is a submission to
+  fundingRoundId: ID
   # IDs of the groups to post to
   groupIds: [ID]
   # URLs of images in the post
@@ -3575,7 +3748,7 @@ input PostInput {
   topicNames: [String]
   # The track this post is associated with
   trackId: ID
-  # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', or 'resource'
+  # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', 'submission'
   type: String
 }
 
@@ -3671,6 +3844,56 @@ input TrackInput {
   welcomeMessage: String
 }
 
+input RoleSelectionInput {
+  # The ID of the role
+  id: ID!
+  # The type of role: 'common' or 'group'
+  type: String!
+}
+
+input FundingRoundInput {
+  # The URL for the banner image of the round
+  bannerUrl: String
+  # Criteria for submitting projects/submissions
+  criteria: String
+  # Description of the round
+  description: String
+  # The group that this funding round belongs to
+  groupId: ID
+  # Maximum tokens a voter can allocate
+  maxTokenAllocation: Int
+  # Minimum tokens a voter can allocate
+  minTokenAllocation: Int
+  # When the round was or will be published, null if not published
+  publishedAt: Date
+  # Whether a budget is required for submissions
+  requireBudget: Boolean
+  # The term used to describe a submission to the round
+  submissionDescriptor: String
+  # # The plural term used to describe submissions to the round
+  submissionDescriptorPlural: String
+  # The date submissions close (optional)
+  submissionsCloseAt: Date
+  # The date submissions open (optional)
+  submissionsOpenAt: Date
+  # The roles or badges required to add a submission to the round
+  submitterRoles: [RoleSelectionInput]
+  # The title of the funding round
+  title: String
+  # Total tokens available to allocate
+  totalTokens: Int
+  # Token type used for voting/allocation
+  tokenType: String
+  # The roles/badges required to vote on submissions
+  voterRoles: [RoleSelectionInput]
+  # When voting opens (optional)
+  votingClosesAt: Date
+  # When voting closes (optional)
+  votingOpensAt: Date
+  # Voting method to be used (current options: token_allocation_constant, token_allocation_divide)
+  votingMethod: String
+}
+
 input UserSettingsInput {
   # Has this person seen the tour that displays the first time someone logs in
   alreadySeenTour: Boolean
@@ -3684,6 +3907,8 @@ input UserSettingsInput {
   locale: String
   # The most recent map base later viewed by this person
   mapBaseLayer: String
+  # Whether to enable RSVP calendar subscription
+  rsvpCalendarSub: Boolean
   # Whether this person has finished viewing the welcome wizard after first signing up
   signupInProgress: Boolean
   # Include child group posts in user's stream

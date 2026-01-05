@@ -34,7 +34,7 @@ describe('updateComment', () => {
       expect.fail('should reject')
     })
     .catch(err => {
-      expect(err.message).to.equal('cannot find comment with ID')
+      expect(err.message).to.equal('cannot find comment with ID: ' + id)
     })
   })
 

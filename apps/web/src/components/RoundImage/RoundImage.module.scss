@@ -36,11 +36,13 @@
 .xlarge {
   width: $space-20x;
   height: $space-20x;
+  min-width: $space-20x;
 }
 
 .large {
   width: 40px;
   height: 40px;
+  min-width: 40px;
 }
 
 .xxlarge {
@@ -53,6 +55,7 @@
 .medium {
   width: 30px;
   height: 30px;
+  min-width: 30px;
 }
 
 .small {

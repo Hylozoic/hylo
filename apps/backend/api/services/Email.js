@@ -110,6 +110,9 @@ module.exports = {
   sendTrackCompletedEmail: sendEmailWithOptions('tem_cbYqGkw78DtXwF88v64MY4v3'),
   sendTrackEnrollmentEmail: sendEmailWithOptions('tem_HQ8KG3pwPbDJkJjhbvhrbcxQ'),
   sendWelcomeEmail: sendEmailWithOptions('tem_7TwDyk3dR67C8WrWg3h7ycvd'),
+  sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_jpbfjBVT36gpQdVQDpFGxH97'),
+  sendFundingRoundPhaseTransitionEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
+  sendFundingRoundReminderEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_xwQCfpdRT9K6hvrRFqDdhBRK',
