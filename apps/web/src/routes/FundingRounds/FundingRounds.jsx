@@ -170,7 +170,7 @@ function FundingRounds () {
                   </div>
                 )}
                 <div className='flex items-center gap-2'>
-                  <span className='whitespace-nowrap'>{participantCount === 1 ? t('participant') : t('participants')}</span>
+                  <span className='whitespace-nowrap'>{t('participant', { count: participantCount })}</span>
                   <span className='px-2 py-0.5 rounded-full bg-foreground/20 text-xs font-medium'>{participantCount}</span>
                 </div>
               </Link>
