@@ -226,7 +226,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Add your skills and interests to your profile')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-white transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-white transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Edit' className='mr-2 text-white' />
                     {t('Edit Profile')}
@@ -258,7 +258,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     {memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
                     {showExpandGroupsButton && (
                       <div>
-                        <button onClick={toggleShowAllGroups} className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'>
+                        <button onClick={toggleShowAllGroups} className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'>
                           {showAllGroups
                             ? 'Show Less'
                             : `Show All ${memberships.length} Groups`}
@@ -274,7 +274,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Find groups to join and collaborate with others')}</p>
                   <button
                     onClick={() => push('/groups/explorer')}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Groups' className='mr-2' />
                     {t('Explore Groups')}
@@ -307,7 +307,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Add your affiliations')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Edit' className='mr-2' />
                     {t('Edit Profile')}
@@ -328,7 +328,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               id='member-profile-content-dropdown'
               items={contentDropDownItems}
               toggleChildren={
-                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
+                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
                   {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
                 </button>
               }
@@ -376,7 +376,7 @@ function ActionButtons ({ items }) {
     return (
       <React.Fragment key={index}>
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
           onClick={onClick}
           data-tooltip-id={tooltipId}
           data-tooltip-content={value}
@@ -411,7 +411,7 @@ function ActionDropdown ({ items }) {
       items={activeItems}
       toggleChildren={
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
         >
           <Icon className='-mt-[3px] mb-[3px]' name='More' />
         </button>

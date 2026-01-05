@@ -114,7 +114,7 @@ function FundingRounds () {
     <div className='p-4 max-w-[750px] mx-auto flex flex-col gap-2'>
       {canManage && (
         <div className='text-foreground text-center'>
-          <Link to={`${location.pathname}/create/funding-round`} className='flex justify-center items-center gap-1 text-foreground border-2 border-foreground/20 hover:border-foreground/100 rounded-lg py-1 px-2 transition-all hover:scale-105 hover:text-foreground group mb-4 mt-2'>
+          <Link to={`${location.pathname}/create/funding-round`} className='flex justify-center items-center gap-1 text-foreground border-2 border-foreground/20 hover:border-foreground/50 rounded-lg py-1 px-2 transition-all hover:scale-105 hover:text-foreground group mb-4 mt-2'>
             <Plus className='w-4 h-4' />
             {t('Add a funding round')}
           </Link>

@@ -251,7 +251,7 @@ export default function PostCard (props) {
               key={item.label}
               onClick={item.onClick}
               className={cn(
-                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/100 shadow-lg hover:cursor-pointer',
+                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
                 item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
               )}
               data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
@@ -263,7 +263,7 @@ export default function PostCard (props) {
           ))}
           <Tooltip delay={50} id='postcard-action-tt' />
           <EmojiPicker
-            className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/100 transition-all shadow-lg hover:cursor-pointer'
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/50 transition-all shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
@@ -283,7 +283,7 @@ export default function PostCard (props) {
         <div
           ref={postCardRef}
           className={cn(
-            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/100',
+            'PostCard group/post-card rounded-xl cursor-pointer p-1 ml-12 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
             classes[postType],
             {
               [classes.expanded]: expanded,
@@ -375,7 +375,7 @@ export default function PostCard (props) {
       <div
         ref={postCardRef}
         className={cn(
-          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/100',
+          'PostCard group/post-card rounded-xl cursor-pointer p-1 relative flex flex-col transition-all bg-card/50 dark:bg-card/100 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-2xl hover:shadow-lg mb-4 relative hover:z-[2] hover:scale-101 duration-400 hover:border-foreground/50',
           classes[postType],
           {
             [classes.expanded]: expanded,

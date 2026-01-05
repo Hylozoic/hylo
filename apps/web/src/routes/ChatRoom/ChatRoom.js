@@ -577,7 +577,7 @@ export default function ChatRoom (props) {
           #{topicName}
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
-              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/100' />}
+              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
               className='border-none p-0 focus:ring-0 focus:ring-offset-0 bg-transparent'
             />
             <SelectContent className='border-none'>

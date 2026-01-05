@@ -277,7 +277,7 @@ function ManageTab ({ track }) {
   return (
     <>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${track.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
@@ -295,7 +295,7 @@ function ManageTab ({ track }) {
         </SortableContext>
       </DndContext>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md mb-4'
         onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}
       >
         + {t('Add {{actionDescriptor}}', { actionDescriptor: track?.actionDescriptor })}

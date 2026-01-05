@@ -238,7 +238,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 py-1 -my-1 -mx-2 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/100',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 py-1 -my-1 -mx-2 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50',
           showHeader ? 'py-1 mt-2' : ' ',
           className,
           styles.container,
@@ -268,7 +268,7 @@ export default function ChatPost ({
               key={item.label}
               onClick={item.onClick}
               className={cn(
-                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/100 shadow-lg hover:cursor-pointer',
+                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
                 item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
               )}
               data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
@@ -283,7 +283,7 @@ export default function ChatPost ({
             id='action-tt'
           />
           <EmojiPicker
-            className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/100 transition-all shadow-lg hover:cursor-pointer'
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/50 transition-all shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}

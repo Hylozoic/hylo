@@ -75,7 +75,7 @@ export default function GroupCard ({ group }) {
                   ? <div className='p-2 bg-darkening/30 rounded-lg text-white text-sm flex items-center gap-1'><UserRoundCheck className='w-4 h-4' /> <b>{t('Member')}</b></div>
                   : group.memberStatus === 'requested'
                     ? <div className={classes.statusTag}><b>{t('Membership Requested')}</b></div>
-                    : <div className='focus:text-foreground relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center text-sm'><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
+                    : <div className='focus:text-foreground relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center text-sm'><Icon name='CirclePlus' className={classes.joinGroup} /> <b>{t('Join')}</b></div>
               }
             </div>
           </div>
