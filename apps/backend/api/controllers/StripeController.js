@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
 
-/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership */
+/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group */
 
 module.exports = {
 
@@ -346,6 +346,73 @@ module.exports = {
           console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
           // Continue processing other groups even if one fails
         }
+      }
+
+      // Handle donation transfer if customer added optional donation item
+      // Check line items for donation to Hylo
+      let donationAmount = 0
+      try {
+        // Get the group to find the connected account ID first
+        const group = await Group.find(groupId)
+        if (group) {
+          const stripeAccountId = group.get('stripe_account_id')
+          if (stripeAccountId) {
+            // Convert database ID to external account ID if needed
+            const getExternalAccountId = async (accountId) => {
+              if (accountId && accountId.startsWith('acct_')) {
+                return accountId
+              }
+              const StripeAccount = bookshelf.model('StripeAccount')
+              const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+              if (!stripeAccount) {
+                throw new Error('Stripe account record not found')
+              }
+              return stripeAccount.get('stripe_account_external_id')
+            }
+
+            const externalAccountId = await getExternalAccountId(stripeAccountId)
+
+            // Retrieve full session with line items expanded to check for donations
+            const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+              expand: ['line_items']
+            }, {
+              stripeAccount: externalAccountId
+            })
+
+            // Look for donation line item in the session
+            if (fullSession.line_items?.data) {
+              for (const lineItem of fullSession.line_items.data) {
+                const productName = lineItem.price?.product?.name || lineItem.description
+                if (productName && productName.toLowerCase().includes('donation to hylo')) {
+                  // Calculate donation amount: unit_amount * quantity
+                  donationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
+                  break
+                }
+              }
+            }
+
+            // Transfer donation if present
+            if (donationAmount > 0) {
+              const paymentIntentId = session.payment_intent
+
+              if (paymentIntentId) {
+                await StripeService.transferDonationToPlatform({
+                  connectedAccountId: externalAccountId,
+                  paymentIntentId,
+                  donationAmount,
+                  currency: session.currency || 'usd'
+                })
+
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`Transferred donation of ${donationAmount} ${session.currency || 'usd'} to platform`)
+                }
+              }
+            }
+          }
+        }
+      } catch (donationError) {
+        // Log error but don't fail the entire webhook - donation transfer can be retried
+        console.error('Error processing donation transfer:', donationError)
       }
 
       // TODO STRIPE: Send confirmation email to user

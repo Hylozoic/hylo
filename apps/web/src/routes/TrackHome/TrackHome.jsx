@@ -144,15 +144,15 @@ function TrackHome () {
 
           {canViewFullTrack
             ? (
-              <Routes>
-                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-                <Route path='*' element={<AboutTab track={currentTrack} />} />
-              </Routes>
+          <Routes>
+            <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+            <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+            <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+            <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+            <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+            <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+            <Route path='*' element={<AboutTab track={currentTrack} />} />
+          </Routes>
               )
             : (
               <AboutTab track={currentTrack} showPaywall />
@@ -161,39 +161,39 @@ function TrackHome () {
 
         <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
           {!publishedAt && (
-            <>
-              <span className='flex-1'>{t('This track is not yet published')}</span>
-              <Button
-                variant='secondary'
-                onClick={(e) => handlePublishTrack(new Date().toISOString())}
-              >
-                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-              </Button>
-            </>
+              <>
+                <span className='flex-1'>{t('This track is not yet published')}</span>
+                <Button
+                  variant='secondary'
+                  onClick={(e) => handlePublishTrack(new Date().toISOString())}
+                >
+                  <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+                </Button>
+              </>
           )}
           {publishedAt && didComplete && (
-            <>
-              <Check className='w-4 h-4 text-selected' />
-              <span>{t('You completed this track')}</span>
-            </>
+                <>
+                  <Check className='w-4 h-4 text-selected' />
+                  <span>{t('You completed this track')}</span>
+                </>
           )}
           {publishedAt && !didComplete && isEnrolled && (
-            <div className='flex flex-row gap-2 items-center justify-between w-full'>
-              <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
               <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-            </div>
+                    </div>
           )}
           {publishedAt && !didComplete && !isEnrolled && hasAccess && (
-            <div className='flex flex-row gap-2 items-center justify-between w-full'>
-              <span>{t('Ready to jump in?')}</span>
-              <button
+                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                    <span>{t('Ready to jump in?')}</span>
+                    <button
                 className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center'
-                onClick={handleEnrollInTrack}
-              >
-                <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
-              </button>
-            </div>
-          )}
+                      onClick={handleEnrollInTrack}
+                    >
+                      <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
+                    </button>
+                  </div>
+                  )}
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />

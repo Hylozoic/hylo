@@ -518,6 +518,8 @@ module.exports = {
    * the transaction. The platform takes a fee, and the rest goes
    * to the connected account.
    *
+   * Includes an optional donation to Hylo that appears on the Stripe checkout page.
+   *
    * @param {Object} params - Checkout session parameters
    * @param {String} params.accountId - The Stripe connected account ID
    * @param {String} params.priceId - The price ID to charge
@@ -557,6 +559,10 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
+      // Get currency from the price to match donation currency
+      const priceObject = await this.getPrice(accountId, priceId)
+      const currency = priceObject.currency || 'usd'
+
       // Build session configuration based on mode
       const sessionConfig = {
         line_items: [{
@@ -568,6 +574,28 @@ module.exports = {
         cancel_url: cancelUrl,
         metadata
       }
+
+      // Add optional donation item that appears on Stripe's checkout page
+      // This allows customers to optionally add a donation to Hylo during checkout
+      sessionConfig.optional_items = [{
+        price_data: {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: 'Donation to Hylo',
+            description: 'Thank you for supporting the Hylo platform!'
+          },
+          unit_amount: 100 // Default $1.00 donation amount in cents
+        },
+        quantity: 0,
+        adjustable_quantity: {
+          enabled: true,
+          minimum: 0, // Customer can choose not to donate
+          maximum: 100 // Maximum quantity (allows up to $500 donation)
+        }
+      }]
+
+      // Store flag in metadata to indicate donation option was available
+      metadata.hasDonationOption = 'true'
 
       // Configure for payment or subscription mode
       if (mode === 'subscription') {
@@ -899,5 +927,69 @@ module.exports = {
       style: 'currency',
       currency: currency.toUpperCase()
     }).format(dollars)
+  },
+
+  /**
+   * Transfers a donation amount from a connected account to the platform account
+   *
+   * When a user adds a donation to Hylo during checkout, the donation is initially
+   * collected by the connected account. This method transfers it to the platform account.
+   *
+   * @param {String} connectedAccountId - The Stripe connected account ID
+   * @param {String} paymentIntentId - The payment intent ID from the checkout session
+   * @param {Number} donationAmount - The donation amount in cents
+   * @param {String} currency - The currency code (e.g., 'usd')
+   * @returns {Promise<Object>} The transfer object
+   */
+  async transferDonationToPlatform ({
+    connectedAccountId,
+    paymentIntentId,
+    donationAmount,
+    currency = 'usd'
+  }) {
+    try {
+      if (!connectedAccountId) {
+        throw new Error('Connected account ID is required')
+      }
+
+      if (!paymentIntentId) {
+        throw new Error('Payment intent ID is required')
+      }
+
+      if (!donationAmount || donationAmount <= 0) {
+        throw new Error('Valid donation amount is required')
+      }
+
+      // Retrieve the payment intent to get the charge ID
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ['charges']
+      }, {
+        stripeAccount: connectedAccountId
+      })
+
+      // Get the charge ID from the payment intent
+      const chargeId = paymentIntent.charges?.data?.[0]?.id
+      if (!chargeId) {
+        throw new Error('No charge found for payment intent')
+      }
+
+      // Create a transfer from the connected account to the platform account
+      // For connected accounts with controller settings, transfers are created
+      // on the platform account. We use the charge ID from the connected account
+      // as the source transaction.
+      // Note: This requires the charge to be available for transfer, which happens
+      // after the payment is captured.
+      const transfer = await stripe.transfers.create({
+        amount: donationAmount,
+        currency: currency.toLowerCase(),
+        source_transaction: chargeId,
+        description: 'Donation to Hylo platform'
+      })
+
+      return transfer
+    } catch (error) {
+      console.error('Error transferring donation to platform:', error)
+      throw new Error(`Failed to transfer donation: ${error.message}`)
+    }
   }
 }

@@ -275,6 +275,9 @@ export default function OfferingDetails () {
               <CreditCard className='w-5 h-5' />
               {checkoutLoading ? t('Processing...') : t('Buy Now')}
             </Button>
+            <p className='text-xs text-foreground/60 mt-3 text-center'>
+              {t('You\'ll have the option to add a donation to Hylo during checkout')}
+            </p>
           </div>
         </div>
       </div>

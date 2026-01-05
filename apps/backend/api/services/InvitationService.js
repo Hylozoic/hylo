@@ -6,12 +6,12 @@ import { get, isEmpty, map, merge } from 'lodash/fp'
 module.exports = {
   checkPermission: (userId, invitationId) => {
     return Invitation.find(invitationId, { withRelated: 'group' })
-      .then(async (invitation) => {
-        if (!invitation) throw new GraphQLError('Invitation not found')
-        const { group } = invitation.relations
-        const user = await User.find(userId)
-        return user.get('email') === invitation.get('email') || (GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS))
-      })
+    .then(async (invitation) => {
+      if (!invitation) throw new GraphQLError('Invitation not found')
+      const { group } = invitation.relations
+      const user = await User.find(userId)
+      return user.get('email') === invitation.get('email') || (GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS))
+    })
   },
 
   findById: (invitationId) => {
@@ -20,12 +20,12 @@ module.exports = {
 
   find: ({ groupId, limit, offset, pendingOnly = false, includeExpired = false }) => {
     return Group.find(groupId)
-      .then(group => Invitation.query(qb => {
-        qb.limit(limit || 20)
-        qb.offset(offset || 0)
-        qb.where('group_id', group.get('id'))
-        qb.leftJoin('users', 'users.id', 'group_invites.used_by_id')
-        qb.select(bookshelf.knex.raw(`
+    .then(group => Invitation.query(qb => {
+      qb.limit(limit || 20)
+      qb.offset(offset || 0)
+      qb.where('group_id', group.get('id'))
+      qb.leftJoin('users', 'users.id', 'group_invites.used_by_id')
+      qb.select(bookshelf.knex.raw(`
         group_invites.*,
         count(*) over () as total,
         users.id as joined_user_id,
@@ -33,28 +33,28 @@ module.exports = {
         users.avatar_url as joined_user_avatar_url
       `))
 
-        pendingOnly && qb.whereNull('used_by_id')
+      pendingOnly && qb.whereNull('used_by_id')
 
-        !includeExpired && qb.whereNull('expired_by_id')
+      !includeExpired && qb.whereNull('expired_by_id')
 
-        qb.orderBy('created_at', 'desc')
+      qb.orderBy('created_at', 'desc')
       }).fetchAll({ withRelated: ['user'] }))
-      .then(invitations => ({
-        total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
-        items: invitations.map(i => {
+    .then(invitations => ({
+      total: invitations.length > 0 ? Number(invitations.first().get('total')) : 0,
+      items: invitations.map(i => {
           let user = i.relations.user
-          if (isEmpty(user) && i.get('joined_user_id')) {
-            user = {
-              id: i.get('joined_user_id'),
-              name: i.get('joined_user_name'),
-              avatar_url: i.get('joined_user_avatar_url')
-            }
+        if (isEmpty(user) && i.get('joined_user_id')) {
+          user = {
+            id: i.get('joined_user_id'),
+            name: i.get('joined_user_name'),
+            avatar_url: i.get('joined_user_avatar_url')
           }
-          return merge(i.pick('id', 'email', 'created_at', 'last_sent_at'), {
-            user: !isEmpty(user) ? user.pick('id', 'name', 'avatar_url') : null
-          })
+        }
+        return merge(i.pick('id', 'email', 'created_at', 'last_sent_at'), {
+          user: !isEmpty(user) ? user.pick('id', 'name', 'avatar_url') : null
         })
-      }))
+      })
+    }))
   },
 
   /**
@@ -136,20 +136,20 @@ module.exports = {
 
   expire: (userId, invitationId) => {
     return Invitation.find(invitationId)
-      .then(invitation => {
-        if (!invitation) throw new GraphQLError('not found')
+    .then(invitation => {
+      if (!invitation) throw new GraphQLError('not found')
 
-        return invitation.expire(userId)
-      })
+      return invitation.expire(userId)
+    })
   },
 
   resend: (invitationId) => {
     return Invitation.find(invitationId)
-      .then(invitation => {
-        if (!invitation) throw new GraphQLError('not found')
+    .then(invitation => {
+      if (!invitation) throw new GraphQLError('not found')
 
-        return invitation.send()
-      })
+      return invitation.send()
+    })
   },
 
   /**
@@ -245,12 +245,12 @@ module.exports = {
 
     if (token) {
       return Invitation.where({ token }).fetch()
-        .then(invitation => {
-          if (!invitation) throw new GraphQLError('not found')
-          if (invitation.isExpired()) throw new GraphQLError('expired')
-          // TODO STRIPE: We need to think through how invite links will be impacted by paywall
-          return invitation.use(userId)
-        })
+      .then(invitation => {
+        if (!invitation) throw new GraphQLError('not found')
+        if (invitation.isExpired()) throw new GraphQLError('expired')
+        // TODO STRIPE: We need to think through how invite links will be impacted by paywall
+        return invitation.use(userId)
+      })
     }
 
     throw new Error('must provide either token or accessCode')
