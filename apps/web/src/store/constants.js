@@ -216,6 +216,7 @@ export const VIEW_ANNOUNCEMENTS = 'announcements'
 export const VIEW_INTERACTIONS = 'interactions'
 export const VIEW_MENTIONS = 'mentions'
 export const VIEW_POSTS = 'posts'
+export const VIEW_DRAFTS = 'drafts'
 export const VIEW_SAVED_POSTS = 'saved-posts'
 
 export const agreementsURL = 'https://www.hylo.com/agreements/#hylo-platform-agreements'
