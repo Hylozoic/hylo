@@ -15,17 +15,17 @@ export default function (app) {
   // XXX: has to come before bodyParser?
   app.use('/noo/oauth', oidc.callback())
 
-  app.use(bodyParser.urlencoded({extended: true}))
+  app.use(bodyParser.urlencoded({ extended: true }))
   app.use(bodyParser.json())
 
   kueUI.setup({
-    apiURL: '/admin/kue/api',
-    baseURL: '/admin/kue'
+    apiURL: '/noo/admin/kue/api',
+    baseURL: '/noo/admin/kue'
   })
 
-  app.use('/admin/kue', isAdmin)
-  app.use('/admin/kue/api', kue.app)
-  app.use('/admin/kue', kueUI.app)
+  app.use('/noo/admin/kue', isAdmin)
+  app.use('/noo/admin/kue/api', kue.app)
+  app.use('/noo/admin/kue', kueUI.app)
 
   app.use(GRAPHQL_ENDPOINT, cors({
     origin: '*',

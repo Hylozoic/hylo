@@ -27,6 +27,7 @@ FundingRound.fields = {
   phase: attr(),
   publishedAt: attr(),
   requireBudget: attr(),
+  hideFinalResultsFromParticipants: attr(),
   submissionDescriptor: attr(),
   submissionDescriptorPlural: attr(),
   submissions: many('Post'),

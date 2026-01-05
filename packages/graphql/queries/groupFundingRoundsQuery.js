@@ -27,6 +27,7 @@ export default gql`
           criteria
           description
           isParticipating
+          hideFinalResultsFromParticipants
           maxTokenAllocation
           minTokenAllocation
           numParticipants

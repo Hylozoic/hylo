@@ -1,4 +1,4 @@
-/* globals _ */
+/* globals _, ProjectContribution */
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
@@ -354,7 +354,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
-  iCalUid: function() {
+  iCalUid: function () {
     return `event-${this.id}-hylo.com`
   },
 
@@ -375,7 +375,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
       uid: this.iCalUid(),
-      url: url,
+      url,
       organizer: {
         name: organizer.get('name'),
         email: organizer.get('email')
@@ -865,7 +865,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       .then(membership => membership.destroy())
   },
 
-  createIcsCal: async function({ userId, eventInvitation, eventChanges = {}}) {
+  createIcsCal: async function ({ userId, eventInvitation, eventChanges = {} }) {
     // Load groups for URL generation
     await this.load('groups')
     const group = this.relations.groups?.first()
@@ -1322,7 +1322,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     eventInvitations.forEach(eventInvitation => {
       if (!eventInvitation.notGoing()) {
-        Post.sendEventRsvp({eventId: postId, eventInvitationId: eventInvitation.id, eventChanges})
+        Post.sendEventRsvp({ eventId: postId, eventInvitationId: eventInvitation.id, eventChanges })
       }
     })
   },
@@ -1351,7 +1351,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     })
   },
 
-  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
+  async sendEventRsvp ({ eventId, eventInvitationId, eventChanges = {} }) {
     const post = await Post.where({ id: eventId }).fetch()
     const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
     const user = await eventInvitation.user().fetch()
@@ -1361,23 +1361,24 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: post.get('timezone')}) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: post.get('timezone') }) : null
     const newLocation = eventChanges.location
+    const url = Frontend.Route.post(post, post.relations.groups.first())
 
     Queue.classMethod('Email', emailTemplate, {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: DateTimeHelpers.formatDatePair({start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone')}),
+        date: DateTimeHelpers.formatDatePair({ start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone') }),
         user_name: user.get('name'),
         event_name: post.title(),
         event_description: post.details(),
         event_location: post.get('location'),
-        event_url: icsCal.url,
+        event_url: url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
+        newDate,
+        newLocation
       },
       files: [
         {
