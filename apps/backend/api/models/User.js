@@ -461,7 +461,7 @@ module.exports = bookshelf.Model.extend(merge({
     return compare(this.generateTokenContents(), token)
   },
 
-  sendPushNotification: async function (alert, path) {
+  sendPushNotification: async function (alert, path, iconUrl) {
     // With the new OneSignal data model (2025), we can send directly to a user by their readerId
     // instead of needing to iterate through individual devices
 
@@ -474,7 +474,7 @@ module.exports = bookshelf.Model.extend(merge({
       user_id: this.id
     }).save()
 
-    return push.send()
+    return push.send({ iconUrl })
   },
 
   followDefaultTags: function (groupId, trx) {
