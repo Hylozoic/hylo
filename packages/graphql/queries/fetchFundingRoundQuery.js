@@ -15,6 +15,7 @@ export default gql`
         name
         slug
       }
+      hideFinalResultsFromParticipants
       isParticipating
       joinedAt
       maxTokenAllocation

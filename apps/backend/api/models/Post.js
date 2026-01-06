@@ -1,4 +1,4 @@
-/* globals _ */
+/* globals _, ProjectContribution */
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
@@ -354,7 +354,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
-  iCalUid: function() {
+  iCalUid: function () {
     return `event-${this.id}-hylo.com`
   },
 

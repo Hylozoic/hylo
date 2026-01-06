@@ -651,7 +651,7 @@ module.exports = bookshelf.Model.extend(merge({
     return this.get('calendar_token')
       ? `${process.env.AWS_S3_CONTENT_URL}/${this.getRsvpCalendarPath()}`
       : null
-  },
+  }
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',

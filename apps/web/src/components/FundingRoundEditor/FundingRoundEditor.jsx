@@ -104,6 +104,7 @@ function FundingRoundEditor (props) {
     minTokenAllocation: 1,
     publishedAt: null,
     requireBudget: false,
+    hideFinalResultsFromParticipants: false,
     submissionDescriptor: 'Submission',
     submissionDescriptorPlural: 'Submissions',
     title: '',
@@ -127,6 +128,7 @@ function FundingRoundEditor (props) {
     minTokenAllocation,
     publishedAt,
     requireBudget,
+    hideFinalResultsFromParticipants,
     submissionDescriptor,
     submissionDescriptorPlural,
     submitterRoles,
@@ -285,6 +287,7 @@ function FundingRoundEditor (props) {
       minTokenAllocation: minTokenAllocation ? Number(minTokenAllocation) : null,
       publishedAt,
       requireBudget,
+      hideFinalResultsFromParticipants,
       submissionDescriptor,
       submissionDescriptorPlural,
       submitterRoles,
@@ -525,6 +528,14 @@ function FundingRoundEditor (props) {
             label={t('Require Budget for {{submissionDescriptorPlural}}', { submissionDescriptorPlural })}
             checked={requireBudget}
             onChange={updateFundingRoundState('requireBudget')}
+          />
+        </div>
+
+        <div>
+          <CheckBox
+            label={t('Hide final voting results from participants')}
+            checked={hideFinalResultsFromParticipants}
+            onChange={updateFundingRoundState('hideFinalResultsFromParticipants')}
           />
         </div>
 

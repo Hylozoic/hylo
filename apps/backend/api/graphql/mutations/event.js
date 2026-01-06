@@ -28,10 +28,9 @@ export async function respondToEvent (userId, eventId, response) {
     })
   }
 
-  if (sendRsvp) {
-    const eventChanges = eventInvitation.going() ? { new: true } : { deleted: true }
-    Queue.classMethod('Post', 'sendUserRsvp', { eventInvitationId: eventInvitation.id, eventChanges })
-    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
+  if (sendEmail) {
+    Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
+    Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId: eventId })
   }
 
   return { success: true }
