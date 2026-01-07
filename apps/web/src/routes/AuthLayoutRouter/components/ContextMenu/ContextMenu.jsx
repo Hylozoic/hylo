@@ -219,68 +219,71 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-gradient-to-b from-context-menu-background to-theme-background/10  dark:to-theme-background/40 relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
+        className={cn('ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       >
-        <div className='ContextDetails w-full z-20 relative'>
-          {routeParams.context === 'groups'
-            ? <GroupMenuHeader group={group} />
-            : isPublicContext
-              ? (
-                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.6 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
-                  {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                  </div>
-                </div>
-                )
-              : isMyContext
+        <div className='relative min-h-full'>
+          <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
+          <div className='ContextDetails w-full z-20 relative'>
+            {routeParams.context === 'groups'
+              ? <GroupMenuHeader group={group} />
+              : isPublicContext
                 ? (
-                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                    <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
-                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                  <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.6 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
+                    {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
                     <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                     </div>
                   </div>
                   )
-                : null}
-        </div>
-        {hasContextWidgets && (
-          <div className='relative flex flex-col items-center overflow-hidden z-20'>
-            <Routes>
-              <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
-            </Routes>
-
-            <DndContext
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-              collisionDetection={closestCorners}
-              modifiers={[restrictToVerticalAxis]}
-            >
-              <div className='w-full'>
-                <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
-              </div>
-              <DragOverlay wrapperElement='ul' dropAnimation={null}>
-                {activeWidget && !activeWidget.parentId && (
-                  <ContextMenuItem widget={activeWidget} isOverlay />
-                )}
-                {activeWidget && activeWidget.parentId && (
-                  <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
-                )}
-              </DragOverlay>
-            </DndContext>
-            {(!isMyContext && !isPublicContext && !isAllContext) && (
-              <div className='px-2 w-full mb-[0.05em] mt-6'>
-                <ContextMenuItem widget={allViewsWidget} />
-              </div>
-            )}
+                : isMyContext
+                  ? (
+                    <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                      <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
+                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                      </div>
+                    </div>
+                    )
+                  : null}
           </div>
-        )}
-        {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+          {hasContextWidgets && (
+            <div className='relative flex flex-col items-center overflow-hidden z-20'>
+              <Routes>
+                <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
+              </Routes>
+
+              <DndContext
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+                collisionDetection={closestCorners}
+                modifiers={[restrictToVerticalAxis]}
+              >
+                <div className='w-full'>
+                  <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
+                </div>
+                <DragOverlay wrapperElement='ul' dropAnimation={null}>
+                  {activeWidget && !activeWidget.parentId && (
+                    <ContextMenuItem widget={activeWidget} isOverlay />
+                  )}
+                  {activeWidget && activeWidget.parentId && (
+                    <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
+                  )}
+                </DragOverlay>
+              </DndContext>
+              {(!isMyContext && !isPublicContext && !isAllContext) && (
+                <div className='px-2 w-full mb-[0.05em] mt-6'>
+                  <ContextMenuItem widget={allViewsWidget} />
+                </div>
+              )}
+            </div>
+          )}
+          {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+        </div>
       </div>
     </ContextMenuProvider>
   )
