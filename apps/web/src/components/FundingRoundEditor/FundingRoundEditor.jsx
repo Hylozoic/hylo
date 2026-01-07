@@ -28,6 +28,14 @@ import Button from 'components/ui/button'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import { Label } from 'components/ui/label'
 import { RadioGroup, RadioGroupItem } from 'components/ui/radio-group'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
 import HyloEditor from 'components/HyloEditor'
 import { createFundingRound, updateFundingRound } from 'routes/FundingRounds/FundingRounds.store'
 import { RESP_MANAGE_ROUNDS } from 'store/constants'
@@ -169,6 +177,10 @@ function FundingRoundEditor (props) {
   const [voterRoleSearchTerm, setVoterRoleSearchTerm] = useState(null)
   const [submitterRoleInputFocused, setSubmitterRoleInputFocused] = useState(false)
   const [voterRoleInputFocused, setVoterRoleInputFocused] = useState(false)
+  const [selfVotingConfirmDialog, setSelfVotingConfirmDialog] = useState({
+    isOpen: false,
+    onConfirm: null
+  })
 
   const submitterRoleSuggestions = useMemo(() => {
     if (submitterRoleSearchTerm === null) return []
@@ -263,6 +275,25 @@ function FundingRoundEditor (props) {
     setFundingRoundState(prev => ({ ...prev, [key]: value }))
     setEdited(prev => prev || !isEqual(prev[key], value))
   }, [submissionsOpenAt, submissionsCloseAt, votingOpensAt, votingClosesAt])
+
+  const handleAllowSelfVotingChange = useCallback((checked) => {
+    const currentValue = allowSelfVoting
+    const isVotingPhase = editingRound?.phase === 'voting' || editingRound?.phase === 'completed'
+
+    // If disabling self-voting during voting phase, show confirmation
+    if (currentValue === true && checked === false && isVotingPhase) {
+      setSelfVotingConfirmDialog({
+        isOpen: true,
+        onConfirm: () => {
+          setSelfVotingConfirmDialog({ isOpen: false, onConfirm: null })
+          console.log('onConfirm', checked)
+          updateFundingRoundState('allowSelfVoting')(checked)
+        }
+      })
+    } else {
+      updateFundingRoundState('allowSelfVoting')(checked)
+    }
+  }, [allowSelfVoting, editingRound?.phase, updateFundingRoundState])
 
   const handleSelectToken = useCallback((value) => {
     updateFundingRoundState('tokenType')(value)
@@ -546,7 +577,7 @@ function FundingRoundEditor (props) {
           <CheckBox
             label={t('Allow participants to vote on their own submissions')}
             checked={allowSelfVoting}
-            onChange={updateFundingRoundState('allowSelfVoting')}
+            onChange={handleAllowSelfVotingChange}
           />
         </div>
 
@@ -821,6 +852,42 @@ function FundingRoundEditor (props) {
           </>
         )}
       </div>
+
+      <Dialog
+        open={selfVotingConfirmDialog.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelfVotingConfirmDialog({ isOpen: false, onConfirm: null })
+          }
+        }}
+      >
+        <DialogContent className='z-[70]'>
+          <DialogHeader>
+            <DialogTitle>{t('Disable Self-Voting?')}</DialogTitle>
+            <DialogDescription>
+              {t('Disabling self-voting during the voting phase will return all tokens that participants allocated to their own submissions back to them. This action cannot be undone. Do you want to continue?')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='gap-2'>
+            <Button
+              variant='outline'
+              onClick={() => setSelfVotingConfirmDialog({ isOpen: false, onConfirm: null })}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              className='bg-selected hover:bg-selected/90 text-foreground'
+              onClick={() => {
+                if (selfVotingConfirmDialog.onConfirm) {
+                  selfVotingConfirmDialog.onConfirm()
+                }
+              }}
+            >
+              {t('Disable Self-Voting')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

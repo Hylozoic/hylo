@@ -66,6 +66,60 @@ export async function updateFundingRound (userId, id, data) {
       updatedAttrs.voter_roles = JSON.stringify(data.voterRoles || [])
     }
 
+    // Check if allow_self_voting is being changed from true to false during voting phase
+    const currentAllowSelfVoting = round.get('allow_self_voting')
+    const newAllowSelfVoting = updatedAttrs.allow_self_voting !== undefined ? updatedAttrs.allow_self_voting : currentAllowSelfVoting
+    const phase = round.get('phase')
+    const isVotingPhase = phase === FundingRound.PHASES.VOTING || phase === FundingRound.PHASES.COMPLETED
+
+    if (currentAllowSelfVoting === true && newAllowSelfVoting === false && isVotingPhase) {
+      // Find all self-votes (where user voted on their own submission)
+      const roundId = round.get('id')
+      const selfVotes = await bookshelf.knex('funding_rounds_posts')
+        .join('posts', 'posts.id', 'funding_rounds_posts.post_id')
+        .join('posts_users', 'posts_users.post_id', 'funding_rounds_posts.post_id')
+        .where('funding_rounds_posts.funding_round_id', roundId)
+        .where('posts_users.tokens_allocated_to', '>', 0)
+        .where('posts_users.active', true)
+        .whereRaw('posts_users.user_id = posts.user_id')
+        .select(
+          'posts_users.user_id',
+          'posts_users.post_id',
+          'posts_users.tokens_allocated_to'
+        )
+
+      // Return tokens to users
+      for (const selfVote of selfVotes) {
+        const userId = selfVote.user_id
+        const tokensToReturn = selfVote.tokens_allocated_to || 0
+
+        if (tokensToReturn > 0) {
+          // Get the round user to update their token balance
+          const roundUser = await FundingRoundUser.where({
+            funding_round_id: roundId,
+            user_id: userId
+          }).fetch({ transacting })
+
+          if (roundUser) {
+            const currentRemaining = roundUser.get('tokens_remaining') || 0
+            await roundUser.save(
+              { tokens_remaining: currentRemaining + tokensToReturn },
+              { transacting, patch: true }
+            )
+          }
+
+          // Clear the allocation
+          await bookshelf.knex('posts_users')
+            .where({
+              post_id: selfVote.post_id,
+              user_id: userId
+            })
+            .update({ tokens_allocated_to: 0 })
+            .transacting(transacting)
+        }
+      }
+    }
+
     await round.save({ updated_at: new Date(), ...updatedAttrs }, { transacting, patch: true })
 
     await doPhaseTransition(userId, round, { transacting })
