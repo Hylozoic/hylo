@@ -79,12 +79,13 @@ export default {
         3: '3px'
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
+        lg: '0.5rem',
+        md: 'calc(0.5rem - 2px)',
+        sm: 'calc(0.5rem - 4px)'
       },
       colors: {
         black: 'hsl(var(--black) / <alpha-value>)',
+        darkening: 'hsl(var(--darkening) / <alpha-value>)',
         background: 'hsl(var(--background) / <alpha-value>)',
         midground: 'hsl(var(--midground) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
@@ -133,7 +134,8 @@ export default {
           5: 'hsl(var(--chart-5))'
         },
         'theme-background': 'hsl(var(--theme-background))',
-        'theme-foreground': 'hsl(var(--theme-foreground))'
+        'theme-highlight': 'hsl(var(--theme-highlight) / <alpha-value>)',
+        'context-menu-background': 'hsl(var(--context-menu-background) / <alpha-value>)'
       },
       fontSize: {
         '2xs': '0.625rem'

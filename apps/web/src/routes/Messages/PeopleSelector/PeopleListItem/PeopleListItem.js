@@ -9,7 +9,7 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
     <li
       ref={ref}
       className={cn(
-        'hover:bg-selected hover:scale-105 flex items-center transition-all bg-transparent hover:cursor-pointer p-2',
+        'hover:bg-selected hover:scale-101 flex items-center transition-all bg-transparent hover:cursor-pointer p-2',
         { [classes.active]: active },
         className
       )}

@@ -50,7 +50,7 @@ export default function PostContent ({
         )}
         {details && (
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML html={details} />
+            <HyloHTML className='[&>*:last-child]:mb-0' html={details} />
           </ClickCatcher>
         )}
         {editedTimestamp && (

@@ -159,7 +159,7 @@ I'm inviting you to join {{name}} on Hylo.
               </div>
               <div>
                 <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopy}>
-                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
+                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
                     <span className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</span>
                     <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                       <Icon name='Copy' /> Copy
@@ -191,7 +191,7 @@ I'm inviting you to join {{name}} on Hylo.
                   {!copied && (
                     <>
                       <CopyToClipboard text={inviteLink} onCopy={onCopy}>
-                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
                           <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
                           <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                             <Icon name='Copy' /> Copy
@@ -212,7 +212,7 @@ I'm inviting you to join {{name}} on Hylo.
                   {copied && t('Copied!')}
                 </div>
               )}
-              <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/100 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
+              <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
                 {inviteLink ? t('Reset Link') : t('Generate a Link')}
               </button>
             </div>
@@ -276,7 +276,7 @@ I'm inviting you to join {{name}} on Hylo.
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground w-full'>{t('Pending Invites')}</h2>
             {hasPendingInvites && (
               <button
-                className='focus:text-foreground w-[120px] relative text-base border-2 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background block transition-all scale-100 hover:scale-105 hover:opacity-100 text-foreground opacity-100 border-foreground/20'
+                className='focus:text-foreground w-[120px] relative text-base border-2 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background block transition-all scale-100 hover:scale-105 hover:opacity-100 text-foreground opacity-100 border-foreground/20'
                 onClick={resendAllOnClick}
               >
                 {t('Resend All')}
