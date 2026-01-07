@@ -336,7 +336,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
       {isEditing && (
         <>
           <li>
-            <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
+            <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
               <Icon name='Plus' /> {t('Add new view')}
             </button>
           </li>
@@ -408,7 +408,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
       <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
+          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
             <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
           </MenuLink>
         </span>
@@ -429,7 +429,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               <MenuLink
                 to={url}
                 externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
-                className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 group'
+                className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 group'
                 isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
@@ -479,7 +479,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                         <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
                         </DropZone>
-                        <button onClick={() => handlePositionedAdd({ id: `bottom-of-child-list-${widget.id}`, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100')}>
+                        <button onClick={() => handlePositionedAdd({ id: `bottom-of-child-list-${widget.id}`, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100')}>
                           <Icon name='Plus' />
                           {widget.type === 'chats' ? <span> {t('Add new chat')}</span> : <span> {t('Add new view')}</span>}
                         </button>
@@ -499,7 +499,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink isEditing={isEditing} to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
+          <MenuLink isEditing={isEditing} to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
             <span className='text-base'>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
@@ -633,7 +633,7 @@ function ListItemRenderer ({ item, widget, canDnd, isEditing, isOverlay = false 
                 badgeCount={item.highlightNumber}
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='ContextWidgetMenuItemChat flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground pl-2 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItemChat flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground pl-2 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
@@ -667,7 +667,7 @@ function ListItemRenderer ({ item, widget, canDnd, isEditing, isOverlay = false 
               <MenuLink
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='ContextWidgetMenuItem flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItem flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
                 isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
@@ -709,7 +709,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <div className='relative'>
-        <div className={cn('absolute -top-10 right-0 border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+        <div className={cn('absolute -top-10 right-0 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
           <MenuLink to={groupUrl(groupSlug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
             <Users className='w-4 h-4' />
             <span>{group.memberCount || 0}</span>
@@ -720,7 +720,7 @@ function SpecialTopElementRenderer ({ widget }) {
             <UserPlus className='inline-block h-[20px] mr-1' />
             <span className='flex-1'>{t('Add Members')}</span>
             <span
-              className='text-xs flex items-center gap-1 text-foreground/50 hover:text-foreground/100 transition-all border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
+              className='text-xs flex items-center gap-1 text-foreground/50 hover:text-foreground/100 transition-all border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
               onClick={handleCopyInviteLink}
             >
               {t('Copy Link')} <Copy className='w-4 h-4' />
@@ -734,7 +734,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'members' && !canAddMembers) {
     return (
       <div className='relative'>
-        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md hover:bg-card text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md hover:bg-card text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
           <MenuLink to={groupUrl(group.slug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
             <Users className='w-4 h-4' />
             <span>{group.memberCount || 0}</span>
@@ -758,7 +758,7 @@ function SpecialTopElementRenderer ({ widget }) {
 
     const listItemComponent = ({ title, url }) => (
       <li className='w-full animate-slide-up invisible'>
-        <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
+        <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
           {title}
         </MenuLink>
       </li>
@@ -767,7 +767,7 @@ function SpecialTopElementRenderer ({ widget }) {
     return (
       <div className='mb-2'>
         <MenuLink to={groupUrl(groupSlug, 'settings')}>
-          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 animate-slide-up invisible'>
+          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 animate-slide-up invisible'>
             {t('Settings')}
           </div>
         </MenuLink>
@@ -842,7 +842,7 @@ function GroupSettingsMenu ({ group }) {
 
   return (
     <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]'>
-      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
+      <div className='absolute h-full overflow-y-auto top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
@@ -853,7 +853,7 @@ function GroupSettingsMenu ({ group }) {
               <MenuLink
                 to={groupUrl(groupSlug, item.url)}
                 className={cn(
-                  'text-base text-foreground border-2 border-transparent hover:border-foreground/100 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                  'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
                   { 'border-secondary': location.pathname === groupUrl(groupSlug, item.url) }
                 )}
               >

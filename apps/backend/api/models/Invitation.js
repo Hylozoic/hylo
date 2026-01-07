@@ -26,6 +26,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return this.belongsTo(User, 'expired_by_id')
   },
 
+  // The common role to assign when this invitation is used
+  commonRole: function () {
+    return this.belongsTo(CommonRole, 'common_role_id')
+  },
+
+  // The group-specific role to assign when this invitation is used
+  groupRole: function () {
+    return this.belongsTo(GroupRole, 'group_role_id')
+  },
+
   isUsed: function () {
     return !!this.get('used_by_id')
   },
@@ -50,6 +60,41 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const membership =
       await GroupMembership.forPair(user, group).fetch({ transacting }) ||
       await user.joinGroup(group, { role, fromInvitation: true, transacting })
+
+    // Assign common role if specified on the invitation
+    const commonRoleId = this.get('common_role_id')
+    if (commonRoleId) {
+      try {
+        await MemberCommonRole.forge({
+          user_id: userId,
+          group_id: this.get('group_id'),
+          common_role_id: commonRoleId
+        }).save(null, { transacting })
+      } catch (err) {
+        // Ignore duplicate key errors - user may already have this role
+        if (!err.message || !err.message.includes('duplicate key value')) {
+          throw err
+        }
+      }
+    }
+
+    // Assign group-specific role if specified on the invitation
+    const groupRoleId = this.get('group_role_id')
+    if (groupRoleId) {
+      try {
+        await MemberGroupRole.forge({
+          user_id: userId,
+          group_id: this.get('group_id'),
+          group_role_id: groupRoleId,
+          active: true
+        }).save(null, { transacting })
+      } catch (err) {
+        // Ignore duplicate key errors - user may already have this role
+        if (!err.message || !err.message.includes('duplicate key value')) {
+          throw err
+        }
+      }
+    }
 
     // TODO: we are not using this right now, but we could use to invite to a chat room
     if (!this.isUsed() && this.get('tag_id')) {
@@ -132,6 +177,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
       email: opts.email.toLowerCase(),
       tag_id: opts.tagId,
       role: GroupMembership.Role[opts.moderator ? 'MODERATOR' : 'DEFAULT'],
+      common_role_id: opts.commonRoleId || null, // Common role to assign on join
+      group_role_id: opts.groupRoleId || null, // Group-specific role to assign on join
       token: uuidv4(),
       created_at: new Date(),
       subject: opts.subject,

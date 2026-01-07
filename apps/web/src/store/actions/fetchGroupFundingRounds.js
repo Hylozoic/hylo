@@ -22,6 +22,7 @@ query (
         criteria
         description
         isParticipating
+        hideFinalResultsFromParticipants
         maxTokenAllocation
         minTokenAllocation
         numParticipants

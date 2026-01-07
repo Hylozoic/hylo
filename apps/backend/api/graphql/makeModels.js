@@ -315,7 +315,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
         enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
-        expiresAt: p => p.pivot && p.pivot.get('expires_at'), // When loading through a track this is when their access expires
         messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
       },
       relations: [
@@ -1346,11 +1345,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
         userSettings: t => t && userId ? t.userSettings(userId) : null,
-        expiresAt: async (t) => {
-          if (!t || !userId) return null
-          const trackUser = await t.trackUser(userId).fetch()
-          return trackUser ? trackUser.get('expires_at') : null
-        }
+
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
@@ -1364,7 +1359,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'completed_at',
         'created_at',
         'enrolled_at',
-        'expires_at',
         'settings',
         'updated_at'
       ],
@@ -1385,6 +1379,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'phase',
         'published_at',
         'require_budget',
+        'hide_final_results_from_participants',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',
@@ -1785,7 +1780,23 @@ export default function makeModels (userId, isAdmin, apiClient) {
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
         stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),
-        grantedById: ca => ca.get('granted_by_id')
+        grantedById: ca => ca.get('granted_by_id'),
+        subscriptionCancelAtPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_at_period_end === true
+        },
+        subscriptionPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_period_end ? new Date(metadata.subscription_period_end) : null
+        },
+        subscriptionCancellationScheduledAt: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancellation_scheduled_at ? new Date(metadata.subscription_cancellation_scheduled_at) : null
+        },
+        subscriptionCancelReason: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_reason || null
+        }
       }
     }
   }

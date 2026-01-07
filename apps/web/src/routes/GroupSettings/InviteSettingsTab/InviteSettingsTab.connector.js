@@ -29,7 +29,7 @@ export function mapDispatchToProps (dispatch, props) {
 
   return {
     regenerateAccessCode: () => dispatch(regenerateAccessCode(groupId)),
-    createInvitations: (emails, message) => dispatch(createInvitations(groupId, emails, message)),
+    createInvitations: (emails, message, commonRoleId, groupRoleId) => dispatch(createInvitations(groupId, emails, message, commonRoleId, groupRoleId)),
     expireInvitation: (invitationToken) => dispatch(expireInvitation(invitationToken)),
     resendInvitation: (invitationToken) => dispatch(resendInvitation(invitationToken)),
     reinviteAll: () => dispatch(reinviteAll(groupId)),

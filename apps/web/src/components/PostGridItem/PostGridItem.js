@@ -40,7 +40,7 @@ export default function PostGridItem ({
       <div
         className={cn(
           'h-[180px] w-full rounded-lg shadow-lg relative cursor-pointer',
-          'hover:scale-105 hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/100',
+          'hover:scale-105 hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
           { 'opacity-60': isFlagged && !post.clickthrough }
         )}
         onClick={() => viewPostDetails(post)}
@@ -100,7 +100,7 @@ export default function PostGridItem ({
     <div
       className={cn(
         'h-[180px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
-        'hover:scale-105 hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/100',
+        'hover:scale-105 hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
         { 'opacity-60': isFlagged && !post.clickthrough }
       )}

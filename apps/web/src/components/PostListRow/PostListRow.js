@@ -52,7 +52,7 @@ const PostListRow = (props) => {
     <div
       className={cn(
         'grid grid-cols-[160px_1fr_auto] gap-3 items-start',
-        'bg-card hover:scale-102 transition-all shadow-sm hover:shadow-lg hover:shadow-foreground/10 border-2 border-transparent hover:border-foreground/100 rounded-md',
+        'bg-card hover:scale-102 transition-all shadow-sm hover:shadow-lg hover:shadow-foreground/10 border-2 border-transparent hover:border-foreground/50 rounded-md',
         'px-4 py-3 border-b-2 border-b-background cursor-pointer',
         {
           'bg-card font-semibold': unread,

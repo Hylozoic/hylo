@@ -366,7 +366,7 @@ function CreateGroup () {
             disabled={!edited || !isValid()}
             onClick={onSubmit}
             variant='outline'
-            className='border-2 border-foreground/50 hover:border-foreground/100 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50'
+            className='border-2 border-foreground/50 hover:border-foreground/50 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50'
           >
             {t('Jump In')}
             <ArrowRight className={cn('w-4 h-4 ml-2', edited && isValid() ? 'text-foreground' : 'text-foreground/50')} />

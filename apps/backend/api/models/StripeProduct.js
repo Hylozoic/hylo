@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+/* global Track */
 
 module.exports = bookshelf.Model.extend({
   tableName: 'stripe_products',
@@ -149,6 +150,14 @@ module.exports = bookshelf.Model.extend({
             }
           }, { transacting })
           accessRecords.push(trackRecord)
+
+          // Auto-enroll user in track when access is granted
+          try {
+            await Track.enroll(trackIdNum, userIdNum)
+          } catch (enrollError) {
+            // Log but don't fail the purchase if enrollment fails
+            console.warn(`Auto-enrollment in track ${trackIdNum} failed for user ${userIdNum}:`, enrollError.message)
+          }
         }
       }
     }

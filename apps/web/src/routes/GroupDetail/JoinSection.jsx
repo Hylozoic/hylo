@@ -13,7 +13,7 @@ import Icon from 'components/Icon'
 
 import classes from './GroupDetail.module.scss'
 
-export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
+export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
   // Check if user has a valid invitation (pre-approved for Restricted groups)
@@ -30,6 +30,17 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
 
   return (
     <div className={cn('JoinSection requestBar align-center flex flex-col z-20 border-0 justify-center h-auto', { 'w-full max-w-[750px]': fullPage })}>
+      {/* Display assigned role if invitation includes one */}
+      {invitationRole && (
+        <div className='bg-selected/10 border border-selected/30 rounded-xl p-4 mb-4 text-center'>
+          <div className='flex items-center justify-center gap-2 text-foreground'>
+            {invitationRole.emoji && <span className='text-xl'>{invitationRole.emoji}</span>}
+            <span className='font-medium'>
+              {t('When you join, you will receive the {{roleName}} role', { roleName: invitationRole.name })}
+            </span>
+          </div>
+        </div>
+      )}
       {group.suggestedSkills && group.suggestedSkills.length > 0 &&
         <SuggestedSkills addSkill={addSkill} currentUser={currentUser} group={group} removeSkill={removeSkill} />}
       {group.prerequisiteGroups && group.prerequisiteGroups.length > 0

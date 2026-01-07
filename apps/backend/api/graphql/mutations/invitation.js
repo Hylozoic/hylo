@@ -22,6 +22,8 @@ export async function createInvitation (userId, groupId, data) {
         emails: data.emails,
         message: data.message,
         moderator: data.isModerator || false,
+        commonRoleId: data.commonRoleId ? parseInt(data.commonRoleId, 10) : null,
+        groupRoleId: data.groupRoleId ? parseInt(data.groupRoleId, 10) : null,
         subject: locales[locale].createInvitationSubject(group.get('name'))
       })
     })

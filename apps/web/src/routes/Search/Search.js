@@ -183,7 +183,7 @@ function TabBar ({ filter, setSearchFilter }) {
       {tabs.map(({ id, label }) => (
         <span
           key={id}
-          className={cn('border-2 border-foreground/20 rounded-lg px-2 py-1 hover:cursor-pointer transition-all hover:border-foreground/100 hover:scale-105', { 'border-selected bg-selected': id === filter })}
+          className={cn('border-2 border-foreground/20 rounded-lg px-2 py-1 hover:cursor-pointer transition-all hover:border-foreground/50 hover:scale-105', { 'border-selected bg-selected': id === filter })}
           onClick={() => setSearchFilter(id)}
         >
           {label}

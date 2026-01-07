@@ -53,6 +53,7 @@ I'm inviting you to join {{name}} on Hylo.
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
   const [message, setMessage] = useState(defaultMessage)
+  const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const sendingRef = useRef(false)
@@ -69,7 +70,19 @@ I'm inviting you to join {{name}} on Hylo.
     if (sendingRef.current) return
     sendingRef.current = true
 
-    createInvitations(parseEmailList(emails), message)
+    // Parse the selected role - format is "common-{id}" or "group-{id}"
+    let commonRoleId = null
+    let groupRoleId = null
+    if (selectedRoleId) {
+      const [type, id] = selectedRoleId.split('-')
+      if (type === 'common') {
+        commonRoleId = parseInt(id, 10)
+      } else if (type === 'group') {
+        groupRoleId = parseInt(id, 10)
+      }
+    }
+
+    createInvitations(parseEmailList(emails), message, commonRoleId, groupRoleId)
       .then(res => {
         sendingRef.current = false
         const { invitations } = res.payload.data.createInvitation
@@ -88,6 +101,7 @@ I'm inviting you to join {{name}} on Hylo.
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
+        setSelectedRoleId('') // Reset role selection after sending
       })
   }
 
@@ -145,7 +159,7 @@ I'm inviting you to join {{name}} on Hylo.
               </div>
               <div>
                 <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopy}>
-                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
+                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
                     <span className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</span>
                     <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                       <Icon name='Copy' /> Copy
@@ -177,7 +191,7 @@ I'm inviting you to join {{name}} on Hylo.
                   {!copied && (
                     <>
                       <CopyToClipboard text={inviteLink} onCopy={onCopy}>
-                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
                           <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
                           <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
                             <Icon name='Copy' /> Copy
@@ -198,7 +212,7 @@ I'm inviting you to join {{name}} on Hylo.
                   {copied && t('Copied!')}
                 </div>
               )}
-              <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/100 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
+              <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
                 {inviteLink ? t('Reset Link') : t('Generate a Link')}
               </button>
             </div>
@@ -228,6 +242,23 @@ I'm inviting you to join {{name}} on Hylo.
           disabled={pendingCreate}
           onChange={(event) => setMessage(event.target.value)}
         />
+        <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
+        <select
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+          value={selectedRoleId}
+          disabled={pendingCreate}
+          onChange={(event) => setSelectedRoleId(event.target.value)}
+        >
+          <option value=''>{t('No special role')}</option>
+          <option value='common-1'>{t('Coordinator')}</option>
+          <option value='common-2'>{t('Moderator')}</option>
+          <option value='common-3'>{t('Host')}</option>
+          {group.groupRoles?.items?.filter(role => role.active).map(role => (
+            <option key={`group-${role.id}`} value={`group-${role.id}`}>
+              {role.emoji ? `${role.emoji} ` : ''}{role.name}
+            </option>
+          ))}
+        </select>
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
             {errorMessage && <span className={classes.error}>{errorMessage}</span>}
@@ -245,7 +276,7 @@ I'm inviting you to join {{name}} on Hylo.
             <h2 className='text-lg font-bold mt-0 mb-1 text-foreground w-full'>{t('Pending Invites')}</h2>
             {hasPendingInvites && (
               <button
-                className='focus:text-foreground w-[120px] relative text-base border-2 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background block transition-all scale-100 hover:scale-105 hover:opacity-100 text-foreground opacity-100 border-foreground/20'
+                className='focus:text-foreground w-[120px] relative text-base border-2 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background block transition-all scale-100 hover:scale-105 hover:opacity-100 text-foreground opacity-100 border-foreground/20'
                 onClick={resendAllOnClick}
               >
                 {t('Resend All')}

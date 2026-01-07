@@ -81,17 +81,24 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const accessCode = getQuerystringParam('accessCode', location)
   const invitationToken = getQuerystringParam('token', location)
 
-  // For email invites, fetch the associated email from backend (not URL for security)
+  // For email invites, fetch the associated email and role from backend (not URL for security)
   const [invitationEmail, setInvitationEmail] = useState(null)
+  const [invitationRole, setInvitationRole] = useState(null)
   const [invitationChecked, setInvitationChecked] = useState(false)
 
   useEffect(() => {
     if (invitationToken && currentUser && !invitationChecked) {
       (async () => {
         const result = await dispatch(checkInvitation({ invitationToken }))
-        const checkResult = result?.payload?.getData()
+        const checkResult = result?.payload?.data?.checkInvitation
         if (checkResult?.email) {
           setInvitationEmail(checkResult.email)
+        }
+        // Set invitation role from either commonRole or groupRole
+        if (checkResult?.commonRole) {
+          setInvitationRole(checkResult.commonRole)
+        } else if (checkResult?.groupRole) {
+          setInvitationRole(checkResult.groupRole)
         }
         setInvitationChecked(true)
       })()
@@ -270,6 +277,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                   fullPage={fullPage}
                   group={group}
                   groupsWithPendingRequests={groupsWithPendingRequests}
+                  invitationRole={invitationRole}
                   invitationToken={invitationToken}
                   joinGroup={joinGroupHandler}
                   requestToJoinGroup={requestToJoinGroup}
@@ -301,6 +309,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                         fullPage={fullPage}
                         group={group}
                         groupsWithPendingRequests={groupsWithPendingRequests}
+                        invitationRole={invitationRole}
                         invitationToken={invitationToken}
                         joinGroup={joinGroupHandler}
                         requestToJoinGroup={requestToJoinGroup}

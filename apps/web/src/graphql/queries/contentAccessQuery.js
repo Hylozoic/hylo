@@ -35,6 +35,10 @@ export default `
         status
         expiresAt
         metadata
+        subscriptionCancelAtPeriodEnd
+        subscriptionPeriodEnd
+        subscriptionCancellationScheduledAt
+        subscriptionCancelReason
         user {
           id
           name

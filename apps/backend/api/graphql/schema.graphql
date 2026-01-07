@@ -217,6 +217,18 @@ type Query {
   # Get the currently logged in user
   me: Me
 
+  # Query the current user's transactions/purchases
+  myTransactions(
+    # Number of transactions to return
+    first: Int,
+    # For pagination, start loading after this offset
+    offset: Int,
+    # Filter by status: 'active', 'expired', 'cancelled'
+    status: String,
+    # Filter by access type: 'group', 'track', 'role'
+    accessType: String
+  ): UserTransactionQuerySet
+
   # Query notifications for the currently logged in user
   notifications(
     # Number of notifications to load
@@ -613,6 +625,10 @@ type CheckInvitationResult {
   groupSlug: String
   # The email address from the invitation (for token-based invites)
   email: String
+  # The common role that will be assigned when this invitation is used
+  commonRole: CommonRole
+  # The group-specific role that will be assigned when this invitation is used
+  groupRole: GroupRole
 }
 
 type Collection {
@@ -2111,8 +2127,6 @@ type Person {
   contactPhone: String
   # When loading through a track this is when they were enrolled in the track
   enrolledAt: Date
-  # When loading through a track this is when their access to the track expires (from content_access via tracks_users)
-  expiresAt: Date
   # The URL to this person's Facebook profile
   facebookUrl: String
   # False for new users who have not completed the registration process
@@ -2711,8 +2725,6 @@ type Track {
   didComplete: Boolean
   # The users enrolled in this track
   enrolledUsers: PersonQuerySet
-  # When the current user's access to this track expires (from content_access via tracks_users)
-  expiresAt: Date
   # The total number of groups this track is a part of
   groupsTotal: Int
   # Whether the current user is enrolled in this track
@@ -2756,8 +2768,6 @@ type TrackUser {
   completedAt: Date
   createdAt: Date
   enrolledAt: Date
-  # When this user's access to the track expires (mirrored from content_access table)
-  expiresAt: Date
   settings: JSON
   updatedAt: Date
   group: Group
@@ -2839,6 +2849,11 @@ type ContentAccess {
   expiresAt: Date
   # Additional metadata
   metadata: JSON
+  # Subscription cancellation info (extracted from metadata)
+  subscriptionCancelAtPeriodEnd: Boolean
+  subscriptionPeriodEnd: Date
+  subscriptionCancellationScheduledAt: Date
+  subscriptionCancelReason: String
 }
 
 type ContentAccessResult {
@@ -2861,6 +2876,59 @@ type ContentAccessCheckResult {
   expiresAt: Date
 }
 
+# A user's transaction/purchase record, enriched with Stripe data
+type UserTransaction {
+  id: ID!
+  
+  # From our database
+  # The offering/product that was purchased
+  offering: StripeOffering
+  offeringName: String
+  # The group that sold this
+  group: Group!
+  groupName: String
+  # Track access granted (if applicable)
+  track: Track
+  trackName: String
+  # Type of access: 'group', 'track', 'role'
+  accessType: String!
+  # Our status: 'active', 'expired', 'revoked'
+  status: String!
+  # When the purchase was made
+  purchaseDate: Date!
+  # When access expires (null for lifetime)
+  expiresAt: Date
+  
+  # From Stripe API (enriched)
+  # Payment type: 'one_time' or 'subscription'
+  paymentType: String!
+  # Stripe subscription status: 'active', 'canceled', 'past_due', etc (null for one-time payments)
+  subscriptionStatus: String
+  # When the current billing period ends / next renewal date
+  currentPeriodEnd: Date
+  # Subscription cancellation info (extracted from metadata)
+  subscriptionCancelAtPeriodEnd: Boolean
+  subscriptionPeriodEnd: Date
+  subscriptionCancellationScheduledAt: Date
+  subscriptionCancelReason: String
+  # Amount paid in cents
+  amountPaid: Int
+  # Currency code (e.g., 'usd')
+  currency: String
+  
+  # Generated links
+  # URL to Stripe billing portal for managing this subscription
+  manageUrl: String
+  # URL to view receipt
+  receiptUrl: String
+}
+
+type UserTransactionQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [UserTransaction]
+}
+
 # A participatory funding round
 type FundingRound {
   id: ID
@@ -2877,6 +2945,8 @@ type FundingRound {
   description: String
   # The group that the funding round belongs to
   group: Group
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Whether the current user is participating in this round
   isParticipating: Boolean
   # When the current user joined this funding round
@@ -4034,6 +4104,10 @@ input InappropriateContentInput {
 input InviteInput {
   emails: [String]
   message: String
+  # Common role ID to assign when the invitation is used (Coordinator=1, Moderator=2, Host=3)
+  commonRoleId: ID
+  # Group-specific role ID to assign when the invitation is used
+  groupRoleId: ID
 }
 
 # A link to a Post or a Person who has been Flagged
@@ -4326,6 +4400,8 @@ input FundingRoundInput {
   description: String
   # The group that this funding round belongs to
   groupId: ID
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Maximum tokens a voter can allocate
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate

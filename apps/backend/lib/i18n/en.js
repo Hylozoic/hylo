@@ -90,5 +90,8 @@ exports.en = {
     }
     return `${reminderMessages[reminderType] || 'Deadline approaching'}`
   },
-  theTeamAtHylo: 'The Team at Hylo'
+  theTeamAtHylo: 'The Team at Hylo',
+  donationTaxReceiptInfo: () => 'A tax receipt will be issued by our fiscal sponsor for your records.',
+  donationImpactMessage: () => 'Your donation helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.',
+  donationRecurringImpactMessage: () => 'Your recurring donation helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.'
 }

@@ -49,7 +49,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
 
           return (
             <Link to={createPostForPostTypePath} key={postType} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
-              <div className='flex items-center rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
+              <div className='flex items-center rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
                 <Icon name={iconName} className='mr-2' />
                 <span className='text-base'>{t(postType)}</span>
                 <CreateButton />
@@ -59,7 +59,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
         })}
         {!mapView && hasTracksResponsibility && (
           <Link to={createTrackUrl(routeParams)} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
-            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
+            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
               <Shapes className='mr-2' />
               <span className='text-base'>{t('Track')}</span>
               <CreateButton />
@@ -68,7 +68,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
         )}
         {!mapView && hasRoundsResponsibility && (
           <Link to={`${location.pathname}/create/funding-round`} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
-            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
+            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
               <BadgeDollarSign className='mr-2' />
               <span className='text-base'>{t('Funding Round')}</span>
               <CreateButton />
@@ -78,7 +78,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
         {/* DEPRECATED: Now always allow group creation */}
         {/* {!isWebView() && ( */}
         <Link to='/create-group' key='group' onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
-          <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/100 transition-all p-1 px-2'>
+          <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
             <Icon name='Groups' className='mr-2' />
             <span className='text-base'>{t('Group')}</span>
             <CreateButton />

@@ -92,5 +92,8 @@ exports.es = {
     }
     return `${fundingRound.get('title')}: ${reminderMessages[reminderType] || 'Fecha límite próxima'}`
   },
-  theTeamAtHylo: 'El equipo de Hylo'
+  theTeamAtHylo: 'El equipo de Hylo',
+  donationTaxReceiptInfo: () => 'Se emitirá un recibo fiscal por nuestro patrocinador fiscal para sus registros.',
+  donationImpactMessage: () => 'Tu donación ayuda a apoyar la plataforma Hylo y nuestra misión de permitir una mejor coordinación y colaboración en comunidades de todo el mundo.',
+  donationRecurringImpactMessage: () => 'Tu donación recurrente ayuda a apoyar la plataforma Hylo y nuestra misión de permitir una mejor coordinación y colaboración en comunidades de todo el mundo.'
 }

@@ -13,6 +13,11 @@ const Stripe = require('stripe')
 // Set this in your environment variables as STRIPE_SECRET_KEY
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 
+// Fiscal sponsor's Stripe account ID (Hylo's connected account under fiscal sponsor)
+// In production, donations are routed to this account for tax-deductible processing
+// In non-production, donations stay in the platform account
+const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
+
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
   throw new Error(
@@ -518,6 +523,8 @@ module.exports = {
    * the transaction. The platform takes a fee, and the rest goes
    * to the connected account.
    *
+   * Includes an optional donation to Hylo that appears on the Stripe checkout page.
+   *
    * @param {Object} params - Checkout session parameters
    * @param {String} params.accountId - The Stripe connected account ID
    * @param {String} params.priceId - The price ID to charge
@@ -557,6 +564,11 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
+      // Get currency and recurring info from the price to match donation configuration
+      const priceObject = await this.getPrice(accountId, priceId)
+      const currency = priceObject.currency || 'usd'
+      const isRecurring = mode === 'subscription' && priceObject.recurring
+
       // Build session configuration based on mode
       const sessionConfig = {
         line_items: [{
@@ -568,6 +580,64 @@ module.exports = {
         cancel_url: cancelUrl,
         metadata
       }
+
+      // Build optional donation items for Stripe checkout
+      // For subscriptions: offer both one-time and recurring donation options
+      // For one-time payments: offer only one-time donation
+      const optionalItems = []
+
+      // One-time donation option (available for both subscriptions and one-time purchases)
+      const oneTimeDonationPriceData = {
+        currency: currency.toLowerCase(),
+        product_data: {
+          name: 'One-Time Donation to Hylo',
+          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!'
+        },
+        unit_amount: 100 // Default $1.00 donation amount in cents
+        // No recurring property = one-time payment
+      }
+
+      optionalItems.push({
+        price_data: oneTimeDonationPriceData,
+        quantity: 0,
+        adjustable_quantity: {
+          enabled: true,
+          minimum: 0, // Customer can choose not to donate
+          maximum: 100 // Maximum quantity (allows up to $100 donation)
+        }
+      })
+
+      // Recurring donation option (only for subscriptions)
+      if (isRecurring && priceObject.recurring) {
+        const recurringDonationPriceData = {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: 'Recurring Donation to Hylo',
+            description: `Tax-deductible recurring donation to Hylo (501(c)(3) fiscally sponsored). Repeats ${priceObject.recurring.interval_count === 1 ? 'each' : `every ${priceObject.recurring.interval_count}`} ${priceObject.recurring.interval}. Thank you for supporting the Hylo platform!`
+          },
+          unit_amount: 100, // Default $1.00 donation amount in cents
+          recurring: {
+            interval: priceObject.recurring.interval, // 'month', 'year', etc.
+            interval_count: priceObject.recurring.interval_count || 1
+          }
+        }
+
+        optionalItems.push({
+          price_data: recurringDonationPriceData,
+          quantity: 0,
+          adjustable_quantity: {
+            enabled: true,
+            minimum: 0, // Customer can choose not to donate
+            maximum: 100 // Maximum quantity (allows up to $100 donation per billing cycle)
+          }
+        })
+      }
+
+      // Add optional donation items to checkout session
+      sessionConfig.optional_items = optionalItems
+
+      // Store flag in metadata to indicate donation option was available
+      metadata.hasDonationOption = 'true'
 
       // Configure for payment or subscription mode
       if (mode === 'subscription') {
@@ -762,6 +832,131 @@ module.exports = {
   },
 
   /**
+   * Creates a Billing Portal session for a customer
+   *
+   * Generates a URL where customers can manage their subscriptions,
+   * update payment methods, and view invoices.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} customerId - The Stripe customer ID
+   * @param {String} returnUrl - URL to redirect after portal session
+   * @returns {Promise<Object>} Billing portal session with url property
+   */
+  async createBillingPortalSession (accountId, customerId, returnUrl) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to create a billing portal session')
+      }
+
+      if (!customerId) {
+        throw new Error('Customer ID is required to create a billing portal session')
+      }
+
+      if (!returnUrl) {
+        throw new Error('Return URL is required')
+      }
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl
+      }, {
+        stripeAccount: accountId
+      })
+
+      return session
+    } catch (error) {
+      console.error('Error creating billing portal session:', error)
+      throw new Error(`Failed to create billing portal session: ${error.message}`)
+    }
+  },
+
+  /**
+   * Retrieves enriched transaction data from Stripe
+   *
+   * Fetches subscription or checkout session data to enrich our
+   * transaction records with payment details.
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} subscriptionId - Optional subscription ID
+   * @param {String} sessionId - Optional checkout session ID
+   * @returns {Promise<Object>} Enriched data object
+   */
+  async getTransactionDetails (accountId, { subscriptionId, sessionId }) {
+    try {
+      if (!accountId) {
+        return null
+      }
+
+      const result = {
+        subscriptionStatus: null,
+        currentPeriodEnd: null,
+        amountPaid: null,
+        currency: null,
+        customerId: null,
+        receiptUrl: null
+      }
+
+      // If we have a subscription ID, get subscription details
+      if (subscriptionId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['latest_invoice', 'items.data.price']
+          }, {
+            stripeAccount: accountId
+          })
+
+          result.subscriptionStatus = subscription.status
+          result.currentPeriodEnd = subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null
+          result.customerId = subscription.customer
+
+          // Get amount from the subscription items
+          if (subscription.items?.data?.[0]?.price) {
+            result.amountPaid = subscription.items.data[0].price.unit_amount
+            result.currency = subscription.items.data[0].price.currency
+          }
+
+          // Get receipt URL from latest invoice
+          if (subscription.latest_invoice?.hosted_invoice_url) {
+            result.receiptUrl = subscription.latest_invoice.hosted_invoice_url
+          }
+        } catch (subError) {
+          console.error('Error fetching subscription:', subscriptionId, subError.message)
+          // Continue - we may still have session data
+        }
+      }
+
+      // If we have a session ID and no subscription data, get session details
+      if (sessionId && !result.customerId) {
+        try {
+          const session = await stripe.checkout.sessions.retrieve(sessionId, {
+            expand: ['payment_intent', 'line_items']
+          }, {
+            stripeAccount: accountId
+          })
+
+          result.customerId = session.customer
+          result.amountPaid = session.amount_total
+          result.currency = session.currency
+
+          // For one-time payments, get receipt from payment intent
+          if (session.payment_intent?.charges?.data?.[0]?.receipt_url) {
+            result.receiptUrl = session.payment_intent.charges.data[0].receipt_url
+          }
+        } catch (sessError) {
+          console.error('Error fetching checkout session:', sessionId, sessError.message)
+        }
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error getting transaction details:', error)
+      return null
+    }
+  },
+
+  /**
    * Utility function to format price from cents to display string
    *
    * @param {Number} cents - Price in cents
@@ -774,5 +969,100 @@ module.exports = {
       style: 'currency',
       currency: currency.toUpperCase()
     }).format(dollars)
+  },
+
+  /**
+   * Transfers a donation amount from a connected account to the appropriate destination
+   *
+   * When a user adds a donation to Hylo during checkout, the donation is initially
+   * collected by the connected account. This method transfers it to:
+   * - Production: Hylo's connected account under the fiscal sponsor (for tax-deductible processing)
+   * - Non-production: Platform account (for testing)
+   *
+   * @param {String} connectedAccountId - The Stripe connected account ID (group's account)
+   * @param {String} paymentIntentId - The payment intent ID from the checkout session
+   * @param {Number} donationAmount - The donation amount in cents
+   * @param {String} currency - The currency code (e.g., 'usd')
+   * @returns {Promise<Object>} The transfer object
+   */
+  async transferDonationToPlatform ({
+    connectedAccountId,
+    paymentIntentId,
+    donationAmount,
+    currency = 'usd'
+  }) {
+    try {
+      if (!connectedAccountId) {
+        throw new Error('Connected account ID is required')
+      }
+
+      if (!paymentIntentId) {
+        throw new Error('Payment intent ID is required')
+      }
+
+      if (!donationAmount || donationAmount <= 0) {
+        throw new Error('Valid donation amount is required')
+      }
+
+      // Determine destination account based on environment
+      const isProduction = process.env.NODE_ENV === 'production'
+      const destinationAccountId = isProduction ? FISCAL_SPONSOR_ACCOUNT_ID : null
+
+      // In non-production, transfer to platform account (null destination = platform)
+      // In production, transfer to fiscal sponsor account (Hylo's connected account)
+      // In production, we require the fiscal sponsor account ID to be set
+      if (isProduction && !destinationAccountId) {
+        throw new Error(
+          'STRIPE_FISCAL_SPONSOR_ACCOUNT_ID must be set in production environment. ' +
+          'Donations must be routed to the fiscal sponsor account for tax-deductible processing.'
+        )
+      }
+
+      // Retrieve the payment intent to get the charge ID
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ['charges']
+      }, {
+        stripeAccount: connectedAccountId
+      })
+
+      // Get the charge ID from the payment intent
+      const chargeId = paymentIntent.charges?.data?.[0]?.id
+      if (!chargeId) {
+        throw new Error('No charge found for payment intent')
+      }
+
+      // Build transfer parameters
+      const transferParams = {
+        amount: donationAmount,
+        currency: currency.toLowerCase(),
+        source_transaction: chargeId,
+        description: isProduction
+          ? 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored)'
+          : 'Donation to Hylo platform (test)'
+      }
+
+      // If in production and fiscal sponsor account is set, transfer to that account
+      // Otherwise, transfer to platform account (destination: null)
+      if (isProduction && destinationAccountId) {
+        transferParams.destination = destinationAccountId
+      }
+
+      // Create the transfer on the platform account
+      // The source account is determined by the source_transaction (charge ID)
+      // For connected accounts with controller settings:
+      // - If destination is null/omitted: transfers to platform account
+      // - If destination is set to a connected account ID: transfers to that connected account
+      // Note: Transfers are created on the platform account, not with stripeAccount header
+      const transfer = await stripe.transfers.create(transferParams)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Transferred donation of ${donationAmount} ${currency} to ${isProduction && destinationAccountId ? 'fiscal sponsor account' : 'platform account'}`)
+      }
+
+      return transfer
+    } catch (error) {
+      console.error('Error transferring donation:', error)
+      throw new Error(`Failed to transfer donation: ${error.message}`)
+    }
   }
 }

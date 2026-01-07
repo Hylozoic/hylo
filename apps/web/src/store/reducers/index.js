@@ -6,6 +6,7 @@ import pending from './pending'
 import locationHistory from './locationHistory'
 import resetStore from './resetStore'
 import mixpanel from './mixpanel'
+import myTransactions from './myTransactions'
 import queryResults from './queryResults'
 import { composeReducers, handleSetState } from './util'
 
@@ -42,6 +43,7 @@ export const createCombinedReducers = routerReducer => combineReducers({
   queryResults,
   locationHistory,
   mixpanel,
+  myTransactions,
 
   // Local store (Component)
   // generator-marker-local-store-reducer
