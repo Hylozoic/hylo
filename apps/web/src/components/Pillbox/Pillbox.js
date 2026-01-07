@@ -107,7 +107,7 @@ class Pillbox extends Component {
               </CSSTransition>
             )}
           </TransitionGroup>
-          {editable && (
+          {editable && !adding && (
             <Button
               variant='outline'
               onClick={addOnClick}
@@ -118,12 +118,12 @@ class Pillbox extends Component {
           )}
         </div>
         {adding && (
-          <div className='absolute z-10 w-full mt-1'>
+          <div className='relative z-10 w-full mt-1'>
             <div className='relative'>
               <input
                 ref={this.input}
                 type='text'
-                className='w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20'
+                className='bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
                 maxLength='30'
                 placeholder={placeholder}
                 spellCheck={false}
@@ -141,17 +141,19 @@ class Pillbox extends Component {
               </button>
             </div>
             {!isEmpty(suggestions) && (
-              <KeyControlledItemList
-                spaceChooses={false}
-                items={suggestions}
-                theme={{
-                  items: 'mt-1 py-1 bg-background border border-border rounded-lg shadow-lg overflow-auto max-h-60',
-                  item: 'px-3 py-2 text-sm text-foreground/80 hover:bg-primary/10 cursor-pointer',
-                  itemActive: 'bg-primary/10'
-                }}
-                onChange={this.select}
-                ref={this.list}
-              />
+              <div className='absolute z-10 w-full mt-1'>
+                <KeyControlledItemList
+                  spaceChooses={false}
+                  items={suggestions}
+                  theme={{
+                    items: 'mt-1 py-1 bg-background border border-border rounded-lg shadow-lg overflow-auto max-h-60',
+                    item: 'px-3 py-2 text-sm text-foreground/80 hover:bg-card/50 cursor-pointer [&_a]:text-foreground/100',
+                    itemActive: 'bg-primary/10'
+                  }}
+                  onChange={this.select}
+                  ref={this.list}
+                />
+              </div>
             )}
           </div>
         )}
