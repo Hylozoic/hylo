@@ -8,8 +8,9 @@
  */
 
 import { GraphQLError } from 'graphql'
+const Queue = require('../../services/Queue')
 
-/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track */
+/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend */
 
 module.exports = {
 
@@ -120,6 +121,118 @@ module.exports = {
           // Log but don't fail the access grant if membership creation fails
           console.warn(`Group membership creation failed for user ${userId} in group ${groupId}:`, membershipError.message)
         }
+      }
+
+      // Send Admin-Granted Access email
+      try {
+        const userLocale = targetUser.getLocale()
+        const grantedByUser = await User.find(sessionUserId)
+
+        // Determine access type and gather data
+        let accessType = null
+        let accessName = null
+        let accessUrl = null
+        let contextGroup = null
+        let contextGroupName = null
+        let contextGroupUrl = null
+
+        if (trackId) {
+          accessType = 'track'
+          const track = await Track.find(trackId)
+          if (track) {
+            accessName = track.get('name')
+            // Track access is always within a group context
+            const trackGroupId = track.get('group_id')
+            contextGroup = await Group.find(trackGroupId)
+            if (contextGroup) {
+              contextGroupName = contextGroup.get('name')
+              contextGroupUrl = Frontend.Route.group(contextGroup)
+              accessUrl = Frontend.Route.track(track, contextGroup)
+            }
+          }
+        } else if (roleId) {
+          accessType = 'role'
+          const role = await GroupRole.where({ id: roleId }).fetch()
+          if (role) {
+            accessName = role.get('name')
+            // Role access is within a group context
+            const roleGroupId = role.get('group_id')
+            contextGroup = await Group.find(roleGroupId)
+            if (contextGroup) {
+              contextGroupName = contextGroup.get('name')
+              contextGroupUrl = Frontend.Route.group(contextGroup)
+              accessUrl = contextGroupUrl
+            }
+          }
+        } else if (productId) {
+          accessType = 'offering'
+          const product = await StripeProduct.where({ id: productId }).fetch()
+          if (product) {
+            accessName = product.get('name')
+            // Product access is within a group context
+            const productGroupId = product.get('group_id')
+            contextGroup = await Group.find(productGroupId)
+            if (contextGroup) {
+              contextGroupName = contextGroup.get('name')
+              contextGroupUrl = Frontend.Route.group(contextGroup)
+              accessUrl = contextGroupUrl
+            }
+          }
+        } else if (groupId) {
+          accessType = 'group'
+          contextGroup = await Group.find(groupId)
+          if (contextGroup) {
+            accessName = contextGroup.get('name')
+            accessUrl = Frontend.Route.group(contextGroup)
+            contextGroupName = accessName
+            contextGroupUrl = accessUrl
+          }
+        }
+
+        // Build email data
+        const emailData = {
+          user_name: targetUser.get('name'),
+          access_type: accessType,
+          access_name: accessName,
+          access_url: accessUrl,
+          granted_by_name: grantedByUser ? grantedByUser.get('name') : 'Administrator'
+        }
+
+        // Add context group info if available
+        if (contextGroupName) {
+          emailData.group_name = contextGroupName
+        }
+        if (contextGroupUrl) {
+          emailData.group_url = contextGroupUrl
+        }
+        if (contextGroup) {
+          emailData.group_avatar_url = contextGroup.get('avatar_url')
+        }
+
+        // Add expiration date if provided
+        if (expiresAt) {
+          const expiresAtDate = new Date(expiresAt)
+          emailData.expires_at = expiresAtDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        }
+
+        // Queue the email
+        Queue.classMethod('Email', 'sendAccessGranted', {
+          email: targetUser.get('email'),
+          data: emailData,
+          version: 'Redesign 2025',
+          locale: userLocale
+        })
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Queued Admin-Granted Access email to user ${userId}`)
+        }
+      } catch (emailError) {
+        // Log error but don't fail the access grant if email fails
+        console.error('Error queueing admin-granted access email:', emailError)
       }
 
       return {

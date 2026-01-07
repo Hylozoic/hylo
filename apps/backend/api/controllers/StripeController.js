@@ -9,12 +9,16 @@
  */
 
 const StripeService = require('../services/StripeService')
+const Queue = require('../services/Queue')
 const Stripe = require('stripe')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
+const { en } = require('../../lib/i18n/en')
+const { es } = require('../../lib/i18n/es')
+const locales = { en, es }
 
-/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group */
+/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend */
 
 module.exports = {
 
@@ -39,13 +43,6 @@ module.exports = {
 
       // Retrieve the checkout session to verify payment
       const session = await StripeService.getCheckoutSession(accountId, sessionId)
-
-      // TODO STRIPE:
-      // In a real application, you would:
-      // 1. Grant access to the purchased content
-      // 2. Send confirmation email
-      // 3. Update your database
-      // 4. Redirect to appropriate page
 
       return res.json({
         success: true,
@@ -379,14 +376,48 @@ module.exports = {
               stripeAccount: externalAccountId
             })
 
-            // Look for donation line item in the session
+            // Look for donation line items in the session
+            // Track donation details for acknowledgment email
+            const donationDetails = {
+              isRecurring: false,
+              recurringInterval: null,
+              donationType: 'one-time'
+            }
+
+            // Sum all donations (one-time and recurring) in case customer added both
             if (fullSession.line_items?.data) {
               for (const lineItem of fullSession.line_items.data) {
-                const productName = lineItem.price?.product?.name || lineItem.description
-                if (productName && productName.toLowerCase().includes('donation to hylo')) {
+                const productName = lineItem.price?.product?.name || lineItem.description || ''
+                const isDonation = productName.toLowerCase().includes('donation to hylo')
+
+                if (isDonation) {
                   // Calculate donation amount: unit_amount * quantity
-                  donationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
-                  break
+                  const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
+                  donationAmount += itemDonationAmount
+
+                  // Track donation type and recurring details
+                  const isRecurring = lineItem.price?.recurring !== null && lineItem.price?.recurring !== undefined
+                  if (isRecurring) {
+                    donationDetails.isRecurring = true
+                    donationDetails.donationType = 'recurring'
+                    // Map Stripe interval to template format
+                    const interval = lineItem.price.recurring.interval
+                    if (interval === 'month') {
+                      donationDetails.recurringInterval = 'monthly'
+                    } else if (interval === 'year') {
+                      donationDetails.recurringInterval = 'annually'
+                    } else if (interval === 'week') {
+                      donationDetails.recurringInterval = 'weekly'
+                    } else if (interval === 'day') {
+                      donationDetails.recurringInterval = 'daily'
+                    } else {
+                      donationDetails.recurringInterval = interval
+                    }
+                  }
+
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log(`Found ${isRecurring ? 'recurring' : 'one-time'} donation: ${itemDonationAmount} ${session.currency || 'usd'}`)
+                  }
                 }
               }
             }
@@ -406,6 +437,104 @@ module.exports = {
                 if (process.env.NODE_ENV === 'development') {
                   console.log(`Transferred donation of ${donationAmount} ${session.currency || 'usd'} to platform`)
                 }
+
+                // Send Donation Acknowledgment email
+                try {
+                  const user = await User.find(userId)
+                  if (user && user.get('email')) {
+                    const userLocale = user.getLocale()
+                    const donationDate = new Date(session.created * 1000)
+                    const donationDateFormatted = donationDate.toLocaleDateString(
+                      userLocale === 'es' ? 'es-ES' : 'en-US',
+                      {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }
+                    )
+
+                    const donationAmountFormatted = StripeService.formatPrice(donationAmount, session.currency || 'usd')
+
+                    // Get group and offering info for context
+                    const group = await Group.find(groupId)
+                    const offering = await StripeProduct.where({ id: offeringId }).fetch()
+                    let purchaseContext = null
+                    if (offering) {
+                      purchaseContext = offering.get('name')
+                    }
+
+                    // Determine next donation date for recurring donations
+                    let nextDonationDate = null
+                    if (donationDetails.isRecurring && donationDetails.recurringInterval) {
+                      const nextDate = new Date(donationDate)
+                      if (donationDetails.recurringInterval === 'monthly') {
+                        nextDate.setMonth(nextDate.getMonth() + 1)
+                      } else if (donationDetails.recurringInterval === 'annually') {
+                        nextDate.setFullYear(nextDate.getFullYear() + 1)
+                      } else if (donationDetails.recurringInterval === 'weekly') {
+                        nextDate.setDate(nextDate.getDate() + 7)
+                      } else if (donationDetails.recurringInterval === 'daily') {
+                        nextDate.setDate(nextDate.getDate() + 1)
+                      }
+                      nextDonationDate = nextDate.toLocaleDateString(
+                        userLocale === 'es' ? 'es-ES' : 'en-US',
+                        {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        }
+                      )
+                    }
+
+                    // Fiscal sponsor info (use env var or default)
+                    const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
+                    const localeObj = locales[userLocale] || locales.en
+                    const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
+                    const impactMessage = donationDetails.isRecurring
+                      ? localeObj.donationRecurringImpactMessage()
+                      : localeObj.donationImpactMessage()
+
+                    const emailData = {
+                      user_name: user.get('name'),
+                      donation_amount: donationAmountFormatted,
+                      donation_type: donationDetails.donationType,
+                      donation_date: donationDateFormatted,
+                      is_tax_deductible: true,
+                      fiscal_sponsor_name: fiscalSponsorName,
+                      tax_receipt_info: taxReceiptInfo,
+                      is_recurring: donationDetails.isRecurring,
+                      impact_message: impactMessage
+                    }
+
+                    if (donationDetails.isRecurring) {
+                      emailData.next_donation_date = nextDonationDate
+                      emailData.recurring_interval = donationDetails.recurringInterval
+                      emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
+                    }
+
+                    if (purchaseContext) {
+                      emailData.purchase_context = purchaseContext
+                    }
+
+                    if (group) {
+                      emailData.group_name = group.get('name')
+                    }
+
+                    Queue.classMethod('Email', 'sendDonationAcknowledgment', {
+                      email: user.get('email'),
+                      data: emailData,
+                      version: 'Redesign 2025',
+                      locale: userLocale
+                    })
+
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`Queued Donation Acknowledgment email to user ${userId}`)
+                    }
+                  }
+                } catch (emailError) {
+                  // Log error but don't fail the entire webhook - email can be retried
+                  console.error('Error queueing donation acknowledgment email:', emailError)
+                }
               }
             }
           }
@@ -415,7 +544,240 @@ module.exports = {
         console.error('Error processing donation transfer:', donationError)
       }
 
-      // TODO STRIPE: Send confirmation email to user
+      // Send purchase confirmation email to user
+      try {
+        const user = await User.find(userId)
+        if (!user || !user.get('email')) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`User ${userId} not found or has no email, skipping purchase confirmation email`)
+          }
+        } else {
+          const group = await Group.find(groupId)
+          if (!group) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Group ${groupId} not found, skipping purchase confirmation email`)
+            }
+          } else {
+            const userLocale = user.getLocale()
+            const isSubscription = session.mode === 'subscription' && stripeSubscriptionId
+            const trackId = offering.get('track_id')
+            const isTrackPurchase = !!trackId
+
+            // Format purchase date
+            const purchaseDate = new Date(session.created * 1000)
+            const formattedPurchaseDate = purchaseDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+
+            // Format price
+            const priceFormatted = StripeService.formatPrice(session.amount_total, session.currency || 'usd')
+
+            // Determine access type
+            let accessType = 'group'
+            if (isTrackPurchase) {
+              accessType = 'track'
+            } else if (offering.get('access_grants')) {
+              // Check access_grants to determine type
+              const accessGrants = typeof offering.get('access_grants') === 'string'
+                ? JSON.parse(offering.get('access_grants'))
+                : offering.get('access_grants')
+              if (accessGrants?.trackIds && accessGrants.trackIds.length > 0) {
+                accessType = 'track'
+              } else if (accessGrants?.groupIds && accessGrants.groupIds.length > 1) {
+                accessType = 'bundle'
+              }
+            }
+
+            // Get track info if track purchase
+            let track = null
+            let trackName = null
+            let trackUrl = null
+            if (isTrackPurchase && trackId) {
+              track = await Track.find(trackId)
+              if (track) {
+                trackName = track.get('name')
+                trackUrl = Frontend.Route.track(track, group)
+              }
+            }
+
+            // Get subscription info if subscription
+            let renewalDate = null
+            let renewalPeriod = null
+            let manageSubscriptionUrl = null
+            if (isSubscription && stripeSubscriptionId) {
+              try {
+                const stripeAccountId = group.get('stripe_account_id')
+                const getExternalAccountId = async (accountId) => {
+                  if (accountId && accountId.startsWith('acct_')) {
+                    return accountId
+                  }
+                  const StripeAccount = bookshelf.model('StripeAccount')
+                  const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+                  if (!stripeAccount) {
+                    throw new Error('Stripe account record not found')
+                  }
+                  return stripeAccount.get('stripe_account_external_id')
+                }
+
+                const externalAccountId = stripeAccountId ? await getExternalAccountId(stripeAccountId) : null
+
+                const subscription = await stripe.subscriptions.retrieve(
+                  stripeSubscriptionId,
+                  {},
+                  externalAccountId
+                    ? { stripeAccount: externalAccountId }
+                    : {}
+                )
+
+                if (subscription.current_period_end) {
+                  const renewalDateObj = new Date(subscription.current_period_end * 1000)
+                  renewalDate = renewalDateObj.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })
+                }
+
+                // Map subscription interval to renewal period
+                if (subscription.items?.data?.[0]?.price?.recurring) {
+                  const interval = subscription.items.data[0].price.recurring.interval
+                  const intervalCount = subscription.items.data[0].price.recurring.interval_count || 1
+
+                  if (interval === 'month') {
+                    renewalPeriod = intervalCount === 1 ? 'monthly' : `${intervalCount}-month`
+                  } else if (interval === 'year') {
+                    renewalPeriod = intervalCount === 1 ? 'annual' : `${intervalCount}-year`
+                  } else if (interval === 'week') {
+                    renewalPeriod = intervalCount === 1 ? 'weekly' : `${intervalCount}-week`
+                  } else {
+                    renewalPeriod = interval
+                  }
+                }
+
+                // Generate manage subscription URL (Stripe customer portal or Hylo settings)
+                manageSubscriptionUrl = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
+              } catch (subError) {
+                console.error('Error fetching subscription details for email:', subError)
+                // Continue without subscription details
+              }
+            }
+
+            // Get receipt URL
+            let stripeReceiptUrl = null
+            if (session.invoice) {
+              try {
+                const invoice = await stripe.invoices.retrieve(session.invoice)
+                stripeReceiptUrl = invoice.hosted_invoice_url || invoice.invoice_pdf
+              } catch (invoiceError) {
+                // Receipt URL is optional, continue without it
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Could not retrieve receipt URL:', invoiceError.message)
+                }
+              }
+            }
+
+            // Check if this is a track purchase - if so, send Track Access Purchased email instead
+            if (isTrackPurchase && track) {
+              // Queue Track Access Purchased email
+              const isEnrolled = accessRecords.some(ar => ar.get('track_id') === trackId)
+
+              Queue.classMethod('Email', 'sendTrackAccessPurchased', {
+                email: user.get('email'),
+                data: {
+                  user_name: user.get('name'),
+                  track_name: trackName,
+                  track_description: track.get('description'),
+                  track_url: trackUrl,
+                  track_image_url: track.get('image_url') || group.get('avatar_url'),
+                  group_name: group.get('name'),
+                  group_url: Frontend.Route.group(group),
+                  offering_name: offering.get('name'),
+                  price_formatted: priceFormatted,
+                  purchase_date: formattedPurchaseDate,
+                  is_enrolled: isEnrolled,
+                  start_learning_url: isEnrolled ? `${trackUrl}/actions` : trackUrl,
+                  group_avatar_url: group.get('avatar_url')
+                },
+                version: 'Redesign 2025',
+                locale: userLocale
+              })
+
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Queued Track Access Purchased email to user ${userId}`)
+              }
+            } else {
+              // Queue Purchase Confirmation email
+              const emailData = {
+                user_name: user.get('name'),
+                offering_name: offering.get('name'),
+                offering_description: offering.get('description'),
+                price_formatted: priceFormatted,
+                currency: (session.currency || 'usd').toUpperCase(),
+                purchase_date: formattedPurchaseDate,
+                access_type: accessType,
+                group_name: group.get('name'),
+                group_url: Frontend.Route.group(group),
+                is_subscription: isSubscription,
+                group_avatar_url: group.get('avatar_url')
+              }
+
+              // Add track info if applicable
+              if (track && trackName && trackUrl) {
+                emailData.track_name = trackName
+                emailData.track_url = trackUrl
+              }
+
+              // Add subscription info if applicable
+              if (isSubscription) {
+                if (renewalDate) emailData.renewal_date = renewalDate
+                if (renewalPeriod) emailData.renewal_period = renewalPeriod
+                if (manageSubscriptionUrl) emailData.manage_subscription_url = manageSubscriptionUrl
+              } else {
+                // Check if one-time purchase has expiration
+                const duration = offering.get('duration')
+                if (duration && duration !== 'lifetime') {
+                  // Calculate expiration date based on duration
+                  const expiresAtDate = new Date(purchaseDate)
+                  if (duration === 'month') {
+                    expiresAtDate.setMonth(expiresAtDate.getMonth() + 1)
+                  } else if (duration === 'season') {
+                    expiresAtDate.setMonth(expiresAtDate.getMonth() + 3)
+                  } else if (duration === 'annual') {
+                    expiresAtDate.setFullYear(expiresAtDate.getFullYear() + 1)
+                  }
+                  emailData.expires_at = expiresAtDate.toLocaleDateString(userLocale === 'es' ? 'es-ES' : 'en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })
+                }
+              }
+
+              // Add receipt URL if available
+              if (stripeReceiptUrl) {
+                emailData.stripe_receipt_url = stripeReceiptUrl
+              }
+
+              Queue.classMethod('Email', 'sendPurchaseConfirmation', {
+                email: user.get('email'),
+                data: emailData,
+                version: 'Redesign 2025',
+                locale: userLocale
+              })
+
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Queued Purchase Confirmation email to user ${userId}`)
+              }
+            }
+          }
+        }
+      } catch (emailError) {
+        // Log error but don't fail the entire webhook - email queuing can be retried
+        console.error('Error queueing purchase confirmation email:', emailError)
+      }
+
       // TODO STRIPE: Send notification to group admins
     } catch (error) {
       console.error('Error handling checkout.session.completed:', error)
@@ -773,6 +1135,187 @@ module.exports = {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Expired ${accessRecords.length} access records for deleted subscription ${subscription.id}`)
       }
+
+      // Send Subscription Cancelled email
+      try {
+        const firstAccess = accessRecords.at(0)
+        const userId = firstAccess.get('user_id')
+        const productId = firstAccess.get('product_id')
+        const groupId = firstAccess.get('granted_by_group_id')
+
+        const user = await User.find(userId)
+        const offering = await StripeProduct.where({ id: productId }).fetch()
+        const group = await Group.find(groupId)
+
+        if (!user || !offering || !group) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Missing user, offering, or group for subscription cancelled email. Skipping.')
+          }
+        } else {
+          const userLocale = user.getLocale()
+          const cancelledAt = new Date()
+          const cancelledAtFormatted = cancelledAt.toLocaleDateString(
+            userLocale === 'es' ? 'es-ES' : 'en-US',
+            {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }
+          )
+
+          // Determine when access ends
+          // If cancelled at period end, access ends at current_period_end
+          // If immediate cancellation, access ends now
+          let accessEndsAt = cancelledAt
+          if (subscription.canceled_at && subscription.current_period_end) {
+            // Check if cancellation was scheduled (cancel_at_period_end was true)
+            // In that case, access ends at period end
+            const canceledAtTimestamp = subscription.canceled_at * 1000
+            const periodEndTimestamp = subscription.current_period_end * 1000
+            if (periodEndTimestamp > canceledAtTimestamp) {
+              // Cancellation was scheduled, access ends at period end
+              accessEndsAt = new Date(periodEndTimestamp)
+            }
+          }
+
+          const accessEndsAtFormatted = accessEndsAt.toLocaleDateString(
+            userLocale === 'es' ? 'es-ES' : 'en-US',
+            {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }
+          )
+
+          // Get cancellation reason
+          let reason = null
+          if (subscription.cancellation_details?.reason) {
+            reason = subscription.cancellation_details.reason
+          } else if (subscription.cancellation_details?.feedback) {
+            reason = subscription.cancellation_details.feedback
+          }
+
+          const emailData = {
+            user_name: user.get('name'),
+            offering_name: offering.get('name'),
+            group_name: group.get('name'),
+            group_url: Frontend.Route.group(group),
+            cancelled_at: cancelledAtFormatted,
+            access_ends_at: accessEndsAtFormatted,
+            resubscribe_url: Frontend.Route.group(group),
+            group_avatar_url: group.get('avatar_url')
+          }
+
+          if (reason) {
+            emailData.reason = reason
+          }
+
+          Queue.classMethod('Email', 'sendSubscriptionCancelled', {
+            email: user.get('email'),
+            data: emailData,
+            version: 'Redesign 2025',
+            locale: userLocale
+          })
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Queued Subscription Cancelled email to user ${userId}`)
+          }
+
+          // Send Admin Notification emails to all admins/stewards
+          try {
+            // Get all admins with RESP_ADMINISTRATION (ID = 1)
+            const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetchAll()
+
+            if (admins && admins.length > 0) {
+              // Determine cancellation type
+              const cancellationType = accessEndsAt > cancelledAt ? 'at_period_end' : 'immediate'
+
+              // Get subscription amount and period from offering
+              const priceInCents = offering.get('price_in_cents') || 0
+              const currency = offering.get('currency') || 'usd'
+              const subscriptionAmount = StripeService.formatPrice(priceInCents, currency)
+
+              const duration = offering.get('duration')
+              let subscriptionPeriod = null
+              if (duration === 'month') {
+                subscriptionPeriod = 'monthly'
+              } else if (duration === 'season') {
+                subscriptionPeriod = 'quarterly'
+              } else if (duration === 'annual') {
+                subscriptionPeriod = 'annual'
+              } else if (duration) {
+                subscriptionPeriod = duration
+              }
+
+              // Send email to each admin individually
+              await Promise.all(admins.models.map(async (adminMembership) => {
+                const admin = adminMembership.relations.user || await User.find(adminMembership.get('user_id'))
+                if (!admin) return
+
+                const adminLocale = admin.getLocale()
+
+                const cancelledAtFormattedForAdmin = cancelledAt.toLocaleDateString(
+                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }
+                )
+
+                const accessEndsAtFormattedForAdmin = accessEndsAt.toLocaleDateString(
+                  adminLocale === 'es' ? 'es-ES' : 'en-US',
+                  {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }
+                )
+
+                const adminEmailData = {
+                  admin_name: admin.get('name'),
+                  user_name: user.get('name'),
+                  user_email: user.get('email'),
+                  user_profile_url: Frontend.Route.profile(user),
+                  offering_name: offering.get('name'),
+                  group_name: group.get('name'),
+                  group_url: Frontend.Route.group(group),
+                  cancelled_at: cancelledAtFormattedForAdmin,
+                  access_ends_at: accessEndsAtFormattedForAdmin,
+                  cancellation_type: cancellationType,
+                  subscription_amount: subscriptionAmount,
+                  subscription_period: subscriptionPeriod,
+                  revenue_lost: subscriptionAmount,
+                  view_content_access_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/groups/${group.get('slug') || group.id}/settings/paid-content/access`,
+                  contact_user_url: `${Frontend.Route.profile(user)}/message`,
+                  group_avatar_url: group.get('avatar_url')
+                }
+
+                if (reason) {
+                  adminEmailData.reason = reason
+                }
+
+                Queue.classMethod('Email', 'sendSubscriptionCancelledAdminNotification', {
+                  email: admin.get('email'),
+                  data: adminEmailData,
+                  version: 'Redesign 2025',
+                  locale: adminLocale
+                })
+
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`Queued Subscription Cancelled Admin Notification email to admin ${admin.id}`)
+                }
+              }))
+            }
+          } catch (adminEmailError) {
+            // Log error but don't fail the entire webhook - email can be retried
+            console.error('Error queueing subscription cancelled admin notification emails:', adminEmailError)
+          }
+        }
+      } catch (emailError) {
+        // Log error but don't fail the entire webhook - email can be retried
+        console.error('Error queueing subscription cancelled email:', emailError)
+      }
     } catch (error) {
       console.error('Error handling customer.subscription.deleted:', error)
       throw error
@@ -866,6 +1409,311 @@ module.exports = {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Extended ${accessRecords.length} access records for subscription ${subscriptionId} until ${newExpiresAt.toISOString()}`)
       }
+
+      // Send Subscription Renewed email
+      try {
+        const firstAccess = accessRecords.at(0)
+        const userId = firstAccess.get('user_id')
+        const productId = firstAccess.get('product_id')
+        const groupId = firstAccess.get('granted_by_group_id')
+
+        const user = await User.find(userId)
+        const offering = await StripeProduct.where({ id: productId }).fetch()
+        const group = await Group.find(groupId)
+
+        if (!user || !offering || !group) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Missing user, offering, or group for subscription renewal email. Skipping.')
+          }
+        } else {
+          const userLocale = user.getLocale()
+          const paymentDate = new Date(invoice.created * 1000)
+          const paymentDateFormatted = paymentDate.toLocaleDateString(
+            userLocale === 'es' ? 'es-ES' : 'en-US',
+            {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }
+          )
+
+          const nextRenewalDateFormatted = newExpiresAt.toLocaleDateString(
+            userLocale === 'es' ? 'es-ES' : 'en-US',
+            {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }
+          )
+
+          const amountPaid = StripeService.formatPrice(invoice.amount_paid, invoice.currency || 'usd')
+
+          // Get receipt URL
+          let stripeReceiptUrl = null
+          if (invoice.hosted_invoice_url) {
+            stripeReceiptUrl = invoice.hosted_invoice_url
+          } else if (invoice.invoice_pdf) {
+            stripeReceiptUrl = invoice.invoice_pdf
+          }
+
+          const emailData = {
+            user_name: user.get('name'),
+            offering_name: offering.get('name'),
+            group_name: group.get('name'),
+            group_url: Frontend.Route.group(group),
+            amount_paid: amountPaid,
+            payment_date: paymentDateFormatted,
+            next_renewal_date: nextRenewalDateFormatted,
+            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            group_avatar_url: group.get('avatar_url')
+          }
+
+          if (stripeReceiptUrl) {
+            emailData.stripe_receipt_url = stripeReceiptUrl
+          }
+
+          Queue.classMethod('Email', 'sendSubscriptionRenewed', {
+            email: user.get('email'),
+            data: emailData,
+            version: 'Redesign 2025',
+            locale: userLocale
+          })
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Queued Subscription Renewed email to user ${userId}`)
+          }
+        }
+      } catch (emailError) {
+        // Log error but don't fail the entire webhook - email can be retried
+        console.error('Error queueing subscription renewed email:', emailError)
+      }
+
+      // Handle recurring donations from subscription renewal invoices
+      // Check invoice line items for recurring donations
+      let donationAmount = 0
+      try {
+        // Get group ID from the first access record to find connected account
+        const firstAccess = accessRecords.at(0)
+        const productId = firstAccess.get('product_id')
+
+        if (productId) {
+          const offering = await StripeProduct.where({ id: productId }).fetch()
+          if (offering) {
+            const groupId = offering.get('group_id')
+            const group = await Group.find(groupId)
+
+            if (group) {
+              const stripeAccountId = group.get('stripe_account_id')
+              if (stripeAccountId) {
+                // Convert database ID to external account ID if needed
+                const getExternalAccountId = async (accountId) => {
+                  if (accountId && accountId.startsWith('acct_')) {
+                    return accountId
+                  }
+                  const StripeAccount = bookshelf.model('StripeAccount')
+                  const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+                  if (!stripeAccount) {
+                    throw new Error('Stripe account record not found')
+                  }
+                  return stripeAccount.get('stripe_account_external_id')
+                }
+
+                const externalAccountId = await getExternalAccountId(stripeAccountId)
+
+                // Retrieve invoice with line items expanded
+                const fullInvoice = await stripe.invoices.retrieve(invoice.id, {
+                  expand: ['lines.data.price.product']
+                }, {
+                  stripeAccount: externalAccountId
+                })
+
+                // Look for recurring donation line items in the invoice
+                // Track donation details for acknowledgment email
+                const donationDetails = {
+                  isRecurring: true,
+                  recurringInterval: null,
+                  donationType: 'recurring'
+                }
+
+                if (fullInvoice.lines?.data) {
+                  for (const lineItem of fullInvoice.lines.data) {
+                    const productName = lineItem.price?.product?.name || lineItem.description || ''
+                    const isRecurringDonation = productName.toLowerCase().includes('recurring donation to hylo')
+
+                    if (isRecurringDonation) {
+                      // Calculate donation amount: unit_amount * quantity
+                      const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
+                      donationAmount += itemDonationAmount
+
+                      // Track recurring interval
+                      if (lineItem.price?.recurring) {
+                        const interval = lineItem.price.recurring.interval
+                        if (interval === 'month') {
+                          donationDetails.recurringInterval = 'monthly'
+                        } else if (interval === 'year') {
+                          donationDetails.recurringInterval = 'annually'
+                        } else if (interval === 'week') {
+                          donationDetails.recurringInterval = 'weekly'
+                        } else if (interval === 'day') {
+                          donationDetails.recurringInterval = 'daily'
+                        } else {
+                          donationDetails.recurringInterval = interval
+                        }
+                      }
+
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log(`Found recurring donation in renewal invoice: ${itemDonationAmount} ${invoice.currency || 'usd'}`)
+                      }
+                    }
+                  }
+                }
+
+                // Transfer recurring donation if present
+                if (donationAmount > 0) {
+                  // For invoices, we need to get the charge ID from the payment intent
+                  const paymentIntentId = invoice.payment_intent
+
+                  if (paymentIntentId) {
+                    await StripeService.transferDonationToPlatform({
+                      connectedAccountId: externalAccountId,
+                      paymentIntentId,
+                      donationAmount,
+                      currency: invoice.currency || 'usd'
+                    })
+
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`Transferred recurring donation of ${donationAmount} ${invoice.currency || 'usd'} to platform from subscription renewal`)
+                    }
+
+                    // Send Donation Acknowledgment email for recurring donation
+                    try {
+                      const firstAccess = accessRecords.at(0)
+                      const userId = firstAccess.get('user_id')
+                      const user = await User.find(userId)
+
+                      if (user && user.get('email')) {
+                        const userLocale = user.getLocale()
+                        const donationDate = new Date(invoice.created * 1000)
+                        const donationDateFormatted = donationDate.toLocaleDateString(
+                          userLocale === 'es' ? 'es-ES' : 'en-US',
+                          {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }
+                        )
+
+                        const donationAmountFormatted = StripeService.formatPrice(donationAmount, invoice.currency || 'usd')
+
+                        // Get group and offering info for context
+                        const productId = firstAccess.get('product_id')
+                        const offering = productId ? await StripeProduct.where({ id: productId }).fetch() : null
+                        let purchaseContext = null
+                        if (offering) {
+                          purchaseContext = offering.get('name')
+                        }
+
+                        // Determine next donation date (based on subscription renewal date)
+                        let nextDonationDate = null
+                        if (donationDetails.recurringInterval) {
+                          // Get subscription to find next billing date
+                          try {
+                            const subscription = await stripe.subscriptions.retrieve(invoice.subscription, {
+                              stripeAccount: externalAccountId
+                            })
+                            if (subscription.current_period_end) {
+                              const nextDate = new Date(subscription.current_period_end * 1000)
+                              nextDonationDate = nextDate.toLocaleDateString(
+                                userLocale === 'es' ? 'es-ES' : 'en-US',
+                                {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                }
+                              )
+                            }
+                          } catch (subError) {
+                            // Fallback: calculate from interval
+                            const nextDate = new Date(donationDate)
+                            if (donationDetails.recurringInterval === 'monthly') {
+                              nextDate.setMonth(nextDate.getMonth() + 1)
+                            } else if (donationDetails.recurringInterval === 'annually') {
+                              nextDate.setFullYear(nextDate.getFullYear() + 1)
+                            } else if (donationDetails.recurringInterval === 'weekly') {
+                              nextDate.setDate(nextDate.getDate() + 7)
+                            } else if (donationDetails.recurringInterval === 'daily') {
+                              nextDate.setDate(nextDate.getDate() + 1)
+                            }
+                            nextDonationDate = nextDate.toLocaleDateString(
+                              userLocale === 'es' ? 'es-ES' : 'en-US',
+                              {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              }
+                            )
+                          }
+                        }
+
+                        // Fiscal sponsor info (use env var or default)
+                        const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
+                        const localeObj = locales[userLocale] || locales.en
+                        const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
+                        const impactMessage = localeObj.donationRecurringImpactMessage()
+
+                        const emailData = {
+                          user_name: user.get('name'),
+                          donation_amount: donationAmountFormatted,
+                          donation_type: donationDetails.donationType,
+                          donation_date: donationDateFormatted,
+                          is_tax_deductible: true,
+                          fiscal_sponsor_name: fiscalSponsorName,
+                          tax_receipt_info: taxReceiptInfo,
+                          is_recurring: true,
+                          impact_message: impactMessage
+                        }
+
+                        if (nextDonationDate) {
+                          emailData.next_donation_date = nextDonationDate
+                        }
+                        if (donationDetails.recurringInterval) {
+                          emailData.recurring_interval = donationDetails.recurringInterval
+                        }
+                        emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
+
+                        if (purchaseContext) {
+                          emailData.purchase_context = purchaseContext
+                        }
+
+                        if (group) {
+                          emailData.group_name = group.get('name')
+                        }
+
+                        Queue.classMethod('Email', 'sendDonationAcknowledgment', {
+                          email: user.get('email'),
+                          data: emailData,
+                          version: 'Redesign 2025',
+                          locale: userLocale
+                        })
+
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log(`Queued Donation Acknowledgment email to user ${userId} for recurring donation`)
+                        }
+                      }
+                    } catch (emailError) {
+                      // Log error but don't fail the entire webhook - email can be retried
+                      console.error('Error queueing donation acknowledgment email for recurring donation:', emailError)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (donationError) {
+        // Log error but don't fail the entire webhook - donation transfer can be retried
+        console.error('Error processing recurring donation from invoice:', donationError)
+      }
     } catch (error) {
       console.error('Error handling invoice.paid:', error)
       throw error
@@ -911,7 +1759,138 @@ module.exports = {
 
       console.warn(`Payment failed for subscription ${subscriptionId} affecting ${accessRecords.length} access records. Stripe will retry payment.`)
 
-      // TODO STRIPE: Send notification email to user about payment failure
+      // Send Payment Failed email
+      try {
+        const firstAccess = accessRecords.at(0)
+        const userId = firstAccess.get('user_id')
+        const productId = firstAccess.get('product_id')
+        const groupId = firstAccess.get('granted_by_group_id')
+
+        const user = await User.find(userId)
+        const offering = await StripeProduct.where({ id: productId }).fetch()
+        const group = await Group.find(groupId)
+
+        if (!user || !offering || !group) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Missing user, offering, or group for payment failed email. Skipping.')
+          }
+        } else {
+          // Get subscription to find current period end (when access will end)
+          const groupStripeAccountId = group.get('stripe_account_id')
+          let subscription = null
+          let accessEndsDate = null
+
+          if (groupStripeAccountId) {
+            try {
+              const getExternalAccountId = async (accountId) => {
+                if (accountId && accountId.startsWith('acct_')) {
+                  return accountId
+                }
+                const StripeAccount = bookshelf.model('StripeAccount')
+                const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+                if (!stripeAccount) {
+                  throw new Error('Stripe account record not found')
+                }
+                return stripeAccount.get('stripe_account_external_id')
+              }
+
+              const externalAccountId = await getExternalAccountId(groupStripeAccountId)
+              subscription = await stripe.subscriptions.retrieve(
+                subscriptionId,
+                {},
+                externalAccountId ? { stripeAccount: externalAccountId } : {}
+              )
+
+              if (subscription.current_period_end) {
+                accessEndsDate = new Date(subscription.current_period_end * 1000)
+              }
+            } catch (subError) {
+              console.error('Error fetching subscription for payment failed email:', subError)
+              // Continue without subscription details
+            }
+          }
+
+          const userLocale = user.getLocale()
+
+          // Get failure reason
+          let failureReason = 'Payment could not be processed'
+          if (invoice.last_payment_error?.message) {
+            failureReason = invoice.last_payment_error.message
+          } else if (invoice.payment_intent) {
+            try {
+              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent)
+              if (paymentIntent.last_payment_error?.message) {
+                failureReason = paymentIntent.last_payment_error.message
+              }
+            } catch (piError) {
+              // Continue with default message
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Could not retrieve payment intent for failure reason:', piError.message)
+              }
+            }
+          }
+
+          // Get retry date if Stripe will retry
+          let retryDateFormatted = null
+          if (invoice.next_payment_attempt) {
+            const retryDate = new Date(invoice.next_payment_attempt * 1000)
+            retryDateFormatted = retryDate.toLocaleDateString(
+              userLocale === 'es' ? 'es-ES' : 'en-US',
+              {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }
+            )
+          }
+
+          // Format access ends date
+          let accessEndsDateFormatted = null
+          if (accessEndsDate) {
+            accessEndsDateFormatted = accessEndsDate.toLocaleDateString(
+              userLocale === 'es' ? 'es-ES' : 'en-US',
+              {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }
+            )
+          }
+
+          const emailData = {
+            user_name: user.get('name'),
+            offering_name: offering.get('name'),
+            group_name: group.get('name'),
+            group_url: Frontend.Route.group(group),
+            failure_reason: failureReason,
+            manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+            group_avatar_url: group.get('avatar_url')
+          }
+
+          if (retryDateFormatted) {
+            emailData.retry_date = retryDateFormatted
+          }
+
+          if (accessEndsDateFormatted) {
+            emailData.access_ends_date = accessEndsDateFormatted
+          }
+
+          Queue.classMethod('Email', 'sendPaymentFailed', {
+            email: user.get('email'),
+            data: emailData,
+            version: 'Redesign 2025',
+            locale: userLocale
+          })
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Queued Payment Failed email to user ${userId}`)
+          }
+        }
+      } catch (emailError) {
+        // Log error but don't fail the entire webhook - email can be retried
+        console.error('Error queueing payment failed email:', emailError)
+      }
     } catch (error) {
       console.error('Error handling invoice.payment_failed:', error)
       throw error

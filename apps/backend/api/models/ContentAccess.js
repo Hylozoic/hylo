@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 const { createTrackScope, createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
+const Queue = require('../services/Queue')
+const StripeService = require('../services/StripeService')
 
 module.exports = bookshelf.Model.extend({
   tableName: 'content_access',
@@ -388,5 +390,298 @@ module.exports = bookshelf.Model.extend({
       })
       qb.whereNotNull('stripe_subscription_id')
     }).fetchAll()
+  },
+
+  /**
+   * Send renewal reminder emails for subscriptions renewing in 7 days
+   * Called by daily cron job
+   * @returns {Promise<Number>} Number of reminders sent
+   */
+  sendRenewalReminders: async function () {
+    /* global User, Group, StripeProduct, Frontend */
+
+    let remindersSent = 0
+    const now = new Date()
+    const sixDaysFromNow = new Date(now.getTime() + 6 * 24 * 60 * 60 * 1000)
+    const eightDaysFromNow = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000)
+
+    // Only query subscriptions where expires_at is in the 6-8 day window
+    // We rely on expires_at from our database, no need to check Stripe
+    const activeSubscriptions = await this.query(qb => {
+      qb.where({
+        status: this.Status.ACTIVE
+      })
+      qb.whereNotNull('stripe_subscription_id')
+      qb.whereBetween('expires_at', [sixDaysFromNow.toISOString(), eightDaysFromNow.toISOString()])
+    }).fetchAll({
+      withRelated: ['user', 'product', 'group', 'grantedByGroup']
+    })
+
+    for (const access of activeSubscriptions.models) {
+      try {
+        const user = access.relations.user
+        const product = access.relations.product
+        const group = access.relations.grantedByGroup || access.relations.group
+
+        if (!user || !product || !group) {
+          continue
+        }
+
+        // Get expires_at from database (this is our renewal date)
+        const expiresAt = access.get('expires_at')
+        if (!expiresAt) {
+          continue
+        }
+
+        const renewalDate = new Date(expiresAt)
+
+        // Double-check it's within our window (should already be filtered by query, but safety check)
+        if (renewalDate < sixDaysFromNow || renewalDate > eightDaysFromNow) {
+          continue
+        }
+
+        // Check if reminder was already sent for this expiration date
+        const metadata = access.get('metadata') || {}
+        const lastReminderSentAt = metadata.renewal_reminder_sent_at
+        const lastReminderExpiresAt = metadata.renewal_reminder_sent_for_expires_at
+
+        // Skip if reminder already sent for this exact expiration date
+        if (lastReminderExpiresAt === expiresAt) {
+          continue
+        }
+
+        // Skip if reminder was sent in the last 8 days (avoid re-checking too soon)
+        if (lastReminderSentAt) {
+          const lastSentDate = new Date(lastReminderSentAt)
+          const eightDaysAgo = new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000)
+          if (lastSentDate > eightDaysAgo) {
+            continue
+          }
+        }
+
+        // Get subscription details for email from database
+        const userLocale = user.getLocale()
+        const renewalDateFormatted = renewalDate.toLocaleDateString(
+          userLocale === 'es' ? 'es-ES' : 'en-US',
+          {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }
+        )
+
+        // Get renewal amount and period from product
+        const priceInCents = product.get('price_in_cents') || 0
+        const currency = product.get('currency') || 'usd'
+        const renewalAmount = StripeService.formatPrice(priceInCents, currency)
+
+        // Map duration to renewal period
+        const duration = product.get('duration')
+        let renewalPeriod = null
+        if (duration === 'month') {
+          renewalPeriod = 'monthly'
+        } else if (duration === 'season') {
+          renewalPeriod = 'quarterly'
+        } else if (duration === 'annual') {
+          renewalPeriod = 'annual'
+        } else if (duration) {
+          renewalPeriod = duration
+        }
+
+        // Build email data
+        const emailData = {
+          user_name: user.get('name'),
+          offering_name: product.get('name'),
+          group_name: group.get('name'),
+          group_url: Frontend.Route.group(group),
+          renewal_date: renewalDateFormatted,
+          renewal_amount: renewalAmount,
+          renewal_period: renewalPeriod,
+          manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+          update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+          group_avatar_url: group.get('avatar_url')
+        }
+
+        // Queue the email
+        Queue.classMethod('Email', 'sendSubscriptionRenewalReminder', {
+          email: user.get('email'),
+          data: emailData,
+          version: 'Redesign 2025',
+          locale: userLocale
+        })
+
+        // Mark reminder as sent in metadata using expires_at
+        const updatedMetadata = {
+          ...metadata,
+          renewal_reminder_sent_for_expires_at: expiresAt,
+          renewal_reminder_sent_at: new Date().toISOString()
+        }
+
+        await access.save({ metadata: updatedMetadata })
+
+        remindersSent++
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Queued renewal reminder email for user ${user.id}, expires at ${expiresAt}`)
+        }
+      } catch (error) {
+        console.error(`Error sending renewal reminder for access ${access.id}:`, error)
+        // Continue with next subscription
+      }
+    }
+
+    return remindersSent
+  },
+
+  /**
+   * Send expired access notification emails
+   * Called by daily cron job
+   * @returns {Promise<Number>} Number of notifications sent
+   */
+  sendExpiredAccessNotifications: async function () {
+    /* global Track */
+
+    let notificationsSent = 0
+    const now = new Date()
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+
+    // Find access records that have expired recently (within the last week)
+    // This avoids constantly checking old expired records
+    // Query for records where expires_at is between one week ago and now
+    // (regardless of status - webhooks may have already changed it)
+    const expiredAccessRecords = await this.query(qb => {
+      qb.where('expires_at', '<=', now.toISOString())
+      qb.where('expires_at', '>=', threeDaysAgo.toISOString())
+      qb.whereNotNull('expires_at')
+    }).fetchAll({
+      withRelated: ['user', 'product', 'group', 'grantedByGroup', 'track']
+    })
+
+    for (const access of expiredAccessRecords.models) {
+      try {
+        // Skip if status is revoked (don't send expiration email for revoked access)
+        if (access.get('status') === this.Status.REVOKED) {
+          continue
+        }
+
+        // If status is already expired, we still might need to send the email if we haven't sent it yet
+        // If status is still active, we'll update it to expired
+
+        const currentExpiresAt = access.get('expires_at')
+        if (!currentExpiresAt) {
+          continue
+        }
+
+        // Check if expiration email was already sent for this specific expiration date
+        // This handles renewals: if expires_at changes, we'll send again for the new expiration
+        const metadata = access.get('metadata') || {}
+        const lastSentForExpiresAt = metadata.expiration_email_sent_for_expires_at
+
+        // Skip if we already sent for this exact expiration date
+        if (lastSentForExpiresAt === currentExpiresAt) {
+          continue
+        }
+
+        // Double-check the access is actually expired (expires_at <= now)
+        const expiresAtDate = new Date(currentExpiresAt)
+        if (expiresAtDate > now) {
+          continue
+        }
+
+        const user = access.relations.user
+        const product = access.relations.product
+        const group = access.relations.grantedByGroup || access.relations.group
+        const track = access.relations.track
+
+        if (!user || !group) {
+          continue
+        }
+
+        // Update status to expired (if not already) and mark email as sent for this expiration date
+        const updateData = {
+          metadata: {
+            ...metadata,
+            expiration_email_sent_for_expires_at: currentExpiresAt,
+            expiration_email_sent_at: new Date().toISOString()
+          }
+        }
+
+        // Only update status if it's still active (webhooks may have already set it to expired)
+        if (access.get('status') === this.Status.ACTIVE) {
+          updateData.status = this.Status.EXPIRED
+        }
+
+        await access.save(updateData)
+
+        const userLocale = user.getLocale()
+        const expiresAt = new Date(access.get('expires_at'))
+        const expiredAtFormatted = expiresAt.toLocaleDateString(
+          userLocale === 'es' ? 'es-ES' : 'en-US',
+          {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }
+        )
+
+        // Determine access type
+        const accessType = track ? 'track' : 'group'
+
+        // Get available offerings for the group
+        const availableOfferings = []
+        if (product) {
+          // Get all published offerings for this group
+          const offerings = await StripeProduct.where({
+            group_id: group.id,
+            publish_status: 'published'
+          }).fetchAll()
+
+          for (const offering of offerings.models) {
+            const priceInCents = offering.get('price_in_cents') || 0
+            const currency = offering.get('currency') || 'usd'
+            const priceFormatted = StripeService.formatPrice(priceInCents, currency)
+
+            availableOfferings.push({
+              name: offering.get('name'),
+              price: priceFormatted
+            })
+          }
+        }
+
+        const emailData = {
+          user_name: user.get('name'),
+          access_type: accessType,
+          group_name: group.get('name'),
+          group_url: Frontend.Route.group(group),
+          expired_at: expiredAtFormatted,
+          renew_url: Frontend.Route.group(group),
+          available_offerings: availableOfferings,
+          group_avatar_url: group.get('avatar_url')
+        }
+
+        // Add track info if applicable
+        if (track) {
+          emailData.track_name = track.get('name')
+        }
+
+        Queue.classMethod('Email', 'sendAccessExpired', {
+          email: user.get('email'),
+          data: emailData,
+          version: 'Redesign 2025',
+          locale: userLocale
+        })
+
+        notificationsSent++
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Queued Access Expired email to user ${user.id} for access ${access.id}`)
+        }
+      } catch (error) {
+        console.error(`Error sending expired access notification for access ${access.id}:`, error)
+        // Continue with next access record
+      }
+    }
+
+    return notificationsSent
   }
 })

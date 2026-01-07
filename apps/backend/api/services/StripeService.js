@@ -13,6 +13,11 @@ const Stripe = require('stripe')
 // Set this in your environment variables as STRIPE_SECRET_KEY
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 
+// Fiscal sponsor's Stripe account ID (Hylo's connected account under fiscal sponsor)
+// In production, donations are routed to this account for tax-deductible processing
+// In non-production, donations stay in the platform account
+const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
+
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
   throw new Error(
@@ -559,9 +564,10 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
-      // Get currency from the price to match donation currency
+      // Get currency and recurring info from the price to match donation configuration
       const priceObject = await this.getPrice(accountId, priceId)
       const currency = priceObject.currency || 'usd'
+      const isRecurring = mode === 'subscription' && priceObject.recurring
 
       // Build session configuration based on mode
       const sessionConfig = {
@@ -575,24 +581,60 @@ module.exports = {
         metadata
       }
 
-      // Add optional donation item that appears on Stripe's checkout page
-      // This allows customers to optionally add a donation to Hylo during checkout
-      sessionConfig.optional_items = [{
-        price_data: {
-          currency: currency.toLowerCase(),
-          product_data: {
-            name: 'Donation to Hylo',
-            description: 'Thank you for supporting the Hylo platform!'
-          },
-          unit_amount: 100 // Default $1.00 donation amount in cents
+      // Build optional donation items for Stripe checkout
+      // For subscriptions: offer both one-time and recurring donation options
+      // For one-time payments: offer only one-time donation
+      const optionalItems = []
+
+      // One-time donation option (available for both subscriptions and one-time purchases)
+      const oneTimeDonationPriceData = {
+        currency: currency.toLowerCase(),
+        product_data: {
+          name: 'One-Time Donation to Hylo',
+          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!'
         },
+        unit_amount: 100 // Default $1.00 donation amount in cents
+        // No recurring property = one-time payment
+      }
+
+      optionalItems.push({
+        price_data: oneTimeDonationPriceData,
         quantity: 0,
         adjustable_quantity: {
           enabled: true,
           minimum: 0, // Customer can choose not to donate
-          maximum: 100 // Maximum quantity (allows up to $500 donation)
+          maximum: 100 // Maximum quantity (allows up to $100 donation)
         }
-      }]
+      })
+
+      // Recurring donation option (only for subscriptions)
+      if (isRecurring && priceObject.recurring) {
+        const recurringDonationPriceData = {
+          currency: currency.toLowerCase(),
+          product_data: {
+            name: 'Recurring Donation to Hylo',
+            description: `Tax-deductible recurring donation to Hylo (501(c)(3) fiscally sponsored). Repeats ${priceObject.recurring.interval_count === 1 ? 'each' : `every ${priceObject.recurring.interval_count}`} ${priceObject.recurring.interval}. Thank you for supporting the Hylo platform!`
+          },
+          unit_amount: 100, // Default $1.00 donation amount in cents
+          recurring: {
+            interval: priceObject.recurring.interval, // 'month', 'year', etc.
+            interval_count: priceObject.recurring.interval_count || 1
+          }
+        }
+
+        optionalItems.push({
+          price_data: recurringDonationPriceData,
+          quantity: 0,
+          adjustable_quantity: {
+            enabled: true,
+            minimum: 0, // Customer can choose not to donate
+            maximum: 100 // Maximum quantity (allows up to $100 donation per billing cycle)
+          }
+        })
+      }
+
+      // Add optional donation items to checkout session
+      sessionConfig.optional_items = optionalItems
 
       // Store flag in metadata to indicate donation option was available
       metadata.hasDonationOption = 'true'
@@ -930,12 +972,14 @@ module.exports = {
   },
 
   /**
-   * Transfers a donation amount from a connected account to the platform account
+   * Transfers a donation amount from a connected account to the appropriate destination
    *
    * When a user adds a donation to Hylo during checkout, the donation is initially
-   * collected by the connected account. This method transfers it to the platform account.
+   * collected by the connected account. This method transfers it to:
+   * - Production: Hylo's connected account under the fiscal sponsor (for tax-deductible processing)
+   * - Non-production: Platform account (for testing)
    *
-   * @param {String} connectedAccountId - The Stripe connected account ID
+   * @param {String} connectedAccountId - The Stripe connected account ID (group's account)
    * @param {String} paymentIntentId - The payment intent ID from the checkout session
    * @param {Number} donationAmount - The donation amount in cents
    * @param {String} currency - The currency code (e.g., 'usd')
@@ -960,6 +1004,20 @@ module.exports = {
         throw new Error('Valid donation amount is required')
       }
 
+      // Determine destination account based on environment
+      const isProduction = process.env.NODE_ENV === 'production'
+      const destinationAccountId = isProduction ? FISCAL_SPONSOR_ACCOUNT_ID : null
+
+      // In non-production, transfer to platform account (null destination = platform)
+      // In production, transfer to fiscal sponsor account (Hylo's connected account)
+      // In production, we require the fiscal sponsor account ID to be set
+      if (isProduction && !destinationAccountId) {
+        throw new Error(
+          'STRIPE_FISCAL_SPONSOR_ACCOUNT_ID must be set in production environment. ' +
+          'Donations must be routed to the fiscal sponsor account for tax-deductible processing.'
+        )
+      }
+
       // Retrieve the payment intent to get the charge ID
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
         expand: ['charges']
@@ -973,22 +1031,37 @@ module.exports = {
         throw new Error('No charge found for payment intent')
       }
 
-      // Create a transfer from the connected account to the platform account
-      // For connected accounts with controller settings, transfers are created
-      // on the platform account. We use the charge ID from the connected account
-      // as the source transaction.
-      // Note: This requires the charge to be available for transfer, which happens
-      // after the payment is captured.
-      const transfer = await stripe.transfers.create({
+      // Build transfer parameters
+      const transferParams = {
         amount: donationAmount,
         currency: currency.toLowerCase(),
         source_transaction: chargeId,
-        description: 'Donation to Hylo platform'
-      })
+        description: isProduction
+          ? 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored)'
+          : 'Donation to Hylo platform (test)'
+      }
+
+      // If in production and fiscal sponsor account is set, transfer to that account
+      // Otherwise, transfer to platform account (destination: null)
+      if (isProduction && destinationAccountId) {
+        transferParams.destination = destinationAccountId
+      }
+
+      // Create the transfer on the platform account
+      // The source account is determined by the source_transaction (charge ID)
+      // For connected accounts with controller settings:
+      // - If destination is null/omitted: transfers to platform account
+      // - If destination is set to a connected account ID: transfers to that connected account
+      // Note: Transfers are created on the platform account, not with stripeAccount header
+      const transfer = await stripe.transfers.create(transferParams)
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Transferred donation of ${donationAmount} ${currency} to ${isProduction && destinationAccountId ? 'fiscal sponsor account' : 'platform account'}`)
+      }
 
       return transfer
     } catch (error) {
-      console.error('Error transferring donation to platform:', error)
+      console.error('Error transferring donation:', error)
       throw new Error(`Failed to transfer donation: ${error.message}`)
     }
   }
