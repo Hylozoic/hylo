@@ -107,7 +107,7 @@ class SocialControl extends Component {
               </div>
             )}
             {!linked && (
-              <div className='flex items-center ml-2 text-foreground/50 gap-1 text-sm p-2 bg-black/20 rounded-lg'>
+              <div className='flex items-center ml-2 text-foreground/50 gap-1 text-sm p-2 bg-darkening/20 rounded-lg'>
                 <Link2Off className='w-4 h-4' /> {t('Not Linked')}
               </div>
             )}

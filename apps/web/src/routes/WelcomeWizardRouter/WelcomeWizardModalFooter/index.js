@@ -9,7 +9,7 @@ export default function WelcomeWizardModalFooter ({ previous, submit, continueTe
         <div className='mb-5 text-center relative flex justify-center items-center gap-2'>
           {showPrevious && (
             <button
-              className='border-2 border-foreground/20 hover:border-foreground/100 scale-100 hover:scale-105 rounded-lg p-2 hover:bg-background transition-colors'
+              className='border-2 border-foreground/20 hover:border-foreground/50 scale-100 hover:scale-105 rounded-lg p-2 hover:bg-background transition-colors'
               onClick={previous}
             >
               {t('Back')}

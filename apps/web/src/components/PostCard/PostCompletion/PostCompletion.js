@@ -1,6 +1,5 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import classes from './PostCompletion.module.scss'
 import DropdownButton from 'components/DropdownButton'
 
 export default function PostCompletion ({ type, startTime, endTime, isFulfilled, fulfillPost, unfulfillPost }) {
@@ -42,7 +41,7 @@ export default function PostCompletion ({ type, startTime, endTime, isFulfilled,
   const choices = messages[type]
 
   return (
-    <div className={classes.postCompletion}>
+    <div className='border-2 border-dashed border-selected/30 rounded-lg p-2'>
       <div>{prompt}</div>
       <DropdownButton
         label={label}

@@ -36,7 +36,7 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
   return (
     <div
       ref={containerRef}
-      className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip absolute top-12 bg-theme-background shadow-xl rounded-lg'
+      className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip absolute top-12 bg-card shadow-xl rounded-lg'
       tabIndex='-1'
     >
       {people && people.length > 0 &&

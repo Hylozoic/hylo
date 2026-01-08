@@ -3,10 +3,13 @@ import React, { useState, useEffect, useRef } from 'react'
 import { cn } from 'util/index'
 import { isEmpty } from 'lodash'
 import { position } from 'util/scrolling'
-import Icon from 'components/Icon'
 import { useDropdown } from 'contexts/DropdownContext'
 import classes from './Dropdown.module.scss'
 
+/**
+ * Dropdown component that renders a toggleable menu with optional icons
+ * Supports both Lucide React icons (as JSX elements) and legacy string icon names
+ */
 const Dropdown = ({ children, className, triangle, items, toggleChildren, alignRight, menuAbove, noOverflow, id }) => {
   const [active, setActive] = useState(false)
   const parentRef = useRef(null)
@@ -18,7 +21,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     }
   }, [activeDropdownId, id])
 
-  const toggle = (event) => {
+  const handleToggle = (event) => {
     if (event) {
       event.stopPropagation()
       event.preventDefault()
@@ -32,7 +35,7 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
     setActive(!active)
   }
 
-  const hide = (e) => {
+  const handleHide = (e) => {
     e.stopPropagation()
     e.preventDefault()
     if (active) {
@@ -44,14 +47,37 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
   useEffect(() => {
     if (active) {
-      window.addEventListener('click', hide)
+      window.addEventListener('click', handleHide)
       return () => {
-        window.removeEventListener('click', hide)
+        window.removeEventListener('click', handleHide)
       }
     } else {
-      window.removeEventListener('click', hide)
+      window.removeEventListener('click', handleHide)
     }
   }, [active])
+
+  /**
+   * Renders the icon for a menu item
+   * Supports Lucide React components (JSX elements) passed directly
+   */
+  const renderIcon = (icon) => {
+    if (!icon) return null
+
+    // If it's a React element (Lucide icon), clone it with appropriate classes
+    if (React.isValidElement(icon)) {
+      return React.cloneElement(icon, {
+        className: cn('w-4 h-4 mr-3 shrink-0', icon.props?.className)
+      })
+    }
+
+    // If it's a function component, render it
+    if (typeof icon === 'function') {
+      const IconComponent = icon
+      return <IconComponent className='w-4 h-4 mr-3 shrink-0' />
+    }
+
+    return null
+  }
 
   const renderMenuItems = () => {
     if (!active || (isEmpty(items) && isEmpty(children))) {
@@ -60,15 +86,17 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
     let menuItems = children || items.map(item =>
       <li
-        className={cn(classes.linkItem, { [classes.redItem]: item.red })}
+        className={cn(
+          'flex items-center px-4 py-2 cursor-pointer select-none',
+          'text-foreground hover:bg-accent/10 transition-colors',
+          'border-b border-foreground/10 last:border-b-0',
+          { 'text-destructive': item.red }
+        )}
         onClick={item.onClick}
         key={item.key || item.label}
       >
-        {item.icon && (typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon.$$typeof)
-          ? React.cloneElement(item.icon, { className: classes.icon })
-          : <Icon className={classes.icon} name={item.icon} />
-        )}
-        {item.label}
+        {renderIcon(item.icon)}
+        <span className='whitespace-nowrap'>{item.label}</span>
       </li>)
 
     if (triangle) {
@@ -86,13 +114,24 @@ const Dropdown = ({ children, className, triangle, items, toggleChildren, alignR
 
   return (
     <div className={cn(className, 'relative inline-block transition-all', { [classes.hasTriangle]: triangle })} ref={parentRef}>
-      <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={toggle} data-testid='dropdown-toggle'>
+      <span className={cn('flex items-center cursor-pointer gap-2', { [classes.toggled]: active })} onClick={handleToggle} data-testid='dropdown-toggle'>
         {toggleChildren}
       </span>
-      <div className={cn(classes.wrapper, { [classes.alignRight]: alignRight, [classes.menuAbove]: menuAbove })}>
+      <div
+        className={cn(
+          'absolute z-30 shadow-lg rounded-lg',
+          alignRight ? 'right-0' : 'left-0',
+          { 'bottom-4': menuAbove }
+        )}
+      >
         <ul
-          className={cn(classes.dropdownMenu, { [classes.active]: active, [classes.alignRight]: alignRight, [classes.noOverflow]: noOverflow })}
-          onClick={toggle}
+          className={cn(
+            'list-none p-0 m-0 rounded-lg overflow-hidden',
+            'bg-card border border-foreground/10',
+            { hidden: !active },
+            { 'overflow-visible': noOverflow }
+          )}
+          onClick={handleToggle}
         >
           {renderMenuItems()}
         </ul>

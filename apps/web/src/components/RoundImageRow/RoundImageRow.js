@@ -38,7 +38,7 @@ export default function RoundImageRow ({
     <RoundImage
       url={url}
       key={i}
-      medium
+      medium={!small && !tiny}
       small={small}
       tiny={tiny}
       overlaps={!vertical}
@@ -54,7 +54,7 @@ export default function RoundImageRow ({
   )
 
   return (
-    <div className={className} {...rest}>
+    <div className={cn('flex items-center justify-center', className)} {...rest}>
       {capped ? images.concat([plus]) : images}
     </div>
   )

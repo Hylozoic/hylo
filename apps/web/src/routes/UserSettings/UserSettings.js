@@ -10,6 +10,7 @@ import UserGroupsTab from './UserGroupsTab/'
 import BlockedUsersTab from './BlockedUsersTab'
 import ManageInvitesTab from './ManageInvitesTab/'
 import LocaleTab from './LocaleTab'
+import ThemeTab from './ThemeTab'
 import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
 import PaymentSettingsTab from './PaymentSettingsTab/PaymentSettingsTab'
@@ -83,9 +84,14 @@ const UserSettings = () => {
       component: <ManageInvitesTab currentUser={currentUser} />
     },
     {
-      name: t('Locale'),
+      name: t('Language'),
       path: 'locale',
       component: <LocaleTab currentUser={currentUser} />
+    },
+    {
+      name: t('Theme'),
+      path: 'theme-settings',
+      component: <ThemeTab />
     },
     {
       name: t('Notifications'),
