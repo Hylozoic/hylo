@@ -1903,7 +1903,7 @@ module.exports = {
 
   /**
    * Handle charge.refunded webhook events
-   * Revokes access when payment is refunded
+   * Revokes access and cancels any associated subscriptions when payment is refunded
    */
   handleChargeRefunded: async function (event) {
     try {
@@ -1942,17 +1942,23 @@ module.exports = {
         return
       }
 
-      // Revoke all associated access records
+      // Revoke all associated access records using the model method
+      // This will also cancel any associated Stripe subscriptions and trigger
+      // database triggers to clean up user_scopes
       await Promise.all(accessRecords.map(async (access) => {
+        const reason = charge.refund?.reason || 'Payment refunded via Stripe'
+
+        // Use the revoke method which handles subscription cancellation
+        await ContentAccess.revoke(access.id, null, reason)
+
+        // Update metadata with refund details
         const metadata = access.get('metadata') || {}
         metadata.refunded_at = new Date().toISOString()
         metadata.refund_amount = charge.amount_refunded
-        metadata.refund_reason = charge.refund?.reason || 'Payment refunded'
+        metadata.refund_reason = reason
+        metadata.refund_charge_id = charge.id
 
-        await access.save({
-          status: ContentAccess.Status.REVOKED,
-          metadata
-        })
+        await access.save({ metadata })
       }))
 
       if (process.env.NODE_ENV === 'development') {

@@ -241,6 +241,7 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Revoke access (changes status to revoked)
+   * Also cancels any associated Stripe subscription.
    * Note: Database triggers will automatically remove the corresponding scopes
    * from the user_scopes table.
    *
@@ -251,15 +252,44 @@ module.exports = bookshelf.Model.extend({
    * @returns {Promise<ContentAccess>}
    */
   revoke: async function (accessId, revokedById, reason, { transacting } = {}) {
-    const access = await this.where({ id: accessId }).fetch({ transacting })
+    const access = await this.where({ id: accessId }).fetch({
+      transacting,
+      withRelated: ['grantedByGroup']
+    })
     if (!access) {
       throw new Error('Access record not found')
+    }
+
+    const subscriptionId = access.get('stripe_subscription_id')
+    const grantedByGroup = access.related('grantedByGroup')
+
+    // Cancel the Stripe subscription if one exists
+    if (subscriptionId && grantedByGroup) {
+      const stripeAccountId = grantedByGroup.get('stripe_account_id')
+      if (stripeAccountId) {
+        try {
+          // Get the external Stripe account ID from StripeAccount model
+          const stripeAccount = await StripeAccount.where({ id: stripeAccountId }).fetch()
+          if (stripeAccount) {
+            const externalAccountId = stripeAccount.get('stripe_account_external_id')
+            await StripeService.cancelSubscription({
+              accountId: externalAccountId,
+              subscriptionId,
+              immediately: true
+            })
+          }
+        } catch (error) {
+          // Log but don't fail the revocation if subscription cancellation fails
+          console.error(`Failed to cancel subscription ${subscriptionId}:`, error.message)
+        }
+      }
     }
 
     const metadata = access.get('metadata') || {}
     metadata.revokedAt = new Date().toISOString()
     metadata.revokedBy = revokedById
     if (reason) metadata.revokeReason = reason
+    if (subscriptionId) metadata.subscriptionCancelled = true
 
     return access.save({
       status: this.Status.REVOKED,

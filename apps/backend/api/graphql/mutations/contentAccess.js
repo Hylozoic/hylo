@@ -5,12 +5,14 @@
  * - Admin-granted free access to content
  * - Recording Stripe purchases
  * - Revoking access
+ * - Refunding purchases
  */
 
 import { GraphQLError } from 'graphql'
 const Queue = require('../../services/Queue')
+const StripeService = require('../../services/StripeService')
 
-/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend */
+/* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend, StripeAccount */
 
 module.exports = {
 
@@ -269,8 +271,8 @@ module.exports = {
    *       accessId: "123"
    *       reason: "User violated terms"
    *     ) {
-   *       success
-   *       message
+   *       id
+   *       status
    *     }
    *   }
    */
@@ -293,13 +295,10 @@ module.exports = {
         throw new GraphQLError('You must be an administrator of the granting group to revoke access')
       }
 
-      // Revoke the access using the model method
-      await ContentAccess.revoke(accessId, sessionUserId, reason)
+      // Revoke the access using the model method - returns the updated record
+      const revokedAccess = await ContentAccess.revoke(accessId, sessionUserId, reason)
 
-      return {
-        success: true,
-        message: 'Access revoked successfully'
-      }
+      return revokedAccess
     } catch (error) {
       if (error instanceof GraphQLError) {
         throw error
@@ -378,6 +377,146 @@ module.exports = {
       }
       console.error('Error in recordStripePurchase:', error)
       throw new GraphQLError(`Failed to record purchase: ${error.message}`)
+    }
+  },
+
+  /**
+   * Refund content access (admin only)
+   *
+   * Revokes access, cancels any associated subscription, and issues a Stripe refund
+   * for the most recent payment. This is a destructive action that cannot be undone.
+   *
+   * Usage:
+   *   mutation {
+   *     refundContentAccess(
+   *       accessId: "123"
+   *       reason: "Customer requested refund"
+   *     ) {
+   *       id
+   *       status
+   *       metadata
+   *     }
+   *   }
+   */
+  refundContentAccess: async (sessionUserId, { accessId, reason }) => {
+    try {
+      // Check if user is authenticated
+      if (!sessionUserId) {
+        throw new GraphQLError('You must be logged in to refund content access')
+      }
+
+      // Load the access record with related data
+      const access = await ContentAccess.where({ id: accessId }).fetch({
+        withRelated: ['grantedByGroup']
+      })
+      if (!access) {
+        throw new GraphQLError('Access record not found')
+      }
+
+      // Check permissions against the granting group
+      const hasAdmin = await GroupMembership.hasResponsibility(
+        sessionUserId,
+        access.get('granted_by_group_id'),
+        Responsibility.constants.RESP_ADMINISTRATION
+      )
+      if (!hasAdmin) {
+        throw new GraphQLError('You must be an administrator of the granting group to refund access')
+      }
+
+      // Verify this is a Stripe purchase (not an admin grant)
+      if (access.get('access_type') !== ContentAccess.Type.STRIPE_PURCHASE) {
+        throw new GraphQLError('Only Stripe purchases can be refunded. Admin grants should be revoked instead.')
+      }
+
+      // Get the Stripe account info
+      const grantedByGroup = access.related('grantedByGroup')
+      const stripeAccountId = grantedByGroup.get('stripe_account_id')
+      if (!stripeAccountId) {
+        throw new GraphQLError('No Stripe account found for the granting group')
+      }
+
+      const stripeAccount = await StripeAccount.where({ id: stripeAccountId }).fetch()
+      if (!stripeAccount) {
+        throw new GraphQLError('Stripe account record not found')
+      }
+      const externalAccountId = stripeAccount.get('stripe_account_external_id')
+
+      // Issue the refund
+      const subscriptionId = access.get('stripe_subscription_id')
+      const sessionId = access.get('stripe_session_id')
+      let refund = null
+
+      if (subscriptionId) {
+        // For subscriptions, first try to refund via subscription invoices
+        try {
+          refund = await StripeService.refund({
+            accountId: externalAccountId,
+            subscriptionId,
+            reason: 'requested_by_customer'
+          })
+        } catch (subscriptionRefundError) {
+          // If no invoices found, fall back to checkout session for initial payment
+          if (sessionId && subscriptionRefundError.message.includes('No refundable payment')) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('No subscription invoices found, trying checkout session for initial payment')
+            }
+            const session = await StripeService.getCheckoutSession(externalAccountId, sessionId)
+            if (session.payment_intent) {
+              const paymentIntentId = typeof session.payment_intent === 'string'
+                ? session.payment_intent
+                : session.payment_intent.id
+              refund = await StripeService.refund({
+                accountId: externalAccountId,
+                paymentIntentId,
+                reason: 'requested_by_customer'
+              })
+            }
+          }
+          // If still no refund, re-throw the original error
+          if (!refund) {
+            throw subscriptionRefundError
+          }
+        }
+      } else if (sessionId) {
+        // For one-time payments, get the payment intent from the session
+        const session = await StripeService.getCheckoutSession(externalAccountId, sessionId)
+        if (session.payment_intent) {
+          const paymentIntentId = typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent.id
+          refund = await StripeService.refund({
+            accountId: externalAccountId,
+            paymentIntentId,
+            reason: 'requested_by_customer'
+          })
+        }
+      }
+
+      if (!refund) {
+        throw new GraphQLError('Unable to issue refund: no payment found for this access record')
+      }
+
+      // Now revoke the access (this will also cancel any subscription)
+      // This returns the updated record with status = 'revoked'
+      const revokedAccess = await ContentAccess.revoke(accessId, sessionUserId, reason || 'Refunded')
+
+      // Update metadata with refund info on the revoked record
+      const metadata = revokedAccess.get('metadata') || {}
+      metadata.refundId = refund.id
+      metadata.refundAmount = refund.amount
+      metadata.refundedAt = new Date().toISOString()
+      metadata.refundedBy = sessionUserId
+      if (reason) metadata.refundReason = reason
+
+      const updatedAccess = await revokedAccess.save({ metadata }, { patch: true })
+
+      return updatedAccess
+    } catch (error) {
+      if (error instanceof GraphQLError) {
+        throw error
+      }
+      console.error('Error in refundContentAccess:', error)
+      throw new GraphQLError(`Failed to refund access: ${error.message}`)
     }
   }
 }

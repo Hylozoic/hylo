@@ -9,16 +9,33 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { List, UserPlus, User } from 'lucide-react'
+import { List, UserPlus, User, MoreVertical, Ban } from 'lucide-react'
 
 import Loading from 'components/Loading'
 import ItemSelector from 'components/ItemSelector'
 import SettingsSection from '../SettingsSection'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
 
 import { fetchContentAccess, getContentAccessRecords } from './PaidContentTab.store'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import fetchPeopleAutocomplete from 'store/actions/fetchPeopleAutocomplete'
 import grantContentAccess from 'store/actions/grantContentAccess'
+import revokeContentAccess from 'store/actions/revokeContentAccess'
+// TODO: Re-enable when refund functionality is ready
+// import refundContentAccess from 'store/actions/refundContentAccess'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
@@ -273,7 +290,12 @@ function ContentAccessTab ({ group, offerings = [] }) {
               {contentAccessRecords.length > 0 && (
                 <div className='flex flex-col gap-2'>
                   {contentAccessRecords.map(record => (
-                    <ContentAccessRecordItem key={record.id} record={record} t={t} />
+                    <ContentAccessRecordItem
+                      key={record.id}
+                      record={record}
+                      t={t}
+                      onActionComplete={fetchContentAccessRecords}
+                    />
                   ))}
                 </div>
               )}
@@ -300,10 +322,20 @@ function ContentAccessTab ({ group, offerings = [] }) {
 /**
  * Content Access Record Item Component
  *
- * Displays a single content access record
+ * Displays a single content access record with action menu
  */
-function ContentAccessRecordItem ({ record, t }) {
-  const { user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
+function ContentAccessRecordItem ({ record, t, onActionComplete }) {
+  const dispatch = useDispatch()
+  const { id, user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
+
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false)
+  // TODO: Re-enable when refund functionality is ready
+  // const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const isActive = status === 'active'
+  // TODO: Re-enable when refund functionality is ready
+  // const isPurchase = accessType === 'stripe_purchase'
 
   const getAccessTypeBadge = (type) => {
     if (type === 'stripe_purchase') {
@@ -330,55 +362,172 @@ function ContentAccessRecordItem ({ record, t }) {
     return new Date(dateString).toLocaleDateString()
   }
 
+  const handleRevoke = async () => {
+    setIsProcessing(true)
+    try {
+      await dispatch(revokeContentAccess({ accessId: id, reason: 'Revoked by admin' }))
+      setShowRevokeDialog(false)
+      if (onActionComplete) onActionComplete()
+    } catch (error) {
+      console.error('Failed to revoke access:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  // TODO: Re-enable when refund functionality is ready
+  // const handleRefund = async () => {
+  //   setIsProcessing(true)
+  //   try {
+  //     await dispatch(refundContentAccess({ accessId: id, reason: 'Refunded by admin' }))
+  //     setShowRefundDialog(false)
+  //     if (onActionComplete) onActionComplete()
+  //   } catch (error) {
+  //     console.error('Failed to refund access:', error)
+  //   } finally {
+  //     setIsProcessing(false)
+  //   }
+  // }
+
   return (
-    <div className='bg-card p-4 rounded-md shadow-md hover:shadow-lg transition-shadow'>
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-        {/* User Info */}
-        <div className='flex items-center gap-3 flex-1'>
-          {user?.avatarUrl && (
-            <img
-              src={user.avatarUrl}
-              alt={user.name}
-              className='w-10 h-10 rounded-full'
-            />
-          )}
-          <div>
-            <div className='font-medium text-foreground'>{user?.name}</div>
-            <div className='text-sm text-foreground/70'>
-              {offering && <span>{offering.name}</span>}
-              {track && <span> • {track.name}</span>}
-              {role && <span> • {role.emoji} {role.name}</span>}
+    <>
+      <div className='bg-card p-4 rounded-md shadow-md hover:shadow-lg transition-shadow'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+          {/* User Info */}
+          <div className='flex items-center gap-3 flex-1'>
+            {user?.avatarUrl && (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                className='w-10 h-10 rounded-full'
+              />
+            )}
+            <div>
+              <div className='font-medium text-foreground'>{user?.name}</div>
+              <div className='text-sm text-foreground/70'>
+                {offering && <span>{offering.name}</span>}
+                {track && <span> • {track.name}</span>}
+                {role && <span> • {role.emoji} {role.name}</span>}
+              </div>
             </div>
+          </div>
+
+          {/* Badges and Info */}
+          <div className='flex flex-wrap items-center gap-2'>
+            {getAccessTypeBadge(accessType)}
+            {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
+            <div className='text-xs text-foreground/60'>
+              {t('Granted')}: {formatDate(createdAt)}
+            </div>
+            {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
+              <div className='text-xs text-orange-400'>
+                {t('Cancels')}: {formatDate(subscriptionPeriodEnd)}
+              </div>
+            )}
+            {!subscriptionCancelAtPeriodEnd && expiresAt && (
+              <div className='text-xs text-foreground/60'>
+                {t('Expires')}: {formatDate(expiresAt)}
+              </div>
+            )}
+
+            {/* Action Menu */}
+            {isActive && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className='p-1 rounded-md hover:bg-foreground/10 transition-colors'>
+                    <MoreVertical className='w-4 h-4 text-foreground/60' />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem
+                    onClick={() => setShowRevokeDialog(true)}
+                    className='cursor-pointer text-red-500 focus:text-red-500'
+                  >
+                    <Ban className='w-4 h-4 mr-2' />
+                    {t('Revoke Access')}
+                  </DropdownMenuItem>
+                  {/* TODO: Add refund functionality later
+                  {isPurchase && (
+                    <DropdownMenuItem
+                      onClick={() => setShowRefundDialog(true)}
+                      className='cursor-pointer text-orange-500 focus:text-orange-500'
+                    >
+                      <RefreshCcw className='w-4 h-4 mr-2' />
+                      {t('Refund')}
+                    </DropdownMenuItem>
+                  )}
+                  */}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
-        {/* Badges and Info */}
-        <div className='flex flex-wrap items-center gap-2'>
-          {getAccessTypeBadge(accessType)}
-          {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
-          <div className='text-xs text-foreground/60'>
-            {t('Granted')}: {formatDate(createdAt)}
+        {/* Granted By Info */}
+        {grantedBy && (
+          <div className='mt-2 text-xs text-foreground/60'>
+            {t('Granted by')}: {grantedBy.name}
           </div>
-          {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
-            <div className='text-xs text-orange-400'>
-              {t('Cancels')}: {formatDate(subscriptionPeriodEnd)}
-            </div>
-          )}
-          {!subscriptionCancelAtPeriodEnd && expiresAt && (
-            <div className='text-xs text-foreground/60'>
-              {t('Expires')}: {formatDate(expiresAt)}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Granted By Info */}
-      {grantedBy && (
-        <div className='mt-2 text-xs text-foreground/60'>
-          {t('Granted by')}: {grantedBy.name}
-        </div>
-      )}
-    </div>
+      {/* Revoke Confirmation Dialog */}
+      <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Revoke Access')}</DialogTitle>
+            <DialogDescription>
+              {t('This will immediately revoke access for {{userName}}. Any active subscription will be cancelled, but no refund will be issued.', { userName: user?.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setShowRevokeDialog(false)}
+              disabled={isProcessing}
+              className='px-4 py-2 bg-foreground/10 text-foreground rounded-md hover:bg-foreground/20 transition-colors disabled:opacity-50'
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleRevoke}
+              disabled={isProcessing}
+              className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50'
+            >
+              {isProcessing ? t('Revoking...') : t('Revoke Access')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* TODO: Re-enable Refund Dialog when functionality is ready
+      <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Refund Purchase')}</DialogTitle>
+            <DialogDescription>
+              {t('This will revoke access for {{userName}}, cancel any active subscription, and issue a refund for the most recent payment. This action cannot be undone.', { userName: user?.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setShowRefundDialog(false)}
+              disabled={isProcessing}
+              className='px-4 py-2 bg-foreground/10 text-foreground rounded-md hover:bg-foreground/20 transition-colors disabled:opacity-50'
+            >
+              {t('Cancel')}
+            </button>
+            <button
+              onClick={handleRefund}
+              disabled={isProcessing}
+              className='px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50'
+            >
+              {isProcessing ? t('Processing...') : t('Refund')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      */}
+    </>
   )
 }
 

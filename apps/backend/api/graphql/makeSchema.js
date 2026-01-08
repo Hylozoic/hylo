@@ -113,6 +113,7 @@ import {
   removeSuggestedSkillFromGroup,
   reorderContextWidget,
   reorderPostInCollection,
+  refundContentAccess,
   resendInvitation,
   respondToEvent,
   revokeContentAccess,
@@ -509,6 +510,8 @@ export function makeMutations ({ fetchOne }) {
     grantContentAccess: (root, args, context) => grantContentAccess(context.currentUserId, args),
 
     revokeContentAccess: (root, args, context) => revokeContentAccess(context.currentUserId, args),
+
+    refundContentAccess: (root, args, context) => refundContentAccess(context.currentUserId, args),
 
     recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
 
