@@ -4,6 +4,7 @@ export default gql`
   query FetchFundingRoundQuery($id: ID) {
     fundingRound(id: $id) {
       id
+      allowSelfVoting
       bannerUrl
       canSubmit
       canVote
