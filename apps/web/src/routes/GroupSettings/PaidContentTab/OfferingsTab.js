@@ -481,6 +481,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
+                  <option value='day'>{t('1 Day (Testing)')}</option>
                   <option value='month'>{t('1 Month')}</option>
                   <option value='season'>{t('1 Season (3 months)')}</option>
                   <option value='annual'>{t('1 Year')}</option>
@@ -554,6 +555,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
+                  {isDev && <option value='day'>{t('1 Day (Testing)')}</option>}
                   <option value='month'>{t('1 Month')}</option>
                   <option value='season'>{t('1 Season (3 months)')}</option>
                   <option value='annual'>{t('1 Year')}</option>
@@ -1030,13 +1032,15 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
             )}
             {offering.duration && (
               <span>
-                {t('Duration')}: {offering.duration === 'month'
-                  ? t('1 Month')
-                  : offering.duration === 'season'
-                    ? t('1 Season')
-                    : offering.duration === 'annual'
-                      ? t('1 Year')
-                      : offering.duration}
+                {t('Duration')}: {offering.duration === 'day'
+                  ? t('1 Day')
+                  : offering.duration === 'month'
+                    ? t('1 Month')
+                    : offering.duration === 'season'
+                      ? t('1 Season')
+                      : offering.duration === 'annual'
+                        ? t('1 Year')
+                        : offering.duration}
               </span>
             )}
             {!offering.duration && (

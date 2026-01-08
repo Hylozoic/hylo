@@ -224,7 +224,10 @@ module.exports = {
       // Map duration to Stripe interval and interval_count
       let billingInterval = null
       let billingIntervalCount = 1
-      if (duration === 'month') {
+      if (duration === 'day') {
+        billingInterval = 'day'
+        billingIntervalCount = 1 // Daily - for testing subscription expiration
+      } else if (duration === 'month') {
         billingInterval = 'month'
         billingIntervalCount = 1
       } else if (duration === 'season') {

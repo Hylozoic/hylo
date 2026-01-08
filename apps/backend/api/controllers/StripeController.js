@@ -740,7 +740,9 @@ module.exports = {
                 if (duration && duration !== 'lifetime') {
                   // Calculate expiration date based on duration
                   const expiresAtDate = new Date(purchaseDate)
-                  if (duration === 'month') {
+                  if (duration === 'day') {
+                    expiresAtDate.setDate(expiresAtDate.getDate() + 1)
+                  } else if (duration === 'month') {
                     expiresAtDate.setMonth(expiresAtDate.getMonth() + 1)
                   } else if (duration === 'season') {
                     expiresAtDate.setMonth(expiresAtDate.getMonth() + 3)
@@ -1237,7 +1239,9 @@ module.exports = {
 
               const duration = offering.get('duration')
               let subscriptionPeriod = null
-              if (duration === 'month') {
+              if (duration === 'day') {
+                subscriptionPeriod = 'daily'
+              } else if (duration === 'month') {
                 subscriptionPeriod = 'monthly'
               } else if (duration === 'season') {
                 subscriptionPeriod = 'quarterly'

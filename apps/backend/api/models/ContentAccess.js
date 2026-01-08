@@ -478,7 +478,9 @@ module.exports = bookshelf.Model.extend({
         // Map duration to renewal period
         const duration = product.get('duration')
         let renewalPeriod = null
-        if (duration === 'month') {
+        if (duration === 'day') {
+          renewalPeriod = 'daily'
+        } else if (duration === 'month') {
           renewalPeriod = 'monthly'
         } else if (duration === 'season') {
           renewalPeriod = 'quarterly'
