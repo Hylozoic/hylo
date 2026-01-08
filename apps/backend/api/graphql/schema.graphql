@@ -3174,7 +3174,12 @@ type Mutation {
   revokeContentAccess(
     accessId: ID!,
     reason: String
-  ): GenericResult
+  ): ContentAccess
+  # Refund content access (admin only) - revokes access and issues Stripe refund
+  refundContentAccess(
+    accessId: ID!,
+    reason: String
+  ): ContentAccess
   # Record a Stripe purchase (internal use)
   recordStripePurchase(
     userId: ID!,
@@ -3592,6 +3597,18 @@ type GenericResult {
   error: String
   # Did the mutation succeed or not
   success: Boolean
+}
+
+# Result of a refund mutation
+type RefundResult {
+  # Did the refund succeed
+  success: Boolean
+  # Message describing the result
+  message: String
+  # Stripe refund ID
+  refundId: String
+  # Amount refunded in cents
+  refundAmount: Int
 }
 
 # Result of a useInvitation mutation

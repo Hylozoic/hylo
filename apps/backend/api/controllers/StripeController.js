@@ -740,7 +740,9 @@ module.exports = {
                 if (duration && duration !== 'lifetime') {
                   // Calculate expiration date based on duration
                   const expiresAtDate = new Date(purchaseDate)
-                  if (duration === 'month') {
+                  if (duration === 'day') {
+                    expiresAtDate.setDate(expiresAtDate.getDate() + 1)
+                  } else if (duration === 'month') {
                     expiresAtDate.setMonth(expiresAtDate.getMonth() + 1)
                   } else if (duration === 'season') {
                     expiresAtDate.setMonth(expiresAtDate.getMonth() + 3)
@@ -1237,7 +1239,9 @@ module.exports = {
 
               const duration = offering.get('duration')
               let subscriptionPeriod = null
-              if (duration === 'month') {
+              if (duration === 'day') {
+                subscriptionPeriod = 'daily'
+              } else if (duration === 'month') {
                 subscriptionPeriod = 'monthly'
               } else if (duration === 'season') {
                 subscriptionPeriod = 'quarterly'
@@ -1899,7 +1903,7 @@ module.exports = {
 
   /**
    * Handle charge.refunded webhook events
-   * Revokes access when payment is refunded
+   * Revokes access and cancels any associated subscriptions when payment is refunded
    */
   handleChargeRefunded: async function (event) {
     try {
@@ -1938,17 +1942,23 @@ module.exports = {
         return
       }
 
-      // Revoke all associated access records
+      // Revoke all associated access records using the model method
+      // This will also cancel any associated Stripe subscriptions and trigger
+      // database triggers to clean up user_scopes
       await Promise.all(accessRecords.map(async (access) => {
+        const reason = charge.refund?.reason || 'Payment refunded via Stripe'
+
+        // Use the revoke method which handles subscription cancellation
+        await ContentAccess.revoke(access.id, null, reason)
+
+        // Update metadata with refund details
         const metadata = access.get('metadata') || {}
         metadata.refunded_at = new Date().toISOString()
         metadata.refund_amount = charge.amount_refunded
-        metadata.refund_reason = charge.refund?.reason || 'Payment refunded'
+        metadata.refund_reason = reason
+        metadata.refund_charge_id = charge.id
 
-        await access.save({
-          status: ContentAccess.Status.REVOKED,
-          metadata
-        })
+        await access.save({ metadata })
       }))
 
       if (process.env.NODE_ENV === 'development') {

@@ -16,6 +16,7 @@ export {
 export {
   grantContentAccess,
   revokeContentAccess,
+  refundContentAccess,
   recordStripePurchase
 } from './contentAccess'
 export {

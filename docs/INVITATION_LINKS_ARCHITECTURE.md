@@ -1147,7 +1147,7 @@ These test cases are designed for testers using the staging environment. Each te
 
 ---
 
-#### TC-5: Exploratory Testing - Offerings and Paid Content Features
+#### TC-7b: Exploratory Testing - Offerings and Paid Content Features
 
 **Goal:** Explore and validate the various offering types and paid content management features.
 
@@ -1200,6 +1200,437 @@ These test cases are designed for testers using the staging environment. Each te
 - Take screenshots of anything that seems wrong
 - Note any features that feel missing or could be improved
 - For Stripe testing, always use test card: `4242 4242 4242 4242`
+
+---
+
+#### TC-8: Email Invitation with Role Assignment
+
+**Goal:** Verify that admins can invite users with a specific role, that the role is automatically assigned when the user joins, and that email validation prevents wrong accounts from using the invitation.
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage
+3. Go to **Group Settings** → **Invite** tab
+4. In the "Invite by Email" section, you should see a role selector dropdown
+5. Enter an email address for your new test user
+6. From the role dropdown, select "Coordinator" (or another available role)
+7. Optionally add a custom message
+8. Click "Send Invitation"
+9. Copy the invitation link from the sent email (you'll need it for the wrong email test)
+
+**Test Steps Part A (Wrong Email - Negative Test):**
+1. In a different browser, log in with a DIFFERENT account (one that does NOT match the invited email)
+2. Paste the invitation link into the browser
+3. You should see an error message indicating the invitation is for a different email
+
+**Expected Result (Part A):**
+- Error message displayed: "This invitation is not for your account"
+- The role assignment info should NOT be visible (since invite doesn't apply)
+- User cannot join using this invitation
+
+**Test Steps Part B (Correct Email - Happy Path):**
+1. Check the inbox for the invited email address on a separate browser (or log out of your admin user's account)
+2. Open the invitation email and click the invitation link
+3. If not logged in, you'll be redirected to signup
+4. Create a new account with the SAME email address as the invitation
+5. After signup, you should be redirected to the group's About page
+6. Look for a message indicating: "When you join, you will receive the Coordinator role"
+7. Complete any agreements and join questions
+8. Click "Join"
+
+**Expected Result (Part B):**
+- The About page shows the role the user will receive
+- After joining, the user should have the Coordinator role
+- Verify by going to group members list - the user should show with Coordinator badge
+
+**Verification (as Group Admin):**
+1. Go to **Group Settings** → **Members**
+2. Find the newly joined user
+3. They should have the "Coordinator" role badge next to their name
+4. Click on their name to view their roles - "Coordinator" should be listed
+
+---
+
+#### TC-9: Track Access - Purchase Track-Specific Offering
+
+**Goal:** Verify that users can purchase access to specific tracks within a group, and that track access is granted correctly.
+
+**Prerequisites:**
+- Group with Stripe connected
+- At least one track marked as `access_controlled = true`
+- Published offering that grants access to that track
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group with Stripe connected
+3. Go to **Group Settings** → **Tracks** (or similar)
+4. Create or identify a track that is access-controlled
+5. Go to **Group Settings** → **Paid Content** → **Offerings**
+6. Create a new offering or edit an existing one
+7. In the "Access Grants" section, add the specific track (NOT the whole group)
+8. Set a price and publish the offering
+9. Note the track name and the offering name
+
+**Test Steps (as Test User - Non-Member):**
+1. Log in with a test account that does NOT have access to the track
+2. Navigate to the group and find the protected track
+3. You should see an "Access Required" or "Purchase Required" message
+4. Click on the track - content should NOT be visible
+5. Find the offering that grants track access
+6. Click "Purchase" on the offering
+7. Complete Stripe checkout using test card: `4242 4242 4242 4242`
+8. After successful payment, you should be redirected back to Hylo
+9. Navigate to the track again
+10. Track content should now be fully visible
+
+**Expected Result:**
+- Before purchase: Track content is hidden/restricted
+- After purchase: Full access to track content
+- User may or may not have group membership (track access is separate)
+- In user's transactions view (`/my/transactions`), the track purchase should appear
+
+**Verification (as Group Admin):**
+1. Go to **Group Settings** → **Paid Content** → **Content Access**
+2. Find the user's access record
+3. It should show:
+   - Access Type: "stripe_purchase"
+   - Track name in the access details
+   - Status: "Active"
+
+---
+
+#### TC-10: Admin-Granted Access - Grant Free Access Without Payment
+
+**Goal:** Verify that group admins can manually grant access to users without requiring a Stripe payment.
+
+**Setup (as Group Admin):**
+1. Log into the staging app with your admin account
+2. Go to a group you manage with paid content enabled (paywall or paid tracks)
+3. Identify a user who does NOT currently have access
+4. Note the user's name/email
+
+**Test Steps (as Group Admin):**
+1. Go to **Group Settings** → **Paid Content** → **Content Access** tab
+2. Look for a "Grant Access" or "+ Grant Access" button
+3. Click to open the grant access form
+4. Fill in:
+   - **User**: Search for and select the target user
+   - **Content Type**: Select what to grant access to:
+     - Group access
+     - Specific track
+     - Specific offering
+     - Specific role
+   - **Expiration**: Optionally set an expiration date (or leave blank for permanent)
+   - **Reason**: Enter a reason like "Scholarship recipient" or "Beta tester"
+5. Click "Grant Access" to confirm
+
+**Expected Result:**
+- A new access record should appear in the Content Access list
+- The record should show:
+   - Access Type: "admin_grant" (or similar indicator like "Granted")
+   - Status: "Active"
+   - The admin's name as who granted it
+   - The reason in the notes/metadata
+
+**Verification (as Granted User):**
+1. Log in as the user who was granted access
+2. Navigate to the protected content (group, track, etc.)
+3. **Expected**: Immediate access to the content - no payment required
+4. Go to `/my/transactions`
+5. The granted access should appear, clearly marked as "Granted" (not "Purchased")
+
+---
+
+#### TC-11: Admin-Granted Access - Revoke Previously Granted Access
+
+**Goal:** Verify that admins can revoke access that was previously granted (either paid or free).
+
+**Prerequisites:**
+- A user with active access to content (either through purchase or admin grant)
+
+**Test Steps (as Group Admin):**
+1. Go to **Group Settings** → **Paid Content** → **Content Access**
+2. Find the user's access record you want to revoke
+3. Click on "Revoke" or "Refund" action for the record
+4. Confirm the revocation
+
+**Expected Result:**
+- The access record status changes to "Revoked"
+- The revocation reason is recorded in metadata
+
+**Verification (as Revoked User):**
+1. Log in as the user whose access was revoked
+2. Navigate to the content they previously had access to
+3. **Expected**: Access denied - content is no longer visible
+4. Go to `/my/transactions`
+5. The record should show as "Revoked" or similar status
+
+---
+
+#### TC-12: User Transactions View - View All Purchases
+
+**Goal:** Verify that users can view all their purchases and subscriptions from the transactions page.
+
+**Prerequisites:**
+- A test user who has made multiple purchases (group access, track access, subscriptions)
+
+**Test Steps (as Test User with Purchases):**
+1. Log in with an account that has previous purchases
+2. Navigate to the "My" context by clicking on your avatar or profile menu
+3. Look for "Transactions" in the context menu/widgets
+4. Click on "Transactions" to go to `/my/transactions`
+
+**Expected Results:**
+- A list of all transactions should be displayed
+- Each transaction card should show:
+  - Group name and avatar
+  - Offering/product name
+  - Price paid and currency
+  - Access type (group membership, track access, etc.)
+  - Purchase date
+  - Renewal date (if subscription)
+  - Status badge (Active, Expired, Cancelled)
+  - "Manage Subscription" button (for subscriptions)
+
+**Additional Verifications:**
+1. Click "Manage Subscription" on a subscription item
+2. You should be redirected to Stripe's billing portal
+3. In the portal, you should be able to:
+   - View subscription details
+   - Update payment method
+   - Cancel subscription
+
+---
+
+#### TC-13: User Transactions View - Mixed Access Types
+
+**Goal:** Verify that the transactions view correctly displays different types of access including purchases, grants, and different content types.
+
+**Prerequisites:**
+- Set up a user with various access types:
+  - One Stripe purchase (subscription)
+  - One Stripe one-time purchase
+  - One admin-granted access
+  - One track purchase
+  - One group membership purchase
+
+**Test Steps:**
+1. Log in as the test user with mixed access types
+2. Navigate to `/my/transactions`
+3. Review each transaction type
+
+**Expected Results:**
+- **Subscription**: Shows "Active" badge, renewal date, "Manage Subscription" button
+- **One-time purchase**: Shows purchase date, no renewal info
+- **Admin grant**: Shows "Granted" indicator (not "Purchased"), may show reason
+- **Track access**: Shows track name, group context
+- **Group access**: Shows group name and membership info
+- All records should be sortable by date
+- Status badges should accurately reflect current status
+
+---
+
+#### TC-14: Optional Donation - Add Donation During Checkout
+
+**Goal:** Verify that users can add an optional donation during the purchase flow.
+
+**Prerequisites:**
+- Group with Stripe connected
+- Published offering available for purchase
+- Optional donation option enabled (if configurable)
+
+**Test Steps (as Test User):**
+1. Log in with a test account
+2. Navigate to a group with paid offerings
+3. Select an offering to purchase
+4. Click "Purchase" to start the checkout flow
+5. Before completing checkout, look for a "Support Hylo" or "Add a Donation" option
+6. Select a donation amount (e.g., $5)
+7. Optionally, if there's a recurring option, select "Make this a monthly donation"
+8. Complete the Stripe checkout with test card: `4242 4242 4242 4242`
+9. After successful payment, return to Hylo
+
+**Expected Results:**
+- The total charged should include both the offering price AND the donation
+- You should receive TWO confirmation emails:
+  1. Purchase confirmation for the offering
+  2. Donation acknowledgment (separate email)
+- The donation acknowledgment email should include:
+  - Donation amount
+  - Whether it's one-time or recurring
+  - Tax-deductibility information (if applicable)
+
+**Verification (as User):**
+1. Go to `/my/transactions`
+2. The purchase should appear with the offering details
+3. If recurring donation was selected, it may appear as a separate subscription item
+
+---
+
+#### TC-15: Optional Donation - Recurring Donation with Subscription
+
+**Goal:** Verify that recurring donations are properly tied to subscription lifecycle.
+
+**Prerequisites:**
+- Complete TC-15 with a recurring donation option selected
+
+**Test Steps (Admin - Stripe Dashboard):**
+1. Go to Stripe Dashboard (Test Mode)
+2. Find the test customer who made the purchase with recurring donation
+3. View their subscriptions
+4. There should be subscription items for both:
+   - The original offering
+   - The recurring donation
+
+**Verification - Subscription Cancellation:**
+1. Cancel the main subscription in Stripe
+2. **Expected**: The recurring donation should ALSO be cancelled automatically
+3. User should receive cancellation emails for both
+
+**Verification - Subscription Renewal:**
+1. If subscription renews (trigger in Stripe or wait)
+2. **Expected**: Both the offering AND the donation should renew together
+3. User should receive renewal confirmation
+
+---
+
+#### TC-16: Track Access with Agreements
+
+**Goal:** Verify that track purchases respect group agreements (if applicable).
+
+**Setup (as Group Admin):**
+1. Have a group with:
+   - Access-controlled track
+   - Offering that grants track access
+   - Group agreements configured
+2. Note: Track purchases may or may not require agreement acceptance depending on configuration
+
+**Test Steps (as Test User):**
+1. Log in with a test account without track access
+2. Navigate to purchase the track offering
+3. If agreements are required:
+   - You should see agreement checkboxes before/during purchase
+   - Complete the agreements before purchase button enables
+4. Complete the purchase
+
+**Expected Result:**
+- If agreements are required for track purchases: Must accept before proceeding
+- If agreements are not required for track-only purchases: Should be able to purchase directly
+- After purchase: Track content is accessible
+
+---
+
+#### TC-17: Join Link with Track Paywall
+
+**Goal:** Verify that join links work correctly for groups with track-level paywalls (group is free, but some tracks require payment).
+
+**Setup (as Group Admin):**
+1. Configure a group where:
+   - Group membership is FREE (Open accessibility)
+   - Some tracks are access-controlled (require purchase)
+2. Get the group's Join Link
+
+**Test Steps (as New User):**
+1. Use the Join Link to access the group
+2. Complete the join flow (agreements, questions if any)
+3. Join the group successfully
+4. Navigate to the group content
+5. Find a free track - should have full access
+6. Find a paid track - should see "Purchase Required"
+
+**Expected Result:**
+- Join link grants GROUP membership (free)
+- Free tracks are accessible immediately
+- Paid tracks still require separate purchase
+- User sees "Purchase" button on paid track offerings
+
+---
+
+#### TC-18: Email Invite to Paywall Group with Role
+
+**Goal:** Verify the complete flow of an email invitation with role assignment to a paywall group.
+
+**Setup (as Group Admin):**
+1. Have a paywall group (requires payment to join)
+2. Go to **Group Settings** → **Invite**
+3. Send an email invitation with:
+   - Target email address
+   - Role assignment (e.g., "Coordinator")
+   - Optional custom message
+
+**Test Steps (as Invited User):**
+1. Open the invitation email
+2. Click the invitation link
+3. Sign up or log in with the invited email
+4. You should see the group About page with:
+   - Group details visible (invitation grants visibility)
+   - "You'll receive the Coordinator role" message
+   - Payment options for the paywall
+5. Complete any agreements
+6. Purchase an offering to join the group
+7. After payment, verify you're a member
+
+**Expected Result:**
+- Email invitation grants VISIBILITY to paywall group details
+- User still needs to PURCHASE to gain membership
+- After purchase, user has BOTH:
+  - Group membership
+  - Assigned role (Coordinator)
+
+**Verification (as Group Admin):**
+1. Check member list - user should appear with Coordinator role
+2. Check Content Access - should show purchase record
+3. Check the invitation in Pending Invites - should show as "Used"
+
+---
+
+#### TC-19: Transactions View - Expired and Cancelled States
+
+**Goal:** Verify that the transactions view correctly shows expired and cancelled subscriptions.
+
+**Setup:**
+- Have test subscriptions in various states:
+  - Active subscription
+  - Cancelled subscription (user cancelled)
+  - Expired subscription (past due or lapsed)
+
+**Test Steps:**
+1. Log in as a user with mixed subscription states
+2. Navigate to `/my/transactions`
+3. Review the status badges on each transaction
+
+**Expected Results:**
+- **Active**: Green badge, shows renewal date
+- **Cancelled**: Shows cancellation indicator, may show "access until" date
+- **Expired**: Shows expired indicator, may offer "Renew" option
+- For cancelled/expired: "Manage Subscription" may still be available to resubscribe
+
+---
+
+## Test Matrix: New Features Summary
+
+| # | Feature | Key Test Case(s) |
+|---|---------|-----------------|
+| **Email Invites with Roles** |
+| 1 | Invite with role (+ wrong email validation) | TC-8 |
+| 2 | Role displayed on About page | TC-8 |
+| 3 | Role assigned on join | TC-8, TC-18 |
+| **Track Access** |
+| 4 | Purchase track offering | TC-9, TC-16 |
+| 5 | Track-level restrictions | TC-9, TC-17 |
+| 6 | Track in group context | TC-16, TC-17 |
+| **Admin-Granted Access** |
+| 7 | Grant free access | TC-10 |
+| 8 | Revoke access | TC-11 |
+| 9 | Grant vs Purchase display | TC-10, TC-13 |
+| **User Transactions** |
+| 10 | View all transactions | TC-12, TC-13 |
+| 11 | Manage subscriptions | TC-12 |
+| 12 | Mixed access types | TC-13, TC-19 |
+| **Optional Donations** |
+| 13 | Add donation at checkout | TC-14 |
+| 14 | Recurring donations | TC-15 |
+| 15 | Donation with subscription | TC-15 |
 
 ---
 

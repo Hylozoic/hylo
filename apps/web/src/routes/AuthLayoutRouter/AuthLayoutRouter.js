@@ -498,7 +498,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Other Routes **** */}
-                <Route path='offerings/:offeringId' element={<OfferingDetails />} />
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />

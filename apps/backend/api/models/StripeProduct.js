@@ -201,7 +201,7 @@ module.exports = bookshelf.Model.extend({
 
   /**
    * Calculate expiration date based on duration
-   * @param {String} duration - Duration string (month, season, annual, lifetime, or null)
+   * @param {String} duration - Duration string (day, month, season, annual, lifetime, or null)
    * @param {Date} [startDate] - Start date for calculation (defaults to now)
    * @returns {Date|null} Expiration date or null for lifetime/no expiration
    */
@@ -214,6 +214,9 @@ module.exports = bookshelf.Model.extend({
 
     // Use string literals to match Duration constants
     switch (duration) {
+      case 'day':
+        return new Date(start.getTime() + (1 * 24 * 60 * 60 * 1000)) // 1 day (for testing)
+
       case 'month':
         return new Date(start.getTime() + (30 * 24 * 60 * 60 * 1000)) // 30 days
 
@@ -302,6 +305,7 @@ module.exports = bookshelf.Model.extend({
 
   // Duration constants
   Duration: {
+    DAY: 'day', // For testing subscription expiration in non-production environments
     MONTH: 'month',
     SEASON: 'season',
     ANNUAL: 'annual',

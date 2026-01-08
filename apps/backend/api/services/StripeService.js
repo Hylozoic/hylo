@@ -1064,5 +1064,146 @@ module.exports = {
       console.error('Error transferring donation:', error)
       throw new Error(`Failed to transfer donation: ${error.message}`)
     }
+  },
+
+  /**
+   * Cancels a subscription on a connected account
+   *
+   * Immediately cancels the subscription. The customer will lose access
+   * at the end of the current billing period unless prorate is specified.
+   *
+   * @param {Object} params - Cancellation parameters
+   * @param {String} params.accountId - The Stripe connected account ID
+   * @param {String} params.subscriptionId - The subscription ID to cancel
+   * @param {Boolean} [params.immediately=true] - If true, cancel immediately. If false, cancel at period end.
+   * @returns {Promise<Object>} The cancelled subscription object
+   */
+  async cancelSubscription ({ accountId, subscriptionId, immediately = true }) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to cancel a subscription')
+      }
+
+      if (!subscriptionId) {
+        throw new Error('Subscription ID is required')
+      }
+
+      let subscription
+
+      if (immediately) {
+        // Cancel immediately - customer loses access right away
+        subscription = await stripe.subscriptions.cancel(subscriptionId, {}, {
+          stripeAccount: accountId
+        })
+      } else {
+        // Cancel at period end - customer keeps access until current period ends
+        subscription = await stripe.subscriptions.update(subscriptionId, {
+          cancel_at_period_end: true
+        }, {
+          stripeAccount: accountId
+        })
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Subscription ${subscriptionId} cancelled ${immediately ? 'immediately' : 'at period end'}`)
+      }
+
+      return subscription
+    } catch (error) {
+      console.error('Error cancelling subscription:', error)
+      throw new Error(`Failed to cancel subscription: ${error.message}`)
+    }
+  },
+
+  /**
+   * Issues a refund for a payment on a connected account
+   *
+   * Can refund either by charge ID, payment intent ID, or the latest invoice
+   * of a subscription. Supports full and partial refunds.
+   *
+   * @param {Object} params - Refund parameters
+   * @param {String} params.accountId - The Stripe connected account ID
+   * @param {String} [params.chargeId] - The charge ID to refund
+   * @param {String} [params.paymentIntentId] - The payment intent ID to refund
+   * @param {String} [params.subscriptionId] - The subscription ID (will refund latest invoice)
+   * @param {Number} [params.amount] - Amount to refund in cents (omit for full refund)
+   * @param {String} [params.reason] - Reason for refund: 'duplicate', 'fraudulent', or 'requested_by_customer'
+   * @returns {Promise<Object>} The refund object
+   */
+  async refund ({ accountId, chargeId, paymentIntentId, subscriptionId, amount, reason = 'requested_by_customer' }) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required to issue a refund')
+      }
+
+      if (!chargeId && !paymentIntentId && !subscriptionId) {
+        throw new Error('Either chargeId, paymentIntentId, or subscriptionId is required')
+      }
+
+      let refundParams = {}
+
+      // If we have a subscription ID, find a refundable payment
+      if (subscriptionId && !chargeId && !paymentIntentId) {
+        // First, try to get paid invoices for this subscription
+        const invoices = await stripe.invoices.list({
+          subscription: subscriptionId,
+          status: 'paid',
+          limit: 5
+        }, {
+          stripeAccount: accountId
+        })
+
+        // Find the most recent paid invoice with a charge or payment_intent
+        let foundPayment = false
+        for (const invoice of invoices.data) {
+          if (invoice.payment_intent) {
+            paymentIntentId = typeof invoice.payment_intent === 'string'
+              ? invoice.payment_intent
+              : invoice.payment_intent.id
+            foundPayment = true
+            break
+          } else if (invoice.charge) {
+            chargeId = typeof invoice.charge === 'string'
+              ? invoice.charge
+              : invoice.charge.id
+            foundPayment = true
+            break
+          }
+        }
+
+        if (!foundPayment) {
+          throw new Error('No refundable payment found for this subscription. The subscription may not have any paid invoices.')
+        }
+      }
+
+      // Build refund parameters
+      if (chargeId) {
+        refundParams.charge = chargeId
+      } else if (paymentIntentId) {
+        refundParams.payment_intent = paymentIntentId
+      }
+
+      if (amount) {
+        refundParams.amount = amount
+      }
+
+      if (reason) {
+        refundParams.reason = reason
+      }
+
+      // Issue the refund on the connected account
+      const refund = await stripe.refunds.create(refundParams, {
+        stripeAccount: accountId
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Refund issued: ${refund.id} for ${refund.amount} ${refund.currency}`)
+      }
+
+      return refund
+    } catch (error) {
+      console.error('Error issuing refund:', error)
+      throw new Error(`Failed to issue refund: ${error.message}`)
+    }
   }
 }
