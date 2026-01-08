@@ -21,7 +21,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, Command
 
 import { createOffering, updateOffering } from './PaidContentTab.store'
 import { fetchGroupSettings, updateGroupSettings } from '../GroupSettings.store'
-import { getHost } from 'store/middleware/apiMiddleware'
+import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
@@ -971,8 +971,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
       onToggleSubscribers(offering.id)
     }
   }, [onToggleSubscribers, offering.id])
-  const baseUrl = getHost()
-  const offeringUrl = `${baseUrl}/offerings/${offering.id}`
+  const fullOfferingUrl = origin() + offeringUrl(offering.id, group.slug)
 
   // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
   const accessGrants = useMemo(() => {
@@ -1104,7 +1103,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
             {isExpanded ? <ChevronUp className='w-3 h-3' /> : <ChevronDown className='w-3 h-3' />}
           </Button>
           <CopyToClipboard
-            text={offeringUrl}
+            text={fullOfferingUrl}
             onCopy={() => {
               setCopied(true)
               setTimeout(() => setCopied(false), 2000)
@@ -1426,4 +1425,3 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
 }
 
 export default OfferingsTab
-

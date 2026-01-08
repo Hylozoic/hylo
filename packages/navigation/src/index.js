@@ -289,6 +289,16 @@ export function fundingRoundUrl (fundingRoundId, opts) {
   return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
 }
 
+/**
+ * Generates a URL for an offering details page
+ * @param {string} offeringId - The offering ID
+ * @param {string} groupSlug - The group slug
+ * @returns {string} The offering URL path
+ */
+export function offeringUrl (offeringId, groupSlug) {
+  return `/groups/${groupSlug}/offerings/${offeringId}`
+}
+
 // URL utility functions
 
 export function setQuerystringParam (key, value, location) {

@@ -102,7 +102,7 @@ export default function RootRouter () {
         <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
         {/* Public offering details page (no auth required) */}
-        <Route path='/offerings/:offeringId' element={<OfferingDetails />} />
+        <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />
       </Routes>

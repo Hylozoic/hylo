@@ -6,7 +6,7 @@ import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { CreditCard } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
-import { getHost } from 'store/middleware/apiMiddleware'
+import { offeringUrl, origin } from '@hylo/navigation'
 import { offeringGrantsGroupAccess } from 'util/accessGrants'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
@@ -78,9 +78,9 @@ export default function OfferingDetails () {
     setCheckoutLoading(true)
 
     try {
-      const baseUrl = getHost()
+      const baseUrl = origin()
       const successUrl = `${baseUrl}/groups/${offering.group.slug}/payment/success`
-      const cancelUrl = `${baseUrl}/offerings/${offeringId}`
+      const cancelUrl = baseUrl + offeringUrl(offeringId, offering.group.slug)
 
       const checkoutData = await createStripeCheckoutSession({
         groupId: offering.group.id,
