@@ -9,7 +9,6 @@
  */
 
 import { GraphQLError } from 'graphql'
-const Queue = require('../../services/Queue')
 const StripeService = require('../../services/StripeService')
 
 /* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend, StripeAccount */
