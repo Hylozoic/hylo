@@ -581,6 +581,10 @@ module.exports = {
         metadata
       }
 
+      // TODO: Re-enable donation feature when we have pre-created Stripe prices
+      // Stripe's optional_items parameter requires pre-created price IDs, not price_data
+      // For now, donations are disabled until we set up Hylo donation products in Stripe
+      /*
       // Build optional donation items for Stripe checkout
       // For subscriptions: offer both one-time and recurring donation options
       // For one-time payments: offer only one-time donation
@@ -638,6 +642,7 @@ module.exports = {
 
       // Store flag in metadata to indicate donation option was available
       metadata.hasDonationOption = 'true'
+      */
 
       // Configure for payment or subscription mode
       if (mode === 'subscription') {
