@@ -1,6 +1,5 @@
 /* eslint-disable camelcase */
 const { createTrackScope, createGroupRoleScope, createGroupScope } = require('../../lib/scopes')
-const Queue = require('../services/Queue')
 const StripeService = require('../services/StripeService')
 
 module.exports = bookshelf.Model.extend({
