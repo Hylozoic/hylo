@@ -18,6 +18,10 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 // In non-production, donations stay in the platform account
 const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
 
+// Cached donation price IDs per account (created programmatically on first use)
+// Key: accountId (or 'platform' for platform account), Value: priceId
+const cachedDonationPriceIds = {}
+
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
   throw new Error(
@@ -34,6 +38,111 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 })
 
 module.exports = {
+
+  /**
+   * Ensures the Hylo donation product and price exist in Stripe.
+   * Creates them if they don't exist, otherwise retrieves the existing price ID.
+   * The price ID is cached per account for subsequent calls.
+   *
+   * @param {String} [accountId] - Connected account ID. If provided, creates on that account.
+   * @returns {Promise<String>} The donation price ID
+   */
+  async ensureDonationPriceExists (accountId = null) {
+    const cacheKey = accountId || 'platform'
+
+    // Return cached price ID if we already have it for this account
+    if (cachedDonationPriceIds[cacheKey]) {
+      return cachedDonationPriceIds[cacheKey]
+    }
+
+    try {
+      const DONATION_PRODUCT_NAME = 'Hylo Platform Donation'
+      const DONATION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
+
+      // Options for connected account API calls
+      const stripeOptions = accountId ? { stripeAccount: accountId } : {}
+
+      // Search for existing donation product by metadata
+      // Note: products.search is not available on connected accounts, so we list and filter
+      let donationProduct = null
+
+      if (accountId) {
+        // For connected accounts, list products and filter by metadata
+        const products = await stripe.products.list({
+          active: true,
+          limit: 100
+        }, stripeOptions)
+
+        donationProduct = products.data.find(
+          p => p.metadata && p.metadata[DONATION_PRODUCT_METADATA_KEY] === 'true'
+        )
+      } else {
+        // For platform account, use search
+        const existingProducts = await stripe.products.search({
+          query: `metadata['${DONATION_PRODUCT_METADATA_KEY}']:'true' AND active:'true'`
+        })
+        if (existingProducts.data.length > 0) {
+          donationProduct = existingProducts.data[0]
+        }
+      }
+
+      if (donationProduct) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Found existing donation product on ${cacheKey}: ${donationProduct.id}`)
+        }
+      } else {
+        // Create the donation product
+        donationProduct = await stripe.products.create({
+          name: DONATION_PRODUCT_NAME,
+          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!',
+          metadata: {
+            [DONATION_PRODUCT_METADATA_KEY]: 'true'
+          }
+        }, stripeOptions)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Created donation product on ${cacheKey}: ${donationProduct.id}`)
+        }
+      }
+
+      // Search for existing $1 donation price
+      const existingPrices = await stripe.prices.list({
+        product: donationProduct.id,
+        active: true,
+        limit: 10
+      }, stripeOptions)
+
+      // Find a $1 USD price
+      let donationPrice = existingPrices.data.find(
+        p => p.unit_amount === 100 && p.currency === 'usd' && !p.recurring
+      )
+
+      if (donationPrice) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Found existing donation price on ${cacheKey}: ${donationPrice.id}`)
+        }
+      } else {
+        // Create the $1 donation price
+        donationPrice = await stripe.prices.create({
+          product: donationProduct.id,
+          unit_amount: 100, // $1.00 in cents
+          currency: 'usd',
+          metadata: {
+            hylo_donation_price: 'true'
+          }
+        }, stripeOptions)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Created donation price on ${cacheKey}: ${donationPrice.id}`)
+        }
+      }
+
+      // Cache the price ID for this account
+      cachedDonationPriceIds[cacheKey] = donationPrice.id
+      return cachedDonationPriceIds[cacheKey]
+    } catch (error) {
+      console.error('Error ensuring donation price exists:', error)
+      throw new Error(`Failed to ensure donation price exists: ${error.message}`)
+    }
+  },
 
   /**
    * Creates a new Stripe Connected Account for a group
@@ -581,68 +690,35 @@ module.exports = {
         metadata
       }
 
-      // TODO: Re-enable donation feature when we have pre-created Stripe prices
-      // Stripe's optional_items parameter requires pre-created price IDs, not price_data
-      // For now, donations are disabled until we set up Hylo donation products in Stripe
-      /*
-      // Build optional donation items for Stripe checkout
-      // For subscriptions: offer both one-time and recurring donation options
-      // For one-time payments: offer only one-time donation
-      const optionalItems = []
+      // Add optional donation to checkout session
+      // Uses a pre-created price ID (created programmatically on the connected account if it doesn't exist)
+      // Note: Recurring donations are not yet supported - only one-time donations for now
+      try {
+        const donationPriceId = await this.ensureDonationPriceExists(accountId)
 
-      // One-time donation option (available for both subscriptions and one-time purchases)
-      const oneTimeDonationPriceData = {
-        currency: currency.toLowerCase(),
-        product_data: {
-          name: 'One-Time Donation to Hylo',
-          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!'
-        },
-        unit_amount: 100 // Default $1.00 donation amount in cents
-        // No recurring property = one-time payment
-      }
-
-      optionalItems.push({
-        price_data: oneTimeDonationPriceData,
-        quantity: 0,
-        adjustable_quantity: {
-          enabled: true,
-          minimum: 0, // Customer can choose not to donate
-          maximum: 100 // Maximum quantity (allows up to $100 donation)
-        }
-      })
-
-      // Recurring donation option (only for subscriptions)
-      if (isRecurring && priceObject.recurring) {
-        const recurringDonationPriceData = {
-          currency: currency.toLowerCase(),
-          product_data: {
-            name: 'Recurring Donation to Hylo',
-            description: `Tax-deductible recurring donation to Hylo (501(c)(3) fiscally sponsored). Repeats ${priceObject.recurring.interval_count === 1 ? 'each' : `every ${priceObject.recurring.interval_count}`} ${priceObject.recurring.interval}. Thank you for supporting the Hylo platform!`
-          },
-          unit_amount: 100, // Default $1.00 donation amount in cents
-          recurring: {
-            interval: priceObject.recurring.interval, // 'month', 'year', etc.
-            interval_count: priceObject.recurring.interval_count || 1
+        // Add one-time donation option (works for both subscription and payment modes)
+        // User can select quantity 0-100 ($0 to $100 in $1 increments)
+        // Note: quantity must be >= 1 for API, but adjustable_quantity.minimum: 0
+        // allows users to reduce it to 0 in the checkout UI
+        // ALSO: its completely optional - users can checkout without it if they want
+        sessionConfig.optional_items = [
+          {
+            price: donationPriceId,
+            quantity: 5, // This displays as an add-on
+            adjustable_quantity: {
+              enabled: true,
+              minimum: 0, 
+              maximum: 100
+            }
           }
-        }
+        ]
 
-        optionalItems.push({
-          price_data: recurringDonationPriceData,
-          quantity: 0,
-          adjustable_quantity: {
-            enabled: true,
-            minimum: 0, // Customer can choose not to donate
-            maximum: 100 // Maximum quantity (allows up to $100 donation per billing cycle)
-          }
-        })
+        // Store flag in metadata to indicate donation option was available
+        metadata.hasDonationOption = 'true'
+      } catch (donationError) {
+        // If donation setup fails, continue without it - don't block the checkout
+        console.error('Failed to set up donation option, continuing without it:', donationError.message)
       }
-
-      // Add optional donation items to checkout session
-      sessionConfig.optional_items = optionalItems
-
-      // Store flag in metadata to indicate donation option was available
-      metadata.hasDonationOption = 'true'
-      */
 
       // Configure for payment or subscription mode
       if (mode === 'subscription') {
