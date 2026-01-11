@@ -86,7 +86,7 @@ const Pill = forwardRef(({
   return (
     <div
       className={cn(
-        'text-foreground text-baseline bg-black/10 rounded-lg m-1 py-2 px-3 h-[40px] items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
+        'text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
         className,
         classes.pill,
         { [classes.removing]: removing, [classes.editable]: editable }

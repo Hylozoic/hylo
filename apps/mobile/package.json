@@ -203,7 +203,7 @@
     "kitType": "app",
     "alignDeps": {
       "requirements": [
-        "react-native@0.70"
+        "react-native@0.77.3"
       ],
       "capabilities": [
         "animation",

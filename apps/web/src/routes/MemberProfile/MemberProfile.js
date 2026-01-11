@@ -1,4 +1,5 @@
 import { filter, isFunction } from 'lodash'
+import { Pencil, X } from 'lucide-react'
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import CopyToClipboard from 'react-copy-to-clipboard'
@@ -160,8 +161,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     { iconName: 'Public', value: person.url, onClick: () => gotoExternalUrl(person.url) }
   ]
   const actionDropdownItems = [
-    { icon: 'Edit', label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
-    { icon: 'Ex', label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
+    { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl }
   ]
   const {
     title: currentContentTitle,
@@ -177,7 +178,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
         </Helmet>
         <div className='flex flex-col items-center w-full'>
           {isCurrentUser &&
-            <button className='absolute top-2 right-5 z-50 bg-black/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-foreground placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-black/80' onClick={() => push(currentUserSettingsUrl())}>
+            <button className='absolute top-2 right-5 z-50 bg-foreground/50 hover:bg-selected/90 transition-all scale-100 hover:scale-105 rounded-lg text-background placeholder-foreground/40 w-[120px] p-1 transition-all outline-none hover:bg-darkening/80' onClick={() => push(currentUserSettingsUrl())}>
               <Icon name='Edit' /> {t('Edit Profile')}
             </button>}
           <div className='w-full h-[40vh] mt-4 relative flex flex-col items-center items-end justify-end pb-10 bg-cover'>
@@ -190,7 +191,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               </div>
             )}
             <div
-              className='w-[96%] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center opacity-100 bg-black/80 left-[50%] translate-x-[-50%]'
+              className='w-[96%] shadow-2xl max-w-[750px] rounded-xl mx-auto h-[40vh] flex flex-col absolute top-0 z-0 items-center opacity-100 bg-darkening/80 left-[50%] translate-x-[-50%]'
             >
               <div style={{ backgroundImage: `url(${person.bannerUrl || '/default-user-banner.svg'})` }} className='w-full h-full opacity-70 bg-cover bg-center rounded-xl absolute top-0 left-0 z-1' />
               <div className='w-full h-full bg-gradient-to-b absolute top-0 left-0 from-transparent to-black/90 opacity-60 rounded-xl z-2' />
@@ -225,7 +226,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Add your skills and interests to your profile')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-white transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-white transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Edit' className='mr-2 text-white' />
                     {t('Edit Profile')}
@@ -257,7 +258,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                     {memberships.map((m, index) => <Membership key={m.id} index={index} membership={m} />)}
                     {showExpandGroupsButton && (
                       <div>
-                        <button onClick={toggleShowAllGroups} className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'>
+                        <button onClick={toggleShowAllGroups} className='focus:text-foreground absolute bottom-0 left-1/2 -translate-x-1/2 text-sm border-2 border-foreground/20 z-10 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex w-[200px] align-items justify-center mx-auto shadow-lg'>
                           {showAllGroups
                             ? 'Show Less'
                             : `Show All ${memberships.length} Groups`}
@@ -273,7 +274,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Find groups to join and collaborate with others')}</p>
                   <button
                     onClick={() => push('/groups/explorer')}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Groups' className='mr-2' />
                     {t('Explore Groups')}
@@ -306,7 +307,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   <p className='text-foreground/50 mb-3'>{t('Add your affiliations')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
-                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
+                    className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
                   >
                     <Icon name='Edit' className='mr-2' />
                     {t('Edit Profile')}
@@ -327,7 +328,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               id='member-profile-content-dropdown'
               items={contentDropDownItems}
               toggleChildren={
-                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
+                <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
                   {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
                 </button>
               }
@@ -375,7 +376,7 @@ function ActionButtons ({ items }) {
     return (
       <React.Fragment key={index}>
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
           onClick={onClick}
           data-tooltip-id={tooltipId}
           data-tooltip-content={value}
@@ -410,7 +411,7 @@ function ActionDropdown ({ items }) {
       items={activeItems}
       toggleChildren={
         <button
-          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
+          className='focus:text-foreground shadow-lg relative text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground transition-all scale-100 hover:scale-105 flex items-center justify-center'
         >
           <Icon className='-mt-[3px] mb-[3px]' name='More' />
         </button>

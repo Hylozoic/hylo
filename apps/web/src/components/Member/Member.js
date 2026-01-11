@@ -4,7 +4,7 @@ import { withTranslation } from 'react-i18next'
 import BadgeEmoji from 'components/BadgeEmoji'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
-import { MapPin } from 'lucide-react'
+import { MapPin, Trash2 } from 'lucide-react'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
 import { cn, bgImageStyle } from 'util/index'
 
@@ -46,7 +46,7 @@ class Member extends React.Component {
             alignRight
             className={classes.dropdown}
             toggleChildren={<Icon name='More' />}
-            items={[{ icon: 'Trash', label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember) }]}
+            items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember), red: true }]}
           />}
         <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
           <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />

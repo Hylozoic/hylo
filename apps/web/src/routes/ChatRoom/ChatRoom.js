@@ -577,7 +577,7 @@ export default function ChatRoom (props) {
           #{topicName}
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
-              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/100' />}
+              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
               className='border-none p-0 focus:ring-0 focus:ring-offset-0 bg-transparent'
             />
             <SelectContent className='border-none'>
@@ -819,6 +819,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
             style={animationStyle}
           >
             <PostCard
+              chat
               group={context.group}
               expanded={expanded}
               highlighted={highlighted}
@@ -826,6 +827,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onFlagPost={context.onFlagPost}
               onAddProposalVote={context.onAddProposalVote}
               onRemoveProposalVote={context.onRemoveProposalVote}
               onSwapProposalVote={context.onSwapProposalVote}

@@ -230,7 +230,18 @@ function PostEditor ({
   const [showLocation, setShowLocation] = useState(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
 
   const groupOptions = useMemo(() => {
-    return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
+    if (!currentUser) return []
+
+    return currentUser.memberships.toModelArray()
+      .map((m) => m.group)
+      .filter((g) => {
+        // Filter out paywalled groups where user doesn't have access
+        if (g?.paywall && g?.canAccess === false) {
+          return false
+        }
+        return true
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [currentUser?.memberships])
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
@@ -1396,7 +1407,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div className='w-full p-2 bg-black/20 rounded-md'>
+      <div className='w-full p-2 bg-darkening/20 rounded-md'>
         <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'

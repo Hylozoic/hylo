@@ -1,5 +1,5 @@
 import { filter, isEmpty, isFunction, pick } from 'lodash/fp'
-import { BookmarkCheck, Bookmark } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Flag, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -199,13 +199,13 @@ export default function ChatPost ({
 
   const actionItems = filter(item => isFunction(item.onClick), [
     // { icon: 'Copy', label: 'Copy Link', onClick: copyLink },
-    { icon: 'Replies', label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
+    { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: showPost, tooltip: 'Reply to post' },
     // TODO: Edit disabled in mobile environments due to issue with keyboard management and autofocus of field
-    { icon: 'Edit', label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator && !isLongPress) ? editPost : null, tooltip: 'Edit post' },
     { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: savedAt ? 'Unsave post' : 'Save post' },
-    { icon: 'Flag', label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
-    { icon: 'Trash', label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
-    { icon: 'Trash', label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
+    { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => { setFlaggingVisible(true) } : null, tooltip: 'Flag post' },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: 'Delete post' },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
   ])
 
   const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
@@ -238,13 +238,14 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] mb-1 relative transition-all group cursor-pointer',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 py-1 -my-1 -mx-2 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50',
+          showHeader ? 'py-1 mt-2' : ' ',
           className,
           styles.container,
           {
             [styles.longPressed]: isLongPress,
             [styles.hovered]: isHovered,
-            'bg-background shadow-lg': isHovered,
+            'bg-card shadow-lg cursor-pointer': isHovered,
             'bg-accent/30': highlighted
           }
         )}
@@ -255,9 +256,9 @@ export default function ChatPost ({
       >
         <div className={
           cn(
-            'flex p-1 gap-2 absolute z-10 right-2 -top-1 transition-all rounded-lg bg-theme-background opacity-0 delay-100 scale-0',
+            'flex p-1 gap-2 absolute z-10 right-1 -top-0 transition-all rounded-lg cursor-normal bg-background/100 dark:bg-darkening opacity-0 delay-100 scale-0',
             {
-              'opacity-100 scale-100 scale-100': isHovered
+              'opacity-100 scale-102': isHovered
             }
           )
           }
@@ -266,11 +267,15 @@ export default function ChatPost ({
             <button
               key={item.label}
               onClick={item.onClick}
-              className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 hover:scale-110 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
-              data-tooltip-content={item.tooltip}
+              className={cn(
+                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
+                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
+              )}
+              data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
               data-tooltip-id='action-tt'
             >
-              {typeof item.icon === 'string' ? <Icon name={item.icon} /> : item.icon}
+              {item.icon}
+              {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
             </button>
           ))}
           <Tooltip
@@ -278,7 +283,7 @@ export default function ChatPost ({
             id='action-tt'
           />
           <EmojiPicker
-            className='w-6 h-6 flex justify-center items-center rounded-lg bg-midground/20 transition-all hover:bg-midground/100 shadow-lg hover:cursor-pointer'
+            className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/50 transition-all shadow-lg hover:cursor-pointer'
             handleReaction={handleReaction}
             handleRemoveReaction={handleRemoveReaction}
             myEmojis={myEmojis}
@@ -316,13 +321,13 @@ export default function ChatPost ({
             placeholder='Edit Post'
             ref={editorRef}
             showMenu={!isWebView()}
-            className={cn(styles.editing, styles.postContent)}
+            className={cn(styles.editing, 'p-0 m-0')}
           />
         )}
         {details && !editing && (
           <ClickCatcher groupSlug={group.slug} onClick={handleClick}>
-            <div className={cn(styles.postContentContainer, { [styles.isFlagged]: isFlagged })}>
-              <HyloHTML className={cn(styles.postContent, 'global-postContent')} html={details} />
+            <div className={cn('ml-12', { [styles.isFlagged]: isFlagged })}>
+              <HyloHTML className='w-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0' html={details} />
             </div>
           </ClickCatcher>
         )}
@@ -351,8 +356,8 @@ export default function ChatPost ({
           />
         </div>
         {commentsTotal > 0 && (
-          <div className='w-full' onClick={handleClick}>
-            <span className='ChatPost_commenters bg-black/10 rounded-lg py-2 px-2 ml-[40px] xs:ml-[48px] h-[40px] mb-[2px] items-center justify-center flex w-[120px]'>
+          <div className='w-full mt-2' onClick={handleClick}>
+            <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 xs:ml-[48px] mb-[2px] items-center justify-center inline-flex'>
               <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
               <span className='text-sm text-foreground' onClick={handleClick}>
                 {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}

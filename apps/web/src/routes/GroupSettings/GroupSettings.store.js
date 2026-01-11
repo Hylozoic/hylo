@@ -68,6 +68,12 @@ export function fetchGroupSettings (slug) {
           type
           slug
           visibility
+          stripeAccountId
+          stripeDashboardUrl
+          stripeChargesEnabled
+          stripePayoutsEnabled
+          stripeDetailsSubmitted
+          paywall
           agreements {
             items {
               id
@@ -254,6 +260,11 @@ export function updateGroupSettings (id, changes) {
       query: `mutation ($id: ID, $changes: GroupInput) {
         updateGroupSettings(id: $id, changes: $changes) {
           id
+          stripeAccountId
+          stripeChargesEnabled
+          stripePayoutsEnabled
+          stripeDetailsSubmitted
+          paywall
           agreements {
             items {
               id

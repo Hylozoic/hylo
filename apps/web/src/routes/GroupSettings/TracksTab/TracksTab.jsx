@@ -75,7 +75,7 @@ function TracksTab ({ group, fetchPending, updateGroupSettings }) {
       <SettingsSection>
         <h3 className='text-sm absolute -top-[26px] left-3 left-0 bg-midground p-1'>{t('Tracks')}</h3>
         <div className='flex flex-col gap-2'>
-          <Link to={createTrackUrl(routeParams)} className='flex justify-center items-center gap-1 text-foreground border-2 border-foreground/20 hover:border-foreground/100 rounded-lg py-1 px-2 transition-all hover:scale-105 hover:text-foreground group mb-4 mt-2'>
+          <Link to={createTrackUrl(routeParams)} className='flex justify-center items-center gap-1 text-foreground border-2 border-foreground/20 hover:border-foreground/50 rounded-lg py-1 px-2 transition-all hover:scale-105 hover:text-foreground group mb-4 mt-2'>
             <Plus className='w-4 h-4' />
             {t('Add a track')}
           </Link>

@@ -27,7 +27,7 @@ export async function updateMembership (userId, { groupId, data, data: { setting
         const isNewPin = membership.get('nav_order') === null
 
         if (isNewPin) {
-          // Pinning a new group - increment all other pinned groups in a single query
+          // Pinning a new group to top (position 0) - increment all other pinned groups
           await bookshelf.knex('group_memberships')
             .where({ user_id: userId })
             .whereNotNull('nav_order')

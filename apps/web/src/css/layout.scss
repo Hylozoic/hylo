@@ -31,7 +31,8 @@
   border-radius: 3px;
 }
 
-body {
+body, body * {
+  scrollbar-color: transparent;
   ::-webkit-scrollbar {
     background-color: transparent;
     width: 8px;

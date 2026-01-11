@@ -10,7 +10,8 @@ export default function SettingsControl (props) {
   let control
 
   if (renderControl) {
-    control = renderControl(props)
+    // Pass only the props that should go to the control element, excluding renderControl and helpText
+    control = renderControl({ id, value, onChange, ...otherProps })
   } else {
     switch (type) {
       case 'textarea':
@@ -22,7 +23,7 @@ export default function SettingsControl (props) {
               maxRows={100}
               onChange={onChange}
               readOnly={!onChange}
-              className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
+              className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
               value={value}
               {...otherProps}
             />
@@ -46,7 +47,7 @@ export default function SettingsControl (props) {
             autoCorrect='off'
             onChange={onChange}
             spellCheck='off'
-            className='bg-black/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
+            className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2'
             type='password'
             value={value}
             readOnly={!onChange}
@@ -60,7 +61,7 @@ export default function SettingsControl (props) {
             id={id}
             onChange={onChange}
             readOnly={!onChange}
-            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4 outline-none focus:outline-focus focus:outline-2'
+            className='bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4 outline-none focus:outline-focus focus:outline-2'
             saveLocationToDB
             {...otherProps}
           />
@@ -72,7 +73,7 @@ export default function SettingsControl (props) {
             id={id}
             onChange={onChange}
             readOnly={!onChange}
-            className='bg-black/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
+            className='bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
             type='text'
             style={inputStyle}
             value={value}

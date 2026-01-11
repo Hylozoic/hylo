@@ -6,7 +6,7 @@ import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { groupDetailUrl } from '@hylo/navigation'
 import RoundImage from 'components/RoundImage'
 import Button from 'components/ui/button'
-import { Info } from 'lucide-react'
+import { Info, DollarSign } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { fetchGroups } from 'store/actions/fetchGroups'
 import Loading from 'components/Loading'
@@ -54,7 +54,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
   if (!groups.length) return null
 
   return (
-    <div className='w-full overflow-hidden mb-4 rounded-lg inset-shadow-lg bg-black/20 py-4 px-0 relative'>
+    <div className='w-full overflow-hidden mb-4 rounded-lg inset-shadow-lg bg-background py-4 px-0 relative'>
       <div className='flex items-center justify-between'>
         <h2 className='mt-0 font-bold ml-4 text-sm'>{t('Featured Groups')}</h2>
         <div className='relative group mr-4 w-6 h-6 flex items-center justify-center' data-tooltip-id='featured-groups-info'>
@@ -87,7 +87,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                 style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)}
                 className='absolute inset-0 bg-cover bg-center opacity-70'
               />
-              <div className='absolute inset-0 bg-gradient-to-t from-black/80 to-transparent' />
+              <div className='absolute inset-0 bg-gradient-to-t from-darkening/80 to-transparent' />
               <div className='relative h-full p-4 flex flex-col justify-end'>
                 <div className='flex items-start justify-between'>
                   <RoundImage
@@ -98,7 +98,19 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                   />
                 </div>
                 <div className='text-white'>
-                  <h3 className='text-xl font-bold mb-1'>{group.name}</h3>
+                  <h3 className='text-xl font-bold mb-1 flex items-center gap-2'>
+                    {group.name}
+                    {group.paywall && (
+                      <>
+                        <DollarSign
+                          className='w-5 h-5'
+                          data-tooltip-id={`paywall-tooltip-${group.id}`}
+                          data-tooltip-content={t('This group requires payment to join')}
+                        />
+                        <Tooltip id={`paywall-tooltip-${group.id}`} />
+                      </>
+                    )}
+                  </h3>
                   <p className='text-sm text-white/80 mb-2'>{group.memberCount} {t('Members')}</p>
                   <p className='text-sm text-white/90 line-clamp-3 mb-4'>{group.description}</p>
                   <Button variant='outline' className='w-full text-center justify-center text-xs p-1 bg-background/40 hover:bg-background/100'>

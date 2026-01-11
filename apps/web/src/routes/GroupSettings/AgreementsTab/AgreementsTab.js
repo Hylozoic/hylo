@@ -139,7 +139,7 @@ function AgreementsTab (props) {
               />
             ))}
           </div>
-          <div className='focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2' onClick={addAgreement}>
+          <div className='focus:text-foreground text-base border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2' onClick={addAgreement}>
             <h4>{t('Add Agreement')}</h4>
             <Icon name='Circle-Plus' className={styles.addButtonIcon} />
           </div>
