@@ -808,6 +808,36 @@ module.exports = {
   },
 
   /**
+   * Retrieves an invoice from Stripe with expanded payment details
+   *
+   * @param {String} accountId - The Stripe connected account ID
+   * @param {String} invoiceId - The invoice ID to retrieve
+   * @returns {Promise<Object>} Invoice object with expanded payment_intent and charge
+   */
+  async getInvoice (accountId, invoiceId) {
+    try {
+      if (!accountId) {
+        throw new Error('Account ID is required')
+      }
+
+      if (!invoiceId) {
+        throw new Error('Invoice ID is required')
+      }
+
+      const invoice = await stripe.invoices.retrieve(invoiceId, {
+        expand: ['payment_intent', 'charge']
+      }, {
+        stripeAccount: accountId
+      })
+
+      return invoice
+    } catch (error) {
+      console.error('Error retrieving invoice:', error)
+      throw new Error(`Failed to retrieve invoice: ${error.message}`)
+    }
+  },
+
+  /**
    * Lists all subscriptions for a specific price on a connected account
    *
    * Fetches all subscriptions in one API call, filtered by price ID.
@@ -1225,35 +1255,252 @@ module.exports = {
 
       // If we have a subscription ID, find a refundable payment
       if (subscriptionId && !chargeId && !paymentIntentId) {
-        // First, try to get paid invoices for this subscription
-        const invoices = await stripe.invoices.list({
-          subscription: subscriptionId,
-          status: 'paid',
-          limit: 5
-        }, {
-          stripeAccount: accountId
-        })
-
-        // Find the most recent paid invoice with a charge or payment_intent
         let foundPayment = false
-        for (const invoice of invoices.data) {
-          if (invoice.payment_intent) {
-            paymentIntentId = typeof invoice.payment_intent === 'string'
-              ? invoice.payment_intent
-              : invoice.payment_intent.id
-            foundPayment = true
-            break
-          } else if (invoice.charge) {
-            chargeId = typeof invoice.charge === 'string'
-              ? invoice.charge
-              : invoice.charge.id
-            foundPayment = true
-            break
+        const isDev = process.env.NODE_ENV === 'development'
+
+        if (isDev) {
+          console.log(`[Refund Debug] Looking for payment for subscription: ${subscriptionId} on account: ${accountId}`)
+        }
+
+        // Strategy 1: Try listing paid invoices for this subscription
+        try {
+          const invoices = await stripe.invoices.list({
+            subscription: subscriptionId,
+            status: 'paid',
+            limit: 5
+          }, {
+            stripeAccount: accountId
+          })
+
+          if (isDev) {
+            console.log(`[Refund Debug] Strategy 1 - Found ${invoices.data.length} paid invoices`)
+          }
+
+          // Find the most recent paid invoice with a charge or payment_intent
+          for (const invoice of invoices.data) {
+            if (isDev) {
+              console.log(`[Refund Debug] Invoice ${invoice.id}: amount_due=${invoice.amount_due}, amount_paid=${invoice.amount_paid}, total=${invoice.total}, payment_intent=${invoice.payment_intent}, charge=${invoice.charge}`)
+            }
+            if (invoice.payment_intent) {
+              paymentIntentId = typeof invoice.payment_intent === 'string'
+                ? invoice.payment_intent
+                : invoice.payment_intent.id
+              foundPayment = true
+              if (isDev) {
+                console.log(`[Refund Debug] Found payment_intent: ${paymentIntentId}`)
+              }
+              break
+            } else if (invoice.charge) {
+              chargeId = typeof invoice.charge === 'string'
+                ? invoice.charge
+                : invoice.charge.id
+              foundPayment = true
+              if (isDev) {
+                console.log(`[Refund Debug] Found charge: ${chargeId}`)
+              }
+              break
+            }
+          }
+        } catch (invoiceListError) {
+          if (isDev) {
+            console.log('[Refund Debug] Strategy 1 failed:', invoiceListError.message)
+          }
+        }
+
+        // Strategy 2: Retrieve subscription with latest_invoice expanded
+        // This is more reliable for Checkout-created subscriptions where the
+        // invoice might not immediately appear in the 'paid' status list
+        if (!foundPayment) {
+          if (isDev) {
+            console.log('[Refund Debug] Strategy 2 - Retrieving subscription with expanded latest_invoice')
+          }
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+              expand: ['latest_invoice.payment_intent', 'latest_invoice.charge']
+            }, {
+              stripeAccount: accountId
+            })
+
+            if (isDev) {
+              console.log(`[Refund Debug] Subscription status: ${subscription.status}`)
+            }
+            const latestInvoice = subscription.latest_invoice
+            if (isDev) {
+              console.log(`[Refund Debug] Latest invoice: ${latestInvoice ? latestInvoice.id : 'null'}, status: ${latestInvoice?.status}, amount_due: ${latestInvoice?.amount_due}, amount_paid: ${latestInvoice?.amount_paid}, total: ${latestInvoice?.total}`)
+            }
+
+            if (latestInvoice) {
+              if (isDev) {
+                console.log(`[Refund Debug] Latest invoice payment_intent: ${latestInvoice.payment_intent?.id || latestInvoice.payment_intent || 'null'}`)
+                console.log(`[Refund Debug] Latest invoice charge: ${latestInvoice.charge?.id || latestInvoice.charge || 'null'}`)
+              }
+
+              if (latestInvoice.payment_intent) {
+                paymentIntentId = typeof latestInvoice.payment_intent === 'string'
+                  ? latestInvoice.payment_intent
+                  : latestInvoice.payment_intent.id
+                foundPayment = true
+                if (isDev) {
+                  console.log(`[Refund Debug] Found payment_intent from latest_invoice: ${paymentIntentId}`)
+                }
+              } else if (latestInvoice.charge) {
+                chargeId = typeof latestInvoice.charge === 'string'
+                  ? latestInvoice.charge
+                  : latestInvoice.charge.id
+                foundPayment = true
+                if (isDev) {
+                  console.log(`[Refund Debug] Found charge from latest_invoice: ${chargeId}`)
+                }
+              }
+            }
+          } catch (subscriptionError) {
+            if (isDev) {
+              console.log('[Refund Debug] Strategy 2 failed:', subscriptionError.message)
+            }
+          }
+        }
+
+        // Strategy 3: List ALL invoices (not just 'paid' status) for this subscription
+        if (!foundPayment) {
+          if (isDev) {
+            console.log('[Refund Debug] Strategy 3 - Listing all invoices for subscription')
+          }
+          try {
+            const allInvoices = await stripe.invoices.list({
+              subscription: subscriptionId,
+              limit: 10
+            }, {
+              stripeAccount: accountId
+            })
+
+            if (isDev) {
+              console.log(`[Refund Debug] Found ${allInvoices.data.length} total invoices`)
+            }
+            for (const invoice of allInvoices.data) {
+              if (isDev) {
+                console.log(`[Refund Debug] Invoice ${invoice.id}: status=${invoice.status}, amount_due=${invoice.amount_due}, amount_paid=${invoice.amount_paid}, total=${invoice.total}, payment_intent=${invoice.payment_intent}, charge=${invoice.charge}`)
+              }
+              if (invoice.payment_intent) {
+                paymentIntentId = typeof invoice.payment_intent === 'string'
+                  ? invoice.payment_intent
+                  : invoice.payment_intent.id
+                foundPayment = true
+                if (isDev) {
+                  console.log(`[Refund Debug] Found payment_intent: ${paymentIntentId}`)
+                }
+                break
+              } else if (invoice.charge) {
+                chargeId = typeof invoice.charge === 'string'
+                  ? invoice.charge
+                  : invoice.charge.id
+                foundPayment = true
+                if (isDev) {
+                  console.log(`[Refund Debug] Found charge: ${chargeId}`)
+                }
+                break
+              }
+            }
+          } catch (allInvoicesError) {
+            if (isDev) {
+              console.log('[Refund Debug] Strategy 3 failed:', allInvoicesError.message)
+            }
+          }
+        }
+
+        // Strategy 4: Get the subscription's customer and list their charges
+        if (!foundPayment) {
+          if (isDev) {
+            console.log('[Refund Debug] Strategy 4 - Looking up charges via subscription customer')
+          }
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId, {}, {
+              stripeAccount: accountId
+            })
+            const customerId = subscription.customer
+            if (isDev) {
+              console.log(`[Refund Debug] Subscription customer: ${customerId}`)
+            }
+
+            if (customerId) {
+              const charges = await stripe.charges.list({
+                customer: typeof customerId === 'string' ? customerId : customerId.id,
+                limit: 10
+              }, {
+                stripeAccount: accountId
+              })
+
+              if (isDev) {
+                console.log(`[Refund Debug] Found ${charges.data.length} charges for customer`)
+              }
+              for (const charge of charges.data) {
+                if (isDev) {
+                  console.log(`[Refund Debug] Charge ${charge.id}: amount=${charge.amount}, status=${charge.status}, paid=${charge.paid}, refunded=${charge.refunded}`)
+                }
+                if (charge.paid && !charge.refunded) {
+                  chargeId = charge.id
+                  foundPayment = true
+                  if (isDev) {
+                    console.log(`[Refund Debug] Found refundable charge: ${chargeId}`)
+                  }
+                  break
+                }
+              }
+            }
+          } catch (chargeError) {
+            if (isDev) {
+              console.log('[Refund Debug] Strategy 4 failed:', chargeError.message)
+            }
+          }
+        }
+
+        // Strategy 5: List payment intents for the customer
+        if (!foundPayment) {
+          if (isDev) {
+            console.log('[Refund Debug] Strategy 5 - Looking up payment intents via customer')
+          }
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId, {}, {
+              stripeAccount: accountId
+            })
+            const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
+
+            if (customerId) {
+              const paymentIntents = await stripe.paymentIntents.list({
+                customer: customerId,
+                limit: 10
+              }, {
+                stripeAccount: accountId
+              })
+
+              if (isDev) {
+                console.log(`[Refund Debug] Found ${paymentIntents.data.length} payment intents for customer`)
+              }
+              for (const pi of paymentIntents.data) {
+                if (isDev) {
+                  console.log(`[Refund Debug] PaymentIntent ${pi.id}: amount=${pi.amount}, status=${pi.status}`)
+                }
+                if (pi.status === 'succeeded') {
+                  paymentIntentId = pi.id
+                  foundPayment = true
+                  if (isDev) {
+                    console.log(`[Refund Debug] Found refundable payment intent: ${paymentIntentId}`)
+                  }
+                  break
+                }
+              }
+            }
+          } catch (piError) {
+            if (isDev) {
+              console.log('[Refund Debug] Strategy 5 failed:', piError.message)
+            }
           }
         }
 
         if (!foundPayment) {
-          throw new Error('No refundable payment found for this subscription. The subscription may not have any paid invoices.')
+          if (isDev) {
+            console.log('[Refund Debug] All strategies failed - no payment found')
+          }
+          throw new Error('No refundable payment found for this subscription. Could not find any charges or payment intents.')
         }
       }
 

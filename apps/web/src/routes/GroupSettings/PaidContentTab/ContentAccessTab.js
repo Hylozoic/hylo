@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { List, UserPlus, User, MoreVertical, Ban } from 'lucide-react'
+import { List, UserPlus, User, MoreVertical, Ban, RefreshCcw } from 'lucide-react'
 
 import Loading from 'components/Loading'
 import ItemSelector from 'components/ItemSelector'
@@ -34,8 +34,7 @@ import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import fetchPeopleAutocomplete from 'store/actions/fetchPeopleAutocomplete'
 import grantContentAccess from 'store/actions/grantContentAccess'
 import revokeContentAccess from 'store/actions/revokeContentAccess'
-// TODO: Re-enable when refund functionality is ready
-// import refundContentAccess from 'store/actions/refundContentAccess'
+import refundContentAccess from 'store/actions/refundContentAccess'
 import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
@@ -210,6 +209,7 @@ function ContentAccessTab ({ group, offerings = [] }) {
                       <option value='active'>{t('Active')}</option>
                       <option value='expired'>{t('Expired')}</option>
                       <option value='revoked'>{t('Revoked')}</option>
+                      <option value='refunded'>{t('Refunded')}</option>
                     </select>
                   </div>
 
@@ -329,13 +329,11 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
   const { id, user, offering, track, role, accessType, status, createdAt, expiresAt, grantedBy, subscriptionCancelAtPeriodEnd, subscriptionPeriodEnd } = record
 
   const [showRevokeDialog, setShowRevokeDialog] = useState(false)
-  // TODO: Re-enable when refund functionality is ready
-  // const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [showRefundDialog, setShowRefundDialog] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const isActive = status === 'active'
-  // TODO: Re-enable when refund functionality is ready
-  // const isPurchase = accessType === 'stripe_purchase'
+  const isPurchase = accessType === 'stripe_purchase'
 
   const getAccessTypeBadge = (type) => {
     if (type === 'stripe_purchase') {
@@ -353,6 +351,9 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
     }
     if (statusValue === 'expired') {
       return <span className='px-2 py-1 text-xs rounded bg-yellow-500/20 text-yellow-400'>{t('Expired')}</span>
+    }
+    if (statusValue === 'refunded') {
+      return <span className='px-2 py-1 text-xs rounded bg-purple-500/20 text-purple-400'>{t('Refunded')}</span>
     }
     return <span className='px-2 py-1 text-xs rounded bg-red-500/20 text-red-400'>{t('Revoked')}</span>
   }
@@ -375,19 +376,18 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
     }
   }
 
-  // TODO: Re-enable when refund functionality is ready
-  // const handleRefund = async () => {
-  //   setIsProcessing(true)
-  //   try {
-  //     await dispatch(refundContentAccess({ accessId: id, reason: 'Refunded by admin' }))
-  //     setShowRefundDialog(false)
-  //     if (onActionComplete) onActionComplete()
-  //   } catch (error) {
-  //     console.error('Failed to refund access:', error)
-  //   } finally {
-  //     setIsProcessing(false)
-  //   }
-  // }
+  const handleRefund = async () => {
+    setIsProcessing(true)
+    try {
+      await dispatch(refundContentAccess({ accessId: id, reason: 'Refunded by admin' }))
+      setShowRefundDialog(false)
+      if (onActionComplete) onActionComplete()
+    } catch (error) {
+      console.error('Failed to refund access:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <>
@@ -446,7 +446,6 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
                     <Ban className='w-4 h-4 mr-2' />
                     {t('Revoke Access')}
                   </DropdownMenuItem>
-                  {/* TODO: Add refund functionality later
                   {isPurchase && (
                     <DropdownMenuItem
                       onClick={() => setShowRefundDialog(true)}
@@ -456,7 +455,6 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
                       {t('Refund')}
                     </DropdownMenuItem>
                   )}
-                  */}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -499,7 +497,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
         </DialogContent>
       </Dialog>
 
-      {/* TODO: Re-enable Refund Dialog when functionality is ready
+      {/* Refund Confirmation Dialog */}
       <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
         <DialogContent>
           <DialogHeader>
@@ -526,7 +524,6 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      */}
     </>
   )
 }

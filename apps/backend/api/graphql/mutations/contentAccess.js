@@ -445,8 +445,15 @@ module.exports = {
       const sessionId = access.get('stripe_session_id')
       let refund = null
 
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[RefundContentAccess] subscriptionId: ${subscriptionId}, sessionId: ${sessionId}, accountId: ${externalAccountId}`)
+      }
+
       if (subscriptionId) {
-        // For subscriptions, first try to refund via subscription invoices
+        // For subscriptions, StripeService.refund handles finding the payment:
+        // 1. First tries listing paid invoices
+        // 2. Falls back to subscription.latest_invoice.payment_intent
+        // 3. Falls back to listing all invoices
         try {
           refund = await StripeService.refund({
             accountId: externalAccountId,
@@ -454,13 +461,59 @@ module.exports = {
             reason: 'requested_by_customer'
           })
         } catch (subscriptionRefundError) {
-          // If no invoices found, fall back to checkout session for initial payment
-          if (sessionId && subscriptionRefundError.message.includes('No refundable payment')) {
+          // If subscription-based refund fails but we have a session ID, try that
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[RefundContentAccess] Subscription refund failed: ${subscriptionRefundError.message}`)
+          }
+          if (sessionId) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('No subscription invoices found, trying checkout session for initial payment')
+              console.log('[RefundContentAccess] Trying checkout session as fallback...')
             }
             const session = await StripeService.getCheckoutSession(externalAccountId, sessionId)
-            if (session.payment_intent) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[RefundContentAccess] Session mode: ${session.mode}, payment_intent: ${session.payment_intent}, invoice: ${session.invoice}`)
+            }
+
+            // For subscription sessions, try the invoice first
+            if (session.invoice) {
+              const invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice.id
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[RefundContentAccess] Fetching invoice: ${invoiceId}`)
+              }
+              const invoice = await StripeService.getInvoice(externalAccountId, invoiceId)
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[RefundContentAccess] Invoice: amount_due=${invoice.amount_due}, amount_paid=${invoice.amount_paid}, total=${invoice.total}, status=${invoice.status}`)
+                console.log(`[RefundContentAccess] Invoice payment_intent: ${invoice.payment_intent?.id || invoice.payment_intent}, charge: ${invoice.charge?.id || invoice.charge}`)
+              }
+
+              // If it's a $0 invoice, we can't refund
+              if (invoice.amount_due === 0 || invoice.total === 0) {
+                throw new Error('This subscription had a $0 invoice - no payment was made, so there is nothing to refund.')
+              }
+
+              if (invoice.payment_intent) {
+                const paymentIntentId = typeof invoice.payment_intent === 'string'
+                  ? invoice.payment_intent
+                  : invoice.payment_intent.id
+                refund = await StripeService.refund({
+                  accountId: externalAccountId,
+                  paymentIntentId,
+                  reason: 'requested_by_customer'
+                })
+              } else if (invoice.charge) {
+                const chargeId = typeof invoice.charge === 'string'
+                  ? invoice.charge
+                  : invoice.charge.id
+                refund = await StripeService.refund({
+                  accountId: externalAccountId,
+                  chargeId,
+                  reason: 'requested_by_customer'
+                })
+              }
+            }
+
+            // If still no refund, try payment_intent (though this is usually null for subscriptions)
+            if (!refund && session.payment_intent) {
               const paymentIntentId = typeof session.payment_intent === 'string'
                 ? session.payment_intent
                 : session.payment_intent.id
@@ -470,9 +523,11 @@ module.exports = {
                 reason: 'requested_by_customer'
               })
             }
-          }
-          // If still no refund, re-throw the original error
-          if (!refund) {
+
+            if (!refund) {
+              throw subscriptionRefundError
+            }
+          } else {
             throw subscriptionRefundError
           }
         }
@@ -495,21 +550,43 @@ module.exports = {
         throw new GraphQLError('Unable to issue refund: no payment found for this access record')
       }
 
-      // Now revoke the access (this will also cancel any subscription)
-      // This returns the updated record with status = 'revoked'
-      const revokedAccess = await ContentAccess.revoke(accessId, sessionUserId, reason || 'Refunded')
-
-      // Update metadata with refund info on the revoked record
-      const metadata = revokedAccess.get('metadata') || {}
+      // IMPORTANT: Set status to REFUNDED *before* cancelling subscription
+      // This prevents the subscription.deleted webhook from overwriting to 'expired'
+      const metadata = access.get('metadata') || {}
       metadata.refundId = refund.id
       metadata.refundAmount = refund.amount
       metadata.refundedAt = new Date().toISOString()
       metadata.refundedBy = sessionUserId
+      metadata.revokedAt = new Date().toISOString()
+      metadata.revokedBy = sessionUserId
       if (reason) metadata.refundReason = reason
 
-      const updatedAccess = await revokedAccess.save({ metadata }, { patch: true })
+      // Save REFUNDED status first
+      await access.save({
+        status: ContentAccess.Status.REFUNDED,
+        metadata
+      }, { patch: true })
 
-      return updatedAccess
+      // Now cancel the subscription (if any) - webhook will see REFUNDED status and skip
+      if (subscriptionId) {
+        try {
+          await StripeService.cancelSubscription({
+            accountId: externalAccountId,
+            subscriptionId,
+            immediately: true
+          })
+          // Update metadata to note subscription was cancelled
+          metadata.subscriptionCancelled = true
+          await access.save({ metadata }, { patch: true })
+        } catch (cancelError) {
+          console.error(`Failed to cancel subscription ${subscriptionId}:`, cancelError.message)
+          // Don't fail the refund if subscription cancellation fails
+        }
+      }
+
+      // Refresh the access record to return current state
+      await access.refresh()
+      return access
     } catch (error) {
       if (error instanceof GraphQLError) {
         throw error
