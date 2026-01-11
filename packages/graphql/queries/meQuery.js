@@ -51,6 +51,7 @@ export default gql`
     intercomHash
     hasStripeAccount
     calendarToken
+    rsvpCalendarUrl
     blockedUsers {
       id
       name

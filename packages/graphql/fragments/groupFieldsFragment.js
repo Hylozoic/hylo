@@ -9,6 +9,7 @@ export default gql`
     avatarUrl
     bannerUrl
     description
+    eventCalendarUrl
     geoShape
     location
     memberCount

@@ -1,6 +1,8 @@
 import '../../../test/setup'
+import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
-import { pinPost, removeProposalVote, addProposalVote, swapProposalVote,setProposalOptions, updateProposalOptions } from './post'
+import { pinPost, removeProposalVote, addProposalVote, swapProposalVote, setProposalOptions, updateProposalOptions, deletePost } from './post'
+import { spyify, unspyify } from '../../../test/setup/helpers'
 
 describe('pinPost', () => {
   var user, group, post
@@ -149,5 +151,102 @@ describe('ProposalVote', () => {
     return swapProposalVote({ userId: user.id, postId: post.id, removeOptionId: optionId, addOptionId: optionId2 })
       .then(() => expect.fail('should reject'))
       .catch(e => expect(e).to.match(/Cannot vote on a proposal that is in discussion or completed/))
+  })
+})
+
+describe('deletePost', () => {
+  let user
+
+  before(async () => {
+    await setup.clearDb()
+    user = await factories.user().save()
+  })
+
+  beforeEach(() => {
+    spyify(Queue, 'classMethod', () => Promise.resolve())
+    spyify(Post, 'deactivate', () => Promise.resolve())
+  })
+
+  afterEach(() => {
+    unspyify(Queue, 'classMethod')
+    unspyify(Post, 'deactivate')
+  })
+
+  it('queues processEventDeleted when deleting an event post', async () => {
+    const eventPost = await factories.post({
+      type: Post.Type.EVENT,
+      user_id: user.id
+    }).save()
+
+    await deletePost(user.id, eventPost.id)
+
+    expect(Queue.classMethod).to.have.been.called
+    expect(Queue.classMethod).to.have.been.called.with(
+      'Post',
+      'processEventDeleted',
+      { postId: eventPost.id }
+    )
+  })
+
+  it('does not queue processEventDeleted when deleting a regular post', async () => {
+    const regularPost = await factories.post({
+      type: Post.Type.DISCUSSION,
+      user_id: user.id
+    }).save()
+
+    await deletePost(user.id, regularPost.id)
+
+    expect(Queue.classMethod).to.not.have.been.called
+  })
+
+  it('calls Post.deactivate for both event and regular posts', async () => {
+    const eventPost = await factories.post({
+      type: Post.Type.EVENT,
+      user_id: user.id
+    }).save()
+    const regularPost = await factories.post({
+      type: Post.Type.DISCUSSION,
+      user_id: user.id
+    }).save()
+
+    await deletePost(user.id, eventPost.id)
+    expect(Post.deactivate).to.have.been.called.with(eventPost.id)
+
+    await deletePost(user.id, regularPost.id)
+    expect(Post.deactivate).to.have.been.called.with(regularPost.id)
+  })
+
+  it('returns success: true after deletion', async () => {
+    const eventPost = await factories.post({
+      type: Post.Type.EVENT,
+      user_id: user.id
+    }).save()
+
+    const result = await deletePost(user.id, eventPost.id)
+    expect(result).to.deep.equal({ success: true })
+  })
+
+  it('throws error if post does not exist', async () => {
+    try {
+      await deletePost(user.id, '99999')
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.equal('Post does not exist')
+    }
+  })
+
+  it('throws error if user does not have permission', async () => {
+    const otherUser = await factories.user().save()
+    const eventPost = await factories.post({
+      type: Post.Type.EVENT,
+      user_id: user.id
+    }).save()
+
+    try {
+      await deletePost(otherUser.id, eventPost.id)
+      expect.fail('should reject')
+    } catch (e) {
+      expect(e.message).to.equal("You don't have permission to modify this post")
+    }
   })
 })
