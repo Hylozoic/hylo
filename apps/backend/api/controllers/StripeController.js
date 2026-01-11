@@ -1121,8 +1121,18 @@ module.exports = {
         return
       }
 
-      // Update all associated records to expired status
+      // Update all associated records to expired status (unless already refunded/revoked)
       await Promise.all(accessRecords.map(async (access) => {
+        const currentStatus = access.get('status')
+
+        // Don't overwrite REFUNDED or REVOKED status - those are intentional admin actions
+        if (currentStatus === ContentAccess.Status.REFUNDED || currentStatus === ContentAccess.Status.REVOKED) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Skipping content_access ${access.id} - already ${currentStatus}`)
+          }
+          return
+        }
+
         const metadata = access.get('metadata') || {}
         metadata.subscription_canceled_at = new Date().toISOString()
         metadata.subscription_cancel_reason = subscription.cancellation_details?.reason || 'Subscription ended'
@@ -1130,7 +1140,7 @@ module.exports = {
         await access.save({
           status: ContentAccess.Status.EXPIRED,
           metadata
-        })
+        }, { patch: true })
       }))
 
       if (process.env.NODE_ENV === 'development') {
@@ -1225,9 +1235,9 @@ module.exports = {
           // Send Admin Notification emails to all admins/stewards
           try {
             // Get all admins with RESP_ADMINISTRATION (ID = 1)
-            const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetchAll()
+            const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetch()
 
-            if (admins && admins.length > 0) {
+            if (admins && admins.models && admins.models.length > 0) {
               // Determine cancellation type
               const cancellationType = accessEndsAt > cancelledAt ? 'at_period_end' : 'immediate'
 
@@ -1903,12 +1913,19 @@ module.exports = {
   /**
    * Handle charge.refunded webhook events
    * Revokes access and cancels any associated subscriptions when payment is refunded
+   *
+   * Note: This handles refunds initiated directly through Stripe dashboard.
+   * Refunds initiated through our refundContentAccess mutation will also trigger this,
+   * but the access records will already be marked as refunded.
    */
   handleChargeRefunded: async function (event) {
     try {
       const charge = event.data.object
+      // For Connect webhooks, event.account contains the connected account ID
+      const connectedAccountId = event.account
+
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Charge refunded: ${charge.id}`)
+        console.log(`Charge refunded: ${charge.id} on account: ${connectedAccountId || 'platform'}`)
       }
 
       // Get the payment intent to find the checkout session
@@ -1921,7 +1938,9 @@ module.exports = {
       }
 
       // Retrieve the payment intent to get session_id from metadata
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      // Must use the connected account header for Connect webhooks
+      const retrieveOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : {}
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {}, retrieveOptions)
       const sessionId = paymentIntent.metadata?.session_id
 
       if (!sessionId) {
@@ -1941,27 +1960,40 @@ module.exports = {
         return
       }
 
-      // Revoke all associated access records using the model method
-      // This will also cancel any associated Stripe subscriptions and trigger
-      // database triggers to clean up user_scopes
+      // Revoke/refund all associated access records
+      // Skip records that are already refunded (e.g., from our mutation)
       await Promise.all(accessRecords.map(async (access) => {
+        const currentStatus = access.get('status')
+
+        // Skip if already refunded or revoked (our mutation already handled this)
+        if (currentStatus === ContentAccess.Status.REFUNDED || currentStatus === ContentAccess.Status.REVOKED) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Access ${access.id} already ${currentStatus}, skipping webhook processing`)
+          }
+          return
+        }
+
         const reason = charge.refund?.reason || 'Payment refunded via Stripe'
 
         // Use the revoke method which handles subscription cancellation
         await ContentAccess.revoke(access.id, null, reason)
 
-        // Update metadata with refund details
+        // Update status to REFUNDED and add metadata with refund details
         const metadata = access.get('metadata') || {}
         metadata.refunded_at = new Date().toISOString()
         metadata.refund_amount = charge.amount_refunded
         metadata.refund_reason = reason
         metadata.refund_charge_id = charge.id
+        metadata.refund_source = 'stripe_webhook'
 
-        await access.save({ metadata })
+        await access.save({
+          status: ContentAccess.Status.REFUNDED,
+          metadata
+        }, { patch: true })
       }))
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Revoked ${accessRecords.length} access records for refunded charge ${charge.id}`)
+        console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
       }
     } catch (error) {
       console.error('Error handling charge.refunded:', error)

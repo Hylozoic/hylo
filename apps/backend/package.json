@@ -31,6 +31,7 @@
     "migrate-make": "node ./node_modules/.bin/knex migrate:make",
     "debug": "node-debug app.js",
     "dev": "nf -j Procfile.dev -p 3001 start -t 1000",
+    "dev-stripe": "nf -j Procfile.dev-stripe -p 3001 start -t 1000",
     "dump": "pg_dump -Osx hylo | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
     "dump-docker": "docker exec devcontainer-db-1 pg_dump -Osx hylo -U postgres | sed -e 's/; Tablespace: $//' -e 's/CREATE SCHEMA public;//' -e 's/ AS \"?column?\"//' -e \"s/'search_path', ''/'search_path', 'public'/\" | sed '/^CREATE PROCEDURE/,/^$$;/d' | sed '/^SET transaction_timeout = 0;$/d' > migrations/schema.sql",
     "test": "mocha -r test/setup/core -r @babel/register --exit",

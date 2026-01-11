@@ -104,7 +104,8 @@ module.exports = bookshelf.Model.extend({
   Status: {
     ACTIVE: 'active',
     EXPIRED: 'expired',
-    REVOKED: 'revoked'
+    REVOKED: 'revoked',
+    REFUNDED: 'refunded'
   },
 
   // Access type constants
