@@ -68,22 +68,23 @@ describe('Event Mixin', () => {
       }).save()
     })
 
-    it('creates event invitations for new invitees', async () => {
-      await event.addEventInvitees([invitee1.id, invitee2.id])
+    it('creates event invitations for new invitees with correct inviterId', async () => {
+      await event.addEventInvitees({ userIds: [invitee1.id, invitee2.id], inviterId: user.id })
       const invitations = await event.eventInvitations().fetch()
       expect(invitations.length).to.equal(2)
       expect(invitations.pluck('user_id').sort()).to.deep.equal([invitee1.id, invitee2.id].sort())
+      expect(invitations.pluck('inviter_id')).to.deep.equal([user.id, user.id])
     })
 
     it('does not create duplicate invitations', async () => {
-      await event.addEventInvitees([invitee1.id])
+      await event.addEventInvitees({ userIds: [invitee1.id], inviterId: user.id })
       const invitations = await event.eventInvitations().fetch()
       expect(invitations.length).to.equal(2)
     })
 
     it('handles duplicate userIds in input', async () => {
       const invitee3 = await factories.user().save()
-      await event.addEventInvitees([invitee3.id, invitee3.id])
+      await event.addEventInvitees({ userIds: [invitee3.id, invitee3.id], inviterId: user.id })
       const invitations = await event.eventInvitations().fetch()
       const invitee3Invitations = invitations.filter(inv => inv.get('user_id') === invitee3.id)
       expect(invitee3Invitations.length).to.equal(1)
@@ -102,55 +103,56 @@ describe('Event Mixin', () => {
         type: Post.Type.EVENT,
         user_id: user.id
       }).save()
-      await event.addEventInvitees([invitee1.id, invitee2.id])
+      await event.addEventInvitees({ userIds: [invitee1.id, invitee2.id], inviterId: user.id })
     })
 
     it('removes event invitations for specified users', async () => {
-      await event.removeEventInvitees([invitee1.id])
+      await event.removeEventInvitees({ userIds: [invitee1.id] })
       const invitations = await event.eventInvitations().fetch()
       expect(invitations.length).to.equal(1)
       expect(invitations.first().get('user_id')).to.equal(invitee2.id)
     })
 
-    it('does not remove invitation for event owner', async () => {
+    it('removes invitation for event owner when specified', async () => {
       const ownerInvitation = await EventInvitation.create({
         userId: user.id,
         eventId: event.id,
         inviterId: user.id,
         response: EventInvitation.RESPONSE.YES
       })
-      await event.removeEventInvitees([user.id])
+      await event.removeEventInvitees({ userIds: [user.id] })
       const found = await EventInvitation.find({ userId: user.id, eventId: event.id })
-      expect(found).to.exist
+      expect(found).to.not.exist
     })
   })
 
   describe('#updateEventInvitees', () => {
-    let user, event, invitee1, invitee2, invitee3
+    let user1, user2, event, invitee1, invitee2, invitee3
 
     beforeEach(async () => {
       await setup.clearDb()
-      user = await factories.user().save()
+      user1 = await factories.user().save()
+      user2 = await factories.user().save()
       invitee1 = await factories.user().save()
       invitee2 = await factories.user().save()
       invitee3 = await factories.user().save()
       event = await factories.post({
         type: Post.Type.EVENT,
-        user_id: user.id
+        user_id: user1.id
       }).save()
-      await event.addEventInvitees([invitee1.id, invitee2.id])
+      await event.addEventInvitees({ userIds: [invitee1.id, invitee2.id], inviterId: user1.id })
     })
 
-    it('adds new invitees and removes old ones', async () => {
-      await event.updateEventInvitees({ eventInviteeIds: [invitee2.id, invitee3.id] })
+    it('adds new invitees with correct inviterId and removes old ones', async () => {
+      await event.updateEventInvitees({ eventInviteeIds: [invitee2.id, invitee3.id], inviterId: user2.id })
       const invitations = await event.eventInvitations().fetch()
       expect(invitations.length).to.equal(2)
-      const userIds = invitations.pluck('user_id').sort()
-      expect(userIds).to.deep.equal([invitee2.id, invitee3.id].sort())
+      expect(invitations.pluck('user_id').sort()).to.deep.equal([invitee2.id, invitee3.id].sort())
+      expect(invitations.pluck('inviter_id').sort()).to.deep.equal([user1.id, user2.id].sort())
     })
   })
 
-  describe('#getEventInviteeRsvpIds', () => {
+  describe('#getEventRsvpUserIds', () => {
     let user, event, invitee1, invitee2, invitee3
 
     before(async () => {
@@ -185,14 +187,14 @@ describe('Event Mixin', () => {
     })
 
     it('returns user IDs for users with YES or INTERESTED responses', async () => {
-      const userIds = await event.getEventInviteeRsvpIds()
+      const userIds = await event.getEventRsvpUserIds()
       expect(userIds.length).to.equal(2)
       expect(userIds).to.include(invitee1.id)
       expect(userIds).to.include(invitee2.id)
     })
 
     it('does not include user IDs for users with NO response', async () => {
-      const userIds = await event.getEventInviteeRsvpIds()
+      const userIds = await event.getEventRsvpUserIds()
       expect(userIds).to.not.include(invitee3.id)
     })
   })
@@ -222,37 +224,6 @@ describe('Event Mixin', () => {
         expect(activity.get('actor_id')).to.equal(user.id)
         expect([invitee1.id, invitee2.id]).to.include(activity.get('reader_id'))
       })
-    })
-  })
-
-  describe('#createUserRsvpCalendarSubscription', () => {
-    let user, event
-
-    before(async () => {
-      await setup.clearDb()
-      user = await factories.user().save()
-      event = await factories.post({
-        type: Post.Type.EVENT,
-        user_id: user.id
-      }).save()
-    })
-
-    beforeEach(() => {
-      spyify(Queue, 'classMethod')
-    })
-
-    afterEach(() => {
-      unspyify(Queue, 'classMethod')
-    })
-
-    it('calls Queue.classMethod with correct parameters', async () => {
-      await event.createUserRsvpCalendarSubscription({ userId: user.id })
-      expect(Queue.classMethod).to.have.been.called
-      expect(Queue.classMethod).to.have.been.called.with(
-        'User',
-        'createRsvpCalendarSubscription',
-        { userId: user.id }
-      )
     })
   })
 
@@ -678,7 +649,7 @@ describe('Event Mixin', () => {
     })
   })
 
-  describe('#createCal', () => {
+  describe('#createCalInvite', () => {
     let user, event, invitee, eventInvitation, group
 
     before(async () => {
@@ -706,7 +677,7 @@ describe('Event Mixin', () => {
     })
 
     it('creates valid calendar for new event (eventChanges.new)', async () => {
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { new: true },
@@ -723,7 +694,7 @@ describe('Event Mixin', () => {
     })
 
     it('creates valid calendar for deleted event (eventChanges.deleted)', async () => {
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { deleted: true },
@@ -740,7 +711,7 @@ describe('Event Mixin', () => {
     })
 
     it('creates valid calendar for updated event (eventChanges.location)', async () => {
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { location: 'Updated Location' },
@@ -759,7 +730,7 @@ describe('Event Mixin', () => {
 
     it('creates valid calendar for updated event (eventChanges.start_time)', async () => {
       const newStart = new Date('2024-01-02T10:00:00Z')
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { start_time: newStart },
@@ -776,7 +747,7 @@ describe('Event Mixin', () => {
 
     it('creates valid calendar for updated event (eventChanges.end_time)', async () => {
       const newEnd = new Date('2024-01-02T14:00:00Z')
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { end_time: newEnd },
@@ -794,7 +765,7 @@ describe('Event Mixin', () => {
     it('creates valid calendar for updated event (eventChanges with all fields)', async () => {
       const newStart = new Date('2024-01-02T10:00:00Z')
       const newEnd = new Date('2024-01-02T14:00:00Z')
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: {
@@ -815,7 +786,7 @@ describe('Event Mixin', () => {
     })
 
     it('creates valid calendar when eventInvitation is null', async () => {
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation: null,
         eventChanges: null,
@@ -830,7 +801,7 @@ describe('Event Mixin', () => {
     })
 
     it('does not include url when eventChanges.deleted is true', async () => {
-      const cal = await event.createCal({
+      const cal = await event.createCalInvite({
         userId: invitee.id,
         eventInvitation,
         eventChanges: { deleted: true },
@@ -875,7 +846,7 @@ describe('Event Mixin', () => {
       spyify(Queue, 'classMethod', () => Promise.resolve())
       spyify(eventInvitation, 'incrementIcalSequence')
       spyify(eventInvitation, 'getIcalSequence', () => 0)
-      spyify(event, 'createCal')
+      spyify(event, 'createCalInvite')
       
       // Mock calendar object
       const mockCal = {
@@ -883,14 +854,14 @@ describe('Event Mixin', () => {
         url: 'https://example.com/event',
         toString: () => 'BEGIN:VCALENDAR...'
       }
-      event.createCal = () => Promise.resolve(mockCal)
+      event.createCalInvite = () => Promise.resolve(mockCal)
     })
 
     afterEach(() => {
       unspyify(Queue, 'classMethod')
       unspyify(eventInvitation, 'incrementIcalSequence')
       unspyify(eventInvitation, 'getIcalSequence')
-      unspyify(event, 'createCal')
+      unspyify(event, 'createCalInvite')
     })
 
     it('queues sendEventRsvpEmail template when eventChanges.new is true', async () => {

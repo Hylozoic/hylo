@@ -1245,13 +1245,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
-    await post.updateEventInvitees({ eventInviteeIds, params })
-    await post.createUserRsvpCalendarSubscription({ userId })
+    await post.updateEventInvitees({ eventInviteeIds, inviterId: userId, params })
     await post.createGroupEventCalendarSubscriptions()
     await post.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges: { new: true } })
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   },
 
-  processEventUpdated: async function ({ postId, eventInviteeIds, eventChanges }) {
+  processEventUpdated: async function ({ postId, eventInviteeIds, userId, eventChanges }) {
     const post = await Post.find(postId)
     if (!post) return
 
@@ -1259,7 +1259,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     // NOTE: method names that are plural affect collections
     // methods that are singular affect a single object
-    await post.updateEventInvitees({ eventInviteeIds })
+    await post.updateEventInvitees({ eventInviteeIds, inviterId: userId })
     await post.createUserRsvpCalendarSubscriptions()
     await post.createGroupEventCalendarSubscriptions()
     eventChanged && await post.sendUserRsvps({ eventChanges })

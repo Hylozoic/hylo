@@ -21,39 +21,33 @@ export default {
     return this.eventInvitations().query({ where: { user_id: userId } }).fetchOne()
   },
 
-  removeEventInvitees: async function (userIds, opts) {
-    const eventId = this.id
-    // keep the event owner invitation for rsvp emails
-    userIds = userIds.filter(userId => userId !== this.get('user_id'))
-
+  removeEventInvitees: async function ({ userIds, opts }) {
     return Promise.map(userIds, async userId => {
-      const invitation = await EventInvitation.find({ userId, eventId })
+      const invitation = await EventInvitation.find({ userId, eventId: this.id }, opts)
       return invitation?.destroy(opts)
     })
   },
 
-  addEventInvitees: async function (userIds, opts) {
-    const eventId = this.id
-    const inviterId = this.get('user_id')
-
+  addEventInvitees: async function ({ userIds, inviterId, opts }) {
     return Promise.map(uniq(userIds), async userId => {
-      const invitation = await EventInvitation.find({ userId, eventId })
-      return !invitation && EventInvitation.create({ userId, inviterId, eventId }, opts)
+      const invitation = await EventInvitation.find({ userId, eventId: this.id }, opts)
+      return !invitation && EventInvitation.create({ userId, inviterId, eventId: this.id }, opts)
     })
   },
 
-  updateEventInvitees: async function ({ eventInviteeIds = [], opts }) {
+  updateEventInvitees: async function ({ eventInviteeIds = [], inviterId, opts }) {
     const existingEventInviteeIds = (await this.eventInvitations().fetch()).pluck('user_id')
     const toRemove = difference(existingEventInviteeIds, eventInviteeIds)
     const toAdd = difference(eventInviteeIds, existingEventInviteeIds)
 
-    await this.removeEventInvitees(toRemove, opts)
-    await this.addEventInvitees(toAdd, opts)
+    await this.removeEventInvitees({ userIds: toRemove, opts })
+    await this.addEventInvitees({ userIds: toAdd, inviterId, opts })
   },
 
-  getEventInviteeRsvpIds: async function () {
+  getEventRsvpUserIds: async function () {
     const rsvps = await this.eventInvitations()
       .query(qb => {
+        qb.select('user_id')
         qb.whereIn('response', [
           EventInvitation.RESPONSE.YES,
           EventInvitation.RESPONSE.INTERESTED
@@ -73,7 +67,7 @@ export default {
     return Activity.saveForReasons(invitees)
   },
 
-  createCal: async function({ userId, eventInvitation, eventChanges, groupName }) {
+  createCalInvite: async function({ userId, eventInvitation, eventChanges, groupName }) {
     const calEvent = await this.getCalEventData({ 
       eventInvitation, 
       forUserId: userId, 
@@ -129,12 +123,10 @@ export default {
   },
 
   createUserRsvpCalendarSubscriptions: async function () {
-    const userIds = await this.getEventInviteeRsvpIds()
-    userIds.forEach(userId => this.createUserRsvpCalendarSubscription({ userId }))
-  },
-
-  createUserRsvpCalendarSubscription: async function ({ userId }) {
-    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
+    const userIds = await this.getEventRsvpUserIds()
+    userIds.forEach(userId => {
+      Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
+    })
   },
 
   createGroupEventCalendarSubscriptions: async function () {
@@ -151,7 +143,7 @@ export default {
     await this.load('groups')
     const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
     const groupName = this.relations.groups.first()
-    const cal = await this.createCal({ userId: user.id, eventInvitation, eventChanges, groupName })
+    const calInvite = await this.createCalInvite({ userId: user.id, eventInvitation, eventChanges, groupName })
     const emailTemplate = eventChanges.new ? 'sendEventRsvpEmail' :
       eventChanges.deleted ? 'sendEventRsvpCancelEmail' :
       'sendEventRsvpUpdateEmail'
@@ -169,7 +161,7 @@ export default {
         event_name: this.title(),
         event_description: this.details(),
         event_location: this.get('location'),
-        event_url: cal.url,
+        event_url: calInvite.url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
         newDate: newDate,
@@ -178,7 +170,7 @@ export default {
       files: [
         {
           id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+          data: Buffer.from(calInvite.toString(), 'utf8').toString('base64')
         }
       ]
     }).then(() => {
@@ -187,7 +179,7 @@ export default {
   },
 
   sendUserRsvps: async function ({ eventChanges }) {
-    const userIds = await this.getEventInviteeRsvpIds()
+    const userIds = await this.getEventRsvpUserIds()
     return Promise.map(userIds, async userId => {
       const eventInvitation = await EventInvitation.find({ userId, eventId: this.id })
       return eventInvitation && this.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges })

@@ -1025,7 +1025,6 @@ module.exports = bookshelf.Model.extend(merge({
     const fromDate = Post.eventCalSubDateLimit().toISO()
     const events = await group.posts().query(q => {
       q.where({ 'posts.type': 'event' })
-      q.where('posts.active', true)
       q.where('posts.start_time', '>', fromDate)
     }).fetch()
 

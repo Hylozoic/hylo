@@ -434,7 +434,6 @@ describe('Post', function () {
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = spy(async () => {})
       postInstance.sendUserRsvp = spy(async () => {})
-      postInstance.createUserRsvpCalendarSubscription = spy(async () => {})
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
 
@@ -459,7 +458,6 @@ describe('Post', function () {
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = updateEventInviteesSpy
       postInstance.sendUserRsvp = spy(async () => {})
-      postInstance.createUserRsvpCalendarSubscription = spy(async () => {})
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
 
@@ -473,6 +471,7 @@ describe('Post', function () {
       expect(updateEventInviteesSpy).to.have.been.called
       expect(updateEventInviteesSpy).to.have.been.called.with({
         eventInviteeIds: [1, 2, 3],
+        inviterId: user.id,
         params: { location: 'Test Location' }
       })
     })
@@ -482,7 +481,6 @@ describe('Post', function () {
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = spy(async () => {})
       postInstance.sendUserRsvp = sendUserRsvpSpy
-      postInstance.createUserRsvpCalendarSubscription = spy(async () => {})
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
 
@@ -500,12 +498,11 @@ describe('Post', function () {
       })
     })
 
-    it('calls createUserRsvpCalendarSubscription with correct arguments', async () => {
-      const createUserRsvpCalendarSubscriptionSpy = spy(async () => {})
+    it('queues createRsvpCalendarSubscription with correct arguments', async () => {
+      spyify(Queue, 'classMethod')
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = spy(async () => {})
       postInstance.sendUserRsvp = spy(async () => {})
-      postInstance.createUserRsvpCalendarSubscription = createUserRsvpCalendarSubscriptionSpy
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
 
@@ -516,10 +513,9 @@ describe('Post', function () {
         params
       })
 
-      expect(createUserRsvpCalendarSubscriptionSpy).to.have.been.called
-      expect(createUserRsvpCalendarSubscriptionSpy).to.have.been.called.with({
-        userId: user.id
-      })
+      expect(Queue.classMethod).to.have.been.called
+      expect(Queue.classMethod).to.have.been.called.with('User', 'createRsvpCalendarSubscription', { userId: user.id })
+      unspyify(Queue, 'classMethod')
     })
 
     it('calls createGroupEventCalendarSubscriptions with correct arguments', async () => {
@@ -527,7 +523,6 @@ describe('Post', function () {
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = spy(async () => {})
       postInstance.sendUserRsvp = spy(async () => {})
-      postInstance.createUserRsvpCalendarSubscription = spy(async () => {})
       postInstance.createGroupEventCalendarSubscriptions = createGroupEventCalendarSubscriptionsSpy
       Post.find = spy(() => Promise.resolve(postInstance))
 
@@ -555,6 +550,7 @@ describe('Post', function () {
     })
 
     it('calls all post methods in correct order', async () => {
+      spyify(Queue, 'classMethod')
       const callOrder = []
       const postInstance = await Post.find(post.id)
       
@@ -563,9 +559,6 @@ describe('Post', function () {
       })
       postInstance.sendUserRsvp = spy(async () => {
         callOrder.push('sendUserRsvp')
-      })
-      postInstance.createUserRsvpCalendarSubscription = spy(async () => {
-        callOrder.push('createUserRsvpCalendarSubscription')
       })
       postInstance.createGroupEventCalendarSubscriptions = spy(async () => {
         callOrder.push('createGroupEventCalendarSubscriptions')
@@ -581,10 +574,10 @@ describe('Post', function () {
 
       expect(callOrder).to.deep.equal([
         'updateEventInvitees',
-        'createUserRsvpCalendarSubscription',
         'createGroupEventCalendarSubscriptions',
         'sendUserRsvp'
       ])
+      unspyify(Queue, 'classMethod')
     })
   })
 
@@ -614,17 +607,21 @@ describe('Post', function () {
       const updateEventInviteesSpy = spy(async () => {})
       const postInstance = await Post.find(post.id)
       postInstance.updateEventInvitees = updateEventInviteesSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
       Post.find = spy(() => Promise.resolve(postInstance))
 
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [1, 2, 3],
+        userId: user.id,
         eventChanges: {}
       })
 
       expect(updateEventInviteesSpy).to.have.been.called
       expect(updateEventInviteesSpy).to.have.been.called.with({
-        eventInviteeIds: [1, 2, 3]
+        eventInviteeIds: [1, 2, 3],
+        inviterId: user.id
       })
     })
 
@@ -640,6 +637,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: {}
       })
 
@@ -659,6 +657,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: changes
       })
 
@@ -679,6 +678,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: changes
       })
 
@@ -699,6 +699,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: changes
       })
 
@@ -718,6 +719,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: {}
       })
 
@@ -733,6 +735,13 @@ describe('Post', function () {
       postInstance.createGroupEventCalendarSubscriptions = createGroupEventCalendarSubscriptionsSpy
       Post.find = spy(() => Promise.resolve(postInstance))
 
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: {}
+      })
+
       expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
     })
 
@@ -743,6 +752,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: 99999,
         eventInviteeIds: [],
+        userId: user.id,
         eventChanges: { start_time: new Date() }
       })
 
@@ -770,6 +780,7 @@ describe('Post', function () {
       await Post.processEventUpdated({
         postId: post.id,
         eventInviteeIds: [1, 2],
+        userId: user.id,
         eventChanges: { start_time: new Date() }
       })
 
