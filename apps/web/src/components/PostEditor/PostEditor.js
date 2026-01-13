@@ -1,10 +1,11 @@
+/* eslint-disable import/first */
 /* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -83,8 +84,64 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
-
 import styles from './PostEditor.module.scss'
+import useDraftStorage, { hasDraftContent } from 'hooks/useDraftStorage'
+
+const serializeTopics = (topics = []) =>
+  (topics || [])
+    .filter(Boolean)
+    .map(topic => ({ id: topic.id, name: topic.name, slug: topic.slug }))
+
+const serializeGroupIds = (groups = []) =>
+  (groups || [])
+    .filter(Boolean)
+    .map(group => group.id)
+
+const normalizeDate = value => {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+const buildPostDraftPayload = (post = {}) => ({
+  title: post.title || '',
+  details: post.details || '',
+  type: post.type || '',
+  topics: serializeTopics(post.topics),
+  groups: serializeGroupIds(post.groups),
+  isPublic: !!post.isPublic,
+  location: post.location || '',
+  locationId: post.locationId || null,
+  linkPreview: post.linkPreview || null,
+  linkPreviewFeatured: !!post.linkPreviewFeatured,
+  acceptContributions: !!post.acceptContributions,
+  completionAction: post.completionAction || null,
+  completionActionSettings: post.completionActionSettings || null,
+  proposalOptions: (post.proposalOptions || []).map(option => ({ ...option })),
+  startTime: normalizeDate(post.startTime),
+  endTime: normalizeDate(post.endTime),
+  timezone: post.timezone || '',
+  donationsLink: post.donationsLink || '',
+  projectManagementLink: post.projectManagementLink || '',
+  quorum: post.quorum || 0,
+  votingMethod: post.votingMethod || null,
+  sendAnnouncement: !!post.sendAnnouncement,
+  trackId: post.trackId || null
+})
+
+const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
+  if (!draft) return base
+  const resolveGroup = (id) => groupOptions.find(group => group.id === id) || base.groups?.find(group => group.id === id) || { id }
+  return {
+    ...base,
+    ...draft,
+    topics: draft.topics ? draft.topics.map(topic => ({ ...topic })) : base.topics,
+    groups: draft.groups ? draft.groups.map(resolveGroup) : base.groups,
+    proposalOptions: draft.proposalOptions ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
+    startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
+    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
+  }
+}
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
@@ -115,7 +172,7 @@ const getMyAdminGroups = createSelector(
  * @param {string} props.selectedLocation - Pre-selected location if any
  */
 
-function PostEditor ({
+function PostEditorInner ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   modal = true,
@@ -125,10 +182,12 @@ function PostEditor ({
   onCancel,
   onSave,
   afterSave,
-  selectedLocation
-}) {
+  selectedLocation,
+  draftId
+}, ref) {
   const dispatch = useDispatch()
   const urlLocation = useLocation()
+  const { pathname, search: locationSearch } = urlLocation
   const routeParams = useParams()
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
@@ -141,6 +200,22 @@ function PostEditor ({
 
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
+
+  // Scope draft storage by caller so different surfaces do not overwrite each other
+  const baseDraftKey = useMemo(() => {
+    if (draftId) return draftId
+    const path = pathname || ''
+    const query = locationSearch || ''
+    return `post:${path}${query}`
+  }, [draftId, pathname, locationSearch])
+
+  const draftStorageKey = useMemo(() => {
+    const contextSuffix = editing ? `:edit:${editingPostId || 'new'}` : ':new'
+    return `${baseDraftKey}${contextSuffix}`
+  }, [baseDraftKey, editing, editingPostId])
+
+  const { loadDraftJSON, saveDraftJSON, clearDraft } = useDraftStorage(draftStorageKey)
+  const draftLoadedRef = useRef(false)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
@@ -217,7 +292,8 @@ function PostEditor ({
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
   }), [inputPost?.id, postType, currentGroup, topic, context])
 
-  const [currentPost, setCurrentPost] = useState(initialPost)
+  const [currentPost, setCurrentPostState] = useState(initialPost)
+  const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
   const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
@@ -235,6 +311,21 @@ function PostEditor ({
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
+  const initialDraftPayload = useMemo(() => buildPostDraftPayload(initialPost), [initialPost])
+
+  const setCurrentPost = useCallback((value) => {
+    if (typeof value === 'function') {
+      setCurrentPostState(prev => {
+        const next = value(prev)
+        return next === prev ? prev : next
+      })
+    } else {
+      setCurrentPostState(prev => {
+        return value === prev ? prev : value
+      })
+    }
+  }, [])
+
   /**
    * Filters the available group options to find only those groups
    * that are currently selected in the post.
@@ -245,6 +336,45 @@ function PostEditor ({
   Might be worth cross-checking the use of selectedGroups (which is consistent in data shape),
   and currentPost.groups (which is not consistent in data shape). https://github.com/Hylozoic/hylo/discussions/605
   */
+
+  const isChat = currentPost.type === 'chat'
+  const isAction = currentPost.type === 'action'
+
+  useEffect(() => {
+    draftLoadedRef.current = false
+  }, [draftStorageKey])
+
+  useEffect(() => {
+    if (draftLoadedRef.current) return
+    const draft = loadDraftJSON()
+    const mergedPost = mergeDraftIntoPost(initialPost, draft, groupOptions)
+    setCurrentPostState(mergedPost)
+    const details = mergedPost.details || ''
+    setHasDescription(hasDraftContent(details))
+    setEditorInitialContent(details)
+    editorRef.current?.setContent(details)
+    draftLoadedRef.current = true
+  }, [draftStorageKey, groupOptions, initialPost, loadDraftJSON])
+
+  // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration
+  useEffect(() => {
+    if (!draftLoadedRef.current) return
+    const payload = buildPostDraftPayload(currentPost)
+    if (isEqual(payload, initialDraftPayload)) {
+      clearDraft()
+      setIsDirty(false)
+    } else {
+      saveDraftJSON({ ...payload, savedAt: Date.now() })
+      setIsDirty(true)
+    }
+  }, [clearDraft, currentPost, initialDraftPayload, saveDraftJSON, setIsDirty])
+
+  // Ensure the chat composer keeps keyboard focus when navigating between rooms
+  useEffect(() => {
+    if (modal || !isChat) return
+    const id = setTimeout(() => editorRef.current?.focus('end'), 150)
+    return () => clearTimeout(id)
+  }, [draftStorageKey, isChat, modal])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -308,9 +438,15 @@ function PostEditor ({
 
   useEffect(() => {
     if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
-      setCurrentPost({ ...currentPost, completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } })
+      setCurrentPost(prev => {
+        if (prev.completionActionSettings) return prev
+        return {
+          ...prev,
+          completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) }
+        }
+      })
     }
-  }, [currentTrack?.actionDescriptor, currentPost.completionActionSettings])
+  }, [currentPost.completionActionSettings, currentTrack?.actionDescriptor, setCurrentPost, t])
 
   useEffect(() => {
     if (isChat) {
@@ -343,12 +479,12 @@ function PostEditor ({
   }, [initialPost.type])
 
   useEffect(() => {
-    reset()
+    if (initialPost.id) reset()
   }, [initialPost.id])
 
   useEffect(() => {
-    setCurrentPost({ ...currentPost, linkPreview })
-  }, [linkPreview])
+    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+  }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
     // Ensure the route-derived topic is present and unique:
@@ -376,6 +512,10 @@ function PostEditor ({
     })
   }, [topic?.id])
 
+  useEffect(() => {
+    setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
+  }, [announcementSelected, setCurrentPost])
+
   /**
    * Resets the editor to its initial state
    * Clears form fields, attachments, and link previews
@@ -384,12 +524,15 @@ function PostEditor ({
     editorRef.current?.setContent(initialPost.details)
     setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
-    setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
+    setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
+    setEditorInitialContent(initialPost.details || '')
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
+    clearDraft()
+    setIsDirty(false)
     if (isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
@@ -398,7 +541,7 @@ function PostEditor ({
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-  }, [initialPost])
+  }, [clearDraft, initialPost, isChat, selectedLocation, setCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -416,8 +559,6 @@ function PostEditor ({
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
-    setIsDirty(true)
-
     if (modal) {
       // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
       navigate({
@@ -428,61 +569,25 @@ function PostEditor ({
       dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
     }
 
-    setCurrentPost({ ...currentPost, type })
+    setCurrentPost(prev => ({ ...prev, type }))
     if (type === 'chat') {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-  }, [currentPost, urlLocation])
+  }, [dispatch, modal, navigate, setCurrentPost, urlLocation])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
-    if (title !== currentPost.title) {
-      title.length >= MAX_TITLE_LENGTH
-        ? setTitleLengthError(true)
-        : setTitleLengthError(false)
-      setIsDirty(true)
-      setCurrentPost({ ...currentPost, title })
-    }
-  }, [currentPost])
+    setTitleLengthError(title.length >= MAX_TITLE_LENGTH)
+    setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
+  }, [setCurrentPost])
 
-  const handleDetailsChange = useCallback((event) => {
-    const details = editorRef.current.getText()
-
-    // Track whether description has content for validation
-    setHasDescription(details.length > 0)
-
-    // Mark the form as dirty to enable save functionality
-    setIsDirty(true)
-  }, [])
-
-  const handleToggleContributions = useCallback(() => {
-    setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
-  }, [currentPost])
-
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
-    const endTime = calcEndTime(startTime)
-    validateTimeChange(startTime, endTime)
-    setCurrentPost({ ...currentPost, startTime, endTime })
-    endTimeRef.current.setValue(endTime)
-  }
-
-  const handleEndTimeChange = useCallback((endTime) => {
-    validateTimeChange(currentPost.startTime, endTime)
-    setCurrentPost({ ...currentPost, endTime })
-  }, [currentPost])
-
-  const handleDonationsLinkChange = useCallback((evt) => {
-    const donationsLink = evt.target.value
-    setCurrentPost({ ...currentPost, donationsLink })
-  }, [currentPost])
-
-  const handleProjectManagementLinkChange = useCallback((evt) => {
-    const projectManagementLink = evt.target.value
-    setCurrentPost({ ...currentPost, projectManagementLink })
-  }, [currentPost])
+  const handleDetailsChange = useCallback((html) => {
+    const detailsText = editorRef.current?.getText?.() || ''
+    setHasDescription(detailsText.length > 0)
+    setCurrentPost(prev => ({ ...prev, details: html }))
+  }, [setCurrentPost])
 
   const handleBudgetChange = useCallback((evt) => {
     const budget = evt.target.value
@@ -502,13 +607,42 @@ function PostEditor ({
     }
   }, [])
 
+  const handleToggleContributions = useCallback(() => {
+    setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
+  }, [setCurrentPost])
+
+  const handleStartTimeChange = (startTime) => {
+    // force endTime to track startTime
+    const endTime = calcEndTime(startTime)
+    validateTimeChange(startTime, endTime)
+    setCurrentPost(prev => ({ ...prev, startTime, endTime }))
+    endTimeRef.current.setValue(endTime)
+  }
+
+  const handleEndTimeChange = useCallback((endTime) => {
+    setCurrentPost(prev => {
+      validateTimeChange(prev.startTime, endTime)
+      return { ...prev, endTime }
+    })
+  }, [setCurrentPost, validateTimeChange])
+
+  const handleDonationsLinkChange = useCallback((evt) => {
+    const donationsLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, donationsLink }))
+  }, [setCurrentPost])
+
+  const handleProjectManagementLinkChange = useCallback((evt) => {
+    const projectManagementLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, projectManagementLink }))
+  }, [setCurrentPost])
+
   const handleLocationChange = useCallback((locationObject) => {
-    setCurrentPost({
-      ...currentPost,
+    setCurrentPost(prev => ({
+      ...prev,
       location: locationObject.fullText,
       locationId: locationObject.id
-    })
-  }, [currentPost])
+    }))
+  }, [setCurrentPost])
 
   // The useRef and useEventCallback is needed to make sure the currentPost.linkPreview is updated in the debounce function
   const debouncedFetchLinkPreview = useRef(
@@ -523,43 +657,35 @@ function PostEditor ({
   }, [currentPost.linkPreview, debouncedFetchLinkPreview])
 
   const handleAddTopic = useEventCallback((topic) => {
-    const { topics } = currentPost
-    if (topics?.length >= MAX_POST_TOPICS) return
-
-    setCurrentPost({ ...currentPost, topics: [...topics, topic] })
-    setIsDirty(true)
-  }, [currentPost])
+    setCurrentPost(prev => {
+      const topics = prev.topics || []
+      if (topics.length >= MAX_POST_TOPICS) return prev
+      return { ...prev, topics: [...topics, topic] }
+    })
+  }, [setCurrentPost])
 
   const handleFeatureLinkPreview = useCallback(featured => {
-    setCurrentPost({ ...currentPost, linkPreviewFeatured: featured })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, linkPreviewFeatured: featured }))
+  }, [setCurrentPost])
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost({ ...currentPost, linkPreview: null, linkPreviewFeatured: false })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+  }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
     const groups = uniqBy('id', toOptions.map(toOption => toOption.group))
     const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
-    const hasChanged = !isEqual(initialPost.groups, groups) || !isEqual(initialPost.topics, topics)
-
-    setCurrentPost({ ...currentPost, groups, topics })
-
-    if (hasChanged) {
-      setIsDirty(true)
-    }
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, groups, topics }))
+  }, [setCurrentPost])
 
   const togglePublic = useCallback(() => {
-    const { isPublic } = currentPost
-    setCurrentPost({ ...currentPost, isPublic: !isPublic })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, isPublic: !prev.isPublic }))
+  }, [setCurrentPost])
 
   const toggleAnonymousVote = useCallback(() => {
-    const { isAnonymousVote } = currentPost
-    setCurrentPost({ ...currentPost, isAnonymousVote: !isAnonymousVote })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, isAnonymousVote: !prev.isAnonymousVote }))
+  }, [setCurrentPost])
 
   // const toggleStrictProposal = () => {
   //   const { isStrictProposal } = currentPost
@@ -567,12 +693,12 @@ function PostEditor ({
   // }
 
   const handleUpdateProjectMembers = useCallback((members) => {
-    setCurrentPost({ ...currentPost, members })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, members }))
+  }, [setCurrentPost])
 
   const handleUpdateEventInvitations = useCallback((eventInvitations) => {
-    setCurrentPost({ ...currentPost, eventInvitations })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, eventInvitations }))
+  }, [setCurrentPost])
 
   /**
    * Determines if the current form state is valid for submission
@@ -736,7 +862,11 @@ function PostEditor ({
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (afterSave) afterSave(savedPost.payload.data.createPost)
-  }, [afterSave, announcementSelected, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+    if (!savedPost.error) {
+      clearDraft()
+      setIsDirty(false)
+    }
+  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -755,6 +885,12 @@ function PostEditor ({
     }
   }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
+  // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
+  useImperativeHandle(ref, () => ({
+    submit: () => doSave(),
+    resetToInitial: () => reset()
+  }))
+
   const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
     if (isEditing) return t('Save')
@@ -766,12 +902,12 @@ function PostEditor ({
   }, [showAnnouncementModal])
 
   const handleSetQuorum = useCallback((quorum) => {
-    setCurrentPost({ ...currentPost, quorum })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, quorum }))
+  }, [setCurrentPost])
 
   const handleSetProposalType = useCallback((votingMethod) => {
-    setCurrentPost({ ...currentPost, votingMethod })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, votingMethod }))
+  }, [setCurrentPost])
 
   /**
    * Applies a proposal template to the current post
@@ -779,20 +915,21 @@ function PostEditor ({
    */
   const handleUseTemplate = useCallback((template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
-    setCurrentPost({
-      ...currentPost,
+    setCurrentPost(prev => ({
+      ...prev,
       proposalOptions: templateData.form.proposalOptions.map(option => { return { ...option, tempId: generateTempID() } }),
-      title: currentPost.title.length > 0 ? currentPost.title : templateData.form.title,
+      title: prev.title.length > 0 ? prev.title : templateData.form.title,
       quorum: templateData.form.quorum,
       votingMethod: templateData.form.votingMethod
-    })
-  }, [currentPost])
+    }))
+  }, [setCurrentPost])
 
   const handleAddOption = useCallback(() => {
-    const { proposalOptions } = currentPost
-    const newOptions = [...proposalOptions, { text: '', emoji: '', color: '', tempId: generateTempID() }]
-    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-  }, [currentPost])
+    setCurrentPost(prev => {
+      const newOptions = [...(prev.proposalOptions || []), { text: '', emoji: '', color: '', tempId: generateTempID() }]
+      return { ...prev, proposalOptions: newOptions }
+    })
+  }, [setCurrentPost])
 
   /**
    * Checks if the current user can make an announcement in all selected groups
@@ -812,10 +949,7 @@ function PostEditor ({
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
-  const isChat = currentPost.type === 'chat'
-  const isAction = currentPost.type === 'action'
   const isSubmission = currentPost.type === 'submission'
-
   /**
    * Handles the To field container click, focusing the actual ToField
    * This improves UX by making the entire container clickable
@@ -959,7 +1093,7 @@ function PostEditor ({
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
-              contentHTML={currentPost.details}
+              contentHTML={editorInitialContent}
               menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
@@ -981,7 +1115,6 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
-          onChange={() => setIsDirty(true)}
         />
         <AttachmentManager
           type='post'
@@ -990,7 +1123,6 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
-          onChange={() => setIsDirty(true)}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1066,9 +1198,14 @@ function PostEditor ({
                 <Select
                   value={option.emoji || 'no_emoji'}
                   onValueChange={(emoji) => {
-                    const newOptions = [...currentPost.proposalOptions]
-                    newOptions[index].emoji = emoji === 'no_emoji' ? '' : emoji
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                    setCurrentPost(prev => {
+                      const newOptions = [...(prev.proposalOptions || [])]
+                      newOptions[index] = {
+                        ...newOptions[index],
+                        emoji: emoji === 'no_emoji' ? '' : emoji
+                      }
+                      return { ...prev, proposalOptions: newOptions }
+                    })
                   }}
                 >
                   <SelectTrigger className='w-fit p-2 border-2 border-foreground/30 rounded-md'>
@@ -1093,21 +1230,28 @@ function PostEditor ({
                   placeholder={t('Describe option')}
                   value={option.text}
                   onChange={(evt) => {
-                    const newOptions = [...currentPost.proposalOptions]
-                    newOptions[index].text = evt.target.value
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                    const value = evt.target.value
+                    setCurrentPost(prev => {
+                      const newOptions = [...(prev.proposalOptions || [])]
+                      newOptions[index] = {
+                        ...newOptions[index],
+                        text: value
+                      }
+                      return { ...prev, proposalOptions: newOptions }
+                    })
                   }}
                   disabled={loading}
                 />
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
-                    const newOptions = currentPost.proposalOptions.filter(element => {
-                      if (option.id) return element.id !== option.id
-                      return element.tempId !== option.tempId
+                    setCurrentPost(prev => {
+                      const newOptions = (prev.proposalOptions || []).filter(element => {
+                        if (option.id) return element.id !== option.id
+                        return element.tempId !== option.tempId
+                      })
+                      return { ...prev, proposalOptions: newOptions }
                     })
-
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
                   }}
                 >
                   <X className='w-4 h-4 text-foreground' />
@@ -1363,23 +1507,40 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { completionAction, completionActionSettings } = currentPost
 
   const handleCompletionActionChange = useCallback((value) => {
-    const completionActionSettings = {
-      instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
-    }
-    if (value === 'selectMultiple' || value === 'selectOne') {
-      completionActionSettings.options = []
-    }
-    setCurrentPost({ ...currentPost, completionAction: value, completionActionSettings })
-  }, [currentPost, setCurrentPost, currentTrack?.actionDescriptor, t])
+    setCurrentPost(prev => {
+      const nextSettings = {
+        instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
+      }
+      if (value === 'selectMultiple' || value === 'selectOne') {
+        nextSettings.options = []
+      }
+      return { ...prev, completionAction: value, completionActionSettings: nextSettings }
+    })
+  }, [currentTrack?.actionDescriptor, setCurrentPost, t])
 
   const handleAddOption = useCallback(() => {
-    const newOptions = [...completionActionSettings.options, '']
-    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
-  }, [completionActionSettings, currentPost, setCurrentPost])
+    setCurrentPost(prev => {
+      const options = [...(prev.completionActionSettings?.options || []), '']
+      return {
+        ...prev,
+        completionActionSettings: {
+          ...(prev.completionActionSettings || {}),
+          options
+        }
+      }
+    })
+  }, [setCurrentPost])
 
   const handleInstructionsChange = useCallback((evt) => {
-    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, instructions: evt.target.value } })
-  }, [completionActionSettings, currentPost, setCurrentPost])
+    const value = evt.target.value
+    setCurrentPost(prev => ({
+      ...prev,
+      completionActionSettings: {
+        ...(prev.completionActionSettings || {}),
+        instructions: value
+      }
+    }))
+  }, [setCurrentPost])
 
   return (
     <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-3 mt-4 mb-2 gap-2'>
@@ -1415,20 +1576,34 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
                   placeholder={t('Add description')}
                   value={option}
                   onChange={(evt) => {
-                    const newOptions = [...completionActionSettings.options]
-                    newOptions[index] = evt.target.value
-                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
+                    const value = evt.target.value
+                    setCurrentPost(prev => {
+                      const options = [...(prev.completionActionSettings?.options || [])]
+                      options[index] = value
+                      return {
+                        ...prev,
+                        completionActionSettings: {
+                          ...(prev.completionActionSettings || {}),
+                          options
+                        }
+                      }
+                    })
                   }}
                   disabled={loading}
                 />
                 <Icon
                   name='Ex'
                   onClick={() => {
-                    const newOptions = completionActionSettings?.options?.filter(element => {
-                      return element !== option
+                    setCurrentPost(prev => {
+                      const options = (prev.completionActionSettings?.options || []).filter(element => element !== option)
+                      return {
+                        ...prev,
+                        completionActionSettings: {
+                          ...(prev.completionActionSettings || {}),
+                          options
+                        }
+                      }
                     })
-
-                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
                   }}
                 />
               </div>
@@ -1444,4 +1619,4 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   )
 }
 
-export default PostEditor
+export default forwardRef(PostEditorInner)
