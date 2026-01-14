@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.7] - 2026-01-12
+
+### Fixed
+- Fix About View to go to the right place when clicked on
+
 ## [6.2.6] - 2026-01-08
 
 ### Added
