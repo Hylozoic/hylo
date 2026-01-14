@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [6.2.7] - 2026-01-12
 
+### Changed
+- Scope @ mentions and # topic selections to current group, or set of groups in the post editor
+
 ### Fixed
 - Fix About View to go to the right place when clicked on
 
