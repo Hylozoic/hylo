@@ -1097,7 +1097,8 @@ module.exports = bookshelf.Model.extend(merge({
       access_code,
       created_at: new Date(),
       created_by_id: userId,
-      settings: { allow_group_invites: false, agreements_last_updated_at: null, public_member_directory: false }
+      settings: { allow_group_invites: false, agreements_last_updated_at: null, public_member_directory: false },
+      calendar_token: uuidv4()
     }))
 
     await bookshelf.transaction(async trx => {
