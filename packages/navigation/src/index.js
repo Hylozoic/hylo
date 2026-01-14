@@ -259,7 +259,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
-    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+    url = viewUrl('about', { groupSlug, context })
   } else if (widget.view) {
     url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
   } else if (widget.viewGroup) {
