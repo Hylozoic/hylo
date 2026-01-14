@@ -148,7 +148,8 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true })
+      // updateMembers always adds joinQuestionsAnsweredAt and showJoinForm defaults
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
       expect(gm1.get('role')).to.equal(1)
 
       const gm2 = await group.memberships()

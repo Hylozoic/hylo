@@ -643,10 +643,17 @@ module.exports = bookshelf.Model.extend(merge({
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
 
+    const pickedAttrs = pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     const updatedAttribs = Object.assign(
       {},
-      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST),
-      { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
+      pickedAttrs,
+      { 
+        settings: merge(
+          {},
+          pickedAttrs.settings || {},
+          { joinQuestionsAnsweredAt: null, showJoinForm: true }
+        )
+      } // updateAndSave will merge these with existing settings
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
