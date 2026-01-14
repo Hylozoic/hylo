@@ -126,6 +126,7 @@ export function fetchFundingRound (id) {
       query: `query ($id: ID) {
         fundingRound (id: $id) {
           id
+          allowSelfVoting
           bannerUrl
           canSubmit
           canVote
