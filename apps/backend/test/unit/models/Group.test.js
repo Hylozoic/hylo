@@ -35,6 +35,23 @@ describe('Group', function () {
     expect(savedGroup.get('avatar_url')).to.equal('/default-group-avatar.svg')
   })
 
+  it('initializes calendar_token on creation', async function () {
+    const data = {
+      name: 'my group',
+      description: 'a group description',
+      slug: 'comm2'
+    }
+
+    const user = await new User({ name: 'username', email: 'john2@foo.com', active: true }).save()
+    await Group.create(user.id, data)
+    const savedGroup = await Group.find('comm2')
+    const calendarToken = savedGroup.get('calendar_token')
+    expect(calendarToken).to.exist
+    expect(calendarToken).to.be.a('string')
+    // UUID v4 format: 8-4-4-4-12 hexadecimal characters
+    expect(calendarToken).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  })
+
   it('can be created with group extension data', async function () {
     const data = {
       name: 'my group',
