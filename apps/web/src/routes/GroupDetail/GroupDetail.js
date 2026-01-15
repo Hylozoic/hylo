@@ -134,7 +134,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
           {!fullPage && /* !isWebView() && */ (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
-          <div className='bottom-0 right-0 bg-black/50 absolute top-0 left-0 z-0' />
+          <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />
           <div className='max-w-screen-lg mx-auto flex items-center justify-center flex-col relative z-10'>
             <img src={group.avatarUrl || DEFAULT_AVATAR} className='w-24 h-24 rounded-xl shadow-xl mt-0 mb-2' />
             <div>

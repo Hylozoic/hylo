@@ -10,6 +10,7 @@ module.exports = {
     // const session = await regenerateSession()
 
     req.session.userId = user.id
+    req.session.userEmail = user.get('email')
 
     req.rollbar_person = user.pick('id', 'name', 'email')
 

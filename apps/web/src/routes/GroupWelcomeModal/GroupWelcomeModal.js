@@ -145,7 +145,7 @@ export default function GroupWelcomeModal (props) {
       timeout={{ appear: 400, enter: 400, exit: 300 }}
       nodeRef={welcomeModalRef}
     >
-      <div className='fixed top-0 left-0 flex items-center justify-center w-full h-full z-[1000] overflow-y-auto bg-black/50 backdrop-blur-sm' key='welcome-modal' ref={welcomeModalRef}>
+      <div className='fixed top-0 left-0 flex items-center justify-center w-full h-full z-[1000] overflow-y-auto bg-darkening/50 backdrop-blur-sm' key='welcome-modal' ref={welcomeModalRef}>
         <div className='w-full h-full overflow-y-auto p-4 flex flex-col items-center'>
           <div className={cn('bg-midground w-full max-w-[750px] my-4 rounded-xl p-4', classes[`viewingPage${page}`])}>
             <div style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)} className={classes.banner}>

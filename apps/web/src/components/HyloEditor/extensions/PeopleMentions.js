@@ -69,9 +69,9 @@ export const PeopleMentions = ({ groupIds, onSelection, suggestionsThemeName }) 
           loadPeople
         ),
         items: asyncDebounce(200, async ({ query, editor }) => {
-          editor.extensionStorage.topic.loading = true
+          editor.extensionStorage.mention.loading = true
           const results = await loadPeople(0, query, editor)
-          editor.extensionStorage.topic.loading = false
+          editor.extensionStorage.mention.loading = false
           return results
         })
       }

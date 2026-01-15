@@ -1,32 +1,23 @@
-import { isEmpty } from 'lodash/fp'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import { DateTimeHelpers } from '@hylo/shared'
+import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import Avatar from 'components/Avatar'
-import EmojiRow from 'components/EmojiRow'
-import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
-import Tooltip from 'components/Tooltip'
-import useRouteParams from 'hooks/useRouteParams'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import { cn } from 'util/index'
-import { personUrl, topicUrl } from '@hylo/navigation'
 
-import classes from './PostListRow.module.scss'
-
-// :SHONK: no idea why React propagates events from child elements but NOT IN OTHER COMPONENTS
-const stopEvent = (e) => e.stopPropagation()
-
+/**
+ * Gmail-style post list row with 3-column layout
+ * Column 1: Creator name + post type
+ * Column 2: Title + comments pill, then truncated details
+ * Column 3: Timestamp
+ */
 const PostListRow = (props) => {
   const {
-    childPost,
     currentGroupId,
     post,
-    expanded,
-    currentUser
+    expanded
   } = props
 
   const {
@@ -34,97 +25,87 @@ const PostListRow = (props) => {
     details,
     creator,
     createdTimestamp,
-    commentersTotal,
-    topics
+    commentsTotal
   } = post
 
   const { t } = useTranslation()
-  const routeParams = useRouteParams()
-
   const viewPostDetails = useViewPostDetails()
 
-  if (!creator) { // PostCard guards against this, so it must be important? ;P
+  if (!creator) {
     return null
   }
 
   const typeLowercase = post.type.toLowerCase()
   const typeName = post.type.charAt(0).toUpperCase() + typeLowercase.slice(1)
-
-  const creatorUrl = personUrl(creator.id, routeParams.slug)
-  const numOtherCommentors = commentersTotal - 1
   const unread = false
+  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+
+  // For events, show the date range
   const start = DateTimeHelpers.toDateTime(post.startTime, { locale: getLocaleFromLocalStorage() })
   const end = DateTimeHelpers.toDateTime(post.endTime, { locale: getLocaleFromLocalStorage() })
   const isSameDay = DateTimeHelpers.isSameDay(start, end)
-  const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const eventDateDisplay = post.type === 'event'
+    ? (isSameDay ? start.toFormat('MMM d') : `${start.toFormat('MMM d')} - ${end.toFormat('MMM d')}`)
+    : null
 
   return (
-    <div className={cn('bg-card/50 hover:bg-card/100 transition-all p-3 border-b-2 border-midground text-foreground', classes.postRow, { [classes.unread]: unread, [classes.expanded]: expanded })} onClick={() => viewPostDetails(post)}>
-      <div className={classes.contentSummary}>
-        <div className={classes.typeAuthor}>
-          {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
-          <div className={cn(classes.postType, classes[post.type])}>
-            <Icon name={typeName} />
-          </div>
-          <div className={classes.participants}>
-            {post.type === 'event'
-              ? (
-                <div className={classes.date}>
-                  <span>{isSameDay ? start.toFormat('MMM d') : `${start.toFormat('MMM d')} - ${end.toFormat('MMM d')}`}</span>
-                </div>
-                )
-              : (
-                <div>
-                  <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} small />
-                  {creator.name}
-                  {numOtherCommentors > 1
-                    ? (<span> {t('and')} <strong>{numOtherCommentors} {t('others')}</strong></span>)
-                    : null}
-                </div>
-                )}
-          </div>
-          {childPost && (
-            <div
-              className={classes.iconContainer}
-              data-tooltip-content={t('Post from child group')}
-              data-tooltip-id='childgroup-tt'
-            >
-              <Icon
-                name='Subgroup'
-                className={classes.icon}
-              />
-              <Tooltip
-                delay={250}
-                id='childgroup-tt'
-                position='bottom'
-              />
-            </div>
-          )}
-          <div className={cn(classes.timestamp, { [classes.pushToRight]: !childPost })}>
-            {createdTimestamp}
-          </div>
-        </div>
-        {!isEmpty(topics) && (
-          <div className={classes.topics}>
-            {topics.slice(0, 3).map(t =>
-              <Link className={classes.topic} to={topicUrl(t.name, { groupSlug: routeParams.slug })} key={t.name} onClick={stopEvent}>#{t.name}</Link>)}
-          </div>
-        )}
-        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
-          <h3 className={cn('font-bold text-foreground mb-0')}>{title}</h3>
-          <HyloHTML className='text-foreground/60 text-sm line-clamp-1 -mt-[10px]' html={details} />
-        </div>
-        <div className={classes.reactions}>
-          <EmojiRow
-            post={post}
-            currentUser={currentUser}
-          />
+    <div
+      className={cn(
+        'grid grid-cols-[160px_1fr_auto] gap-3 items-start',
+        'bg-card hover:scale-102 transition-all shadow-sm hover:shadow-lg hover:shadow-foreground/10 border-2 border-transparent hover:border-foreground/50 rounded-md',
+        'px-4 py-3 border-b-2 border-b-background cursor-pointer',
+        {
+          'bg-card font-semibold': unread,
+          'opacity-60': isFlagged && !post.clickthrough
+        },
+        expanded && 'bg-card'
+      )}
+      onClick={() => viewPostDetails(post)}
+    >
+      {/* Column 1: Creator name + Post type */}
+      <div className='flex flex-col min-w-0'>
+        <span className={cn('text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+          {creator.name}
+        </span>
+        <div className='flex items-center gap-1 text-xs text-foreground/50'>
+          <Icon name={typeName} className='w-3 h-3' />
+          <span className='capitalize'>{typeLowercase}</span>
         </div>
       </div>
-      <Tooltip
-        delay={550}
-        id={`post-tt-${post.id}`}
-      />
+
+      {/* Column 2: Title + comments, then details or event date */}
+      <div className='flex flex-col min-w-0'>
+        <div className='flex items-center gap-2'>
+          {isFlagged && <Icon name='Flag' className='w-3 h-3 text-destructive shrink-0' />}
+          <span className={cn('text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+            {title}
+          </span>
+          {commentsTotal > 0
+            ? (
+              <span className='shrink-0 text-[10px] bg-foreground/10 text-foreground/70 px-1.5 py-0.5 rounded-full'>
+                {commentsTotal} {commentsTotal === 1 ? t('comment') : t('comments')}
+              </span>
+              )
+            : ' '}
+        </div>
+        {eventDateDisplay
+          ? (
+            <span className='text-xs text-foreground/70'>
+              <Icon name='Calendar' className='w-3 h-3 inline mr-1' />
+              {eventDateDisplay}
+            </span>
+            )
+          : (
+            <span className='text-xs text-foreground/50 line-clamp-1'>
+              {TextHelpers.presentHTMLToText(details, { truncate: 150 })}
+            </span>
+            )}
+      </div>
+
+      {/* Column 3: Timestamp */}
+      <div className='text-xs text-foreground/50 whitespace-nowrap h-full flex items-center'>
+        {createdTimestamp}
+      </div>
     </div>
   )
 }

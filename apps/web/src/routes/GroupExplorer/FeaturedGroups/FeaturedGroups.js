@@ -54,7 +54,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
   if (!groups.length) return null
 
   return (
-    <div className='w-full overflow-hidden mb-4 rounded-lg inset-shadow-lg bg-black/20 py-4 px-0 relative'>
+    <div className='w-full overflow-hidden mb-4 rounded-lg inset-shadow-lg bg-background py-4 px-0 relative'>
       <div className='flex items-center justify-between'>
         <h2 className='mt-0 font-bold ml-4 text-sm'>{t('Featured Groups')}</h2>
         <div className='relative group mr-4 w-6 h-6 flex items-center justify-center' data-tooltip-id='featured-groups-info'>
@@ -87,7 +87,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                 style={bgImageStyle(group.bannerUrl || DEFAULT_BANNER)}
                 className='absolute inset-0 bg-cover bg-center opacity-70'
               />
-              <div className='absolute inset-0 bg-gradient-to-t from-black/80 to-transparent' />
+              <div className='absolute inset-0 bg-gradient-to-t from-darkening/80 to-transparent' />
               <div className='relative h-full p-4 flex flex-col justify-end'>
                 <div className='flex items-start justify-between'>
                   <RoundImage

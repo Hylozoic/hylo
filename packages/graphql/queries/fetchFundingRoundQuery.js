@@ -4,6 +4,7 @@ export default gql`
   query FetchFundingRoundQuery($id: ID) {
     fundingRound(id: $id) {
       id
+      allowSelfVoting
       bannerUrl
       canSubmit
       canVote
@@ -15,6 +16,7 @@ export default gql`
         name
         slug
       }
+      hideFinalResultsFromParticipants
       isParticipating
       joinedAt
       maxTokenAllocation

@@ -9,8 +9,7 @@ const { VITE_API_HOST } = process.env
 const apiHostname = new URL(VITE_API_HOST).hostname
 
 export default function apiProxy (req, res, next) {
-  if (!req.originalUrl.startsWith('/noo') &&
-    !req.originalUrl.startsWith('/admin/kue')) return next()
+  if (!req.originalUrl.startsWith('/noo')) return next()
 
   const url = VITE_API_HOST + req.originalUrl
 

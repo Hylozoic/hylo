@@ -348,7 +348,12 @@ export default function Stream (props) {
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
         />
         {!isCalendarViewMode && (
-          <div className={cn(styles.streamItems, { [styles.streamGrid]: viewMode === 'grid', [styles.bigGrid]: viewMode === 'bigGrid' })}>
+          <div className={cn(styles.streamItems, {
+            [styles.streamGrid]: viewMode === 'grid',
+            [styles.bigGrid]: viewMode === 'bigGrid',
+            'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
+          })}
+          >
             {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
             {posts.map(post => {
               const groupSlugs = post.groups.map(group => group.slug)

@@ -6,6 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.7] - 2026-01-12
+
+### Changed
+- Scope @ mentions and # topic selections to current group, or set of groups in the post editor
+
+### Fixed
+- Fix About View to go to the right place when clicked on
+
+## [6.2.6] - 2026-01-08
+
+### Added
+- Add funding round setting to control whether people can vote on their own submissions. Default it to false
+- Add funding round setting to hide final voting results from participants
+
+### Fixed
+- Bug where creating a post when outside the chat room would not show you the new post in the chat room because it didn't think there were any new posts to show
+
+## [6.2.5] - 2025-12-31
+
+### Added
+- Ability to embed Youtube and Vimeo videos in Funding round and Track descriptions as well as the Welcome page content.
+- When using the search functionality it now initially searched only witin the current group. You can then decide whether to search across all your groups.
+- MVP of being able to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL for this in the Account settings page.
+
+### Changed
+- Better mobile display of events calendar.
+- Clicking on a post in search results opens it up in a modal above the search results.
+- Make it more clear that you need an explanation when flagging a post. And allow for any explanation of any length to avoid confusion.
+- Add scrolling to group settings menu if to long for screen.
+- During voting phase of a funding round sort posts differently for each user to remove bias. Randomize, but stay consistent for the user.
+
+### Fixed
+- Mobile display of funding rounds.
+
 ## [6.2.4] - 2025-12-05
 
 ### Changed

@@ -21,7 +21,7 @@ export default {
 
   removeEventInvitees: async function (userIds, opts) {
     return Promise.map(userIds, async userId => {
-      const invitation = await EventInvitation.find({ userId, eventId: this.id })
+      const invitation = await EventInvitation.find({ userId, eventId: this.id }, opts)
       return invitation.destroy(opts)
     })
   },
@@ -39,7 +39,7 @@ export default {
   },
 
   updateEventInvitees: async function ({ userIds, inviterId, eventChanges = {}, opts }) {
-    const eventInviteeIds = (await this.eventInvitees().fetch()).pluck('id')
+    const eventInviteeIds = (await this.eventInvitees().fetch(opts)).pluck('id')
     const toRemove = difference(eventInviteeIds, userIds)
     const toAdd = difference(userIds, eventInviteeIds)
 

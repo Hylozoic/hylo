@@ -2615,6 +2615,8 @@ type TrackUser {
 # A participatory funding round
 type FundingRound {
   id: ID
+  # Whether participants can vote on their own submissions
+  allowSelfVoting: Boolean
   # The URL for the banner image of the round
   bannerUrl: String
   # Whether the current user can submit to this funding round
@@ -2628,6 +2630,8 @@ type FundingRound {
   description: String
   # The group that the funding round belongs to
   group: Group
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Whether the current user is participating in this round
   isParticipating: Boolean
   # When the current user joined this funding round
@@ -3852,6 +3856,8 @@ input RoleSelectionInput {
 }
 
 input FundingRoundInput {
+  # Whether participants can vote on their own submissions
+  allowSelfVoting: Boolean
   # The URL for the banner image of the round
   bannerUrl: String
   # Criteria for submitting projects/submissions
@@ -3860,6 +3866,8 @@ input FundingRoundInput {
   description: String
   # The group that this funding round belongs to
   groupId: ID
+  # Whether to hide final voting results from participants
+  hideFinalResultsFromParticipants: Boolean
   # Maximum tokens a voter can allocate
   maxTokenAllocation: Int
   # Minimum tokens a voter can allocate

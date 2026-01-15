@@ -22,11 +22,13 @@ export default gql`
       ) {
         items {
           id
+          allowSelfVoting
           bannerUrl
           createdAt
           criteria
           description
           isParticipating
+          hideFinalResultsFromParticipants
           maxTokenAllocation
           minTokenAllocation
           numParticipants

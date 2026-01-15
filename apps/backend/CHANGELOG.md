@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.7] - 2026-01-13
+
+### Changed
+- Make chat digests come from DoNotReply@hylo.com so they bounce back instead of us receiving them
+
+## [6.2.6] - 2026-01-08
+
+### Added
+- Add funding round setting to control whether people can vote on their own submissions. Default it to false
+- Add funding round setting to hide final voting results from participants
+
+### Fixed
+- Bug where creating a post when outside the chat room would not show you the new post in the chat room because it didn't think there were any new posts to show
+
+## [6.2.5] - 2025-12-31
+
+### Added
+- MVP of a calendar subscription URL for all event RSVPs.
+- Ability to search within a specific group
+
+### Fixed
+- Access to admin view of kue jobs
+
 ## [6.2.4] - 2025-12-05
 
 ### Fixed

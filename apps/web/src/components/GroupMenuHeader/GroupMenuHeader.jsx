@@ -84,7 +84,7 @@ export default function GroupMenuHeader ({
   return (
     <div className='GroupMenuHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md' data-testid='group-header'>
       <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
-      <div className='absolute top-0 left-0 w-full h-full bg-black z-0 opacity-80' />
+      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
       <div className='absolute top-2 left-2 z-20'>
         <button onClick={() => navigateAndClose(currentUserSettingsUrl('notifications?group=' + group.id))}>
           <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
@@ -98,13 +98,25 @@ export default function GroupMenuHeader ({
         </div>
       )}
       <div className='relative flex flex-row items-center text-background z-20'>
-        <div style={bgImageStyle(avatarUrl)} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center'>
-          {group.avatarUrl === DEFAULT_AVATAR &&
-            <span className='text-white text-xl flex items-center justify-center uppercase h-full'>
-              {group.name.split(/\s+/).length > 1
-                ? `${group.name.split(/\s+/)[0].charAt(0)}${group.name.split(/\s+/)[1].charAt(0)}`
-                : group.name.charAt(0)}
-            </span>}
+        <div
+          style={group.avatarUrl !== DEFAULT_AVATAR ? bgImageStyle(avatarUrl) : {}}
+          className={`rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center relative overflow-hidden ${group.avatarUrl === DEFAULT_AVATAR ? 'bg-darkening' : ''}`}
+        >
+          {group.avatarUrl === DEFAULT_AVATAR && (
+            <>
+              <div
+                className='absolute inset-0 opacity-70'
+                style={{
+                  background: 'linear-gradient(to bottom right, hsl(var(--focus)), hsl(var(--selected)))'
+                }}
+              />
+              <span className='relative z-10 text-white text-xl flex items-center justify-center uppercase h-full drop-shadow-md'>
+                {group.name.split(/\s+/).length > 1
+                  ? `${group.name.split(/\s+/)[0].charAt(0)}${group.name.split(/\s+/)[1].charAt(0)}`
+                  : group.name.charAt(0)}
+              </span>
+            </>
+          )}
         </div>
         <div className={`flex flex-col flex-1 text-${textColor} drop-shadow-md overflow-hidden`}>
           <div className='flex items-center'>

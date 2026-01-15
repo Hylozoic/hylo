@@ -650,7 +650,7 @@ module.exports = bookshelf.Model.extend(merge({
     return this.get('calendar_token')
       ? `${process.env.AWS_S3_CONTENT_URL}/${this.getRsvpCalendarPath()}`
       : null
-  },
+  }
 
 }, HasSettings), {
   AXOLOTL_ID: '13986',
@@ -955,9 +955,11 @@ module.exports = bookshelf.Model.extend(merge({
     // Write the combined calendar file to S3
     await writeStringToS3(
       cal.toString(),
-      user.getRsvpCalendarPath(), {
-      ContentType: 'text/calendar'
-    })
+      user.getRsvpCalendarPath(),
+      {
+        ContentType: 'text/calendar'
+      }
+    )
   },
 
   async clearUserRsvpCalendarSubscriptions ({ userId }) {

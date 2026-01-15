@@ -85,6 +85,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
   const creatorUrl = useMemo(() => personUrl(creator.id, routeParams.groupSlug), [creator.id, routeParams.groupSlug])
 
   const validateVoteAmount = useCallback((value) => {
+    // Check if self-voting is allowed
+    if (!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && value > 0) {
+      return t('You cannot vote on your own submission')
+    }
+
     // Check if exceeds available tokens
     if (value > availableTokens) {
       return t('Not enough tokens available')
@@ -101,7 +106,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     }
 
     return ''
-  }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, t])
+  }, [availableTokens, round.maxTokenAllocation, round.minTokenAllocation, round.allowSelfVoting, post.creator.id, currentUser?.id, t])
 
   const handleVoteAmountChange = useCallback((e) => {
     const rawValue = e.target.value
@@ -158,6 +163,11 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
     setIsInputFocused(true)
     // Select all text when focusing to avoid the "01" issue
     e.target.select()
+  }, [])
+
+  const handleVoteAmountWheel = useCallback((e) => {
+    // Prevent scroll wheel from changing the input value
+    e.target.blur()
   }, [])
 
   const openPostDetails = useCallback(() => navigate(postUrl(post.id, routeParams, querystringParams)), [post.id, routeParams, querystringParams])
@@ -221,7 +231,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
         />
       </div>
       {currentPhase === 'voting' && canVote && (
-        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg min-w-[100px] sm:min-w-[120px]'>
+        <div className='flex flex-col justify-center items-center gap-2 bg-foreground/5 p-2 sm:p-4 rounded-r-lg w-[100px] sm:w-[120px]'>
           <label className='text-xs font-bold text-foreground/60 uppercase'>
             {t('Your {{tokenType}}', { tokenType: tokenLabel })}
           </label>
@@ -232,10 +242,13 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
             onChange={handleVoteAmountChange}
             onBlur={handleVoteAmountBlur}
             onFocus={handleVoteAmountFocus}
+            onWheel={handleVoteAmountWheel}
             onClick={(e) => e.stopPropagation()}
+            disabled={!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id)}
             className={cn(
               'w-20 h-12 text-center text-2xl font-bold bg-input border-2 rounded-md focus:outline-none',
-              validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected'
+              validationError ? 'border-red-500 focus:border-red-500' : 'border-foreground/20 focus:border-selected',
+              !round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) ? 'opacity-50 cursor-not-allowed' : ''
             )}
           />
           {validationError && (
@@ -243,48 +256,21 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
               {validationError}
             </span>
           )}
+          {!round.allowSelfVoting && parseInt(post.creator.id) === parseInt(currentUser?.id) && (
+            <span className='text-xs text-foreground/60 text-center max-w-[100px] sm:max-w-[120px] leading-tight'>
+              {t('Cannot vote on your own submission')}
+            </span>
+          )}
         </div>
       )}
       {currentPhase === 'completed' && (
         <div className='flex flex-col justify-center items-end gap-1 bg-foreground/5 p-2 sm:p-4 rounded-r-lg min-w-[100px] sm:min-w-[160px]'>
-          {hasAllocations && canManageRound
+          {round.hideFinalResultsFromParticipants && !canManageRound
             ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className='flex flex-col items-end gap-1 cursor-help'>
-                    <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
-                      {t('Total {{tokenType}}', { tokenType: tokenLabel })}
-                    </label>
-                    <div
-                      className={cn(
-                        'text-5xl font-bold',
-                        (post.tokensAllocated || 0) > 0 ? 'text-green-500' : 'text-foreground'
-                      )}
-                    >
-                      {post.totalTokensAllocated || 0}
-                    </div>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side='left' className='max-w-[240px]'>
-                  <div className='flex flex-col gap-1 text-xs'>
-                    {sortedAllocations.map((allocation, index) => {
-                      const name = allocation?.user?.name || t('Anonymous')
-                      const tokens = allocation?.tokensAllocated ?? 0
-                      return (
-                        <div key={`${allocation?.user?.id || 'anon'}-${index}`} className='flex items-center gap-2'>
-                          <span className='font-semibold'>{name}</span>
-                          <span className='text-foreground/60'>{tokens} {tokenLabel}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-              )
-            : (
+              // Show only user's votes when results are hidden from participants
               <div className='flex flex-col items-end gap-1'>
                 <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
-                  {t('Total {{tokenType}}', { tokenType: tokenLabel })}
+                  {t('Your {{tokenType}}', { tokenType: tokenLabel })}
                 </label>
                 <div
                   className={cn(
@@ -292,13 +278,68 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
                     (post.tokensAllocated || 0) > 0 ? 'text-green-500' : 'text-foreground'
                   )}
                 >
-                  {post.totalTokensAllocated || 0}
+                  {post.tokensAllocated || 0}
                 </div>
               </div>
-              )}
-          <div className='text-sm font-semibold text-foreground/80 mt-1'>
-            {t('You: {{tokens}}', { tokens: post.tokensAllocated || 0 })}
-          </div>
+              )
+            : canManageRound && hasAllocations
+              ? (
+                // Managers see full results with tooltip
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className='flex flex-col items-end gap-1 cursor-help'>
+                      <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+                        {t('Total {{tokenType}}', { tokenType: tokenLabel })}
+                      </label>
+                      <div
+                        className={cn(
+                          'text-5xl font-bold',
+                          (post.tokensAllocated || 0) > 0 ? 'text-green-500' : 'text-foreground'
+                        )}
+                      >
+                        {post.totalTokensAllocated || 0}
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side='left' className='max-w-[240px]'>
+                    <div className='flex flex-col gap-1 text-xs'>
+                      {sortedAllocations.map((allocation, index) => {
+                        const name = allocation?.user?.name || t('Anonymous')
+                        const tokens = allocation?.tokensAllocated ?? 0
+                        return (
+                          <div key={`${allocation?.user?.id || 'anon'}-${index}`} className='flex items-center gap-2'>
+                            <span className='font-semibold'>{name}</span>
+                            <span className='text-foreground/60'>{tokens} {tokenLabel}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+                )
+              : (
+                // Default: show total tokens (when results are not hidden, or manager without allocations)
+                <div className='flex flex-col items-end gap-1'>
+                  <label className='text-xs font-semibold text-foreground/60 uppercase tracking-wide'>
+                    {t('Total {{tokenType}}', { tokenType: tokenLabel })}
+                  </label>
+                  <div
+                    className={cn(
+                      'text-5xl font-bold',
+                      (post.tokensAllocated || 0) > 0 ? 'text-green-500' : 'text-foreground'
+                    )}
+                  >
+                    {post.totalTokensAllocated || 0}
+                  </div>
+                </div>
+                )}
+          {!round.hideFinalResultsFromParticipants || canManageRound
+            ? (
+              <div className='text-sm font-semibold text-foreground/80 mt-1'>
+                {t('You: {{tokens}}', { tokens: post.tokensAllocated || 0 })}
+              </div>
+              )
+            : null}
         </div>
       )}
       {flaggingVisible &&

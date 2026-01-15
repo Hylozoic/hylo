@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import AsyncCreatableSelect from 'react-select/async-creatable'
@@ -107,11 +107,22 @@ function TopicSelector (props) {
   const dispatch = useDispatch()
   const defaultTopics = useSelector(state => getDefaultTopics(state, { groups: forGroups }))
 
-  const slug = get('forGroups[0].slug', props)
+  // Extract groupIds array from forGroups for scoping topic searches
+  const groupIds = useMemo(() => {
+    if (!forGroups || forGroups.length === 0) return undefined
+    return forGroups.map(g => g?.id).filter(Boolean)
+  }, [forGroups])
+
+  // Keep slug for backward compatibility fallback
+  const slug = useMemo(() => get('forGroups[0].slug', props), [forGroups])
 
   useEffect(() => {
-    slug && dispatch(fetchDefaultTopics({ groupSlug: slug }))
-  }, [slug])
+    if (groupIds && groupIds.length > 0) {
+      dispatch(fetchDefaultTopics({ groupIds }))
+    } else if (slug) {
+      dispatch(fetchDefaultTopics({ groupSlug: slug }))
+    }
+  }, [groupIds, slug, dispatch])
 
   useEffect(() => {
     if (topicsEdited) return
@@ -124,12 +135,44 @@ function TopicSelector (props) {
     setSelected(newSelected)
   }, [selectedTopics])
 
+  const formatGroupTopicSuggestions = useCallback(groupTopics => {
+    if (!groupTopics) return
+
+    return groupTopics.length > 0 && selected.length < MAX_TOPICS && (
+      [{
+        label: forGroups && forGroups.length > 0
+          ? forGroups.length === 1
+            ? forGroups[0].name
+            : t('Default Topics')
+          : t('Default Topics'),
+        options: groupTopics
+      }]
+    )
+  }, [forGroups, selected, t])
+
   const loadOptions = useCallback(async (input) => {
     input = input.charAt(0) === '#' ? input.slice(1) : input
 
-    if (selected.length >= MAX_TOPICS || isEmpty(input)) return []
+    if (selected.length >= MAX_TOPICS) return []
 
-    const response = await dispatch(findTopics({ autocomplete: input, groupSlug: slug, includeCounts: true }))
+    // When search term is empty, return sorted default topics from all groups
+    if (isEmpty(input)) {
+      // Sort default topics from all groups together by name
+      const sortedDefaultTopics = orderBy(
+        [t => t.name],
+        ['asc'],
+        defaultTopics || []
+      )
+      return formatGroupTopicSuggestions(sortedDefaultTopics) || []
+    }
+
+    // Use groupIds if available, otherwise fallback to groupSlug for backward compatibility
+    const response = await dispatch(findTopics({
+      autocomplete: input,
+      groupIds,
+      groupSlug: groupIds ? undefined : slug,
+      includeCounts: true
+    }))
     const topicResults = response.payload.getData().items
     const sortedTopicResults = orderBy(
       [t => t.name === input ? -1 : 1, 'followersTotal', 'postsTotal'],
@@ -150,7 +193,7 @@ function TopicSelector (props) {
         options: sortedTopicResults
       }
     ]
-  }, [defaultTopics, selected, slug])
+  }, [defaultTopics, selected, groupIds, slug])
 
   const handleTopicsChange = useCallback(newTopics => {
     const topics = newTopics.filter(t => !Validators.validateTopicName(t.name))
@@ -162,19 +205,6 @@ function TopicSelector (props) {
 
     onChange && onChange(topics)
   }, [onChange])
-
-  const formatGroupTopicSuggestions = useCallback(groupTopics => {
-    if (!groupTopics) return
-
-    return groupTopics.length > 0 && selected.length < MAX_TOPICS && (
-      [{
-        label: forGroups && forGroups.length > 0
-          ? forGroups[0].name
-          : t('Default Topics'),
-        options: groupTopics
-      }]
-    )
-  }, [forGroups, selected])
 
   return (
     <AsyncCreatableSelect

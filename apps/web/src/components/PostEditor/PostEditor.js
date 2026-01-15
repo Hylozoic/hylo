@@ -253,6 +253,28 @@ function PostEditor ({
     )
   }, [currentPost?.groups, groupOptions])
 
+  // Extract groupIds array for scoping topic and mention searches
+  // Priority:
+  // 1. Use selectedGroups if available (most common case - user has selected groups)
+  // 2. For public posts with no groups, allow all accessible topics/people (pass undefined)
+  // 3. Otherwise, fallback to currentGroup from route context
+  // Passing undefined allows backend to return all accessible topics/people based on user's group memberships
+  const groupIds = useMemo(() => {
+    if (selectedGroups && selectedGroups.length > 0) {
+      return selectedGroups.map(g => g.id).filter(Boolean)
+    }
+    // For public posts with no groups selected, allow all accessible topics/people
+    if (currentPost.isPublic && (!currentPost.groups || currentPost.groups.length === 0)) {
+      return undefined
+    }
+    // Fallback to currentGroup from route context
+    if (currentGroup?.id) {
+      return [currentGroup.id]
+    }
+    // No groups available - allow all accessible topics/people
+    return undefined
+  }, [selectedGroups, currentGroup, currentPost.isPublic, currentPost.groups])
+
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
@@ -847,7 +869,7 @@ function PostEditor ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -960,6 +982,7 @@ function PostEditor ({
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={currentPost.details}
+              groupIds={groupIds}
               menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
@@ -1012,7 +1035,7 @@ function PostEditor ({
         <div className={styles.sectionLabel}>{t('Topics')}</div>
         <div className={styles.sectionTopics}>
           <TopicSelector
-            forGroups={currentPost?.groups || [currentGroup]}
+            forGroups={selectedGroups && selectedGroups.length > 0 ? selectedGroups : (currentPost?.groups || (currentGroup ? [currentGroup] : []))}
             selectedTopics={currentPost.topics}
             onChange={handleTopicSelectorOnChange}
           />
@@ -1396,7 +1419,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div className='w-full p-2 bg-black/20 rounded-md'>
+      <div className='w-full p-2 bg-darkening/20 rounded-md'>
         <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'

@@ -361,7 +361,6 @@ export default function AuthLayoutRouter (props) {
               <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
-              <Route path='groups/:groupSlug/funding-rounds/:fundingRoundId/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -492,7 +491,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </div>
 
-            <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('bg-gradient-to-b from-midground to-theme-background shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
