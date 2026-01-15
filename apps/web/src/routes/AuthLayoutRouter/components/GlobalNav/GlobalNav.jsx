@@ -425,7 +425,7 @@ export default function GlobalNav (props) {
       >
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
-          tooltip={t('Your Profile')}
+          tooltip={t('My Home')}
           url='/my'
           className={isVisible(0)}
           showTooltip={isContainerHovered}
