@@ -12,7 +12,7 @@ const themeIcons = {
   desert: Mountain,
   snow: Snowflake,
   jungle: TreePalm,
-  spring: Flower2,
+  blossom: Flower2,
   fall: Leaf,
   stone: Gem
 }

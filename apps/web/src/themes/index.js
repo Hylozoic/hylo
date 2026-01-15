@@ -267,7 +267,7 @@ export const jungleTheme = {
   }
 }
 
-export const springTheme = {
+export const blossomTheme = {
   light: {
     ...baseTheme.light,
     darkening: '270 20% 4%',
@@ -318,8 +318,8 @@ export const fallTheme = {
     foreground: '12 35% 12%',
     primary: '35 50% 93%',
     secondary: '25 58% 45%',
-    accent: '0 50% 35%',
-    selected: '37 70% 55%',
+    accent: '15 85% 55%',
+    selected: '50 75% 60%',
     focus: '200 45% 45%',
     card: '35 30% 97%',
     'card-foreground': '12 35% 12%',
@@ -337,8 +337,8 @@ export const fallTheme = {
     foreground: '35 20% 90%',
     primary: '12 25% 15%',
     secondary: '25 52% 32%',
-    accent: '0 45% 42%',
-    selected: '37 60% 45%',
+    accent: '15 85% 50%',
+    selected: '50 75% 50%',
     focus: '200 40% 50%',
     card: '20 26% 21%',
     'card-foreground': '35 20% 90%',
@@ -397,7 +397,7 @@ export const themes = {
   desert: desertTheme,
   snow: snowTheme,
   jungle: jungleTheme,
-  spring: springTheme,
+  blossom: blossomTheme,
   fall: fallTheme,
   stone: stoneTheme
 }
