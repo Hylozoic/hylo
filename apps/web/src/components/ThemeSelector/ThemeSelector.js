@@ -92,7 +92,7 @@ export default function ThemeSelector ({ className }) {
   return (
     <div className={cn('flex flex-col gap-4', className)}>
       <div className='flex items-center justify-between'>
-        <label className='text-sm font-medium'>{t('Color Scheme')}</label>
+        <label className='text-sm font-medium'>{t('Display Mode')}</label>
         <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
           <button
             onClick={() => setColorScheme('auto')}
@@ -134,7 +134,7 @@ export default function ThemeSelector ({ className }) {
       </div>
 
       <div className='space-y-2'>
-        <label className='text-sm font-medium'>{t('Theme')}</label>
+        <label className='text-sm font-medium'>{t('Color Scheme')}</label>
         <div className='grid grid-cols-1 gap-2 md:grid-cols-2'>
           {orderedThemes.map(theme => {
             const ThemeIcon = themeIcons[theme] || Palette
