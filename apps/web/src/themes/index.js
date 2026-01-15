@@ -392,14 +392,14 @@ export const stoneTheme = {
 
 export const themes = {
   default: baseTheme,
+  stone: stoneTheme,
   forest: forestTheme,
   ocean: oceanTheme,
   desert: desertTheme,
   snow: snowTheme,
   jungle: jungleTheme,
   blossom: blossomTheme,
-  fall: fallTheme,
-  stone: stoneTheme
+  fall: fallTheme
 }
 
 export const defaultTheme = 'default'
