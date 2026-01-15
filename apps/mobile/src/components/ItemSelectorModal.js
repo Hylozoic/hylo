@@ -1,9 +1,13 @@
+// DEPRECATED: This component is only used by deprecated screens.
+// Kept for reference only.
+
 import React, { useState, useImperativeHandle, useCallback } from 'react'
 import { View, Modal, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ItemSelector, { defaultColors } from 'components/ItemSelector'
 import { rhino } from '@hylo/presenters/colors'
-import { X } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { X } from 'lucide-react-native'
 
 // TODO: Make it close when pressing outside the modal: https://stackoverflow.com/a/52936928
 export const ItemSelectorModal = React.forwardRef((props = {}, ref) => {

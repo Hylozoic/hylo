@@ -52,6 +52,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import isWebView from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -90,7 +91,18 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   }
 
   return (
-    <div ref={handleRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={handleRef}
+      style={{
+        ...style,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -556,6 +568,13 @@ export default function GlobalNav (props) {
     }
   }
 
+  // Prevent default browser context menu on mobile devices
+  const handleContextMenu = (e) => {
+    if (isMobileDevice()) {
+      e.preventDefault()
+    }
+  }
+
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
   useEffect(() => {
     const nav = document.querySelector('.globalNavContainer')
@@ -564,7 +583,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
       style={{
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
@@ -641,7 +660,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -673,7 +692,7 @@ export default function GlobalNav (props) {
               }}
             >
               <RightClickMenu>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <GlobalNavItem
                     badgeCount={group.newPostCount ? '-' : 0}
                     img={group.avatarUrl}
@@ -755,7 +774,7 @@ export default function GlobalNav (props) {
               <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>
+              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
               <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (
