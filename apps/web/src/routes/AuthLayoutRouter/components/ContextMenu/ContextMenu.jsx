@@ -353,8 +353,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const isCreating = widget.id === 'creating'
 
   const handleLogout = async () => {
-    dispatch(replace('/login', null))
     await dispatch(logout())
+    dispatch(replace('/login', null))
   }
 
   // Draggable setup

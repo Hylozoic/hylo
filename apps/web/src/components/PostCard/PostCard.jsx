@@ -135,11 +135,11 @@ export default function PostCard (props) {
 
   // Chat mode action items
   const chatActionItems = useMemo(() => filter(item => isFunction(item.onClick), [
-    { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to post') },
-    { icon: <Link2 className='w-4 h-4 text-foreground' />, label: 'Copy Link', onClick: copyLink, tooltip: t('Copy link') },
-    { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave post') : t('Save post') },
-    { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag post') },
-    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete post') },
+    { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
+    { icon: <Link2 className='w-4 h-4 text-foreground' />, label: 'Copy Link', onClick: copyLink, tooltip: t('Copy Link') },
+    { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
+    { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
+    { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: t('Remove post from group') }
   ]), [post, isCreator, currentUserResponsibilities, handleSavePost, copyLink, deletePostWithConfirm, removePostWithConfirm, viewPostDetails, t])
 
@@ -211,7 +211,7 @@ export default function PostCard (props) {
           <div className='flex items-center gap-1 text-sm flex-1 justify-between'>
             <div className='flex items-center gap-1'>
               <span onClick={showCreator} className='font-bold text-base cursor-pointer hover:underline'>{post.creator?.name}</span>
-              <span className='text-foreground/50'>{t('created a')}</span>
+              <span className='text-foreground/50'>{t('created at')}</span>
               <div className='flex items-center border-2 border-foreground/20 rounded text-xs gap-0.5 capitalize px-1 text-foreground/70 py1 mr-4'>
                 <Icon name={getTypeIcon(postType)} className='w-4 h-4 text-foreground/70 items-center flex justify-center' />
                 <span className='text-foreground/70'>{postTypeName}</span>
