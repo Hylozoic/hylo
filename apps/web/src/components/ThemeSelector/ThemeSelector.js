@@ -65,6 +65,27 @@ export default function ThemeSelector ({ className }) {
     availableThemes
   } = useTheme()
 
+  const orderedThemes = useMemo(() => {
+    const priority = ['default', 'stone']
+    const seen = new Set()
+    const ordered = []
+
+    priority.forEach(theme => {
+      if (availableThemes.includes(theme)) {
+        ordered.push(theme)
+        seen.add(theme)
+      }
+    })
+
+    availableThemes.forEach(theme => {
+      if (!seen.has(theme)) {
+        ordered.push(theme)
+      }
+    })
+
+    return ordered
+  }, [availableThemes])
+
   // Get the resolved color scheme for displaying swatches
   const resolvedScheme = useMemo(() => getResolvedColorScheme(colorScheme), [colorScheme])
 
@@ -115,7 +136,7 @@ export default function ThemeSelector ({ className }) {
       <div className='space-y-2'>
         <label className='text-sm font-medium'>{t('Theme')}</label>
         <div className='grid grid-cols-1 gap-2 md:grid-cols-2'>
-          {availableThemes.map(theme => {
+          {orderedThemes.map(theme => {
             const ThemeIcon = themeIcons[theme] || Palette
             const themeColors = themes[theme]?.[resolvedScheme] || {}
 
