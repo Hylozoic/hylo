@@ -312,13 +312,13 @@ export const fallTheme = {
   light: {
     ...baseTheme.light,
     darkening: '25 40% 4%',
-    background: '35 45% 90%',
-    'context-menu-background': '37 55% 85%',
-    midground: '37 48% 94%',
+    background: '25 55% 90%',
+    'context-menu-background': '22 60% 82%',
+    midground: '25 52% 94%',
     foreground: '12 35% 12%',
     primary: '35 50% 93%',
     secondary: '25 58% 45%',
-    accent: '15 85% 55%',
+    accent: '15 90% 50%',
     selected: '50 75% 60%',
     focus: '200 45% 45%',
     card: '35 30% 97%',
@@ -326,17 +326,17 @@ export const fallTheme = {
     muted: '35 30% 87%',
     'muted-foreground': '25 35% 42%',
     'theme-background': '12 45% 10%',
-    'theme-highlight': '25 60% 40%'
+    'theme-highlight': '25 75% 40%'
   },
   dark: {
     ...baseTheme.dark,
     darkening: '12 35% 3%',
-    background: '12 28% 14%',
-    'context-menu-background': '20 35% 17%',
-    midground: '20 32% 18%',
+    background: '5 35% 16%',
+    'context-menu-background': '5 45% 20%',
+    midground: '5 40% 20%',
     foreground: '35 20% 90%',
-    primary: '12 25% 15%',
-    secondary: '25 52% 32%',
+    primary: '5 45% 18%',
+    secondary: '5 60% 30%',
     accent: '15 85% 50%',
     selected: '50 75% 50%',
     focus: '200 40% 50%',
@@ -345,7 +345,7 @@ export const fallTheme = {
     muted: '20 28% 18%',
     'muted-foreground': '25 25% 58%',
     'theme-background': '12 38% 7%',
-    'theme-highlight': '25 55% 30%'
+    'theme-highlight': '20 55% 30%'
   }
 }
 
