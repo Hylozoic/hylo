@@ -115,10 +115,10 @@ function TrackHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
-        <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
+      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
+        <div className='w-full h-full flex-1 flex flex-col'>
           {(isEnrolled || canEdit) && canViewFullTrack && (
-            <div className='flex gap-2 w-full justify-center items-center bg-darkening/20 rounded-md p-2'>
+            <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
               <Link
                 className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to=''
@@ -156,24 +156,26 @@ function TrackHome () {
             </div>
           )}
 
-          {canViewFullTrack
-            ? (
-              <Routes>
-                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-                <Route path='*' element={<AboutTab track={currentTrack} />} />
-              </Routes>
-              )
-            : (
-              <AboutTab track={currentTrack} showPaywall />
-              )}
+          <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+            <div className='w-full max-w-[750px] mx-auto pb-20'>
+              {canViewFullTrack
+                ? (
+                  <Routes>
+                    <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                    <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                    <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                    <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                    <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                    <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                    <Route path='*' element={<AboutTab track={currentTrack} />} />
+                  </Routes>
+                  )
+                : <AboutTab track={currentTrack} showPaywall />}
+            </div>
+          </div>
         </div>
 
-        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
           {!publishedAt
             ? (
               <>
@@ -231,7 +233,7 @@ function AboutTab ({ track, showPaywall = false }) {
   return (
     <>
       <div
-        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-6 pb-6 relative overflow-hidden'
+        className={cn('mt-4 w-full shadow-2xl max-w-[750px] rounded-xl flex flex-col items-center justify-end bg-cover mb-6 relative overflow-hidden', { 'min-h-[40vh] pb-6': bannerUrl })}
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
         <div className='absolute inset-0 bg-darkening/40 z-10' />

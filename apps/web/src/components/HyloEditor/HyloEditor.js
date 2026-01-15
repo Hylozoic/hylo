@@ -31,6 +31,8 @@ const HyloEditor = React.forwardRef(({
   onEnter,
   onAltEnter,
   onEscape,
+  onFocus,
+  onBlur,
   placeholder,
   readOnly,
   showMenu = false,
@@ -158,9 +160,15 @@ const HyloEditor = React.forwardRef(({
     },
     onFocus: () => {
       document.addEventListener('touchmove', onTouchMove, { passive: false })
+      if (onFocus) {
+        onFocus()
+      }
     },
     onBlur: () => {
       document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      if (onBlur) {
+        onBlur()
+      }
     },
     editorProps: {
       transformPastedHTML (html) {

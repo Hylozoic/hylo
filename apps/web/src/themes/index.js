@@ -49,7 +49,7 @@ export const baseTheme = {
     'muted-foreground': '240 5% 64.9%',
     accent: '21 79% 63%',
     'accent-foreground': '0 0% 98%',
-    destructive: '0 86.8% 59.6%;',
+    destructive: '0 86.8% 59.6%',
     'destructive-foreground': '0 0% 98%',
     error: '0 84.2% 60.2%',
     errorForeground: '0 0% 98%',
@@ -267,13 +267,139 @@ export const jungleTheme = {
   }
 }
 
+export const blossomTheme = {
+  light: {
+    ...baseTheme.light,
+    darkening: '270 20% 4%',
+    background: '270 25% 93%',
+    'context-menu-background': '280 35% 90%',
+    midground: '270 30% 97%',
+    foreground: '270 25% 12%',
+    primary: '270 30% 95%',
+    secondary: '240 45% 60%',
+    accent: '35 95% 60%',
+    selected: '280 50% 70%',
+    focus: '200 55% 50%',
+    card: '270 20% 98%',
+    'card-foreground': '270 25% 12%',
+    muted: '270 18% 90%',
+    'muted-foreground': '270 20% 45%',
+    'theme-background': '270 30% 8%',
+    'theme-highlight': '265 70% 55%'
+  },
+  dark: {
+    ...baseTheme.dark,
+    darkening: '270 25% 2%',
+    background: '270 22% 15%',
+    'context-menu-background': '280 30% 18%',
+    midground: '270 28% 19%',
+    foreground: '270 15% 92%',
+    primary: '270 18% 16%',
+    secondary: '240 40% 40%',
+    accent: '35 95% 60%',
+    selected: '280 45% 55%',
+    focus: '200 50% 55%',
+    card: '270 20% 22%',
+    'card-foreground': '270 15% 92%',
+    muted: '270 22% 19%',
+    'muted-foreground': '270 18% 62%',
+    'theme-background': '270 28% 6%',
+    'theme-highlight': '265 70% 55%'
+  }
+}
+
+export const fallTheme = {
+  light: {
+    ...baseTheme.light,
+    darkening: '25 40% 4%',
+    background: '25 55% 90%',
+    'context-menu-background': '22 60% 82%',
+    midground: '25 52% 94%',
+    foreground: '12 35% 12%',
+    primary: '35 50% 93%',
+    secondary: '25 58% 45%',
+    accent: '15 90% 50%',
+    selected: '50 75% 60%',
+    focus: '200 45% 45%',
+    card: '35 30% 97%',
+    'card-foreground': '12 35% 12%',
+    muted: '35 30% 87%',
+    'muted-foreground': '25 35% 42%',
+    'theme-background': '12 45% 10%',
+    'theme-highlight': '25 75% 40%'
+  },
+  dark: {
+    ...baseTheme.dark,
+    darkening: '12 35% 3%',
+    background: '5 35% 16%',
+    'context-menu-background': '5 45% 20%',
+    midground: '5 40% 20%',
+    foreground: '35 20% 90%',
+    primary: '5 45% 18%',
+    secondary: '5 60% 30%',
+    accent: '15 85% 50%',
+    selected: '50 75% 50%',
+    focus: '200 40% 50%',
+    card: '20 26% 21%',
+    'card-foreground': '35 20% 90%',
+    muted: '20 28% 18%',
+    'muted-foreground': '25 25% 58%',
+    'theme-background': '12 38% 7%',
+    'theme-highlight': '20 55% 30%'
+  }
+}
+
+export const stoneTheme = {
+  light: {
+    ...baseTheme.light,
+    darkening: '0 0% 4%',
+    background: '0 0% 92%',
+    'context-menu-background': '0 0% 76%',
+    midground: '0 0% 96%',
+    foreground: '0 0% 10%',
+    primary: '0 0% 94%',
+    secondary: '0 0% 50%',
+    accent: '10 55% 60%',
+    selected: '165 30% 55%',
+    focus: '235 25% 50%',
+    card: '0 0% 98%',
+    'card-foreground': '0 0% 10%',
+    muted: '0 0% 90%',
+    'muted-foreground': '0 0% 45%',
+    'theme-background': '0 0% 8%',
+    'theme-highlight': '0 0% 3%'
+  },
+  dark: {
+    ...baseTheme.dark,
+    darkening: '0 0% 2%',
+    background: '0 0% 13%',
+    'context-menu-background': '0 0% 16%',
+    midground: '0 0% 18%',
+    foreground: '0 0% 92%',
+    primary: '0 0% 15%',
+    secondary: '0 0% 38%',
+    accent: '10 50% 55%',
+    selected: '165 35% 45%',
+    focus: '235 20% 48%',
+    card: '0 0% 21%',
+    'card-foreground': '0 0% 92%',
+    muted: '0 0% 18%',
+    'muted-foreground': '0 0% 60%',
+    'theme-background': '0 0% 6%',
+    'theme-highlight': '0 0% 28%'
+  }
+}
+
 export const themes = {
-  base: baseTheme,
+  default: baseTheme,
   forest: forestTheme,
   ocean: oceanTheme,
   desert: desertTheme,
   snow: snowTheme,
-  jungle: jungleTheme
+  jungle: jungleTheme,
+  blossom: blossomTheme,
+  fall: fallTheme,
+  stone: stoneTheme
 }
 
-export const defaultTheme = 'base'
+export const defaultTheme = 'default'

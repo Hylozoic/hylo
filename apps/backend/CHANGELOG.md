@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.2.7] - 2026-01-13
+
+### Changed
+- Make chat digests come from DoNotReply@hylo.com so they bounce back instead of us receiving them
+
 ## [6.2.6] - 2026-01-08
 
 ### Added

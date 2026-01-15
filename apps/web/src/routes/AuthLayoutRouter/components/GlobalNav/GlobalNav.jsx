@@ -444,7 +444,7 @@ export default function GlobalNav (props) {
       >
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
-          tooltip={t('Your Profile')}
+          tooltip={t('My Home')}
           url='/my'
           className={isVisible(0)}
           showTooltip={isContainerHovered}
@@ -513,7 +513,7 @@ export default function GlobalNav (props) {
         </DndContext>
 
         {/* Add a divider between pinned and unpinned groups */}
-        {pinnedGroups.length > 0 && <div className='rounded-lg bg-foreground/20 w-full mb-4 p-[2px]' />}
+        {pinnedGroups.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
 
         {/* Non-pinned Groups Section */}
         {unpinnedGroups.map((group, unpinnedIndex) => {
