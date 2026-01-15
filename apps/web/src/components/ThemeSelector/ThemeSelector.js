@@ -18,7 +18,7 @@ const themeIcons = {
 }
 
 // Colors to display as swatches for each theme
-const swatchColors = ['foreground', 'accent', 'selected', 'focus', 'theme-highlight']
+const swatchColors = ['background', 'accent', 'selected', 'focus', 'theme-highlight']
 
 /**
  * Converts HSL string (e.g., "120 15% 92%") to CSS hsl() format
