@@ -9,7 +9,7 @@ export default function ThemeTab () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: t('Theme Settings'),
+      title: t('Appearance Settings'),
       icon: '',
       info: '',
       search: false
@@ -19,7 +19,7 @@ export default function ThemeTab () {
   return (
     <div className='p-4'>
       <p className='mb-6 text-foreground/70'>
-        {t('Customize the look and feel of Hylo by choosing your preferred theme and color scheme.')}
+        {t('Customize the look and feel of Hylo by choosing your preferred display mode and color scheme.')}
       </p>
       <ThemeSelector />
     </div>
