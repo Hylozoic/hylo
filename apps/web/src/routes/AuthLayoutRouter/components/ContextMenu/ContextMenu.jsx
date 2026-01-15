@@ -753,12 +753,15 @@ function SpecialTopElementRenderer ({ widget }) {
 
     return (
       <div className='mb-2'>
-        <MenuLink to={groupUrl(groupSlug, 'settings')}>
-          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 animate-slide-up invisible'>
-            {t('Settings')}
-          </div>
-        </MenuLink>
         <ul className='mt-0 pl-0 w-full'>
+          {listItemComponent({
+            title: t('Settings'),
+            url: groupUrl(groupSlug, 'settings')
+          })}
+          {!group.avatarUrl && listItemComponent({
+            title: t('Add Avatar'),
+            url: settingsUrl
+          })}
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
             url: settingsUrl
