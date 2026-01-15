@@ -8,6 +8,7 @@ const COLOR_SCHEME_STORAGE_KEY = 'hylo-color-scheme'
 
 // Theme migration map for handling renamed themes
 const THEME_MIGRATIONS = {
+  base: 'default',
   nature: 'forest'
 }
 
