@@ -49,7 +49,7 @@ export const baseTheme = {
     'muted-foreground': '240 5% 64.9%',
     accent: '21 79% 63%',
     'accent-foreground': '0 0% 98%',
-    destructive: '0 86.8% 59.6%;',
+    destructive: '0 86.8% 59.6%',
     'destructive-foreground': '0 0% 98%',
     error: '0 84.2% 60.2%',
     errorForeground: '0 0% 98%',
