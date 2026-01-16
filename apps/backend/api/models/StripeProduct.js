@@ -162,12 +162,103 @@ module.exports = bookshelf.Model.extend({
       }
     }
 
-    // Handle roleIds - create role access records (applies to all groups in groupIds, or grantedByGroupId if no groupIds)
-    if (accessGrants.roleIds && Array.isArray(accessGrants.roleIds)) {
-      const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
-        ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
-        : [grantedByGroupIdNum] // Default to the group that owns the product
+    // Handle groupRoleIds - create role access records (applies to all groups in groupIds, or grantedByGroupId if no groupIds)
+    const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
+      ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
+      : [grantedByGroupIdNum] // Default to the group that owns the product
 
+    if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
+      /* global MemberGroupRole */
+      for (const groupIdNum of groupIdsForRoles) {
+        for (const roleId of accessGrants.groupRoleIds) {
+          // Convert roleId to integer or null
+          const roleIdNum = roleId != null ? parseInt(roleId, 10) : null
+          if (roleId != null && (isNaN(roleIdNum) || roleIdNum <= 0)) {
+            console.warn(`Invalid groupRoleId: ${roleId}, skipping`)
+            continue
+          }
+
+          // Check if the group role assignment already exists
+          const existing = await MemberGroupRole.where({
+            user_id: userIdNum,
+            group_id: groupIdNum,
+            group_role_id: roleIdNum
+          }).fetch({ transacting })
+
+          if (!existing) {
+            // Create MemberGroupRole assignment
+            await MemberGroupRole.forge({
+              user_id: userIdNum,
+              group_id: groupIdNum,
+              group_role_id: roleIdNum,
+              active: true
+            }).save(null, { transacting })
+          }
+
+          // Create content_access record to track the purchase
+          const roleRecord = await ContentAccess.recordPurchase({
+            userId: userIdNum,
+            grantedByGroupId: grantedByGroupIdNum,
+            groupId: groupIdNum,
+            productId: productIdNum,
+            groupRoleId: roleIdNum,
+            sessionId,
+            stripeSubscriptionId,
+            expiresAt: calculatedExpiresAt,
+            metadata
+          }, { transacting })
+          accessRecords.push(roleRecord)
+        }
+      }
+    }
+
+    // Handle commonRoleIds - create MemberCommonRole records for common roles
+    // Common roles are assigned via group_memberships_common_roles table, not content_access
+    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+      /* global MemberCommonRole */
+      for (const groupIdNum of groupIdsForRoles) {
+        for (const commonRoleId of accessGrants.commonRoleIds) {
+          const commonRoleIdNum = commonRoleId != null ? parseInt(commonRoleId, 10) : null
+          if (commonRoleId != null && (isNaN(commonRoleIdNum) || commonRoleIdNum <= 0)) {
+            console.warn(`Invalid commonRoleId: ${commonRoleId}, skipping`)
+            continue
+          }
+
+          // Check if the common role assignment already exists
+          const existing = await MemberCommonRole.where({
+            user_id: userIdNum,
+            group_id: groupIdNum,
+            common_role_id: commonRoleIdNum
+          }).fetch({ transacting })
+
+          if (!existing) {
+            // Create MemberCommonRole assignment
+            await MemberCommonRole.forge({
+              user_id: userIdNum,
+              group_id: groupIdNum,
+              common_role_id: commonRoleIdNum
+            }).save(null, { transacting })
+          }
+
+          // Also create a content_access record to track the purchase
+          const commonRoleRecord = await ContentAccess.recordPurchase({
+            userId: userIdNum,
+            grantedByGroupId: grantedByGroupIdNum,
+            groupId: groupIdNum,
+            productId: productIdNum,
+            commonRoleId: commonRoleIdNum,
+            sessionId,
+            stripeSubscriptionId,
+            expiresAt: calculatedExpiresAt,
+            metadata
+          }, { transacting })
+          accessRecords.push(commonRoleRecord)
+        }
+      }
+    }
+
+    // Handle legacy roleIds format (assume group roles for backwards compatibility)
+    if (accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && (!accessGrants.commonRoleIds && !accessGrants.groupRoleIds)) {
       for (const groupIdNum of groupIdsForRoles) {
         for (const roleId of accessGrants.roleIds) {
           // Convert roleId to integer or null
@@ -182,14 +273,11 @@ module.exports = bookshelf.Model.extend({
             grantedByGroupId: grantedByGroupIdNum,
             groupId: groupIdNum,
             productId: productIdNum,
-            roleId: roleIdNum,
+            groupRoleId: roleIdNum,
             sessionId,
             stripeSubscriptionId,
             expiresAt: calculatedExpiresAt,
-            metadata: {
-              ...metadata,
-              accessType: 'role'
-            }
+            metadata
           }, { transacting })
           accessRecords.push(roleRecord)
         }

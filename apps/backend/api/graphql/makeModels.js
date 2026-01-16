@@ -1657,18 +1657,35 @@ export default function makeModels (userId, isAdmin, apiClient) {
             grants = accessGrants
           }
 
-          // Extract all roleIds from all groups
-          const roleIds = []
-          if (grants.roleIds && Array.isArray(grants.roleIds)) {
-            roleIds.push(...grants.roleIds.map(id => parseInt(id)))
+          const allRoles = []
+
+          // Handle new format: separate commonRoleIds and groupRoleIds
+          if (grants.commonRoleIds && Array.isArray(grants.commonRoleIds)) {
+            const commonRoleIds = grants.commonRoleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+            if (commonRoleIds.length > 0) {
+              const commonRoles = await CommonRole.where('id', 'in', commonRoleIds).fetchAll()
+              allRoles.push(...(commonRoles.models || []))
+            }
           }
 
-          if (roleIds.length === 0) return []
+          if (grants.groupRoleIds && Array.isArray(grants.groupRoleIds)) {
+            const groupRoleIds = grants.groupRoleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+            if (groupRoleIds.length > 0) {
+              const groupRoles = await GroupRole.where('id', 'in', groupRoleIds).fetchAll()
+              allRoles.push(...(groupRoles.models || []))
+            }
+          }
 
-          // Fetch group roles
-          const groupRoles = await GroupRole.where('id', 'in', roleIds).fetchAll()
+          // Handle legacy format: roleIds (assume group roles for backwards compatibility)
+          if (grants.roleIds && Array.isArray(grants.roleIds) && (!grants.commonRoleIds && !grants.groupRoleIds)) {
+            const roleIds = grants.roleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
+            if (roleIds.length > 0) {
+              const groupRoles = await GroupRole.where('id', 'in', roleIds).fetchAll()
+              allRoles.push(...(groupRoles.models || []))
+            }
+          }
 
-          return groupRoles.models || []
+          return allRoles
         }
       }
     },
@@ -1743,11 +1760,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.where('content_access.track_id', trackId)
           }
 
-          // Filter by role ID
-          if (roleId) {
-            q.where('content_access.role_id', roleId)
-          }
-
           // Apply sorting
           const validSortColumns = {
             created_at: 'content_access.created_at',
@@ -1776,7 +1788,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         groupId: ca => ca.get('group_id'),
         offeringId: ca => ca.get('product_id'),
         trackId: ca => ca.get('track_id'),
-        roleId: ca => ca.get('role_id'),
+        groupRoleId: ca => ca.get('group_role_id'),
+        commonRoleId: ca => ca.get('common_role_id'),
         accessType: ca => ca.get('access_type'),
         stripeSessionId: ca => ca.get('stripe_session_id'),
         stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),

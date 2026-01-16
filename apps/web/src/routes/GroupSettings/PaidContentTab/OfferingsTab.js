@@ -23,7 +23,6 @@ import { createOffering, updateOffering } from './PaidContentTab.store'
 import { fetchGroupSettings, updateGroupSettings } from '../GroupSettings.store'
 import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
-import getTracksForGroup from 'store/selectors/getTracksForGroup'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
 import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
@@ -77,7 +76,6 @@ const OFFERING_SUBSCRIBERS_QUERY = `
 function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const tracks = useSelector(state => getTracksForGroup(state, { groupId: group?.id }))
   const commonRoles = useSelector(getCommonRoles)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingOffering, setEditingOffering] = useState(null)
@@ -204,13 +202,21 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Format accessGrants from line items
-      // Format: { "trackIds": [1, 2], "roleIds": [3, 4], "groupIds": [5, 6] }
+      // Format: { "trackIds": [1, 2], "commonRoleIds": [3], "groupRoleIds": [4], "groupIds": [5, 6] }
       const accessGrants = {}
       if (formData.lineItems.tracks.length > 0) {
         accessGrants.trackIds = formData.lineItems.tracks.map(track => parseInt(track.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        // Separate common roles and group roles
+        const commonRoleIds = formData.lineItems.roles.filter(r => r.type === 'common').map(r => parseInt(r.id))
+        const groupRoleIds = formData.lineItems.roles.filter(r => r.type === 'group').map(r => parseInt(r.id))
+        if (commonRoleIds.length > 0) {
+          accessGrants.commonRoleIds = commonRoleIds
+        }
+        if (groupRoleIds.length > 0) {
+          accessGrants.groupRoleIds = groupRoleIds
+        }
       }
       if (formData.lineItems.groups.length > 0) {
         accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
@@ -265,7 +271,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         accessGrants.trackIds = formData.lineItems.tracks.map(track => parseInt(track.id))
       }
       if (formData.lineItems.roles.length > 0) {
-        accessGrants.roleIds = formData.lineItems.roles.map(r => parseInt(r.id))
+        // Separate common roles and group roles
+        const commonRoleIds = formData.lineItems.roles.filter(r => r.type === 'common').map(r => parseInt(r.id))
+        const groupRoleIds = formData.lineItems.roles.filter(r => r.type === 'group').map(r => parseInt(r.id))
+        if (commonRoleIds.length > 0) {
+          accessGrants.commonRoleIds = commonRoleIds
+        }
+        if (groupRoleIds.length > 0) {
+          accessGrants.groupRoleIds = groupRoleIds
+        }
       }
       if (formData.lineItems.groups.length > 0) {
         accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
@@ -278,7 +292,10 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       const normalizeAccessGrants = (ag) => {
         const normalized = {}
         if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
-        if (ag.roleIds && ag.roleIds.length > 0) normalized.roleIds = [...ag.roleIds].sort()
+        // Handle both new format (commonRoleIds/groupRoleIds) and legacy format (roleIds)
+        if (ag.commonRoleIds && ag.commonRoleIds.length > 0) normalized.commonRoleIds = [...ag.commonRoleIds].sort()
+        if (ag.groupRoleIds && ag.groupRoleIds.length > 0) normalized.groupRoleIds = [...ag.groupRoleIds].sort()
+        if (ag.roleIds && ag.roleIds.length > 0) normalized.roleIds = [...ag.roleIds].sort() // Legacy format
         if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         return normalized
       }
@@ -333,17 +350,82 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     const offeringRoles = offering.roles || []
     const accessGrants = parseAccessGrants(offering.accessGrants)
 
+    // Get all available roles to match types (commonRoles is from component scope)
+    const groupRoles = group?.groupRoles?.items || []
+
+    // Build a map of role ID to type for quick lookup
+    const roleTypeMap = new Map()
+    commonRoles.forEach(role => roleTypeMap.set(parseInt(role.id), 'common'))
+    groupRoles.forEach(role => roleTypeMap.set(parseInt(role.id), 'group'))
+
+    // Convert roles - prefer roles relation, but also check accessGrants for type info
+    const rolesFromRelation = offeringRoles.map(role => {
+      const roleId = parseInt(role.id)
+      const type = roleTypeMap.get(roleId) || (accessGrants.commonRoleIds?.includes(roleId) ? 'common' : 'group')
+      return {
+        id: role.id,
+        name: role.name,
+        emoji: role.emoji,
+        type
+      }
+    })
+
+    // Also check accessGrants for roles that might not be in the relation (backwards compatibility)
+    const rolesFromAccessGrants = []
+    if (accessGrants.commonRoleIds) {
+      accessGrants.commonRoleIds.forEach(roleId => {
+        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
+          const commonRole = commonRoles.find(r => parseInt(r.id) === roleId)
+          if (commonRole) {
+            rolesFromAccessGrants.push({
+              id: commonRole.id,
+              name: commonRole.name,
+              emoji: commonRole.emoji,
+              type: 'common'
+            })
+          }
+        }
+      })
+    }
+    if (accessGrants.groupRoleIds) {
+      accessGrants.groupRoleIds.forEach(roleId => {
+        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
+          const groupRole = groupRoles.find(r => parseInt(r.id) === roleId)
+          if (groupRole) {
+            rolesFromAccessGrants.push({
+              id: groupRole.id,
+              name: groupRole.name,
+              emoji: groupRole.emoji,
+              type: 'group'
+            })
+          }
+        }
+      })
+    }
+    // Handle legacy roleIds format (assume group roles for backwards compatibility)
+    if (accessGrants.roleIds && !accessGrants.commonRoleIds && !accessGrants.groupRoleIds) {
+      accessGrants.roleIds.forEach(roleId => {
+        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
+          const groupRole = groupRoles.find(r => parseInt(r.id) === roleId)
+          if (groupRole) {
+            rolesFromAccessGrants.push({
+              id: groupRole.id,
+              name: groupRole.name,
+              emoji: groupRole.emoji,
+              type: 'group'
+            })
+          }
+        }
+      })
+    }
+
     // Convert tracks relation to lineItems format
     const lineItems = {
       tracks: offeringTracks.map(track => ({
         id: track.id,
         name: track.name
       })),
-      roles: offeringRoles.map(role => ({
-        id: role.id,
-        name: role.name,
-        emoji: role.emoji
-      })),
+      roles: [...rolesFromRelation, ...rolesFromAccessGrants],
       groups: (accessGrants.groupIds || []).map(groupId => {
         // For groups, we can use the current group if it matches, or create a placeholder
         if (parseInt(groupId) === parseInt(group?.id)) {
@@ -364,7 +446,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       lineItems
     })
     setShowCreateForm(false)
-  }, [group, tracks, commonRoles, t])
+  }, [group, commonRoles])
 
   const handleCancelEdit = useCallback(() => {
     setEditingOffering(null)

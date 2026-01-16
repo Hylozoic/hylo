@@ -5,7 +5,8 @@
  * {
  *   trackIds: [1, 2, 3],
  *   groupIds: [4, 5, 6],
- *   roleIds: [7, 8, 9]
+ *   commonRoleIds: [7, 8],  // Common roles (from common_roles table)
+ *   groupRoleIds: [9, 10],   // Group roles (from groups_roles table)
  * }
  */
 
@@ -134,5 +135,7 @@ export function offeringHasRoleAccess (offering) {
 
   // Fallback to parsing accessGrants
   const accessGrants = parseAccessGrants(offering.accessGrants)
-  return accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && accessGrants.roleIds.length > 0
+  const hasCommonRoles = accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds) && accessGrants.commonRoleIds.length > 0
+  const hasGroupRoles = accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds) && accessGrants.groupRoleIds.length > 0
+  return hasCommonRoles || hasGroupRoles
 }
