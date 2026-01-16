@@ -47,7 +47,7 @@ export const TopicMentions = ({ groupIds, maxSuggestions, onSelection, suggestio
 
           const findTopicsGraphql = findTopics({
             autocomplete: query,
-            groupIds: editor.extensionStorage.topic.groupIds, // TODO BUG: this doesn't seem to be a valid param
+            groupIds: editor.extensionStorage.topic.groupIds,
             maxItems: maxSuggestions
           }).graphql
           const matchedTopics = await queryHyloAPI(findTopicsGraphql)

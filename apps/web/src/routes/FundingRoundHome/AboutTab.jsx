@@ -94,7 +94,7 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
         </div>
       </div>
 
-      <div className='absolute bottom-0 left-0 right-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md z-10'>
+      <div className='absolute bottom-0 left-0 right-0 flex flex-row gap-2 mx-auto w-full max-w-[800px] px-4 py-2 items-center bg-input rounded-t-md z-10 shadow-lg border-1 border-foreground/20'>
         {!round.publishedAt
           ? (
             <>

@@ -1,10 +1,12 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown } from 'lucide-react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart } from 'lucide-react'
 import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
+import { replace } from 'redux-first-history'
 import {
   DndContext,
   closestCenter,
@@ -32,6 +34,18 @@ import {
   PopoverContent,
   PopoverTrigger
 } from 'components/ui/popover'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger
+} from 'components/ui/dropdown-menu'
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
@@ -42,6 +56,11 @@ import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
+import logout from 'store/actions/logout'
+import { personUrl } from '@hylo/navigation'
+import { useTheme } from 'contexts/ThemeContext'
+import { getLocaleFromLocalStorage } from 'util/locale'
+import updateUserSettings from 'store/actions/updateUserSettings'
 
 import styles from './GlobalNav.module.scss'
 
@@ -86,6 +105,154 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 }
 
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
+
+// Settings Menu Component
+function SettingsMenu ({ currentUser }) {
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, availableThemes } = useTheme()
+  const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
+
+  const handleLogout = async () => {
+    await dispatch(logout())
+    dispatch(replace('/login', null))
+  }
+
+  const handleViewProfile = () => {
+    navigate(personUrl(currentUser?.id))
+  }
+
+  const handleEditProfile = () => {
+    navigate('/my/edit-profile')
+  }
+
+  const handleMyGroups = () => {
+    navigate('/my/groups')
+  }
+
+  const handleMyInvitations = () => {
+    navigate('/my/invitations')
+  }
+
+  const handleNotificationSettings = () => {
+    navigate('/my/notifications')
+  }
+
+  const handleBlockedUsers = () => {
+    navigate('/my/blocked-users')
+  }
+
+  const handleSavedSearches = () => {
+    navigate('/my/saved-searches')
+  }
+
+  const handleAccountSettings = () => {
+    navigate('/my/account')
+  }
+
+  const handleLanguageChange = (locale) => {
+    i18n.changeLanguage(locale)
+    getLocaleFromLocalStorage(locale)
+    if (currentUser) {
+      dispatch(updateUserSettings({ settings: { locale } }))
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
+          <Settings className='w-6 h-6' />
+        </span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side='right' align='start' className='min-w-[200px] bg-card'>
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className='mr-2 h-4 w-4' />
+          <span>{t('Logout')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleViewProfile}>
+          <User className='mr-2 h-4 w-4' />
+          <span>{t('View Profile')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleEditProfile}>
+          <Edit className='mr-2 h-4 w-4' />
+          <span>{t('Edit Profile')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleMyGroups}>
+          <Users className='mr-2 h-4 w-4' />
+          <span>{t('My Groups')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleMyInvitations}>
+          <Mail className='mr-2 h-4 w-4' />
+          <span>{t('My Invites')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleNotificationSettings}>
+          <BellIcon className='mr-2 h-4 w-4' />
+          <span>{t('Notifications')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Palette className='mr-2 h-4 w-4' />
+            <span>{t('Appearance')}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className='bg-card'>
+            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
+            <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
+              <DropdownMenuRadioItem value='auto'>
+                {t('System')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='light'>
+                {t('Light')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='dark'>
+                {t('Dark')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
+            <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
+              {availableThemes.map(theme => (
+                <DropdownMenuRadioItem key={theme} value={theme} className='capitalize'>
+                  {t(theme)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Languages className='mr-2 h-4 w-4' />
+            <span>{t('Language')}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className='bg-card'>
+            <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
+              <DropdownMenuRadioItem value='en'>
+                🇬🇧 {t('English')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='es'>
+                🇪🇸 {t('Spanish')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuItem onClick={handleBlockedUsers}>
+          <UserX className='mr-2 h-4 w-4' />
+          <span>{t('Blocked Users')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSavedSearches}>
+          <Search className='mr-2 h-4 w-4' />
+          <span>{t('Saved Searches')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleAccountSettings}>
+          <Shield className='mr-2 h-4 w-4' />
+          <span>{t('Account Settings')}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 export default function GlobalNav (props) {
   const { currentUser } = props
@@ -397,16 +564,12 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
       style={{
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
-      onClick={handleClick}
-      onMouseLeave={handleContainerMouseLeave}
-      onMouseEnter={handleContainerMouseEnter}
-      onTouchStart={handleContainerTouchStart}
-      onTouchEnd={handleContainerTouchEnd}
     >
+      <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
       <div className='absolute top-0 right-0 w-4 h-full bg-gradient-to-l from-theme-background/10 to-theme-background/0 z-20' />
       <div
         ref={navContainerRef}
@@ -420,11 +583,15 @@ export default function GlobalNav (props) {
           paddingRight: scrollbarWidth > 0 ? `calc(0.75rem - ${scrollbarWidth}px + 2px)` : undefined,
           paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
         }}
+        onClick={handleClick}
+        onMouseLeave={handleContainerMouseLeave}
         onMouseEnter={handleContainerMouseEnter}
+        onTouchStart={handleContainerTouchStart}
+        onTouchEnd={handleContainerTouchEnd}
       >
         <GlobalNavItem
           img={get('avatarUrl', currentUser)}
-          tooltip={t('Your Profile')}
+          tooltip={t('My Home')}
           url='/my'
           className={isVisible(0)}
           showTooltip={isContainerHovered}
@@ -493,7 +660,7 @@ export default function GlobalNav (props) {
         </DndContext>
 
         {/* Add a divider between pinned and unpinned groups */}
-        {pinnedGroups.length > 0 && <div className='rounded-lg bg-foreground/20 w-full mb-4 p-[2px]' />}
+        {pinnedGroups.length > 0 && <div className='rounded-lg bg-background/50 dark:bg-foreground/20 w-full mb-4 p-[2px]' />}
 
         {/* Non-pinned Groups Section */}
         {unpinnedGroups.map((group, unpinnedIndex) => {
@@ -566,7 +733,7 @@ export default function GlobalNav (props) {
 
         <Popover>
           <PopoverTrigger>
-            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
+            <div className={cn('bg-primary relative z-20 transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-foreground/0 hover:border-foreground/50')}>
               <PlusCircle className='w-7 h-7' />
             </div>
           </PopoverTrigger>
@@ -575,19 +742,21 @@ export default function GlobalNav (props) {
           </PopoverContent>
         </Popover>
 
+        <SettingsMenu currentUser={currentUser} />
+
         <Popover>
           <PopoverTrigger>
-            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-14 min-h-10 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50')}>
-              <HelpCircle className='w-7 h-7' />
+            <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50')}>
+              <HelpCircle className='w-6 h-6' />
             </span>
           </PopoverTrigger>
           <PopoverContent side='right' align='start'>
             <ul className='flex flex-col gap-2 m-0 p-0'>
-              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50' onClick={handleSupportClick}>{t('Feedback & Support')}</span></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'>{t('User Guide')}</a></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'>{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50', styles[appStoreLinkClass])} onClick={downloadApp}>{t('Download App')}</span></li>
-              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'>{t('Contribute to Hylo')}</a></li>
+              <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
+              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>
+              <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (
               <ModalDialog

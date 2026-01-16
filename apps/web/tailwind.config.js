@@ -76,6 +76,7 @@ export default {
         320: '320px'
       },
       borderWidth: {
+        1: '1px',
         3: '3px'
       },
       borderRadius: {
