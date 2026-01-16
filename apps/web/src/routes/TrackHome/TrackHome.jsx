@@ -101,10 +101,10 @@ function TrackHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
-        <div className='w-full h-full max-w-[750px] mx-auto flex-1 flex flex-col'>
+      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
+        <div className='w-full h-full flex-1 flex flex-col'>
           {(isEnrolled || canEdit) && canViewFullTrack && (
-            <div className='flex gap-2 w-full justify-center items-center bg-darkening/20 rounded-md p-2'>
+            <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
               <Link
                 className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
                 to=''
@@ -144,56 +144,60 @@ function TrackHome () {
 
           {canViewFullTrack
             ? (
-              <Routes>
-                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-                <Route path='*' element={<AboutTab track={currentTrack} />} />
-              </Routes>
+              <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+                <div className='w-full max-w-[750px] mx-auto pb-20'>
+                  <Routes>
+                    <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                    <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                    <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                    <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                    <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                    <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                    <Route path='*' element={<AboutTab track={currentTrack} />} />
+                  </Routes>
+                </div>
+              </div>
               )
             : (
               <AboutTab track={currentTrack} showPaywall />
               )}
         </div>
 
-        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
-          {!publishedAt && (
-            <>
-              <span className='flex-1'>{t('This track is not yet published')}</span>
-              <Button
-                variant='secondary'
-                onClick={(e) => handlePublishTrack(new Date().toISOString())}
-              >
-                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-              </Button>
-            </>
-          )}
-          {publishedAt && didComplete && (
-            <>
-              <Check className='w-4 h-4 text-selected' />
-              <span>{t('You completed this track')}</span>
-            </>
-          )}
-          {publishedAt && !didComplete && isEnrolled && (
-            <div className='flex flex-row gap-2 items-center justify-between w-full'>
-              <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-              <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-            </div>
-          )}
-          {publishedAt && !didComplete && !isEnrolled && hasAccess && (
-            <div className='flex flex-row gap-2 items-center justify-between w-full'>
-              <span>{t('Ready to jump in?')}</span>
-              <button
-                className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center'
-                onClick={handleEnrollInTrack}
-              >
-                <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
-              </button>
-            </div>
-          )}
+        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
+          {!publishedAt
+            ? (
+              <>
+                <span className='flex-1'>{t('This track is not yet published')}</span>
+                <Button
+                  variant='secondary'
+                  onClick={(e) => handlePublishTrack(new Date().toISOString())}
+                >
+                  <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+                </Button>
+              </>
+              )
+            : didComplete
+              ? (
+                <>
+                  <Check className='w-4 h-4 text-selected' />
+                  <span>{t('You completed this track')}</span>
+                </>
+                )
+              : isEnrolled
+                ? (
+                  <>
+                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                    </div>
+                  </>
+                  )
+                : hasAccess && (
+                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                    <span>{t('Ready to jump in?')}</span>
+                    <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                  </div>
+                  )}
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
@@ -209,7 +213,7 @@ function AboutTab ({ track, showPaywall = false }) {
   return (
     <>
       <div
-        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-6 pb-6 relative overflow-hidden'
+        className={cn('mt-4 w-full shadow-2xl max-w-[750px] rounded-xl flex flex-col items-center justify-end bg-cover mb-6 relative overflow-hidden', { 'min-h-[40vh] pb-6': bannerUrl })}
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
         <div className='absolute inset-0 bg-darkening/40 z-10' />

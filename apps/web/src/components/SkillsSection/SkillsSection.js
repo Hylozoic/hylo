@@ -51,7 +51,7 @@ class SkillsSection extends Component {
     } = this.props
 
     return (
-      <div className={cn(classes.pillContainer, classes.expanded)}>
+      <div className={cn('relative w-full', classes.expanded)}>
         <Pillbox
           pills={map(skills, skill => ({ ...skill, label: skill.name }))}
           handleInputChange={this.handleInputChange}

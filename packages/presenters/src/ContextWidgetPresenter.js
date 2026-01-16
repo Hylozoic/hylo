@@ -283,7 +283,6 @@ export function wrapItemInWidget (item, type) {
 }
 
 // Static widgets and widget data
-const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
 export const PUBLIC_CONTEXT_WIDGETS = [
   { type: 'home', url: '/public/stream' },
