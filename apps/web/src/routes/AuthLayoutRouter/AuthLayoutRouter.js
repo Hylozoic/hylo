@@ -349,7 +349,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
