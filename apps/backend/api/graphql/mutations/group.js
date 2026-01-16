@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql'
 import GroupService from '../../services/GroupService'
+import InvitationService from '../../services/InvitationService'
 import convertGraphqlData from './convertGraphqlData'
 import underlyingDeleteGroupTopic from '../../models/group/deleteGroupTopic'
 import {
@@ -91,16 +92,39 @@ export async function deleteGroupRelationship (userId, parentId, childId, contex
   throw new GraphQLError("You don't have permission to do this")
 }
 
-// Called when a user joins an open group
-export async function joinGroup (groupId, userId, questionAnswers, context) {
+/**
+ * Join a group. For Open groups, anyone can join directly.
+ * For Restricted groups, a valid accessCode or invitationToken is required (pre-approved).
+ * @param groupId {string} the group to join
+ * @param userId {string} the user joining
+ * @param questionAnswers {array} answers to join questions
+ * @param accessCode {string} optional access code for pre-approved join
+ * @param invitationToken {string} optional invitation token for pre-approved join
+ * @param acceptAgreements {boolean} if true, record that user has accepted group agreements
+ * @param context {object} GraphQL context
+ */
+export async function joinGroup (groupId, userId, questionAnswers, accessCode, invitationToken, acceptAgreements, context) {
   const user = await User.find(userId)
   if (!user) throw new GraphQLError(`User id ${userId} not found`)
   const group = await Group.find(groupId)
   if (!group) throw new GraphQLError(`Group id ${groupId} not found`)
-  // TODO: what about hidden groups? can you join them? for now we are going with yes if not closed
-  if (group.get('accessibility') !== Group.Accessibility.OPEN) {
-    throw new GraphQLError('You do not have permisson to do that')
+
+  // Check if user has a valid invitation for pre-approved join
+  let hasValidInvitation = false
+  if (accessCode || invitationToken) {
+    const inviteCheck = await InvitationService.check(invitationToken, accessCode)
+    // Validate the invitation is for this specific group
+    if (inviteCheck?.valid && inviteCheck?.groupSlug === group.get('slug')) {
+      hasValidInvitation = true
+    }
   }
+
+  // For non-Open groups, require a valid invitation
+  if (group.get('accessibility') !== Group.Accessibility.OPEN && !hasValidInvitation) {
+    throw new GraphQLError('You do not have permission to do that')
+  }
+
+  // TODO STRIPE: We need to think through how this joinGroup mutation will be impacted by paywall
   // Make sure user is first a member of all prerequisite groups
   const prerequisiteGroups = await group.prerequisiteGroups().fetch()
   await Promise.map(prerequisiteGroups.models, async (prereq) => {
@@ -110,11 +134,16 @@ export async function joinGroup (groupId, userId, questionAnswers, context) {
     }
   })
 
-  const result = await user.joinGroup(group, { questionAnswers })
+  const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+
+  // Record agreement acceptance if user accepted agreements during join flow
+  if (acceptAgreements && membership) {
+    await membership.acceptAgreements()
+  }
 
   // Subscription publishing for group joins is handled in the background job Group.afterAddMembers
 
-  return result
+  return membership
 }
 
 export async function regenerateAccessCode (userId, groupId) {

@@ -2,12 +2,17 @@ import React, { useEffect, useState } from 'react'
 import Div100vh from 'react-div-100vh'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import checkIsPublicGroup from 'store/actions/checkIsPublicGroup'
+import checkIsGroupViewable from 'store/actions/checkIsGroupViewable'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import Loading from 'components/Loading'
 import GroupDetail from 'routes/GroupDetail'
 import PublicPageHeader from './PublicPageHeader'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 
+/**
+ * Public group detail page - shows group about page for non-authenticated users
+ * Allows access to restricted/hidden groups when valid invitation params are present
+ */
 export default function PublicGroupDetail (props) {
   const dispatch = useDispatch()
   const routeParams = useParams()
@@ -16,18 +21,27 @@ export default function PublicGroupDetail (props) {
   const [loading, setLoading] = useState(true)
   const groupSlug = routeParams?.groupSlug
 
+  // Read invitation params from URL (passed by JoinGroup redirect)
+  const accessCode = getQuerystringParam('accessCode', location)
+  const invitationToken = getQuerystringParam('token', location)
+  const hasInvitationParams = !!(accessCode || invitationToken)
+
   useEffect(() => {
     (async () => {
       setLoading(true)
-      const result = await dispatch(checkIsPublicGroup(groupSlug))
-      const isPublicGroup = result?.payload?.data?.group?.visibility === 2
-      if (!isPublicGroup) {
+      // Pass invitation params to allow fetching restricted/hidden groups
+      const result = await dispatch(checkIsGroupViewable(groupSlug, { accessCode, invitationToken }))
+      const groupData = result?.payload?.data?.group
+      const isPublicGroup = groupData?.visibility === 2
+
+      // Allow access if group is public OR if we have valid invitation params and group was returned
+      if (!isPublicGroup && !(hasInvitationParams && groupData)) {
         navigate('/login?returnToUrl=' + location.pathname + location.search, { replace: true })
       }
 
       setLoading(false)
     })()
-  }, [groupSlug, location.pathname, location.search])
+  }, [groupSlug, location.pathname, location.search, accessCode, invitationToken, hasInvitationParams])
 
   if (loading) {
     return <Loading />

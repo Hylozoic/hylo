@@ -19,6 +19,7 @@ export default function acceptInvitation (inviteCodes = {}) {
                 accessibility
                 name
                 purpose
+                paywall
                 settings {
                   agreementsLastUpdatedAt
                   allowGroupInvites

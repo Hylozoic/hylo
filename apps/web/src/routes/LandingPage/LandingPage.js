@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Widget from 'components/Widget'
+import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import fetchGroupForLandingPage from 'store/actions/fetchGroupForLandingPage'
@@ -26,6 +27,7 @@ const LandingPage = () => {
   const fetchPostsParam = useMemo(() => ({ slug: groupSlug, context: 'groups', sortBy: 'created' }), [groupSlug])
   const groupSelector = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = useMemo(() => presentGroup(groupSelector), [groupSelector])
+  const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
   // const isAboutOpen = !!params.detailGroupSlug
   const canEdit = useSelector(state => hasResponsibilityForGroup(state, { groupId: group.id, responsibility: [RESP_ADMINISTRATION, RESP_MANAGE_CONTENT] }))
   const _posts = useSelector(state => getPosts(state, fetchPostsParam))
@@ -54,6 +56,15 @@ const LandingPage = () => {
   }, [])
 
   if (!group || widgets.length === 0) return <Loading />
+
+  // Show paywall offerings if group is paywalled and user doesn't have access
+  if (group?.paywall && !hasAccess) {
+    return (
+      <div className='p-4'>
+        <PaywallOfferingsSection group={group} />
+      </div>
+    )
+  }
 
   return (
     <div>

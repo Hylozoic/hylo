@@ -53,6 +53,7 @@ I'm inviting you to join {{name}} on Hylo.
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
   const [message, setMessage] = useState(defaultMessage)
+  const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const sendingRef = useRef(false)
@@ -69,7 +70,19 @@ I'm inviting you to join {{name}} on Hylo.
     if (sendingRef.current) return
     sendingRef.current = true
 
-    createInvitations(parseEmailList(emails), message)
+    // Parse the selected role - format is "common-{id}" or "group-{id}"
+    let commonRoleId = null
+    let groupRoleId = null
+    if (selectedRoleId) {
+      const [type, id] = selectedRoleId.split('-')
+      if (type === 'common') {
+        commonRoleId = parseInt(id, 10)
+      } else if (type === 'group') {
+        groupRoleId = parseInt(id, 10)
+      }
+    }
+
+    createInvitations(parseEmailList(emails), message, commonRoleId, groupRoleId)
       .then(res => {
         sendingRef.current = false
         const { invitations } = res.payload.data.createInvitation
@@ -88,6 +101,7 @@ I'm inviting you to join {{name}} on Hylo.
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
+        setSelectedRoleId('') // Reset role selection after sending
       })
   }
 
@@ -228,6 +242,23 @@ I'm inviting you to join {{name}} on Hylo.
           disabled={pendingCreate}
           onChange={(event) => setMessage(event.target.value)}
         />
+        <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
+        <select
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+          value={selectedRoleId}
+          disabled={pendingCreate}
+          onChange={(event) => setSelectedRoleId(event.target.value)}
+        >
+          <option value=''>{t('No special role')}</option>
+          <option value='common-1'>{t('Coordinator')}</option>
+          <option value='common-2'>{t('Moderator')}</option>
+          <option value='common-3'>{t('Host')}</option>
+          {group.groupRoles?.items?.filter(role => role.active).map(role => (
+            <option key={`group-${role.id}`} value={`group-${role.id}`}>
+              {role.emoji ? `${role.emoji} ` : ''}{role.name}
+            </option>
+          ))}
+        </select>
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
             {errorMessage && <span className={classes.error}>{errorMessage}</span>}

@@ -16,8 +16,18 @@ module.exports = async function checkAndSetMembership (req, res, next) {
 
   const { userId } = req.session
   const membership = await GroupMembership.forPair(userId, group).fetch()
-  if (membership) return next()
+  if (!membership) {
+    sails.log.debug(`policy: checkAndSetMembership: no membership. user ${userId}, group ${group.id}`)
+    return res.forbidden()
+  }
 
-  sails.log.debug(`policy: checkAndSetMembership: fail. user ${req.session.userId}, group ${group.id}`)
-  res.forbidden()
+  // For paywalled groups, also check that user has proper scope access
+  // (membership alone is not enough - they need active content access)
+  const hasAccess = await group.canAccess(userId)
+  if (!hasAccess) {
+    sails.log.debug(`policy: checkAndSetMembership: paywall access denied. user ${userId}, group ${group.id}`)
+    return res.forbidden()
+  }
+
+  return next()
 }
