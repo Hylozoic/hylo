@@ -3,9 +3,9 @@ import { uniqueId } from 'lodash'
 import React, { forwardRef, useState, useRef, useCallback } from 'react'
 import { Tooltip } from 'react-tooltip'
 import Icon from 'components/Icon'
-import classes from './Pill.module.scss'
 import { cn } from 'util/index'
 
+// Renders a pill-style label that can be removed or tapped for search while showing a tooltip.
 const Pill = forwardRef(({
   id,
   label,
@@ -83,21 +83,28 @@ const Pill = forwardRef(({
     setIsTooltipOpen(false)
   }, [])
 
+  const rootClassName = cn(
+    'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50 group',
+    className,
+    editable && 'cursor-pointer pr-6',
+    removing && 'border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive hover:border-destructive'
+  )
+
+  const iconClassName = cn(
+    'absolute right-[5px] top-[5px] text-[16px] font-bold p-1 rounded-sm align-top transition-colors cursor-pointer',
+    removing ? 'text-destructive bg-destructive hover:text-destructive hover:bg-destructive' : 'text-transparent group-hover:text-foreground'
+  )
+
   return (
     <div
-      className={cn(
-        'text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50',
-        className,
-        classes.pill,
-        { [classes.removing]: removing, [classes.editable]: editable }
-      )}
+      className={rootClassName}
       onMouseLeave={mouseOut}
       ref={ref}
     >
       <span
         data-tooltip-html={tooltipContent}
         data-tooltip-id={tooltipId}
-        className={classes.displayLabel}
+        className='text-inherit'
         onClick={providedOnClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -107,7 +114,7 @@ const Pill = forwardRef(({
       </span>
       {editable &&
         <Icon
-          className={cn(classes.removeLabel, { [classes.removing]: removing })}
+          className={iconClassName}
           tooltipContent='Double click to delete'
           tooltipId={tooltipId}
           name='Trash'
