@@ -84,7 +84,7 @@ const Pill = forwardRef(({
   }, [])
 
   const rootClassName = cn(
-    'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50 group',
+    'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 hover:opacity-100 scale-100 transition-all hover:cursor-pointer hover:bg-selected/50 z-0 hover:z-50 group user-select-none',
     className,
     editable && 'cursor-pointer pr-6',
     removing && 'border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive hover:border-destructive'
