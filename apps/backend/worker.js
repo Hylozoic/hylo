@@ -60,9 +60,9 @@ function setupQueue (name, handler) {
 
 const throttledLog = throttle(error => {
   if (rollbar.disabled) {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
   } else {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
     rollbar.error(error)
   }
 }, 30000)
@@ -85,3 +85,16 @@ setTimeout(() => {
     }
   })
 }, Number(process.env.DELAY_START || 0) * 1000)
+
+// Ensure queue cleanup on unexpected process exits
+process.on('uncaughtException', (err) => {
+  sails.log.error('Uncaught exception:', err)
+  queue.shutdown(5000, () => {
+    process.exit(1)
+  })
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  sails.log.error('Unhandled rejection at:', promise, 'reason:', reason)
+  // Don't exit on unhandled rejection, but log it
+})

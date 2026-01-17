@@ -32,7 +32,10 @@ const TYPE = {
   DonationTo: 'donation to',
   DonationFrom: 'donation from',
   TrackCompleted: 'trackCompleted',
-  TrackEnrollment: 'trackEnrollment'
+  TrackEnrollment: 'trackEnrollment',
+  FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
+  FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
+  FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline
 }
 
 const MEDIUM = {
@@ -76,6 +79,10 @@ module.exports = bookshelf.Model.extend({
 
   track: function () {
     return this.related('activity').related('track')
+  },
+
+  fundingRound: function () {
+    return this.related('activity').related('fundingRound')
   },
 
   send: async function () {
@@ -152,6 +159,12 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackEnrollmentPush()
       case 'voteReset':
         return this.sendPostPush('voteReset')
+      case 'fundingRoundNewSubmission':
+        return this.sendFundingRoundNewSubmissionPush()
+      case 'fundingRoundPhaseTransition':
+        return this.sendFundingRoundPhaseTransitionPush()
+      case 'fundingRoundReminder':
+        return this.sendFundingRoundReminderPush()
       default:
         return Promise.resolve()
     }
@@ -420,6 +433,12 @@ module.exports = bookshelf.Model.extend({
         return this.sendTrackCompletedEmail()
       case 'trackEnrollment':
         return this.sendTrackEnrollmentEmail()
+      case 'fundingRoundNewSubmission':
+        return this.sendFundingRoundNewSubmissionEmail()
+      case 'fundingRoundPhaseTransition':
+        return this.sendFundingRoundPhaseTransitionEmail()
+      case 'fundingRoundReminder':
+        return this.sendFundingRoundReminderEmail()
       default:
         return Promise.resolve()
     }
@@ -631,7 +650,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -665,7 +684,7 @@ module.exports = bookshelf.Model.extend({
       version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') },
+      sender: { name: group.get('name') + ' (via Hylo)' },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -1006,6 +1025,162 @@ module.exports = bookshelf.Model.extend({
     })
   },
 
+  sendFundingRoundNewSubmissionPush: async function () {
+    const fundingRound = this.fundingRound()
+    const post = this.post()
+    const actor = this.actor()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundNewSubmissionEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const post = this.post()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_new_submission_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    return Email.sendFundingRoundNewSubmissionEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        funding_round_title: fundingRound.get('title'),
+        funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        post: post.presentForEmail({ fundingRound, group, clickthroughParams, locale }),
+        tracking_pixel_url: Analytics.pixelUrl('Post', { userId: reader.id })
+      }
+    })
+  },
+
+  sendFundingRoundPhaseTransitionPush: async function () {
+    const fundingRound = this.fundingRound()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const meta = this.relations.activity.get('meta')
+    const phase = meta.phase
+    const alertText = PushNotification.textForFundingRoundPhaseTransition(fundingRound, phase, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundPhaseTransitionEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const meta = this.relations.activity.get('meta')
+    const phase = meta.phase
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_phase_transition_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    // Check if user has appropriate roles for the phase
+    const canSubmit = await fundingRound.canUserSubmit(reader.id)
+    const canVote = await fundingRound.canUserVote(reader.id)
+
+    const data = {
+      email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+      funding_round_title: fundingRound.get('title'),
+      funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+      group_name: group.get('name'),
+      group_avatar_url: group.get('avatar_url')
+    }
+
+    switch (phase) {
+      case 'submissions':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, canSubmit ? 'submissions' : null) + clickthroughParams
+        data.button_text = canSubmit
+          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'submissions' })
+          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'submissions' })
+        break
+      case 'discussion':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
+        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'discussion' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'discussion' })
+        break
+      case 'voting':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, canVote ? 'voting' : null) + clickthroughParams
+        data.button_text = canVote
+          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'voting' })
+          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'voting' })
+        break
+      case 'completed':
+        data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
+        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'completed' })
+        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'completed' })
+        break
+    }
+
+    return Email.sendFundingRoundPhaseTransitionEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data
+    })
+  },
+
+  sendFundingRoundReminderPush: async function () {
+    const fundingRound = this.fundingRound()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const meta = this.relations.activity.get('meta')
+    const reminderType = meta.reminderType
+    const alertText = PushNotification.textForFundingRoundReminder(fundingRound, reminderType, locale)
+    return this.reader().sendPushNotification(alertText, path)
+  },
+
+  sendFundingRoundReminderEmail: async function () {
+    const fundingRound = this.fundingRound()
+    const reader = this.reader()
+    const locale = this.locale()
+    const group = await fundingRound.group().fetch()
+    const meta = this.relations.activity.get('meta')
+    const reminderType = meta.reminderType
+
+    const clickthroughParams = '?' + new URLSearchParams({
+      ctt: 'funding_round_reminder_email',
+      cti: reader.id,
+      ctcn: group.get('name')
+    }).toString()
+
+    const phase = reminderType.startsWith('submissions') ? 'submissions' : 'voting'
+
+    return Email.sendFundingRoundReminderEmail({
+      email: reader.get('email'),
+      locale,
+      sender: { name: group.get('name') + ' (via Hylo)' },
+      data: {
+        email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
+        funding_round_title: fundingRound.get('title'),
+        funding_round_url: Frontend.Route.fundingRound(fundingRound, group) + clickthroughParams,
+        group_name: group.get('name'),
+        group_avatar_url: group.get('avatar_url'),
+        action_url: Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams,
+        button_text: locales[locale].fundingRoundTransitionButtonText({ phase }),
+        transition_text: locales[locale].textForFundingRoundReminder({ reminderType })
+      }
+    })
+  },
+
   shouldBeBlocked: async function () {
     if (!this.get('user_id')) return Promise.resolve(false)
 
@@ -1026,7 +1201,7 @@ module.exports = bookshelf.Model.extend({
 
   updateUserSocketRoom: async function (userId) {
     const { activity } = this.relations
-    const { actor, comment, group, otherGroup, post, track } = activity.relations
+    const { actor, comment, group, otherGroup, post, track, fundingRound } = activity.relations
     const action = Notification.priorityReason(activity.get('meta').reasons)
 
     const payload = {
@@ -1047,7 +1222,8 @@ module.exports = bookshelf.Model.extend({
             ),
             topics: post?.relations?.tags?.map(t => refineOne(t, ['id', 'name'])) || []
           },
-          track: refineOne(track, ['id', 'name'])
+          track: refineOne(track, ['id', 'name']),
+          fundingRound: refineOne(fundingRound, ['id', 'title'])
         }
       )
     }
@@ -1103,7 +1279,8 @@ module.exports = bookshelf.Model.extend({
         'activity.otherGroup',
         'activity.reader',
         'activity.actor',
-        'activity.track'
+        'activity.track',
+        'activity.fundingRound'
       ]
     })
       .then(async ns => {
@@ -1127,7 +1304,8 @@ module.exports = bookshelf.Model.extend({
     const orderedLabels = [
       'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
       'newPost', 'follow', 'followAdd', 'unfollow', 'joinRequest', 'approvedJoinRequest', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
-      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment'
+      'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
+      'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
     ]
 
     const match = label => reasons.some(r => r.match(new RegExp('^' + label)))

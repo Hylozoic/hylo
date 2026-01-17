@@ -1,18 +1,17 @@
-import React, { useRef, useCallback } from 'react'
+import isMobile from 'ismobilejs'
+import React, { useRef, useCallback, useState } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
-import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
 import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
-import Tooltip from 'components/Tooltip'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
@@ -31,9 +30,13 @@ function CommentForm ({
   const { t } = useTranslation()
   const editor = useRef()
   const dispatch = useDispatch()
+  const [isFocused, setIsFocused] = useState(false)
 
   const currentUser = useSelector(getMe)
-  const attachments = useSelector(state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const attachments = useSelector(
+    state => getAttachments(state, { type: 'comment', id: 'new', attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
@@ -42,7 +45,7 @@ function CommentForm ({
     sendIsTypingAction(true)
   }), [])
 
-  const handleOnEnter = useCallback(contentHTML => {
+  const handleSubmit = useCallback(contentHTML => {
     if (editor?.current && isEmpty(attachments) && editor.current.isEmpty()) {
       window.alert(t('You need to include text to post a comment'))
       return true
@@ -59,78 +62,84 @@ function CommentForm ({
 
   const placeholderText = placeholder || t('Add a comment...')
 
+  const handleContainerMouseDown = useCallback(event => {
+    event.preventDefault()
+    if (isFocused) return
+    editor?.current?.focus()
+  }, [editor, isFocused])
+
   return (
-    <div className={cn('flex flex-col items-center justify-between bg-input rounded-lg p-2', className)}>
-      <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
-        {currentUser
-          ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
-          : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
+    <>
+      <div
+        className={cn(
+          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
+          { 'border-2 border-focus': isFocused },
+          className
+        )}
+        onMouseDown={handleContainerMouseDown}
+      >
+        <div className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}>
+          {currentUser
+            ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
+            : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
-        <HyloEditor
-          contentHTML={editorContent}
-          onEnter={handleOnEnter}
-          className={classes.editor}
-          readOnly={!currentUser}
-          onUpdate={startTyping}
-          placeholder={placeholderText}
-          ref={editor}
-        />
+          <HyloEditor
+            contentHTML={editorContent}
+            onAltEnter={handleSubmit}
+            className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
+            readOnly={!currentUser}
+            onUpdate={startTyping}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={placeholderText}
+            ref={editor}
+          />
 
-        {!currentUser
-          ? (
-            <Link
-              to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
-              target={inIframe() ? '_blank' : ''}
-              className={classes.signupButton}
-            >
-              {t('Sign up to reply')}
-            </Link>
-            )
-          : (
-            <>
-              <div className={classes.sendMessageContainer}>
-                <Button
-                  borderRadius='6px'
-                  onClick={() => handleOnEnter(editor.current.getHTML())}
-                  className={classes.sendMessageButton}
-                  dataTip={t('You need to include text to post a comment')}
-                  dataFor='comment-submit-tt'
-                  name='send'
-                >
-                  <SendHorizontal size={18} color='white' />
-                </Button>
-                <Tooltip
-                  delay={150}
-                  position='top'
-                  id='comment-submit-tt'
+          {!currentUser
+            ? (
+              <Link
+                to={`/login?returnToUrl=${encodeURIComponent(window.location.pathname)}`}
+                target={inIframe() ? '_blank' : ''}
+                className={classes.signupButton}
+              >
+                {t('Sign up to reply')}
+              </Link>
+              )
+            : (
+              <div className='flex items-center gap-2'>
+                <div>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    onClick={() => handleSubmit(editor.current.getHTML())}
+                    className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
+                    tooltip={t('You need to include text to post a comment')}
+                  >
+                    <SendHorizontal size={18} color='white' />
+                  </Button>
+                </div>
+                <UploadAttachmentButton
+                  type='comment'
+                  id='new'
+                  allowMultiple
+                  onSuccess={addAttachmentAction}
+                  customRender={renderProps => (
+                    <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
+                  )}
                 />
               </div>
-              <UploadAttachmentButton
-                type='comment'
-                id='new'
-                allowMultiple
-                onSuccess={addAttachmentAction}
-                customRender={renderProps => (
-                  <UploadButton {...renderProps} className={classes.uploadButton} />
-                )}
-              />
-            </>
-            )}
+              )}
+        </div>
+        {currentUser && (
+          <AttachmentManager type='comment' id='new' attachmentType='image' />
+        )}
       </div>
-      {currentUser && (
-        <AttachmentManager type='comment' id='new' attachmentType='image' />
-      )}
-    </div>
+      <p className='text-xs text-foreground/50 text-end'>
+        {!isMobile.any && (navigator.platform.includes('Mac') ? t('Press Option-Enter to comment') : t('Press Alt-Enter to comment'))}
+      </p>
+    </>
   )
 }
-
-CommentForm.propTypes = {
-  createComment: PropTypes.func.isRequired,
-  className: PropTypes.string,
-  placeholder: PropTypes.string,
-  editorContent: PropTypes.string
-}
-
 function UploadButton ({
   onClick,
   loading,

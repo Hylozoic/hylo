@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -76,18 +76,24 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, trxOpts)
+    opts.trackId && Track.addPost(post, opts.trackId, trxOpts),
+
+    opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && FundingRound.addPost(post, opts.fundingRoundId, userId, trxOpts)
   ]))
     .then(() => post.isProject() && post.setProjectMembers(opts.memberIds || [], trxOpts))
-    .then(() => post.isEvent() && post.updateEventInvitees({ eventInviteeIds: opts.eventInviteeIds || [], userId, params: opts.params, trxOpts }))
+    .then(() => post.isEvent() && post.updateEventInvitees({ userIds: (opts.eventInviteeIds || []).concat(userId), inviterId: userId, opts: trxOpts }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
     .then(() => updateTagsAndGroups(post, opts.localId, trx))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
+    .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
     .then(() => Queue.classMethod('Post', 'notifySlack', { postId: post.id }))
     .then(() => Queue.classMethod('Post', 'zapierTriggers', { postId: post.id }))
-    .catch((err) => { throw new GraphQLError(`afterCreatingPost failed: ${err}`) })
+    .catch((err) => {
+      console.error('afterCreatingPost failed: ', err)
+      throw new GraphQLError(`afterCreatingPost failed: ${err}`)
+    })
 }
 
 async function updateTagsAndGroups (post, localId, trx) {
@@ -122,6 +128,15 @@ async function updateTagsAndGroups (post, localId, trx) {
     q.whereNot('user_id', post.get('user_id'))
   }).query()
 
+  // Update my tag follows (chat rooms) to mark the post as read if there are no other new posts to read
+  // Fixes bug where creating the post when outside the chat room would not show you the new post in the chat room because it didnt think there were any new posts to show
+  const myTagFollowQuery = TagFollow.query(q => {
+    q.whereIn('tag_id', tags.map('id'))
+    q.whereIn('group_id', groups.map('id'))
+    q.where('user_id', post.get('user_id'))
+    q.where('new_post_count', 0)
+  }).query()
+
   const groupMembershipQuery = GroupMembership.query(q => {
     q.whereIn('group_id', groups.map('id'))
     q.whereNot('group_memberships.user_id', post.get('user_id'))
@@ -131,6 +146,7 @@ async function updateTagsAndGroups (post, localId, trx) {
   if (trx) {
     groupTagsQuery.transacting(trx)
     tagFollowQuery.transacting(trx)
+    myTagFollowQuery.transacting(trx)
     groupMembershipQuery.transacting(trx)
   }
 
@@ -138,6 +154,7 @@ async function updateTagsAndGroups (post, localId, trx) {
     notifySockets,
     groupTagsQuery.update({ updated_at: new Date() }),
     tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    myTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }

@@ -1,6 +1,7 @@
 import { cn } from 'util/index'
 import React, { useEffect, useState } from 'react'
 import { pick } from 'lodash/fp'
+import { useTranslation } from 'react-i18next'
 import { TextHelpers } from '@hylo/shared'
 import ReactPlayer from 'react-player'
 import Highlight from 'components/Highlight'
@@ -30,6 +31,7 @@ export default function PostContent ({
   ...post
 }) {
   const [isVideo, setIsVideo] = useState()
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (linkPreview?.url) {
@@ -48,12 +50,18 @@ export default function PostContent ({
         )}
         {details && (
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML html={details} />
+            <HyloHTML className='[&>*:last-child]:mb-0' html={details} />
           </ClickCatcher>
         )}
         {editedTimestamp && (
           <div className={classes.timestamp} data-tooltip-id={`editedTip-${expanded ? 'expanded' : 'collapsed'}-${post.id}`} data-tooltip-content={exactEditedTimestamp}>
             {editedTimestamp}
+          </div>
+        )}
+        {(post.type === 'project' || post.type === 'submission') && !constrained && expanded && post.budget && (
+          <div className='mt-3 mb-2 text-sm text-foreground/80'>
+            <span className='font-semibold'>{t('Budget')}: </span>
+            {post.budget}
           </div>
         )}
         <div className='flex flex-col gap-4'>

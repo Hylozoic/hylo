@@ -4,9 +4,19 @@ const Promise = require('bluebird')
 const promisify = Promise.promisify
 const rangeByState = promisify(kue.Job.rangeByState, kue.Job)
 
+// Singleton queue instance to prevent memory leaks from creating multiple queues
+let queueInstance = null
+
+function getQueue () {
+  if (!queueInstance) {
+    queueInstance = kue.createQueue()
+  }
+  return queueInstance
+}
+
 module.exports = {
   addJob: function (name, data, delay = 2000) {
-    const queue = require('kue').createQueue()
+    const queue = getQueue()
 
     // there's a delay here because the job could be queued while an object it
     // depends upon hasn't been saved yet; but this can and should be avoided

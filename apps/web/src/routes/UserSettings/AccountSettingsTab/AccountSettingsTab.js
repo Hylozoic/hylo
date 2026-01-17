@@ -1,8 +1,12 @@
 import { trim, pick, keys, omit, find, isEmpty } from 'lodash/fp'
 import PropTypes from 'prop-types'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import CopyToClipboard from 'react-copy-to-clipboard'
+import { Tooltip } from 'react-tooltip'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import isMobile from 'ismobilejs'
+import Icon from 'components/Icon'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
@@ -34,6 +38,13 @@ function AccountSettingsTab ({
 
   const { t } = useTranslation()
   const dispatch = useDispatch()
+
+  const setTemporaryState = (setter, value) => {
+    setter(value)
+    setTimeout(() => {
+      setter(false)
+    }, 3000)
+  }
 
   const setEditState = () => {
     if (!currentUser) return
@@ -158,6 +169,25 @@ function AccountSettingsTab ({
     await updateCookieConsent(newSettings)
   }
 
+  // RSVP Calendar Subscription
+  const [rsvpCalendarSubIsEnabled, setRsvpCalendarSubIsEnabled] = useState(currentUser?.settings?.rsvpCalendarSub)
+  const [copied, setCopied] = useState(false)
+  const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser?.rsvpCalendarUrl])
+  useEffect(() => {
+    setRsvpCalendarSubIsEnabled(!!currentUser?.settings?.rsvpCalendarSub)
+  }, [currentUser?.settings?.rsvpCalendarSub])
+
+  const handleToggleRSVPCalendarSub = useCallback((checked) => {
+    setRsvpCalendarSubIsEnabled(checked)
+
+    dispatch(updateUserSettings({
+      settings: {
+        rsvpCalendarSub: checked
+      }
+    }))
+  }, [dispatch])
+  const onCopy = () => setTemporaryState(setCopied, true)
+
   const handleExportProfile = async () => {
     try {
       setState(prev => ({ ...prev, exportStatus: 'exporting' }))
@@ -220,7 +250,7 @@ function AccountSettingsTab ({
         </Button>
       </div>
 
-      <div className='pt-4 flex flex-row gap-4 items-center'>
+      <div className='pt-4 flex flex-row gap-4 flex-wrap items-center'>
         <Button
           onClick={handleExportProfile}
           disabled={state.exportStatus === 'exporting'}
@@ -368,6 +398,60 @@ function AccountSettingsTab ({
         </div>
       </SettingsSection>
       {/* ...end cookie consent section... */}
+
+      {/* Visual divider before calendar subscription section */}
+      <div className='border-t border-foreground/10 my-8' />
+
+      {/* calendar subscription section */}
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Calendar Subscription')}</h3>
+        <p className='text-foreground/70 mb-4'>
+          {t('Create a calendar subscription for your calendar client that can automatically add and update the Hylo events you are attending.')}
+        </p>
+        <div className='space-y-1'>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <div className='flex items-center gap-2'>
+                <h4 className='text-foreground font-medium'>{t('RSVP Calendar Subscription')}</h4>
+              </div>
+            </div>
+            <Switch
+              checked={rsvpCalendarSubIsEnabled}
+              onCheckedChange={handleToggleRSVPCalendarSub}
+            />
+          </div>
+
+          {rsvpCalendarSubIsEnabled && rsvpCalendarUrl && (
+            <div className={cn('flex flex-col gap-1')}>
+              <p className='text-foreground/70 text-sm'>
+                {t('Copy and paste this URL into your calendar client to automatically add your Hylo RSVPs:')}
+              </p>
+              {!copied && (
+                <>
+                  <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopy}>
+                    <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
+                      <span className='text-selected truncate w-[80%] max-w-[450px]'>{rsvpCalendarUrl}</span>
+                      <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                        <Icon name='Copy' /> Copy
+                      </div>
+                    </button>
+                  </CopyToClipboard>
+                  {!isMobile.any && (
+                    <Tooltip
+                      place='top'
+                      type='dark'
+                      id='invite-link-tooltip'
+                      effect='solid'
+                      delayShow={500}
+                    />
+                  )}
+                </>
+              )}
+              {copied && t('Copied!')}
+            </div>
+          )}
+        </div>
+      </SettingsSection>
     </div>
   )
 }

@@ -10,6 +10,7 @@ import { ScanEye } from 'lucide-react'
 import Link from '@tiptap/extension-link'
 import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
+import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
 import 'tippy.js/dist/tippy.css'
 import classes from './HyloEditor.module.scss'
@@ -30,6 +31,8 @@ const HyloEditor = React.forwardRef(({
   onEnter,
   onAltEnter,
   onEscape,
+  onFocus,
+  onBlur,
   placeholder,
   readOnly,
   showMenu = false,
@@ -134,7 +137,9 @@ const HyloEditor = React.forwardRef(({
 
     TopicMentions({ onSelection: onAddTopic, maxSuggestions, groupIds, suggestionsThemeName }),
 
-    Highlight
+    Highlight,
+
+    Video
   ]
 
   const onTouchMove = (e) => {
@@ -155,9 +160,24 @@ const HyloEditor = React.forwardRef(({
     },
     onFocus: () => {
       document.addEventListener('touchmove', onTouchMove, { passive: false })
+      if (onFocus) {
+        onFocus()
+      }
     },
     onBlur: () => {
       document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      if (onBlur) {
+        onBlur()
+      }
+    },
+    editorProps: {
+      transformPastedHTML (html) {
+        if (type === 'post') {
+          // Remove any images copied any pasted as HTML
+          return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
+        }
+        return html
+      }
     }
   })
 

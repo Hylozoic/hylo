@@ -1,5 +1,6 @@
 export default `query FetchTopics (
   $groupSlug: String,
+  $groupIds: [ID],
   $autocomplete: String,
   $isDefault: Boolean,
   $visibility: [Int],
@@ -9,6 +10,7 @@ export default `query FetchTopics (
 ) {
   topics (
     groupSlug: $groupSlug,
+    groupIds: $groupIds,
     autocomplete: $autocomplete,
     isDefault: $isDefault,
     visibility: $visibility,

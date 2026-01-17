@@ -4,6 +4,7 @@ export default
 `mutation CreatePost (
   $acceptContributions: Boolean,
   $announcement: Boolean,
+  $budget: String,
   $completionAction: String,
   $completionActionSettings: JSON,
   $details: String,
@@ -11,6 +12,7 @@ export default
   $endTime: Date,
   $eventInviteeIds: [ID],
   $fileUrls: [String],
+  $fundingRoundId: ID,
   $groupIds: [ID],
   $imageUrls: [String],
   $isAnonymousVote: Boolean,
@@ -36,6 +38,7 @@ export default
   createPost(data: {
     acceptContributions: $acceptContributions,
     announcement: $announcement,
+    budget: $budget,
     completionAction: $completionAction,
     completionActionSettings: $completionActionSettings,
     details: $details,
@@ -43,6 +46,7 @@ export default
     endTime: $endTime,
     eventInviteeIds: $eventInviteeIds,
     fileUrls: $fileUrls,
+    fundingRoundId: $fundingRoundId,
     groupIds: $groupIds,
     imageUrls: $imageUrls,
     isAnonymousVote: $isAnonymousVote,
