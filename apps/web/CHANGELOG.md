@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.0] - 2026-01-16
+
+### Added
+- New Color Schemes! You can now customize the color scheme of Hylo with 9 options to choose from.
+- New settings menu to easily access all your settings from the global nav, including changing your color scheme and language.
+
+### Changed
+- Remove Terms and Conditions from My Home menu, since you can find it easily in the ? menu
+- Improved styling of List view mode in the Stream
+- So many little UI tweaks and improvements
+
+### Fixed
+- Show track name correctly when there is no track banner image
+- Positioning of Join banner at bottom of both tracks and funding rounds
+- Enable scrolling from outside the center column of a track and funding round
+- Display of hovered chat posts in funding rounds
+- Double create modal in funding rounds
+
 ## [6.2.7] - 2026-01-12
 
 ### Changed
