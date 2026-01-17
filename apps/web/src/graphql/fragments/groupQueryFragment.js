@@ -40,6 +40,7 @@ export default function groupQueryFragment () {
       }
     }
     description
+    eventCalendarUrl
     geoShape
     invitePath
     location

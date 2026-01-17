@@ -795,6 +795,8 @@ type Group {
   createdAt: Date
   # Group description text
   description: String
+  # gets the event calendar subscription URL
+  eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
   # home widget

@@ -22,12 +22,16 @@ module.exports = bookshelf.Model.extend({
     return this.get('ical_sequence') || 0
   },
 
-  incrementIcalSequence: function () {
-    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+  incrementIcalSequence: async function () {
+    return this.save({ ical_sequence: this.getIcalSequence() + 1 })
   },
 
   notGoing: function () {
     return this.get('response') === EventInvitation.RESPONSE.NO
+  },
+
+  going: function () {
+    return EventInvitation.going(this)
   },
 
   getHumanResponse: function () {
