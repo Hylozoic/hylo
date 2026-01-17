@@ -1,11 +1,16 @@
-exports.up = async function (knex) {
-  await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+const { v4: uuidv4 } = require('uuid')
 
-  await knex.raw(`
-    UPDATE groups
-    SET calendar_token = uuid_generate_v4()::text
-    WHERE calendar_token IS NULL OR calendar_token = ''
-  `)
+exports.up = async function (knex) {
+  const groups = await knex('groups')
+    .select('id')
+    .whereNull('calendar_token')
+    .orWhere('calendar_token', '')
+
+  for (const group of groups) {
+    await knex('groups')
+      .where({ id: group.id })
+      .update({ calendar_token: uuidv4() })
+  }
 }
 
 exports.down = function (knex) {
