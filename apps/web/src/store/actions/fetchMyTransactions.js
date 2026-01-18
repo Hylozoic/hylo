@@ -13,13 +13,17 @@ query FetchMyTransactions (
   $first: Int,
   $offset: Int,
   $status: String,
-  $accessType: String
+  $accessType: String,
+  $offeringId: ID,
+  $paymentType: String
 ) {
   myTransactions (
     first: $first,
     offset: $offset,
     status: $status,
-    accessType: $accessType
+    accessType: $accessType,
+    offeringId: $offeringId,
+    paymentType: $paymentType
   ) {
     total
     hasMore
@@ -66,7 +70,9 @@ export default function fetchMyTransactions ({
   first = 50,
   offset = 0,
   status,
-  accessType
+  accessType,
+  offeringId,
+  paymentType
 } = {}) {
   return {
     type: FETCH_MY_TRANSACTIONS,
@@ -76,7 +82,9 @@ export default function fetchMyTransactions ({
         first,
         offset,
         status,
-        accessType
+        accessType,
+        offeringId,
+        paymentType
       }
     }
   }

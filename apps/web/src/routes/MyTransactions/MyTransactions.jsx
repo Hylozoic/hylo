@@ -6,7 +6,7 @@
  */
 
 import { CreditCard, ExternalLink } from 'lucide-react'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
@@ -213,14 +213,53 @@ function MyTransactions () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
 
-  // Fetch transactions on mount
-  useEffect(() => {
-    dispatch(fetchMyTransactions())
-  }, [dispatch])
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all')
+  const [offeringFilter, setOfferingFilter] = useState('all')
+  const [offset, setOffset] = useState(0)
 
   // Get transaction results from store
-  const { items: transactions, pending, error } = useSelector(getMyTransactions)
+  const { items: transactions, pending, error, total, hasMore } = useSelector(getMyTransactions)
   const loading = pending
+
+  // Extract unique values for filter dropdowns
+  const offerings = useMemo(() => {
+    const offeringsMap = new Map()
+
+    transactions.forEach(transaction => {
+      if (transaction.offering?.id) {
+        offeringsMap.set(transaction.offering.id, {
+          id: transaction.offering.id,
+          name: transaction.offeringName || transaction.offering.name
+        })
+      }
+    })
+
+    return Array.from(offeringsMap.values())
+  }, [transactions])
+
+  // Function to fetch transactions with current filters
+  const fetchTransactions = useCallback(() => {
+    const params = {
+      first: 50,
+      offset,
+      status: statusFilter !== 'all' ? statusFilter : null,
+      paymentType: paymentTypeFilter !== 'all' ? paymentTypeFilter : null,
+      offeringId: offeringFilter !== 'all' ? offeringFilter : null
+    }
+    dispatch(fetchMyTransactions(params))
+  }, [dispatch, statusFilter, paymentTypeFilter, offeringFilter, offset])
+
+  // Fetch transactions when filters or offset change
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
+
+  // Reset offset when filters change
+  useEffect(() => {
+    setOffset(0)
+  }, [statusFilter, paymentTypeFilter, offeringFilter])
 
   // Set up view header
   const { setHeaderDetails } = useViewHeader()
@@ -230,6 +269,12 @@ function MyTransactions () {
       icon: <CreditCard />
     })
   }, [setHeaderDetails, t])
+
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      setOffset(offset + 50)
+    }
+  }
 
   if (loading) {
     return (
@@ -274,13 +319,118 @@ function MyTransactions () {
       <p className='text-sm text-muted-foreground mb-2'>
         {t('Manage your purchases and subscriptions below.')}
       </p>
-      {transactions.map(transaction => (
-        <TransactionCard
-          key={transaction.id}
-          transaction={transaction}
-          t={t}
-        />
-      ))}
+
+      {/* Filters */}
+      <div className='bg-card p-4 rounded-md shadow-md'>
+        <h3 className='text-sm font-semibold text-foreground mb-4'>{t('Filters')}</h3>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+          {/* Status Filter */}
+          <div>
+            <label className='block text-sm font-medium text-foreground mb-2'>
+              {t('Status')}
+            </label>
+            <select
+              className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value='all'>{t('All Status')}</option>
+              <option value='active'>{t('Active')}</option>
+              <option value='expired'>{t('Expired')}</option>
+              <option value='revoked'>{t('Revoked')}</option>
+              <option value='refunded'>{t('Refunded')}</option>
+            </select>
+          </div>
+
+          {/* Payment Type Filter */}
+          <div>
+            <label className='block text-sm font-medium text-foreground mb-2'>
+              {t('Payment Type')}
+            </label>
+            <select
+              className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+              value={paymentTypeFilter}
+              onChange={(e) => setPaymentTypeFilter(e.target.value)}
+            >
+              <option value='all'>{t('All Types')}</option>
+              <option value='subscription'>{t('Subscription')}</option>
+              <option value='one_time'>{t('One-time purchase')}</option>
+            </select>
+          </div>
+
+          {/* Offering Filter */}
+          {offerings.length > 0 && (
+            <div>
+              <label className='block text-sm font-medium text-foreground mb-2'>
+                {t('Offering')}
+              </label>
+              <select
+                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
+                value={offeringFilter}
+                onChange={(e) => setOfferingFilter(e.target.value)}
+              >
+                <option value='all'>{t('All Offerings')}</option>
+                {offerings.map(offering => (
+                  <option key={offering.id} value={offering.id}>
+                    {offering.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Results Count */}
+      {total > 0 && (
+        <div className='text-sm text-foreground/70'>
+          {t('Showing {{count}} of {{total}} transactions', { count: transactions.length, total })}
+        </div>
+      )}
+
+      {/* Transactions List */}
+      {loading && transactions.length === 0 && (
+        <div className='flex justify-center mt-8'>
+          <Loading />
+        </div>
+      )}
+
+      {!loading && transactions.length === 0 && (
+        <div className='text-center py-12 bg-card rounded-lg border border-border'>
+          <CreditCard className='w-12 h-12 mx-auto mb-4 text-muted-foreground' />
+          <h2 className='text-lg font-medium text-foreground mb-2'>
+            {t('No transactions found')}
+          </h2>
+          <p className='text-muted-foreground'>
+            {t('Try adjusting your filters to see more results.')}
+          </p>
+        </div>
+      )}
+
+      {transactions.length > 0 && (
+        <div className='flex flex-col gap-4'>
+          {transactions.map(transaction => (
+            <TransactionCard
+              key={transaction.id}
+              transaction={transaction}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Load More Button */}
+      {hasMore && (
+        <div className='flex justify-center mt-4'>
+          <button
+            onClick={handleLoadMore}
+            disabled={loading}
+            className='px-6 py-2 bg-accent text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50'
+          >
+            {loading ? t('Loading...') : t('Load More')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

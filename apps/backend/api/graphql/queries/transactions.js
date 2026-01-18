@@ -129,11 +129,13 @@ async function enrichWithStripeData (item) {
  * @param {Object} args - Query arguments
  * @param {Number} args.first - Number of records to return
  * @param {Number} args.offset - Pagination offset
- * @param {String} args.status - Filter by status: 'active', 'expired', 'cancelled'
+ * @param {String} args.status - Filter by status: 'active', 'expired', 'revoked', 'refunded'
  * @param {String} args.accessType - Filter by access type: 'group', 'track', 'role'
+ * @param {String|Number} args.offeringId - Filter by offering/product ID
+ * @param {String} args.paymentType - Filter by payment type: 'subscription', 'one_time'
  * @returns {Promise<Object>} UserTransactionQuerySet
  */
-export async function myTransactions (userId, { first = 20, offset = 0, status, accessType }) {
+export async function myTransactions (userId, { first = 20, offset = 0, status, accessType, offeringId, paymentType }) {
   if (!userId) {
     throw new GraphQLError('You must be logged in to view transactions')
   }
@@ -149,6 +151,18 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         q.where('content_access.status', status)
       }
 
+      // Filter by offering/product ID if provided
+      if (offeringId) {
+        q.where('content_access.product_id', offeringId)
+      }
+
+      // Filter by payment type (subscription vs one_time) if provided
+      if (paymentType === 'subscription') {
+        q.whereNotNull('content_access.stripe_subscription_id')
+      } else if (paymentType === 'one_time') {
+        q.whereNull('content_access.stripe_subscription_id')
+      }
+
       // Order by purchase date, newest first
       q.orderBy('content_access.created_at', 'desc')
     })
@@ -159,6 +173,14 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
       q.where('content_access.access_type', 'stripe_purchase')
       if (status) {
         q.where('content_access.status', status)
+      }
+      if (offeringId) {
+        q.where('content_access.product_id', offeringId)
+      }
+      if (paymentType === 'subscription') {
+        q.whereNotNull('content_access.stripe_subscription_id')
+      } else if (paymentType === 'one_time') {
+        q.whereNull('content_access.stripe_subscription_id')
       }
     })
 
@@ -186,13 +208,13 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
       let derivedAccessType = 'group'
       if (record.get('track_id')) {
         derivedAccessType = 'track'
-      } else if (record.get('role_id')) {
+      } else if (record.get('group_role_id') || record.get('common_role_id')) {
         derivedAccessType = 'role'
       } else if (record.get('group_id')) {
         derivedAccessType = 'group'
       }
 
-      // Filter by accessType if provided
+      // Filter by accessType if provided (done in JS since it's derived)
       if (accessType && derivedAccessType !== accessType) {
         return null
       }

@@ -223,10 +223,14 @@ type Query {
     first: Int,
     # For pagination, start loading after this offset
     offset: Int,
-    # Filter by status: 'active', 'expired', 'cancelled'
+    # Filter by status: 'active', 'expired', 'revoked', 'refunded'
     status: String,
     # Filter by access type: 'group', 'track', 'role'
-    accessType: String
+    accessType: String,
+    # Filter by offering/product ID
+    offeringId: ID,
+    # Filter by payment type: 'subscription', 'one_time'
+    paymentType: String
   ): UserTransactionQuerySet
 
   # Query notifications for the currently logged in user
