@@ -238,7 +238,7 @@ export default function ChatPost ({
     <Highlight {...highlightProps}>
       <div
         className={cn(
-          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-2 py-1 -my-1 -mx-2 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50',
+          'ChatPost_container rounded-lg pr-[15px] pb-[1px] px-1 py-1 -my-1 -mx-1 pt-1 relative transition-all group cursor-pointer border-2 border-transparent hover:border-foreground/50',
           showHeader ? 'py-1 mt-2' : ' ',
           className,
           styles.container,
@@ -347,25 +347,29 @@ export default function ChatPost ({
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
-        <div className='w-full' onClick={handleClick}>
-          <EmojiRow
-            className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
-            post={post}
-            currentUser={currentUser}
-            onAddReaction={onAddReaction}
-            onRemoveReaction={onRemoveReaction}
-          />
-        </div>
-        {commentsTotal > 0 && (
-          <div className='w-full mt-2' onClick={handleClick}>
-            <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 xs:ml-[48px] mb-[2px] items-center justify-center inline-flex'>
-              <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
-              <span className='text-sm text-foreground' onClick={handleClick}>
-                {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+        <div className='w-full flex flex-row gap-2 justify-between'>
+          {postReactions && postReactions.length > 0 && (
+            <div onClick={handleClick}>
+              <EmojiRow
+                className={cn(styles.emojis, { [styles.noEmojis]: !postReactions || postReactions.length === 0 })}
+                post={post}
+                currentUser={currentUser}
+                onAddReaction={onAddReaction}
+                onRemoveReaction={onRemoveReaction}
+              />
+            </div>
+          )}
+          {commentsTotal > 0 && (
+            <div onClick={handleClick}>
+              <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 xs:ml-[48px] mb-[2px] items-center justify-center inline-flex'>
+                <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
+                <span className='text-sm text-foreground' onClick={handleClick}>
+                  {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}
+                </span>
               </span>
-            </span>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </Highlight>
   )
