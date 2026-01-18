@@ -31,7 +31,7 @@ module.exports = {
    *     }
    *   }
    */
-  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, roleId }) => {
+  checkContentAccess: async (sessionUserId, { userId, grantedByGroupId, groupId, productId, trackId, groupRoleId, commonRoleId }) => {
     try {
       // Check access using the model method
       const access = await ContentAccess.checkAccess({
@@ -40,7 +40,8 @@ module.exports = {
         groupId,
         productId,
         trackId,
-        roleId
+        groupRoleId,
+        commonRoleId
       })
 
       if (!access) {

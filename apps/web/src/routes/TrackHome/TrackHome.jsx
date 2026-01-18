@@ -156,10 +156,10 @@ function TrackHome () {
             </div>
           )}
 
-          <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
-            <div className='w-full max-w-[750px] mx-auto pb-20'>
-              {canViewFullTrack
-                ? (
+          {canViewFullTrack
+            ? (
+              <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+                <div className='w-full max-w-[750px] mx-auto pb-20'>
                   <Routes>
                     <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
                     <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
@@ -169,10 +169,13 @@ function TrackHome () {
                     <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
                     <Route path='*' element={<AboutTab track={currentTrack} />} />
                   </Routes>
-                  )
-                : <AboutTab track={currentTrack} showPaywall />}
-            </div>
-          </div>
+                </div>
+              </div>
+              )
+            : (
+              <AboutTab track={currentTrack} showPaywall />
+              )}
+>>>>>>> 604-paid-content
         </div>
 
         <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
@@ -204,7 +207,7 @@ function TrackHome () {
                     </div>
                   </>
                   )
-                : (
+                : hasAccess && (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
                     <button
