@@ -279,8 +279,18 @@ function PostEditor ({
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    return groupOptions
+    // Sort groups so currentGroup appears first, then alphabetically
+    const sortedGroups = [...groupOptions]
       .filter(Boolean)
+      .sort((a, b) => {
+        const aIsCurrent = a.id === currentGroup?.id
+        const bIsCurrent = b.id === currentGroup?.id
+        if (aIsCurrent && !bIsCurrent) return -1
+        if (!aIsCurrent && bIsCurrent) return 1
+        return a.name.localeCompare(b.name)
+      })
+
+    return sortedGroups
       .map((g) => {
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
@@ -298,7 +308,7 @@ function PostEditor ({
             .filter(Boolean)
             .sort((a, b) => a.name.localeCompare(b.name)))
       }).flat()
-  }, [groupOptions])
+  }, [groupOptions, currentGroup?.id])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
