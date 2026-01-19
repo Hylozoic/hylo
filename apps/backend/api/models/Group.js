@@ -686,6 +686,7 @@ module.exports = bookshelf.Model.extend(merge({
       // Create stream widget as child of home widget
       await ContextWidget.forge({
         group_id: this.id,
+        title: 'widget-stream',
         view: 'stream',
         parent_id: homeWidget.id,
         order: 1,
@@ -696,6 +697,7 @@ module.exports = bookshelf.Model.extend(merge({
       // Create map widget as child of home widget
       await ContextWidget.forge({
         group_id: this.id,
+        title: 'widget-map',
         type: 'map',
         view: 'map',
         parent_id: homeWidget.id,
