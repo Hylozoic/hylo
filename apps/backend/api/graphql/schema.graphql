@@ -34,7 +34,8 @@ type Query {
     groupId: ID,
     productId: ID,
     trackId: ID,
-    roleId: ID
+    groupRoleId: ID,
+    commonRoleId: ID
   ): ContentAccessCheckResult
 
   # Check if a group invitation is still valid
@@ -61,8 +62,10 @@ type Query {
     offeringId: ID,
     # Filter by track ID
     trackId: ID,
-    # Filter by role ID
-    roleId: ID,
+    # Filter by group role ID
+    groupRoleId: ID,
+    # Filter by common role ID
+    commonRoleId: ID,
     # Number of records to return
     first: Int,
     # For pagination, start loading after this offset
@@ -1316,8 +1319,10 @@ type Group {
     offeringId: ID,
     # Filter by track ID
     trackId: ID,
-    # Filter by role ID
-    roleId: ID,
+    # Filter by group role ID
+    groupRoleId: ID,
+    # Filter by common role ID
+    commonRoleId: ID,
     # Number of records to return
     first: Int,
     # For pagination, start loading after this offset
@@ -1961,7 +1966,7 @@ type MembershipCommonRole {
   createdAt: Date
   group: Group
   groupId: ID
-  # same as commonRoleId
+  # same as commonRoleId (for backwards compatibility)
   roleId: ID
   updatedAt: Date
   user: Person
@@ -1985,7 +1990,7 @@ type MembershipGroupRole {
   groupId: ID
   groupRoleId: ID
   groupRole: GroupRole
-  # same as groupRoleId
+  # same as groupRoleId (for backwards compatibility)
   roleId: ID
   updatedAt: Date
   user: Person
@@ -2835,9 +2840,12 @@ type ContentAccess {
   # Track access is for (optional)
   track: Track
   trackId: ID
-  # Role access is for (optional)
-  role: GroupRole
-  roleId: ID
+  # Group role access is for (optional)
+  groupRole: GroupRole
+  groupRoleId: ID
+  # Common role access is for (optional)
+  commonRole: CommonRole
+  commonRoleId: ID
   # How access was granted: stripe_purchase or admin_grant
   accessType: String
   # Stripe session ID (for purchases)
@@ -2867,7 +2875,8 @@ type ContentAccessResult {
   groupId: ID
   productId: ID
   trackId: ID
-  roleId: ID
+  groupRoleId: ID
+  commonRoleId: ID
   accessType: String
   status: String
   success: Boolean
@@ -3172,7 +3181,8 @@ type Mutation {
     groupId: ID,
     productId: ID,
     trackId: ID,
-    roleId: ID,
+    groupRoleId: ID,
+    commonRoleId: ID,
     expiresAt: Date,
     reason: String
   ): ContentAccessResult
@@ -3193,7 +3203,8 @@ type Mutation {
     groupId: ID,
     productId: ID,
     trackId: ID,
-    roleId: ID,
+    groupRoleId: ID,
+    commonRoleId: ID,
     sessionId: String!,
     stripeSubscriptionId: String,
     amountPaid: Int,

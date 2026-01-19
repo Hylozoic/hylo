@@ -83,13 +83,11 @@ module.exports = {
       }
 
       // Must provide either groupId, productId, trackId, groupRoleId, or commonRoleId
-      // roleId is kept for backwards compatibility - if provided, treat as groupRoleId
-      if (!groupId && !productId && !trackId && && !groupRoleId && !commonRoleId) {
+      if (!groupId && !productId && !trackId && !groupRoleId && !commonRoleId) {
         throw new GraphQLError('Must specify either groupId, productId, trackId, groupRoleId, or commonRoleId')
       }
 
       // Grant access using the ContentAccess model
-      // roleId is kept for backwards compatibility - if provided, treat as groupRoleId
       const access = await ContentAccess.grantAccess({
         userId,
         grantedByGroupId,
@@ -262,7 +260,8 @@ module.exports = {
         groupId,
         productId,
         trackId,
-        roleId,
+        groupRoleId: access.get('group_role_id'),
+        commonRoleId: access.get('common_role_id'),
         accessType: access.get('access_type'),
         status: access.get('status'),
         success: true,
@@ -341,7 +340,8 @@ module.exports = {
    *       groupId: "789"  // optional
    *       productId: "789"
    *       trackId: "101"  // optional
-   *       roleId: "202"   // optional
+   *       groupRoleId: "202"   // optional
+   *       commonRoleId: "203"   // optional
    *       sessionId: "cs_xxx"
    *       stripeSubscriptionId: "sub_xxx"  // optional, for recurring
    *     ) {
@@ -356,7 +356,8 @@ module.exports = {
     groupId,
     productId,
     trackId,
-    roleId,
+    groupRoleId,
+    commonRoleId,
     sessionId,
     stripeSubscriptionId,
     amountPaid,
@@ -375,7 +376,8 @@ module.exports = {
         groupId,
         productId,
         trackId,
-        roleId,
+        groupRoleId,
+        commonRoleId,
         sessionId,
         stripeSubscriptionId,
         amountPaid,

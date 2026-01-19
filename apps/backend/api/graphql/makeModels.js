@@ -1702,7 +1702,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'granted_by_group_id',
         'group_id',
         'track_id',
-        'role_id',
+        'group_role_id',
+        'common_role_id',
         'access_type',
         'stripe_session_id',
         'stripe_subscription_id',
@@ -1717,7 +1718,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'group',
         { product: { alias: 'offering', typename: 'StripeOffering' } },
         'track',
-        'role',
+        'groupRole',
+        'commonRole',
         'grantedBy'
       ],
       fetchMany: (args) => {
@@ -1727,7 +1729,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       },
       filter: (relation) => {
         const args = ContentAccess._fetchManyArgs || {}
-        const { groupIds, search, accessType, status, offeringId, trackId, roleId, sortBy = 'created_at', order } = args
+        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy = 'created_at', order } = args
 
         return relation.query(q => {
           // Filter by group IDs (groups that granted the access)
@@ -1759,6 +1761,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
           // Filter by track ID
           if (trackId) {
             q.where('content_access.track_id', trackId)
+          }
+
+          // Filter by group role ID
+          if (groupRoleId) {
+            q.where('content_access.group_role_id', groupRoleId)
+          }
+
+          // Filter by common role ID
+          if (commonRoleId) {
+            q.where('content_access.common_role_id', commonRoleId)
           }
 
           // Apply sorting

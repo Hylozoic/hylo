@@ -23,7 +23,7 @@ module.exports = {
    *       userId: "456"
    *       grantedByGroupId: "123"
    *       groupId: "789"  // optional - for group-specific access
-   *       productId: "789"  // optional - or trackId: "101" or roleId: "202"
+   *       productId: "789"  // optional - or trackId: "101" or groupRoleId: "202" or commonRoleId: "203"
    *     ) {
    *       hasAccess
    *       accessType
