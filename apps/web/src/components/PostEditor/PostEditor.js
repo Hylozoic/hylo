@@ -45,6 +45,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -307,9 +308,13 @@ function PostEditor ({
         group: g
       }]
 
+      // Filter chat room options to exclude the #general topic pill
+      // The general topic is implicitly included when a group is selected
+      // and will be visually combined with the group-only pill
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
+          cr?.groupTopic?.topic?.name !== DEFAULT_CHAT_TOPIC && // Hide #general pill
           currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
         ?.map(cr => {
@@ -397,6 +402,28 @@ function PostEditor ({
       return { ...prev, topics: nextTopics }
     })
   }, [topic?.id])
+
+  // Auto-add the #general topic when groups are selected
+  // This ensures all posts appear in the #general chat by default
+  useEffect(() => {
+    if (!selectedGroups || selectedGroups.length === 0) return
+
+    // Find the general topic from toOptions for any selected group
+    const generalOption = toOptions.find(o =>
+      selectedGroups.some(g => g.id === o.group?.id) &&
+      o.topic?.name === DEFAULT_CHAT_TOPIC
+    )
+    const generalTopic = generalOption?.topic
+
+    if (!generalTopic) return
+
+    setCurrentPost(prev => {
+      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
+      if (alreadyHasGeneral) return prev
+
+      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
+    })
+  }, [selectedGroups, toOptions])
 
   /**
    * Resets the editor to its initial state
@@ -572,6 +599,45 @@ function PostEditor ({
       setIsDirty(true)
     }
   }, [currentPost])
+
+  /**
+   * Custom delete handler for ToField that implements conditional pill removal
+   * - When removing a group-only pill:
+   *   - If it's the only pill from that group (no other topics beyond #general): remove the group entirely
+   *   - If there are other topics: remove the group-only pill but keep topic pills
+   *     (the #general topic will be removed since it's not in the remaining options)
+   * - When removing a topic pill: just remove that topic
+   */
+  const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
+    const groupId = deletedOption.group?.id
+
+    if (deletedOption.topic) {
+      // Deleting a specific topic pill - just remove that topic
+      return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+    }
+
+    // Deleting a group-only pill
+    // Check if there are other topics selected for this group (beyond #general)
+    const otherTopicsForGroup = allSelected.filter(o =>
+      o.group?.id === groupId &&
+      o.topic &&
+      o.topic?.name !== DEFAULT_CHAT_TOPIC
+    )
+
+    if (otherTopicsForGroup.length > 0) {
+      // There are other topics for this group - remove the group-only pill
+      // but keep the topic pills. The group will be preserved via the topic pills.
+      // The #general topic will naturally be removed since it's not in any remaining option.
+      return allSelected.filter(o => {
+        if (o.group?.id !== groupId) return true // Keep options from other groups
+        if (!o.topic) return false // Remove the group-only pill (this is what user clicked)
+        return true // Keep topic pills for this group
+      })
+    }
+
+    // No other topics - remove the entire group (all options with this group)
+    return allSelected.filter(o => o.group?.id !== groupId)
+  }, [])
 
   const togglePublic = useCallback(() => {
     const { isPublic } = currentPost
@@ -933,6 +999,7 @@ function PostEditor ({
               options={toOptions}
               selected={selectedToOptions}
               onChange={handleAddToOption}
+              onDelete={handleToOptionDelete}
               readOnly={loading}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}

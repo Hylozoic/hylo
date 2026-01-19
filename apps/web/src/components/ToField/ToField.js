@@ -12,6 +12,7 @@ const ToField = forwardRef(({
   selected = [],
   options = [],
   onChange,
+  onDelete, // Optional custom delete handler - receives (deletedOption, allSelected) and should return the new selected array
   readOnly,
   groupSettings,
   onFocus,
@@ -61,6 +62,14 @@ const ToField = forwardRef(({
   }
 
   const handleDelete = (option) => {
+    // If a custom onDelete handler is provided, use it
+    if (onDelete) {
+      const newSelected = onDelete(option, selected)
+      onChange(newSelected)
+      return
+    }
+
+    // Default behavior
     if (option.topic) {
       onChange(selected.filter(o => o.topic?.id !== option.topic?.id))
     } else {
@@ -93,7 +102,8 @@ ToField.propTypes = {
   placeholder: PropTypes.string,
   selected: PropTypes.array,
   options: PropTypes.array.isRequired,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  onDelete: PropTypes.func
 }
 
 export default ToField
