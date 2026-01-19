@@ -1840,5 +1840,10 @@
   "{{submissionDescriptor}} Criteria": "{{submissionDescriptor}} Criterios",
   "{{totalTopicsCached}} Total Topics": "{{totalTopicsCached}} Total de temas",
   "{{unseenCount}} unread notifications": "{{unseenCount}} notificaciones no leídas",
-  "~ Mixed ~": "~ Mezclado ~"
+  "~ Mixed ~": "~ Mezclado ~",
+  "Choose your home view": "Elige tu vista principal",
+  "What should members see when they first visit your group?": "¿Qué deberían ver los miembros cuando visiten tu grupo por primera vez?",
+  "A short-form chat room experience for quick conversations and real-time discussions": "Una experiencia de sala de chat de formato corto para conversaciones rápidas y discusiones en tiempo real",
+  "A longer-form feed of posts, discussions, and updates from your group": "Un feed de formato largo de publicaciones, discusiones y actualizaciones de tu grupo",
+  "A map displaying your group's locational context and geographic connections": "Un mapa que muestra el contexto de ubicación y las conexiones geográficas de tu grupo"
 }

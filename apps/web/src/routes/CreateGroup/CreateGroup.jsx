@@ -70,6 +70,7 @@ function CreateGroup () {
     accessibility: 1,
     avatarUrl: '',
     bannerUrl: '',
+    homeView: 'CHAT',
     nameCharacterCount: 0,
     invitees: [],
     name: initialGroupName || '',
@@ -165,13 +166,13 @@ function CreateGroup () {
   }
 
   const onSubmit = () => {
-    let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility } = state
+    let { accessibility, avatarUrl, bannerUrl, homeView, name, parentGroups, purpose, slug, visibility } = state
     name = typeof name === 'string' ? trim(name) : name
     purpose = typeof purpose === 'string' ? trim(purpose) : purpose
     avatarUrl = avatarUrl || DEFAULT_AVATAR
 
     if (isValid()) {
-      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
+      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, homeView, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
         .then(({ error }) => {
           if (error) {
             setState(prev => ({
@@ -186,7 +187,7 @@ function CreateGroup () {
   }
 
   // Parent groups are not used in the CreateGroup component -- we will add them back in the future -- add 'parentGroups' to the state object
-  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, slug, visibility } = state
+  const { accessibility, avatarUrl, bannerUrl, homeView, nameCharacterCount, edited, errors, name, slug, visibility } = state
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -360,6 +361,52 @@ function CreateGroup () {
             </div>
           </div>
         )}  */}
+
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+          <h3 className='text-foreground text-xl font-bold mb-2'>{t('Choose your home view')}</h3>
+          <p className='text-foreground/80 text-sm mb-4'>{t('What should members see when they first visit your group?')}</p>
+          <div className='flex flex-col gap-3'>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('CHAT')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'CHAT'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Chat')}</div>
+              <div className='text-sm text-foreground/70'>{t('A short-form chat room experience for quick conversations and real-time discussions')}</div>
+            </button>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('STREAM')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'STREAM'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Stream')}</div>
+              <div className='text-sm text-foreground/70'>{t('A longer-form feed of posts, discussions, and updates from your group')}</div>
+            </button>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('MAP')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'MAP'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Map')}</div>
+              <div className='text-sm text-foreground/70'>{t('A map displaying your group\'s locational context and geographic connections')}</div>
+            </button>
+          </div>
+        </div>
 
         <div className='mt-10'>
           <Button
