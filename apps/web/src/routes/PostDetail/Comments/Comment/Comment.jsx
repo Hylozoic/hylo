@@ -141,7 +141,7 @@ function Comment ({
             <Icon name='Ex' className={styles.cancelIcon} onClick={handleEditCancel} />
           )}
           {currentUser && (
-            <div className={cn(styles.commentActions, { [styles.showActions]: true })}>
+            <div className={cn(styles.commentActions, { [styles.showActions]: showActions })}>
               <div className={cn(styles.commentAction)} onClick={onReplyComment} data-tooltip-content='Reply' data-tooltip-id={`reply-tip-${id}`}>
                 <Icon name='Replies' />
               </div>
