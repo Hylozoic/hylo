@@ -285,6 +285,8 @@ function PostEditor ({
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
+            // Filter out #general - it's automatically added when a group is selected
+            .filter(cr => cr?.groupTopic?.topic?.name !== DEFAULT_CHAT_TOPIC)
             .map((cr) => ({
               id: cr?.id,
               group: g,
@@ -408,12 +410,16 @@ function PostEditor ({
   useEffect(() => {
     if (!selectedGroups || selectedGroups.length === 0) return
 
-    // Find the general topic from toOptions for any selected group
-    const generalOption = toOptions.find(o =>
-      selectedGroups.some(g => g.id === o.group?.id) &&
-      o.topic?.name === DEFAULT_CHAT_TOPIC
-    )
-    const generalTopic = generalOption?.topic
+    // Find the general topic from any selected group's chatRooms
+    let generalTopic = null
+    for (const group of selectedGroups) {
+      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
+      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
+      if (generalChatRoom?.groupTopic?.topic) {
+        generalTopic = generalChatRoom.groupTopic.topic
+        break
+      }
+    }
 
     if (!generalTopic) return
 
@@ -423,7 +429,7 @@ function PostEditor ({
 
       return { ...prev, topics: [...(prev.topics || []), generalTopic] }
     })
-  }, [selectedGroups, toOptions])
+  }, [selectedGroups])
 
   /**
    * Resets the editor to its initial state
