@@ -14,6 +14,12 @@ export {
   removePostFromCollection
 } from './collection'
 export {
+  grantContentAccess,
+  revokeContentAccess,
+  refundContentAccess,
+  recordStripePurchase
+} from './contentAccess'
+export {
   createComment,
   createMessage,
   deleteComment,
@@ -159,6 +165,14 @@ export {
   createZapierTrigger,
   deleteZapierTrigger
 } from './zapier'
+export {
+  createStripeConnectedAccount,
+  createStripeAccountLink,
+  createStripeOffering,
+  updateStripeOffering,
+  createStripeCheckoutSession,
+  checkStripeStatus
+} from './stripe'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 
 export async function updateMe (sessionId, userId, changes) {

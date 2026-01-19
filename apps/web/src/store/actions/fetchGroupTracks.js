@@ -18,6 +18,8 @@ query (
     tracks (autocomplete: $autocomplete, enrolled: $enrolled, first: $first, offset: $offset, order: $order, published: $published, sortBy: $sortBy) {
       items {
         id
+        accessControlled
+        canAccess
         bannerUrl
         actionDescriptor
         actionDescriptorPlural
