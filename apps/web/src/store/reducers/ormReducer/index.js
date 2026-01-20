@@ -15,6 +15,7 @@ import {
   CREATE_CONTEXT_WIDGET,
   CREATE_CONTEXT_WIDGET_PENDING,
   DELETE_COMMENT_PENDING,
+  DELETE_CONTEXT_WIDGET_PENDING,
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   FETCH_GROUP_DETAILS_PENDING,
@@ -367,6 +368,14 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     case DELETE_COMMENT_PENDING: {
       comment = Comment.withId(meta.id)
       comment.delete()
+      break
+    }
+
+    case DELETE_CONTEXT_WIDGET_PENDING: {
+      const group = Group.withId(meta.groupId)
+      const allWidgets = group.contextWidgets.items
+      const newWidgets = allWidgets.filter(widget => parseInt(widget.id) !== parseInt(meta.contextWidgetId))
+      group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
       break
     }
 

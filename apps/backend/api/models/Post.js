@@ -1,4 +1,4 @@
-/* globals _ */
+/* globals _, ProjectContribution */
 
 import data from '@emoji-mart/data'
 import { init, getEmojiDataFromNative } from 'emoji-mart'
@@ -11,6 +11,7 @@ import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
+import { decrementNewPostCount } from './post/deletePost'
 import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
@@ -157,6 +158,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
       // .withPivot(['last_read_at', 'clickthrough']) // TODO COMOD: does not seem to work
       .withPivot(['last_read_at'])
       .where({ following: true, 'posts_users.active': true, 'users.active': true })
+  },
+
+  fundingRounds: function () {
+    return this.belongsToMany(FundingRound, 'funding_rounds_posts', 'post_id', 'funding_round_id')
   },
 
   groups: function () {
@@ -393,7 +398,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     )
   },
 
-  iCalUid: function() {
+  iCalUid: function () {
     return `event-${this.id}-hylo.com`
   },
 
@@ -414,7 +419,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       method: eventInvitation.notGoing() ? ICalCalendarMethod.CANCEL : ICalCalendarMethod.REQUEST,
       sequence: eventInvitation.getIcalSequence(),
       uid: this.iCalUid(),
-      url: url,
+      url,
       organizer: {
         name: organizer.get('name'),
         email: organizer.get('email')
@@ -491,7 +496,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return (pu && pu.get('saved_at')) || null
   },
 
-  presentForEmail: function ({ clickthroughParams = '', context, group, type = 'full', locale }) {
+  presentForEmail: function ({ clickthroughParams = '', context, fundingRound, group, type = 'full', locale }) {
     const { media, tags, linkPreview, user } = this.relations
     const slug = group?.get('slug')
 
@@ -518,7 +523,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         avatar_url: user.get('avatar_url'),
         profile_url: Frontend.Route.profile(user) + clickthroughParams
       },
-      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group) + clickthroughParams,
+      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group, '', fundingRound) + clickthroughParams,
       when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
@@ -742,7 +747,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }))
 
       activitiesToCreate = activitiesToCreate.concat(tagFollowers)
-    } else if (this.get('type') !== Post.Type.ACTION) {
+    } else if (this.get('type') !== Post.Type.ACTION && this.get('type') !== Post.Type.SUBMISSION) {
       // Non-chat posts are sent to all members of the groups the post is in
       // XXX: no notifications sent for Actions right now
       const members = await Promise.all(groups.map(async group => {
@@ -902,7 +907,31 @@ module.exports = bookshelf.Model.extend(Object.assign({
   removeFromGroup: function (idOrSlug) {
     return PostMembership.find(this.id, idOrSlug)
       .then(membership => membership.destroy())
+  },
+
+  createIcsCal: async function ({ userId, eventInvitation, eventChanges = {} }) {
+    // Load groups for URL generation
+    await this.load('groups')
+    const group = this.relations.groups?.first()
+
+    // Create a new ical calendar for this event
+    const cal = ical()
+
+    // Get calendar event data
+    const calEvent = await this.getCalEventData({
+      eventInvitation,
+      forUserId: userId,
+      eventChanges,
+      url: Frontend.Route.post(this, group)
+    })
+
+    // Add event to calendar
+    cal.method(calEvent.method)
+    cal.createEvent(calEvent).uid(calEvent.uid)
+
+    return cal
   }
+
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
 
@@ -916,6 +945,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     PROPOSAL: 'proposal',
     REQUEST: 'request',
     RESOURCE: 'resource',
+    SUBMISSION: 'submission',
     THREAD: 'thread',
     WELCOME: 'welcome'
   },
@@ -1128,8 +1158,26 @@ module.exports = bookshelf.Model.extend(Object.assign({
       Promise.join(
         Activity.removeForPost(postId, trx),
         Track.removePost(postId, trx),
-        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx)
+        Post.where('id', postId).query().update({ active: false, deactivated_at: new Date() }).transacting(trx),
+        Queue.classMethod('Post', 'decrementNewPostCountForDeletedPost', { postId }, 0)
       )),
+
+  // Background task to decrement new_post_count when a post is deleted
+  decrementNewPostCountForDeletedPost: async ({ postId }) => {
+    // Note: Post may be deactivated, so we need to fetch it without the default active filter
+    const post = await Post.where({ id: postId }).fetch({ withRelated: ['groups', 'tags'] })
+    if (!post) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📉 Background job: Decrementing new_post_count for deleted post ${postId}`)
+    }
+
+    try {
+      await decrementNewPostCount(post)
+    } catch (error) {
+      console.error('❌ Error decrementing new_post_count in background job:', error)
+    }
+  },
 
   createActivities: (opts) =>
     Post.find(opts.postId).then(post => post &&
@@ -1318,7 +1366,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     eventInvitations.forEach(eventInvitation => {
       if (!eventInvitation.notGoing()) {
-        Post.sendEventRsvp({eventId: postId, eventInvitationId: eventInvitation.id, eventChanges})
+        Post.sendEventRsvp({ eventId: postId, eventInvitationId: eventInvitation.id, eventChanges })
       }
     })
   },
@@ -1334,34 +1382,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
     }
   },
 
-  async sendEventRsvp ({eventId, eventInvitationId, eventChanges = {}}) {
+  updatePostRsvpCalendarSubscriptions: async function ({ postId }) {
+    const post = await Post.find(postId)
+    if (!post) return
+
+    const eventInvitations = await post.eventInvitations().fetch()
+    eventInvitations.forEach(eventInvitation => {
+      const userId = eventInvitation.get('user_id')
+      if (userId) {
+        Queue.classMethod('User', 'updateUserRsvpCalendarSubscriptions', { userId })
+      }
+    })
+  },
+
+  async sendEventRsvp ({ eventId, eventInvitationId, eventChanges = {} }) {
     const post = await Post.where({ id: eventId }).fetch()
     const eventInvitation = await EventInvitation.where({ id: eventInvitationId }).fetch()
     const user = await eventInvitation.user().fetch()
-    const clickthroughParams = '?' + new URLSearchParams({
-      ctt: 'event_rsvp',
-      cti: user.id
-    }).toString()
     await post.load('groups')
-    const url = Frontend.Route.post(post, post.relations.groups.first(), clickthroughParams)
-
-    const cal = ical()
-    const calEvent = await post.getCalEventData({ eventInvitation, forUserId: user.id, eventChanges, url })
-    cal.method(calEvent.method)
-    cal.createEvent(calEvent).uid(calEvent.uid)
     const groupNames = post.relations.groups.map(g => g.get('name')).join(', ')
-
+    const icsCal = await post.createIcsCal({ userId: user.id, eventInvitation, eventChanges })
     const emailTemplate = eventChanges.start_time || eventChanges.end_time || eventChanges.location ? 'sendEventUpdateEmail' : 'sendEventRsvpEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || post.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || post.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: post.get('timezone')}) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: post.get('timezone') }) : null
     const newLocation = eventChanges.location
+    const url = Frontend.Route.post(post, post.relations.groups.first())
 
     Queue.classMethod('Email', emailTemplate, {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: DateTimeHelpers.formatDatePair({start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone')}),
+        date: DateTimeHelpers.formatDatePair({ start: post.get('start_time'), end: post.get('end_time'), timezone: post.get('timezone') }),
         user_name: user.get('name'),
         event_name: post.title(),
         event_description: post.details(),
@@ -1369,13 +1421,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
         event_url: url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
+        newDate,
+        newLocation
       },
       files: [
         {
           id: 'invite.ics',
-          data: Buffer.from(cal.toString(), 'utf8').toString('base64')
+          data: Buffer.from(icsCal.toString(), 'utf8').toString('base64')
         }
       ]
     }).then(() => {

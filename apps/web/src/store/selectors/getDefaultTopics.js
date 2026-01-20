@@ -9,10 +9,19 @@ const getDefaultTopicsResults = makeGetQueryResults(FETCH_DEFAULT_TOPICS)
 
 export const getDefaultTopics = ormCreateSelector(
   orm,
-  (state, props) => getDefaultTopicsResults(state, {
-    groupSlug: get('groups[0].slug', props),
-    sortBy: props?.sortBy || 'name'
-  }),
+  (state, props) => {
+    const groups = props?.groups || []
+    const groupIds = groups.length > 0
+      ? groups.map(g => g?.id).filter(Boolean)
+      : undefined
+    const groupSlug = groups.length > 0 ? get('groups[0].slug', props) : undefined
+
+    return getDefaultTopicsResults(state, {
+      groupIds,
+      groupSlug: groupIds ? undefined : groupSlug,
+      sortBy: props?.sortBy || 'name'
+    })
+  },
   (session, results) => {
     if (isEmpty(results) || isEmpty(results.ids)) return []
 

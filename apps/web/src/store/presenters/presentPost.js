@@ -16,6 +16,7 @@ function getTimestamps (createdAt, editedAt) {
   const locale = getLocaleFromLocalStorage()
   const result = {
     createdTimestamp: DateTimeHelpers.humanDate(createdAt),
+    createdTimestampShort: DateTimeHelpers.humanDate(createdAt, true),
     editedTimestamp: editedAt ? `Edited ${DateTimeHelpers.humanDate(editedAt)}` : null,
     exactCreatedTimestamp: DateTimeHelpers.toDateTime(createdAt, { locale }).toFormat('D t ZZZZ'),
     exactEditedTimestamp: editedAt ? DateTimeHelpers.toDateTime(editedAt, { locale }).toFormat('D t ZZZZ') : null
@@ -39,12 +40,13 @@ export default function presentPost (post, groupId) {
   const rawPost = !post.ref
 
   try {
-    const { createdTimestamp, editedTimestamp, exactCreatedTimestamp, exactEditedTimestamp } = getTimestamps(post.createdAt, post.editedAt)
+    const { createdTimestamp, createdTimestampShort, editedTimestamp, exactCreatedTimestamp, exactEditedTimestamp } = getTimestamps(post.createdAt, post.editedAt)
 
     const finalPost = {
       ...(rawPost ? post : post.ref),
       attachments: (rawPost ? post.attachments || [] : post.attachments.toModelArray()).sort((a, b) => a.position - b.position),
       createdTimestamp,
+      createdTimestampShort,
       creator: post.creator, // needed to load the creator object
       commenters: (rawPost ? post.commenters?.items || [] : post.commenters.toModelArray()),
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),

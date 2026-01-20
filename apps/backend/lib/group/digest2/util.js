@@ -26,7 +26,7 @@ export const relatedUserColumns = (relationName = 'user') => ({
 
 export const shouldSendData = (data, id) =>
   Promise.resolve(
-    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'topics_with_chats', 'posts_with_new_comments', 'upcoming', 'ending'], data))
+    some(some(x => x), pick(['discussions', 'requests', 'offers', 'events', 'projects', 'resources', 'chats', 'topics_with_chats', 'posts_with_new_comments', 'upcoming', 'ending', 'funding_rounds'], data))
   )
 
 export const getPostsAndComments = async (group, startTime, endTime, digestType) => {
@@ -68,14 +68,35 @@ export const getPostsAndComments = async (group, startTime, endTime, digestType)
     })
     .then(get('models'))
 
-  if (posts.length === 0 && comments.length === 0 && upcomingPostReminders?.startingSoon?.length === 0 && upcomingPostReminders?.endingSoon?.length === 0) {
+  // Get funding round submissions for participating users
+  const fundingRoundSubmissions = await bookshelf.knex('funding_rounds_posts')
+    .join('funding_rounds', 'funding_rounds_posts.funding_round_id', 'funding_rounds.id')
+    .join('posts', 'funding_rounds_posts.post_id', 'posts.id')
+    .where('funding_rounds.group_id', group.id)
+    .whereBetween('funding_rounds_posts.created_at', [startTime.toJSDate(), endTime.toJSDate()])
+    .where('posts.active', true)
+    .where('posts.type', Post.Type.SUBMISSION)
+    .select(
+      'funding_rounds.id as funding_round_id',
+      'funding_rounds.title as funding_round_title',
+      bookshelf.knex.raw('COUNT(posts.id) as submission_count')
+    )
+    .groupBy('funding_rounds.id', 'funding_rounds.title')
+    .then(rows => rows.map(row => ({
+      fundingRoundId: row.funding_round_id,
+      fundingRoundTitle: row.funding_round_title,
+      submissionCount: parseInt(row.submission_count)
+    })))
+
+  if (posts.length === 0 && comments.length === 0 && upcomingPostReminders?.startingSoon?.length === 0 && upcomingPostReminders?.endingSoon?.length === 0 && fundingRoundSubmissions.length === 0) {
     return false
   }
 
   return {
     posts,
     comments,
-    upcomingPostReminders
+    upcomingPostReminders,
+    fundingRoundSubmissions
   }
 }
 

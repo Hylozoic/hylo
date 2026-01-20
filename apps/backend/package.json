@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "6.1.23",
+  "version": "6.2.7",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -195,6 +195,9 @@
       "FlaggedItem",
       "Frontend",
       "FullTextSearch",
+      "FundingRound",
+      "FundingRoundPost",
+      "FundingRoundUser",
       "Group",
       "GroupAgreement",
       "GroupExtension",

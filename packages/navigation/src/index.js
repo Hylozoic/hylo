@@ -10,9 +10,10 @@ export const ALL_GROUPS_CONTEXT_SLUG = 'all'
 export const MESSAGES_CONTEXT_SLUG = 'messages'
 export const MY_CONTEXT_SLUG = 'my'
 export const PUBLIC_CONTEXT_SLUG = 'public'
+export const SEARCH_CONTEXT_SLUG = 'search'
 
 export const isStaticContext = contextOrSlug =>
-  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
+  [PUBLIC_CONTEXT_SLUG, MY_CONTEXT_SLUG, SEARCH_CONTEXT_SLUG].includes(contextOrSlug?.slug || contextOrSlug)
 
 export const HYLO_ID_MATCH = '\\d+'
 export const POST_ID_MATCH = HYLO_ID_MATCH
@@ -50,12 +51,18 @@ export function myHomeUrl () {
   return '/my'
 }
 
+export function searchUrl () {
+  return '/search'
+}
+
 export function baseUrl ({
   context,
   customViewId,
   defaultUrl = allGroupsUrl(),
+  fundingRoundId,
   groupSlug,
   memberId, personId, // TODO: switch to one of these?
+  tab,
   topicName,
   trackId,
   view
@@ -69,9 +76,14 @@ export function baseUrl ({
   } else if (topicName) {
     return topicUrl(topicName, { context, groupSlug })
   } else if (trackId) {
-    return trackUrl(trackId, { context, groupSlug })
+    return trackUrl(trackId, { context, groupSlug, tab })
+  } else if (fundingRoundId) {
+    return fundingRoundUrl(fundingRoundId, { context, groupSlug, tab })
   } else if (view) {
     return viewUrl(view, { context, customViewId, defaultUrl, groupSlug })
+  } else if (context === SEARCH_CONTEXT_SLUG) {
+    // Has to come before groupSlug check because we use groupSlug as a param in searching
+    return searchUrl()
   } else if (groupSlug) {
     return groupUrl(groupSlug)
   } else if (context === ALL_GROUPS_CONTEXT_SLUG) {
@@ -247,7 +259,7 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
   let url = ''
   if (widget.url) return widget.url
   if (widget.view === 'about') {
-    url = groupDetailUrl(groupSlug, { rootPath, groupSlug, context })
+    url = viewUrl('about', { groupSlug, context })
   } else if (widget.view) {
     url = viewUrl(widget.view, { groupSlug, context: widget.context || context })
   } else if (widget.viewGroup) {
@@ -262,13 +274,19 @@ export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context 
     url = customViewUrl(widget.customView.id, rootPath, { context, groupSlug })
   } else if (widget.viewTrack) {
     url = trackUrl(widget.viewTrack.id, { context, groupSlug })
+  } else if (widget.viewFundingRound) {
+    url = fundingRoundUrl(widget.viewFundingRound.id, { context, groupSlug })
   }
 
   return url
 }
 
 export function trackUrl (trackId, opts) {
-  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}`
+  return baseUrl({ ...opts, context: 'group', view: 'tracks' }) + `/${trackId}` + (opts.tab ? `/${opts.tab}` : '')
+}
+
+export function fundingRoundUrl (fundingRoundId, opts) {
+  return baseUrl({ ...opts, context: 'group', view: 'funding-rounds' }) + `/${fundingRoundId}` + (opts.tab ? `/${opts.tab}` : '')
 }
 
 // URL utility functions

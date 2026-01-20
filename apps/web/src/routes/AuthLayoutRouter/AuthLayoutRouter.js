@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import isMobile from 'ismobilejs'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -16,6 +17,7 @@ import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
 import getReturnToPath from 'store/selectors/getReturnToPath'
+import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
@@ -44,6 +46,8 @@ const AllTopics = React.lazy(() => import('routes/AllTopics'))
 const AllView = React.lazy(() => import('routes/AllView'))
 const ChatRoom = React.lazy(() => import('routes/ChatRoom'))
 const CreateGroup = React.lazy(() => import('routes/CreateGroup'))
+const FundingRounds = React.lazy(() => import('routes/FundingRounds'))
+const FundingRoundHome = React.lazy(() => import('routes/FundingRoundHome'))
 const GroupDetail = React.lazy(() => import('routes/GroupDetail'))
 const GroupSettings = React.lazy(() => import('routes/GroupSettings'))
 const GroupWelcomeModal = React.lazy(() => import('routes/GroupWelcomeModal'))
@@ -147,6 +151,13 @@ export default function AuthLayoutRouter (props) {
       // Defer non-critical data until after render
       dispatch(fetchThreads())
     })()
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        await dispatch(checkForNewNotifications())
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   useEffect(() => {
@@ -286,7 +297,7 @@ export default function AuthLayoutRouter (props) {
         </Routes>
       </Suspense>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-[100vh] h-[100dvh]', { [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
@@ -321,7 +332,7 @@ export default function AuthLayoutRouter (props) {
               </Suspense>}
           </div> {/* END NavContainer */}
 
-          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative'>
+          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative' id='center-column-container'>
             <ViewHeader />
 
             <Suspense fallback={<Loading />}>
@@ -335,7 +346,6 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/members/:personId/create/*' element={<CreateModal context='groups' />} />
                 <Route path='groups/:groupSlug/tracks/:trackId/create/*' element={<CreateModal context='groups' />} />
                 <Route path='groups/:groupSlug/tracks/:trackId/edit/*' element={<CreateModal context='groups' editingTrack />} />
-                <Route path='groups/:groupSlug/tracks/:trackId/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
                 <Route path='groups/:groupSlug/settings/:tab/create/*' element={<CreateModal context='groups' />} />
                 <Route path='groups/:groupSlug/:view/create/*' element={<CreateModal context='groups' />} />
                 <Route path='groups/:groupSlug/custom/:customViewId/create/*' element={<CreateModal context='groups' />} />
@@ -371,7 +381,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </Suspense>
 
-            <div className={cn('AuthLayout_centerColumn px-0 sm:px-2 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Suspense fallback={<Loading />}>
                 <Routes>
@@ -432,6 +442,8 @@ export default function AuthLayoutRouter (props) {
                               <Route path='topics' element={<AllTopics context='groups' />} />
                               <Route path='tracks/:trackId/*' element={<TrackHome />} />
                               <Route path='tracks/*' element={<Tracks />} />
+                              <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
+                              <Route path='funding-rounds/*' element={<FundingRounds />} />
                               <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                               <Route path='settings/*' element={<GroupSettings context='groups' />} />
                               <Route path='all-views' element={<AllView context='groups' />} />
@@ -458,7 +470,7 @@ export default function AuthLayoutRouter (props) {
                   <Route path='post/:postId/*' element={<PostDetail />} />
                   {/* Keep old settings paths for mobile */}
                   <Route path='settings/*' element={<UserSettings />} />
-                  <Route path='search' element={<Search />} />
+                  <Route path='search/*' element={<Search />} />
                   <Route path='themes' element={<Themes />} />
                   <Route path='notifications' /> {/* XXX: hack because if i dont have this the default route overrides the redirect to /my/notifications above */}
                   {/* **** Default Route (404) **** */}
@@ -467,36 +479,36 @@ export default function AuthLayoutRouter (props) {
               </Suspense>
             </div>
 
-            <div className={cn('bg-midground/100 shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('bg-gradient-to-b from-midground to-theme-background shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Suspense fallback={<Loading />}>
                 <Routes>
-                      {/* All context routes */}
-                      <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                      <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
-                      <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
+                  {/* All context routes */}
+                  <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                  <Route path={`/all/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
+                  <Route path={`/all/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='all' />} />
 
-                      {/* Public context routes */}
-                      <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                      <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
-                      <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
-                      <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                  {/* Public context routes */}
+                  <Route path={`/public/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                  <Route path={`/public/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='public' />} />
+                  <Route path={`/public/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
+                  <Route path={`/public/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='public' />} />
 
-                      {/* My context routes */}
-                      {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                      <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                      <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
-                      <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
+                  {/* My context routes */}
+                  {/* <Route path={`/my/mentions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/interactions/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/posts/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} />
+                  <Route path={`/my/announcements/${POST_DETAIL_MATCH}`} element={<PostDetail context='my' />} /> */}
 
-                      {/* Groups context routes */}
-                      <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
-                      <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                      <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                      <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
-                      <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  {/* Groups context routes */}
+                  <Route path={`/groups/:groupSlug/map/${POST_DETAIL_MATCH}`} element={<PostDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/custom/:customViewId/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/groups/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/map/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
+                  <Route path={`/groups/:groupSlug/${GROUP_DETAIL_MATCH}`} element={<GroupDetail context='groups' />} />
 
-                      {/* Other routes */}
-                      <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
-                    </Routes>
+                  {/* Other routes */}
+                  <Route path={`/members/:personId/${POST_DETAIL_MATCH}`} element={<PostDetail />} />
+                </Routes>
               </Suspense>
             </div>
             <SocketListener location={location} groupSlug={currentGroupSlug} />

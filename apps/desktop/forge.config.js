@@ -13,7 +13,8 @@ module.exports = {
     ],
     // Add notification entitlements for macOS
     extendInfo: {
-      NSUserNotificationAlertStyle: 'alert'
+      NSUserNotificationAlertStyle: 'alert',
+      CFBundleIconName: 'mac'
     },
     // Code signing configuration
     osxSign: {

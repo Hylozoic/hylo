@@ -17,6 +17,8 @@ import Moderation from 'screens/Moderation'
 import AllViews from 'screens/AllViews'
 import Groups from 'screens/Groups'
 import Tracks from 'screens/Tracks'
+import FundingRounds from 'screens/FundingRounds'
+import FundingRoundDetail from 'screens/FundingRoundDetail'
 import MyTracks from 'screens/MyTracks'
 import TrackDetail from 'screens/TrackDetail'
 import GroupWelcome from 'screens/GroupWelcome'
@@ -72,6 +74,8 @@ export default function HomeNavigator () {
       {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} options={{ lazy: false }} />
       <HomeTab.Screen name='All Views' component={AllViews} />
+      <HomeTab.Screen name='Funding Rounds' component={FundingRounds} />
+      <HomeTab.Screen name='Funding Round Detail' component={FundingRoundDetail} />
       <HomeTab.Screen name='Tracks' component={Tracks} />
       <HomeTab.Screen name='My Tracks' component={MyTracks} />
       <HomeTab.Screen name='Track Detail' component={TrackDetail} />

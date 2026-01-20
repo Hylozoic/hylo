@@ -1,32 +1,30 @@
 import { DndContext, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { isEmpty } from 'lodash/fp'
+import { capitalize, isEmpty } from 'lodash/fp'
 import { Shapes, Settings, DoorOpen, Check, Eye, ChevronsRight } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import { useLocation, useNavigate, Routes, Route, Link } from 'react-router-dom'
+import { useNavigate, Routes, Route, Link } from 'react-router-dom'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ClickCatcher from 'components/ClickCatcher'
+import CreateModal from 'components/CreateModal'
 import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
-
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import Button from 'components/ui/button'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import { enrollInTrack, fetchTrack, FETCH_TRACK, leaveTrack, updateTrackActionOrder, updateTrack } from 'store/actions/trackActions'
 import { RESP_MANAGE_TRACKS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getTrack from 'store/selectors/getTrack'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -51,20 +49,14 @@ function TrackHome () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const routeParams = useRouteParams()
-  const location = useLocation()
-  const queryParams = useMemo(() => getQuerystringParam(['tab'], location), [location])
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
   const isLoading = useSelector(state => isPendingFor(state, FETCH_TRACK))
   const canEdit = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_MANAGE_TRACKS, groupId: currentGroup?.id }))
   const [container, setContainer] = useState(null)
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false)
-  const [currentTab, setCurrentTab] = useState(queryParams.tab || 'about')
 
-  const changeTab = useCallback((tab) => {
-    setCurrentTab(tab)
-    dispatch(changeQuerystringParam(location, 'tab', tab, null, true))
-  }, [location])
+  const currentTab = routeParams.tab || 'about'
 
   useEffect(() => {
     dispatch(fetchTrack(routeParams.trackId))
@@ -73,11 +65,11 @@ function TrackHome () {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     setHeaderDetails({
-      title: currentTrack?.name || t('loading...'),
+      title: (currentTrack?.name || t('loading...')) + ' > ' + capitalize(currentTab),
       search: true,
       icon: <Shapes />
     })
-  }, [currentTrack])
+  }, [currentTrack, currentTab])
 
   const handlePublishTrack = useCallback((publishedAt) => {
     if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
@@ -103,65 +95,63 @@ function TrackHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative overflow-y-auto flex flex-col'>
-        <div className='w-full max-w-[750px] mx-auto flex-1'>
+      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
+        <div className='w-full h-full flex-1 flex flex-col'>
           {(isEnrolled || canEdit) && (
-            <div className='flex gap-2 w-full justify-center items-center bg-black/20 rounded-md p-2'>
-              <button
-                className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                onClick={() => changeTab('about')}
+            <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
+              <Link
+                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                to=''
               >
                 {t('About')}
-              </button>
-              <button
-                className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                onClick={() => changeTab('actions')}
+              </Link>
+              <Link
+                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                to='actions'
               >
                 {currentTrack.actionDescriptorPlural}
-                <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
                   {currentTrack.numActions}
                 </span>
-              </button>
-              <button
-                className={`py-1 px-4  rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                onClick={() => changeTab('people')}
+              </Link>
+              <Link
+                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                to='people'
               >
                 {t('People')}
                 {currentTrack.enrolledUsers?.length > 0 && (
-                  <span className='ml-2 bg-black/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
                     {currentTrack.enrolledUsers.length}
                   </span>
                 )}
-              </button>
+              </Link>
               {canEdit && (
-                <button
-                  className={`py-1 px-4 rounded-md border-2 border-foreground/20 hover:border-foreground/100 transition-all ${currentTab === 'edit' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                  onClick={() => changeTab('edit')}
+                <Link
+                  className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                  to='manage'
                 >
-                  {t('Edit')}
-                </button>
+                  {t('Manage')}
+                </Link>
               )}
             </div>
           )}
 
-          {currentTab === 'about' && (
-            <AboutTab currentTrack={currentTrack} />
-          )}
-
-          {currentTab === 'actions' && (
-            <ActionsTab currentTrack={currentTrack} />
-          )}
-
-          {currentTab === 'people' && (
-            <PeopleTab currentTrack={currentTrack} />
-          )}
-
-          {canEdit && currentTab === 'edit' && (
-            <EditTab currentTrack={currentTrack} />
-          )}
+          <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+            <div className='w-full max-w-[750px] mx-auto pb-20'>
+              <Routes>
+                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                <Route path='*' element={<AboutTab track={currentTrack} />} />
+              </Routes>
+            </div>
+          </div>
         </div>
 
-        <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md'>
+        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
           {!publishedAt
             ? (
               <>
@@ -199,25 +189,21 @@ function TrackHome () {
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
-
-        <Routes>
-          <Route path='post/:postId' element={<PostDialog container={container} />} />
-        </Routes>
       </div>
     </div>
   )
 }
 
-function AboutTab ({ currentTrack }) {
-  const { bannerUrl, name, description } = currentTrack
+function AboutTab ({ track }) {
+  const { bannerUrl, name, description } = track
 
   return (
     <>
       <div
-        className='mt-4 w-full shadow-2xl max-w-[750px] rounded-xl h-[40vh] flex flex-col items-center justify-end bg-cover mb-6 pb-6 relative overflow-hidden'
+        className={cn('mt-4 w-full shadow-2xl max-w-[750px] rounded-xl flex flex-col items-center justify-end bg-cover mb-6 relative overflow-hidden', { 'min-h-[40vh] pb-6': bannerUrl })}
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
       >
-        <div className='absolute inset-0 bg-black/40 z-10' />
+        <div className='absolute inset-0 bg-darkening/40 z-10' />
         <h1 className='text-white text-4xl font-bold z-20 px-1 text-center'>{name}</h1>
       </div>
       <HyloHTML html={description} />
@@ -225,24 +211,24 @@ function AboutTab ({ currentTrack }) {
   )
 }
 
-function ActionsTab ({ currentTrack }) {
-  const posts = useSelector(state => getPosts(state, currentTrack))
-  const { isEnrolled } = currentTrack
+function ActionsTab ({ track, container }) {
+  const posts = useSelector(state => getPosts(state, track))
+  const { isEnrolled } = track
 
   return (
     <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
-      <h1>{currentTrack.actionDescriptorPlural}</h1>
+      <h1>{track.actionDescriptorPlural}</h1>
       {posts.map(post => (
-        <PostCard key={post.id} post={post} isCurrentAction={currentTrack.currentAction?.id === post.id} />
+        <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} />
       ))}
     </div>
   )
 }
 
-function PeopleTab ({ currentTrack }) {
+function PeopleTab ({ track }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
-  const { enrolledUsers } = currentTrack
+  const { enrolledUsers } = track
 
   return (
     <div>
@@ -273,12 +259,12 @@ function PeopleTab ({ currentTrack }) {
   )
 }
 
-function EditTab ({ currentTrack }) {
+function ManageTab ({ track }) {
   const { t } = useTranslation()
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const posts = useSelector(state => getPosts(state, currentTrack))
+  const posts = useSelector(state => getPosts(state, track))
 
   const handleDragEnd = (event) => {
     const { active, over } = event
@@ -286,7 +272,7 @@ function EditTab ({ currentTrack }) {
       const overIndex = over.data.current.sortable.index
       dispatch(updateTrackActionOrder({
         postId: active.id,
-        trackId: currentTrack.id,
+        trackId: track.id,
         newOrderIndex: overIndex
       }))
     }
@@ -295,11 +281,11 @@ function EditTab ({ currentTrack }) {
   return (
     <>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
-        onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${currentTrack.id}/edit`))}
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mt-4 mb-4'
+        onClick={() => navigate(groupUrl(routeParams.groupSlug, `tracks/${track.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
-        <span>{t('Open Track Settings')}</span>
+        <span>{t('Edit Track')}</span>
       </button>
       <DndContext
         onDragEnd={handleDragEnd}
@@ -313,10 +299,10 @@ function EditTab ({ currentTrack }) {
         </SortableContext>
       </DndContext>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md mb-4'
         onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action' }))}
       >
-        + {t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack?.actionDescriptor })}
+        + {t('Add {{actionDescriptor}}', { actionDescriptor: track?.actionDescriptor })}
       </button>
     </>
   )
@@ -328,7 +314,7 @@ function WelcomeMessage ({ showWelcomeMessage, setShowWelcomeMessage, currentTra
   return (
     <Dialog.Root open={showWelcomeMessage} onOpenChange={setShowWelcomeMessage}>
       <Dialog.Portal>
-        <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-black/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
+        <Dialog.Overlay className='CompletedTrackDialog-Overlay bg-darkening/50 absolute top-0 left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[900] backdrop-blur-sm'>
           <Dialog.Content className='CompletedTrackDialog-Content min-w-[300px] w-full bg-background p-4 rounded-md z-[51] max-w-[750px] outline-none'>
             <Dialog.Title className='sr-only'>Welcome to {currentTrack?.name}!</Dialog.Title>
             <Dialog.Description className='sr-only'>Welcome to {currentTrack?.name}!</Dialog.Description>

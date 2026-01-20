@@ -12,6 +12,25 @@ exports.es = {
   emailDigestDailySubject: (name) => `Tu resumen diario de ${name}`,
   emailDigestWeeklySubject: (name) => `Tu resumen semanal de ${name}`,
   groupCreatedNotifySubject: (name) => `Nuevo Grupo de Hylo Creado: ${name}`,
+  fundingRoundTransitionButtonText: ({ phase }) => {
+    const buttonTextMessages = {
+      submissionsOpen: 'Agregar tu presentación',
+      submissionsClose: 'Discutir las presentaciones',
+      votingOpens: 'Votar en la ronda',
+      votingCloses: 'Ver los resultados',
+      viewRound: 'Ver la Ronda'
+    }
+    return buttonTextMessages[phase] || 'Ver la ronda'
+  },
+  fundingRoundTransitionText: ({ phase }) => {
+    const transitionTextMessages = {
+      submissionsOpen: 'Las presentaciones están ahora abiertas',
+      submissionsClose: 'Las presentaciones están ahora cerradas',
+      votingOpens: 'La votación está ahora abierta',
+      votingCloses: 'La votación está ahora cerrada'
+    }
+    return transitionTextMessages[phase] || 'Estado actualizado'
+  },
   moderationClearedFlagFromYourPost: () => 'El moderador eliminó una denuncia de tu publicación',
   moderationClearedPostEmailContent: ({ post, group }) => `Tu publicación "${post.summary()}" en el grupo ${group.get('name')} fue eliminada por violar un acuerdo de grupo. \n`,
   moderationClearedYourFlag: () => 'El moderador eliminó tu denuncia',
@@ -54,5 +73,24 @@ exports.es = {
   textForTrackCompleted: ({ actor, track }) => `Pista completada: "${track.get('name')}" fue completada por ${actor.get('name')}`,
   textForTrackEnrollment: ({ actor, track }) => `Inscripción en pista: "${track.get('name')}" fue inscrita por ${actor.get('name')}`,
   textForVoteReset: ({ person, postName, groupName }) => `${person} cambió las opciones de propuesta: "${postName}" en ${groupName}. Esto ha reiniciado los votos`,
+  textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRound.get('title')}"`,
+  textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
+    const phaseMessages = {
+      submissionsOpen: 'Las presentaciones están ahora abiertas',
+      submissionsClose: 'Las presentaciones han cerrado y las discusiones están abiertas',
+      votingOpens: 'La votación está ahora abierta',
+      votingCloses: 'La votación ha cerrado y la ronda ha terminado'
+    }
+    return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Estado actualizado'}`
+  },
+  textForFundingRoundReminder: ({ fundingRound, reminderType }) => {
+    const reminderMessages = {
+      submissionsClosing1Day: 'Las presentaciones cierran en 1 día',
+      submissionsClosing3Days: 'Las presentaciones cierran en 3 días',
+      votingClosing1Day: 'La votación cierra en 1 día',
+      votingClosing3Days: 'La votación cierra en 3 días'
+    }
+    return `${fundingRound.get('title')}: ${reminderMessages[reminderType] || 'Fecha límite próxima'}`
+  },
   theTeamAtHylo: 'El equipo de Hylo'
 }

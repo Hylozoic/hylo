@@ -6,6 +6,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.0] - 2026-01-16
+
+### Added
+- New Color Schemes! You can now customize the color scheme of Hylo with 9 options to choose from.
+- New settings menu to easily access all your settings from the global nav, including changing your color scheme and language.
+
+### Changed
+- Remove Terms and Conditions from My Home menu, since you can find it easily in the ? menu
+- Improved styling of List view mode in the Stream
+- So many little UI tweaks and improvements
+
+### Fixed
+- Show track name correctly when there is no track banner image
+- Positioning of Join banner at bottom of both tracks and funding rounds
+- Enable scrolling from outside the center column of a track and funding round
+- Display of hovered chat posts in funding rounds
+- Double create modal in funding rounds
+
+## [6.2.7] - 2026-01-12
+
+### Changed
+- Scope @ mentions and # topic selections to current group, or set of groups in the post editor
+
+### Fixed
+- Fix About View to go to the right place when clicked on
+
+## [6.2.6] - 2026-01-08
+
+### Added
+- Add funding round setting to control whether people can vote on their own submissions. Default it to false
+- Add funding round setting to hide final voting results from participants
+
+### Fixed
+- Bug where creating a post when outside the chat room would not show you the new post in the chat room because it didn't think there were any new posts to show
+
+## [6.2.5] - 2025-12-31
+
+### Added
+- Ability to embed Youtube and Vimeo videos in Funding round and Track descriptions as well as the Welcome page content.
+- When using the search functionality it now initially searched only witin the current group. You can then decide whether to search across all your groups.
+- MVP of being able to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL for this in the Account settings page.
+
+### Changed
+- Better mobile display of events calendar.
+- Clicking on a post in search results opens it up in a modal above the search results.
+- Make it more clear that you need an explanation when flagging a post. And allow for any explanation of any length to avoid confusion.
+- Add scrolling to group settings menu if to long for screen.
+- During voting phase of a funding round sort posts differently for each user to remove bias. Randomize, but stay consistent for the user.
+
+### Fixed
+- Mobile display of funding rounds.
+
+## [6.2.4] - 2025-12-05
+
+### Changed
+- Only show vote results on funding rounds to stewards
+- When funding round is complete sort submissions by total votes descending
+
+### Fixed
+- Fix display issues of funding round has min of 0 votes
+
+## [6.2.3] - 2025-11-20
+
+### Added
+- The map now displays groups using their group avatar image if one exists
+
+### Changed
+- During funding round voting phase Submissions tab becomes Vote tab
+- Don't show Track and Funding Round in create menu when clicking on the map
+
+### Fixed
+- Infinite spinner in chat rooms that have no posts
+- Fix height of nav and context menu in Desktop app
+- Positioning of layers and create buttons on the map
+- Native lands map layer tooltip location
+
+## [6.2.2] - 2025-11-10
+
+### Added
+- Ability to fully delete user created group Context Widgets (views)
+- Long pressing on an emoji on mobile shows the tooltip of all the people who reacted with that emoji
+
+### Changed
+- Update to the latest filestack library
+- When uploading multiple images to a post the order of the images matches the order of the files
+- Fully remove orange dot from Activity Bell after it is clicked on, even if there are unread notifications
+
+### Fixed
+- Fix reordering of image attachments in posts and comments
+
+### Changed
+
+## [6.2.1] - 2025-11-07
+
+### Changed
+- Sort funding round submissions by most recent at the top
+- Use option-enter to submit comments instead of enter
+- Faster loading of chat rooms that have already been loaded
+- Activity bell shows blank orange dot insyead of ! which was kind of stressful
+- Group icons show blank orange dots for notifications instead of numbers which were not very accurate or helpful
+- When Hylo tab becomes visible again check for new notifications
+
+### Fixed
+- Creating track actions
+- Bug saving a draft of a funding round
+- Bug where Stream would get re-added to context menu after being removed when a post is created
+- Fix datetime picker from closing when changing anything in funding round editor
+- Reset chat room new post count when at the latest post but orange dot still showing new posts
+- When a post is deleted decrement the new post count (orange dot) of associated chat rooms that have not seen the post yet
+- Comment form doesn't overlap comments above it anymore as it grows
+- Fix duplicate post issue that could happen when switching between chat rooms
+- Fix bug that was not resetting the new notifications count when you click on the activity bell
+- Correctly update orange dot on chat room when new post is received
+- Fix/improve UI for creating new messages on web mobile
+- Fix bug that would briefly show an orange dot on a DM thread after you posted a new message
+
+## [6.2.0] - 2025-11-04
+
+### Added
+- New feature: Funding Rounds! Group stewards can now create funding rounds that allows members to submit project proposals and vote on them to decide how to allocate funding. Funding rounds can be created for any group, and are visible to all members of the group. You can control who can submit proposals and vote by role.
+- External links in context menu show icon indicating they go to external webpage
+
+### Changed
+- Strip out pasted in images in post editor, because we don't support them yet and they were breaking post saving.
+
 ## [6.1.23] - 2025-10-13
 
 ### Added

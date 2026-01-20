@@ -8,7 +8,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams, useLocation, Routes, Route, useNavigate } from 'react-router-dom'
+import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
 import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
@@ -29,6 +29,7 @@ import {
 import ChatPost from './ChatPost'
 import ChatRoomSkeleton from './ChatRoomSkeleton'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
@@ -93,13 +94,17 @@ const getDisplayDay = (date) => {
 
 export default function ChatRoom (props) {
   const dispatch = useDispatch()
-  const routeParams = useParams()
+  const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isWebView() || hideNavLayout
 
-  const { context } = props
-  const { groupSlug, topicName, postId: selectedPostId } = routeParams
+  const { customTopicName } = props
+  const { groupSlug, postId: selectedPostId } = routeParams
+
+  const context = props.context || routeParams.context
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName.startsWith('‡')
 
   const socket = useMemo(() => getSocket(), [])
 
@@ -174,8 +179,12 @@ export default function ChatRoom (props) {
 
   const postsForDisplay = useMemo(() => {
     if (!postsPast && !postsFuture) return []
-    return ([...(postsPast || []), ...(postsFuture || [])])
-      .sort((a, b) => Number(a.id) - Number(b.id))
+    const allPosts = [...(postsPast || []), ...(postsFuture || [])]
+    // Deduplicate posts by ID (can happen when socket adds posts to Redux while viewing another room)
+    const uniquePosts = Array.from(
+      new Map(allPosts.map(post => [post.id, post])).values()
+    )
+    return uniquePosts.sort((a, b) => Number(a.id) - Number(b.id))
   }, [postsPast, postsFuture])
 
   // Keep the on-screen Virtuoso data in sync when any post updates elsewhere (edit, comment, react)
@@ -334,6 +343,45 @@ export default function ChatRoom (props) {
     }
   }, [topicName])
 
+  useEffect(() => {
+    // New chat room loaded, reset everything
+    if (topicFollow?.id) {
+      // Check if we already have cached data for this room
+      const hasCachedPastData = postsPast && postsPast.length > 0
+      const hasCachedFutureData = postsFuture && postsFuture.length > 0
+      const hasCachedData = hasCachedPastData || hasCachedFutureData
+
+      setNotificationsSetting(topicFollow?.settings?.notifications)
+
+      messageListRef.current?.data.replace([], {
+        purgeItemSizes: true
+      })
+
+      if (hasCachedData) {
+        // We have cached data, use it immediately without showing loading state
+        setLoadedPast(true)
+        setLoadedFuture(true)
+      } else {
+        // No cached data, fetch fresh
+        setLoadedFuture(false)
+        setLoadedPast(false)
+
+        if (topicFollow.newPostCount > 0) {
+          fetchPostsFuture(0).then(() => setLoadedFuture(true))
+        } else {
+          setLoadedFuture(true)
+        }
+
+        fetchPostsPast(0).then(() => setLoadedPast(true))
+      }
+
+      resetInitialPostToScrollTo()
+
+      // Reset marker of new posts
+      setLatestOldPostId(topicFollow.lastReadPostId)
+    }
+  }, [topicFollow?.id])
+
   // Do once after loading posts for the room to get things ready
   useEffect(() => {
     resetInitialPostToScrollTo()
@@ -349,6 +397,19 @@ export default function ChatRoom (props) {
       return () => clearTimeout(timer)
     }
   }, [loadedPast, loadedFuture, initialAnimationComplete])
+
+  // Reset new_post_count when we're at the latest post but still showing a new post count
+  useEffect(() => {
+    if (loadedPast && loadedFuture &&
+        topicFollow?.newPostCount > 0 &&
+        !hasMorePostsFuture &&
+        postsForDisplay.length > 0) {
+      const latestPost = postsForDisplay[postsForDisplay.length - 1]
+      if (latestPost?.id && topicFollow?.id) {
+        dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
+      }
+    }
+  }, [loadedPast, loadedFuture, topicFollow?.newPostCount, topicFollow?.id, hasMorePostsFuture, postsForDisplay])
 
   useEffect(() => {
     if (querystringParams?.postId) {
@@ -546,13 +607,13 @@ export default function ChatRoom (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({
+    !hiddenTopic && setHeaderDetails({
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
-              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/100' />}
+              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
               className='border-none p-0 focus:ring-0 focus:ring-offset-0 bg-transparent'
             />
             <SelectContent className='border-none'>
@@ -572,27 +633,30 @@ export default function ChatRoom (props) {
       info: '',
       search: !isWebView()
     })
-  }, [topicName, notificationsSetting])
+  }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
-        {(initialPostToScrollTo === null || topicFollowLoading || !loadedPast)
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
+        {initialPostToScrollTo === null || topicFollowLoading || !loadedPast
           ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', overflowY: 'auto' }}><ChatRoomSkeleton count={10} /></div>
           : (
-            <VirtuosoMessageListLicense licenseKey='0cd4e64293a1f6d3ef7a76bbd270d94aTzoyMztFOjE3NjI0NzIyMjgzMzM='>
+            <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
+                className='px-1 sm:px-2'
                 ref={messageListRef}
                 context={{
                   currentUser,
                   group,
                   initialAnimationComplete,
                   latestOldPostId,
+                  loadedFuture,
+                  loadedPast,
                   loadingFuture,
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,
@@ -630,6 +694,7 @@ export default function ChatRoom (props) {
       <div className='ChatBoxContainer w-full max-w-[750px] border-t-2 border-l-2 border-r-2 border-foreground/10 shadow-xl rounded-t-lg overflow-y-auto'>
         <PostEditor
           context='groups'
+          customTopicName={customTopicName}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}
@@ -650,7 +715,7 @@ const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
-      {context.loadingPast || context.loadingFuture
+      {!context.loadingPast || !context.loadingFuture
         ? <ChatRoomSkeleton count={8} />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
@@ -791,6 +856,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
             style={animationStyle}
           >
             <PostCard
+              chat
               group={context.group}
               expanded={expanded}
               highlighted={highlighted}
@@ -798,6 +864,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onFlagPost={context.onFlagPost}
               onAddProposalVote={context.onAddProposalVote}
               onRemoveProposalVote={context.onRemoveProposalVote}
               onSwapProposalVote={context.onSwapProposalVote}

@@ -1,5 +1,6 @@
 import {
   CREATE_CONTEXT_WIDGET,
+  DELETE_CONTEXT_WIDGET,
   UPDATE_CONTEXT_WIDGET,
   REORDER_CONTEXT_WIDGET,
   REMOVE_WIDGET_FROM_MENU,
@@ -69,6 +70,16 @@ export function createContextWidget ({ groupId, data }) {
             id
             name
           }
+          viewFundingRound {
+            id
+            title
+            isParticipating
+            publishedAt
+            submissionsOpenAt
+            submissionsCloseAt
+            votingOpensAt
+            votingClosesAt
+          }
           viewTrack {
             id
             name
@@ -84,6 +95,25 @@ export function createContextWidget ({ groupId, data }) {
     meta: {
       groupId,
       data,
+      optimistic: true
+    }
+  }
+}
+
+export function deleteContextWidget ({ contextWidgetId, groupId }) {
+  return {
+    type: DELETE_CONTEXT_WIDGET,
+    graphql: {
+      query: `mutation ($contextWidgetId: ID) {
+        deleteContextWidget(contextWidgetId: $contextWidgetId) {
+          success
+        }
+      }`,
+      variables: { contextWidgetId }
+    },
+    meta: {
+      contextWidgetId,
+      groupId,
       optimistic: true
     }
   }

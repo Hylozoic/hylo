@@ -245,8 +245,8 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         month_caption: 'flex justify-center pt-1 relative items-center',
         caption_label: 'text-sm font-medium',
         nav: 'space-x-1 flex items-center ',
-        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-5 top-5', disableLeftNavigation() && 'pointer-events-none'),
-        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-5 top-5', disableRightNavigation() && 'pointer-events-none'),
+        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-5 top-5 justify-center', disableLeftNavigation() && 'pointer-events-none'),
+        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-5 top-5 justify-center', disableRightNavigation() && 'pointer-events-none'),
         month_grid: 'w-full border-collapse space-y-1',
         weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
         weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
@@ -274,7 +274,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none px-1 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +291,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none p-0 focus:bg-selected focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit gap-1 border-none px-1 focus:bg-selected focus:text-accent-foreground'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -472,6 +472,15 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
   onMonthChange ||= onChange
+
+  // Sync internal state when value prop changes externally (e.g., when cleared)
+  React.useEffect(() => {
+    setDisplayDate(value ?? undefined)
+    if (value) {
+      setMonth(value)
+    }
+  }, [value])
+
   /**
    * carry over the current time when a user clicks a new day
    * instead of resetting to 00:00

@@ -88,6 +88,12 @@ function TrackEditor (props) {
     }
   }
 
+  // Get the selected role object from the roles array to display
+  const selectedRole = useMemo(() => {
+    if (!trackState.completionRole?.id) return null
+    return roles.find(role => role.id === trackState.completionRole.id)
+  }, [trackState.completionRole, roles])
+
   const onSubmit = useCallback(() => {
     let {
       actionDescriptor,
@@ -137,7 +143,7 @@ function TrackEditor (props) {
           dispatch(push(editingTrack ? groupUrl(currentGroup.slug, `tracks/${editingTrack.id}?tab=edit`) : groupUrl(currentGroup.slug, `tracks/${response.payload.data.createTrack.id}?tab=edit`)))
         }
       })
-  }, [trackState, isValid])
+  }, [trackState, isValid, editingTrack])
 
   if (!hasTracksResponsibility) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
@@ -148,7 +154,7 @@ function TrackEditor (props) {
   return (
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
       <div className='p-0'>
-        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{t('Create Track')}</h1>
+        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{props.editingTrack ? t('Edit Track') : t('Create Track')}</h1>
       </div>
 
       <UploadAttachmentButton
@@ -157,7 +163,7 @@ function TrackEditor (props) {
         className='w-full group'
       >
         <div
-          className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+          className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
           style={{ backgroundImage: `url(${bannerUrl})` }}
         >
           <div className='flex flex-col items-center justify-center gap-1'>
@@ -176,7 +182,7 @@ function TrackEditor (props) {
           name='name'
           onChange={updateField('name')}
           value={name}
-          placeholder={t('Your track\'s name')}
+          placeholder={t('Your tracks name')}
           type='text'
         />
         <span className='absolute right-3 text-sm text-gray-500'>{nameCharacterCount} / 120</span>
@@ -244,19 +250,22 @@ function TrackEditor (props) {
         <h3>Completion badge or role</h3>
         <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
           <Select
-            onValueChange={(role) => {
-              updateField('completionRole')(role)
+            onValueChange={(roleId) => {
+              const role = roles.find(r => r.id === roleId)
+              if (role) {
+                updateField('completionRole')(role)
+              }
             }}
-            value={completionRole}
+            value={completionRole?.id || ''}
           >
             <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
               <SelectValue>
-                {completionRole ? completionRole.emoji + ' ' + completionRole.name : t('Select a badge or role given to members who complete the track')}
+                {selectedRole ? selectedRole.emoji + ' ' + selectedRole.name : t('Select a badge or role given to members who complete the track')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {roles.map((role) => (
-                <SelectItem key={role.id} value={role}>
+                <SelectItem key={role.id} value={role.id}>
                   {role.emoji} {role.name}
                 </SelectItem>
               ))}

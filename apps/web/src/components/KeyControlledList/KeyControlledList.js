@@ -23,7 +23,7 @@ const KeyControlledList = forwardRef(({
     itemActive: null
   },
   tagType,
-  backgroundClassName = 'bg-primary',
+  backgroundClassName = 'bg-background border border-foreground/20 rounded-md',
   ...props
 }, ref) => {
   const { t } = useTranslation()

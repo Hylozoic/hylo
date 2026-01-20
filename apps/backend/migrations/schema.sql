@@ -95,7 +95,8 @@ CREATE TABLE public.activities (
     project_contribution_id bigint,
     group_id bigint,
     other_group_id bigint,
-    track_id integer
+    track_id integer,
+    funding_round_id bigint
 );
 
 
@@ -527,6 +528,7 @@ CREATE TABLE public.context_widgets (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     view_track_id bigint,
+    view_funding_round_id bigint,
     CONSTRAINT single_view_reference CHECK (((((((
 CASE
     WHEN (view_group_id IS NOT NULL) THEN 1
@@ -959,6 +961,130 @@ CREATE TABLE public.follows (
 
 
 --
+-- Name: funding_rounds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.funding_rounds (
+    id integer NOT NULL,
+    group_id bigint NOT NULL,
+    title character varying(255) NOT NULL,
+    banner_url text,
+    description text,
+    criteria text,
+    require_budget boolean DEFAULT false,
+    voting_method character varying(255) NOT NULL,
+    token_type character varying(255),
+    total_tokens integer,
+    min_token_allocation integer,
+    max_token_allocation integer,
+    published_at timestamp with time zone,
+    submissions_open_at timestamp with time zone,
+    submissions_close_at timestamp with time zone,
+    voting_opens_at timestamp with time zone,
+    voting_closes_at timestamp with time zone,
+    submission_descriptor character varying(255),
+    submission_descriptor_plural character varying(255),
+    num_submissions integer DEFAULT 0,
+    num_participants integer DEFAULT 0,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    submitter_roles jsonb DEFAULT '[]'::jsonb,
+    voter_roles jsonb DEFAULT '[]'::jsonb,
+    phase character varying(255) DEFAULT 'draft'::character varying,
+    active boolean DEFAULT true NOT NULL,
+    deactivated_at timestamp with time zone
+);
+
+
+--
+-- Name: funding_rounds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.funding_rounds_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: funding_rounds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.funding_rounds_id_seq OWNED BY public.funding_rounds.id;
+
+
+--
+-- Name: funding_rounds_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.funding_rounds_posts (
+    id integer NOT NULL,
+    funding_round_id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: funding_rounds_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.funding_rounds_posts_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: funding_rounds_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.funding_rounds_posts_id_seq OWNED BY public.funding_rounds_posts.id;
+
+
+--
+-- Name: funding_rounds_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.funding_rounds_users (
+    id integer NOT NULL,
+    funding_round_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    settings jsonb DEFAULT '{}'::jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    tokens_remaining integer DEFAULT 0
+);
+
+
+--
+-- Name: funding_rounds_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.funding_rounds_users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: funding_rounds_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.funding_rounds_users_id_seq OWNED BY public.funding_rounds_users.id;
+
+
+--
 -- Name: group_relationships; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -969,10 +1095,10 @@ CREATE TABLE public.group_relationships (
     active boolean DEFAULT true,
     role integer,
     settings jsonb DEFAULT '{}'::jsonb,
-    relationship_type integer DEFAULT 0 NOT NULL,
-    description text,
     created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    relationship_type integer DEFAULT 0 NOT NULL,
+    description text
 );
 
 
@@ -2245,7 +2371,8 @@ CREATE TABLE public.posts (
     completion_action character varying(255),
     completion_action_settings jsonb DEFAULT '{}'::jsonb,
     num_people_completed integer DEFAULT 0,
-    num_commenters integer DEFAULT 0
+    num_commenters integer DEFAULT 0,
+    budget character varying(255)
 );
 
 
@@ -2308,7 +2435,9 @@ CREATE TABLE public.posts_users (
     active boolean DEFAULT true,
     clickthrough boolean,
     completed_at timestamp with time zone,
-    completion_response jsonb DEFAULT '[]'::jsonb
+    completion_response jsonb DEFAULT '[]'::jsonb,
+    saved_at timestamp with time zone,
+    tokens_allocated_to integer DEFAULT 0
 );
 
 
@@ -3486,6 +3615,27 @@ ALTER TABLE ONLY public.flagged_items ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: funding_rounds id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_id_seq'::regclass);
+
+
+--
+-- Name: funding_rounds_posts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_posts ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_posts_id_seq'::regclass);
+
+
+--
+-- Name: funding_rounds_users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_users ALTER COLUMN id SET DEFAULT nextval('public.funding_rounds_users_id_seq'::regclass);
+
+
+--
 -- Name: group_extensions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4106,6 +4256,30 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.tag_follows
     ADD CONSTRAINT followed_tags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: funding_rounds funding_rounds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds
+    ADD CONSTRAINT funding_rounds_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: funding_rounds_posts funding_rounds_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_posts
+    ADD CONSTRAINT funding_rounds_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: funding_rounds_users funding_rounds_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_users
+    ADD CONSTRAINT funding_rounds_users_pkey PRIMARY KEY (id);
 
 
 --
@@ -4972,6 +5146,34 @@ CREATE INDEX fk_community_created_by_1 ON public.communities USING btree (create
 
 
 --
+-- Name: funding_rounds_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX funding_rounds_group_id_index ON public.funding_rounds USING btree (group_id);
+
+
+--
+-- Name: funding_rounds_posts_funding_round_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX funding_rounds_posts_funding_round_id_index ON public.funding_rounds_posts USING btree (funding_round_id);
+
+
+--
+-- Name: funding_rounds_users_funding_round_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX funding_rounds_users_funding_round_id_index ON public.funding_rounds_users USING btree (funding_round_id);
+
+
+--
+-- Name: funding_rounds_users_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX funding_rounds_users_user_id_index ON public.funding_rounds_users USING btree (user_id);
+
+
+--
 -- Name: group_extensions_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5039,6 +5241,13 @@ CREATE INDEX group_relationships_child_group_id_active_index ON public.group_rel
 --
 
 CREATE INDEX group_relationships_parent_group_id_active_index ON public.group_relationships USING btree (parent_group_id, active);
+
+
+--
+-- Name: group_relationships_type_active_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_relationships_type_active_index ON public.group_relationships USING btree (relationship_type, active);
 
 
 --
@@ -5372,6 +5581,14 @@ ALTER TABLE ONLY public.activities
 
 
 --
+-- Name: activities activities_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.activities
+    ADD CONSTRAINT activities_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id);
+
+
+--
 -- Name: activities activities_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5641,6 +5858,14 @@ ALTER TABLE ONLY public.context_widgets
 
 ALTER TABLE ONLY public.context_widgets
     ADD CONSTRAINT context_widgets_view_chat_id_foreign FOREIGN KEY (view_chat_id) REFERENCES public.tags(id) ON DELETE CASCADE;
+
+
+--
+-- Name: context_widgets context_widgets_view_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.context_widgets
+    ADD CONSTRAINT context_widgets_view_funding_round_id_foreign FOREIGN KEY (view_funding_round_id) REFERENCES public.funding_rounds(id);
 
 
 --
@@ -6009,6 +6234,46 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.follows
     ADD CONSTRAINT follows_comment_id_foreign FOREIGN KEY (comment_id) REFERENCES public.comments(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: funding_rounds funding_rounds_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds
+    ADD CONSTRAINT funding_rounds_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: funding_rounds_posts funding_rounds_posts_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_posts
+    ADD CONSTRAINT funding_rounds_posts_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: funding_rounds_posts funding_rounds_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_posts
+    ADD CONSTRAINT funding_rounds_posts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: funding_rounds_users funding_rounds_users_funding_round_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_users
+    ADD CONSTRAINT funding_rounds_users_funding_round_id_foreign FOREIGN KEY (funding_round_id) REFERENCES public.funding_rounds(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: funding_rounds_users funding_rounds_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.funding_rounds_users
+    ADD CONSTRAINT funding_rounds_users_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
