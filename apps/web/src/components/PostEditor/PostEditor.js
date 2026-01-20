@@ -295,8 +295,6 @@ function PostEditor ({
         if (!g) return []
         return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
           .concat((g.chatRooms?.toModelArray() || [])
-            // Filter out #general - it's automatically added when a group is selected
-            .filter(cr => cr?.groupTopic?.topic?.name !== DEFAULT_CHAT_TOPIC)
             .map((cr) => ({
               id: cr?.id,
               group: g,
@@ -313,20 +311,12 @@ function PostEditor ({
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      const baseOption = [{
-        id: `group_${g.id}`,
-        name: g.name,
-        avatarUrl: g.avatarUrl,
-        group: g
-      }]
 
-      // Filter chat room options to exclude the #general topic pill
-      // The general topic is implicitly included when a group is selected
-      // and will be visually combined with the group-only pill
+      // Get all selected topic options for this group
+      // If no topics are selected for a group, no pill is shown (group is not in selection)
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
-          cr?.groupTopic?.topic?.name !== DEFAULT_CHAT_TOPIC && // Hide #general pill
           currentPost.topics?.some(t => t?.id === cr.groupTopic.topic.id)
         )
         ?.map(cr => {
@@ -341,7 +331,7 @@ function PostEditor ({
         })
         .filter(Boolean) || []
 
-      return baseOption.concat(chatRoomOptions)
+      return chatRoomOptions
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
@@ -618,41 +608,34 @@ function PostEditor ({
 
   /**
    * Custom delete handler for ToField that implements conditional pill removal
-   * - When removing a group-only pill:
-   *   - If it's the only pill from that group (no other topics beyond #general): remove the group entirely
-   *   - If there are other topics: remove the group-only pill but keep topic pills
-   *     (the #general topic will be removed since it's not in the remaining options)
-   * - When removing a topic pill: just remove that topic
+   * - When removing the #general pill:
+   *   - If there are other topics for that group: just remove #general, keep other topics
+   *   - If #general is the only topic: remove the entire group (all options with this group)
+   * - When removing any other topic pill: just remove that topic
    */
   const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
     const groupId = deletedOption.group?.id
 
-    if (deletedOption.topic) {
-      // Deleting a specific topic pill - just remove that topic
-      return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+    // Check if we're deleting the #general pill
+    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
+      // Check if there are other topics for this group (beyond #general)
+      const otherTopicsForGroup = allSelected.filter(o =>
+        o.group?.id === groupId &&
+        o.topic &&
+        o.topic?.name !== DEFAULT_CHAT_TOPIC
+      )
+
+      if (otherTopicsForGroup.length > 0) {
+        // There are other topics - just remove #general, keep the group via other topics
+        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+      }
+
+      // #general is the only topic - remove the entire group
+      return allSelected.filter(o => o.group?.id !== groupId)
     }
 
-    // Deleting a group-only pill
-    // Check if there are other topics selected for this group (beyond #general)
-    const otherTopicsForGroup = allSelected.filter(o =>
-      o.group?.id === groupId &&
-      o.topic &&
-      o.topic?.name !== DEFAULT_CHAT_TOPIC
-    )
-
-    if (otherTopicsForGroup.length > 0) {
-      // There are other topics for this group - remove the group-only pill
-      // but keep the topic pills. The group will be preserved via the topic pills.
-      // The #general topic will naturally be removed since it's not in any remaining option.
-      return allSelected.filter(o => {
-        if (o.group?.id !== groupId) return true // Keep options from other groups
-        if (!o.topic) return false // Remove the group-only pill (this is what user clicked)
-        return true // Keep topic pills for this group
-      })
-    }
-
-    // No other topics - remove the entire group (all options with this group)
-    return allSelected.filter(o => o.group?.id !== groupId)
+    // Deleting a non-general topic pill - just remove that topic
+    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
   }, [])
 
   const togglePublic = useCallback(() => {
