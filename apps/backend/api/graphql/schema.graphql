@@ -406,9 +406,6 @@ type ActivityMeta {
       'fundingRoundNewSubmission' = someone submitted a new submission to a funding round
       'fundingRoundPhaseTransition' = a phase transition in a funding round
       'fundingRoundReminder' = a reminder of a funding round deadline
-      'fundingRoundJoinRequest' = a request to join a funding round
-      'fundingRoundJoinRequestAccepted' = a request to join a funding round was accepted
-      'fundingRoundJoinRequestRejected' = a request to join a funding round was rejected
   """
   reasons: [String]
   # The type of reminder for this activity if it is a reminder (for funding rounds)
@@ -2620,8 +2617,6 @@ type FundingRound {
   id: ID
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
-  # Whether people can join during voting: 'no', 'request', or 'yes'
-  joinDuringVoting: String
   # The URL for the banner image of the round
   bannerUrl: String
   # Whether the current user can submit to this funding round
@@ -2955,12 +2950,6 @@ type Mutation {
   invitePeopleToEvent(eventId: ID, inviteeIds: [ID]): Post
   # Join a funding round
   joinFundingRound(id: ID): FundingRound
-  # Request to join a funding round during voting phase
-  requestToJoinFundingRound(id: ID, comments: String): FundingRound
-  # Accept a funding round join request (stewards only)
-  acceptFundingRoundJoinRequest(requestId: ID): FundingRound
-  # Reject a funding round join request (stewards only)
-  rejectFundingRoundJoinRequest(requestId: ID): FundingRound
   # Join a group. Will fail if the person does not have permission to join this group.
   joinGroup(groupId: ID, questionAnswers: [QuestionAnswerInput]): Membership
   # Join a project Post as a member
@@ -3869,8 +3858,6 @@ input RoleSelectionInput {
 input FundingRoundInput {
   # Whether participants can vote on their own submissions
   allowSelfVoting: Boolean
-  # Whether people can join during voting: 'no', 'request', or 'yes'
-  joinDuringVoting: String
   # The URL for the banner image of the round
   bannerUrl: String
   # Criteria for submitting projects/submissions
