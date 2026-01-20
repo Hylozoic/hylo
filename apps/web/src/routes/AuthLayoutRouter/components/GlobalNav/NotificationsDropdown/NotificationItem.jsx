@@ -11,7 +11,7 @@ export default function NotificationItem ({ notification, onClick }) {
 
   return (
     <li
-      className={cn('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3 bg-black/10 opacity-80 hover:opacity-100 transition-all', { 'bg-white/10 opacity-100 text-foreground': unread })}
+      className={cn('flex items-start cursor-pointer border-b border-border text-sm text-muted-foreground py-3 bg-darkening/10 opacity-80 hover:opacity-100 transition-all', { 'bg-white/10 opacity-100 text-foreground': unread })}
       onClick={(event) => {
         event.stopPropagation()
         onClick(event, notification)

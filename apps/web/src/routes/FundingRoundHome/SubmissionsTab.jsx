@@ -151,7 +151,7 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
       />
       {currentPhase === 'submissions' && canSubmit && (
         <button
-          className='my-4 w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md mb-4'
+          className='my-4 w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md mb-4'
           onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'submission' }))}
         >
           + {t('Add {{submissionDescriptor}}', { submissionDescriptor: round?.submissionDescriptor })}

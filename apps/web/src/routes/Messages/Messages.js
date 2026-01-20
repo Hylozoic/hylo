@@ -202,6 +202,7 @@ const Messages = () => {
             updateThreadReadTime={updateThreadReadTimeAction}
             messageThread={messageThread}
           />
+          <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
           <MessageForm
             disabled={!messageThreadId && participants.length === 0}
             onSubmit={sendMessage}
@@ -213,7 +214,6 @@ const Messages = () => {
             sendIsTyping={status => sendIsTyping(messageThreadId, status)}
             pending={messageCreatePending}
           />
-          <PeopleTyping className={classes.peopleTyping} />
           {socket && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>

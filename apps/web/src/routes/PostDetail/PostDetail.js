@@ -414,7 +414,7 @@ export function ActionCompletionsSection ({ currentUser, post }) {
       {post.completionResponses.length > 0 && (
         <Button
           onClick={toggleCompletionResponsesDialog}
-          className='border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md bg-transparent'
+          className='border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md bg-transparent'
         >
           {t('View All Responses')}
         </Button>
