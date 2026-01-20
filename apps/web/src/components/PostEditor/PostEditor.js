@@ -45,6 +45,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -278,35 +279,41 @@ function PostEditor ({
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    return groupOptions
+    // Sort groups so currentGroup appears first, then alphabetically
+    const sortedGroups = [...groupOptions]
       .filter(Boolean)
+      .sort((a, b) => {
+        const aIsCurrent = a.id === currentGroup?.id
+        const bIsCurrent = b.id === currentGroup?.id
+        if (aIsCurrent && !bIsCurrent) return -1
+        if (!aIsCurrent && bIsCurrent) return 1
+        return a.name.localeCompare(b.name)
+      })
+
+    return sortedGroups
       .map((g) => {
         if (!g) return []
-        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
-          .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({
-              id: cr?.id,
-              group: g,
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-              topic: cr?.groupTopic?.topic,
-              avatarUrl: g.avatarUrl,
-              allowInPublic: g.allowInPublic
-            }))
-            .filter(Boolean)
-            .sort((a, b) => a.name.localeCompare(b.name)))
+        // Only show topic options (like "Group #general"), no group-only options
+        return (g.chatRooms?.toModelArray() || [])
+          .map((cr) => ({
+            id: cr?.id,
+            group: g,
+            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+            topic: cr?.groupTopic?.topic,
+            avatarUrl: g.avatarUrl,
+            allowInPublic: g.allowInPublic
+          }))
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions])
+  }, [groupOptions, currentGroup?.id])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      const baseOption = [{
-        id: `group_${g.id}`,
-        name: g.name,
-        avatarUrl: g.avatarUrl,
-        group: g
-      }]
 
+      // Get all selected topic options for this group
+      // If no topics are selected for a group, no pill is shown (group is not in selection)
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
@@ -324,7 +331,7 @@ function PostEditor ({
         })
         .filter(Boolean) || []
 
-      return baseOption.concat(chatRoomOptions)
+      return chatRoomOptions
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
@@ -397,6 +404,32 @@ function PostEditor ({
       return { ...prev, topics: nextTopics }
     })
   }, [topic?.id])
+
+  // Auto-add the #general topic when groups are selected
+  // This ensures all posts appear in the #general chat by default
+  useEffect(() => {
+    if (!selectedGroups || selectedGroups.length === 0) return
+
+    // Find the general topic from any selected group's chatRooms
+    let generalTopic = null
+    for (const group of selectedGroups) {
+      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
+      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
+      if (generalChatRoom?.groupTopic?.topic) {
+        generalTopic = generalChatRoom.groupTopic.topic
+        break
+      }
+    }
+
+    if (!generalTopic) return
+
+    setCurrentPost(prev => {
+      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
+      if (alreadyHasGeneral) return prev
+
+      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
+    })
+  }, [selectedGroups])
 
   /**
    * Resets the editor to its initial state
@@ -572,6 +605,38 @@ function PostEditor ({
       setIsDirty(true)
     }
   }, [currentPost])
+
+  /**
+   * Custom delete handler for ToField that implements conditional pill removal
+   * - When removing the #general pill:
+   *   - If there are other topics for that group: just remove #general, keep other topics
+   *   - If #general is the only topic: remove the entire group (all options with this group)
+   * - When removing any other topic pill: just remove that topic
+   */
+  const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
+    const groupId = deletedOption.group?.id
+
+    // Check if we're deleting the #general pill
+    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
+      // Check if there are other topics for this group (beyond #general)
+      const otherTopicsForGroup = allSelected.filter(o =>
+        o.group?.id === groupId &&
+        o.topic &&
+        o.topic?.name !== DEFAULT_CHAT_TOPIC
+      )
+
+      if (otherTopicsForGroup.length > 0) {
+        // There are other topics - just remove #general, keep the group via other topics
+        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+      }
+
+      // #general is the only topic - remove the entire group
+      return allSelected.filter(o => o.group?.id !== groupId)
+    }
+
+    // Deleting a non-general topic pill - just remove that topic
+    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+  }, [])
 
   const togglePublic = useCallback(() => {
     const { isPublic } = currentPost
@@ -933,6 +998,7 @@ function PostEditor ({
               options={toOptions}
               selected={selectedToOptions}
               onChange={handleAddToOption}
+              onDelete={handleToOptionDelete}
               readOnly={loading}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
