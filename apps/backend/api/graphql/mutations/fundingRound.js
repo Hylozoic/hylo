@@ -1,4 +1,4 @@
-/* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, FundingRoundUser, PostUser, FundingRoundJoinRequest, Activity */
+/* global FundingRound, Group, GroupMembership, Responsibility, Queue, bookshelf, Post, FundingRoundUser, PostUser */
 import { GraphQLError } from 'graphql'
 import convertGraphqlData from './convertGraphqlData'
 
@@ -147,53 +147,8 @@ export async function joinFundingRound (userId, roundId) {
   const isMember = await GroupMembership.forPair(userId, group.id).fetch()
   if (!isMember) throw new GraphQLError('You are not a member of this group')
 
-  const phase = round.get('phase')
-  const joinDuringVoting = round.get('join_during_voting') || 'no'
-
-  // Check if voting phase (not completed)
-  if (phase === FundingRound.PHASES.VOTING) {
-    if (joinDuringVoting === 'no') {
-      throw new GraphQLError('Joining during voting is not allowed for this round')
-    }
-    if (joinDuringVoting === 'request') {
-      throw new GraphQLError('You must request to join this round. Please use requestToJoinFundingRound mutation.')
-    }
-    // If joinDuringVoting === 'yes', allow join and distribute tokens
-  } else if (phase === FundingRound.PHASES.COMPLETED) {
-    throw new GraphQLError('You cannot join a round that has already completed')
-  }
-
   await FundingRound.join(roundId, userId)
-
-  // If joining during voting phase and joinDuringVoting is 'yes', distribute tokens
-  if (phase === FundingRound.PHASES.VOTING && joinDuringVoting === 'yes') {
-    await distributeTokensToUser(round, userId)
-  }
-
   return FundingRound.find(roundId)
-}
-
-// Helper function to distribute tokens to a single user when they join during voting
-// Only used when voting_method = token_allocation_constant, so everyone gets total_tokens
-async function distributeTokensToUser (round, userId) {
-  const totalTokens = round.get('total_tokens')
-
-  if (!totalTokens) {
-    throw new GraphQLError('Total tokens not set for this round')
-  }
-
-  // Check if the user can vote
-  const canVote = await round.canUserVote(userId)
-  if (canVote) {
-    const roundUser = await FundingRoundUser.where({
-      funding_round_id: round.id,
-      user_id: userId
-    }).fetch()
-
-    if (roundUser) {
-      await roundUser.save({ tokens_remaining: totalTokens }, { patch: true })
-    }
-  }
 }
 
 export async function leaveFundingRound (userId, roundId) {
@@ -245,15 +200,9 @@ export async function doPhaseTransition (userId, roundOrId, { transacting } = {}
     newPhase = submissionsCloseAt && new Date(submissionsCloseAt) <= new Date()
       ? FundingRound.PHASES.DISCUSSION
       : FundingRound.PHASES.SUBMISSIONS
-    // Auto-accept all pending join requests when going back to Discussion or earlier
-    if (newPhase === FundingRound.PHASES.DISCUSSION || newPhase === FundingRound.PHASES.SUBMISSIONS) {
-      await autoAcceptPendingJoinRequests(round, { transacting })
-    }
   } else if (submissionsCloseAt === null && [FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
     // If clearing submissionsCloseAt while in discussion or later, reset to submissions
     newPhase = FundingRound.PHASES.SUBMISSIONS
-    // Auto-accept all pending join requests when going back to Discussion or earlier
-    await autoAcceptPendingJoinRequests(round, { transacting })
   } else if (submissionsOpenAt === null && [FundingRound.PHASES.SUBMISSIONS, FundingRound.PHASES.DISCUSSION, FundingRound.PHASES.VOTING, FundingRound.PHASES.COMPLETED].includes(currentPhase)) {
     // If clearing submissionsOpenAt while in submissions or later, reset to published
     newPhase = FundingRound.PHASES.PUBLISHED
@@ -352,173 +301,3 @@ export async function allocateTokensToSubmission (userId, postId, tokens) {
 
   return post
 }
-// Helper function to auto-accept all pending join requests
-async function autoAcceptPendingJoinRequests (round, { transacting } = {}) {
-  const pendingRequests = await FundingRoundJoinRequest.query(q => {
-    q.where({ funding_round_id: round.id })
-    q.whereNull('accepted_at')
-    q.whereNull('rejected_at')
-  }).fetchAll({ transacting })
-
-  for (const request of pendingRequests.models) {
-    const requesterId = request.get('user_id')
-
-    // Accept the request
-    await request.save({ accepted_at: new Date() }, { transacting, patch: true })
-
-    // Join the user to the round
-    await FundingRound.join(round.id, requesterId, { transacting })
-
-    // Note: Tokens are not distributed here since we're going back to Discussion
-    // They will be distributed when voting starts again
-  }
-}
-
-export async function requestToJoinFundingRound (userId, roundId, comments) {
-  const round = await FundingRound.find(roundId)
-  if (!round) throw new GraphQLError('FundingRound not found')
-
-  const group = await round.group().fetch()
-  const isMember = await GroupMembership.forPair(userId, group.id).fetch()
-  if (!isMember) throw new GraphQLError('You are not a member of this group')
-
-  const phase = round.get('phase')
-  const joinDuringVoting = round.get('join_during_voting') || 'no'
-
-  // Check if voting phase (not completed)
-  if (phase !== FundingRound.PHASES.VOTING) {
-    throw new GraphQLError('You can only request to join during the voting phase')
-  }
-
-  if (joinDuringVoting !== 'request') {
-    throw new GraphQLError('This round does not accept join requests')
-  }
-
-  // Check if user is already participating
-  const isParticipating = await round.isParticipating(userId)
-  if (isParticipating) {
-    throw new GraphQLError('You are already participating in this round')
-  }
-
-  // Check if there's already a pending request
-  const existingRequest = await FundingRoundJoinRequest.where({
-    funding_round_id: roundId,
-    user_id: userId
-  })
-    .whereNull('accepted_at')
-    .whereNull('rejected_at')
-    .fetch()
-
-  if (existingRequest) {
-    throw new GraphQLError('You already have a pending join request')
-  }
-
-  // Create the join request
-  await FundingRoundJoinRequest.create({
-    funding_round_id: roundId,
-    user_id: userId,
-    comments: comments || null
-  })
-
-  // Notify stewards
-  const manageResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_ROUNDS }).fetch()
-  const stewards = await group.membersWithResponsibilities([manageResponsibility.id]).fetch()
-  const stewardIds = stewards.pluck('id')
-
-  const activities = stewardIds
-    .filter(stewardId => stewardId !== userId)
-    .map(stewardId => ({
-      reason: 'fundingRoundJoinRequest',
-      actor_id: userId,
-      group_id: group.id,
-      reader_id: stewardId,
-      funding_round_id: roundId
-    }))
-
-  if (activities.length > 0) {
-    await Activity.saveForReasons(activities)
-  }
-
-  return FundingRound.find(roundId)
-}
-
-export async function acceptFundingRoundJoinRequest (userId, requestId) {
-  return bookshelf.transaction(async transacting => {
-    const request = await FundingRoundJoinRequest.where({ id: requestId }).fetch({ transacting })
-    if (!request) throw new GraphQLError('Join request not found')
-
-    const round = await FundingRound.find(request.get('funding_round_id'), { transacting })
-    if (!round) throw new GraphQLError('Funding round not found')
-
-    const group = await round.group().fetch({ transacting })
-    const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS, { transacting })
-    if (!canManage) throw new GraphQLError('You do not have permission to accept join requests')
-
-    // Check if already accepted or rejected
-    if (request.get('accepted_at') || request.get('rejected_at')) {
-      throw new GraphQLError('This request has already been processed')
-    }
-
-    const requesterId = request.get('user_id')
-
-    // Accept the request
-    await request.save({ accepted_at: new Date() }, { transacting, patch: true })
-
-    // Join the user to the round
-    await FundingRound.join(round.id, requesterId, { transacting })
-
-    // Distribute tokens if in voting phase
-    const phase = round.get('phase')
-    if (phase === FundingRound.PHASES.VOTING) {
-      await distributeTokensToUser(round, requesterId)
-    }
-
-    // Notify the user
-    const activities = [{
-      reason: 'fundingRoundJoinRequestAccepted',
-      actor_id: userId,
-      group_id: group.id,
-      reader_id: requesterId,
-      funding_round_id: round.id
-    }]
-
-    await Activity.saveForReasons(activities, transacting)
-
-    return FundingRound.find(round.id)
-  })
-}
-
-export async function rejectFundingRoundJoinRequest (userId, requestId) {
-  const request = await FundingRoundJoinRequest.where({ id: requestId }).fetch()
-  if (!request) throw new GraphQLError('Join request not found')
-
-  const round = await FundingRound.find(request.get('funding_round_id'))
-  if (!round) throw new GraphQLError('Funding round not found')
-
-  const group = await round.group().fetch()
-  const canManage = await GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_MANAGE_ROUNDS)
-  if (!canManage) throw new GraphQLError('You do not have permission to reject join requests')
-
-  // Check if already accepted or rejected
-  if (request.get('accepted_at') || request.get('rejected_at')) {
-    throw new GraphQLError('This request has already been processed')
-  }
-
-  // Reject the request
-  await request.save({ rejected_at: new Date() }, { patch: true })
-
-  // Notify the user
-  const requesterId = request.get('user_id')
-  const activities = [{
-    reason: 'fundingRoundJoinRequestRejected',
-    actor_id: userId,
-    group_id: group.id,
-    reader_id: requesterId,
-    funding_round_id: round.id
-  }]
-
-  await Activity.saveForReasons(activities)
-
-  return FundingRound.find(round.id)
-}
-
