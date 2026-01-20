@@ -149,8 +149,7 @@ function Comment ({
                 <div key={item.icon} className={styles.commentAction} onClick={item.onClick}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon, { 'data-testid': item.label })
-                    : <Icon name={item.icon} dataTestId={item.label} />
-                  }
+                    : <Icon name={item.icon} dataTestId={item.label} />}
                 </div>
               ))}
               <EmojiRow
