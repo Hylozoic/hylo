@@ -670,7 +670,6 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     // Create home view widget based on homeView setting
-    // Only create general chat widget if homeView is CHAT (default)
     if (homeView === 'CHAT') {
       // Create general chat widget as child of home widget
       await ContextWidget.forge({
@@ -1086,13 +1085,10 @@ module.exports = bookshelf.Model.extend(merge({
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
 
-    // Extract homeView from data and add to settings (defaults to 'CHAT' if not provided)
-    const homeView = data.home_view || data.homeView || 'CHAT'
     const defaultSettings = {
       allow_group_invites: false,
       agreements_last_updated_at: null,
       public_member_directory: false,
-      homeView
     }
 
     // eslint-disable-next-line camelcase
