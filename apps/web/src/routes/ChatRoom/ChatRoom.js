@@ -136,8 +136,8 @@ export default function ChatRoom (props) {
 
   // Reduced initial load for faster time-to-interactive
   // Virtuoso handles virtualization well, so we can load fewer initially and paginate aggressively
-  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 10 : 12
-  const PAGINATION_PAGE_SIZE = 15 // Larger pages when scrolling (already rendered, so faster)
+  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
+  const PAGINATION_PAGE_SIZE = isWebView() || isMobile.any ? 17 : 25 // Larger pages when scrolling (already rendered, so faster)
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',

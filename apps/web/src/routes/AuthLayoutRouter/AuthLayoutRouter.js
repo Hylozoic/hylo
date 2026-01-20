@@ -302,7 +302,7 @@ export default function AuthLayoutRouter (props) {
           <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
-                <Suspense fallback={<div className="w-20" />}>
+                <Suspense fallback={<div className='w-20' />}>
                   <GlobalNav
                     group={currentGroup}
                     currentUser={currentUser}
