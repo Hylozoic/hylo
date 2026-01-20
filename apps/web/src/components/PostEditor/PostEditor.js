@@ -293,18 +293,18 @@ function PostEditor ({
     return sortedGroups
       .map((g) => {
         if (!g) return []
-        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
-          .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({
-              id: cr?.id,
-              group: g,
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-              topic: cr?.groupTopic?.topic,
-              avatarUrl: g.avatarUrl,
-              allowInPublic: g.allowInPublic
-            }))
-            .filter(Boolean)
-            .sort((a, b) => a.name.localeCompare(b.name)))
+        // Only show topic options (like "Group #general"), no group-only options
+        return (g.chatRooms?.toModelArray() || [])
+          .map((cr) => ({
+            id: cr?.id,
+            group: g,
+            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+            topic: cr?.groupTopic?.topic,
+            avatarUrl: g.avatarUrl,
+            allowInPublic: g.allowInPublic
+          }))
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
   }, [groupOptions, currentGroup?.id])
 
