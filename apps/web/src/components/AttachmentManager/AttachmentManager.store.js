@@ -159,6 +159,6 @@ export default function reducer (state = defaultState, action) {
 
 // -- UTILITY --
 
-export const ATTACHMENT_KEYS_WHITELIST = ['url', 'attachmentType']
+export const ATTACHMENT_KEYS_WHITELIST = ['url', 'attachmentType', 'filename']
 
 export const makeAttachmentKey = (type, id) => [type, id || ID_FOR_NEW].join('-')

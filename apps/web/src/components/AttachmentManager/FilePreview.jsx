@@ -3,7 +3,7 @@ import Icon from 'components/Icon'
 import classes from './AttachmentManager.module.scss'
 
 export function FilePreview ({ attachment, removeFile, fileSize }) {
-  const filename = new URL(attachment.url).pathname.split('/').pop()
+  const filename = attachment.filename || new URL(attachment.url).pathname.split('/').pop()
   return (
     <div className={classes.filePreview}>
       <Icon name='Document' className={classes.iconDocument} />
