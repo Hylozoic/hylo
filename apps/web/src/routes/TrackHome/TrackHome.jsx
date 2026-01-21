@@ -175,7 +175,6 @@ function TrackHome () {
             : (
               <AboutTab track={currentTrack} showPaywall />
               )}
->>>>>>> 604-paid-content
         </div>
 
         <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
@@ -220,7 +219,7 @@ function TrackHome () {
                       <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
                     </button>
                   </div>
-                  )}
+                )}
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
