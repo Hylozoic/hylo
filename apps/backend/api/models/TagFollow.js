@@ -210,7 +210,10 @@ module.exports = bookshelf.Model.extend(Object.assign({
         version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
         locale,
-        sender: { name: tagFollow.relations.group.get('name') + ' (via Hylo)' },
+        sender: {
+          name: tagFollow.relations.group.get('name') + ' (via Hylo)',
+          reply_to: 'DoNotReply@hylo.com'
+        },
         data: {
           count: postData.length,
           chat_topic: tagFollow.relations.tag.get('name'),

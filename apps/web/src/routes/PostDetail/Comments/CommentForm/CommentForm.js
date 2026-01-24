@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useRef, useCallback, useEffect, useMemo } from 'react'
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
@@ -7,12 +7,11 @@ import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
 import { addAttachment, getAttachments, clearAttachments } from 'components/AttachmentManager/AttachmentManager.store'
-import Button from 'components/Button'
+import Button from 'components/ui/button'
 import HyloEditor from 'components/HyloEditor'
 import Icon from 'components/Icon'
 import Loading from 'components/Loading'
 import RoundImage from 'components/RoundImage'
-import Tooltip from 'components/Tooltip'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
@@ -38,6 +37,8 @@ function CommentForm ({
   const draftStorageKey = useMemo(() => `draft:comment:${pathname}${search}:post:${postId}`, [pathname, search, postId])
   const { loadDraft, saveDraft, clearDraft } = useDraftStorage(draftStorageKey)
   const draftRef = useRef(editorContent || loadDraft())
+
+  const [isFocused, setIsFocused] = useState(false)
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(
@@ -90,20 +91,35 @@ function CommentForm ({
 
   const placeholderText = placeholder || t('Add a comment...')
 
+  const handleContainerMouseDown = useCallback(event => {
+    event.preventDefault()
+    if (isFocused) return
+    editor?.current?.focus()
+  }, [editor, isFocused])
+
   return (
     <>
-      <div className={cn('CommentForm flex flex-col items-start justify-between bg-input rounded-lg p-3', className)}>
-        <div className={cn(classes.prompt, { [classes.disabled]: !currentUser })}>
+      <div
+        className={cn(
+          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
+          { 'border-2 border-focus': isFocused },
+          className
+        )}
+        onMouseDown={handleContainerMouseDown}
+      >
+        <div className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}>
           {currentUser
-            ? <RoundImage url={currentUser.avatarUrl} small className={classes.image} />
+            ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
             contentHTML={editorContent ?? draftRef.current}
             onAltEnter={handleSubmit}
-            className={classes.editor}
+            className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
             onUpdate={handleEditorUpdate}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder={placeholderText}
             ref={editor}
           />
@@ -119,23 +135,17 @@ function CommentForm ({
               </Link>
               )
             : (
-              <>
-                <div className={classes.sendMessageContainer}>
+              <div className='flex items-center gap-2'>
+                <div>
                   <Button
-                    borderRadius='6px'
+                    variant='ghost'
+                    size='icon'
                     onClick={() => handleSubmit(editor.current.getHTML())}
-                    className={classes.sendMessageButton}
-                    dataTip={t('You need to include text to post a comment')}
-                    dataFor='comment-submit-tt'
-                    name='send'
+                    className='bg-selected text-foreground hover:scale-102 focus-visible:outline-none'
+                    tooltip={t('You need to include text to post a comment')}
                   >
                     <SendHorizontal size={18} color='white' />
                   </Button>
-                  <Tooltip
-                    delay={150}
-                    position='top'
-                    id='comment-submit-tt'
-                  />
                 </div>
                 <UploadAttachmentButton
                   type='comment'
@@ -143,17 +153,17 @@ function CommentForm ({
                   allowMultiple
                   onSuccess={addAttachmentAction}
                   customRender={renderProps => (
-                    <UploadButton {...renderProps} className={classes.uploadButton} />
+                    <UploadButton {...renderProps} className='flex items-center justify-center w-6 h-6 p-0 hover:bg-focus' />
                   )}
                 />
-              </>
+              </div>
               )}
         </div>
         {currentUser && (
           <AttachmentManager type='comment' id='new' attachmentType='image' />
         )}
       </div>
-      <p className='text-xs text-gray-500 text-end'>
+      <p className='text-xs text-foreground/50 text-end'>
         {!isMobile.any && (navigator.platform.includes('Mac') ? t('Press Option-Enter to comment') : t('Press Alt-Enter to comment'))}
       </p>
     </>

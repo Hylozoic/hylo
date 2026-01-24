@@ -409,7 +409,7 @@ export default function ManageTab ({ round }) {
   return (
     <div className='flex flex-col gap-4 mt-4 pb-4'>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `funding-rounds/${round?.id}/edit`))}
       >
         <Settings className='w-4 h-4' />

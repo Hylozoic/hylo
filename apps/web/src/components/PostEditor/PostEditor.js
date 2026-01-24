@@ -46,6 +46,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -383,38 +384,66 @@ function PostEditorInner ({
     )
   }, [currentPost?.groups, groupOptions])
 
+  // Extract groupIds array for scoping topic and mention searches
+  // Priority:
+  // 1. Use selectedGroups if available (most common case - user has selected groups)
+  // 2. For public posts with no groups, allow all accessible topics/people (pass undefined)
+  // 3. Otherwise, fallback to currentGroup from route context
+  // Passing undefined allows backend to return all accessible topics/people based on user's group memberships
+  const groupIds = useMemo(() => {
+    if (selectedGroups && selectedGroups.length > 0) {
+      return selectedGroups.map(g => g.id).filter(Boolean)
+    }
+    // For public posts with no groups selected, allow all accessible topics/people
+    if (currentPost.isPublic && (!currentPost.groups || currentPost.groups.length === 0)) {
+      return undefined
+    }
+    // Fallback to currentGroup from route context
+    if (currentGroup?.id) {
+      return [currentGroup.id]
+    }
+    // No groups available - allow all accessible topics/people
+    return undefined
+  }, [selectedGroups, currentGroup, currentPost.isPublic, currentPost.groups])
+
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    return groupOptions
+    // Sort groups so currentGroup appears first, then alphabetically
+    const sortedGroups = [...groupOptions]
       .filter(Boolean)
+      .sort((a, b) => {
+        const aIsCurrent = a.id === currentGroup?.id
+        const bIsCurrent = b.id === currentGroup?.id
+        if (aIsCurrent && !bIsCurrent) return -1
+        if (!aIsCurrent && bIsCurrent) return 1
+        return a.name.localeCompare(b.name)
+      })
+
+    return sortedGroups
       .map((g) => {
         if (!g) return []
-        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
-          .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({
-              id: cr?.id,
-              group: g,
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-              topic: cr?.groupTopic?.topic,
-              avatarUrl: g.avatarUrl,
-              allowInPublic: g.allowInPublic
-            }))
-            .filter(Boolean)
-            .sort((a, b) => a.name.localeCompare(b.name)))
+        // Only show topic options (like "Group #general"), no group-only options
+        return (g.chatRooms?.toModelArray() || [])
+          .map((cr) => ({
+            id: cr?.id,
+            group: g,
+            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+            topic: cr?.groupTopic?.topic,
+            avatarUrl: g.avatarUrl,
+            allowInPublic: g.allowInPublic
+          }))
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions])
+  }, [groupOptions, currentGroup?.id])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      const baseOption = [{
-        id: `group_${g.id}`,
-        name: g.name,
-        avatarUrl: g.avatarUrl,
-        group: g
-      }]
 
+      // Get all selected topic options for this group
+      // If no topics are selected for a group, no pill is shown (group is not in selection)
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
@@ -432,7 +461,7 @@ function PostEditorInner ({
         })
         .filter(Boolean) || []
 
-      return baseOption.concat(chatRoomOptions)
+      return chatRoomOptions
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
@@ -515,6 +544,32 @@ function PostEditorInner ({
   useEffect(() => {
     setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
   }, [announcementSelected, setCurrentPost])
+
+  // Auto-add the #general topic when groups are selected
+  // This ensures all posts appear in the #general chat by default
+  useEffect(() => {
+    if (!selectedGroups || selectedGroups.length === 0) return
+
+    // Find the general topic from any selected group's chatRooms
+    let generalTopic = null
+    for (const group of selectedGroups) {
+      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
+      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
+      if (generalChatRoom?.groupTopic?.topic) {
+        generalTopic = generalChatRoom.groupTopic.topic
+        break
+      }
+    }
+
+    if (!generalTopic) return
+
+    setCurrentPost(prev => {
+      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
+      if (alreadyHasGeneral) return prev
+
+      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
+    })
+  }, [selectedGroups])
 
   /**
    * Resets the editor to its initial state
@@ -678,6 +733,38 @@ function PostEditorInner ({
     const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
     setCurrentPost(prev => ({ ...prev, groups, topics }))
   }, [setCurrentPost])
+
+  /**
+   * Custom delete handler for ToField that implements conditional pill removal
+   * - When removing the #general pill:
+   *   - If there are other topics for that group: just remove #general, keep other topics
+   *   - If #general is the only topic: remove the entire group (all options with this group)
+   * - When removing any other topic pill: just remove that topic
+   */
+  const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
+    const groupId = deletedOption.group?.id
+
+    // Check if we're deleting the #general pill
+    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
+      // Check if there are other topics for this group (beyond #general)
+      const otherTopicsForGroup = allSelected.filter(o =>
+        o.group?.id === groupId &&
+        o.topic &&
+        o.topic?.name !== DEFAULT_CHAT_TOPIC
+      )
+
+      if (otherTopicsForGroup.length > 0) {
+        // There are other topics - just remove #general, keep the group via other topics
+        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+      }
+
+      // #general is the only topic - remove the entire group
+      return allSelected.filter(o => o.group?.id !== groupId)
+    }
+
+    // Deleting a non-general topic pill - just remove that topic
+    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+  }, [])
 
   const togglePublic = useCallback(() => {
     setCurrentPost(prev => ({ ...prev, isPublic: !prev.isPublic }))
@@ -981,7 +1068,7 @@ function PostEditorInner ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -1045,6 +1132,7 @@ function PostEditorInner ({
               options={toOptions}
               selected={selectedToOptions}
               onChange={handleAddToOption}
+              onDelete={handleToOptionDelete}
               readOnly={loading}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
@@ -1094,6 +1182,7 @@ function PostEditorInner ({
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={editorInitialContent}
+              groupIds={groupIds}
               menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
@@ -1144,7 +1233,7 @@ function PostEditorInner ({
         <div className={styles.sectionLabel}>{t('Topics')}</div>
         <div className={styles.sectionTopics}>
           <TopicSelector
-            forGroups={currentPost?.groups || [currentGroup]}
+            forGroups={selectedGroups && selectedGroups.length > 0 ? selectedGroups : (currentPost?.groups || (currentGroup ? [currentGroup] : []))}
             selectedTopics={currentPost.topics}
             onChange={handleTopicSelectorOnChange}
           />
@@ -1557,7 +1646,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div className='w-full p-2 bg-black/20 rounded-md'>
+      <div className='w-full p-2 bg-darkening/20 rounded-md'>
         <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'

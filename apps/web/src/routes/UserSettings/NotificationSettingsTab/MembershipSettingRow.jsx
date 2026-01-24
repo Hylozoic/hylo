@@ -90,7 +90,7 @@ function ChatRoomRow ({ chatRoom }) {
 
   return (
     <div className='flex items-center justify-between py-3 border-t-2 border-foreground/20' key={chatRoom.id}>
-      <span><span className='text-secondary'>#{chatRoom.groupTopic.topic.name}</span> {t('chat notifications')}</span>
+      <span><span className='text-foreground font-bold'>#{chatRoom.groupTopic.topic.name}</span> {t('chat notifications')}</span>
       <Select
         value={notificationsSettings}
         onValueChange={updateNotificationsSettings}

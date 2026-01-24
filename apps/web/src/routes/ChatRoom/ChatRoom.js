@@ -577,7 +577,7 @@ export default function ChatRoom (props) {
           #{topicName}
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
-              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/100' />}
+              icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
               className='border-none p-0 focus:ring-0 focus:ring-offset-0 bg-transparent'
             />
             <SelectContent className='border-none'>
@@ -600,18 +600,19 @@ export default function ChatRoom (props) {
   }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center px-1', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
 
-      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden'>
+      <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
         {initialPostToScrollTo === null || topicFollowLoading
           ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
           : (
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
                 style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}
+                className='px-1 sm:px-2'
                 ref={messageListRef}
                 context={{
                   currentUser,
@@ -821,6 +822,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
             style={animationStyle}
           >
             <PostCard
+              chat
               group={context.group}
               expanded={expanded}
               highlighted={highlighted}
@@ -828,6 +830,7 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               onAddReaction={context.onAddReaction}
               onRemoveReaction={context.onRemoveReaction}
               onRemovePost={context.onRemovePost}
+              onFlagPost={context.onFlagPost}
               onAddProposalVote={context.onAddProposalVote}
               onRemoveProposalVote={context.onRemoveProposalVote}
               onSwapProposalVote={context.onSwapProposalVote}

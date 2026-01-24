@@ -1329,10 +1329,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
     FundingRound: {
       model: FundingRound,
       attributes: [
+        'allow_self_voting',
         'banner_url',
         'created_at',
         'criteria',
         'description',
+        'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
         'num_participants',
@@ -1340,7 +1342,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'phase',
         'published_at',
         'require_budget',
-        'hide_final_results_from_participants',
         'submission_descriptor_plural',
         'submission_descriptor',
         'submissions_close_at',

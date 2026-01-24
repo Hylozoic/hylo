@@ -250,7 +250,7 @@ function AccountSettingsTab ({
         </Button>
       </div>
 
-      <div className='pt-4 flex flex-row gap-4 items-center'>
+      <div className='pt-4 flex flex-row gap-4 flex-wrap items-center'>
         <Button
           onClick={handleExportProfile}
           disabled={state.exportStatus === 'exporting'}

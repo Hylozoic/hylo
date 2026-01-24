@@ -22,7 +22,7 @@ class LocationInput extends Component {
 
   static defaultProps = {
     mapboxToken: mapbox.token,
-    className: 'bg-black/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4',
+    className: 'bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40 w-full p-4',
     inputPosition: 'top',
     locationObject: null,
     location: '',
