@@ -31,7 +31,7 @@ const CreateModal = (props) => {
 
   // Use a stable draft namespace so multiple modal instances do not fight over stored values
   // Draft state is stored per-modal instance so pending posts survive navigation without leaking between flows
-  const modalDraftId = `modal:${location.pathname}${location.search}`
+  const modalDraftId = `modal:${location.pathname}`
   const createDraftKey = `${modalDraftId}:create`
   const editDraftKey = props.post?.id ? `${modalDraftId}:edit:${props.post.id}` : null
   const { clearDraft: clearCreateDraft } = useDraftStorage(createDraftKey)

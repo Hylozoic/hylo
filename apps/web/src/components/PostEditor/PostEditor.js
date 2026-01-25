@@ -203,12 +203,12 @@ function PostEditorInner ({
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   // Scope draft storage by caller so different surfaces do not overwrite each other
+  // Ignore query params completely so drafts persist across any query parameter changes (e.g., post type)
   const baseDraftKey = useMemo(() => {
     if (draftId) return draftId
     const path = pathname || ''
-    const query = locationSearch || ''
-    return `post:${path}${query}`
-  }, [draftId, pathname, locationSearch])
+    return `post:${path}`
+  }, [draftId, pathname])
 
   const draftStorageKey = useMemo(() => {
     const contextSuffix = editing ? `:edit:${editingPostId || 'new'}` : ':new'
