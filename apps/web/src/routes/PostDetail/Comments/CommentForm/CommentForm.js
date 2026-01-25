@@ -63,9 +63,9 @@ function CommentForm ({
   const placeholderText = placeholder || t('Add a comment...')
 
   const handleContainerMouseDown = useCallback(event => {
-    event.preventDefault()
-    if (isFocused) return
-    editor?.current?.focus()
+    if (!isFocused) {
+      editor?.current?.focus()
+    }
   }, [editor, isFocused])
 
   return (
