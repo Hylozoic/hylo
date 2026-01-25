@@ -67,6 +67,7 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
+import { VIEW_DRAFTS } from 'store/constants'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
 import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
@@ -423,6 +424,8 @@ export default function AuthLayoutRouter (props) {
                 />
                 {/* **** My Routes **** */}
                 <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
+                {/* My Drafts is a local-only stream; map it explicitly so `/my/drafts` bypasses settings. */}
+                <Route path='my/drafts/*' element={<Stream context='my' view={VIEW_DRAFTS} />} />
                 <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
                 <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
