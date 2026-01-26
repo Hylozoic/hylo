@@ -166,6 +166,7 @@ function DeveloperSettingsTab () {
               </Button>
             </div>
 
+            {/* eslint-disable-next-line multiline-ternary */}
             {applications.length === 0 ? (
               <p className={classes.emptyState}>
                 {t('You haven\'t created any applications yet.')}
