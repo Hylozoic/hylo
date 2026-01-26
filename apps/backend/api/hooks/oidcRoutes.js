@@ -10,6 +10,21 @@ const adjustRedirectUrl = (url, req) => {
   return redirectUrl.replace(baseUrl, process.env.PROTOCOL + '://' + process.env.DOMAIN)
 }
 
+/**
+ * Get the OAuth path prefix based on the web_only parameter.
+ * When web_only=true is passed in the OAuth request, use /web/oauth/ paths
+ * which are NOT registered in the mobile app's deep linking config.
+ * This prevents the mobile app from intercepting the OAuth flow on mobile browsers.
+ *
+ * @param {Object} params - The OAuth request parameters
+ * @returns {string} - '/web/oauth' or '/oauth'
+ */
+const getOAuthPathPrefix = (params) => {
+  // Check for web_only parameter (supports 'true', '1', or truthy values)
+  const webOnly = params?.web_only === 'true' || params?.web_only === '1' || params?.web_only === true
+  return webOnly ? '/web/oauth' : '/oauth'
+}
+
 module.exports = function (app) {
   return {
     routes: {
@@ -21,11 +36,14 @@ module.exports = function (app) {
 
             const client = await oidc.Client.find(params.client_id)
 
+            // Use web-only paths when web_only param is present to avoid mobile app interception
+            const oauthPrefix = getOAuthPathPrefix(params)
+
             if (prompt.name === 'login') {
-              return res.redirect('/oauth/login/' + uid + '?name=' + client.name)
+              return res.redirect(oauthPrefix + '/login/' + uid + '?name=' + client.name)
             }
 
-            let redirectUrl = '/oauth/consent/' + uid + '?name=' + client.name
+            let redirectUrl = oauthPrefix + '/consent/' + uid + '?name=' + client.name
             const missingOIDCScope = get('details.missingOIDCScope', prompt) || false
             if (missingOIDCScope) {
               redirectUrl += '&' + missingOIDCScope.map(s => 'missingScopes=' + s).join('&')

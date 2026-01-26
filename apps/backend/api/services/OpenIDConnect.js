@@ -8,6 +8,10 @@ import rsaPemToJwk from 'rsa-pem-to-jwk'
 const configuration = {
   adapter: KnexAdapter,
   scopes: ['openid', 'offline_access', 'address', 'email', 'phone', 'profile', 'api:read', 'api:write'],
+  // Allow web_only param to pass through for mobile browser detection
+  // When web_only=true, the OAuth flow uses /web/oauth/* paths that are NOT
+  // registered in the mobile app's deep linking config, preventing app interception
+  extraParams: ['web_only'],
   claims: {
     openid: ['sub'],
     address: ['address'],
