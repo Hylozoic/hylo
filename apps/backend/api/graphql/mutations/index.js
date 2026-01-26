@@ -159,6 +159,17 @@ export {
   createZapierTrigger,
   deleteZapierTrigger
 } from './zapier'
+export {
+  createApplication,
+  createBotForApplication,
+  deleteApplication,
+  inviteBotToGroup,
+  regenerateClientSecret,
+  removeBotFromGroup,
+  updateApplication,
+  updateBotPermissions,
+  updateDeveloperMode
+} from './application'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 
 export async function updateMe (sessionId, userId, changes) {

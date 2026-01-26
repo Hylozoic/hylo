@@ -15,6 +15,7 @@ import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
 import PaymentSettingsTab from './PaymentSettingsTab/PaymentSettingsTab'
 import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
+import DeveloperSettingsTab from './DeveloperSettingsTab'
 import FullPageModal from 'routes/FullPageModal'
 import deactivateMe from 'store/actions/deactivateMe'
 import deleteMe from 'store/actions/deleteMe'
@@ -123,6 +124,15 @@ const UserSettings = () => {
       component: <SavedSearchesTab />
     }
   ]
+
+  // Developer Settings tab - always show if user exists
+  if (currentUser) {
+    content.push({
+      name: t('Developer'),
+      path: 'developer',
+      component: <DeveloperSettingsTab />
+    })
+  }
 
   if (currentUser) {
     content.push({
