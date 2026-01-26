@@ -14,6 +14,7 @@ import MemberCommonRole from './MemberCommonRole'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
 import { writeStringToS3, deleteFromS3 } from '../../lib/uploader/storage'
+const { DateTime } = require('luxon')
 
 module.exports = bookshelf.Model.extend(merge({
   tableName: 'users',
@@ -918,56 +919,59 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
-  async updateUserRsvpCalendarSubscriptions ({ userId }) {
+  async createRsvpCalendarSubscription ({ userId }) {
     const user = await User.find(userId)
     if (!user) return
 
-    // Ensure user has calendar token
-    if (!user.get('calendar_token')) {
-      await user.save({ calendar_token: uuidv4() }, { patch: true })
-      await user.refresh()
-    }
+    // Ensure user enabled RSVP calendar subscription at least once upon a time
+    if (!user.get('calendar_token')) return
 
-    // Fetch all EventInvitations for this user
-    const eventInvitations = await EventInvitation.where({ user_id: userId }).fetchAll({ withRelated: 'event' })
+    // Fetch all EventInvitations for this user with YES or INTERESTED responses
+    // but returnempty collection if RSVP calendar subscription is disabled
+    const fromDate = Post.eventCalSubDateLimit().toISO()
+    const eventInvitations = user.get('settings').rsvp_calendar_sub ?
+      await EventInvitation
+        .query(q => {
+          q.join('posts', 'event_invitations.event_id', 'posts.id')
+          q.where('event_invitations.user_id', userId)
+          q.where('posts.active', true)
+          q.where('posts.start_time', '>=', fromDate)
+          q.whereIn('event_invitations.response', [
+            EventInvitation.RESPONSE.YES,
+            EventInvitation.RESPONSE.INTERESTED
+          ])
+        })
+        .fetchAll({ withRelated: 'event' })
+      : { models: [] }
 
     // Create the calendar and add the events
-    const cal = ical({ name: 'My Hylo Events', description: 'All the events I have RSVPed to on Hylo' })
+    const cal = ical({
+      name: 'My Hylo Events',
+      description: 'All the events I have RSVPed to on Hylo',
+      scale: 'gregorian'
+    })
     for (const eventInvitation of eventInvitations.models) {
       const event = eventInvitation.relations.event
-      if (event?.isEvent()) {
-        // Load groups for URL generation
-        await event.load('groups')
-        const group = event.relations.groups?.first()
+      if (!event.isEvent()) continue
 
-        // Get calendar event data
-        const calEvent = await event.getCalEventData({
-          eventInvitation,
-          forUserId: userId,
-          url: Frontend.Route.post(event, group)
-        })
+      await event.load('groups')
+      const group = event.relations.groups?.first()
 
-        // Add event to calendar
-        cal.createEvent(calEvent).uid(calEvent.uid)
-      }
+      const calEventData = await event.getCalEventData({
+        eventInvitation,
+        forUserId: userId,
+        url: Frontend.Route.post(event, group)
+      })
+
+      cal.createEvent(calEventData).uid(calEventData.uid)
     }
 
     // Write the combined calendar file to S3
     await writeStringToS3(
       cal.toString(),
-      user.getRsvpCalendarPath(),
-      {
-        ContentType: 'text/calendar'
-      }
-    )
-  },
-
-  async clearUserRsvpCalendarSubscriptions ({ userId }) {
-    const user = await User.find(userId)
-    if (!user) return
-
-    // Delete the calendar file from S3
-    await deleteFromS3(user.getRsvpCalendarPath())
+      user.getRsvpCalendarPath(), {
+      ContentType: 'text/calendar'
+    })
   }
 })
 
