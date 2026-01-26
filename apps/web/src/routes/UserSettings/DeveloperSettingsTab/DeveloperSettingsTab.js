@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import Icon from 'components/Icon'
 import Button from 'components/ui/button'
@@ -167,12 +166,14 @@ function DeveloperSettingsTab () {
               </Button>
             </div>
 
-            {applications.length === 0 ? (
-              <p className={classes.emptyState}>
-                {t('You haven\'t created any applications yet.')}
-              </p>
-            ) : (
-              <div className={classes.applicationList}>
+            {applications.length === 0
+              ? (
+                <p className={classes.emptyState}>
+                  {t('You haven\'t created any applications yet.')}
+                </p>
+              )
+              : (
+                <div className={classes.applicationList}>
                 {applications.map(app => (
                   <div key={app.id} className={classes.applicationCard}>
                     <div className={classes.appInfo}>
@@ -217,8 +218,9 @@ function DeveloperSettingsTab () {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
+                </div>
+              )
+            }
           </SettingsSection>
 
           {/* Create Application Modal */}
