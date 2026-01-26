@@ -1,0 +1,641 @@
+# Translation file for SendWithUs templates
+# Language: en-US
+# Generated automatically
+
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en-US\n"
+
+msgid "Hi %(user_name)s"
+msgstr "Hi %(user_name)s"
+
+msgid "Your access to"
+msgstr "Your access to"
+
+msgid "in"
+msgstr "in"
+
+msgid "has expired."
+msgstr "has expired."
+
+msgid "Expired:"
+msgstr "Expired:"
+
+msgid "We'd love to have you back! Renew your access to continue enjoying this content."
+msgstr "We'd love to have you back! Renew your access to continue enjoying this content."
+
+msgid "Available Options:"
+msgstr "Available Options:"
+
+msgid "Renew Access"
+msgstr "Renew Access"
+
+msgid "Your access to %(offering_name)s has expired"
+msgstr "Your access to %(offering_name)s has expired"
+
+msgid "%(granted_by_name)s has granted you access to:"
+msgstr "%(granted_by_name)s has granted you access to:"
+
+msgid "in %(group_name)s"
+msgstr "in %(group_name)s"
+
+msgid "Start Learning"
+msgstr "Start Learning"
+
+msgid "Visit Group"
+msgstr "Visit Group"
+
+msgid "Access Content"
+msgstr "Access Content"
+
+msgid "Access Expires:"
+msgstr "Access Expires:"
+
+msgid "You have ongoing access to this content."
+msgstr "You have ongoing access to this content."
+
+msgid "Access Granted: %(access_name)s"
+msgstr "Access Granted: %(access_name)s"
+
+msgid "You've been invited to join"
+msgstr "You've been invited to join"
+
+msgid "on Hylo!"
+msgstr "on Hylo!"
+
+msgid "Welcome to Hylo, the community platform for purpose driven groups."
+msgstr "Welcome to Hylo, the community platform for purpose driven groups."
+
+msgid "is using Hylo for their community."
+msgstr "is using Hylo for their community."
+
+msgid "Complete your registration"
+msgstr "Complete your registration"
+
+msgid "Welcome to Hylo!"
+msgstr "Welcome to Hylo!"
+
+msgid "%(name)s"
+msgstr "%(name)s"
+
+msgid "New "
+msgstr "New "
+
+msgid "Here's what's happened in the last "
+msgstr "Here's what's happened in the last "
+
+msgid "in "
+msgstr "in "
+
+msgid "Jump to "
+msgstr "Jump to "
+
+msgid "Active Conversations"
+msgstr "Active Conversations"
+
+msgid "new chat"
+msgstr "new chat"
+
+msgid "new comment"
+msgstr "new comment"
+
+msgid "Coming up in the next "
+msgstr "Coming up in the next "
+
+msgid "Ending in the next "
+msgstr "Ending in the next "
+
+msgid "How can your group help you today?"
+msgstr "How can your group help you today?"
+
+msgid "No new search results"
+msgstr "No new search results"
+
+msgid "Thank you for your generous donation of "
+msgstr "Thank you for your generous donation of "
+
+msgid " to Hylo!"
+msgstr " to Hylo!"
+
+msgid "Your support helps us continue building tools for social coordination and community building."
+msgstr "Your support helps us continue building tools for social coordination and community building."
+
+msgid "Donation Date:"
+msgstr "Donation Date:"
+
+msgid "Donation Type:"
+msgstr "Donation Type:"
+
+msgid "Tax-Deductible Donation"
+msgstr "Tax-Deductible Donation"
+
+msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by "
+msgstr "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by "
+
+msgid ", a 501(c)(3) nonprofit organization."
+msgstr ", a 501(c)(3) nonprofit organization."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "This is a recurring donation that will automatically repeat "
+
+msgid "."
+msgstr "."
+
+msgid "Next Donation:"
+msgstr "Next Donation:"
+
+msgid "Manage Recurring Donation"
+msgstr "Manage Recurring Donation"
+
+msgid "This donation was made as part of your "
+msgstr "This donation was made as part of your "
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Thank you for your donation to Hylo"
+
+msgid "%(subject)s"
+msgstr "%(subject)s"
+
+msgid "Welcome to Hylo! We’re so glad you’re here 🤗 Secure your account by copying this access code or pressing the button."
+msgstr "Welcome to Hylo! We’re so glad you’re here 🤗 Secure your account by copying this access code or pressing the button."
+
+msgid "Your access code"
+msgstr "Your access code"
+
+msgid "Or click here to confirm this email address"
+msgstr "Or click here to confirm this email address"
+
+msgid "If you didn’t request this email, there’s nothing to worry about — you can safely ignore it."
+msgstr "If you didn’t request this email, there’s nothing to worry about — you can safely ignore it."
+
+msgid "Hylo confirmation code %(code)s"
+msgstr "Hylo confirmation code %(code)s"
+
+msgid "The event"
+msgstr "The event"
+
+msgid "from %(group_names)s"
+msgstr "from %(group_names)s"
+
+msgid "has been canceled. You can remove from your calendar."
+msgstr "has been canceled. You can remove from your calendar."
+
+msgid "Hi %(user_name)s,"
+msgstr "Hi %(user_name)s,"
+
+msgid "You indicated you are "
+msgstr "You indicated you are "
+
+msgid "%(event_name)s"
+msgstr "%(event_name)s"
+
+msgid "from "
+msgstr "from "
+
+msgid " \\n"
+msgstr " \\n"
+
+msgid " \\n\\nEvent Page ["
+msgstr " \\n\\nEvent Page ["
+
+msgid "]"
+msgstr "]"
+
+msgid "Attached is an invite to add this event to your calendar."
+msgstr "Attached is an invite to add this event to your calendar."
+
+msgid "[ https://hylo.com ]"
+msgstr "[ https://hylo.com ]"
+
+msgid "is hosted on "
+msgstr "is hosted on "
+
+msgid " This email sent from "
+msgstr " This email sent from "
+
+msgid "hylo.com "
+msgstr "hylo.com "
+
+msgid "Email settings ["
+msgstr "Email settings ["
+
+msgid "] "
+msgstr "] "
+
+msgid "View this email in a browser ["
+msgstr "View this email in a browser ["
+
+msgid "%(event_name)s has been canceled"
+msgstr "%(event_name)s has been canceled"
+
+msgid "The event details have changed for event you are "
+msgstr "The event details have changed for event you are "
+
+msgid "Date has changed to "
+msgstr "Date has changed to "
+
+msgid "Location has changed to "
+msgstr "Location has changed to "
+
+msgid "Event Page"
+msgstr "Event Page"
+
+msgid "Attached is an updated calendar invite."
+msgstr "Attached is an updated calendar invite."
+
+msgid "Details for %(event_name)s have changed"
+msgstr "Details for %(event_name)s have changed"
+
+msgid "Reply to this email to comment on the event, or"
+msgstr "Reply to this email to comment on the event, or"
+
+msgid "Reply in the Group"
+msgstr "Reply in the Group"
+
+msgid "You indicated you are"
+msgstr "You indicated you are"
+
+msgid "from"
+msgstr "from"
+
+msgid "You RSVPed %(response)s %(event_name)s"
+msgstr "You RSVPed %(response)s %(event_name)s"
+
+msgid "Download the attached CSV for your member list export"
+msgstr "Download the attached CSV for your member list export"
+
+msgid "If you didn't request this email, please reply to let us know."
+msgstr "If you didn't request this email, please reply to let us know."
+
+msgid "Member Export Complete!"
+msgstr "Member Export Complete!"
+
+msgid "%(transition_text)s in Funding Round "
+msgstr "%(transition_text)s in Funding Round "
+
+msgid "%(funding_round_url)s"
+msgstr "%(funding_round_url)s"
+
+msgid "%(action_url)s"
+msgstr "%(action_url)s"
+
+msgid "%(button_text)s"
+msgstr "%(button_text)s"
+
+msgid "%(funding_round_title)s: %(transition_text)s"
+msgstr "%(funding_round_title)s: %(transition_text)s"
+
+msgid "Your group "
+msgstr "Your group "
+
+msgid "has joined group "
+msgstr "has joined group "
+
+msgid "You can now join "
+msgstr "You can now join "
+
+msgid "accepted the invitation to join."
+msgstr "accepted the invitation to join."
+
+msgid "The group "
+msgstr "The group "
+
+msgid "has joined your group "
+msgstr "has joined your group "
+
+msgid "This email sent from "
+msgstr "This email sent from "
+
+msgid "Email settings "
+msgstr "Email settings "
+
+msgid "View this email in a browser "
+msgstr "View this email in a browser "
+
+msgid "Your group %(child_group_name)s has joined %(parent_group_name)s"
+msgstr "Your group %(child_group_name)s has joined %(parent_group_name)s"
+
+msgid "%(child_group_name)s has joined your group %(parent_group_name)s"
+msgstr "%(child_group_name)s has joined your group %(parent_group_name)s"
+
+msgid "has invited"
+msgstr "has invited"
+
+msgid "to be a part of"
+msgstr "to be a part of"
+
+msgid "When your group becomes a part of another group, your members will be able to join that group."
+msgstr "When your group becomes a part of another group, your members will be able to join that group."
+
+msgid "Respond to this Invitation"
+msgstr "Respond to this Invitation"
+
+msgid "%(requester_name)s [ %(requester_profile_url)s ] has asked to join %(community_name)s."
+msgstr "%(requester_name)s [ %(requester_profile_url)s ] has asked to join %(community_name)s."
+
+msgid "Manage their request [ %(settings_url)s ]"
+msgstr "Manage their request [ %(settings_url)s ]"
+
+msgid "%(child_group_name)s has been invited to join %(parent_group_name)s"
+msgstr "%(child_group_name)s has been invited to join %(parent_group_name)s"
+
+msgid "%(requester_name)s [ %(requester_profile_url)s ] has asked to join "
+msgstr "%(requester_name)s [ %(requester_profile_url)s ] has asked to join "
+
+msgid ". \\n\\nManage their request [ %(settings_url)s ] "
+msgstr ". \\n\\nManage their request [ %(settings_url)s ] "
+
+msgid ". Manage their request [ %(settings_url)s ]"
+msgstr ". Manage their request [ %(settings_url)s ]"
+
+msgid "%(child_group_name)s is requesting to join %(parent_group_name)s"
+msgstr "%(child_group_name)s is requesting to join %(parent_group_name)s"
+
+msgid "Your group %(child_group_name)s has been connected to %(parent_group_name)s"
+msgstr "Your group %(child_group_name)s has been connected to %(parent_group_name)s"
+
+msgid "%(child_group_name)s has been invited to connect to %(parent_group_name)s"
+msgstr "%(child_group_name)s has been invited to connect to %(parent_group_name)s"
+
+msgid "Click this link to join me on Hylo: %(invite_link)s"
+msgstr "Click this link to join me on Hylo: %(invite_link)s"
+
+msgid "%(inviter_name)s"
+msgstr "%(inviter_name)s"
+
+msgid "Your request to join %(group_name)s has been approved"
+msgstr "Your request to join %(group_name)s has been approved"
+
+msgid "%(requester_name)s asked to join %(group_name)s"
+msgstr "%(requester_name)s asked to join %(group_name)s"
+
+msgid "A new member has joined %(group_name)s: %(member_name)s"
+msgstr "A new member has joined %(group_name)s: %(member_name)s"
+
+msgid "%(body)s"
+msgstr "%(body)s"
+
+msgid "View the post"
+msgstr "View the post"
+
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "New chats in %(group_name)s #%(chat_topic)s"
+
+msgid "%(subject_prefix)s \\\"%(post_title)s\\\""
+msgstr "%(subject_prefix)s \\\"%(post_title)s\\\""
+
+msgid "%(count)s new direct message"
+msgstr "%(count)s new direct message"
+
+msgid "s"
+msgstr "s"
+
+msgid "Reply to this email to respond or"
+msgstr "Reply to this email to respond or"
+
+msgid "Join the conversation on Hylo"
+msgstr "Join the conversation on Hylo"
+
+msgid "New messages from %(participant_names)s"
+msgstr "New messages from %(participant_names)s"
+
+msgid "We’ve received a request to reset your Hylo password. If you did not make this request, you can safely ignore this email."
+msgstr "We’ve received a request to reset your Hylo password. If you did not make this request, you can safely ignore this email."
+
+msgid "Reset your password"
+msgstr "Reset your password"
+
+msgid "If the link above doesnt work you can copy and paste this link into your browser:"
+msgstr "If the link above doesnt work you can copy and paste this link into your browser:"
+
+msgid "Reset your Hylo password"
+msgstr "Reset your Hylo password"
+
+msgid "Action Required:"
+msgstr "Action Required:"
+
+msgid "We were unable to process your payment for your subscription to "
+msgstr "We were unable to process your payment for your subscription to "
+
+msgid "for "
+msgstr "for "
+
+msgid "Reason:"
+msgstr "Reason:"
+
+msgid "We will automatically retry your payment on "
+msgstr "We will automatically retry your payment on "
+
+msgid "Important:"
+msgstr "Important:"
+
+msgid "Your access will end on "
+msgstr "Your access will end on "
+
+msgid "if payment is not successful."
+msgstr "if payment is not successful."
+
+msgid "Please update your payment method to ensure uninterrupted access:"
+msgstr "Please update your payment method to ensure uninterrupted access:"
+
+msgid "Update Payment Method"
+msgstr "Update Payment Method"
+
+msgid "Manage Subscription"
+msgstr "Manage Subscription"
+
+msgid "Payment Failed: %(offering_name)s"
+msgstr "Payment Failed: %(offering_name)s"
+
+msgid "Reply to this email to comment on the post, or"
+msgstr "Reply to this email to comment on the post, or"
+
+msgid "Thank you for your purchase! Your payment has been processed successfully."
+msgstr "Thank you for your purchase! Your payment has been processed successfully."
+
+msgid "Amount:"
+msgstr "Amount:"
+
+msgid "Purchase Date:"
+msgstr "Purchase Date:"
+
+msgid "This is a recurring subscription that will renew automatically."
+msgstr "This is a recurring subscription that will renew automatically."
+
+msgid "Next Renewal:"
+msgstr "Next Renewal:"
+
+msgid "Billing Period:"
+msgstr "Billing Period:"
+
+msgid "You have lifetime access to this content."
+msgstr "You have lifetime access to this content."
+
+msgid "You now have access to "
+msgstr "You now have access to "
+
+msgid "You now have access to the track "
+msgstr "You now have access to the track "
+
+msgid "View Receipt"
+msgstr "View Receipt"
+
+msgid "Purchase Confirmation: %(offering_name)s"
+msgstr "Purchase Confirmation: %(offering_name)s"
+
+msgid "Magna lorem proident, irure id et ullamco cupim chuck"
+msgstr "Magna lorem proident, irure id et ullamco cupim chuck"
+
+msgid "Ball tip beef aliquip tongue"
+msgstr "Ball tip beef aliquip tongue"
+
+msgid "Ut aliquip beef officia, laboris culpa pork chop eu esse jowl est"
+msgstr "Ut aliquip beef officia, laboris culpa pork chop eu esse jowl est"
+
+msgid "Don't like these emails? "
+msgstr "Don't like these emails? "
+
+msgid "Unsubscribe"
+msgstr "Unsubscribe"
+
+msgid "Hi %(admin_name)s"
+msgstr "Hi %(admin_name)s"
+
+msgid "A subscription has been cancelled for %(group_name)s."
+msgstr "A subscription has been cancelled for %(group_name)s."
+
+msgid "User:"
+msgstr "User:"
+
+msgid "Offering:"
+msgstr "Offering:"
+
+msgid "Cancelled:"
+msgstr "Cancelled:"
+
+msgid "Access Ends:"
+msgstr "Access Ends:"
+
+msgid "Revenue Impact:"
+msgstr "Revenue Impact:"
+
+msgid "per"
+msgstr "per"
+
+msgid "View Content Access"
+msgstr "View Content Access"
+
+msgid "Contact User"
+msgstr "Contact User"
+
+msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
+msgstr "Subscription Cancelled: %(offering_name)s in %(group_name)s"
+
+msgid "Your subscription to"
+msgstr "Your subscription to"
+
+msgid "for"
+msgstr "for"
+
+msgid "has been cancelled."
+msgstr "has been cancelled."
+
+msgid "Your access will continue until"
+msgstr "Your access will continue until"
+
+msgid "(end of your current billing period)."
+msgstr "(end of your current billing period)."
+
+msgid "Your access has ended immediately."
+msgstr "Your access has ended immediately."
+
+msgid "We're sorry to see you go! If you change your mind, you can resubscribe at any time."
+msgstr "We're sorry to see you go! If you change your mind, you can resubscribe at any time."
+
+msgid "Resubscribe"
+msgstr "Resubscribe"
+
+msgid "Your %(offering_name)s subscription has been cancelled"
+msgstr "Your %(offering_name)s subscription has been cancelled"
+
+msgid "will renew in 7 days."
+msgstr "will renew in 7 days."
+
+msgid "Renewal Date:"
+msgstr "Renewal Date:"
+
+msgid "Your payment method on file will be charged automatically. If you need to update your payment method or cancel your subscription, please do so before the renewal date."
+msgstr "Your payment method on file will be charged automatically. If you need to update your payment method or cancel your subscription, please do so before the renewal date."
+
+msgid "Your %(offering_name)s subscription renews in 7 days"
+msgstr "Your %(offering_name)s subscription renews in 7 days"
+
+msgid "has been renewed successfully."
+msgstr "has been renewed successfully."
+
+msgid "Amount Paid:"
+msgstr "Amount Paid:"
+
+msgid "Payment Date:"
+msgstr "Payment Date:"
+
+msgid "Continue Accessing Content"
+msgstr "Continue Accessing Content"
+
+msgid "Your %(offering_name)s subscription has been renewed"
+msgstr "Your %(offering_name)s subscription has been renewed"
+
+msgid "Congratulations! You now have access to:"
+msgstr "Congratulations! You now have access to:"
+
+msgid "You've been automatically enrolled in this track and can start learning right away!"
+msgstr "You've been automatically enrolled in this track and can start learning right away!"
+
+msgid "View Track"
+msgstr "View Track"
+
+msgid "Track Access Purchased: %(track_name)s"
+msgstr "Track Access Purchased: %(track_name)s"
+
+msgid "Track %(track_name)s completed by %(completer_name)s"
+msgstr "Track %(track_name)s completed by %(completer_name)s"
+
+msgid "New enrollment in track %(track_name)s"
+msgstr "New enrollment in track %(track_name)s"
+
+msgid "Dear %(member_name)s,"
+msgstr "Dear %(member_name)s,"
+
+msgid "Warmest greetings and a big welcome to %(group_name)s! %(group_name)s is hosted on Hylo, the home of purpose-driven collaboration!"
+msgstr "Warmest greetings and a big welcome to %(group_name)s! %(group_name)s is hosted on Hylo, the home of purpose-driven collaboration!"
+
+msgid "Hylo is free, non-profit, open-source, and community-led. It’s a vibrant ecosystem dedicated to the care of our communities and our planet. We're thrilled to have you with us on this journey towards creating a world that works for all!"
+msgstr "Hylo is free, non-profit, open-source, and community-led. It’s a vibrant ecosystem dedicated to the care of our communities and our planet. We're thrilled to have you with us on this journey towards creating a world that works for all!"
+
+msgid "Warmest greetings and a big welcome to Hylo, the home of purpose-driven collaboration!"
+msgstr "Warmest greetings and a big welcome to Hylo, the home of purpose-driven collaboration!"
+
+msgid "You're now part of a vibrant ecosystem dedicated to the care of our communities and our planet. We're thrilled to have you with us on this journey towards creating a world that works for all!"
+msgstr "You're now part of a vibrant ecosystem dedicated to the care of our communities and our planet. We're thrilled to have you with us on this journey towards creating a world that works for all!"
+
+msgid "Check out the <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide'>Hylo Member Guide</a> for tips, and if you need help, click the question mark (?) button in the bottom left of the interface to ask a question. We're here to support you every step of the way."
+msgstr "Check out the <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide'>Hylo Member Guide</a> for tips, and if you need help, click the question mark (?) button in the bottom left of the interface to ask a question. We're here to support you every step of the way."
+
+msgid "Hylo is free, non-profit, open-source, and community-led! Check out the <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide'>Hylo Member Guide</a> for tips, and if you need help, click the question mark (?) button in the bottom left of the interface to ask a question. We're here to support you every step of the way."
+msgstr "Hylo is free, non-profit, open-source, and community-led! Check out the <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide'>Hylo Member Guide</a> for tips, and if you need help, click the question mark (?) button in the bottom left of the interface to ask a question. We're here to support you every step of the way."
+
+msgid "Once again, welcome to Hylo. We're honored to walk this path with you."
+msgstr "Once again, welcome to Hylo. We're honored to walk this path with you."
+
+msgid "Warm regards,"
+msgstr "Warm regards,"
+
+msgid "P.S. Join us for an upcoming <a href='https://www.hylo.com/participate/#gatherings'>Hylo Community Call</a>. It's a great opportunity to meet the stewardship team and fellow members, and learn more about how you can make the most of your Hylo experience."
+msgstr "P.S. Join us for an upcoming <a href='https://www.hylo.com/participate/#gatherings'>Hylo Community Call</a>. It's a great opportunity to meet the stewardship team and fellow members, and learn more about how you can make the most of your Hylo experience."
+
+msgid "Welcome to %(group_name)s on Hylo!"
+msgstr "Welcome to %(group_name)s on Hylo!"
+
+msgid "Welcome to Hylo – Together, Let's Create a Thriving World"
+msgstr "Welcome to Hylo – Together, Let's Create a Thriving World"

@@ -1,0 +1,803 @@
+# Translation file for SendWithUs templates
+# Language: pt-BR
+# Generated automatically
+
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pt-BR\n"
+
+#, python-format
+msgid "Hi %(user_name)s"
+msgstr "Olá %(user_name)s"
+
+msgid "Your access to"
+msgstr "Seu acesso a"
+
+msgid "in"
+msgstr "em"
+
+msgid "has expired."
+msgstr "expirou."
+
+msgid "Expired:"
+msgstr "Expirado:"
+
+msgid ""
+"We'd love to have you back! Renew your access to continue enjoying this "
+"content."
+msgstr ""
+"Adoraríamos tê-lo de volta! Renove seu acesso para continuar aproveitando este "
+"conteúdo."
+
+msgid "Available Options:"
+msgstr "Opções disponíveis:"
+
+msgid "Renew Access"
+msgstr "Renovar acesso"
+
+#, python-format
+msgid "Your access to %(offering_name)s has expired"
+msgstr "Seu acesso a %(offering_name)s expirou"
+
+#, python-format
+msgid "%(granted_by_name)s has granted you access to:"
+msgstr "%(granted_by_name)s concedeu acesso a:"
+
+#, python-format
+msgid "in %(group_name)s"
+msgstr "em %(group_name)s"
+
+msgid "Start Learning"
+msgstr "Começar a aprender"
+
+msgid "Visit Group"
+msgstr "Visitar grupo"
+
+msgid "Access Content"
+msgstr "Acessar conteúdo"
+
+msgid "Access Expires:"
+msgstr "O acesso expira:"
+
+msgid "You have ongoing access to this content."
+msgstr "Você tem acesso contínuo a este conteúdo."
+
+#, python-format
+msgid "Access Granted: %(access_name)s"
+msgstr "Acesso concedido: %(access_name)s"
+
+msgid "You've been invited to join"
+msgstr "Você foi convidado a se juntar a"
+
+msgid "on Hylo!"
+msgstr "no Hylo!"
+
+msgid "Welcome to Hylo, the community platform for purpose driven groups."
+msgstr "Bem-vindo ao Hylo, a plataforma comunitária para grupos orientados por propósito."
+
+msgid "is using Hylo for their community."
+msgstr "está usando o Hylo para sua comunidade."
+
+msgid "Complete your registration"
+msgstr "Complete seu cadastro"
+
+msgid "Welcome to Hylo!"
+msgstr "Bem-vindo ao Hylo!"
+
+#, python-format
+msgid "%(name)s"
+msgstr "%(name)s"
+
+msgid "New "
+msgstr "Novo "
+
+msgid "Here's what's happened in the last "
+msgstr "Aqui está o que aconteceu nos últimos "
+
+msgid "in "
+msgstr "em "
+
+msgid "Jump to "
+msgstr "Ir para "
+
+msgid "Active Conversations"
+msgstr "Conversas ativas"
+
+msgid "new chat"
+msgstr "novo chat"
+
+msgid "new comment"
+msgstr "novo comentário"
+
+msgid "Coming up in the next "
+msgstr "Próximos nos próximos "
+
+msgid "Ending in the next "
+msgstr "Terminando nos próximos "
+
+msgid "How can your group help you today?"
+msgstr "Como seu grupo pode ajudá-lo hoje?"
+
+msgid "No new search results"
+msgstr "Nenhum novo resultado de pesquisa"
+
+msgid "Thank you for your generous donation of "
+msgstr "Obrigado por sua generosa doação de "
+
+msgid " to Hylo!"
+msgstr " ao Hylo!"
+
+msgid ""
+"Your support helps us continue building tools for social coordination and"
+" community building."
+msgstr ""
+"Seu apoio nos ajuda a continuar construindo ferramentas para coordenação "
+"social e construção de comunidades."
+
+msgid "Donation Date:"
+msgstr "Data da doação:"
+
+msgid "Donation Type:"
+msgstr "Tipo de doação:"
+
+msgid "Tax-Deductible Donation"
+msgstr "Doação dedutível do imposto"
+
+msgid ""
+"Your donation is tax-deductible in the United States. Hylo is fiscally "
+"sponsored by "
+msgstr ""
+"Sua doação é dedutível do imposto nos Estados Unidos. O Hylo é patrocinado "
+"fiscalmente por "
+
+msgid ", a 501(c)(3) nonprofit organization."
+msgstr ", uma organização sem fins lucrativos 501(c)(3)."
+
+msgid "This is a recurring donation that will automatically repeat "
+msgstr "Esta é uma doação recorrente que se repetirá automaticamente "
+
+msgid "."
+msgstr "."
+
+msgid "Next Donation:"
+msgstr "Próxima doação:"
+
+msgid "Manage Recurring Donation"
+msgstr "Gerenciar doação recorrente"
+
+msgid "This donation was made as part of your "
+msgstr "Esta doação foi feita como parte do seu "
+
+msgid "Thank you for your donation to Hylo"
+msgstr "Obrigado por sua doação ao Hylo"
+
+#, python-format
+msgid "%(subject)s"
+msgstr "%(subject)s"
+
+msgid ""
+"Welcome to Hylo! We're so glad you're here 🤗 Secure your account by "
+"copying this access code or pressing the button."
+msgstr ""
+"Bem-vindo ao Hylo! Estamos muito felizes que você esteja aqui 🤗 Proteja sua "
+"conta copiando este código de acesso ou pressionando o botão."
+
+msgid "Your access code"
+msgstr "Seu código de acesso"
+
+msgid "Or click here to confirm this email address"
+msgstr "Ou clique aqui para confirmar este endereço de e-mail"
+
+msgid ""
+"If you didn't request this email, there's nothing to worry about — you "
+"can safely ignore it."
+msgstr ""
+"Se você não solicitou este e-mail, não há nada com que se preocupar — você "
+"pode ignorá-lo com segurança."
+
+#, python-format
+msgid "Hylo confirmation code %(code)s"
+msgstr "Código de confirmação do Hylo %(code)s"
+
+msgid "The event"
+msgstr "O evento"
+
+#, python-format
+msgid "from %(group_names)s"
+msgstr "de %(group_names)s"
+
+msgid "has been canceled. You can remove from your calendar."
+msgstr "foi cancelado. Você pode removê-lo do seu calendário."
+
+#, python-format
+msgid "Hi %(user_name)s,"
+msgstr "Olá %(user_name)s,"
+
+msgid "You indicated you are "
+msgstr "Você indicou que está "
+
+#, python-format
+msgid "%(event_name)s"
+msgstr "%(event_name)s"
+
+msgid "from "
+msgstr "de "
+
+msgid " \n"
+msgstr " \n"
+
+msgid ""
+" \n"
+"\n"
+"Event Page ["
+msgstr ""
+" \n"
+"\n"
+"Página do evento ["
+
+msgid "]"
+msgstr "]"
+
+msgid "Attached is an invite to add this event to your calendar."
+msgstr "Anexado está um convite para adicionar este evento ao seu calendário."
+
+msgid "[ https://hylo.com ]"
+msgstr "[ https://hylo.com ]"
+
+msgid "is hosted on "
+msgstr "está hospedado em "
+
+msgid " This email sent from "
+msgstr " Este e-mail enviado de "
+
+msgid "hylo.com "
+msgstr "hylo.com "
+
+msgid "Email settings ["
+msgstr "Configurações de e-mail ["
+
+msgid "] "
+msgstr "] "
+
+msgid "View this email in a browser ["
+msgstr "Ver este e-mail em um navegador ["
+
+#, python-format
+msgid "%(event_name)s has been canceled"
+msgstr "%(event_name)s foi cancelado"
+
+msgid "The event details have changed for event you are "
+msgstr "Os detalhes do evento mudaram para o evento em que você está "
+
+msgid "Date has changed to "
+msgstr "A data mudou para "
+
+msgid "Location has changed to "
+msgstr "O local mudou para "
+
+msgid "Event Page"
+msgstr "Página do evento"
+
+msgid "Attached is an updated calendar invite."
+msgstr "Anexado está um convite de calendário atualizado."
+
+#, python-format
+msgid "Details for %(event_name)s have changed"
+msgstr "Os detalhes de %(event_name)s mudaram"
+
+msgid "Reply to this email to comment on the event, or"
+msgstr "Responda a este e-mail para comentar sobre o evento, ou"
+
+msgid "Reply in the Group"
+msgstr "Responder no grupo"
+
+msgid "You indicated you are"
+msgstr "Você indicou que está"
+
+msgid "from"
+msgstr "de"
+
+#, python-format
+msgid "You RSVPed %(response)s %(event_name)s"
+msgstr "Você respondeu %(response)s %(event_name)s"
+
+msgid "Download the attached CSV for your member list export"
+msgstr "Baixe o CSV anexo para sua exportação de lista de membros"
+
+msgid "If you didn't request this email, please reply to let us know."
+msgstr "Se você não solicitou este e-mail, responda para nos avisar."
+
+msgid "Member Export Complete!"
+msgstr "Exportação de membros concluída!"
+
+#, python-format
+msgid "%(transition_text)s in Funding Round "
+msgstr "%(transition_text)s na Rodada de Financiamento "
+
+#, python-format
+msgid "%(funding_round_url)s"
+msgstr "%(funding_round_url)s"
+
+#, python-format
+msgid "%(action_url)s"
+msgstr "%(action_url)s"
+
+#, python-format
+msgid "%(button_text)s"
+msgstr "%(button_text)s"
+
+#, python-format
+msgid "%(funding_round_title)s: %(transition_text)s"
+msgstr "%(funding_round_title)s: %(transition_text)s"
+
+msgid "Your group "
+msgstr "Seu grupo "
+
+msgid "has joined group "
+msgstr "juntou-se ao grupo "
+
+msgid "You can now join "
+msgstr "Agora você pode se juntar a "
+
+msgid "accepted the invitation to join."
+msgstr "aceitou o convite para se juntar."
+
+msgid "The group "
+msgstr "O grupo "
+
+msgid "has joined your group "
+msgstr "juntou-se ao seu grupo "
+
+msgid "This email sent from "
+msgstr "Este e-mail enviado de "
+
+msgid "Email settings "
+msgstr "Configurações de e-mail "
+
+msgid "View this email in a browser "
+msgstr "Ver este e-mail em um navegador "
+
+#, python-format
+msgid "Your group %(child_group_name)s has joined %(parent_group_name)s"
+msgstr "Seu grupo %(child_group_name)s juntou-se a %(parent_group_name)s"
+
+#, python-format
+msgid "%(child_group_name)s has joined your group %(parent_group_name)s"
+msgstr "%(child_group_name)s juntou-se ao seu grupo %(parent_group_name)s"
+
+msgid "has invited"
+msgstr "convidou"
+
+msgid "to be a part of"
+msgstr "a fazer parte de"
+
+msgid ""
+"When your group becomes a part of another group, your members will be "
+"able to join that group."
+msgstr ""
+"Quando seu grupo se torna parte de outro grupo, seus membros poderão se "
+"juntar a esse grupo."
+
+msgid "Respond to this Invitation"
+msgstr "Responder a este convite"
+
+#, python-format
+msgid ""
+"%(requester_name)s [ %(requester_profile_url)s ] has asked to join "
+"%(community_name)s."
+msgstr ""
+"%(requester_name)s [ %(requester_profile_url)s ] solicitou se juntar a "
+"%(community_name)s."
+
+#, python-format
+msgid "Manage their request [ %(settings_url)s ]"
+msgstr "Gerenciar sua solicitação [ %(settings_url)s ]"
+
+#, python-format
+msgid "%(child_group_name)s has been invited to join %(parent_group_name)s"
+msgstr "%(child_group_name)s foi convidado a se juntar a %(parent_group_name)s"
+
+#, python-format
+msgid "%(requester_name)s [ %(requester_profile_url)s ] has asked to join "
+msgstr "%(requester_name)s [ %(requester_profile_url)s ] solicitou se juntar a "
+
+#, python-format
+msgid ""
+". \n"
+"\n"
+"Manage their request [ %(settings_url)s ] "
+msgstr ""
+". \n"
+"\n"
+"Gerenciar sua solicitação [ %(settings_url)s ] "
+
+#, python-format
+msgid ". Manage their request [ %(settings_url)s ]"
+msgstr ". Gerenciar sua solicitação [ %(settings_url)s ]"
+
+#, python-format
+msgid "%(child_group_name)s is requesting to join %(parent_group_name)s"
+msgstr "%(child_group_name)s está solicitando se juntar a %(parent_group_name)s"
+
+#, python-format
+msgid ""
+"Your group %(child_group_name)s has been connected to "
+"%(parent_group_name)s"
+msgstr ""
+"Seu grupo %(child_group_name)s foi conectado a "
+"%(parent_group_name)s"
+
+#, python-format
+msgid "%(child_group_name)s has been invited to connect to %(parent_group_name)s"
+msgstr "%(child_group_name)s foi convidado a se conectar a %(parent_group_name)s"
+
+#, python-format
+msgid "Click this link to join me on Hylo: %(invite_link)s"
+msgstr "Clique neste link para se juntar a mim no Hylo: %(invite_link)s"
+
+#, python-format
+msgid "%(inviter_name)s"
+msgstr "%(inviter_name)s"
+
+#, python-format
+msgid "Your request to join %(group_name)s has been approved"
+msgstr "Sua solicitação para se juntar a %(group_name)s foi aprovada"
+
+#, python-format
+msgid "%(requester_name)s asked to join %(group_name)s"
+msgstr "%(requester_name)s solicitou se juntar a %(group_name)s"
+
+#, python-format
+msgid "A new member has joined %(group_name)s: %(member_name)s"
+msgstr "Um novo membro se juntou a %(group_name)s: %(member_name)s"
+
+#, python-format
+msgid "%(body)s"
+msgstr "%(body)s"
+
+msgid "View the post"
+msgstr "Ver a publicação"
+
+#, python-format
+msgid "New chats in %(group_name)s #%(chat_topic)s"
+msgstr "Novos chats em %(group_name)s #%(chat_topic)s"
+
+#, python-format
+msgid "%(subject_prefix)s \"%(post_title)s\""
+msgstr "%(subject_prefix)s \"%(post_title)s\""
+
+#, python-format
+msgid "%(count)s new direct message"
+msgstr "%(count)s nova mensagem direta"
+
+msgid "s"
+msgstr "s"
+
+msgid "Reply to this email to respond or"
+msgstr "Responda a este e-mail para responder ou"
+
+msgid "Join the conversation on Hylo"
+msgstr "Junte-se à conversa no Hylo"
+
+#, python-format
+msgid "New messages from %(participant_names)s"
+msgstr "Novas mensagens de %(participant_names)s"
+
+msgid ""
+"We've received a request to reset your Hylo password. If you did not make"
+" this request, you can safely ignore this email."
+msgstr ""
+"Recebemos uma solicitação para redefinir sua senha do Hylo. Se você não fez "
+"esta solicitação, pode ignorar este e-mail com segurança."
+
+msgid "Reset your password"
+msgstr "Redefinir sua senha"
+
+msgid ""
+"If the link above doesnt work you can copy and paste this link into your "
+"browser:"
+msgstr ""
+"Se o link acima não funcionar, você pode copiar e colar este link no seu "
+"navegador:"
+
+msgid "Reset your Hylo password"
+msgstr "Redefinir sua senha do Hylo"
+
+msgid "Action Required:"
+msgstr "Ação necessária:"
+
+msgid "We were unable to process your payment for your subscription to "
+msgstr "Não conseguimos processar seu pagamento para sua assinatura de "
+
+msgid "for "
+msgstr "para "
+
+msgid "Reason:"
+msgstr "Motivo:"
+
+msgid "We will automatically retry your payment on "
+msgstr "Tentaremos automaticamente processar seu pagamento em "
+
+msgid "Important:"
+msgstr "Importante:"
+
+msgid "Your access will end on "
+msgstr "Seu acesso terminará em "
+
+msgid "if payment is not successful."
+msgstr "se o pagamento não for bem-sucedido."
+
+msgid "Please update your payment method to ensure uninterrupted access:"
+msgstr "Por favor, atualize seu método de pagamento para garantir acesso ininterrupto:"
+
+msgid "Update Payment Method"
+msgstr "Atualizar método de pagamento"
+
+msgid "Manage Subscription"
+msgstr "Gerenciar assinatura"
+
+#, python-format
+msgid "Payment Failed: %(offering_name)s"
+msgstr "Pagamento falhou: %(offering_name)s"
+
+msgid "Reply to this email to comment on the post, or"
+msgstr "Responda a este e-mail para comentar sobre a publicação, ou"
+
+msgid "Thank you for your purchase! Your payment has been processed successfully."
+msgstr "Obrigado por sua compra! Seu pagamento foi processado com sucesso."
+
+msgid "Amount:"
+msgstr "Valor:"
+
+msgid "Purchase Date:"
+msgstr "Data da compra:"
+
+msgid "This is a recurring subscription that will renew automatically."
+msgstr "Esta é uma assinatura recorrente que será renovada automaticamente."
+
+msgid "Next Renewal:"
+msgstr "Próxima renovação:"
+
+msgid "Billing Period:"
+msgstr "Período de cobrança:"
+
+msgid "You have lifetime access to this content."
+msgstr "Você tem acesso vitalício a este conteúdo."
+
+msgid "You now have access to "
+msgstr "Agora você tem acesso a "
+
+msgid "You now have access to the track "
+msgstr "Agora você tem acesso à trilha "
+
+msgid "View Receipt"
+msgstr "Ver recibo"
+
+#, python-format
+msgid "Purchase Confirmation: %(offering_name)s"
+msgstr "Confirmação de compra: %(offering_name)s"
+
+msgid "Don't like these emails? "
+msgstr "Não gosta desses e-mails? "
+
+msgid "Unsubscribe"
+msgstr "Cancelar assinatura"
+
+#, python-format
+msgid "Hi %(admin_name)s"
+msgstr "Olá %(admin_name)s"
+
+#, python-format
+msgid "A subscription has been cancelled for %(group_name)s."
+msgstr "Uma assinatura foi cancelada para %(group_name)s."
+
+msgid "User:"
+msgstr "Usuário:"
+
+msgid "Offering:"
+msgstr "Oferta:"
+
+msgid "Cancelled:"
+msgstr "Cancelado:"
+
+msgid "Access Ends:"
+msgstr "O acesso termina:"
+
+msgid "Revenue Impact:"
+msgstr "Impacto na receita:"
+
+msgid "per"
+msgstr "por"
+
+msgid "View Content Access"
+msgstr "Ver acesso ao conteúdo"
+
+msgid "Contact User"
+msgstr "Contatar usuário"
+
+#, python-format
+msgid "Subscription Cancelled: %(offering_name)s in %(group_name)s"
+msgstr "Assinatura cancelada: %(offering_name)s em %(group_name)s"
+
+msgid "Your subscription to"
+msgstr "Sua assinatura de"
+
+msgid "for"
+msgstr "para"
+
+msgid "has been cancelled."
+msgstr "foi cancelada."
+
+msgid "Your access will continue until"
+msgstr "Seu acesso continuará até"
+
+msgid "(end of your current billing period)."
+msgstr "(fim do seu período de cobrança atual)."
+
+msgid "Your access has ended immediately."
+msgstr "Seu acesso terminou imediatamente."
+
+msgid ""
+"We're sorry to see you go! If you change your mind, you can resubscribe "
+"at any time."
+msgstr ""
+"Sentimos muito em vê-lo partir! Se mudar de ideia, você pode se inscrever "
+"novamente a qualquer momento."
+
+msgid "Resubscribe"
+msgstr "Inscrever-se novamente"
+
+#, python-format
+msgid "Your %(offering_name)s subscription has been cancelled"
+msgstr "Sua assinatura de %(offering_name)s foi cancelada"
+
+msgid "will renew in 7 days."
+msgstr "será renovada em 7 dias."
+
+msgid "Renewal Date:"
+msgstr "Data de renovação:"
+
+msgid ""
+"Your payment method on file will be charged automatically. If you need to"
+" update your payment method or cancel your subscription, please do so "
+"before the renewal date."
+msgstr ""
+"Seu método de pagamento registrado será cobrado automaticamente. Se precisar "
+"atualizar seu método de pagamento ou cancelar sua assinatura, faça isso antes "
+"da data de renovação."
+
+#, python-format
+msgid "Your %(offering_name)s subscription renews in 7 days"
+msgstr "Sua assinatura de %(offering_name)s será renovada em 7 dias"
+
+msgid "has been renewed successfully."
+msgstr "foi renovada com sucesso."
+
+msgid "Amount Paid:"
+msgstr "Valor pago:"
+
+msgid "Payment Date:"
+msgstr "Data do pagamento:"
+
+msgid "Continue Accessing Content"
+msgstr "Continuar acessando conteúdo"
+
+#, python-format
+msgid "Your %(offering_name)s subscription has been renewed"
+msgstr "Sua assinatura de %(offering_name)s foi renovada"
+
+msgid "Congratulations! You now have access to:"
+msgstr "Parabéns! Agora você tem acesso a:"
+
+msgid ""
+"You've been automatically enrolled in this track and can start learning "
+"right away!"
+msgstr ""
+"Você foi automaticamente inscrito nesta trilha e pode começar a aprender "
+"imediatamente!"
+
+msgid "View Track"
+msgstr "Ver trilha"
+
+#, python-format
+msgid "Track Access Purchased: %(track_name)s"
+msgstr "Acesso à trilha comprado: %(track_name)s"
+
+#, python-format
+msgid "Track %(track_name)s completed by %(completer_name)s"
+msgstr "Trilha %(track_name)s concluída por %(completer_name)s"
+
+#, python-format
+msgid "New enrollment in track %(track_name)s"
+msgstr "Nova inscrição na trilha %(track_name)s"
+
+#, python-format
+msgid "Dear %(member_name)s,"
+msgstr "Caro(a) %(member_name)s,"
+
+#, python-format
+msgid ""
+"Warmest greetings and a big welcome to %(group_name)s! %(group_name)s is "
+"hosted on Hylo, the home of purpose-driven collaboration!"
+msgstr ""
+"Saudações calorosas e uma grande bem-vinda a %(group_name)s! %(group_name)s "
+"está hospedado no Hylo, o lar da colaboração orientada por propósito!"
+
+msgid ""
+"Hylo is free, non-profit, open-source, and community-led. It's a vibrant "
+"ecosystem dedicated to the care of our communities and our planet. We're "
+"thrilled to have you with us on this journey towards creating a world "
+"that works for all!"
+msgstr ""
+"O Hylo é gratuito, sem fins lucrativos, de código aberto e liderado pela "
+"comunidade. É um ecossistema vibrante dedicado ao cuidado de nossas "
+"comunidades e nosso planeta. Estamos emocionados em tê-lo conosco nesta "
+"jornada em direção à criação de um mundo que funcione para todos!"
+
+msgid ""
+"Warmest greetings and a big welcome to Hylo, the home of purpose-driven "
+"collaboration!"
+msgstr ""
+"Saudações calorosas e uma grande bem-vinda ao Hylo, o lar da colaboração "
+"orientada por propósito!"
+
+msgid ""
+"You're now part of a vibrant ecosystem dedicated to the care of our "
+"communities and our planet. We're thrilled to have you with us on this "
+"journey towards creating a world that works for all!"
+msgstr ""
+"Você agora faz parte de um ecossistema vibrante dedicado ao cuidado de nossas "
+"comunidades e nosso planeta. Estamos emocionados em tê-lo conosco nesta "
+"jornada em direção à criação de um mundo que funcione para todos!"
+
+msgid ""
+"Check out the <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-"
+"guide'>Hylo Member Guide</a> for tips, and if you need help, click the "
+"question mark (?) button in the bottom left of the interface to ask a "
+"question. We're here to support you every step of the way."
+msgstr ""
+"Confira o <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-"
+"guide'>Guia do Membro do Hylo</a> para dicas, e se precisar de ajuda, clique "
+"no botão de ponto de interrogação (?) no canto inferior esquerdo da interface "
+"para fazer uma pergunta. Estamos aqui para apoiá-lo em cada etapa do caminho."
+
+msgid ""
+"Hylo is free, non-profit, open-source, and community-led! Check out the "
+"<a href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide'>Hylo "
+"Member Guide</a> for tips, and if you need help, click the question mark "
+"(?) button in the bottom left of the interface to ask a question. We're "
+"here to support you every step of the way."
+msgstr ""
+"O Hylo é gratuito, sem fins lucrativos, de código aberto e liderado pela "
+"comunidade! Confira o <a href='https://hylozoic.gitbook.io/hylo/guides/hylo-"
+"user-guide'>Guia do Membro do Hylo</a> para dicas, e se precisar de ajuda, "
+"clique no botão de ponto de interrogação (?) no canto inferior esquerdo da "
+"interface para fazer uma pergunta. Estamos aqui para apoiá-lo em cada etapa "
+"do caminho."
+
+msgid "Once again, welcome to Hylo. We're honored to walk this path with you."
+msgstr "Mais uma vez, bem-vindo ao Hylo. É uma honra caminhar este caminho com você."
+
+msgid "Warm regards,"
+msgstr "Atenciosamente,"
+
+msgid ""
+"P.S. Join us for an upcoming <a "
+"href='https://www.hylo.com/participate/#gatherings'>Hylo Community "
+"Call</a>. It's a great opportunity to meet the stewardship team and "
+"fellow members, and learn more about how you can make the most of your "
+"Hylo experience."
+msgstr ""
+"P.S. Junte-se a nós para uma próxima <a "
+"href='https://www.hylo.com/participate/#gatherings'>Chamada da Comunidade "
+"Hylo</a>. É uma ótima oportunidade para conhecer a equipe de administração e "
+"outros membros, e aprender mais sobre como você pode aproveitar ao máximo "
+"sua experiência no Hylo."
+
+#, python-format
+msgid "Welcome to %(group_name)s on Hylo!"
+msgstr "Bem-vindo a %(group_name)s no Hylo!"
+
+msgid "Welcome to Hylo – Together, Let's Create a Thriving World"
+msgstr "Bem-vindo ao Hylo – Juntos, vamos criar um mundo próspero"
