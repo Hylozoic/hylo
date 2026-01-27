@@ -290,10 +290,15 @@ function PostEditor ({
         return a.name.localeCompare(b.name)
       })
 
+    // Get names of topics that are already selected (auto-inserted)
+    // Using name since topic names are unique and more reliable than IDs
+    const selectedTopicNames = new Set((currentPost.topics || []).map(t => t?.name).filter(Boolean))
+
     return sortedGroups
       .map((g) => {
         if (!g) return []
         // Only show topic options (like "Group #general"), no group-only options
+        // Filter out topics that are already selected
         return (g.chatRooms?.toModelArray() || [])
           .map((cr) => ({
             id: cr?.id,
@@ -304,9 +309,10 @@ function PostEditor ({
             allowInPublic: g.allowInPublic
           }))
           .filter(Boolean)
+          .filter(o => !selectedTopicNames.has(o.topic?.name)) // Hide already selected topics
           .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions, currentGroup?.id])
+  }, [groupOptions, currentGroup?.id, currentPost.topics])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
@@ -380,35 +386,45 @@ function PostEditor ({
   }, [linkPreview])
 
   useEffect(() => {
-    // Ensure the route-derived topic is present and unique:
-    // - remove the previously injected route topic (if any)
-    // - add the new route topic (if present)
-    // User-added topics remain untouched.
+    // When switching between chatrooms (route topic changes), reset topics to only the new route topic
+    // This ensures users don't accidentally post to the wrong chatroom
     setCurrentPost(prev => {
-      let nextTopics = prev.topics || []
-
-      // Remove the prior route topic if it exists
-      if (routeTopicIdRef.current) {
-        nextTopics = nextTopics.filter(t => t && t.id !== routeTopicIdRef.current)
-      }
-
-      // Add the new route topic if present and not already included
-      if (topic?.id) {
-        const exists = nextTopics.some(t => t && t.id === topic.id)
-        if (!exists) nextTopics = [...nextTopics, topic]
+      // If route topic changed, reset topics to only contain the new route topic
+      if (topic?.id && topic.id !== routeTopicIdRef.current) {
         routeTopicIdRef.current = topic.id
-      } else {
-        routeTopicIdRef.current = null
+        return { ...prev, topics: [topic] }
       }
 
-      return { ...prev, topics: nextTopics }
+      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      if (!topic?.id && routeTopicIdRef.current) {
+        const priorTopicId = routeTopicIdRef.current
+        routeTopicIdRef.current = null
+        // Remove the prior route topic if it exists
+        const nextTopics = (prev.topics || []).filter(t => t && t.id !== priorTopicId)
+        return { ...prev, topics: nextTopics }
+      }
+
+      // If route topic is the same, ensure it's present
+      if (topic?.id && topic.id === routeTopicIdRef.current) {
+        const exists = prev.topics?.some(t => t && t.id === topic.id)
+        if (!exists) {
+          return { ...prev, topics: [...(prev.topics || []), topic] }
+        }
+      }
+
+      return prev
     })
   }, [topic?.id])
 
-  // Auto-add the #general topic when groups are selected
-  // This ensures all posts appear in the #general chat by default
+  // Auto-add topic when groups are selected
+  // If we're in a chatroom (topic from URL exists), use that topic
+  // Otherwise, default to #general topic
   useEffect(() => {
     if (!selectedGroups || selectedGroups.length === 0) return
+
+    // If we're in a chatroom, the route topic useEffect already handles adding it
+    // So we only need to add #general if we're NOT in a chatroom
+    if (topic?.id) return
 
     // Find the general topic from any selected group's chatRooms
     let generalTopic = null
@@ -429,7 +445,7 @@ function PostEditor ({
 
       return { ...prev, topics: [...(prev.topics || []), generalTopic] }
     })
-  }, [selectedGroups])
+  }, [selectedGroups, topic?.id])
 
   /**
    * Resets the editor to its initial state
