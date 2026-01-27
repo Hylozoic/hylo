@@ -216,6 +216,19 @@
   color: #1a1a1a;
 }
 
+.botSection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.botInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .botBadge {
   display: inline-flex;
   align-items: center;
@@ -226,7 +239,25 @@
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  margin-top: 8px;
+}
+
+.botDetails {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.botName {
+  font-size: 14px;
+  color: #333333;
+  font-weight: 500;
+}
+
+.botAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .redirectUriList {

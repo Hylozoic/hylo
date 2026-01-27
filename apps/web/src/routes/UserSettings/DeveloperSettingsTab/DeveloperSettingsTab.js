@@ -13,6 +13,7 @@ import {
   updateApplication,
   deleteApplication,
   regenerateClientSecret,
+  createBotForApplication,
   fetchApplications
 } from './DeveloperSettingsTab.store'
 
@@ -415,6 +416,25 @@ function DeveloperSettingsTab () {
     }
   }
 
+  const handleCreateBot = async (appId) => {
+    if (!window.confirm(t('Create a bot for this application? The bot will have its own profile and can be invited to groups.'))) {
+      return
+    }
+
+    try {
+      const result = await dispatch(createBotForApplication(appId))
+      if (result?.payload?.data?.createBotForApplication) {
+        const bot = result.payload.data.createBotForApplication
+        setApplications(applications.map(a =>
+          a.id === appId ? { ...a, hasBot: true, bot } : a
+        ))
+      }
+    } catch (e) {
+      console.error('Error creating bot:', e)
+      alert(t('Failed to create bot. Please try again.'))
+    }
+  }
+
   const handleCopy = (id) => {
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
@@ -571,11 +591,32 @@ function DeveloperSettingsTab () {
                   )}
                 </div>
 
-                {app.hasBot && (
-                  <div className={classes.botBadge}>
-                    <Icon name='Robot' /> {t('Bot enabled')}
-                  </div>
-                )}
+                {/* Bot Section */}
+                <div className={classes.botSection}>
+                  {app.hasBot ? (
+                    <div className={classes.botInfo}>
+                      <div className={classes.botBadge}>
+                        <Icon name='Robot' /> {t('Bot enabled')}
+                      </div>
+                      {app.bot && (
+                        <div className={classes.botDetails}>
+                          <span className={classes.botName}>{app.bot.name}</span>
+                          {app.bot.avatarUrl && (
+                            <img src={app.bot.avatarUrl} alt={app.bot.name} className={classes.botAvatar} />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => handleCreateBot(app.id)}
+                      variant='secondary'
+                      small
+                    >
+                      <Icon name='Robot' /> {t('Create Bot')}
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
