@@ -32,6 +32,19 @@ async function hasPermission (userId, type, id) {
     }
   }
 
+  if (type.startsWith('bot')) {
+    // id is the bot user id - verify that the current user owns the application that owns this bot
+    const bot = await User.find(id)
+    if (!bot || !bot.get('is_bot')) {
+      throw new GraphQLError('Validation error: Bot not found')
+    }
+    // Find the application that owns this bot
+    const app = await Application.where({ bot_user_id: id }).fetch()
+    if (!app || app.get('owner_id') !== userId) {
+      throw new GraphQLError('Validation error: Not authorized to update this bot')
+    }
+  }
+
   if (type.startsWith('post')) {
     if (id === 'new') return Promise.resolve()
     return Post.find(id)

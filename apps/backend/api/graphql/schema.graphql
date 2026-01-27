@@ -861,6 +861,9 @@ type Group {
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
 
+  # Bots that have been invited to this group
+  botPermissions: BotGroupPermissionQuerySet
+
   chatRooms: ContextWidgetQuerySet
 
   # Child groups of this group
@@ -3188,6 +3191,8 @@ type Mutation {
   regenerateClientSecret(applicationId: ID!): String
   # Create a bot user for an application
   createBotForApplication(applicationId: ID!): Person
+  deleteBotForApplication(applicationId: ID!): GenericResult
+  updateBot(botId: ID!, changes: BotInput!): Person
   # Invite a bot to a group (requires group admin permissions)
   inviteBotToGroup(data: InviteBotInput!): BotGroupPermission
   # Remove a bot from a group
@@ -4009,6 +4014,10 @@ type CreateApplicationResult {
 
 # Bot permissions within a specific group
 type BotGroupPermission {
+  # The bot user ID
+  botUserId: ID!
+  # The group ID
+  groupId: ID!
   id: ID!
   # The bot user
   bot: Person!
@@ -4024,6 +4033,12 @@ type BotGroupPermission {
   createdAt: Date!
 }
 
+# Query set for bot group permissions
+type BotGroupPermissionQuerySet {
+  items: [BotGroupPermission]
+  total: Int
+}
+
 # Input for creating or updating an application
 input ApplicationInput {
   # Name of the application
@@ -4036,6 +4051,13 @@ input ApplicationInput {
   redirectUris: [String!]
   # OAuth scopes this application can request
   scopes: [String!]
+}
+# Input for updating a bot
+input BotInput {
+  # New name for the bot
+  name: String
+  # New avatar URL for the bot
+  avatarUrl: String
 }
 
 # Input for inviting a bot to a group

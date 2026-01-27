@@ -78,14 +78,18 @@ module.exports = bookshelf.Model.extend({
    * Generate a new client ID
    */
   generateClientId () {
-    return crypto.randomBytes(32).toString('hex')
+    return 'hylo_' + crypto.randomBytes(28).toString('hex')
+  },
+
+  _old_generateClientId () {
+    return 'hylo_' + crypto.randomBytes(24).toString('hex')
   },
 
   /**
    * Generate a new client secret and return both plain and hashed versions
    */
   async generateClientSecret () {
-    const plainSecret = crypto.randomBytes(32).toString('hex')
+    const plainSecret = 'hylo_secret_' + crypto.randomBytes(24).toString('hex')
     const hash = await bcrypt.hash(plainSecret, SALT_ROUNDS)
     return { plainSecret, hash }
   },

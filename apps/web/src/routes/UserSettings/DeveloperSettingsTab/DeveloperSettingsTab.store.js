@@ -9,6 +9,7 @@ export const MODULE_NAME = 'DeveloperSettings'
 export const UPDATE_DEVELOPER_MODE = `${MODULE_NAME}/UPDATE_DEVELOPER_MODE`
 export const FETCH_APPLICATIONS = `${MODULE_NAME}/FETCH_APPLICATIONS`
 export const CREATE_APPLICATION = `${MODULE_NAME}/CREATE_APPLICATION`
+export const UPDATE_APPLICATION = `${MODULE_NAME}/UPDATE_APPLICATION`
 export const DELETE_APPLICATION = `${MODULE_NAME}/DELETE_APPLICATION`
 export const REGENERATE_CLIENT_SECRET = `${MODULE_NAME}/REGENERATE_CLIENT_SECRET`
 export const CREATE_BOT = `${MODULE_NAME}/CREATE_BOT`
@@ -99,6 +100,34 @@ export function createApplication (data) {
 }
 
 /**
+ * Update an existing application
+ */
+export function updateApplication (id, changes) {
+  return {
+    type: UPDATE_APPLICATION,
+    graphql: {
+      query: `mutation UpdateApplication($id: ID!, $changes: ApplicationInput!) {
+        updateApplication(id: $id, changes: $changes) {
+          id
+          name
+          description
+          clientId
+          redirectUris
+          scopes
+          hasBot
+          createdAt
+        }
+      }`,
+      variables: { id, changes }
+    },
+    meta: {
+      id,
+      changes
+    }
+  }
+}
+
+/**
  * Delete an application
  */
 export function deleteApplication (id) {
@@ -155,6 +184,53 @@ export function createBotForApplication (applicationId) {
     },
     meta: {
       applicationId
+    }
+  }
+}
+
+export const DELETE_BOT = 'DeveloperSettings/DELETE_BOT'
+
+/**
+ * Delete a bot for an application
+ */
+export function deleteBotForApplication (applicationId) {
+  return {
+    type: DELETE_BOT,
+    graphql: {
+      query: `mutation DeleteBotForApplication($applicationId: ID!) {
+        deleteBotForApplication(applicationId: $applicationId) {
+          success
+        }
+      }`,
+      variables: { applicationId }
+    },
+    meta: {
+      applicationId
+    }
+  }
+}
+
+export const UPDATE_BOT = 'DeveloperSettings/UPDATE_BOT'
+
+/**
+ * Update a bot's profile (name, avatar)
+ */
+export function updateBot (botId, changes) {
+  return {
+    type: UPDATE_BOT,
+    graphql: {
+      query: `mutation UpdateBot($botId: ID!, $changes: BotInput!) {
+        updateBot(botId: $botId, changes: $changes) {
+          id
+          name
+          avatarUrl
+        }
+      }`,
+      variables: { botId, changes }
+    },
+    meta: {
+      botId,
+      changes
     }
   }
 }

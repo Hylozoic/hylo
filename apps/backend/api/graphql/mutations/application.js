@@ -10,7 +10,7 @@ import { GraphQLError } from 'graphql'
  */
 export const updateDeveloperMode = async (_, { enabled }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const user = await User.find(currentUserId)
@@ -28,7 +28,7 @@ export const updateDeveloperMode = async (_, { enabled }, { currentUserId }) => 
  */
 export const createApplication = async (_, { data }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const user = await User.find(currentUserId)
@@ -66,7 +66,7 @@ export const createApplication = async (_, { data }, { currentUserId }) => {
  */
 export const updateApplication = async (_, { id, changes }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const app = await Application.find(id)
@@ -96,7 +96,7 @@ export const updateApplication = async (_, { id, changes }, { currentUserId }) =
  */
 export const deleteApplication = async (_, { id }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const app = await Application.find(id)
@@ -128,7 +128,7 @@ export const deleteApplication = async (_, { id }, { currentUserId }) => {
  */
 export const regenerateClientSecret = async (_, { applicationId }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const app = await Application.find(applicationId)
@@ -151,7 +151,7 @@ export const regenerateClientSecret = async (_, { applicationId }, { currentUser
  */
 export const createBotForApplication = (fetchOne) => async (_, { applicationId }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const app = await Application.find(applicationId)
@@ -189,9 +189,10 @@ export const createBotForApplication = (fetchOne) => async (_, { applicationId }
 /**
  * Invite a bot to a group
  */
-export const inviteBotToGroup = async (_, { data }, { currentUserId }) => {
+console.log("DEBUG: inviteBotToGroup resolver loaded"); export const inviteBotToGroup = async (_, { data }, { currentUserId }) => {
+  console.log("inviteBotToGroup called:", { data, currentUserId })
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const { botUserId, groupId, permissions } = data
@@ -199,19 +200,19 @@ export const inviteBotToGroup = async (_, { data }, { currentUserId }) => {
   // Verify the bot exists and is actually a bot
   const bot = await User.find(botUserId)
   if (!bot || !bot.get('is_bot')) {
-    throw new GraphQLError('Bot not found')
+    console.log('ERROR: Bot not found', { botUserId, bot: bot ? { id: bot.id, is_bot: bot.get('is_bot') } : null }); throw new GraphQLError('Bot not found')
   }
 
   // Verify the group exists
   const group = await Group.find(groupId)
   if (!group) {
-    throw new GraphQLError('Group not found')
+    console.log('ERROR: Group not found', { groupId }); throw new GraphQLError('Group not found')
   }
 
   // Check if current user has admin permissions in the group
   const membership = await GroupMembership.forPair(currentUserId, groupId).fetch()
   if (!membership || membership.get('role') < GroupMembership.Role.MODERATOR) {
-    throw new GraphQLError('Must be a group moderator to invite bots')
+    console.log('ERROR: Not moderator', { currentUserId, groupId, membership: membership ? { role: membership.get('role') } : null }); throw new GraphQLError('Must be a group moderator to invite bots')
   }
 
   // Validate permissions
@@ -236,7 +237,7 @@ export const inviteBotToGroup = async (_, { data }, { currentUserId }) => {
  */
 export const removeBotFromGroup = async (_, { botGroupPermissionId }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const bgp = await BotGroupPermission.find(botGroupPermissionId)
@@ -262,7 +263,7 @@ export const removeBotFromGroup = async (_, { botGroupPermissionId }, { currentU
  */
 export const updateBotPermissions = async (_, { botGroupPermissionId, permissions }, { currentUserId }) => {
   if (!currentUserId) {
-    throw new GraphQLError('Not authorized')
+    console.log('ERROR: Not authorized - no currentUserId'); throw new GraphQLError('Not authorized')
   }
 
   const bgp = await BotGroupPermission.find(botGroupPermissionId)
@@ -288,4 +289,88 @@ export const updateBotPermissions = async (_, { botGroupPermissionId, permission
   await bgp.save({ permissions }, { patch: true })
 
   return bgp
+}
+
+/**
+ * Delete a bot for an application
+ */
+export const deleteBotForApplication = async (_, { applicationId }, { currentUserId }) => {
+  if (!currentUserId) {
+    throw new GraphQLError('Not authorized')
+  }
+
+  const app = await Application.find(applicationId)
+  if (!app) {
+    throw new GraphQLError('Application not found')
+  }
+
+  // Verify ownership
+  if (app.get('owner_id') !== currentUserId) {
+    throw new GraphQLError('Not authorized to delete bot for this application')
+  }
+
+  const botUserId = app.get('bot_user_id')
+  if (!botUserId) {
+    throw new GraphQLError('Application does not have a bot')
+  }
+
+  // Remove all bot group permissions
+  await bookshelf.knex('bot_group_permissions')
+    .where('bot_user_id', botUserId)
+    .del()
+
+  // Delete the bot user
+  await bookshelf.knex('users')
+    .where('id', botUserId)
+    .del()
+
+  // Unlink bot from application
+  await app.save({
+    has_bot: false,
+    bot_user_id: null
+  }, { patch: true })
+
+  return { success: true }
+}
+
+/**
+ * Update a bot's profile (name, avatar)
+ */
+export const updateBot = (fetchOne) => async (_, { botId, changes }, { currentUserId }) => {
+  if (!currentUserId) {
+    throw new GraphQLError('Not authorized')
+  }
+
+  // Find the bot
+  const bot = await User.find(botId)
+  if (!bot || !bot.get('is_bot')) {
+    throw new GraphQLError('Bot not found')
+  }
+
+  // Find the application that owns this bot
+  const app = await Application.where({ bot_user_id: botId }).fetch()
+  if (!app) {
+    throw new GraphQLError('Bot not associated with an application')
+  }
+
+  // Verify ownership
+  if (app.get('owner_id') !== currentUserId) {
+    throw new GraphQLError('Not authorized to update this bot')
+  }
+
+  const updates = {}
+  if (changes.name !== undefined) {
+    const name = changes.name.trim()
+    if (name.length < 2) {
+      throw new GraphQLError('Bot name must be at least 2 characters')
+    }
+    updates.name = name
+  }
+  if (changes.avatarUrl !== undefined) {
+    updates.avatar_url = changes.avatarUrl
+  }
+
+  await bot.save(updates, { patch: true })
+
+  return fetchOne('Person', botId)
 }

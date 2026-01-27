@@ -69,7 +69,7 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Find permissions for a bot in a specific group
+   * Find permissions for a bot in a specific group (active only)
    */
   findForBotInGroup (botUserId, groupId, opts = {}) {
     if (!botUserId || !groupId) return Promise.resolve(null)
@@ -77,6 +77,17 @@ module.exports = bookshelf.Model.extend({
       bot_user_id: botUserId,
       group_id: groupId,
       is_active: true
+    }).fetch(opts)
+  },
+
+  /**
+   * Find permissions for a bot in a specific group (including inactive)
+   */
+  findForBotInGroupAny (botUserId, groupId, opts = {}) {
+    if (!botUserId || !groupId) return Promise.resolve(null)
+    return this.where({
+      bot_user_id: botUserId,
+      group_id: groupId
     }).fetch(opts)
   },
 
@@ -103,11 +114,11 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
-   * Invite a bot to a group
+   * Invite a bot to a group (or reactivate if previously removed)
    */
   async inviteBot ({ botUserId, groupId, invitedById, permissions }, opts = {}) {
-    // Check if bot is already in group
-    const existing = await this.findForBotInGroup(botUserId, groupId, opts)
+    // Check if bot was ever in group (including inactive)
+    const existing = await this.findForBotInGroupAny(botUserId, groupId, opts)
 
     if (existing) {
       // Reactivate and update permissions
