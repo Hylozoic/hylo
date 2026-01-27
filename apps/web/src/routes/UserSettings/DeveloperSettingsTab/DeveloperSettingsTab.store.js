@@ -9,6 +9,7 @@ export const MODULE_NAME = 'DeveloperSettings'
 export const UPDATE_DEVELOPER_MODE = `${MODULE_NAME}/UPDATE_DEVELOPER_MODE`
 export const FETCH_APPLICATIONS = `${MODULE_NAME}/FETCH_APPLICATIONS`
 export const CREATE_APPLICATION = `${MODULE_NAME}/CREATE_APPLICATION`
+export const UPDATE_APPLICATION = `${MODULE_NAME}/UPDATE_APPLICATION`
 export const DELETE_APPLICATION = `${MODULE_NAME}/DELETE_APPLICATION`
 export const REGENERATE_CLIENT_SECRET = `${MODULE_NAME}/REGENERATE_CLIENT_SECRET`
 export const CREATE_BOT = `${MODULE_NAME}/CREATE_BOT`
@@ -94,6 +95,34 @@ export function createApplication (data) {
     },
     meta: {
       data
+    }
+  }
+}
+
+/**
+ * Update an existing application
+ */
+export function updateApplication (id, changes) {
+  return {
+    type: UPDATE_APPLICATION,
+    graphql: {
+      query: `mutation UpdateApplication($id: ID!, $changes: ApplicationInput!) {
+        updateApplication(id: $id, changes: $changes) {
+          id
+          name
+          description
+          clientId
+          redirectUris
+          scopes
+          hasBot
+          createdAt
+        }
+      }`,
+      variables: { id, changes }
+    },
+    meta: {
+      id,
+      changes
     }
   }
 }
