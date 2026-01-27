@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
 import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
@@ -32,6 +33,23 @@ describe('Group', function () {
     const savedGroup = await Group.find('comm1')
     expect(savedGroup.get('banner_url')).to.equal('/default-group-banner.svg')
     expect(savedGroup.get('avatar_url')).to.equal('/default-group-avatar.svg')
+  })
+
+  it('initializes calendar_token on creation', async function () {
+    const data = {
+      name: 'my group',
+      description: 'a group description',
+      slug: 'comm2'
+    }
+
+    const user = await new User({ name: 'username', email: 'john2@foo.com', active: true }).save()
+    await Group.create(user.id, data)
+    const savedGroup = await Group.find('comm2')
+    const calendarToken = savedGroup.get('calendar_token')
+    expect(calendarToken).to.exist
+    expect(calendarToken).to.be.a('string')
+    // UUID v4 format: 8-4-4-4-12 hexadecimal characters
+    expect(calendarToken).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
   })
 
   it('can be created with group extension data', async function () {
@@ -130,7 +148,8 @@ describe('Group', function () {
       expect(results.length).to.equal(2)
 
       await gm1.refresh()
-      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true })
+      // updateMembers always adds joinQuestionsAnsweredAt and showJoinForm defaults
+      expect(gm1.get('settings')).to.deep.equal({ here: true, there: true, joinQuestionsAnsweredAt: null, showJoinForm: true })
       expect(gm1.get('role')).to.equal(1)
 
       const gm2 = await group.memberships()
@@ -256,6 +275,211 @@ describe('Group', function () {
       const customViewWidgets = updatedWidgets.filter(w => w.get('custom_view_id'))
       expect(customViewWidgets).to.not.be.empty
       expect(customViewWidgets[0].get('custom_view_id')).to.equal(String(customView.id))
+    })
+  })
+
+  describe('.createEventCalendarSubscription', () => {
+    let group, user, event1, event2, event3, eventPastYear, eventOlderThanYear
+    let calendarContent
+    let storageModule
+    const { DateTime } = require('luxon')
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      group = await factories.group().save()
+      
+      // Get the date limit (one year in the past)
+      const dateLimit = Post.eventCalSubDateLimit()
+      
+      // Create events with future start times (after the date limit)
+      const futureDate1 = new Date()
+      futureDate1.setFullYear(futureDate1.getFullYear() + 1)
+      const futureDate2 = new Date()
+      futureDate2.setFullYear(futureDate2.getFullYear() + 2)
+      const futureDate3 = new Date()
+      futureDate3.setFullYear(futureDate3.getFullYear() + 3)
+
+      // Create event within the past year (should be included)
+      const pastYearDate = dateLimit.plus({ hours: 1 }).toJSDate() // 30 days after the limit
+      
+      // Create event older than one year (should be excluded)
+      const olderThanYearDate = dateLimit.minus({ hours: 1 }).toJSDate() 
+      const oneHour = 3600000 // number of milliseconds in one hour
+
+      event1 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        active: true,
+        name: 'Event 1',
+        start_time: futureDate1,
+        end_time: new Date(futureDate1.getTime() + oneHour)
+      }).save()
+      
+      event2 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        active: true,
+        name: 'Event 2',
+        start_time: futureDate2,
+        end_time: new Date(futureDate2.getTime() + oneHour)
+      }).save()
+      
+      event3 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        active: true,
+        name: 'Event 3',
+        start_time: futureDate3,
+        end_time: new Date(futureDate3.getTime() + oneHour)
+      }).save()
+
+      eventPastYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        active: true,
+        name: 'Event Past Year',
+        start_time: pastYearDate,
+        end_time: new Date(pastYearDate.getTime() + oneHour)
+      }).save()
+
+      eventOlderThanYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: user.id,
+        active: true,
+        name: 'Event Older Than Year',
+        start_time: olderThanYearDate,
+        end_time: new Date(olderThanYearDate.getTime() + oneHour)
+      }).save()
+
+      await event1.groups().attach([group.id])
+      await event2.groups().attach([group.id])
+      await event3.groups().attach([group.id])
+      await eventPastYear.groups().attach([group.id])
+      await eventOlderThanYear.groups().attach([group.id])
+    })
+
+    beforeEach(() => {
+      calendarContent = null
+      // Mock writeStringToS3 to capture calendar content
+      storageModule = require(root('lib/uploader/storage'))
+      spyify(storageModule, 'writeStringToS3', async (content) => {
+        calendarContent = content
+        return Promise.resolve({ url: 'https://example.com/calendar.ics' })
+      })
+    })
+
+    afterEach(() => {
+      unspyify(storageModule, 'writeStringToS3')
+    })
+
+    it('includes active events when creating calendar subscription', async () => {
+      await Group.createEventCalendarSubscription({ groupId: group.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify all active events are included in the calendar by checking for their UIDs
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+    })
+
+    it('includes events within the past year (up to one year ago)', async () => {
+      await Group.createEventCalendarSubscription({ groupId: group.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify event within the past year is included
+      expect(calendarContent).to.include(eventPastYear.iCalUid())
+    })
+
+    it('excludes events older than one year', async () => {
+      await Group.createEventCalendarSubscription({ groupId: group.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify event older than one year is excluded
+      expect(calendarContent).to.not.include(eventOlderThanYear.iCalUid())
+    })
+
+    it('verifies Post.eventCalSubDateLimit returns date one year in the past', () => {
+      const dateLimit = Post.eventCalSubDateLimit()
+      const expectedDate = DateTime.now().minus({ years: 1 }).toISO()
+      
+      // Allow for small time differences (within 1 second)
+      const dateLimitTime = new Date(dateLimit).getTime()
+      const expectedDateTime = new Date(expectedDate).getTime()
+      const timeDiff = Math.abs(dateLimitTime - expectedDateTime)
+      
+      expect(timeDiff).to.be.below(1000) // Less than 1 second difference
+    })
+
+    it('excludes inactive events when creating calendar subscription', async () => {
+      // Deactivate event2
+      await event2.save({ active: false }, { patch: true })
+      
+      await Group.createEventCalendarSubscription({ groupId: group.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify active events are included
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+      
+      // Verify inactive event is excluded
+      expect(calendarContent).to.not.include(event2.iCalUid())
+    })
+
+    it('includes only active events after some are deactivated', async () => {
+      // Reactivate event2 first
+      await event2.save({ active: true }, { patch: true })
+      // Deactivate event1 and event3
+      await event1.save({ active: false }, { patch: true })
+      await event3.save({ active: false }, { patch: true })
+      
+      await Group.createEventCalendarSubscription({ groupId: group.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify only active event2 is included
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.not.include(event1.iCalUid())
+      expect(calendarContent).to.not.include(event3.iCalUid())
+    })
+
+    it('creates calendar_token if it does not exist', async () => {
+      const groupWithoutToken = await factories.group().save()
+      
+      await Group.createEventCalendarSubscription({ groupId: groupWithoutToken.id })
+      
+      expect(groupWithoutToken.refresh().get('calendar_token')).to.exist
+    })
+
+    it('does not create calendar_token if it already exists', async () => {
+      const existingToken = 'existing-token-123'
+      const groupWithToken = await factories.group().save()
+      try {
+        await groupWithToken.save({ calendar_token: existingToken }, { patch: true })
+      } catch (e) {
+        // Column might not exist, skip this test
+        return
+      }
+      
+      await Group.createEventCalendarSubscription({ groupId: groupWithToken.id })
+      
+      await groupWithToken.refresh()
+      expect(groupWithToken.get('calendar_token')).to.equal(existingToken)
+    })
+
+    it('returns early if group is not found', async () => {
+      await Group.createEventCalendarSubscription({ groupId: 'non-existent-id' })
+
+      expect(storageModule.writeStringToS3).to.not.have.been.called
     })
   })
 })

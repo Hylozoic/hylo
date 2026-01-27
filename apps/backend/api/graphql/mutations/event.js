@@ -6,23 +6,24 @@ export async function respondToEvent (userId, eventId, response) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
-  const event = await Post.find(eventId, { withRelated: ['user', 'groups'] })
+  const event = await Post.find(eventId)
   if (!event) {
     throw new GraphQLError('Event not found')
   }
 
   let eventInvitation = await EventInvitation.find({ userId, eventId })
-  const sendEmail = (!eventInvitation && EventInvitation.going(response)) ||
-    (eventInvitation && EventInvitation.going(response) && !EventInvitation.going(eventInvitation)) ||
-    (eventInvitation && !EventInvitation.going(response) && EventInvitation.going(eventInvitation))
+  // determine if we send an rsvp email before updating eventInvitation
+  // note: send even if user enabled subscription - they may not be using the subscription feature
+  const sendRsvp = (!eventInvitation?.going() && EventInvitation.going(response)) ||
+    (eventInvitation?.going() && !EventInvitation.going(response))
 
   if (eventInvitation) {
     await eventInvitation.save({ response })
   } else {
     eventInvitation = await EventInvitation.create({
       userId,
-      inviterId: userId, // why is the user who is responding also the inviter? Is this a workaround?
       eventId,
+      inviterId: userId, // the user responding without invitation is inviting themselves
       response
     })
   }
