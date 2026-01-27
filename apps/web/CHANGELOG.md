@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.1] - 2026-01-27
+
+### Changed
+- All new posts default to being sent to the group's #general chat room, unless it is being created from a different chat room. You can still post to other groups and chat rooms by selecting them in the post editor To field.
+- All the current group's chat rooms appear first at the top of the dropdown in the To field, with other groups appearing afterwards still in alphabetical order.
+
+### Fixed
+- Ability to click on comment box to move cursor location
+- All new posts instantly appear in stream and events calendar again, even ones with topics
+- Styling of "people typing" text indicator in DMs and comment form
+
 ## [6.3.0] - 2026-01-16
 
 ### Added
