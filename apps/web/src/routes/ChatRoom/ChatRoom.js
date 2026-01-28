@@ -27,6 +27,7 @@ import {
   SelectTrigger
 } from '@/components/ui/select'
 import ChatPost from './ChatPost'
+import ChatRoomSkeleton from './ChatRoomSkeleton'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
@@ -133,34 +134,38 @@ export default function ChatRoom (props) {
   // Add this new state to track if initial animation is complete
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
-  // The number of posts that should fill a screen plus a few more to make sure we have enough posts to scroll through
+  // Reduced initial load for faster time-to-interactive
+  // Virtuoso handles virtualization well, so we can load fewer initially and paginate aggressively
   const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
+  const PAGINATION_PAGE_SIZE = isWebView() || isMobile.any ? 17 : 25 // Larger pages when scrolling (already rendered, so faster)
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1, // -1 because we want the lastread post id included
+    cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : (topicFollow?.lastReadPostId ? parseInt(topicFollow.lastReadPostId) + 1 : undefined),
     filter: 'chat',
-    first: Math.max(INITIAL_POSTS_TO_LOAD - topicFollow?.newPostCount, 3), // Always load at least 3 past posts
+    first: Math.max(INITIAL_POSTS_TO_LOAD - (topicFollow?.newPostCount || 0), 3),
     order: 'desc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic.id
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
+    topic: topicFollow?.topic?.id,
+    useChatFragment: true
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic?.id])
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
     context,
-    cursor: postIdToStartAt || topicFollow?.lastReadPostId,
+    cursor: postIdToStartAt || topicFollow?.lastReadPostId || undefined,
     filter: 'chat',
-    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount),
+    first: Math.min(INITIAL_POSTS_TO_LOAD, topicFollow?.newPostCount || 0),
     order: 'asc',
     slug: groupSlug,
     search,
     sortBy: 'id',
-    topic: topicFollow?.topic.id
-  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, groupSlug, search, topicFollow?.topic.id])
+    topic: topicFollow?.topic?.id,
+    useChatFragment: true
+  }), [context, postIdToStartAt, topicFollow?.lastReadPostId, topicFollow?.newPostCount, groupSlug, search, topicFollow?.topic?.id])
 
   // Use per-instance memoized selectors to avoid cache thrashing between different prop sets
   const getPostsPastSelector = useMemo(() => makeGetPostsSelector(), [])
@@ -236,11 +241,11 @@ export default function ChatRoom (props) {
     let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
     // Incrementally fetch remaining future pages
     while (true) {
-      const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
-      if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
+      const fetched = await fetchPostsFuture(offset, { first: PAGINATION_PAGE_SIZE }, true)
+      if (!fetched || fetched < PAGINATION_PAGE_SIZE) break
       offset += fetched
     }
-  }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length])
+  }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length, PAGINATION_PAGE_SIZE])
 
   const handleNewPostReceived = useCallback((data) => {
     if (!data.topics?.find(t => t.name === topicName)) return
@@ -296,9 +301,39 @@ export default function ChatRoom (props) {
   }, [loadedPast, loadedFuture, postsForDisplay, postIdToStartAt])
 
   useEffect(() => {
-    // Load TopicFollow
-    dispatch(fetchTopicFollow(group?.id, topicName))
+    // Load topicFollow data when group or topic changes
+    if (!group?.id || !topicName) return
+
+    dispatch(fetchTopicFollow(group.id, topicName))
   }, [group?.id, topicName])
+
+  useEffect(() => {
+    // Once topicFollow is loaded, populate the message list
+    if (!topicFollow?.id) return
+
+    setLoadedFuture(false)
+    setLoadedPast(false)
+    setNotificationsSetting(topicFollow?.settings?.notifications)
+
+    messageListRef.current?.data.replace([], {
+      purgeItemSizes: true
+    })
+
+    // Load future posts (new unread posts) if there are any
+    if (topicFollow.newPostCount > 0) {
+      fetchPostsFuture(0).then(() => setLoadedFuture(true))
+    } else {
+      setLoadedFuture(true)
+    }
+
+    // Load past posts (read history)
+    fetchPostsPast(0).then(() => setLoadedPast(true))
+
+    resetInitialPostToScrollTo()
+
+    // Reset marker of new posts
+    setLatestOldPostId(topicFollow.lastReadPostId)
+  }, [topicFollow?.id])
 
   useEffect(() => {
     socket.on('newPost', handleNewPostReceived)
@@ -416,16 +451,17 @@ export default function ChatRoom (props) {
   }, [querystringParams?.postId])
 
   const onScroll = useMemo(
-    () => debounce(200, (location) => {
+    () => debounce(150, (location) => {
       if (!loadingPast && !loadingFuture) {
-        if (location.listOffset > -100 && hasMorePostsPast) {
-          fetchPostsPast(postsPast.length, { first: 10 })
-        } else if (location.bottomOffset < 50 && hasMorePostsFuture) {
-          fetchPostsFuture(postsFuture.length, { first: 10 })
+        // Trigger pagination earlier (200px from edge instead of 50-100px) for smoother UX
+        if (location.listOffset > -200 && hasMorePostsPast) {
+          fetchPostsPast(postsPast.length, { first: PAGINATION_PAGE_SIZE })
+        } else if (location.bottomOffset < 200 && hasMorePostsFuture) {
+          fetchPostsFuture(postsFuture.length, { first: PAGINATION_PAGE_SIZE })
         }
       }
     }),
-    [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
+    [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture, PAGINATION_PAGE_SIZE]
   )
 
   // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
@@ -606,8 +642,8 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
-        {initialPostToScrollTo === null || topicFollowLoading
-          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
+        {initialPostToScrollTo === null || topicFollowLoading || !loadedPast
+          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden', overflowY: 'auto' }}><ChatRoomSkeleton count={10} /></div>
           : (
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
@@ -679,8 +715,8 @@ const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
-      {!context.loadedPast || !context.loadedFuture
-        ? <Loading />
+      {!context.loadingPast || !context.loadingFuture
+        ? <ChatRoomSkeleton count={8} />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}

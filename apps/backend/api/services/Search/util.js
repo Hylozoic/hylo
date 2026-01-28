@@ -20,6 +20,7 @@ export const filterAndSortPosts = curry((opts, q) => {
     showPinnedFirst,
     sortBy = 'updated',
     topic,
+    topicName,
     type,
     types
   } = opts
@@ -131,6 +132,10 @@ export const filterAndSortPosts = curry((opts, q) => {
 
   if (topic) {
     topics = topics.concat(topic)
+  }
+
+  if (topicName) {
+    topics = topics.concat(topicName)
   }
 
   if (!isEmpty(topics)) {

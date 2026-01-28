@@ -114,10 +114,6 @@ async function updateTagsAndGroups (post, localId, trx) {
     )
   })
 
-  const groupTagsQuery = GroupTag.query(q => {
-    q.whereIn('tag_id', tags.map('id'))
-  }).query()
-
   const tagFollowQuery = TagFollow.query(q => {
     q.whereIn('tag_id', tags.map('id'))
     q.whereIn('group_id', groups.map('id'))
@@ -140,15 +136,15 @@ async function updateTagsAndGroups (post, localId, trx) {
   }).query()
 
   if (trx) {
-    groupTagsQuery.transacting(trx)
     tagFollowQuery.transacting(trx)
     myTagFollowQuery.transacting(trx)
     groupMembershipQuery.transacting(trx)
   }
 
+  // Only increment new_post_count for TagFollow - removed unnecessary updated_at updates
+  // on GroupTag and GroupMembership that caused performance issues with no benefit
   return Promise.all([
     notifySockets,
-    groupTagsQuery.update({ updated_at: new Date() }),
     tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
     myTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')

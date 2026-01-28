@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
 import { ThemeProvider } from 'contexts/ThemeContext'
@@ -15,6 +15,30 @@ import isWebView from 'util/webView'
 
 if (isWebView()) {
   window.addHyloWebViewListener(history)
+}
+
+// Defer WebSocket and Mixpanel initialization until after app mounts
+let websocketsInitialized = false
+let mixpanelInitialized = false
+
+function initializeWebSockets () {
+  if (!websocketsInitialized) {
+    websocketsInitialized = true
+    import('../client/websockets.js')
+  }
+}
+
+function initializeMixpanel () {
+  if (!mixpanelInitialized) {
+    mixpanelInitialized = true
+    import('mixpanel-browser').then(({ default: mixpanel }) => {
+      import('../config/index.js').then(({ default: config, isProduction, isTest }) => {
+        if (!isTest) {
+          mixpanel.init(config.mixpanel.token, { debug: !isProduction })
+        }
+      })
+    })
+  }
 }
 
 // same configuration you would create for the Rollbar.js SDK
@@ -38,6 +62,12 @@ if (isWebView()) {
 // };
 
 export default function App () {
+  // Initialize WebSocket and Mixpanel after component mounts to avoid blocking initial render
+  useEffect(() => {
+    initializeWebSockets()
+    initializeMixpanel()
+  }, [])
+
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>

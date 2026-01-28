@@ -1,5 +1,4 @@
-/* Import Figtree from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap');
+/* Google Fonts (Onest) loaded asynchronously via index.html for better performance */
 
 @font-face {
   font-family: 'Circular Book';
@@ -10,11 +9,13 @@
 @font-face {
   font-family: 'Circular Medium';
   src: url('/assets/fonts/Circular-Font-Family/lineto-circular-medium.ttf') format('truetype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: 'Circular Bold';
   src: url('/assets/fonts/Circular-Font-Family/lineto-circular-bold.ttf') format('truetype');
+  font-display: swap;
 }
 
 @font-face {
@@ -26,4 +27,5 @@
     url('/assets/fonts/icons/hylo-evo-icons.svg#hylo-evo-icons') format('svg');
   font-weight: normal;
   font-style: normal;
+  font-display: swap;
 }

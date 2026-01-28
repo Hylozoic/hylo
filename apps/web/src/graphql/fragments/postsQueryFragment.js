@@ -24,6 +24,7 @@ posts(
   savedBy: $savedBy,
   search: $search,
   topic: $topic,
+  topicName: $topicName,
   topics: $topics,
   types: $types
 ) {

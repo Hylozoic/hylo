@@ -22,6 +22,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   sortBy: $sortBy,
   search: $search,
   topic: $topic,
+  topicName: $topicName,
   topics: $topics,
   types: $types
 ) {

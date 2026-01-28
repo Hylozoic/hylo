@@ -1,8 +1,22 @@
 import { get, isString, isObject, omit } from 'lodash/fp'
-import mixpanel from 'mixpanel-browser'
 import { getAuthenticated } from '../selectors/getAuthState'
 import getMe from '../selectors/getMe'
 import { getCookieConsent } from 'util/cookieConsent'
+
+// Lazy load mixpanel to avoid blocking initial bundle
+let mixpanel = null
+let mixpanelPromise = null
+
+function getMixpanel () {
+  if (mixpanel) return Promise.resolve(mixpanel)
+  if (!mixpanelPromise) {
+    mixpanelPromise = import('mixpanel-browser').then(module => {
+      mixpanel = module.default
+      return mixpanel
+    })
+  }
+  return mixpanelPromise
+}
 
 export default function mixpanelMiddleware (store) {
   return next => action => {
@@ -14,22 +28,29 @@ export default function mixpanelMiddleware (store) {
       // a required key).
       const state = store.getState()
 
-      if (!import.meta.env.VITE_MIXPANEL_TOKEN || !mixpanel) return next(action)
+      if (!import.meta.env.VITE_MIXPANEL_TOKEN) return next(action)
 
-      // Cookie consent check
-      const consent = getCookieConsent()
-      if (consent && consent.analytics === false) return next(action)
+      // Asynchronously get mixpanel and track event (non-blocking)
+      getMixpanel().then(mp => {
+        if (!mp) return
 
-      const isLoggedIn = getAuthenticated(state)
-      const { analytics } = meta
-      const trackingEventName = get('eventName', analytics) ||
-        (isString(analytics) && analytics) ||
-        type
-      const analyticsData = isObject(analytics) ? omit('eventName', analytics) : {}
+        // Cookie consent check
+        const consent = getCookieConsent()
+        if (consent && consent.analytics === false) return
 
-      if (isLoggedIn) mixpanel.identify(getMe(state).id)
+        const isLoggedIn = getAuthenticated(state)
+        const { analytics } = meta
+        const trackingEventName = get('eventName', analytics) ||
+          (isString(analytics) && analytics) ||
+          type
+        const analyticsData = isObject(analytics) ? omit('eventName', analytics) : {}
 
-      mixpanel.track(trackingEventName, analyticsData)
+        if (isLoggedIn) mp.identify(getMe(state).id)
+
+        mp.track(trackingEventName, analyticsData)
+      }).catch(() => {
+        // Silently fail if mixpanel fails to load
+      })
     }
 
     return next(action)
