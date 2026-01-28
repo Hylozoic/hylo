@@ -790,7 +790,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           contentAccess: {
             querySet: true,
-            filter: (relation, { search, accessType, status, offeringId, trackId, roleId, sortBy, order }) =>
+            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy, order }) =>
               relation.query(filterAndSortContentAccess({
                 groupIds: [relation.relatedData.parentId],
                 search,
@@ -798,7 +798,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
                 status,
                 offeringId,
                 trackId,
-                roleId,
+                groupRoleId,
+                commonRoleId,
                 sortBy,
                 order
               }))
