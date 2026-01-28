@@ -292,12 +292,12 @@ function PostEditor ({
 
     // Build a map of selected group IDs to their selected topic names
     // Only filter out topics for groups that are already selected
-    const selectedGroupIds = new Set((currentPost.groups || []).map(g => g?.id).filter(Boolean))
+    const selectedGroupIds = new Set((selectedGroups || []).map(g => g?.id).filter(Boolean))
     const selectedTopicsByGroup = new Map()
 
     // For each selected group, collect its selected topic names
-    if (currentPost.groups && currentPost.topics) {
-      currentPost.groups.forEach(group => {
+    if (selectedGroups && currentPost.topics) {
+      selectedGroups.forEach(group => {
         if (!group?.id) return
         const groupTopicNames = new Set()
 
@@ -339,7 +339,7 @@ function PostEditor ({
           })
           .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions, currentGroup?.id, currentPost.groups, currentPost.topics])
+  }, [groupOptions, currentGroup?.id, selectedGroups, currentPost.topics])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
