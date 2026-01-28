@@ -290,15 +290,38 @@ function PostEditor ({
         return a.name.localeCompare(b.name)
       })
 
-    // Get names of topics that are already selected (auto-inserted)
-    // Using name since topic names are unique and more reliable than IDs
-    const selectedTopicNames = new Set((currentPost.topics || []).map(t => t?.name).filter(Boolean))
+    // Build a map of selected group IDs to their selected topic names
+    // Only filter out topics for groups that are already selected
+    const selectedGroupIds = new Set((selectedGroups || []).map(g => g?.id).filter(Boolean))
+    const selectedTopicsByGroup = new Map()
+
+    // For each selected group, collect its selected topic names
+    if (selectedGroups && currentPost.topics) {
+      selectedGroups.forEach(group => {
+        if (!group?.id) return
+        const groupTopicNames = new Set()
+
+        // Find topics that belong to this group by checking chatRooms
+        group.chatRooms?.toModelArray?.()?.forEach(cr => {
+          const topic = cr?.groupTopic?.topic
+          if (topic && currentPost.topics.some(t => t?.id === topic.id)) {
+            groupTopicNames.add(topic.name)
+          }
+        })
+
+        if (groupTopicNames.size > 0) {
+          selectedTopicsByGroup.set(group.id, groupTopicNames)
+        }
+      })
+    }
 
     return sortedGroups
       .map((g) => {
         if (!g) return []
         // Only show topic options (like "Group #general"), no group-only options
-        // Filter out topics that are already selected
+        const isGroupSelected = selectedGroupIds.has(g.id)
+        const selectedTopicsForThisGroup = selectedTopicsByGroup.get(g.id) || new Set()
+
         return (g.chatRooms?.toModelArray() || [])
           .map((cr) => ({
             id: cr?.id,
@@ -309,10 +332,14 @@ function PostEditor ({
             allowInPublic: g.allowInPublic
           }))
           .filter(Boolean)
-          .filter(o => !selectedTopicNames.has(o.topic?.name)) // Hide already selected topics
+          .filter(o => {
+            // Only filter out topics if this group is already selected AND this topic is already selected for this group
+            if (!isGroupSelected) return true // Group not selected, show all topics
+            return !selectedTopicsForThisGroup.has(o.topic?.name) // Group selected, hide only topics already selected for this group
+          })
           .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions, currentGroup?.id, currentPost.topics])
+  }, [groupOptions, currentGroup?.id, selectedGroups, currentPost.topics])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
