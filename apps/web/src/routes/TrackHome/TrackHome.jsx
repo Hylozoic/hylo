@@ -192,7 +192,7 @@ function TrackHome () {
                     </div>
                   </>
                   )
-                : hasAccess && (
+                : !isEnrolled && hasAccess && (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
                     <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
