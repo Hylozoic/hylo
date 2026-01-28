@@ -194,7 +194,7 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
         q.offset(offset)
       })
       .fetchAll({
-        withRelated: ['product', 'grantedByGroup', 'track', 'role']
+        withRelated: ['product', 'grantedByGroup', 'track', 'groupRole', 'commonRole']
       })
 
     // Transform records into UserTransaction format

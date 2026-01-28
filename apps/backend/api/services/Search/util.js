@@ -252,7 +252,8 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     status,
     offeringId,
     trackId,
-    roleId,
+    groupRoleId,
+    commonRoleId,
     sortBy = 'created_at',
     order
   } = opts
@@ -288,9 +289,14 @@ export const filterAndSortContentAccess = curry((opts, q) => {
     q.where('content_access.track_id', trackId)
   }
 
-  // Filter by role ID
-  if (roleId) {
-    q.where('content_access.role_id', roleId)
+  // Filter by group role ID
+  if (groupRoleId) {
+    q.where('content_access.group_role_id', groupRoleId)
+  }
+
+  // Filter by common role ID
+  if (commonRoleId) {
+    q.where('content_access.common_role_id', commonRoleId)
   }
 
   // Validate sortBy
