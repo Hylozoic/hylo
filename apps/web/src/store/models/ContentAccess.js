@@ -22,8 +22,10 @@ ContentAccess.fields = {
   group: fk('Group', 'contentAccess'),
   trackId: attr(),
   track: fk('Track', 'contentAccess'),
-  roleId: attr(),
-  role: fk('Role', 'contentAccess'),
+  groupRoleId: attr(),
+  groupRole: attr(), // Stored as plain object, not ORM model
+  commonRoleId: attr(),
+  commonRole: attr(), // Stored as plain object, not ORM model
   accessType: attr(),
   stripeSessionId: attr(),
   stripeSubscriptionId: attr(),
@@ -34,4 +36,3 @@ ContentAccess.fields = {
   metadata: attr(),
   offering: attr() // Note: StripeOffering is not a model in Redux, so we store the whole object
 }
-

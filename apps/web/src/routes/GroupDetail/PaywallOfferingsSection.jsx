@@ -6,8 +6,9 @@ import { DollarSign, CreditCard } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
-import { offeringGrantsGroupAccess } from 'util/accessGrants'
+import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import getCommonRoles from 'store/selectors/getCommonRoles'
 import { JoinBarriers } from './JoinSection'
 
 /**
@@ -187,13 +188,38 @@ export default function PaywallOfferingsSection ({ group }) {
  */
 function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled }) {
   const { t } = useTranslation()
+  const commonRoles = useSelector(getCommonRoles)
+
   const grantsGroupAccess = useMemo(() => {
     if (!group?.id || !offering) return false
     return offeringGrantsGroupAccess(offering, group.id)
   }, [offering, group?.id])
 
+  // Lookup roles from group context using IDs from accessGrants
+  const allRoles = useMemo(() => {
+    const accessGrants = parseAccessGrants(offering.accessGrants)
+    const groupRoles = group?.groupRoles?.items || []
+    const roles = []
+
+    if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
+      accessGrants.groupRoleIds.forEach(roleId => {
+        const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) roles.push(role)
+      })
+    }
+
+    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+      accessGrants.commonRoleIds.forEach(roleId => {
+        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) roles.push(role)
+      })
+    }
+
+    return roles
+  }, [offering.accessGrants, group?.groupRoles?.items, commonRoles])
+
   const hasTracks = offering.tracks && offering.tracks.length > 0
-  const hasRoles = offering.roles && offering.roles.length > 0
+  const hasRoles = allRoles.length > 0
   const hasAccessGrants = grantsGroupAccess || hasTracks || hasRoles
 
   return (
@@ -263,7 +289,7 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
                     {t('Roles')}:
                   </span>
                   <div className='flex flex-wrap gap-1'>
-                    {offering.roles.map(role => (
+                    {allRoles.map(role => (
                       <span
                         key={role.id}
                         className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'

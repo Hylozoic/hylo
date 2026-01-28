@@ -104,19 +104,17 @@ describe('Scope Helper Functions', () => {
     it('creates scopes from content access object', () => {
       const contentAccess = {
         trackIds: [1, 2],
-        groupIds: [3],
-        roleIds: [4, 5, 6]
+        groupIds: [3]
       }
 
       const scopes = createScopesFromContentAccess(contentAccess)
 
-      expect(scopes).to.have.lengthOf(6)
+      // Note: Role scopes require groupId, so they cannot be created from accessGrants alone
+      // Roles are created from content_access records which have both groupRoleId/commonRoleId and groupId
+      expect(scopes).to.have.lengthOf(3)
       expect(scopes).to.include('track:1')
       expect(scopes).to.include('track:2')
       expect(scopes).to.include('group:3')
-      expect(scopes).to.include('group_role:4')
-      expect(scopes).to.include('group_role:5')
-      expect(scopes).to.include('group_role:6')
     })
 
     it('handles empty content access', () => {
@@ -139,8 +137,7 @@ describe('Scope Helper Functions', () => {
     it('ignores non-array values', () => {
       const contentAccess = {
         trackIds: 'not-an-array',
-        groupIds: [1],
-        roleIds: null
+        groupIds: [1]
       }
 
       const scopes = createScopesFromContentAccess(contentAccess)

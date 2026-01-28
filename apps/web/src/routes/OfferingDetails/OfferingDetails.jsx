@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
@@ -7,9 +7,10 @@ import Button from 'components/ui/button'
 import { CreditCard } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
-import { offeringGrantsGroupAccess } from 'util/accessGrants'
+import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
+import getCommonRoles from 'store/selectors/getCommonRoles'
 
 /**
  * OfferingDetails Component
@@ -59,6 +60,9 @@ export default function OfferingDetails () {
 
     loadOffering()
   }, [dispatch, offeringId, t])
+
+  // Get common roles for role lookup
+  const commonRoles = useSelector(getCommonRoles)
 
   // Check if this offering grants access to the owning group
   const grantsGroupAccess = useMemo(() => {
@@ -192,76 +196,98 @@ export default function OfferingDetails () {
           </div>
 
           {/* Access Grants Section */}
-          {(grantsGroupAccess || (offering.tracks && offering.tracks.length > 0) || (offering.roles && offering.roles.length > 0)) && (
-            <div className='border-t border-foreground/10 pt-6 mt-6'>
-              {grantsGroupAccess && (
-                <p className='text-sm font-bold text-foreground mb-4'>
-                  {t('Grants access to the group')}
-                </p>
-              )}
+          {(() => {
+            // Lookup roles from group context using IDs from accessGrants
+            const accessGrants = parseAccessGrants(offering.accessGrants)
+            const groupRoles = group?.groupRoles?.items || []
+            const allRoles = []
 
-              {(offering.tracks && offering.tracks.length > 0) || (offering.roles && offering.roles.length > 0)
-                ? (
-                  <>
-                    <p className='text-xs font-semibold text-foreground/70 mb-3'>
-                      {t('Grants access to')}:
-                    </p>
-                    <div className='flex flex-col gap-3'>
-                      {offering.tracks && offering.tracks.length > 0 && (
-                        <div>
-                          <span className='font-medium text-sm text-foreground/70 mb-2 block'>
-                            {t('Tracks')}:
-                          </span>
-                          <div className='flex flex-wrap gap-2'>
-                            {offering.tracks.map(track => (
-                              <div
-                                key={track.id}
-                                className='inline-flex items-center gap-2 px-3 py-2 rounded-md bg-selected/20 text-foreground'
-                              >
-                                {track.bannerUrl && (
-                                  <img
-                                    src={track.bannerUrl}
-                                    alt={track.name}
-                                    className='w-8 h-8 rounded object-cover'
-                                  />
-                                )}
-                                <div className='flex flex-col'>
-                                  <span className='text-sm font-medium'>{track.name}</span>
-                                  {track.description && (
-                                    <span className='text-xs text-foreground/70 line-clamp-1'>
-                                      {track.description}
-                                    </span>
+            if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
+              accessGrants.groupRoleIds.forEach(roleId => {
+                const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+                if (role) allRoles.push(role)
+              })
+            }
+
+            if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+              accessGrants.commonRoleIds.forEach(roleId => {
+                const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
+                if (role) allRoles.push(role)
+              })
+            }
+            const hasTracks = offering.tracks && offering.tracks.length > 0
+            const hasRoles = allRoles.length > 0
+            return (grantsGroupAccess || hasTracks || hasRoles) && (
+              <div className='border-t border-foreground/10 pt-6 mt-6'>
+                {grantsGroupAccess && (
+                  <p className='text-sm font-bold text-foreground mb-4'>
+                    {t('Grants access to the group')}
+                  </p>
+                )}
+
+                {(hasTracks || hasRoles)
+                  ? (
+                    <>
+                      <p className='text-xs font-semibold text-foreground/70 mb-3'>
+                        {t('Grants access to')}:
+                      </p>
+                      <div className='flex flex-col gap-3'>
+                        {hasTracks && (
+                          <div>
+                            <span className='font-medium text-sm text-foreground/70 mb-2 block'>
+                              {t('Tracks')}:
+                            </span>
+                            <div className='flex flex-wrap gap-2'>
+                              {offering.tracks.map(track => (
+                                <div
+                                  key={track.id}
+                                  className='inline-flex items-center gap-2 px-3 py-2 rounded-md bg-selected/20 text-foreground'
+                                >
+                                  {track.bannerUrl && (
+                                    <img
+                                      src={track.bannerUrl}
+                                      alt={track.name}
+                                      className='w-8 h-8 rounded object-cover'
+                                    />
                                   )}
+                                  <div className='flex flex-col'>
+                                    <span className='text-sm font-medium'>{track.name}</span>
+                                    {track.description && (
+                                      <span className='text-xs text-foreground/70 line-clamp-1'>
+                                        {track.description}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {offering.roles && offering.roles.length > 0 && (
-                        <div>
-                          <span className='font-medium text-sm text-foreground/70 mb-2 block'>
-                            {t('Roles')}:
-                          </span>
-                          <div className='flex flex-wrap gap-2'>
-                            {offering.roles.map(role => (
-                              <span
-                                key={role.id}
-                                className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
-                              >
-                                {role.emoji && <span>{role.emoji}</span>}
-                                <span>{role.name}</span>
-                              </span>
-                            ))}
+                        )}
+                        {hasRoles && (
+                          <div>
+                            <span className='font-medium text-sm text-foreground/70 mb-2 block'>
+                              {t('Roles')}:
+                            </span>
+                            <div className='flex flex-wrap gap-2'>
+                              {allRoles.map(role => (
+                                <span
+                                  key={role.id}
+                                  className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
+                                >
+                                  {role.emoji && <span>{role.emoji}</span>}
+                                  <span>{role.name}</span>
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                  )
-                : null}
-            </div>
-          )}
+                        )}
+                      </div>
+                    </>
+                    )
+                  : null}
+              </div>
+            )
+          })()}
 
           {/* Buy Now Button */}
           <div className='border-t border-foreground/10 pt-6 mt-6'>

@@ -92,7 +92,7 @@ module.exports = bookshelf.Model.extend({
       return accessRecords
     }
 
-    // Process access_grants structure: { groupIds: [123, 456], trackIds: [1, 2], roleIds: [3] }
+    // Process access_grants structure: { groupIds: [123, 456], trackIds: [1, 2], groupRoleIds: [3], commonRoleIds: [4] }
     // Handle groupIds - create group access records
     if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
       for (const groupId of accessGrants.groupIds) {
@@ -253,33 +253,6 @@ module.exports = bookshelf.Model.extend({
             metadata
           }, { transacting })
           accessRecords.push(commonRoleRecord)
-        }
-      }
-    }
-
-    // Handle legacy roleIds format (assume group roles for backwards compatibility)
-    if (accessGrants.roleIds && Array.isArray(accessGrants.roleIds) && (!accessGrants.commonRoleIds && !accessGrants.groupRoleIds)) {
-      for (const groupIdNum of groupIdsForRoles) {
-        for (const roleId of accessGrants.roleIds) {
-          // Convert roleId to integer or null
-          const roleIdNum = roleId != null ? parseInt(roleId, 10) : null
-          if (roleId != null && (isNaN(roleIdNum) || roleIdNum <= 0)) {
-            console.warn(`Invalid roleId: ${roleId}, skipping`)
-            continue
-          }
-
-          const roleRecord = await ContentAccess.recordPurchase({
-            userId: userIdNum,
-            grantedByGroupId: grantedByGroupIdNum,
-            groupId: groupIdNum,
-            productId: productIdNum,
-            groupRoleId: roleIdNum,
-            sessionId,
-            stripeSubscriptionId,
-            expiresAt: calculatedExpiresAt,
-            metadata
-          }, { transacting })
-          accessRecords.push(roleRecord)
         }
       }
     }

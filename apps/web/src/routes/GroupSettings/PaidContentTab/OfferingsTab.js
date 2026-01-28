@@ -292,10 +292,8 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       const normalizeAccessGrants = (ag) => {
         const normalized = {}
         if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
-        // Handle both new format (commonRoleIds/groupRoleIds) and legacy format (roleIds)
         if (ag.commonRoleIds && ag.commonRoleIds.length > 0) normalized.commonRoleIds = [...ag.commonRoleIds].sort()
         if (ag.groupRoleIds && ag.groupRoleIds.length > 0) normalized.groupRoleIds = [...ag.groupRoleIds].sort()
-        if (ag.roleIds && ag.roleIds.length > 0) normalized.roleIds = [...ag.roleIds].sort() // Legacy format
         if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
         return normalized
       }
@@ -345,76 +343,38 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   }, [dispatch, editingOffering, formData, onRefreshOfferings, t])
 
   const handleStartEdit = useCallback((offering) => {
-    // Use tracks and roles relations from GraphQL, fallback to parsing accessGrants for backwards compatibility
+    // Use tracks from GraphQL relation
     const offeringTracks = offering.tracks || []
-    const offeringRoles = offering.roles || []
     const accessGrants = parseAccessGrants(offering.accessGrants)
 
-    // Get all available roles to match types (commonRoles is from component scope)
+    // Lookup roles from group context using IDs from accessGrants
     const groupRoles = group?.groupRoles?.items || []
-
-    // Build a map of role ID to type for quick lookup
-    const roleTypeMap = new Map()
-    commonRoles.forEach(role => roleTypeMap.set(parseInt(role.id), 'common'))
-    groupRoles.forEach(role => roleTypeMap.set(parseInt(role.id), 'group'))
-
-    // Convert roles - prefer roles relation, but also check accessGrants for type info
-    const rolesFromRelation = offeringRoles.map(role => {
-      const roleId = parseInt(role.id)
-      const type = roleTypeMap.get(roleId) || (accessGrants.commonRoleIds?.includes(roleId) ? 'common' : 'group')
-      return {
-        id: role.id,
-        name: role.name,
-        emoji: role.emoji,
-        type
-      }
-    })
-
-    // Also check accessGrants for roles that might not be in the relation (backwards compatibility)
     const rolesFromAccessGrants = []
-    if (accessGrants.commonRoleIds) {
-      accessGrants.commonRoleIds.forEach(roleId => {
-        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
-          const commonRole = commonRoles.find(r => parseInt(r.id) === roleId)
-          if (commonRole) {
-            rolesFromAccessGrants.push({
-              id: commonRole.id,
-              name: commonRole.name,
-              emoji: commonRole.emoji,
-              type: 'common'
-            })
-          }
-        }
-      })
-    }
-    if (accessGrants.groupRoleIds) {
+
+    if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
       accessGrants.groupRoleIds.forEach(roleId => {
-        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
-          const groupRole = groupRoles.find(r => parseInt(r.id) === roleId)
-          if (groupRole) {
-            rolesFromAccessGrants.push({
-              id: groupRole.id,
-              name: groupRole.name,
-              emoji: groupRole.emoji,
-              type: 'group'
-            })
-          }
+        const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) {
+          rolesFromAccessGrants.push({
+            id: role.id,
+            name: role.name,
+            emoji: role.emoji,
+            type: 'group'
+          })
         }
       })
     }
-    // Handle legacy roleIds format (assume group roles for backwards compatibility)
-    if (accessGrants.roleIds && !accessGrants.commonRoleIds && !accessGrants.groupRoleIds) {
-      accessGrants.roleIds.forEach(roleId => {
-        if (!rolesFromRelation.find(r => parseInt(r.id) === roleId)) {
-          const groupRole = groupRoles.find(r => parseInt(r.id) === roleId)
-          if (groupRole) {
-            rolesFromAccessGrants.push({
-              id: groupRole.id,
-              name: groupRole.name,
-              emoji: groupRole.emoji,
-              type: 'group'
-            })
-          }
+
+    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+      accessGrants.commonRoleIds.forEach(roleId => {
+        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) {
+          rolesFromAccessGrants.push({
+            id: role.id,
+            name: role.name,
+            emoji: role.emoji,
+            type: 'common'
+          })
         }
       })
     }
@@ -425,7 +385,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         id: track.id,
         name: track.name
       })),
-      roles: [...rolesFromRelation, ...rolesFromAccessGrants],
+      roles: rolesFromAccessGrants,
       groups: (accessGrants.groupIds || []).map(groupId => {
         // For groups, we can use the current group if it matches, or create a placeholder
         if (parseInt(groupId) === parseInt(group?.id)) {
@@ -1046,6 +1006,7 @@ function SubscribersPanel ({ offering, group, t }) {
  */
 function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onToggleSubscribers, t }) {
   const [copied, setCopied] = useState(false)
+  const commonRoles = useSelector(getCommonRoles)
 
   /**
    * Handle toggle click for subscriber view
@@ -1062,11 +1023,31 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
     return parseAccessGrants(offering.accessGrants)
   }, [offering.accessGrants])
 
-  // Get track and role objects for display using relations
+  // Get track and role objects for display
+  // Lookup roles from group context using IDs from accessGrants
   const accessDetails = useMemo(() => {
+    const groupRoles = group?.groupRoles?.items || []
+    const roles = []
+
+    // Lookup group roles
+    if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
+      accessGrants.groupRoleIds.forEach(roleId => {
+        const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) roles.push(role)
+      })
+    }
+
+    // Lookup common roles
+    if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+      accessGrants.commonRoleIds.forEach(roleId => {
+        const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
+        if (role) roles.push(role)
+      })
+    }
+
     const details = {
       tracks: offering.tracks || [],
-      roles: offering.roles || [],
+      roles,
       hasGroups: false
     }
 
@@ -1076,7 +1057,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
     }
 
     return details
-  }, [offering.tracks, offering.roles, accessGrants])
+  }, [offering.tracks, accessGrants, group?.groupRoles?.items, commonRoles])
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 

@@ -150,7 +150,8 @@ module.exports = bookshelf.Model.extend({
    * @param {String} attrs.access_type - Type: 'stripe_purchase' or 'admin_grant'
    * @param {String} [attrs.product_id] - Optional Stripe product ID
    * @param {String} [attrs.track_id] - Optional track ID
-   * @param {String} [attrs.role_id] - Optional role ID
+   * @param {String} [attrs.group_role_id] - Optional group role ID
+   * @param {String} [attrs.common_role_id] - Optional common role ID
    * @param {Date} [attrs.expires_at] - Optional expiration date
    * @param {String} [attrs.stripe_session_id] - For Stripe purchases
    * @param {String} [attrs.stripe_subscription_id] - Stripe subscription ID (for recurring purchases)
