@@ -206,7 +206,7 @@ function TrackHome () {
                     </div>
                   </>
                   )
-                : hasAccess && (
+                : !isEnrolled && hasAccess && (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
                     <button
