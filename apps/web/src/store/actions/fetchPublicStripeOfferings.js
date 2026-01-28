@@ -21,11 +21,6 @@ const query = `
           bannerUrl
           description
         }
-        roles {
-          id
-          name
-          emoji
-        }
       }
       success
     }

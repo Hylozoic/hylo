@@ -262,7 +262,7 @@ describe('Stripe Mutations', () => {
     it('creates an offering for group admins', async () => {
       const accessGrants = {
         trackIds: [1, 2],
-        roleIds: [1],
+        groupRoleIds: [1],
         groupIds: [group.id]
       }
 
@@ -401,7 +401,7 @@ describe('Stripe Mutations', () => {
     it('updates access grants configuration', async () => {
       const newAccessGrants = {
         trackIds: [1, 2, 3],
-        roleIds: [1, 2],
+        groupRoleIds: [1, 2],
         groupIds: [group.id]
       }
 

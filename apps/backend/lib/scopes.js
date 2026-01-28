@@ -179,7 +179,7 @@ function getEntityIdFromScope (scopeString) {
 /**
  * Creates multiple scopes from a content access definition
  *
- * @param {Object} contentAccess - Content access object with trackIds, groupIds, roleIds
+ * @param {Object} contentAccess - Content access object with trackIds, groupIds
  * @returns {string[]} Array of scope strings
  */
 function createScopesFromContentAccess (contentAccess) {

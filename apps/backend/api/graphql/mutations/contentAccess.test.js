@@ -152,7 +152,7 @@ describe('Content Access Mutations', () => {
           grantedByGroupId: group.id,
           reason: 'Test'
         })
-      ).to.be.rejectedWith('Must specify either productId, trackId, or roleId')
+      ).to.be.rejectedWith('Must specify either groupId, productId, trackId, groupRoleId, or commonRoleId')
     })
   })
 
@@ -270,7 +270,7 @@ describe('Content Access Mutations', () => {
       const result = await recordStripePurchase(adminUser.id, {
         userId: user.id,
         grantedByGroupId: group.id,
-        roleId: role.id,
+        groupRoleId: role.id,
         sessionId: 'cs_test_789',
         metadata: { source: 'webhook' }
       })
@@ -278,7 +278,7 @@ describe('Content Access Mutations', () => {
       expect(result.success).to.be.true
 
       const access = await ContentAccess.where({ id: result.id }).fetch()
-      expect(access.get('role_id')).to.equal(role.id)
+      expect(access.get('group_role_id')).to.equal(role.id)
       expect(access.get('access_type')).to.equal('stripe_purchase')
     })
   })

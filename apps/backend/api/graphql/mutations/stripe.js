@@ -182,7 +182,8 @@ module.exports = {
    *       currency: "usd"
    *       accessGrants: {
    *         trackIds: [456, 789]
-   *         roleIds: [1, 2]
+   *         groupRoleIds: [1, 2]
+   *         commonRoleIds: [3, 4]
    *         groupIds: [123]
    *       }
    *       publishStatus: "published"
@@ -300,7 +301,8 @@ module.exports = {
    *       priceInCents: 2500
    *       accessGrants: {
    *         trackIds: [456, 789]
-   *         roleIds: [1, 2]
+   *         groupRoleIds: [1, 2]
+   *         commonRoleIds: [3, 4]
    *         groupIds: [123]
    *       }
    *       publishStatus: "published"

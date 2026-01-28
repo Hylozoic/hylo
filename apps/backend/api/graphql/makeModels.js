@@ -1642,53 +1642,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
         },
-        roles: async (sp) => {
-          if (!sp) return []
-          const accessGrants = sp.get('access_grants')
-          if (!accessGrants) return []
-
-          // Parse accessGrants (might be string or object)
-          let grants = {}
-          if (typeof accessGrants === 'string') {
-            try {
-              grants = JSON.parse(accessGrants)
-            } catch {
-              return []
-            }
-          } else {
-            grants = accessGrants
-          }
-
-          const allRoles = []
-
-          // Handle new format: separate commonRoleIds and groupRoleIds
-          if (grants.commonRoleIds && Array.isArray(grants.commonRoleIds)) {
-            const commonRoleIds = grants.commonRoleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
-            if (commonRoleIds.length > 0) {
-              const commonRoles = await CommonRole.where('id', 'in', commonRoleIds).fetchAll()
-              allRoles.push(...(commonRoles.models || []))
-            }
-          }
-
-          if (grants.groupRoleIds && Array.isArray(grants.groupRoleIds)) {
-            const groupRoleIds = grants.groupRoleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
-            if (groupRoleIds.length > 0) {
-              const groupRoles = await GroupRole.where('id', 'in', groupRoleIds).fetchAll()
-              allRoles.push(...(groupRoles.models || []))
-            }
-          }
-
-          // Handle legacy format: roleIds (assume group roles for backwards compatibility)
-          if (grants.roleIds && Array.isArray(grants.roleIds) && (!grants.commonRoleIds && !grants.groupRoleIds)) {
-            const roleIds = grants.roleIds.map(id => parseInt(id)).filter(id => !isNaN(id))
-            if (roleIds.length > 0) {
-              const groupRoles = await GroupRole.where('id', 'in', roleIds).fetchAll()
-              allRoles.push(...(groupRoles.models || []))
-            }
-          }
-
-          return allRoles
-        }
       }
     },
 

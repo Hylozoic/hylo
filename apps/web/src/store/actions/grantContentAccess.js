@@ -9,7 +9,8 @@ import { GRANT_CONTENT_ACCESS } from 'store/constants'
  * @param {string} [params.groupId] - ID of the group to grant access to
  * @param {string} [params.productId] - ID of the product/offering to grant access to
  * @param {string} [params.trackId] - ID of the track to grant access to
- * @param {string} [params.roleId] - ID of the role to grant
+ * @param {string} [params.groupRoleId] - ID of the group role to grant
+ * @param {string} [params.commonRoleId] - ID of the common role to grant
  * @param {string} [params.expiresAt] - When the access expires (ISO date string)
  * @param {string} [params.reason] - Reason for granting access
  */
@@ -19,7 +20,8 @@ export default function grantContentAccess ({
   groupId,
   productId,
   trackId,
-  roleId,
+  groupRoleId,
+  commonRoleId,
   expiresAt,
   reason
 }) {
@@ -33,7 +35,8 @@ export default function grantContentAccess ({
           $groupId: ID,
           $productId: ID,
           $trackId: ID,
-          $roleId: ID,
+          $groupRoleId: ID,
+          $commonRoleId: ID,
           $expiresAt: Date,
           $reason: String
         ) {
@@ -43,7 +46,8 @@ export default function grantContentAccess ({
             groupId: $groupId,
             productId: $productId,
             trackId: $trackId,
-            roleId: $roleId,
+            groupRoleId: $groupRoleId,
+            commonRoleId: $commonRoleId,
             expiresAt: $expiresAt,
             reason: $reason
           ) {
@@ -53,7 +57,8 @@ export default function grantContentAccess ({
             groupId
             productId
             trackId
-            roleId
+            groupRoleId
+            commonRoleId
             accessType
             status
             success
@@ -67,7 +72,8 @@ export default function grantContentAccess ({
         groupId: groupId || null,
         productId: productId || null,
         trackId: trackId || null,
-        roleId: roleId || null,
+        groupRoleId: groupRoleId || null,
+        commonRoleId: commonRoleId || null,
         expiresAt: expiresAt || null,
         reason: reason || null
       }

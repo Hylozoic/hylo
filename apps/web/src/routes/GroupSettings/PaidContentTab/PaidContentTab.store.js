@@ -209,11 +209,6 @@ export function fetchOfferings (groupId, accountId) {
               bannerUrl
               description
             }
-            roles {
-              id
-              name
-              emoji
-            }
           }
           success
         }
