@@ -83,6 +83,9 @@ module.exports = bookshelf.Model.extend(Object.assign({
           }
         })
     }
+
+    // Save the membership to persist the agreementsAcceptedAt setting
+    await this.save(null, { transacting })
   },
 
   async updateAndSave (attrs, { transacting } = {}) {
