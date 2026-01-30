@@ -19,16 +19,16 @@ const initialState = {
 export default function myTransactionsReducer (state = initialState, action) {
   const { type, payload, error, meta } = action
 
-  if (type === FETCH_MY_TRANSACTIONS) {
-    // Handle pending state
-    if (meta?.pending) {
-      return {
-        ...state,
-        pending: true,
-        error: null
-      }
+  // Handle pending state (dispatched by pendingMiddleware)
+  if (type === `${FETCH_MY_TRANSACTIONS}_PENDING`) {
+    return {
+      ...state,
+      pending: true,
+      error: null
     }
+  }
 
+  if (type === FETCH_MY_TRANSACTIONS) {
     // Handle error
     if (error) {
       return {

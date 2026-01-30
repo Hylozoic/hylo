@@ -379,8 +379,8 @@ module.exports = bookshelf.Model.extend(merge({
       {
         role,
         settings: {
-          // XXX: A user choosing to join a group has aleady seen/filled out the join questions (enforced on the front-end)
-          joinQuestionsAnsweredAt: fromInvitation ? null : new Date(),
+          // Set joinQuestionsAnsweredAt if user answered questions during the join flow
+          joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
           postNotifications: 'all',
           digestFrequency: 'daily',
           sendEmail: true,
