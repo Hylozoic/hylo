@@ -292,35 +292,38 @@ module.exports = {
       // Determine if this is a subscription based on session mode
       const stripeSubscriptionId = session.subscription || null
 
-      // Generate content access records
-      const accessRecords = await offering.generateContentAccessRecords({
-        userId: parseInt(userId, 10),
-        sessionId: session.id,
-        stripeSubscriptionId,
-        metadata: {
-          paymentAmount: session.amount_total,
-          currency: session.currency,
-          purchasedAt: new Date().toISOString()
-        }
-      })
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
-      }
-
-      // Grant group membership for any groups that received access
       const userIdNum = parseInt(userId, 10)
+      const grantedByGroupIdNum = parseInt(offeringGroupId, 10)
 
-      // Collect unique group IDs that received access
+      // FIRST: Determine which groups need membership from the offering's access_grants
+      // We need to ensure membership BEFORE assigning roles
+      const accessGrants = offering.get('access_grants') || {}
       const groupsToJoin = new Set()
-      for (const accessRecord of accessRecords) {
-        const accessGroupId = accessRecord.get('group_id')
-        if (accessGroupId) {
-          groupsToJoin.add(parseInt(accessGroupId, 10))
+
+      // Add the group that owns the product (always grant access to this group)
+      groupsToJoin.add(grantedByGroupIdNum)
+
+      // Add any groups specified in access_grants.groupIds
+      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
+        for (const groupId of accessGrants.groupIds) {
+          const groupIdNum = parseInt(groupId, 10)
+          if (!isNaN(groupIdNum) && groupIdNum > 0) {
+            groupsToJoin.add(groupIdNum)
+          }
         }
       }
 
-      // Ensure user is a member of all groups that received access and pin to nav
+      // If groupRoleIds or commonRoleIds are specified, ensure membership for those groups
+      if (accessGrants.groupRoleIds || accessGrants.commonRoleIds) {
+        const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
+          ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
+          : [grantedByGroupIdNum]
+        for (const groupIdNum of groupIdsForRoles) {
+          groupsToJoin.add(groupIdNum)
+        }
+      }
+
+      // Ensure user is a member of all groups that will receive access BEFORE assigning roles
       for (const accessGroupId of groupsToJoin) {
         try {
           const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
@@ -342,6 +345,22 @@ module.exports = {
           console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
           // Continue processing other groups even if one fails
         }
+      }
+
+      // NOW: Generate content access records and assign roles (membership is already ensured)
+      const accessRecords = await offering.generateContentAccessRecords({
+        userId: userIdNum,
+        sessionId: session.id,
+        stripeSubscriptionId,
+        metadata: {
+          paymentAmount: session.amount_total,
+          currency: session.currency,
+          purchasedAt: new Date().toISOString()
+        }
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
       }
 
       // Handle donation transfer if customer added optional donation item
@@ -921,31 +940,37 @@ module.exports = {
       // Create the missing access records now
       console.warn(`Subscription ${subscription.id} should have access records but none exist. Creating now...`)
 
-      const accessRecords = await offering.generateContentAccessRecords({
-        userId: parseInt(userId, 10),
-        sessionId: sessionId || subscription.id, // Use subscription ID if no session
-        stripeSubscriptionId: subscription.id,
-        metadata: {
-          created_via_webhook: 'customer.subscription.created',
-          subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString()
-        }
-      })
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Created ${accessRecords.length} missing access records for subscription ${subscription.id}`)
-      }
-
-      // Grant group membership for any groups that received access
       const userIdNum = parseInt(userId, 10)
+      const grantedByGroupIdNum = parseInt(offering.get('group_id'), 10)
+
+      // FIRST: Determine which groups need membership from the offering's access_grants
+      // We need to ensure membership BEFORE assigning roles
       const groupsToJoin = new Set()
-      for (const accessRecord of accessRecords) {
-        const accessGroupId = accessRecord.get('group_id')
-        if (accessGroupId) {
-          groupsToJoin.add(parseInt(accessGroupId, 10))
+
+      // Add the group that owns the product (always grant access to this group)
+      groupsToJoin.add(grantedByGroupIdNum)
+
+      // Add any groups specified in access_grants.groupIds
+      if (accessGrants.groupIds && Array.isArray(accessGrants.groupIds)) {
+        for (const groupId of accessGrants.groupIds) {
+          const groupIdNum = parseInt(groupId, 10)
+          if (!isNaN(groupIdNum) && groupIdNum > 0) {
+            groupsToJoin.add(groupIdNum)
+          }
         }
       }
 
+      // If groupRoleIds or commonRoleIds are specified, ensure membership for those groups
+      if (accessGrants.groupRoleIds || accessGrants.commonRoleIds) {
+        const groupIdsForRoles = accessGrants.groupIds && Array.isArray(accessGrants.groupIds) && accessGrants.groupIds.length > 0
+          ? accessGrants.groupIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0)
+          : [grantedByGroupIdNum]
+        for (const groupIdNum of groupIdsForRoles) {
+          groupsToJoin.add(groupIdNum)
+        }
+      }
+
+      // Ensure user is a member of all groups that will receive access BEFORE assigning roles
       for (const accessGroupId of groupsToJoin) {
         try {
           const membership = await GroupMembership.ensureMembership(userIdNum, accessGroupId, {
@@ -966,6 +991,22 @@ module.exports = {
         } catch (error) {
           console.error(`Error ensuring membership for user ${userIdNum} in group ${accessGroupId}:`, error)
         }
+      }
+
+      // NOW: Generate content access records and assign roles (membership is already ensured)
+      const accessRecords = await offering.generateContentAccessRecords({
+        userId: userIdNum,
+        sessionId: sessionId || subscription.id, // Use subscription ID if no session
+        stripeSubscriptionId: subscription.id,
+        metadata: {
+          created_via_webhook: 'customer.subscription.created',
+          subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString()
+        }
+      })
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Created ${accessRecords.length} missing access records for subscription ${subscription.id}`)
       }
     } catch (error) {
       console.error('Error handling customer.subscription.created:', error)
