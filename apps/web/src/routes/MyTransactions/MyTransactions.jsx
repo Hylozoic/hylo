@@ -276,13 +276,11 @@ function MyTransactions () {
     }
   }
 
-  if (loading) {
-    return (
-      <div className='p-4 max-w-[750px] mx-auto flex justify-center mt-8'>
-        <Loading />
-      </div>
-    )
-  }
+  // Determine if filters are active
+  const hasActiveFilters = statusFilter !== 'all' || paymentTypeFilter !== 'all' || offeringFilter !== 'all'
+  
+  // Determine if this is initial state (no transactions ever) vs filtered state (no results for current filters)
+  const isInitialState = !loading && transactions.length === 0 && total === 0 && !hasActiveFilters
 
   if (error) {
     return (
@@ -293,22 +291,6 @@ function MyTransactions () {
             {t('Error loading transactions')}
           </h2>
           <p className='text-muted-foreground'>{error}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (transactions.length === 0) {
-    return (
-      <div className='p-4 max-w-[750px] mx-auto mt-8'>
-        <div className='text-center py-12 bg-card rounded-lg border border-border'>
-          <CreditCard className='w-12 h-12 mx-auto mb-4 text-muted-foreground' />
-          <h2 className='text-lg font-medium text-foreground mb-2'>
-            {t('No transactions yet')}
-          </h2>
-          <p className='text-muted-foreground'>
-            {t('Your purchases and subscriptions will appear here.')}
-          </p>
         </div>
       </div>
     )
@@ -358,8 +340,8 @@ function MyTransactions () {
             </select>
           </div>
 
-          {/* Offering Filter */}
-          {offerings.length > 0 && (
+          {/* Offering Filter - Show if we have offerings OR if we're in a filtered state */}
+          {(offerings.length > 0 || hasActiveFilters) && (
             <div>
               <label className='block text-sm font-medium text-foreground mb-2'>
                 {t('Offering')}
@@ -381,12 +363,20 @@ function MyTransactions () {
         </div>
       </div>
 
-      {/* Results Count */}
-      {total > 0 && (
-        <div className='text-sm text-foreground/70'>
-          {t('Showing {{count}} of {{total}} transactions', { count: transactions.length, total })}
-        </div>
-      )}
+      {/* Results Count with Loading Indicator */}
+      <div className='flex items-center gap-2'>
+        {total > 0 && (
+          <div className='text-sm text-foreground/70'>
+            {t('Showing {{count}} of {{total}} transactions', { count: transactions.length, total })}
+          </div>
+        )}
+        {loading && (
+          <div className='flex items-center gap-2 text-sm text-foreground/70'>
+            <Loading />
+            <span>{t('Loading...')}</span>
+          </div>
+        )}
+      </div>
 
       {/* Transactions List */}
       {loading && transactions.length === 0 && (
@@ -399,10 +389,12 @@ function MyTransactions () {
         <div className='text-center py-12 bg-card rounded-lg border border-border'>
           <CreditCard className='w-12 h-12 mx-auto mb-4 text-muted-foreground' />
           <h2 className='text-lg font-medium text-foreground mb-2'>
-            {t('No transactions found')}
+            {isInitialState ? t('No transactions yet') : t('No transactions found')}
           </h2>
           <p className='text-muted-foreground'>
-            {t('Try adjusting your filters to see more results.')}
+            {isInitialState
+              ? t('Your purchases and subscriptions will appear here.')
+              : t('Try adjusting your filters to see more results.')}
           </p>
         </div>
       )}
