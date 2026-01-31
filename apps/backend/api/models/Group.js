@@ -864,6 +864,9 @@ module.exports = bookshelf.Model.extend(merge({
 
             await currentView.updateTopics(topics, transacting)
           } else if (currentView) {
+            // Delete associated context widgets
+            await ContextWidget.where({ group_id: this.id, custom_view_id: currentView.id }).destroy({ transacting })
+
             await currentView.destroy({ transacting })
           } else {
             break
