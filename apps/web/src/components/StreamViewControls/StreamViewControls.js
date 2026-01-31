@@ -8,7 +8,7 @@ import Tooltip from 'components/Tooltip'
 import { CONTEXT_MY } from 'store/constants'
 import { COLLECTION_SORT_OPTIONS, STREAM_SORT_OPTIONS } from 'util/constants'
 import { cn } from 'util/index'
-import VisibilityToggle from 'components/VisibilityToggle'
+// import VisibilityToggle from 'components/VisibilityToggle'
 
 import classes from './StreamViewControls.module.scss'
 
@@ -135,7 +135,7 @@ const StreamViewControls = ({
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
             </div>
           )}
-          {view === 'events' && (
+          {/* {view === 'events' && (
             <div
               className={classes.visibilitySettings}
               data-tooltip-content={showCalendarLinks ? t('Hide calendar subscription links') : t('Show calendar subscription links')}
@@ -147,7 +147,7 @@ const StreamViewControls = ({
               />
               <Tooltip id='show-calendar-links-tip' position='bottom' />
             </div>
-          )}
+          )} */}
         </div>
         <div className='bg-background border-foreground/20 border-2 shadow-xl rounded p-1 flex gap-2 items-center'>
           <div
