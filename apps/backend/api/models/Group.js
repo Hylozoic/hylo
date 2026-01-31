@@ -115,16 +115,6 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  posts: function() {
-    return Post.collection().query(q => {
-      q.join('groups_posts', 'groups_posts.post_id', 'posts.id')
-      q.where({
-        'groups_posts.group_id': this.id,
-        'posts.active': true
-      })
-    })
-  },
-
   contextWidgets () {
     return this.hasMany(ContextWidget)
   },
@@ -647,7 +637,7 @@ module.exports = bookshelf.Model.extend(merge({
     const updatedAttribs = Object.assign(
       {},
       pickedAttrs,
-      { 
+      {
         settings: merge(
           {},
           pickedAttrs.settings || {},
@@ -1050,8 +1040,9 @@ module.exports = bookshelf.Model.extend(merge({
     await writeStringToS3(
       cal.toString(),
       group.getEventCalendarPath(), {
-      ContentType: 'text/calendar'
-    })
+        ContentType: 'text/calendar'
+      }
+    )
   },
 
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
