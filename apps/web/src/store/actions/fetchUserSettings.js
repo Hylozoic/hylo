@@ -10,6 +10,16 @@ export default function fetchUserSettings () {
           me {
             id
             rsvpCalendarUrl
+            developerModeEnabled
+            applications {
+              id
+              name
+              description
+              clientId
+              scopes
+              hasBot
+              createdAt
+            }
             affiliations {
               items {
                 id

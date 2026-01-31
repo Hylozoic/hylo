@@ -151,6 +151,10 @@ function SettingsMenu ({ currentUser }) {
     navigate('/my/account')
   }
 
+  const handleDeveloperSettings = () => {
+    navigate('/settings/developer')
+  }
+
   const handleLanguageChange = (locale) => {
     i18n.changeLanguage(locale)
     getLocaleFromLocalStorage(locale)
@@ -260,6 +264,11 @@ function SettingsMenu ({ currentUser }) {
         <DropdownMenuItem onClick={handleAccountSettings}>
           <Shield className='mr-2 h-4 w-4' />
           <span>{t('Account Settings')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleDeveloperSettings}>
+          <BookOpen className='mr-2 h-4 w-4' />
+          <span>{t('Developer')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
