@@ -67,19 +67,19 @@ export default {
     return Activity.saveForReasons(invitees)
   },
 
-  createCalInvite: async function({ userId, eventInvitation, eventChanges, groupName }) {
-    const calEvent = await this.getCalEventData({ 
-      eventInvitation, 
-      forUserId: userId, 
-      eventChanges: eventChanges, 
+  createCalInvite: async function ({ userId, eventInvitation, eventChanges, groupName }) {
+    const calEvent = await this.getCalEventData({
+      eventInvitation,
+      forUserId: userId,
+      eventChanges,
       url: !eventChanges?.deleted && Frontend.Route.post(this, groupName)
     })
-    
+
     const cal = ical()
     cal.method(calEvent.method)
     cal.createEvent(calEvent).uid(calEvent.uid)
     cal.scale('gregorian')
-    
+
     return cal
   },
 
@@ -93,7 +93,7 @@ export default {
     // note: eventInvitation.response can be null
     const notGoing = eventInvitation?.notGoing()
     const going = eventInvitation?.going()
-    
+
     return {
       summary: this.title(),
       description: TextHelpers.presentHTMLToText(this.details(forUserId)),
@@ -144,19 +144,17 @@ export default {
     const groupNames = this.relations.groups.map(g => g.get('name')).join(', ')
     const groupName = this.relations.groups.first()
     const calInvite = await this.createCalInvite({ userId: user.id, eventInvitation, eventChanges, groupName })
-    const emailTemplate = eventChanges.new ? 'sendEventRsvpEmail' :
-      eventChanges.deleted ? 'sendEventRsvpCancelEmail' :
-      'sendEventRsvpUpdateEmail'
+    const emailTemplate = eventChanges.new ? 'sendEventRsvpEmail' : eventChanges.deleted ? 'sendEventRsvpCancelEmail' : 'sendEventRsvpUpdateEmail'
     const newStart = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.start_time || this.get('start_time')) : null
     const newEnd = (eventChanges.start_time || eventChanges.end_time) ? (eventChanges.end_time || this.get('end_time')) : null
-    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({start: newStart, end: newEnd, timezone: this.get('timezone')}) : null
+    const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone') }) : null
     const newLocation = eventChanges.location
 
     Queue.classMethod('Email', emailTemplate, {
       email: user.get('email'),
       version: 'default',
       data: {
-        date: DateTimeHelpers.formatDatePair({start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone')}),
+        date: DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') }),
         user_name: user.get('name'),
         event_name: this.title(),
         event_description: this.details(),
@@ -164,8 +162,8 @@ export default {
         event_url: calInvite.url,
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
-        newDate: newDate,
-        newLocation: newLocation
+        newDate,
+        newLocation
       },
       files: [
         {
@@ -184,5 +182,15 @@ export default {
       const eventInvitation = await EventInvitation.find({ userId, eventId: this.id })
       return eventInvitation && this.sendUserRsvp({ eventInvitationId: eventInvitation.id, eventChanges })
     })
+  }
+}
+
+/** Class methods for event-related queue jobs. Merge into Post class methods. */
+export const eventClassMethods = {
+  /** Fetches the event by id and delegates to instance sendUserRsvp. Used by Queue.classMethod. */
+  async sendUserRsvp ({ eventId, eventInvitationId, eventChanges }) {
+    const post = await Post.find(eventId)
+    if (!post) return
+    return post.sendUserRsvp({ eventInvitationId, eventChanges })
   }
 }

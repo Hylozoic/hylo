@@ -14,8 +14,9 @@ export async function respondToEvent (userId, eventId, response) {
   let eventInvitation = await EventInvitation.find({ userId, eventId })
   // determine if we send an rsvp email before updating eventInvitation
   // note: send even if user enabled subscription - they may not be using the subscription feature
-  const sendRsvp = (!eventInvitation?.going() && EventInvitation.going(response)) ||
-    (eventInvitation?.going() && !EventInvitation.going(response))
+  const wasGoing = eventInvitation?.going()
+  const sendRsvp = (!wasGoing && EventInvitation.going(response)) ||
+    (wasGoing && !EventInvitation.going(response))
 
   if (eventInvitation) {
     await eventInvitation.save({ response })
@@ -28,9 +29,12 @@ export async function respondToEvent (userId, eventId, response) {
     })
   }
 
-  if (sendEmail) {
-    Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
-    Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId: eventId })
+  if (sendRsvp) {
+    const eventChanges = (!wasGoing && EventInvitation.going(response))
+      ? { new: true }
+      : { deleted: true }
+    Queue.classMethod('Post', 'sendUserRsvp', { eventId, eventInvitationId: eventInvitation.id, eventChanges })
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   }
 
   return { success: true }

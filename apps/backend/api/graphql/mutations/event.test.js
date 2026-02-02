@@ -24,7 +24,7 @@ describe('respondToEvent', () => {
         await respondToEvent(user.id, event.id, EventInvitation.RESPONSE.YES)
 
         expect(Queue.classMethod).to.have.been.called.twice
-        
+
         const eventInvitation = await EventInvitation.find({
           userId: user.id,
           eventId: event.id
@@ -33,6 +33,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { new: true }
           }
@@ -48,7 +49,7 @@ describe('respondToEvent', () => {
         await respondToEvent(user.id, event.id, EventInvitation.RESPONSE.INTERESTED)
 
         expect(Queue.classMethod).to.have.been.called.twice
-        
+
         const eventInvitation = await EventInvitation.find({
           userId: user.id,
           eventId: event.id
@@ -57,6 +58,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { new: true }
           }
@@ -107,6 +109,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { deleted: true }
           }
@@ -151,6 +154,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { deleted: true }
           }
@@ -183,6 +187,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { new: true }
           }
@@ -202,6 +207,7 @@ describe('respondToEvent', () => {
           'Post',
           'sendUserRsvp',
           {
+            eventId: event.id,
             eventInvitationId: eventInvitation.id,
             eventChanges: { new: true }
           }

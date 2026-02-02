@@ -7,7 +7,6 @@ import { DateTime } from 'luxon'
 import format from 'pg-format'
 import { flatten, sortBy } from 'lodash'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
-import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import fetch from 'node-fetch'
 import { postRoom, pushToSockets } from '../services/Websockets'
 import { fulfill, unfulfill } from './post/fulfillPost'
@@ -16,8 +15,7 @@ import EnsureLoad from './mixins/EnsureLoad'
 import { countTotal } from '../../lib/util/knex'
 import { refineMany, refineOne } from './util/relations'
 import ProjectMixin from './project/mixin'
-import EventMixin from './event/mixin'
-import * as RichText from '../services/RichText'
+import EventMixin, { eventClassMethods } from './event/mixin'
 import { defaultTimezone } from '../../lib/group/digest2/util'
 import { publishPostUpdate } from '../../lib/postSubscriptionPublisher'
 
@@ -802,6 +800,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 }, EnsureLoad, ProjectMixin, EventMixin), {
   // Class Methods
+  ...eventClassMethods,
 
   Type: {
     ACTION: 'action',
