@@ -31,7 +31,6 @@ export default function CreateMenu ({ coordinates, mapView }) {
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
   const hasRoundsResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
 
-
   return (
     <div>
       <h2 className='text-foreground/80 mb-3 font-bold mt-0 text-selected'>{coordinates ? t('New post at this location:') + ' ' : t('What would you like to create?')}</h2>
@@ -75,8 +74,6 @@ export default function CreateMenu ({ coordinates, mapView }) {
             </div>
           </Link>
         )}
-        {/* DEPRECATED: Now always allow group creation */}
-        {/* {!isWebView() && ( */}
         <Link to='/create-group' key='group' onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
           <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
             <Icon name='Groups' className='mr-2' />
@@ -84,7 +81,6 @@ export default function CreateMenu ({ coordinates, mapView }) {
             <CreateButton />
           </div>
         </Link>
-        {/* )} */}
       </div>
     </div>
   )

@@ -322,7 +322,7 @@ export default function ChatPost ({
             ref={editorRef}
             // DEPRECATED: showMenu is now always true
             showMenu
-            className={cn(styles.editing, styles.postContent)}
+            className={cn(styles.editing, 'p-0 m-0')}
           />
         )}
         {details && !editing && (
