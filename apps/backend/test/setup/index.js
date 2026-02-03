@@ -111,7 +111,7 @@ TestSetup.prototype.createSchema = function () {
 
         // Remove comment lines
         const cleaned = script.split(/\n/)
-          .filter(line => !line.startsWith('--'))
+          .filter(line => !line.startsWith('--') && !line.startsWith('\\'))
           .join(' ')
           .replace(/\s+/g, ' ')
 

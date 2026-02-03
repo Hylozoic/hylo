@@ -34,6 +34,26 @@ export default function LocaleDropdown ({ renderToggleChildren, className }) {
           key: 'es',
           label: '🇪🇸 ' + t('Spanish'),
           onClick: () => handleLocaleChange('es')
+        },
+        {
+          key: 'de',
+          label: '🇩🇪 ' + t('German'),
+          onClick: () => handleLocaleChange('de')
+        },
+        {
+          key: 'fr',
+          label: '🇫🇷 ' + t('French'),
+          onClick: () => handleLocaleChange('fr')
+        },
+        {
+          key: 'hi',
+          label: '🇮🇳 ' + t('Hindi'),
+          onClick: () => handleLocaleChange('it')
+        },
+        {
+          key: 'pt',
+          label: '🇵🇹 ' + t('Portuguese'),
+          onClick: () => handleLocaleChange('pt')
         }
       ]}
     />
