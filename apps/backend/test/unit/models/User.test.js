@@ -1,11 +1,13 @@
 /* eslint-disable no-unused-expressions */
 
 import '../../setup'
+import root from 'root-path'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { wait } from '../../setup/helpers'
+import { wait, spyify, unspyify } from '../../setup/helpers'
 import { times } from 'lodash'
+import setup from '../../setup'
 
 describe('User', function () {
   let cat
@@ -540,6 +542,445 @@ describe('User', function () {
         phone_number: user.get('contact_phone'),
         phone_number_verified: false
       })
+    })
+  })
+
+  describe('.createRsvpCalendarSubscription', () => {
+    let user, eventOwner, group, event1, event2, event3, eventInactive, eventPastYear, eventOlderThanYear
+    let storageModule, calendarContent, originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      eventOwner = await factories.user().save()
+      group = await factories.group().save()
+      
+      // Create calendar_token for user and enable RSVP calendar subscription setting
+      await user.save({ calendar_token: 'test-token-123' }, { patch: true })
+      await user.addSetting({ rsvp_calendar_sub: true }, true)
+
+      // Create events with different dates
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDate1 = new Date(now.getTime() + oneHour)
+      const futureDate2 = new Date(now.getTime() + 2 * oneHour)
+      const futureDate3 = new Date(now.getTime() + 3 * oneHour)
+      const pastYearDate = Post.eventCalSubDateLimit().plus({ hours: 1 }).toJSDate()
+      const olderThanYearDate = Post.eventCalSubDateLimit().minus({ hours: 1 }).toJSDate()
+
+      event1 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 1',
+        start_time: futureDate1,
+        end_time: new Date(futureDate1.getTime() + oneHour)
+      }).save()
+
+      event2 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 2',
+        start_time: futureDate2,
+        end_time: new Date(futureDate2.getTime() + oneHour)
+      }).save()
+
+      event3 = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event 3',
+        start_time: futureDate3,
+        end_time: new Date(futureDate3.getTime() + oneHour)
+      }).save()
+
+      eventInactive = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: false,
+        name: 'Inactive Event',
+        start_time: futureDate1,
+        end_time: new Date(futureDate1.getTime() + oneHour)
+      }).save()
+
+      eventPastYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event Past Year',
+        start_time: pastYearDate,
+        end_time: new Date(pastYearDate.getTime() + oneHour)
+      }).save()
+
+      eventOlderThanYear = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event Older Than Year',
+        start_time: olderThanYearDate,
+        end_time: new Date(olderThanYearDate.getTime() + oneHour)
+      }).save()
+
+      await event1.groups().attach([group.id])
+      await event2.groups().attach([group.id])
+      await event3.groups().attach([group.id])
+      await eventInactive.groups().attach([group.id])
+      await eventPastYear.groups().attach([group.id])
+      await eventOlderThanYear.groups().attach([group.id])
+
+      // Create EventInvitations for user
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event1.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event2.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.INTERESTED
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: event3.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventInactive.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventPastYear.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventOlderThanYear.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+
+      originalFind = User.find
+    })
+
+    beforeEach(async () => {
+      calendarContent = null
+      // Mock writeStringToS3 to capture calendar content
+      storageModule = require(root('lib/uploader/storage'))
+      spyify(storageModule, 'writeStringToS3', (content) => {
+        calendarContent = content
+        return Promise.resolve({ url: 'https://example.com/calendar.ics' })
+      })
+    })
+
+    afterEach(() => {
+      unspyify(storageModule, 'writeStringToS3')
+      if (User.find !== originalFind) {
+        User.find = originalFind
+      }
+    })
+
+    it('creates calendar subscription with active events', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+      
+      // Verify active events are included
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+    })
+
+    it('excludes inactive events', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.not.include(eventInactive.iCalUid())
+    })
+
+    it('excludes deleted (active: false) events from calendar subscription', async () => {
+      // Create a new active event with an invitation for the user
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDate = new Date(now.getTime() + oneHour)
+      
+      const activeEvent = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event to be Deleted',
+        start_time: futureDate,
+        end_time: new Date(futureDate.getTime() + oneHour)
+      }).save()
+      
+      await activeEvent.groups().attach([group.id])
+      
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: activeEvent.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+
+      // First, verify the active event is included
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+      expect(calendarContent).to.include(activeEvent.iCalUid())
+
+      // Now delete the event (set active: false)
+      await activeEvent.save({ active: false }, { patch: true })
+
+      // Regenerate the calendar subscription
+      calendarContent = null
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      // Verify the deleted event is NOT included
+      expect(calendarContent).to.not.include(activeEvent.iCalUid())
+      // But other active events should still be included
+      expect(calendarContent).to.include(event1.iCalUid())
+      expect(calendarContent).to.include(event2.iCalUid())
+      expect(calendarContent).to.include(event3.iCalUid())
+    })
+
+    it('includes events within the past year (up to one year ago)', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.include(eventPastYear.iCalUid())
+    })
+
+    it('excludes events older than one year', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(calendarContent).to.not.include(eventOlderThanYear.iCalUid())
+    })
+
+    it('returns early if user does not exist', async () => {
+      User.find = () => Promise.resolve(null)
+      await User.createRsvpCalendarSubscription({ userId: 99999 })
+
+      expect(storageModule.writeStringToS3).to.not.have.been.called
+    })
+
+    it('returns early if user does not have calendar_token', async () => {
+      const userWithoutToken = await factories.user().save()
+      User.find = () => Promise.resolve(userWithoutToken)
+      
+      await User.createRsvpCalendarSubscription({ userId: userWithoutToken.id })
+
+      expect(storageModule.writeStringToS3).to.not.have.been.called
+    })
+
+    it('includes only events where user responded YES or INTERESTED', async () => {
+      // Create events with different RSVP responses
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDateYes = new Date(now.getTime() + 4 * oneHour)
+      const futureDateInterested = new Date(now.getTime() + 5 * oneHour)
+      const futureDateNo = new Date(now.getTime() + 6 * oneHour)
+      const futureDateNull = new Date(now.getTime() + 7 * oneHour)
+
+      const eventYes = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event YES',
+        start_time: futureDateYes,
+        end_time: new Date(futureDateYes.getTime() + oneHour)
+      }).save()
+
+      const eventInterested = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event INTERESTED',
+        start_time: futureDateInterested,
+        end_time: new Date(futureDateInterested.getTime() + oneHour)
+      }).save()
+
+      const eventNo = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NO',
+        start_time: futureDateNo,
+        end_time: new Date(futureDateNo.getTime() + oneHour)
+      }).save()
+
+      const eventNull = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NULL',
+        start_time: futureDateNull,
+        end_time: new Date(futureDateNull.getTime() + oneHour)
+      }).save()
+
+      await eventYes.groups().attach([group.id])
+      await eventInterested.groups().attach([group.id])
+      await eventNo.groups().attach([group.id])
+      await eventNull.groups().attach([group.id])
+
+      // Create EventInvitations with different responses
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventYes.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventInterested.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.INTERESTED
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventNo.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.NO
+      })
+      await EventInvitation.create({
+        userId: user.id,
+        eventId: eventNull.id,
+        inviterId: eventOwner.id,
+        response: null
+      })
+
+      // Generate calendar subscription
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+
+      // Verify YES and INTERESTED events are included
+      expect(calendarContent).to.include(eventYes.iCalUid())
+      expect(calendarContent).to.include(eventInterested.iCalUid())
+
+      // Verify NO and NULL response events are NOT included
+      expect(calendarContent).to.not.include(eventNo.iCalUid())
+      expect(calendarContent).to.not.include(eventNull.iCalUid())
+    })
+
+    it('writes calendar to correct S3 path', async () => {
+      await User.createRsvpCalendarSubscription({ userId: user.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      const callArgs = storageModule.writeStringToS3.__spy.calls[0]
+      const path = callArgs[1]
+      const calendarToken = user.get('calendar_token') || user._calendarToken
+      expect(path).to.include(`user/${user.id}/calendar-${calendarToken}.ics`)
+      expect(callArgs[2].ContentType).to.equal('text/calendar')
+    })
+
+    it('does not add any events regardless of eventInvitation response when rsvp_calendar_sub is false', async () => {
+      // Create a user with rsvp_calendar_sub disabled
+      const userDisabled = await factories.user().save()
+      await userDisabled.save({ calendar_token: 'test-token-disabled' }, { patch: true })
+      
+      // Disable RSVP calendar subscription setting (starts as null)
+      // await userDisabled.addSetting({ rsvp_calendar_sub: false }, true)
+      
+      // Create events with various RSVP responses
+      const now = new Date()
+      const oneHour = 60 * 60 * 1000
+      const futureDateYes = new Date(now.getTime() + 8 * oneHour)
+      const futureDateInterested = new Date(now.getTime() + 9 * oneHour)
+      const futureDateNo = new Date(now.getTime() + 10 * oneHour)
+      const futureDateNull = new Date(now.getTime() + 11 * oneHour)
+
+      const eventYes = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event YES',
+        start_time: futureDateYes,
+        end_time: new Date(futureDateYes.getTime() + oneHour)
+      }).save()
+
+      const eventInterested = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event INTERESTED',
+        start_time: futureDateInterested,
+        end_time: new Date(futureDateInterested.getTime() + oneHour)
+      }).save()
+
+      const eventNo = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NO',
+        start_time: futureDateNo,
+        end_time: new Date(futureDateNo.getTime() + oneHour)
+      }).save()
+
+      const eventNull = await factories.post({
+        type: Post.Type.EVENT,
+        user_id: eventOwner.id,
+        active: true,
+        name: 'Event NULL',
+        start_time: futureDateNull,
+        end_time: new Date(futureDateNull.getTime() + oneHour)
+      }).save()
+
+      await eventYes.groups().attach([group.id])
+      await eventInterested.groups().attach([group.id])
+      await eventNo.groups().attach([group.id])
+      await eventNull.groups().attach([group.id])
+
+      // Create EventInvitations with all possible responses
+      await EventInvitation.create({
+        userId: userDisabled.id,
+        eventId: eventYes.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+      await EventInvitation.create({
+        userId: userDisabled.id,
+        eventId: eventInterested.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.INTERESTED
+      })
+      await EventInvitation.create({
+        userId: userDisabled.id,
+        eventId: eventNo.id,
+        inviterId: eventOwner.id,
+        response: EventInvitation.RESPONSE.NO
+      })
+      await EventInvitation.create({
+        userId: userDisabled.id,
+        eventId: eventNull.id,
+        inviterId: eventOwner.id,
+        response: null
+      })
+
+
+      // Generate calendar subscription
+      calendarContent = null
+      await User.createRsvpCalendarSubscription({ userId: userDisabled.id })
+
+      expect(storageModule.writeStringToS3).to.have.been.called
+      expect(calendarContent).to.exist
+
+      // Verify NO events are included in the calendar, regardless of response
+      expect(calendarContent).to.not.include(eventYes.iCalUid())
+      expect(calendarContent).to.not.include(eventInterested.iCalUid())
+      expect(calendarContent).to.not.include(eventNo.iCalUid())
+      expect(calendarContent).to.not.include(eventNull.iCalUid())
+
+      // Verify calendar only contains header/metadata, no events
+      expect(calendarContent).to.include('BEGIN:VCALENDAR')
+      expect(calendarContent).to.include('END:VCALENDAR')
+      // Count occurrences of BEGIN:VEVENT (should be 0)
+      const eventMatches = calendarContent.match(/BEGIN:VEVENT/g)
+      expect(eventMatches).to.be.null
     })
   })
 })

@@ -77,7 +77,7 @@ export async function pushMessageToSockets (message, thread) {
   const excludingSender = userIds.filter(id => id !== message.get('user_id'))
 
   let response = refineOne(message,
-    ['id', 'text', 'created_at', 'user_id', 'post_id', 'comment_id'],
+    ['id', 'created_at', 'user_id', 'post_id', 'comment_id'],
     {
       user_id: 'creator',
       post_id: 'messageThread',
@@ -86,6 +86,7 @@ export async function pushMessageToSockets (message, thread) {
   )
 
   response.createdAt = response.createdAt && response.createdAt.toString()
+  response.text = message.text({ forUserId: message.get('user_id') })
 
   let socketMessageName
 
@@ -112,11 +113,12 @@ function pushCommentToSockets (comment) {
       postRoom(comment.get('post_id')),
       'commentAdded',
       Object.assign({},
-        refineOne(comment, ['id', 'text', 'created_at']),
+        refineOne(comment, ['id', 'created_at']),
         {
           creator: refineOne(comment.relations.user, ['id', 'name', 'avatar_url']),
           post: comment.get('post_id'),
-          parentComment: comment.get('comment_id')
+          parentComment: comment.get('comment_id'),
+          text: comment.text({ forUserId: comment.get('user_id') })
         }
       )
     ))
