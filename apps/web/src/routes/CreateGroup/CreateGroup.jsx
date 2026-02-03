@@ -364,8 +364,8 @@ function CreateGroup () {
 
         <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
           <h3 className='text-foreground text-xl font-bold mb-2'>{t('Choose your home view')}</h3>
-          <p className='text-foreground/80 text-sm mb-4'>{t('What should members see when they first visit your group?')}</p>
-          <p className='text-foreground/60 text-xs mb-4 italic'>{t('You can always change this later')}</p>
+          <p className='text-foreground/80 text-sm mb-4'>{t('home-view-choice-explainer')}</p>
+          <p className='text-foreground/60 text-xs mb-4 italic'>{t('You can change this anytime')}</p>
           <div className='flex flex-col gap-3'>
             <button
               type='button'
