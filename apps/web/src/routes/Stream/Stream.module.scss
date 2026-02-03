@@ -51,3 +51,20 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
+
+.calendarLinksContainer {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
+
+  &.open {
+    max-height: 1000px;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0s;
+  }
+}

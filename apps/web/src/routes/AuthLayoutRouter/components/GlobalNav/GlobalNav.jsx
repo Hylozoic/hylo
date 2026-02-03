@@ -246,6 +246,18 @@ function SettingsMenu ({ currentUser }) {
               <DropdownMenuRadioItem value='es'>
                 🇪🇸 {t('Spanish')}
               </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='de'>
+                🇩🇪 {t('German')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='fr'>
+                🇫🇷 {t('French')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='hi'>
+                🇮🇳 {t('Hindi')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='pt'>
+                🇵🇹 {t('Portuguese')}
+              </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
