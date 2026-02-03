@@ -833,6 +833,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { groupExtensions: { querySet: true } }
       ],
       getters: {
+        eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
         homeWidget: g => g.homeWidget(),

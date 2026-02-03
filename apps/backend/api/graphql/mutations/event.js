@@ -6,30 +6,35 @@ export async function respondToEvent (userId, eventId, response) {
     throw new GraphQLError(`response must be one of ${values(EventInvitation.RESPONSE)}. received ${response}`)
   }
 
-  const event = await Post.find(eventId, { withRelated: ['user', 'groups'] })
+  const event = await Post.find(eventId)
   if (!event) {
     throw new GraphQLError('Event not found')
   }
 
   let eventInvitation = await EventInvitation.find({ userId, eventId })
-  const sendEmail = (!eventInvitation && EventInvitation.going(response)) ||
-    (eventInvitation && EventInvitation.going(response) && !EventInvitation.going(eventInvitation)) ||
-    (eventInvitation && !EventInvitation.going(response) && EventInvitation.going(eventInvitation))
+  // determine if we send an rsvp email before updating eventInvitation
+  // note: send even if user enabled subscription - they may not be using the subscription feature
+  const wasGoing = eventInvitation?.going()
+  const sendRsvp = (!wasGoing && EventInvitation.going(response)) ||
+    (wasGoing && !EventInvitation.going(response))
 
   if (eventInvitation) {
     await eventInvitation.save({ response })
   } else {
     eventInvitation = await EventInvitation.create({
       userId,
-      inviterId: userId, // why is the user who is responding also the inviter? Is this a workaround?
       eventId,
+      inviterId: userId, // the user responding without invitation is inviting themselves
       response
     })
   }
 
-  if (sendEmail) {
-    Queue.classMethod('Post', 'sendEventRsvp', { eventId, eventInvitationId: eventInvitation.id })
-    Queue.classMethod('Post', 'updatePostRsvpCalendarSubscriptions', { postId: eventId })
+  if (sendRsvp) {
+    const eventChanges = (!wasGoing && EventInvitation.going(response))
+      ? { new: true }
+      : { deleted: true }
+    Queue.classMethod('Post', 'sendUserRsvp', { eventId, eventInvitationId: eventInvitation.id, eventChanges })
+    Queue.classMethod('User', 'createRsvpCalendarSubscription', { userId })
   }
 
   return { success: true }

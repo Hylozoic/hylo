@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-expressions */
 import { expect } from 'chai'
-import root from 'root-path'
-const setup = require(root('test/setup'))
-const factories = require(root('test/setup/factories'))
+import setup from '../../setup'
+import factories from '../../setup/factories'
+import { spyify, unspyify } from '../../setup/helpers'
 
 describe('Post', function () {
   describe('#addFollowers', function () {
@@ -395,6 +395,559 @@ describe('Post', function () {
     it('returns the total number of messages (comments) with no read timestamps', () => {
       return post.unreadCountForUser(user2.id)
         .then(count => expect(count).to.equal(3))
+    })
+  })
+
+  describe('.processEventCreated', () => {
+    let user, post, eventInviteeIds, params, eventInvitation
+    let originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      post = await factories.post({
+        user_id: user.id,
+        type: Post.Type.EVENT
+      }).save()
+      eventInviteeIds = []
+      params = {}
+      originalFind = Post.find
+    })
+
+    beforeEach(() => {
+      eventInvitation = {
+        id: 123,
+        get: () => {},
+        incrementIcalSequence: () => Promise.resolve()
+      }
+      spyify(EventInvitation, 'create', () => Promise.resolve(eventInvitation))
+    })
+
+    afterEach(() => {
+      unspyify(EventInvitation, 'create')
+      if (Post.find !== originalFind) {
+        Post.find = originalFind
+      }
+    })
+
+    it('creates EventInvitation with correct parameters', async () => {
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params
+      })
+
+      expect(EventInvitation.create).to.have.been.called
+      expect(EventInvitation.create).to.have.been.called.with({
+        userId: user.id,
+        eventId: post.id,
+        inviterId: user.id,
+        response: EventInvitation.RESPONSE.YES
+      })
+    })
+
+    it('calls updateEventInvitees with correct arguments', async () => {
+      const updateEventInviteesSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = updateEventInviteesSpy
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds: [1, 2, 3],
+        userId: user.id,
+        params: { location: 'Test Location' }
+      })
+
+      expect(updateEventInviteesSpy).to.have.been.called
+      expect(updateEventInviteesSpy).to.have.been.called.with({
+        eventInviteeIds: [1, 2, 3],
+        inviterId: user.id,
+        params: { location: 'Test Location' }
+      })
+    })
+
+    it('calls sendUserRsvp with correct arguments', async () => {
+      const sendUserRsvpSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = sendUserRsvpSpy
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params
+      })
+
+      expect(sendUserRsvpSpy).to.have.been.called
+      expect(sendUserRsvpSpy).to.have.been.called.with({
+        eventInvitationId: eventInvitation.id,
+        eventChanges: { new: true }
+      })
+    })
+
+    it('queues createRsvpCalendarSubscription with correct arguments', async () => {
+      spyify(Queue, 'classMethod')
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params
+      })
+
+      expect(Queue.classMethod).to.have.been.called
+      expect(Queue.classMethod).to.have.been.called.with('User', 'createRsvpCalendarSubscription', { userId: user.id })
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('calls createGroupEventCalendarSubscriptions with correct arguments', async () => {
+      const createGroupEventCalendarSubscriptionsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvp = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = createGroupEventCalendarSubscriptionsSpy
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds,
+        userId: user.id,
+        params
+      })
+
+      expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
+    })
+
+    it('returns early if post is not found', async () => {
+      Post.find = spy(() => Promise.resolve(null))
+
+      await Post.processEventCreated({
+        postId: 99999,
+        eventInviteeIds,
+        userId: user.id,
+        params
+      })
+
+      expect(EventInvitation.create).to.not.have.been.called
+    })
+
+    it('calls all post methods in correct order', async () => {
+      spyify(Queue, 'classMethod')
+      const callOrder = []
+      const postInstance = await Post.find(post.id)
+      
+      postInstance.updateEventInvitees = spy(async () => {
+        callOrder.push('updateEventInvitees')
+      })
+      postInstance.sendUserRsvp = spy(async () => {
+        callOrder.push('sendUserRsvp')
+      })
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {
+        callOrder.push('createGroupEventCalendarSubscriptions')
+      })
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventCreated({
+        postId: post.id,
+        eventInviteeIds: [1, 2],
+        userId: user.id,
+        params: { location: 'Test' }
+      })
+
+      expect(callOrder).to.deep.equal([
+        'updateEventInvitees',
+        'createGroupEventCalendarSubscriptions',
+        'sendUserRsvp'
+      ])
+      unspyify(Queue, 'classMethod')
+    })
+  })
+
+  describe('.processEventUpdated', () => {
+    let user, post, eventInviteeIds, eventChanges
+    let originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      post = await factories.post({
+        user_id: user.id,
+        type: Post.Type.EVENT
+      }).save()
+      eventInviteeIds = []
+      eventChanges = {}
+      originalFind = Post.find
+    })
+
+    afterEach(() => {
+      if (Post.find !== originalFind) {
+        Post.find = originalFind
+      }
+    })
+
+    it('calls updateEventInvitees with correct arguments', async () => {
+      const updateEventInviteesSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = updateEventInviteesSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [1, 2, 3],
+        userId: user.id,
+        eventChanges: {}
+      })
+
+      expect(updateEventInviteesSpy).to.have.been.called
+      expect(updateEventInviteesSpy).to.have.been.called.with({
+        eventInviteeIds: [1, 2, 3],
+        inviterId: user.id
+      })
+    })
+
+    it('skips sending RSVPs if no significant changes', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = sendUserRsvpsSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: {}
+      })
+
+      expect(sendUserRsvpsSpy).to.not.have.been.called
+    })
+
+    it('calls sendUserRsvps when start_time changes', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = sendUserRsvpsSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      const changes = { start_time: new Date() }
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: changes
+      })
+
+      expect(sendUserRsvpsSpy).to.have.been.called
+      expect(sendUserRsvpsSpy).to.have.been.called.with({ eventChanges: changes })
+    })
+
+    it('calls sendUserRsvps when end_time changes', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = sendUserRsvpsSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      const changes = { end_time: new Date() }
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: changes
+      })
+
+      expect(sendUserRsvpsSpy).to.have.been.called
+      expect(sendUserRsvpsSpy).to.have.been.called.with({ eventChanges: changes })
+    })
+
+    it('calls sendUserRsvps when location changes', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = sendUserRsvpsSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      const changes = { location: 'New Location' }
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: changes
+      })
+
+      expect(sendUserRsvpsSpy).to.have.been.called
+      expect(sendUserRsvpsSpy).to.have.been.called.with({ eventChanges: changes })
+    })
+
+    it('calls createUserRsvpCalendarSubscriptions', async () => {
+      const createUserRsvpCalendarSubscriptionsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = spy(async () => {})
+      postInstance.createUserRsvpCalendarSubscriptions = createUserRsvpCalendarSubscriptionsSpy
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: {}
+      })
+
+      expect(createUserRsvpCalendarSubscriptionsSpy).to.have.been.called
+    })
+
+    it('calls createGroupEventCalendarSubscriptions', async () => {
+      const createGroupEventCalendarSubscriptionsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.updateEventInvitees = spy(async () => {})
+      postInstance.sendUserRsvps = spy(async () => {})
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = createGroupEventCalendarSubscriptionsSpy
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: {}
+      })
+
+      expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
+    })
+
+    it('returns early if post is not found', async () => {
+      const updateEventInviteesSpy = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(null))
+
+      await Post.processEventUpdated({
+        postId: 99999,
+        eventInviteeIds: [],
+        userId: user.id,
+        eventChanges: { start_time: new Date() }
+      })
+
+      expect(updateEventInviteesSpy).to.not.have.been.called
+    })
+
+    it('calls all post methods in correct order when significant change occur', async () => {
+      const callOrder = []
+      const postInstance = await Post.find(post.id)
+      
+      postInstance.updateEventInvitees = spy(async () => {
+        callOrder.push('updateEventInvitees')
+      })
+      postInstance.sendUserRsvps = spy(async () => {
+        callOrder.push('sendUserRsvps')
+      })
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {
+        callOrder.push('createUserRsvpCalendarSubscriptions')
+      })
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {
+        callOrder.push('createGroupEventCalendarSubscriptions')
+      })
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventUpdated({
+        postId: post.id,
+        eventInviteeIds: [1, 2],
+        userId: user.id,
+        eventChanges: { start_time: new Date() }
+      })
+
+      expect(callOrder).to.deep.equal([
+        'updateEventInvitees',
+        'createUserRsvpCalendarSubscriptions',
+        'createGroupEventCalendarSubscriptions',
+        'sendUserRsvps'
+      ])
+    })
+  })
+
+  describe('.processEventDeleted', () => {
+    let user, post
+    let originalFind
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      post = await factories.post({
+        user_id: user.id,
+        type: Post.Type.EVENT
+      }).save()
+      originalFind = Post.find
+    })
+
+    afterEach(() => {
+      if (Post.find !== originalFind) {
+        Post.find = originalFind
+      }
+    })
+
+    it('calls sendUserRsvps with deleted eventChanges', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.sendUserRsvps = sendUserRsvpsSpy
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventDeleted({
+        postId: post.id
+      })
+
+      expect(sendUserRsvpsSpy).to.have.been.called
+      expect(sendUserRsvpsSpy).to.have.been.called.with({
+        eventChanges: { deleted: true }
+      })
+    })
+
+    it('calls createUserRsvpCalendarSubscriptions', async () => {
+      const createUserRsvpCalendarSubscriptionsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.sendUserRsvps = spy(async () => {})
+      postInstance.createUserRsvpCalendarSubscriptions = createUserRsvpCalendarSubscriptionsSpy
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventDeleted({
+        postId: post.id
+      })
+
+      expect(createUserRsvpCalendarSubscriptionsSpy).to.have.been.called
+    })
+
+    it('calls createGroupEventCalendarSubscriptions', async () => {
+      const createGroupEventCalendarSubscriptionsSpy = spy(async () => {})
+      const postInstance = await Post.find(post.id)
+      postInstance.sendUserRsvps = spy(async () => {})
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {})
+      postInstance.createGroupEventCalendarSubscriptions = createGroupEventCalendarSubscriptionsSpy
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventDeleted({
+        postId: post.id
+      })
+
+      expect(createGroupEventCalendarSubscriptionsSpy).to.have.been.called
+    })
+
+    it('returns early if post is not found', async () => {
+      const sendUserRsvpsSpy = spy(async () => {})
+      Post.find = spy(() => Promise.resolve(null))
+
+      await Post.processEventDeleted({
+        postId: 99999
+      })
+
+      expect(sendUserRsvpsSpy).to.not.have.been.called
+    })
+
+    it('calls all post methods in correct order', async () => {
+      const callOrder = []
+      const postInstance = await Post.find(post.id)
+      
+      postInstance.sendUserRsvps = spy(async () => {
+        callOrder.push('sendUserRsvps')
+      })
+      postInstance.createUserRsvpCalendarSubscriptions = spy(async () => {
+        callOrder.push('createUserRsvpCalendarSubscriptions')
+      })
+      postInstance.createGroupEventCalendarSubscriptions = spy(async () => {
+        callOrder.push('createGroupEventCalendarSubscriptions')
+      })
+      Post.find = spy(() => Promise.resolve(postInstance))
+
+      await Post.processEventDeleted({
+        postId: post.id
+      })
+
+      expect(callOrder).to.deep.equal([
+        'createUserRsvpCalendarSubscriptions',
+        'createGroupEventCalendarSubscriptions',
+        'sendUserRsvps'
+      ])
+    })
+  })
+
+  describe('.find', () => {
+    let user, activePost, inactivePost
+
+    before(async () => {
+      await setup.clearDb()
+      user = await factories.user().save()
+      activePost = await factories.post({ user_id: user.id, active: true }).save()
+      inactivePost = await factories.post({ user_id: user.id, active: false }).save()
+    })
+
+    it('filters by active=true when includeInactive option is missing', async () => {
+      const foundPost = await Post.find(activePost.id)
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+      expect(foundPost.get('active')).to.equal(true)
+
+      const notFoundPost = await Post.find(inactivePost.id)
+      expect(notFoundPost).to.not.exist
+    })
+
+    it('filters by active=true when includeInactive is false', async () => {
+      const foundPost = await Post.find(activePost.id, { includeInactive: false })
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+      expect(foundPost.get('active')).to.equal(true)
+
+      const notFoundPost = await Post.find(inactivePost.id, { includeInactive: false })
+      expect(notFoundPost).to.not.exist
+    })
+
+    it('finds inactive posts when includeInactive is true', async () => {
+      const foundActivePost = await Post.find(activePost.id, { includeInactive: true })
+      expect(foundActivePost).to.exist
+      expect(foundActivePost.id).to.equal(activePost.id)
+      expect(foundActivePost.get('active')).to.equal(true)
+
+      const foundInactivePost = await Post.find(inactivePost.id, { includeInactive: true })
+      expect(foundInactivePost).to.exist
+      expect(foundInactivePost.id).to.equal(inactivePost.id)
+      expect(foundInactivePost.get('active')).to.equal(false)
+    })
+
+    it('filters by active=true when options is undefined', async () => {
+      const foundPost = await Post.find(activePost.id, undefined)
+      expect(foundPost).to.exist
+      expect(foundPost.id).to.equal(activePost.id)
+
+      const notFoundPost = await Post.find(inactivePost.id, undefined)
+      expect(notFoundPost).to.not.exist
     })
   })
 })

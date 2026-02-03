@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.0] - 2026-01-27
+
+### Added
+- Ability to subscribe to a group's calendar
+
+### Fixed
+- Cross site scripting security hole related to javascript being embedded in DMs and then executed when the DM is viewed
+
 ## [6.2.7] - 2026-01-13
 
 ### Changed

@@ -12,7 +12,7 @@ export default function EmojiPill ({ emojiFull, onClick = () => {}, count, userL
         label={`${emojiFull} ${count}`}
         onClick={onClick ? () => onClick(emojiFull) : null}
         className={cn('mb-1', {
-          'bg-selected text-white': selected
+          'bg-selected text-foreground': selected
         })}
         tooltipContent={toolTip}
       />
