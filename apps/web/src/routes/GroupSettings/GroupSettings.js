@@ -5,6 +5,7 @@ import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import AgreementsTab from './AgreementsTab'
+import BotsSettingsTab from './BotsSettingsTab'
 import CustomViewsTab from './CustomViewsTab'
 import DeleteSettingsTab from './DeleteSettingsTab'
 import GroupSettingsTab from './GroupSettingsTab'
@@ -140,6 +141,12 @@ export default function GroupSettings () {
     )
   }
 
+  const botsSettings = {
+    name: t('Bots'),
+    path: 'bots',
+    component: <BotsSettingsTab group={group} />
+  }
+
   // const topicsSettings = {
   //   name: t('Topics'),
   //   path: 'topics',
@@ -199,6 +206,7 @@ export default function GroupSettings () {
         canAdminister ? rolesSettings : null,
         canAdminister ? accessSettings : null,
         canAdminister ? customViewsSettings : null,
+        canAdminister ? botsSettings : null,
         // canAdminister ? topicsSettings : null, TODO: hide for now, we may want to bring back
         canAddMembers ? inviteSettings : null,
         canAddMembers ? joinRequestSettings : null,
