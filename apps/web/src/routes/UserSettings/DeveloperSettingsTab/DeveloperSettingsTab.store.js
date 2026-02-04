@@ -187,3 +187,50 @@ export function createBotForApplication (applicationId) {
     }
   }
 }
+
+export const DELETE_BOT = 'DeveloperSettings/DELETE_BOT'
+
+/**
+ * Delete a bot for an application
+ */
+export function deleteBotForApplication (applicationId) {
+  return {
+    type: DELETE_BOT,
+    graphql: {
+      query: `mutation DeleteBotForApplication($applicationId: ID!) {
+        deleteBotForApplication(applicationId: $applicationId) {
+          success
+        }
+      }`,
+      variables: { applicationId }
+    },
+    meta: {
+      applicationId
+    }
+  }
+}
+
+export const UPDATE_BOT = 'DeveloperSettings/UPDATE_BOT'
+
+/**
+ * Update a bot's profile (name, avatar)
+ */
+export function updateBot (botId, changes) {
+  return {
+    type: UPDATE_BOT,
+    graphql: {
+      query: `mutation UpdateBot($botId: ID!, $changes: BotInput!) {
+        updateBot(botId: $botId, changes: $changes) {
+          id
+          name
+          avatarUrl
+        }
+      }`,
+      variables: { botId, changes }
+    },
+    meta: {
+      botId,
+      changes
+    }
+  }
+}

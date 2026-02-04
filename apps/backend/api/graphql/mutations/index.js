@@ -167,6 +167,8 @@ export {
   regenerateClientSecret,
   removeBotFromGroup,
   updateApplication,
+  deleteBotForApplication,
+  updateBot,
   updateBotPermissions,
   updateDeveloperMode
 } from './application'

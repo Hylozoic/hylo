@@ -1,0 +1,312 @@
+.container {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 16px;
+
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+}
+
+.description {
+  color: #666666;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 500px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  background: #f5f5f5;
+  border-radius: 12px;
+
+  h3 {
+    margin: 16px 0 8px 0;
+    font-size: 18px;
+    color: #333333;
+  }
+
+  p {
+    margin: 0;
+    color: #666666;
+    font-size: 14px;
+  }
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  color: #999999;
+}
+
+.botList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.botCard {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.botHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.botInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.botAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.botAvatarPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+}
+
+.botName {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.botId {
+  font-size: 12px;
+  color: #888888;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.botActions {
+  display: flex;
+  gap: 8px;
+}
+
+.currentPermissions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.permissionsLabel {
+  font-size: 13px;
+  color: #666666;
+  font-weight: 500;
+}
+
+.permissionTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permissionTag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e8f0fe;
+  color: #0066cc;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.invitedBy {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e8e8;
+  font-size: 12px;
+  color: #888888;
+}
+
+.permissionsEditor {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+
+  h5 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333333;
+  }
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.permissionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permissionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  input[type='checkbox'] {
+    margin-top: 2px;
+  }
+}
+
+.permissionLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.permissionDesc {
+  display: block;
+  font-size: 12px;
+  color: #666666;
+  margin-top: 2px;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+}
+
+.modalDescription {
+  color: #666666;
+  font-size: 14px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333333;
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #ffffff;
+  color: #333333;
+
+  &:focus {
+    outline: none;
+    border-color: #0066cc;
+  }
+
+  &::placeholder {
+    color: #888888;
+  }
+}
+
+.permissionsHelp {
+  color: #666666;
+  font-size: 13px;
+  margin: 0 0 12px 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .botHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .botActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

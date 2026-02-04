@@ -7,6 +7,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import Icon from 'components/Icon'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
+import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import getMe from 'store/selectors/getMe'
 import {
@@ -15,6 +16,8 @@ import {
   deleteApplication,
   regenerateClientSecret,
   createBotForApplication,
+  deleteBotForApplication,
+  updateBot,
   fetchApplications
 } from './DeveloperSettingsTab.store'
 
@@ -284,6 +287,8 @@ function DeveloperSettingsTab () {
   const [visibleClientIds, setVisibleClientIds] = useState({})
   const [editingRedirectUris, setEditingRedirectUris] = useState(null)
   const [newRedirectUri, setNewRedirectUri] = useState('')
+  const [editingBotId, setEditingBotId] = useState(null)
+  const [editingBotName, setEditingBotName] = useState('')
 
   const { setHeaderDetails } = useViewHeader()
 
@@ -436,6 +441,66 @@ function DeveloperSettingsTab () {
     }
   }
 
+  const handleDeleteBot = async (appId) => {
+    if (!window.confirm(t('Are you sure you want to delete this bot? All group invitations and permissions will be removed. This cannot be undone.'))) {
+      return
+    }
+
+    try {
+      const result = await dispatch(deleteBotForApplication(appId))
+      if (result?.payload?.data?.deleteBotForApplication?.success) {
+        setApplications(applications.map(a =>
+          a.id === appId ? { ...a, hasBot: false, bot: null } : a
+        ))
+      }
+    } catch (e) {
+      console.error('Error deleting bot:', e)
+      alert(t('Failed to delete bot. Please try again.'))
+    }
+  }
+const handleStartEditBot = (app) => {
+    setEditingBotId(app.id)
+    setEditingBotName(app.bot?.name || '')
+  }
+
+  const handleCancelEditBot = () => {
+    setEditingBotId(null)
+    setEditingBotName('')
+  }
+
+  const handleSaveBotName = async (appId, botId) => {
+    if (!editingBotName.trim()) return
+
+    try {
+      const result = await dispatch(updateBot(botId, { name: editingBotName.trim() }))
+      if (result?.payload?.data?.updateBot) {
+        const updatedBot = result.payload.data.updateBot
+        setApplications(applications.map(a =>
+          a.id === appId ? { ...a, bot: { ...a.bot, name: updatedBot.name } } : a
+        ))
+        setEditingBotId(null)
+        setEditingBotName('')
+      }
+    } catch (e) {
+      console.error('Error updating bot:', e)
+      alert(t('Failed to update bot. Please try again.'))
+    }
+  }
+
+  const handleBotAvatarUpload = async (appId, botId, url) => {
+    try {
+      const result = await dispatch(updateBot(botId, { avatarUrl: url }))
+      if (result?.payload?.data?.updateBot) {
+        const updatedBot = result.payload.data.updateBot
+        setApplications(applications.map(a =>
+          a.id === appId ? { ...a, bot: { ...a.bot, avatarUrl: updatedBot.avatarUrl } } : a
+        ))
+      }
+    } catch (e) {
+      console.error('Error updating bot avatar:', e)
+      alert(t('Failed to update bot avatar. Please try again.'))
+    }
+  }
   const handleCopy = (id) => {
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
@@ -600,12 +665,94 @@ function DeveloperSettingsTab () {
                         <Icon name='Robot' /> {t('Bot enabled')}
                       </div>
                       {app.bot && (
-                        <div className={classes.botDetails}>
-                          <span className={classes.botName}>{app.bot.name}</span>
-                          {app.bot.avatarUrl && (
-                            <img src={app.bot.avatarUrl} alt={app.bot.name} className={classes.botAvatar} />
-                          )}
-                        </div>
+                        <>
+                          {/* Bot Avatar */}
+                          <div className={classes.botAvatarSection}>
+                            <UploadAttachmentButton
+                              type='botAvatar'
+                              id={app.bot.id}
+                              onSuccess={({ url }) => handleBotAvatarUpload(app.id, app.bot.id, url)}
+                              className={classes.botAvatarUpload}
+                            >
+                              <div className={classes.botAvatarWrapper}>
+                                {app.bot.avatarUrl ? (
+                                  <img src={app.bot.avatarUrl} alt={app.bot.name} className={classes.botAvatarLarge} />
+                                ) : (
+                                  <div className={classes.botAvatarPlaceholder}>
+                                    <Icon name='Robot' />
+                                  </div>
+                                )}
+                                <div className={classes.botAvatarOverlay}>
+                                  <Icon name='Camera' />
+                                </div>
+                              </div>
+                            </UploadAttachmentButton>
+                            <span className={classes.avatarHint}>{t('Click to change avatar')}</span>
+                          </div>
+
+                          {/* Bot Name */}
+                          <div className={classes.botNameSection}>
+                            {editingBotId === app.id ? (
+                              <div className={classes.editBotNameForm}>
+                                <input
+                                  type='text'
+                                  value={editingBotName}
+                                  onChange={(e) => setEditingBotName(e.target.value)}
+                                  placeholder={t('Bot name')}
+                                  className={classes.botNameInput}
+                                />
+                                <div className={classes.editBotActions}>
+                                  <Button
+                                    onClick={() => handleSaveBotName(app.id, app.bot.id)}
+                                    variant='primary'
+                                    small
+                                  >
+                                    {t('Save')}
+                                  </Button>
+                                  <Button
+                                    onClick={handleCancelEditBot}
+                                    variant='secondary'
+                                    small
+                                  >
+                                    {t('Cancel')}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={classes.botNameDisplay}>
+                                <span className={classes.botNameLarge}>{app.bot.name}</span>
+                                <button
+                                  className={classes.textButton}
+                                  onClick={() => handleStartEditBot(app)}
+                                >
+                                  <Icon name='Edit' /> {t('Edit')}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Bot User ID */}
+                          <div className={classes.credentialRow}>
+                            <span className={classes.credentialLabel}>{t('Bot User ID')}</span>
+                            <div className={classes.credentialValue}>
+                              <code className={classes.clientIdCode}>{app.bot.id}</code>
+                              <CopyToClipboard text={app.bot.id} onCopy={() => handleCopy(`bot-${app.id}`)}>
+                                <button className={classes.textButton}>
+                                  {copiedId === `bot-${app.id}` ? t('Copied!') : t('Copy')}
+                                </button>
+                              </CopyToClipboard>
+                            </div>
+                          </div>
+
+                          {/* Delete Bot */}
+                          <Button
+                            onClick={() => handleDeleteBot(app.id)}
+                            variant='danger'
+                            small
+                          >
+                            <Icon name='Trash' /> {t('Delete Bot')}
+                          </Button>
+                        </>
                       )}
                     </div>
                   ) : (
