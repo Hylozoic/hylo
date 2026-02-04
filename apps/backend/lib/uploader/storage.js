@@ -155,6 +155,12 @@ export function writeStringToS3 (content, key, options = {}) {
     }
   })
 
+  // console.log('***************************************************')
+  // console.log('***************************************************')
+  // console.log('\nWriting string to S3:', key, '\nwith content:\n', content)
+  // console.log('\n***************************************************')
+  // console.log('\n***************************************************')
+
   const s3 = new aws.S3()
 
   return new Promise((resolve, reject) => {

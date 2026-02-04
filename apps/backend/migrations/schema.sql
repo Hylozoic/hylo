@@ -2,8 +2,10 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.17 (Postgres.app)
--- Dumped by pg_dump version 17.4 (Postgres.app)
+\restrict SpPvEfrligr7DugzXzJjKT9wuhtRH8M7AaUOmPvZ7bVLC0EcHt80B6VgSOeJeuN
+
+-- Dumped from database version 17.4 (Postgres.app)
+-- Dumped by pg_dump version 17.6 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,13 +17,6 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
 
 --
 -- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
@@ -63,12 +58,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
-
-
---
--- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
---
-
 
 
 SET default_tablespace = '';
@@ -991,7 +980,6 @@ CREATE TABLE public.funding_rounds (
     submitter_roles jsonb DEFAULT '[]'::jsonb,
     voter_roles jsonb DEFAULT '[]'::jsonb,
     phase character varying(255) DEFAULT 'draft'::character varying,
-    active boolean DEFAULT true NOT NULL,
     deactivated_at timestamp with time zone
 );
 
@@ -1526,7 +1514,8 @@ CREATE TABLE public.groups (
     allow_in_public boolean DEFAULT false,
     purpose text,
     welcome_page text,
-    website_url text
+    website_url text,
+    calendar_token character varying(255)
 );
 
 
@@ -2635,7 +2624,8 @@ CREATE TABLE public.users (
     location_id bigint,
     contact_email character varying(255),
     contact_phone character varying(255),
-    last_active_at timestamp with time zone
+    last_active_at timestamp with time zone,
+    calendar_token character varying(255)
 );
 
 
@@ -7135,4 +7125,6 @@ ALTER TABLE ONLY public.zapier_triggers
 --
 -- PostgreSQL database dump complete
 --
+
+\unrestrict SpPvEfrligr7DugzXzJjKT9wuhtRH8M7AaUOmPvZ7bVLC0EcHt80B6VgSOeJeuN
 
