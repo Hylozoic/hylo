@@ -1,0 +1,12 @@
+{
+  "accepter_name": "Joe Awesome",
+  "child_group_accessibility": "restricted",
+  "child_group_avatar_url": "http://hylo-dev.s3.amazonaws.com/community/1933/avatar/1475424224039_TigerFace.png",
+  "child_group_name": "Child Group",
+  "email_settings_url": "https://hylo.com",
+  "memberOf": "parent",
+  "memberType": "member",
+  "parent_group_accessibility": "open",
+  "parent_group_name": "Parent Group",
+  "parent_group_url": "http://hylo.com/groups/parent_group/groups"
+}

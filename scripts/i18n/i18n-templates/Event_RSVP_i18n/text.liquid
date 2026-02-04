@@ -1,0 +1,33 @@
+{% set user_name_var = user_name %}
+{% trans %}Hi {{user_name_var}},{% endtrans %}
+
+{% set response_var = response %}
+{% trans %}You indicated you are {{response_var}}{% endtrans %}
+
+{% set event_name_var = event_name %}
+{% trans %}{{event_name_var}}{% endtrans %}
+
+{% set group_names_var = group_names %}
+{% trans %}from {{group_names_var}}{% endtrans %}
+{% set date_var = date %}
+{% trans %}{{date_var}}{% endtrans %}
+
+{% set event_url_var = event_url %}
+{% trans %}Event Page [ {{event_url_var}} ]{% endtrans %}
+
+{% trans %}Attached is an invite to add this event to your calendar.{% endtrans %}
+
+{% trans %}[ https://hylo.com ]{% endtrans %}
+{% if group_name %}
+  {% set group_name_var = group_name %}
+  {% trans %}{{group_name_var}} is hosted on{% endtrans %}
+{% else %}
+  {% trans %}This email sent from{% endtrans %}
+{% endif %} {% trans %}hylo.com{% endtrans %} {% trans %}[ https://hylo.com ]{% endtrans %} 
+{%if email_settings_url %}
+  {% set email_settings_url_var = email_settings_url %}
+  {% trans %}Email settings [ {{email_settings_url_var}} ]{% endtrans %}
+{% endif %}
+
+{% set swu_webview_url = swu.webview_url %}
+{% trans %}View this email in a browser [ {{swu_webview_url}} ]{% endtrans %}

@@ -1,0 +1,3 @@
+{
+  "login_url": "http://localhost:3000/noo/login/token?u=7650&t=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2h5bG8uY29tIiwiYXVkIjoiaHR0cHM6Ly9oeWxvLmNvbSIsInN1YiI6Ijc2NTAiLCJleHAiOjE2MzcyOTExMDQsInVzZXJfaWQiOiI3NjUwIiwiZW1haWwiOiJ0aWJldEB0ZXJyYW4uaW8iLCJpYXQiOjE2MzcyNzY3MDR9.UTxqVq176OxtYI5DuO3pGDhBzrYtaFY5AB942r281HE&n=http%3A%2F%2Flocalhost%3A3000%2Fsettings%2Faccount"
+}

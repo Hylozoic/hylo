@@ -1,0 +1,26 @@
+{% snippet header_redesign %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}},{% endtrans %}
+</p>
+
+<p>{% trans %}You indicated you are{% endtrans %} <i>{{response}}</i></p>
+<h2>{{event_name}}</h2> 
+<p>
+  {% set group_names_var = group_names %}
+  {% trans %}from{% endtrans %} {{group_names_var}}
+</p> 
+<strong>{{date}}</strong>
+
+<br>
+<br>
+
+<a class='btn btn-blue' href="{{event_url}}" clicktracking="off">{% trans %}Event Page{% endtrans %}</a>
+
+<br>
+<br>
+
+<p>{% trans %}Attached is an invite to add this event to your calendar.{% endtrans %}</p>
+
+{% snippet footer_redesign %}

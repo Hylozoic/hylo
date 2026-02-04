@@ -1,0 +1,19 @@
+{
+  "group_avatar_url": "http://hylo-dev.s3.amazonaws.com/community/1933/avatar/1475424224039_TigerFace.png",
+  "group_name": "Awesome People",
+  "group_url": "https://hylo.com",
+  "join_question_answers": [
+    {
+      "answer": "You're not fooling me this time. Carrots are not real. They are way too orange to be real. Did an oompaloompah's nose fall off? Also, that crunch? Must be artificial. No way. ",
+      "text": "Do you like carrots?"
+    },
+    {
+      "answer": "The dark night of the soul",
+      "text": "What time is it?"
+    }
+  ],
+  "requester_avatar_url": "http://hylo-dev.s3.amazonaws.com/community/1933/avatar/1475424224039_TigerFace.png",
+  "requester_name": "Joe Awesome",
+  "requester_profile_url": "http://hylo.com/u/1",
+  "settings_url": "http://hylo.com/c/hylo/settings?expand=access"
+}

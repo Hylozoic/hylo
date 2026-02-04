@@ -1,0 +1,14 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+{% set approver_pill = actor_pill(approver_name, approver_avatar_url, approver_profile_url) %}
+{% trans %}Your request to join {{group_pill}} was approved by {{approver_pill}}!{% endtrans %}
+</p>
+
+<p>{% trans %}Now's a great time to introduce yourself in the chat.{% endtrans %}</p>
+
+<a clicktracking="off" class='btn btn-blue' href="{{group_url}}">{% trans %}Jump in{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

@@ -1,0 +1,10 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+{% set completer_pill = actor_pill(completer_name, completer_avatar_url, completer_profile_url) %}
+
+<p>{% trans %}{{completer_pill}} has completed the track {% endtrans %}<strong>{% trans %}{{track_name}}{% endtrans %}</strong></p>
+
+<a class='btn btn-blue' href="{{completer_profile_url}}">{% trans %}Congratulate Them!{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

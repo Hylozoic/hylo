@@ -212,9 +212,48 @@ async function updateTemplate (templateId, updates, locale, client) {
 }
 
 /**
+ * Create a new template version
+ * @param {string} templateId - Template ID
+ * @param {Object} versionData - Version data (name, subject, html, text, etc.)
+ * @param {string} [locale] - Optional locale
+ * @param {Object} [client] - Optional SendWithUs client
+ * @returns {Promise<Object>} Created version object
+ */
+async function createTemplateVersion (templateId, versionData, locale, client) {
+  const api = client || createClient()
+  const url = locale
+    ? `https://api.sendwithus.com/api/v1_0/templates/${templateId}/locales/${locale}/versions`
+    : `https://api.sendwithus.com/api/v1_0/templates/${templateId}/versions`
+
+  return new Promise((resolve, reject) => {
+    restler.postJson(url, versionData, {
+      headers: {
+        'X-SWU-API-KEY': api.API_KEY,
+        'X-SWU-API-CLIENT': 'node-2.10.0'
+      }
+    }).once('complete', (result, response) => {
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        resolve(result)
+      } else {
+        const error = new Error(`Request failed with ${response.statusCode}`)
+        error.statusCode = response.statusCode
+        error.response = result
+        // Include response body in error message for debugging
+        if (result) {
+          const errorMsg = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+          error.message = `Request failed with ${response.statusCode}: ${errorMsg}`
+        }
+        reject(error)
+      }
+    })
+  })
+}
+
+/**
  * Update a template version
  * Note: The sendwithus package doesn't have a direct method for this.
  * We'll need to make a custom HTTP request.
+ * Note: SendWithUs may not allow updating published versions. Consider creating a new version instead.
  * @param {string} templateId - Template ID
  * @param {string} versionId - Version ID
  * @param {Object} updates - Updates (name, subject, html, text, etc.)
@@ -241,6 +280,11 @@ async function updateTemplateVersion (templateId, versionId, updates, locale, cl
         const error = new Error(`Request failed with ${response.statusCode}`)
         error.statusCode = response.statusCode
         error.response = result
+        // Include response body in error message for debugging
+        if (result) {
+          const errorMsg = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+          error.message = `Request failed with ${response.statusCode}: ${errorMsg}`
+        }
         reject(error)
       }
     })
@@ -404,6 +448,105 @@ async function downloadPotFile (tag, client) {
 }
 
 /**
+ * Upload .pot translation template file
+ * Note: The sendwithus package doesn't have a direct method for this.
+ * We'll need to make a custom HTTP request.
+ * @param {string} tag - Tag for templates
+ * @param {string|Buffer} potContent - POT file content
+ * @param {Object} [client] - Optional SendWithUs client
+ * @returns {Promise<Object>} Upload response
+ */
+async function uploadPotFile (tag, potContent, client) {
+  const api = client || createClient()
+  const url = `https://api.sendwithus.com/api/v1_0/i18n/pot/${tag}`
+
+  return new Promise((resolve, reject) => {
+    // Use multipart/form-data with form-data library (same as PO files)
+    let FormData
+    try {
+      FormData = require('form-data')
+    } catch (err) {
+      // If form-data not available, try raw text upload with POST
+      const content = typeof potContent === 'string' ? potContent : potContent.toString('utf8')
+      restler.post(url, {
+        data: content,
+        headers: {
+          'X-SWU-API-KEY': api.API_KEY,
+          'X-SWU-API-CLIENT': 'node-2.10.0',
+          'Content-Type': 'text/plain'
+        }
+      }).once('complete', (result, response) => {
+        if (response.statusCode === 200 || response.statusCode === 201) {
+          resolve(result || {})
+        } else {
+          const error = new Error(`Request failed with ${response.statusCode}`)
+          error.statusCode = response.statusCode
+          error.response = result
+          reject(error)
+        }
+      }).on('error', (err) => {
+        reject(err)
+      })
+      return
+    }
+
+    // Use FormData for multipart upload
+    const content = typeof potContent === 'string' ? Buffer.from(potContent, 'utf8') : potContent
+    const form = new FormData()
+    form.append('file', content, {
+      filename: 'template.pot',
+      contentType: 'text/plain'
+    })
+
+    const formHeaders = form.getHeaders()
+    const headers = {
+      'X-SWU-API-KEY': api.API_KEY,
+      'X-SWU-API-CLIENT': 'node-2.10.0',
+      ...formHeaders
+    }
+
+    // Use form-data's submit method which handles streaming properly
+    form.submit({
+      protocol: 'https:',
+      host: 'api.sendwithus.com',
+      path: `/api/v1_0/i18n/pot/${tag}`,
+      method: 'POST',
+      headers
+    }, (err, res) => {
+      if (err) {
+        reject(err)
+        return
+      }
+
+      let responseData = ''
+      res.on('data', (chunk) => {
+        responseData += chunk.toString()
+      })
+
+      res.on('end', () => {
+        if (res.statusCode === 200 || res.statusCode === 201) {
+          try {
+            const parsed = responseData ? JSON.parse(responseData) : {}
+            resolve(parsed)
+          } catch (e) {
+            resolve({})
+          }
+        } else {
+          const error = new Error(`Request failed with ${res.statusCode}`)
+          error.statusCode = res.statusCode
+          error.response = responseData
+          reject(error)
+        }
+      })
+
+      res.on('error', (err) => {
+        reject(err)
+      })
+    })
+  })
+}
+
+/**
  * Upload .po translation files
  * Note: The sendwithus package doesn't have a direct method for this.
  * We'll need to make a custom HTTP request.
@@ -511,11 +654,13 @@ module.exports = {
   getTemplateVersion,
   createTemplate,
   updateTemplate,
+  createTemplateVersion,
   updateTemplateVersion,
   getSnippets,
   getSnippet,
   createSnippet,
   updateSnippet,
   downloadPotFile,
+  uploadPotFile,
   uploadPoFiles
 }

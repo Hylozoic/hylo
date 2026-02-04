@@ -1,0 +1,11 @@
+{
+  "child_group_name": "Child Group",
+  "child_group_settings_url": "http://hylo.com/groups/child_group/settings/groups#invites",
+  "email_settings_url": true,
+  "inviter_avatar_url": "http://hylo-dev.s3.amazonaws.com/community/1933/avatar/1475424224039_TigerFace.png",
+  "inviter_name": "Joe Awesome",
+  "inviter_profile_url": "http://hylo.com/members/1",
+  "parent_group_avatar_url": "http://hylo-dev.s3.amazonaws.com/community/1933/avatar/1475424224039_TigerFace.png",
+  "parent_group_name": "Parent Group",
+  "parent_group_url": "http://hylo.com/groups/parent_group"
+}
