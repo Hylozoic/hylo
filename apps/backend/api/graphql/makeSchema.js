@@ -44,6 +44,17 @@ import {
   createSavedSearch,
   createTrack,
   createZapierTrigger,
+  createApplication,
+  deleteApplication,
+  regenerateClientSecret,
+  updateApplication,
+  updateDeveloperMode,
+  createBotForApplication,
+  deleteBotForApplication,
+  updateBot,
+  inviteBotToGroup,
+  removeBotFromGroup,
+  updateBotPermissions,
   login,
   createTopic,
   deactivateUser,
@@ -484,6 +495,27 @@ export function makeMutations ({ fetchOne }) {
     createTrack: (root, { data }, context) => createTrack(context.currentUserId, data),
 
     createZapierTrigger: (root, { groupIds, targetUrl, type, params }, context) => createZapierTrigger(context.currentUserId, groupIds, targetUrl, type, params),
+    // Developer Portal & Bot mutations
+    createApplication: (root, { data }, context) => createApplication(root, { data }, context),
+
+    deleteApplication: (root, { id }, context) => deleteApplication(root, { id }, context),
+
+    regenerateClientSecret: (root, { applicationId }, context) => regenerateClientSecret(root, { applicationId }, context),
+
+    updateApplication: (root, { id, changes }, context) => updateApplication(root, { id, changes }, context),
+
+    updateDeveloperMode: (root, { enabled }, context) => updateDeveloperMode(root, { enabled }, context),
+
+    createBotForApplication: (root, { applicationId }, context) => createBotForApplication(context.fetchOne)(root, { applicationId }, context),
+    deleteBotForApplication: (root, { applicationId }, context) => deleteBotForApplication(root, { applicationId }, context),
+    updateBot: updateBot(fetchOne),
+
+    inviteBotToGroup: (root, { data }, context) => { console.log("MAKESCHEMA: inviteBotToGroup called", { data, hasContext: !!context, currentUserId: context?.currentUserId }); return inviteBotToGroup(root, { data }, context); },
+
+    removeBotFromGroup: (root, { botGroupPermissionId }, context) => removeBotFromGroup(root, { botGroupPermissionId }, context),
+
+    updateBotPermissions: (root, { botGroupPermissionId, permissions }, context) => updateBotPermissions(root, { botGroupPermissionId, permissions }, context),
+
 
     createTopic: (root, { topicName, groupId, isDefault, isSubscribing }, context) => createTopic(context.currentUserId, topicName, groupId, isDefault, isSubscribing),
 

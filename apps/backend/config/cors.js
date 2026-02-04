@@ -28,6 +28,32 @@
  *
  */
 
+/**
+ * Get allowed CORS origins from environment or use secure defaults
+ */
+function getAllowedOrigins() {
+  // Default allowed origins - never use '*' in production
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://localhost:3000',
+    'https://www.hylo.com',
+    'https://hylo.com',
+    'https://www.hylo.io',
+    'https://hylo.io'
+  ]
+  
+  // Add origins from environment variable if set
+  if (process.env.CORS_ORIGINS) {
+    const envOrigins = process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+    // Filter out '*' if someone accidentally includes it
+    const safeOrigins = envOrigins.filter(o => o !== '*')
+    return [...defaultOrigins, ...safeOrigins]
+  }
+  
+  return defaultOrigins
+}
+
 module.exports.security = {
   cors: {
 
@@ -45,13 +71,13 @@ module.exports.security = {
     /***************************************************************************
     *                                                                          *
     * Which domains which are allowed CORS access? This can be a               *
-    * comma-delimited list of hosts (beginning with http:// or https://) or    *
-    * "*" to allow all domains CORS access.                                    *
+    * comma-delimited list of hosts (beginning with http:// or https://).      *
+    * NEVER use "*" to allow all domains in production - this is a security    *
+    * vulnerability that can lead to CSRF attacks.                             *
     *                                                                          *
     ***************************************************************************/
 
-    allowOrigins: '*',
-    // process.env.CORS_ORIGIN || 'https://www.hylo.com',
+    allowOrigins: getAllowedOrigins(),
 
     /***************************************************************************
     *                                                                          *
@@ -59,7 +85,7 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    allowCredentials: false,
+    allowCredentials: true,
 
     /***************************************************************************
     *                                                                          *
@@ -68,7 +94,7 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    allowRequestMethods: 'GET, POST, PUT, DELETE, OPTIONS, HEAD'
+    allowRequestMethods: 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
 
     /***************************************************************************
     *                                                                          *
@@ -77,6 +103,7 @@ module.exports.security = {
     *                                                                          *
     ***************************************************************************/
 
-    // allowRequestHeaders: 'content-type'
+    allowRequestHeaders: 'content-type, authorization, x-requested-with'
+
   }
 }
