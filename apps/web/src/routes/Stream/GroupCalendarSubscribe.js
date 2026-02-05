@@ -1,10 +1,13 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Rss } from 'lucide-react'
 import Button from 'components/Button'
 import ModalDialog from 'components/ModalDialog'
 
 const GOOGLE_CALENDAR_ADD_URL = 'https://calendar.google.com/calendar/u/0/r/settings/addbyurl'
+
+/** Converts an https/http calendar URL to webcal so OS opens the default calendar app (e.g. Apple Calendar). */
+const toWebcalUrl = (url) => url ? url.replace(/^https?:\/\//i, 'webcal://') : ''
 
 /**
  * Renders a "Subscribe to this Group's Calendar" button and modal with calendar URL and copy / Google Calendar actions.
@@ -37,6 +40,12 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl }) {
     copyToClipboard(eventCalendarUrl)
     window.open(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
   }, [eventCalendarUrl, copyToClipboard])
+
+  const webcalUrl = useMemo(() => toWebcalUrl(eventCalendarUrl), [eventCalendarUrl])
+
+  const handleAppleCalendar = useCallback(() => {
+    if (webcalUrl) window.location.href = webcalUrl
+  }, [webcalUrl])
 
   if (!eventCalendarUrl) return null
 
@@ -74,6 +83,9 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl }) {
             <div className='flex flex-wrap gap-2'>
               <Button color='green-white-green-border' narrow onClick={handleCopy}>
                 {t('Copy')}
+              </Button>
+              <Button color='green-white-green-border' narrow onClick={handleAppleCalendar}>
+                {t('Add to Apple Calendar')}
               </Button>
               <Button color='green-white-green-border' narrow onClick={handleGoogleCalendar}>
                 {t('Add to Google Calendar')}

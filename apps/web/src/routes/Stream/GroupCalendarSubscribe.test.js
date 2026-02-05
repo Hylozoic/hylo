@@ -78,4 +78,20 @@ describe('GroupCalendarSubscribe', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(defaultProps.eventCalendarUrl)
     expect(window.open).toHaveBeenCalledWith(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
   })
+
+  it('Apple Calendar button sets location.href to webcal URL', () => {
+    render(<GroupCalendarSubscribe {...defaultProps} />)
+    fireEvent.click(screen.getByRole('button', { name: /Subscribe to this Group's Calendar/i }))
+
+    const locationHref = {}
+    const originalLocation = window.location
+    delete window.location
+    window.location = locationHref
+
+    fireEvent.click(screen.getByRole('button', { name: /Apple Calendar/i }))
+
+    expect(locationHref.href).toBe('webcal://example.com/calendar/feed.ics')
+
+    window.location = originalLocation
+  })
 })
