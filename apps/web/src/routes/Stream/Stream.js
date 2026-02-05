@@ -21,6 +21,7 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
+import GroupCalendarSubscribe from './GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -123,6 +124,7 @@ export default function Stream (props) {
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
   const isCalendarViewMode = viewMode === 'calendar'
+  const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
 
   const fetchPostsParam = useMemo(() => {
     const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
@@ -384,6 +386,7 @@ export default function Stream (props) {
               mode={calendarMode}
               setMode={setCalendarMode}
             />
+            {group && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
           </div>
         )}
         {(pending || topicLoading) && <Loading />}
