@@ -1,0 +1,14 @@
+{% snippet 'header_redesign' %}
+{% snippet 'macro: post_card' %}
+
+{% set mentioned_you_text = 'mentioned you' %}
+{{ post_card(post, false, mentioned_you_text) }}
+ 
+<p class="center">
+  {% trans %}Reply to this email to comment on the post, or{% endtrans %}
+</p>
+  
+{% set post_url = post.url %}
+<a href='{{post_url}}' class='btn btn-blue'>{% trans %}Reply in the Group{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

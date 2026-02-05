@@ -1,0 +1,24 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+{% if memberOf == 'child' and memberType == 'member' %}
+  {% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_url) %}
+  {% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+  <p>{% trans %}Your group {{child_group_pill}} has joined group {{parent_group_pill}}.{% endtrans %} {% if parent_group_accessibility != 'closed' %} {% trans %} You can now join {{parent_group_pill}}.{% endtrans %} {% endif %}</p>
+{% elif memberOf == 'child' and memberType == 'moderator' %}
+  {% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_url) %}
+  {% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+  <p>{% trans %}The request from your group {{child_group_pill}} to join group {{parent_group_pill}} has been accepted!{% endtrans %} {% if parent_group_accessibility != 'closed' %} {% trans %} You can now join {{parent_group_pill}}.{% endtrans %} {% endif %}
+  </p>
+{% elif memberOf == 'parent' and memberType == 'member' %}
+  {% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_url) %}
+  {% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+  <p>{% trans %}The group {{child_group_pill}} has joined your group {{parent_group_pill}}!{% endtrans %} {% if child_group_accessibility != 'closed' %} {% trans %} You can now join {{child_group_pill}}.{% endtrans %} {% endif %}
+  </p>
+{% elif memberOf == 'parent' and memberType == 'moderator' %}
+  {% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_url) %}
+  {% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+<p>{% trans %}The group {{child_group_pill}} has joined your group {{parent_group_pill}}!{% endtrans %} {% if accepter_name %}{{accepter_name}} {% trans %}accepted the request to join.{% endtrans %} {% endif %} {% if child_group_accessibility != 'closed' %} {% trans %} You can now join {{child_group_pill}}.{% endtrans %} {% endif %} </p>
+{% endif %}
+
+{% snippet "footer_redesign" %}
