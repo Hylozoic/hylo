@@ -211,7 +211,7 @@ function AboutTab ({ track, showPaywall = false }) {
   const { bannerUrl, name, description } = track
 
   return (
-    <>
+    <div className={showPaywall ? 'w-full max-w-[750px] mx-auto' : ''}>
       <div
         className={cn('mt-4 w-full shadow-2xl max-w-[750px] rounded-xl flex flex-col items-center justify-end bg-cover mb-6 relative overflow-hidden', { 'min-h-[40vh] pb-6': bannerUrl })}
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
@@ -225,7 +225,7 @@ function AboutTab ({ track, showPaywall = false }) {
           <TrackPaywallOfferingsSection track={track} />
         </div>
       )}
-    </>
+    </div>
   )
 }
 
