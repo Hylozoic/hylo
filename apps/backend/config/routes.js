@@ -62,6 +62,12 @@ module.exports.routes = {
   'GET     /noo/payment/registerStripe':                  'PaymentController.registerStripe',
   'POST    /noo/payment/registerStripe':                  'PaymentController.registerStripe',
 
+  // Stripe Connect routes
+  'GET     /noo/stripe/health':                          'StripeController.health',
+  'GET     /noo/stripe/checkout/success':                'StripeController.checkoutSuccess',
+  'GET     /noo/stripe/checkout/cancel':                 'StripeController.checkoutCancel',
+  'POST    /noo/stripe/webhook':                         'StripeController.webhook',
+
   // websockets routes
   'POST   /noo/user/subscribe':                           'UserController.subscribeToUpdates',
   'POST   /noo/user/unsubscribe':                         'UserController.unsubscribeFromUpdates',

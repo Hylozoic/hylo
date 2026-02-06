@@ -1,4 +1,4 @@
-import { CopyPlus, Eye, EyeOff, Pencil, Users, UserCheck } from 'lucide-react'
+import { CopyPlus, Eye, EyeOff, Pencil, Users, UserCheck, DollarSign } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -40,7 +40,7 @@ function TrackCard ({ track }) {
     }
   }, [track.id])
 
-  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt } = track
+  const { actionDescriptorPlural, didComplete, isEnrolled, name, numActions, numPeopleCompleted, numPeopleEnrolled, publishedAt, accessControlled } = track
 
   const handleButtonClick = (event) => {
     event.preventDefault() // Prevents the click event from bubbling up to the Link
@@ -52,6 +52,15 @@ function TrackCard ({ track }) {
         <div className='flex justify-between items-center pb-1'>
           <Link className='w-full flex flex-row items-center gap-1 text-foreground hover:text-foreground/100 ' to={viewTrackUrl}>
             <h2 className='m-0 p-0 truncate'>{name}</h2>
+            {accessControlled && (
+              <>
+                <DollarSign
+                  className='w-4 h-4'
+                  data-tooltip-id='track-card-tooltip'
+                  data-tooltip-content={t('This track requires payment to access')}
+                />
+              </>
+            )}
             <span className='text-xs text-foreground/60 ml-2'>{numActions} {actionDescriptorPlural}</span>
           </Link>
           {canEdit && <CopyPlus className='hover:scale-125 transition-all w-6 h-6 cursor-pointer text-foreground mr-2' onClick={handleDuplicateTrack} />}

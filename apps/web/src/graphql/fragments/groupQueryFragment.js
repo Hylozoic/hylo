@@ -67,6 +67,8 @@ export default function groupQueryFragment () {
     visibility
     websiteUrl
     welcomePage
+    paywall
+    canAccess
     groupRoles {
       items {
         id

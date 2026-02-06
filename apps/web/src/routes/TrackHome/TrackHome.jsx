@@ -16,6 +16,7 @@ import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -32,6 +33,7 @@ import { bgImageStyle, cn } from 'util/index'
 import { createPostUrl, groupUrl, personUrl } from '@hylo/navigation'
 
 import ActionSummary from './ActionSummary'
+import TrackPaywallOfferingsSection from './TrackPaywallOfferingsSection'
 
 const getPosts = ormCreateSelector(
   orm,
@@ -87,17 +89,21 @@ function TrackHome () {
   if (isLoading) return <Loading />
   if (!currentTrack) return <Loading />
 
-  const { didComplete, isEnrolled, publishedAt } = currentTrack
+  const { didComplete, isEnrolled, publishedAt, accessControlled, canAccess } = currentTrack
+  const hasAccess = !accessControlled || canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
 
   if (!canEdit && !publishedAt) {
     return <NotFound />
   }
 
+  // Users without access can only see the About tab
+  const canViewFullTrack = hasAccess || canEdit
+
   return (
     <div className='w-full h-full' ref={setContainer}>
       <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
         <div className='w-full h-full flex-1 flex flex-col'>
-          {(isEnrolled || canEdit) && (
+          {(isEnrolled || canEdit) && canViewFullTrack && (
             <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
               <Link
                 className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
@@ -136,19 +142,25 @@ function TrackHome () {
             </div>
           )}
 
-          <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
-            <div className='w-full max-w-[750px] mx-auto pb-20'>
-              <Routes>
-                <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-                <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-                <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-                <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-                <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-                <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-                <Route path='*' element={<AboutTab track={currentTrack} />} />
-              </Routes>
-            </div>
-          </div>
+          {canViewFullTrack
+            ? (
+              <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+                <div className='w-full max-w-[750px] mx-auto pb-20'>
+                  <Routes>
+                    <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                    <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                    <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                    <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                    <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                    <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                    <Route path='*' element={<AboutTab track={currentTrack} />} />
+                  </Routes>
+                </div>
+              </div>
+              )
+            : (
+              <AboutTab track={currentTrack} showPaywall />
+              )}
         </div>
 
         <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
@@ -180,7 +192,7 @@ function TrackHome () {
                     </div>
                   </>
                   )
-                : (
+                : !isEnrolled && hasAccess && (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
                     <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
@@ -189,16 +201,17 @@ function TrackHome () {
         </div>
 
         <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
+        <Tooltip id='enroll-tooltip' />
       </div>
     </div>
   )
 }
 
-function AboutTab ({ track }) {
+function AboutTab ({ track, showPaywall = false }) {
   const { bannerUrl, name, description } = track
 
   return (
-    <>
+    <div className={showPaywall ? 'w-full max-w-[750px] mx-auto' : ''}>
       <div
         className={cn('mt-4 w-full shadow-2xl max-w-[750px] rounded-xl flex flex-col items-center justify-end bg-cover mb-6 relative overflow-hidden', { 'min-h-[40vh] pb-6': bannerUrl })}
         style={bannerUrl ? bgImageStyle(bannerUrl) : {}}
@@ -207,17 +220,32 @@ function AboutTab ({ track }) {
         <h1 className='text-white text-4xl font-bold z-20 px-1 text-center'>{name}</h1>
       </div>
       <HyloHTML html={description} />
-    </>
+      {showPaywall && (
+        <div className='mt-6 mb-4'>
+          <TrackPaywallOfferingsSection track={track} />
+        </div>
+      )}
+    </div>
   )
 }
 
 function ActionsTab ({ track, container }) {
+  const { t } = useTranslation()
   const posts = useSelector(state => getPosts(state, track))
-  const { isEnrolled } = track
+  const { isEnrolled, accessControlled, canAccess } = track
+  const hasAccess = canAccess !== false // Default to true if not access-controlled or if canAccess is undefined
+
+  // Block access if track is access-controlled and user doesn't have access
+  const canViewActions = isEnrolled && (!accessControlled || hasAccess)
 
   return (
-    <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
+    <div className={cn({ 'pointer-events-none opacity-50': !canViewActions })}>
       <h1>{track.actionDescriptorPlural}</h1>
+      {!canViewActions && accessControlled && !hasAccess && (
+        <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 text-center my-4'>
+          <p className='text-foreground/70'>{t('You need to be granted access to view the actions in this track.')}</p>
+        </div>
+      )}
       {posts.map(post => (
         <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} />
       ))}

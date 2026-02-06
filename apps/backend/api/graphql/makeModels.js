@@ -1,4 +1,4 @@
-/* global FundingRound */
+/* global FundingRound ContentAccess */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -17,9 +17,11 @@ import {
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import InvitationService from '../services/InvitationService'
 import {
+  filterAndSortContentAccess,
   filterAndSortPosts,
   filterAndSortUsers
 } from '../services/Search/util'
+const { createGroupRoleScope } = require('../../lib/scopes')
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -201,6 +203,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: GroupMembership,
       attributes: [
         'created_at',
+        'expires_at',
         'group_id',
         'nav_order'
       ],
@@ -257,6 +260,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       model: MemberGroupRole,
       attributes: [
         'id',
+        'expires_at',
         'group_id',
         'group_role_id',
         'user_id'
@@ -617,9 +621,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'geo_shape',
         'memberCount',
         'name',
+        'paywall',
         'postCount',
         'purpose',
         'slug',
+        'stripe_account_id',
+        'stripe_charges_enabled',
+        'stripe_payouts_enabled',
+        'stripe_details_submitted',
         'type',
         'visibility',
         'website_url',
@@ -779,6 +788,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
           }
         },
         {
+          contentAccess: {
+            querySet: true,
+            filter: (relation, { search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy, order }) =>
+              relation.query(filterAndSortContentAccess({
+                groupIds: [relation.relatedData.parentId],
+                search,
+                accessType,
+                status,
+                offeringId,
+                trackId,
+                groupRoleId,
+                commonRoleId,
+                sortBy,
+                order
+              }))
+          }
+        },
+        {
           viewPosts: {
             querySet: true,
             arguments: () => [userId],
@@ -808,7 +835,9 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
+        canAccess: g => g ? g.canAccess(userId) : false,
         homeWidget: g => g.homeWidget(),
+        stripeDashboardUrl: g => g.stripeDashboardUrl(),
         invitePath: g =>
           userId && GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADD_MEMBERS)
             .then(canInvite => canInvite ? Frontend.Route.invitePath(g) : null),
@@ -962,7 +991,15 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         'group',
         { responsibilities: { querySet: true } }
-      ]
+      ],
+      getters: {
+        canAccess: gr => {
+          if (!gr || !userId) return false
+          // Check if user has the group_role scope
+          const requiredScope = createGroupRoleScope(gr.get('id'))
+          return UserScope.canAccess(userId, requiredScope)
+        }
+      }
     },
 
     CustomView: {
@@ -1281,6 +1318,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
     Track: {
       model: Track,
       attributes: [
+        'access_controlled',
         'action_descriptor',
         'action_descriptor_plural',
         'created_at',
@@ -1305,9 +1343,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { users: { querySet: true } }
       ],
       getters: {
+        canAccess: t => t ? t.canAccess(userId) : false,
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
-        userSettings: t => t && userId ? t.userSettings(userId) : null
+        userSettings: t => t && userId ? t.userSettings(userId) : null,
+
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
@@ -1541,6 +1581,204 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'name'
       ]
+    },
+
+    StripeOffering: {
+      model: StripeProduct,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'group_id',
+        'stripe_product_id',
+        'stripe_price_id',
+        'name',
+        'description',
+        'price_in_cents',
+        'currency',
+        'track_id',
+        'access_grants',
+        'renewal_policy',
+        'duration',
+        'publish_status'
+      ],
+      relations: [
+        'group',
+        'track'
+      ],
+      getters: {
+        stripeProductId: sp => sp.get('stripe_product_id'),
+        stripePriceId: sp => sp.get('stripe_price_id'),
+        priceInCents: sp => sp.get('price_in_cents'),
+        trackId: sp => sp.get('track_id'),
+        accessGrants: sp => sp.get('access_grants'),
+        renewalPolicy: sp => sp.get('renewal_policy'),
+        publishStatus: sp => sp.get('publish_status'),
+        tracks: async (sp) => {
+          if (!sp) return []
+          const accessGrants = sp.get('access_grants')
+          if (!accessGrants) return []
+
+          // Parse accessGrants (might be string or object)
+          let grants = {}
+          if (typeof accessGrants === 'string') {
+            try {
+              grants = JSON.parse(accessGrants)
+            } catch {
+              return []
+            }
+          } else {
+            grants = accessGrants
+          }
+
+          // Extract all trackIds from all groups
+          const trackIds = []
+          if (grants.trackIds && Array.isArray(grants.trackIds)) {
+            trackIds.push(...grants.trackIds.map(id => parseInt(id)))
+          }
+
+          if (trackIds.length === 0) return []
+
+          // Fetch tracks
+          const tracks = await Track.where('id', 'in', trackIds).fetchAll()
+          return tracks.models || []
+        },
+      }
+    },
+
+    ContentAccess: {
+      model: ContentAccess,
+      isDefaultTypeForTable: true,
+      attributes: [
+        'id',
+        'created_at',
+        'updated_at',
+        'user_id',
+        'granted_by_group_id',
+        'group_id',
+        'track_id',
+        'group_role_id',
+        'common_role_id',
+        'access_type',
+        'stripe_session_id',
+        'stripe_subscription_id',
+        'status',
+        'granted_by_id',
+        'expires_at',
+        'metadata'
+      ],
+      relations: [
+        'user',
+        'grantedByGroup',
+        'group',
+        { product: { alias: 'offering', typename: 'StripeOffering' } },
+        'track',
+        'groupRole',
+        'commonRole',
+        'grantedBy'
+      ],
+      fetchMany: (args) => {
+        // Store args for use in filter function
+        ContentAccess._fetchManyArgs = args
+        return ContentAccess
+      },
+      filter: (relation) => {
+        const args = ContentAccess._fetchManyArgs || {}
+        const { groupIds, search, accessType, status, offeringId, trackId, groupRoleId, commonRoleId, sortBy = 'created_at', order } = args
+
+        return relation.query(q => {
+          // Filter by group IDs (groups that granted the access)
+          if (groupIds && groupIds.length > 0) {
+            q.whereIn('content_access.granted_by_group_id', groupIds)
+          }
+
+          // Filter by user name search
+          if (search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+            q.whereRaw('users.name ilike ?', `%${search}%`)
+          }
+
+          // Filter by access type
+          if (accessType) {
+            q.where('content_access.access_type', accessType)
+          }
+
+          // Filter by status
+          if (status) {
+            q.where('content_access.status', status)
+          }
+
+          // Filter by offering ID
+          if (offeringId) {
+            q.where('content_access.product_id', offeringId)
+          }
+
+          // Filter by track ID
+          if (trackId) {
+            q.where('content_access.track_id', trackId)
+          }
+
+          // Filter by group role ID
+          if (groupRoleId) {
+            q.where('content_access.group_role_id', groupRoleId)
+          }
+
+          // Filter by common role ID
+          if (commonRoleId) {
+            q.where('content_access.common_role_id', commonRoleId)
+          }
+
+          // Apply sorting
+          const validSortColumns = {
+            created_at: 'content_access.created_at',
+            expires_at: 'content_access.expires_at',
+            user_name: 'users.name'
+          }
+
+          const sortColumn = validSortColumns[sortBy] || validSortColumns.created_at
+
+          // If sorting by user name and not already joined, join users table
+          if (sortBy === 'user_name' && !search) {
+            q.join('users', 'users.id', '=', 'content_access.user_id')
+          }
+
+          // Apply sorting
+          if (sortBy === 'user_name') {
+            q.orderByRaw(`lower("users"."name") ${order || 'asc'}`)
+          } else {
+            q.orderBy(sortColumn, order || 'desc')
+          }
+        })
+      },
+      getters: {
+        userId: ca => ca.get('user_id'),
+        grantedByGroupId: ca => ca.get('granted_by_group_id'),
+        groupId: ca => ca.get('group_id'),
+        offeringId: ca => ca.get('product_id'),
+        trackId: ca => ca.get('track_id'),
+        groupRoleId: ca => ca.get('group_role_id'),
+        commonRoleId: ca => ca.get('common_role_id'),
+        accessType: ca => ca.get('access_type'),
+        stripeSessionId: ca => ca.get('stripe_session_id'),
+        stripeSubscriptionId: ca => ca.get('stripe_subscription_id'),
+        grantedById: ca => ca.get('granted_by_id'),
+        subscriptionCancelAtPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_at_period_end === true
+        },
+        subscriptionPeriodEnd: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_period_end ? new Date(metadata.subscription_period_end) : null
+        },
+        subscriptionCancellationScheduledAt: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancellation_scheduled_at ? new Date(metadata.subscription_cancellation_scheduled_at) : null
+        },
+        subscriptionCancelReason: ca => {
+          const metadata = ca.get('metadata') || {}
+          return metadata.subscription_cancel_reason || null
+        }
+      }
     }
   }
 }
