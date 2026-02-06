@@ -734,7 +734,8 @@ function MapExplorer (props) {
   }, [showSavedSearches])
 
   const { hideNavLayout } = layoutFlags
-  const withoutNav = isWebView() || hideNavLayout
+  // DEPRECATED: No longer treat webview differently
+  const withoutNav = /* isWebView() || */ hideNavLayout
 
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>

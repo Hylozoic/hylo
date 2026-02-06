@@ -1,7 +1,11 @@
+// DEPRECATED: This component is only used by deprecated screens (Tracks, MyTracks).
+// Kept for reference only.
+
 import React, { useCallback } from 'react'
 import { View, Text, Pressable, Alert } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { Users, UserCheck } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Users, UserCheck } from 'lucide-react-native'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'
 import useHasResponsibility from '@hylo/hooks/useHasResponsibility'
 import useOpenURL from 'hooks/useOpenURL'

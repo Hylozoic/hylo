@@ -1,20 +1,27 @@
+// DEPRECATED: This component is only used by deprecated screens (Stream, Tracks, etc.)
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import FastImage from 'react-native-fast-image'
-import LinearGradient from 'react-native-linear-gradient'
+// DEPRECATED: react-native-linear-gradient removed
+// import LinearGradient from 'react-native-linear-gradient'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import Icon from 'components/Icon'
 import LucideIcon from 'components/LucideIcon'
 import { bannerlinearGradientColors, white, rhino, black, twBackground } from '@hylo/presenters/colors'
-import { Plus } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Plus } from 'lucide-react-native'
 
 export default function StreamHeader ({ image, icon, iconName,name, postPrompt = false, currentGroup, streamType }) {
   return (
     <View style={styles.headerContainer}>
       <FastImage source={image} style={styles.image} />
-      <LinearGradient style={styles.gradient} colors={bannerlinearGradientColors} />
+      {/* DEPRECATED: LinearGradient removed */}
+      {/* <LinearGradient style={styles.gradient} colors={bannerlinearGradientColors} /> */}
+      <View style={styles.gradient} />
       <View style={styles.header}>
         <View style={styles.title}>
           {icon && (
