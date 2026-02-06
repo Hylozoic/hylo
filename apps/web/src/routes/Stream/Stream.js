@@ -21,7 +21,7 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
-import GroupCalendarSubscribe from './GroupCalendarSubscribe'
+import GroupCalendarSubscribe from '../GroupCalendarSubscribe/GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -125,6 +125,7 @@ export default function Stream (props) {
   const [calendarDate, setCalendarDate] = useState(new Date())
   const isCalendarViewMode = viewMode === 'calendar'
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
+  const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
   const fetchPostsParam = useMemo(() => {
     const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
@@ -387,6 +388,13 @@ export default function Stream (props) {
               setMode={setCalendarMode}
             />
             {group && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
+            {!group && view === 'events' && (
+              <GroupCalendarSubscribe
+                eventCalendarUrl={rsvpCalendarUrl}
+                buttonLabel='Subscribe to all the Hylo events you have RSVPed to'
+                modalTitle='Subscribe to all the Hylo events you have RSVPed to'
+              />
+            )}
           </div>
         )}
         {(pending || topicLoading) && <Loading />}

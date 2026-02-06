@@ -94,4 +94,56 @@ describe('GroupCalendarSubscribe', () => {
 
     window.location = originalLocation
   })
+
+  describe('RSVP calendar subscription (user events)', () => {
+    const rsvpCalendarUrl = 'https://example.com/user/123/calendar-abc.ics'
+    const rsvpProps = {
+      eventCalendarUrl: rsvpCalendarUrl,
+      buttonLabel: 'Subscribe to all the Hylo events you have RSVPed to',
+      modalTitle: 'Subscribe to all the Hylo events you have RSVPed to'
+    }
+
+    it('renders button with RSVP calendar label when buttonLabel is provided', () => {
+      render(<GroupCalendarSubscribe {...rsvpProps} />)
+      expect(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i })).toBeInTheDocument()
+    })
+
+    it('opens modal with RSVP modal title and calendar URL when button is clicked', () => {
+      render(<GroupCalendarSubscribe {...rsvpProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
+      expect(screen.getByText('Subscribe to all the Hylo events you have RSVPed to')).toBeInTheDocument()
+      expect(screen.getByText(rsvpCalendarUrl)).toBeInTheDocument()
+    })
+
+    it('Copy button copies RSVP calendar URL to clipboard', () => {
+      render(<GroupCalendarSubscribe {...rsvpProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^Copy$/i }))
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(rsvpCalendarUrl)
+    })
+
+    it('Apple Calendar button sets location.href to webcal URL for RSVP calendar', () => {
+      render(<GroupCalendarSubscribe {...rsvpProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
+
+      const locationHref = {}
+      const originalLocation = window.location
+      delete window.location
+      window.location = locationHref
+
+      fireEvent.click(screen.getByRole('button', { name: /Apple Calendar/i }))
+
+      expect(locationHref.href).toBe('webcal://example.com/user/123/calendar-abc.ics')
+
+      window.location = originalLocation
+    })
+
+    it('Google Calendar button copies RSVP URL and opens add-by-url page', () => {
+      render(<GroupCalendarSubscribe {...rsvpProps} />)
+      fireEvent.click(screen.getByRole('button', { name: /Subscribe to all the Hylo events you have RSVPed to/i }))
+      fireEvent.click(screen.getByRole('button', { name: /Google Calendar/i }))
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(rsvpCalendarUrl)
+      expect(window.open).toHaveBeenCalledWith(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
+    })
+  })
 })
