@@ -14,6 +14,7 @@ import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
+import isMobile from 'ismobilejs'
 
 import Loading from 'components/Loading'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
@@ -347,26 +348,37 @@ function PaidContentTab ({ group, currentUser }) {
           className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'account' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
           to=''
         >
-          {t('Account')}
+          {!isMobile.any ? t('Payments Account') : t('Account')}
         </Link>
         <Link
           className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'offerings' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
           to='offerings'
         >
-          {t('Offerings')}
+          {!isMobile.any ? t('Paid Offerings') : t('Offerings')}
         </Link>
         <Link
           className={`py-1 px-4 rounded-md border-2 !text-foreground border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'content-access' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
           to='content-access'
         >
-          {t('Content Access')}
+          {!isMobile.any ? t('Paid Content Access') : t('Content Access')}
         </Link>
       </div>
 
-      <h2 className='text-foreground font-bold mb-2'>{t('Accept payments for your group')}</h2>
-      <p className='text-foreground/70 mb-4'>
-        {t('Set up Stripe Connect to accept payments for group memberships, track content, and other offerings. Stripe handles all payment processing securely.')}
-      </p>
+      <h2 className='text-foreground font-bold mb-2'>{t('Accept Payments for {{groupName}}', { groupName: group?.name || '' })}</h2>
+      <div className='text-foreground/70 mb-4 space-y-2'>
+        {currentTab === 'account' && (
+          <>
+            <p>{t('Use Paid Content to create offerings that members can access through payment.')}</p>
+            <p>{t('To start, set up Stripe Connect to accept payments for group memberships, Tracks, and other offerings. Stripe handles all payment processing securely.')}</p>
+          </>
+        )}
+        {currentTab === 'offerings' && (
+          <p>{t('An Offering is something your group provides in exchange for payment, like a membership, Track, or Role in the group.')}</p>
+        )}
+        {currentTab === 'content-access' && (
+          <p>{t('Paid Content Access shows who has access to paid content in your group and lets you manage those permissions.')}</p>
+        )}
+      </div>
 
       {error && (
         <div className='bg-destructive/10 border border-destructive text-destructive p-4 rounded-md mb-4 flex items-start gap-2'>

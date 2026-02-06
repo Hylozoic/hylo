@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
+import HyloHTML from 'components/HyloHTML'
 import { CreditCard } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
@@ -253,9 +254,9 @@ export default function OfferingDetails () {
                                   <div className='flex flex-col'>
                                     <span className='text-sm font-medium'>{track.name}</span>
                                     {track.description && (
-                                      <span className='text-xs text-foreground/70 line-clamp-1'>
-                                        {track.description}
-                                      </span>
+                                      <div className='text-xs text-foreground/70 line-clamp-1'>
+                                        <HyloHTML html={track.description} />
+                                      </div>
                                     )}
                                   </div>
                                 </div>

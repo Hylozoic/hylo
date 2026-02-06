@@ -181,6 +181,7 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
   const detailsSubmitted = group?.stripeDetailsSubmitted
   const isFullyOnboarded = chargesEnabled && payoutsEnabled
   const needsOnboarding = !detailsSubmitted
+  const isPending = detailsSubmitted && (!chargesEnabled || !payoutsEnabled)
 
   return (
     <div className='bg-card p-6 rounded-md text-foreground shadow-xl mb-4'>
@@ -191,12 +192,18 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
             : (<AlertCircle className='w-8 h-8 text-amber-500 flex-shrink-0' />)}
           <div>
             <h3 className='text-lg font-semibold mb-1'>
-              {isFullyOnboarded ? t('Account Active') : t('Account Setup Required')}
+              {isFullyOnboarded
+                ? t('Account Active')
+                : isPending
+                  ? t('Account Status: Pending')
+                  : t('Stripe Account Setup Required')}
             </h3>
             <p className='text-sm text-foreground/70'>
               {isFullyOnboarded
                 ? t('Your Stripe account is fully set up and ready to accept payments.')
-                : t('Complete your account setup to start accepting payments.')}
+                : isPending
+                  ? t('Your account details have been submitted to Stripe and are being reviewed. This process typically takes a few minutes to a few hours.')
+                  : t('Complete your account setup to start accepting payments.')}
             </p>
           </div>
         </div>
@@ -212,6 +219,11 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
 
       <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
         <StatusBadge
+          label={t('Details Submitted')}
+          value={detailsSubmitted}
+          t={t}
+        />
+        <StatusBadge
           label={t('Accept Payments')}
           value={chargesEnabled}
           t={t}
@@ -219,11 +231,6 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         <StatusBadge
           label={t('Receive Payouts')}
           value={payoutsEnabled}
-          t={t}
-        />
-        <StatusBadge
-          label={t('Details Submitted')}
-          value={detailsSubmitted}
           t={t}
         />
       </div>
@@ -271,4 +278,3 @@ function StatusBadge ({ label, value, t }) {
 }
 
 export default AccountTab
-
