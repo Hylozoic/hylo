@@ -9,13 +9,17 @@ const GOOGLE_CALENDAR_ADD_URL = 'https://calendar.google.com/calendar/u/0/r/sett
 /** Converts an https/http calendar URL to webcal so OS opens the default calendar app (e.g. Apple Calendar). */
 const toWebcalUrl = (url) => url ? url.replace(/^https?:\/\//i, 'webcal://') : ''
 
+const DEFAULT_BUTTON_LABEL = "Subscribe to this Group's Calendar"
+
 /**
- * Renders a "Subscribe to this Group's Calendar" button and modal with calendar URL and copy / Google Calendar actions.
+ * Renders a subscribe-to-calendar button and modal with calendar URL and copy / Apple Calendar / Google Calendar actions.
  * Only rendered when eventCalendarUrl is truthy.
+ * Pass buttonLabel and modalTitle to customize copy (e.g. for RSVP calendar).
  */
-export default function GroupCalendarSubscribe ({ eventCalendarUrl }) {
+export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel = DEFAULT_BUTTON_LABEL, modalTitle }) {
   const { t } = useTranslation()
   const [modalVisible, setModalVisible] = useState(false)
+  const title = modalTitle != null ? modalTitle : buttonLabel
 
   const copyToClipboard = useCallback(async (url) => {
     try {
@@ -59,12 +63,12 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl }) {
         className='mt-4 flex items-center gap-2'
       >
         <Rss size={18} />
-        {t("Subscribe to this Group's Calendar")}
+        {typeof buttonLabel === 'string' ? t(buttonLabel) : buttonLabel}
       </Button>
       {modalVisible && (
         <ModalDialog
           closeModal={handleCloseModal}
-          modalTitle={t("Subscribe to this Group's Calendar")}
+          modalTitle={typeof title === 'string' ? t(title) : title}
           showCancelButton
           showSubmitButton={false}
         >
