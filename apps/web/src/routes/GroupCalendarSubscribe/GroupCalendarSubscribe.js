@@ -85,7 +85,7 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
         color='green-white-green-border'
         narrow
         onClick={handleButtonClick}
-        className='mt-4 flex items-center gap-2'
+        className='rounded-md mt-4 flex items-center gap-2'
       >
         <Rss size={18} />
         {typeof buttonLabel === 'string' ? t(buttonLabel) : buttonLabel}
@@ -103,20 +103,20 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
               <button
                 type='button'
                 onClick={handleUrlClick}
-                className='text-sm font-mono text-secondary break-all text-left hover:underline cursor-pointer bg-midground/50 px-2 py-2 rounded border border-foreground/10'
+                className='rounded-md text-sm font-mono text-secondary break-all text-left hover:underline cursor-pointer bg-midground/50 px-2 py-2 rounded border border-foreground/10'
                 title={t('Click to copy')}
               >
                 {effectiveUrl}
               </button>
             </div>
             <div className='flex flex-wrap gap-2'>
-              <Button color='green-white-green-border' narrow onClick={handleCopy}>
+              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleCopy}>
                 {t('Copy')}
               </Button>
-              <Button color='green-white-green-border' narrow onClick={handleAppleCalendar}>
+              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleAppleCalendar}>
                 {t('Add to Apple Calendar')}
               </Button>
-              <Button color='green-white-green-border' narrow onClick={handleGoogleCalendar}>
+              <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleGoogleCalendar}>
                 {t('Add to Google Calendar')}
               </Button>
             </div>
