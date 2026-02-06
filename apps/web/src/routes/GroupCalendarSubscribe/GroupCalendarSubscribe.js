@@ -114,7 +114,7 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
                 {t('Copy')}
               </Button>
               <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleAppleCalendar}>
-                {t('Add to Apple Calendar')}
+                {t('Add to Apple or Outlook')}
               </Button>
               <Button color='green-white-green-border' className='rounded-md' narrow onClick={handleGoogleCalendar}>
                 {t('Add to Google Calendar')}
