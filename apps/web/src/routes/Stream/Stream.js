@@ -127,6 +127,11 @@ export default function Stream (props) {
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
+  const handleEnsureRsvpCalendarUrl = useCallback(async () => {
+    const payload = await dispatch(updateUserSettings({ settings: { rsvpCalendarSub: true } }))
+    return get('data.updateMe.rsvpCalendarUrl', payload) || null
+  }, [dispatch])
+
   const fetchPostsParam = useMemo(() => {
     const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
 
@@ -393,6 +398,7 @@ export default function Stream (props) {
                 eventCalendarUrl={rsvpCalendarUrl}
                 buttonLabel='Subscribe to all the Hylo events you have RSVPed to'
                 modalTitle='Subscribe to all the Hylo events you have RSVPed to'
+                onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
               />
             )}
           </div>

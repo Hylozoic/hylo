@@ -13,13 +13,17 @@ const DEFAULT_BUTTON_LABEL = "Subscribe to this Group's Calendar"
 
 /**
  * Renders a subscribe-to-calendar button and modal with calendar URL and copy / Apple Calendar / Google Calendar actions.
- * Only rendered when eventCalendarUrl is truthy.
+ * Rendered when eventCalendarUrl is truthy, or when onEnsureCalendarUrl is provided (e.g. RSVP calendar: show button
+ * even without URL; on click create token and get URL then open modal).
  * Pass buttonLabel and modalTitle to customize copy (e.g. for RSVP calendar).
  */
-export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel = DEFAULT_BUTTON_LABEL, modalTitle }) {
+export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel = DEFAULT_BUTTON_LABEL, modalTitle, onEnsureCalendarUrl }) {
   const { t } = useTranslation()
   const [modalVisible, setModalVisible] = useState(false)
+  const [resolvedCalendarUrl, setResolvedCalendarUrl] = useState('')
   const title = modalTitle != null ? modalTitle : buttonLabel
+
+  const effectiveUrl = eventCalendarUrl || resolvedCalendarUrl
 
   const copyToClipboard = useCallback(async (url) => {
     try {
@@ -30,28 +34,49 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
   }, [])
 
   const handleOpenModal = useCallback(() => setModalVisible(true), [])
-  const handleCloseModal = useCallback(() => setModalVisible(false), [])
+
+  const handleButtonClick = useCallback(async () => {
+    if (effectiveUrl) {
+      handleOpenModal()
+      return
+    }
+    if (onEnsureCalendarUrl) {
+      try {
+        const url = await onEnsureCalendarUrl()
+        if (url) {
+          setResolvedCalendarUrl(url)
+          setModalVisible(true)
+        }
+      } catch (_) {
+        // Do not open modal on error
+      }
+    }
+  }, [effectiveUrl, onEnsureCalendarUrl, handleOpenModal])
+
+  const handleCloseModal = useCallback(() => {
+    setModalVisible(false)
+  }, [])
 
   const handleCopy = useCallback(() => {
-    copyToClipboard(eventCalendarUrl)
-  }, [eventCalendarUrl, copyToClipboard])
+    copyToClipboard(effectiveUrl)
+  }, [effectiveUrl, copyToClipboard])
 
   const handleUrlClick = useCallback(() => {
-    copyToClipboard(eventCalendarUrl)
-  }, [eventCalendarUrl, copyToClipboard])
+    copyToClipboard(effectiveUrl)
+  }, [effectiveUrl, copyToClipboard])
 
   const handleGoogleCalendar = useCallback(() => {
-    copyToClipboard(eventCalendarUrl)
+    copyToClipboard(effectiveUrl)
     window.open(GOOGLE_CALENDAR_ADD_URL, '_blank', 'noopener,noreferrer')
-  }, [eventCalendarUrl, copyToClipboard])
+  }, [effectiveUrl, copyToClipboard])
 
-  const webcalUrl = useMemo(() => toWebcalUrl(eventCalendarUrl), [eventCalendarUrl])
+  const webcalUrl = useMemo(() => toWebcalUrl(effectiveUrl), [effectiveUrl])
 
   const handleAppleCalendar = useCallback(() => {
     if (webcalUrl) window.location.href = webcalUrl
   }, [webcalUrl])
 
-  if (!eventCalendarUrl) return null
+  if (!eventCalendarUrl && !onEnsureCalendarUrl) return null
 
   return (
     <>
@@ -59,7 +84,7 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
         variant='outline'
         color='green-white-green-border'
         narrow
-        onClick={handleOpenModal}
+        onClick={handleButtonClick}
         className='mt-4 flex items-center gap-2'
       >
         <Rss size={18} />
@@ -81,7 +106,7 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
                 className='text-sm font-mono text-secondary break-all text-left hover:underline cursor-pointer bg-midground/50 px-2 py-2 rounded border border-foreground/10'
                 title={t('Click to copy')}
               >
-                {eventCalendarUrl}
+                {effectiveUrl}
               </button>
             </div>
             <div className='flex flex-wrap gap-2'>

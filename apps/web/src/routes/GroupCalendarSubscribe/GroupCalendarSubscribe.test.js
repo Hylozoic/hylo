@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from 'util/testing/reactTestingLibraryExtended'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
 import GroupCalendarSubscribe from './GroupCalendarSubscribe'
 
 jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
@@ -47,6 +47,75 @@ describe('GroupCalendarSubscribe', () => {
   it('does not render Subscribe button when eventCalendarUrl is undefined', () => {
     render(<GroupCalendarSubscribe />)
     expect(screen.queryByRole('button', { name: /Subscribe to this Group's Calendar/i })).not.toBeInTheDocument()
+  })
+
+  describe('when onEnsureCalendarUrl is provided (e.g. RSVP calendar without token yet)', () => {
+    const rsvpLabel = 'Subscribe to all the Hylo events you have RSVPed to'
+
+    it('renders button even when eventCalendarUrl is empty', () => {
+      render(
+        <GroupCalendarSubscribe
+          eventCalendarUrl=''
+          buttonLabel={rsvpLabel}
+          modalTitle={rsvpLabel}
+          onEnsureCalendarUrl={jest.fn().mockResolvedValue('https://example.com/user/cal.ics')}
+        />
+      )
+      expect(screen.getByRole('button', { name: new RegExp(rsvpLabel, 'i') })).toBeInTheDocument()
+    })
+
+    it('calls onEnsureCalendarUrl when button is clicked and eventCalendarUrl is empty, then opens modal with returned URL', async () => {
+      const resolvedUrl = 'https://example.com/user/99/calendar-token.ics'
+      const onEnsureCalendarUrl = jest.fn().mockResolvedValue(resolvedUrl)
+      render(
+        <GroupCalendarSubscribe
+          eventCalendarUrl=''
+          buttonLabel={rsvpLabel}
+          modalTitle={rsvpLabel}
+          onEnsureCalendarUrl={onEnsureCalendarUrl}
+        />
+      )
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(rsvpLabel, 'i') }))
+      expect(onEnsureCalendarUrl).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(screen.getByText(resolvedUrl)).toBeInTheDocument()
+      })
+      expect(screen.getByText(rsvpLabel)).toBeInTheDocument()
+    })
+
+    it('does not open modal when onEnsureCalendarUrl rejects', async () => {
+      const onEnsureCalendarUrl = jest.fn().mockRejectedValue(new Error('Failed'))
+      render(
+        <GroupCalendarSubscribe
+          eventCalendarUrl=''
+          buttonLabel={rsvpLabel}
+          modalTitle={rsvpLabel}
+          onEnsureCalendarUrl={onEnsureCalendarUrl}
+        />
+      )
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(rsvpLabel, 'i') }))
+      await waitFor(() => {
+        expect(onEnsureCalendarUrl).toHaveBeenCalled()
+      })
+      expect(screen.queryByTestId('modal-dialog')).not.toBeInTheDocument()
+    })
+
+    it('does not open modal when onEnsureCalendarUrl resolves with empty string', async () => {
+      const onEnsureCalendarUrl = jest.fn().mockResolvedValue('')
+      render(
+        <GroupCalendarSubscribe
+          eventCalendarUrl=''
+          buttonLabel={rsvpLabel}
+          modalTitle={rsvpLabel}
+          onEnsureCalendarUrl={onEnsureCalendarUrl}
+        />
+      )
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(rsvpLabel, 'i') }))
+      await waitFor(() => {
+        expect(onEnsureCalendarUrl).toHaveBeenCalled()
+      })
+      expect(screen.queryByTestId('modal-dialog')).not.toBeInTheDocument()
+    })
   })
 
   it('opens modal with calendar URL when Subscribe button is clicked', () => {
