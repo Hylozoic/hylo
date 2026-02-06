@@ -392,8 +392,8 @@ export default function Stream (props) {
               mode={calendarMode}
               setMode={setCalendarMode}
             />
-            {group && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
-            {!group && view === 'events' && (
+            {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
+            {!group && view === 'events' && calendarMode === 'month' && (
               <GroupCalendarSubscribe
                 eventCalendarUrl={rsvpCalendarUrl}
                 buttonLabel='Subscribe to all the Hylo events you have RSVPed to'
