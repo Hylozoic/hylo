@@ -1,6 +1,8 @@
-import React, { useRef, useCallback, useState } from 'react'
-import { View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import React, { useRef, useCallback, useState, useEffect } from 'react'
+import { View, StatusBar } from 'react-native'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
 import Loading from 'components/Loading'
 import NoInternetConnection from 'screens/NoInternetConnection'
@@ -8,6 +10,7 @@ import useLogout from 'hooks/useLogout'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import useRouteParams from 'hooks/useRouteParams'
 import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
+import useThemeStore from 'store/themeStore'
 
 /**
  * PrimaryWebView - Single full-screen WebView for all authenticated content
@@ -30,6 +33,15 @@ export default function PrimaryWebView() {
   const webViewRef = useRef(null)
   const logout = useLogout()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
+  const { backgroundColor, colorScheme, setTheme, hydrate } = useThemeStore()
+  const insets = useSafeAreaInsets()
+
+  // Hydrate persisted theme on mount so safe area colors match before WebView loads
+  useEffect(() => { hydrate() }, [])
+
+  // On iOS, use a smaller bottom inset since the UI is simple and doesn't need as much space
+  const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : insets.bottom
+  const safeAreaEdges = isIOS ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']
   
   // Verify user is authenticated before showing WebView
   // This provides an additional auth check at the component level
@@ -83,21 +95,19 @@ export default function PrimaryWebView() {
   // This ensures we have a valid authenticated user before rendering the WebView
   if (fetchingUser || !currentUser) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
         <Loading size='large' />
       </SafeAreaView>
     )
   }
   
   /**
-   * Simplified message handler
-   * 
-   * Previous implementation handled:
-   * - NAVIGATION: Routed to native screens (no longer needed - web handles all nav)
-   * - GROUP_DELETED: Cleared state and navigated (no longer needed - web handles)
-   * 
-   * Now only handles:
+   * Message handler for WebView → Native communication.
+   *
+   * Handles:
    * - LOGOUT: Trigger native logout flow
+   * - THEME_CHANGE: Update native safe-area and status-bar colors to match the web theme
    */
   const messageHandler = useCallback((message) => {
     const { type, data } = message
@@ -108,6 +118,15 @@ export default function PrimaryWebView() {
         console.log('📱 Logout triggered from WebView')
         logout()
         break
+
+      case WebViewMessageTypes.THEME_CHANGE: {
+        // Web app changed theme or color scheme — update native safe-area colors
+        const { themeName, colorScheme: scheme } = data || {}
+        if (themeName && scheme) {
+          setTheme(themeName, scheme)
+        }
+        break
+      }
         
       // DEPRECATED: These cases are no longer needed
       // case 'NAVIGATION': Web app handles all navigation now
@@ -119,7 +138,7 @@ export default function PrimaryWebView() {
           console.log('📱 Unknown WebView message type:', type, data)
         }
     }
-  }, [logout])
+  }, [logout, setTheme])
   
   /**
    * Handle WebView load completion
@@ -165,7 +184,8 @@ export default function PrimaryWebView() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
+      <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
       {isWebViewLoading && (
         <View style={{ 
           position: 'absolute', 
