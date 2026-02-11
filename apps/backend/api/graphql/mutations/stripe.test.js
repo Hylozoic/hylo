@@ -582,16 +582,15 @@ describe('Stripe Mutations', () => {
       expect(result.sessionId).to.equal('cs_test_123')
     })
 
-    it('allows unauthenticated checkout sessions', async () => {
-      const result = await createStripeCheckoutSession(null, {
-        groupId: group.id,
-        offeringId: testOffering.id,
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel'
-      })
-
-      expect(result.success).to.be.true
-      expect(result.sessionId).to.equal('cs_test_123')
+    it('rejects unauthenticated checkout sessions', async () => {
+      await expect(
+        createStripeCheckoutSession(null, {
+          groupId: group.id,
+          offeringId: testOffering.id,
+          successUrl: 'https://example.com/success',
+          cancelUrl: 'https://example.com/cancel'
+        })
+      ).to.be.rejectedWith('You must be logged in to purchase an offering')
     })
 
     it('rejects checkout session for non-existent offering', async () => {

@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
-import { DollarSign, CreditCard } from 'lucide-react'
+import { DollarSign, CreditCard, LogIn } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
+import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import setReturnToPath from 'store/actions/setReturnToPath'
 import { JoinBarriers } from './JoinSection'
 
 /**
@@ -21,6 +24,9 @@ import { JoinBarriers } from './JoinSection'
 export default function PaywallOfferingsSection ({ group }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const currentUser = useSelector(getMe)
   const myMemberships = useSelector(getMyMemberships)
   const hasMembership = useMemo(() =>
     group?.id && myMemberships?.some(m => m.group?.id === group.id),
@@ -73,10 +79,19 @@ export default function PaywallOfferingsSection ({ group }) {
   /**
    * Creates a Stripe checkout session and redirects to payment
    * First click expands barriers if they exist, subsequent clicks proceed with payment
+   * Non-authenticated users are redirected to sign-up first
    */
   const handlePurchase = useCallback(async (offering) => {
     if (!group?.id || !offering?.id) {
       alert(t('Unable to process payment. Please contact support.'))
+      return
+    }
+
+    // Redirect non-authenticated users to sign-up, then back to this page
+    if (!currentUser) {
+      const returnToUrl = location.pathname + location.search
+      dispatch(setReturnToPath(returnToUrl))
+      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 
@@ -174,6 +189,7 @@ export default function PaywallOfferingsSection ({ group }) {
             checkoutLoading={checkoutLoading}
             onPurchase={handlePurchase}
             isPurchaseDisabled={isPurchaseDisabled}
+            isAuthenticated={!!currentUser}
           />
         ))}
       </div>
@@ -186,7 +202,7 @@ export default function PaywallOfferingsSection ({ group }) {
  *
  * Displays a single offering with its details and what access it grants
  */
-function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled }) {
+function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchaseDisabled, isAuthenticated }) {
   const { t } = useTranslation()
   const commonRoles = useSelector(getCommonRoles)
 
@@ -312,8 +328,19 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
         onClick={() => onPurchase(offering)}
         disabled={checkoutLoading === offering.id || isPurchaseDisabled}
       >
-        <CreditCard className='w-4 h-4' />
-        {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
+        {isAuthenticated
+          ? (
+            <>
+              <CreditCard className='w-4 h-4' />
+              {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
+            </>
+            )
+          : (
+            <>
+              <LogIn className='w-4 h-4' />
+              {t('Sign up to Purchase')}
+            </>
+            )}
       </Button>
     </div>
   )

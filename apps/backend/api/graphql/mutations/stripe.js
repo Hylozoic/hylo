@@ -458,8 +458,11 @@ module.exports = {
     metadata
   }) => {
     try {
-      // Authentication is optional for checkout - you may want to allow guests
-      // For this demo, we'll allow unauthenticated purchases
+      // Require authenticated user to prevent orphaned transactions; IF YOU WANT TO CHANGE THIS...
+      // please don't remove this condiitonal; instead have a new param that overrides it. This needs to be the default. Allowing transactions to non-users is open to massive abuse
+      if (!userId) {
+        throw new GraphQLError('You must be logged in to purchase an offering')
+      }
 
       // Look up the offering from the database
       const offering = await StripeProduct.where({ id: offeringId }).fetch()

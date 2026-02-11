@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Div100vh from 'react-div-100vh'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
-import { CreditCard } from 'lucide-react'
+import { CreditCard, LogIn } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import getMe from 'store/selectors/getMe'
+import setReturnToPath from 'store/actions/setReturnToPath'
 
 /**
  * OfferingDetails Component
@@ -24,7 +26,10 @@ import getCommonRoles from 'store/selectors/getCommonRoles'
 export default function OfferingDetails () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { offeringId } = useParams()
+  const currentUser = useSelector(getMe)
   const [offering, setOffering] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -74,10 +79,19 @@ export default function OfferingDetails () {
 
   /**
    * Creates a Stripe checkout session and redirects to payment
+   * Non-authenticated users are redirected to sign-up first
    */
   const handlePurchase = useCallback(async () => {
     if (!offering?.id || !offering?.group?.id) {
       alert(t('Unable to process payment. Please contact support.'))
+      return
+    }
+
+    // Redirect non-authenticated users to sign-up, then back to this page
+    if (!currentUser) {
+      const returnToUrl = location.pathname + location.search
+      dispatch(setReturnToPath(returnToUrl))
+      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 
@@ -301,8 +315,19 @@ export default function OfferingDetails () {
               onClick={handlePurchase}
               disabled={checkoutLoading}
             >
-              <CreditCard className='w-5 h-5' />
-              {checkoutLoading ? t('Processing...') : t('Buy Now')}
+              {currentUser
+                ? (
+                  <>
+                    <CreditCard className='w-5 h-5' />
+                    {checkoutLoading ? t('Processing...') : t('Buy Now')}
+                  </>
+                  )
+                : (
+                  <>
+                    <LogIn className='w-5 h-5' />
+                    {t('Sign up to Purchase')}
+                  </>
+                  )}
             </Button>
             <p className='text-xs text-foreground/60 mt-3 text-center'>
               {t('You\'ll have the option to add a donation to Hylo during checkout')}
