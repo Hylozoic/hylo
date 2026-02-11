@@ -40,8 +40,23 @@ module.exports = {
         })
       }
 
+      // Convert database account ID to external Stripe account ID if needed
+      const getExternalAccountId = async (accountId) => {
+        if (accountId && accountId.startsWith('acct_')) {
+          return accountId
+        }
+        const StripeAccount = bookshelf.model('StripeAccount')
+        const stripeAccount = await StripeAccount.where({ id: accountId }).fetch()
+        if (!stripeAccount) {
+          throw new Error('Stripe account record not found')
+        }
+        return stripeAccount.get('stripe_account_external_id')
+      }
+
+      const externalAccountId = await getExternalAccountId(accountId)
+
       // Retrieve the checkout session to verify payment
-      const session = await StripeService.getCheckoutSession(accountId, sessionId)
+      const session = await StripeService.getCheckoutSession(externalAccountId, sessionId)
 
       return res.json({
         success: true,

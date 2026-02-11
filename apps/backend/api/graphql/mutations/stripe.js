@@ -382,6 +382,9 @@ module.exports = {
           throw new GraphQLError('Group does not have a connected Stripe account')
         }
 
+        // Convert database account ID to external Stripe account ID
+        const externalAccountId = await getExternalAccountId(group.get('stripe_account_id'))
+
         // If price is being updated but not currency, preserve the existing currency
         if (priceInCents !== undefined && currency === undefined) {
           stripeSyncFields.currency = product.get('currency')
@@ -389,7 +392,7 @@ module.exports = {
 
         // Update product in Stripe first
         const updatedStripeProduct = await StripeService.updateProduct({
-          accountId: group.get('stripe_account_id'),
+          accountId: externalAccountId,
           productId: product.get('stripe_product_id'),
           ...stripeSyncFields
         })
