@@ -1,17 +1,20 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import Div100vh from 'react-div-100vh'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import HyloHTML from 'components/HyloHTML'
-import { CreditCard } from 'lucide-react'
+import { CreditCard, LogIn } from 'lucide-react'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { offeringUrl, origin } from '@hylo/navigation'
 import { offeringGrantsGroupAccess, parseAccessGrants } from 'util/accessGrants'
 import { createStripeCheckoutSession } from 'util/offerings'
 import fetchPublicStripeOffering from 'store/actions/fetchPublicStripeOffering'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import getMe from 'store/selectors/getMe'
+import setReturnToPath from 'store/actions/setReturnToPath'
 
 /**
  * OfferingDetails Component
@@ -23,7 +26,10 @@ import getCommonRoles from 'store/selectors/getCommonRoles'
 export default function OfferingDetails () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { offeringId } = useParams()
+  const currentUser = useSelector(getMe)
   const [offering, setOffering] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -73,10 +79,19 @@ export default function OfferingDetails () {
 
   /**
    * Creates a Stripe checkout session and redirects to payment
+   * Non-authenticated users are redirected to sign-up first
    */
   const handlePurchase = useCallback(async () => {
     if (!offering?.id || !offering?.group?.id) {
       alert(t('Unable to process payment. Please contact support.'))
+      return
+    }
+
+    // Redirect non-authenticated users to sign-up, then back to this page
+    if (!currentUser) {
+      const returnToUrl = location.pathname + location.search
+      dispatch(setReturnToPath(returnToUrl))
+      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 
@@ -137,29 +152,30 @@ export default function OfferingDetails () {
   const group = offering.group
 
   return (
-    <div className='min-h-screen bg-background'>
-      {/* Banner and Avatar Header */}
-      {group && (
-        <div
-          className='w-full py-12 px-4 bg-cover bg-center overflow-hidden relative shadow-xl'
-          style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}
-        >
-          <div className='bottom-0 right-0 bg-black/50 absolute top-0 left-0 z-0' />
-          <div className='max-w-4xl mx-auto flex items-center justify-center flex-col relative z-10'>
-            <img
-              src={group.avatarUrl || DEFAULT_AVATAR}
-              alt={group.name}
-              className='w-24 h-24 rounded-xl shadow-xl mb-4'
-            />
-            <div className='text-white font-bold text-2xl text-center mb-2'>
-              {group.name}
+    <Div100vh className='flex flex-col bg-background overflow-hidden'>
+      <div className='flex-1 overflow-y-auto w-full'>
+        {/* Banner and Avatar Header */}
+        {group && (
+          <div
+            className='w-full py-12 px-4 bg-cover bg-center overflow-hidden relative shadow-xl'
+            style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}
+          >
+            <div className='bottom-0 right-0 bg-black/50 absolute top-0 left-0 z-0' />
+            <div className='max-w-4xl mx-auto flex items-center justify-center flex-col relative z-10'>
+              <img
+                src={group.avatarUrl || DEFAULT_AVATAR}
+                alt={group.name}
+                className='w-24 h-24 rounded-xl shadow-xl mb-4'
+              />
+              <div className='text-white font-bold text-2xl text-center mb-2'>
+                {group.name}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Offering Details Content */}
-      <div className='max-w-4xl mx-auto p-6'>
+        {/* Offering Details Content */}
+        <div className='max-w-4xl mx-auto p-6 pb-12 w-full'>
         <div className='bg-midground rounded-xl p-6 shadow-lg'>
           <h1 className='text-4xl font-bold text-foreground mb-4'>{offering.name}</h1>
 
@@ -299,8 +315,19 @@ export default function OfferingDetails () {
               onClick={handlePurchase}
               disabled={checkoutLoading}
             >
-              <CreditCard className='w-5 h-5' />
-              {checkoutLoading ? t('Processing...') : t('Buy Now')}
+              {currentUser
+                ? (
+                  <>
+                    <CreditCard className='w-5 h-5' />
+                    {checkoutLoading ? t('Processing...') : t('Buy Now')}
+                  </>
+                  )
+                : (
+                  <>
+                    <LogIn className='w-5 h-5' />
+                    {t('Sign up to Purchase')}
+                  </>
+                  )}
             </Button>
             <p className='text-xs text-foreground/60 mt-3 text-center'>
               {t('You\'ll have the option to add a donation to Hylo during checkout')}
@@ -308,6 +335,7 @@ export default function OfferingDetails () {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Div100vh>
   )
 }

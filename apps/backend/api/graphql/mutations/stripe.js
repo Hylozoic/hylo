@@ -382,6 +382,9 @@ module.exports = {
           throw new GraphQLError('Group does not have a connected Stripe account')
         }
 
+        // Convert database account ID to external Stripe account ID
+        const externalAccountId = await getExternalAccountId(group.get('stripe_account_id'))
+
         // If price is being updated but not currency, preserve the existing currency
         if (priceInCents !== undefined && currency === undefined) {
           stripeSyncFields.currency = product.get('currency')
@@ -389,7 +392,7 @@ module.exports = {
 
         // Update product in Stripe first
         const updatedStripeProduct = await StripeService.updateProduct({
-          accountId: group.get('stripe_account_id'),
+          accountId: externalAccountId,
           productId: product.get('stripe_product_id'),
           ...stripeSyncFields
         })
@@ -455,8 +458,11 @@ module.exports = {
     metadata
   }) => {
     try {
-      // Authentication is optional for checkout - you may want to allow guests
-      // For this demo, we'll allow unauthenticated purchases
+      // Require authenticated user to prevent orphaned transactions; IF YOU WANT TO CHANGE THIS...
+      // please don't remove this condiitonal; instead have a new param that overrides it. This needs to be the default. Allowing transactions to non-users is open to massive abuse
+      if (!userId) {
+        throw new GraphQLError('You must be logged in to purchase an offering')
+      }
 
       // Look up the offering from the database
       const offering = await StripeProduct.where({ id: offeringId }).fetch()
