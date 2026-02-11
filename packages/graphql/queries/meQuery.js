@@ -50,7 +50,6 @@ export default gql`
     hasDevice
     intercomHash
     hasStripeAccount
-    calendarToken
     rsvpCalendarUrl
     blockedUsers {
       id
