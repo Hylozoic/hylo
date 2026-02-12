@@ -576,6 +576,8 @@
   "Grant access form will be implemented here": "Formular zum Gewähren von Zugriff wird hier implementiert",
   "Grant users access to group content, tracks, or offerings": "Benutzern Zugriff auf Gruppeninhalte, Tracks oder Angebote gewähren",
   "Grants access to the group": "Gewährt Zugriff auf die Gruppe",
+  "Grant access to this group": "Zugriff auf diese Gruppe gewähren",
+  "When enabled, purchasing this offering grants access to join this group": "Wenn aktiviert, gewährt der Kauf dieses Angebots Zugriff auf diese Gruppe",
   "Group": "Gruppe",
   "Group Access Questions": "Fragen zum Gruppenbeitritt",
   "Group Agreements": "Gruppenvereinbarungen",

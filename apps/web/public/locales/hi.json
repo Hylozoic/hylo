@@ -576,6 +576,8 @@
   "Grant access form will be implemented here": "पहुंच प्रदान करने का फॉर्म यहां लागू किया जाएगा",
   "Grant users access to group content, tracks, or offerings": "उपयोगकर्ताओं को समूह सामग्री, ट्रैक या ऑफ़र तक पहुंच प्रदान करें",
   "Grants access to the group": "समूह तक पहुंच प्रदान करता है",
+  "Grant access to this group": "इस समूह तक पहुंच प्रदान करें",
+  "When enabled, purchasing this offering grants access to join this group": "जब सक्षम हो, इस ऑफ़र को खरीदने से इस समूह में शामिल होने की पहुंच मिलती है",
   "Group": "समूह",
   "Group Access Questions": "समूह पहुँच प्रश्न",
   "Group Agreements": "समूह समझौते",

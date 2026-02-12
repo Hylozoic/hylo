@@ -17,6 +17,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import Button from 'components/ui/button'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
+import { Switch } from 'components/ui/switch'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 
 import { createOffering, updateOffering } from './PaidContentTab.store'
@@ -1222,7 +1223,7 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
  */
 function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   const dispatch = useDispatch()
-  const [activeSelector, setActiveSelector] = useState(null) // 'track', 'group', or 'role'
+  const [activeSelector, setActiveSelector] = useState(null) // 'track' or 'role'
   const [searchTerm, setSearchTerm] = useState('')
   const [items, setItems] = useState([])
   const [isLoading, setIsLoading] = useState(false)
@@ -1259,14 +1260,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     getTracks()
   }, [debouncedSearch, dispatch, activeSelector, group.id])
 
-  // Set current group when group selector is active
-  useEffect(() => {
-    if (activeSelector === 'group') {
-      setIsLoading(false)
-      // Only allow selecting the current group
-      setItems(group ? [group] : [])
-    }
-  }, [activeSelector, group])
 
   // Filter roles when role selector is active
   useEffect(() => {
@@ -1290,7 +1283,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
   }, [debouncedSearch, activeSelector, allRoles, lineItems.roles])
 
   const handleSelectItem = useCallback((item) => {
-    const itemType = activeSelector === 'track' ? 'tracks' : activeSelector === 'group' ? 'groups' : 'roles'
+    const itemType = activeSelector === 'track' ? 'tracks' : 'roles'
     const currentItems = lineItems[itemType] || []
 
     // Check if item is already selected
@@ -1315,18 +1308,36 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     })
   }, [lineItems, onLineItemsChange])
 
+  /**
+   * Handles toggling group access for the current group
+   */
+  const handleToggleGroupAccess = useCallback((checked) => {
+    if (!group) return
+
+    const currentGroups = lineItems.groups || []
+    const isGroupSelected = currentGroups.some(g => parseInt(g.id) === parseInt(group.id))
+
+    if (checked && !isGroupSelected) {
+      // Add current group
+      onLineItemsChange({
+        ...lineItems,
+        groups: [...currentGroups, { id: group.id, name: group.name }]
+      })
+    } else if (!checked && isGroupSelected) {
+      // Remove current group
+      onLineItemsChange({
+        ...lineItems,
+        groups: currentGroups.filter(g => parseInt(g.id) !== parseInt(group.id))
+      })
+    }
+  }, [group, lineItems, onLineItemsChange])
+
   const textOptions = {
     track: {
       searchPlaceholder: t('Search tracks...'),
       noResults: t('No tracks found'),
       heading: t('Tracks'),
       buttonLabel: t('Add Track')
-    },
-    group: {
-      searchPlaceholder: t('Search groups...'),
-      noResults: t('No groups found'),
-      heading: t('Groups'),
-      buttonLabel: t('Add Group')
     },
     role: {
       searchPlaceholder: t('Search roles...'),
@@ -1335,6 +1346,12 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
       buttonLabel: t('Add Role')
     }
   }
+
+  // Check if current group is selected
+  const isGroupAccessEnabled = useMemo(() => {
+    if (!group) return false
+    return lineItems.groups.some(g => parseInt(g.id) === parseInt(group.id))
+  }, [group, lineItems.groups])
 
   return (
     <div className='space-y-4'>
@@ -1345,6 +1362,22 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
         <p className='text-xs text-foreground/60 mb-3'>
           {t('Select tracks, groups, and roles that this offering grants access to')}
         </p>
+
+        {/* Group Access Toggle */}
+        <div className='mb-4 flex items-center justify-between p-3 border border-foreground/20 rounded-lg'>
+          <div className='flex-1'>
+            <label className='text-sm font-medium text-foreground block mb-1'>
+              {t('Grant access to this group')}
+            </label>
+            <p className='text-xs text-foreground/60'>
+              {t('When enabled, purchasing this offering grants access to join this group')}
+            </p>
+          </div>
+          <Switch
+            checked={isGroupAccessEnabled}
+            onCheckedChange={handleToggleGroupAccess}
+          />
+        </div>
 
         {/* Selected Items Display */}
         <div className='space-y-2 mb-4'>
@@ -1361,28 +1394,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                     <button
                       type='button'
                       onClick={() => handleRemoveItem('tracks', track.id)}
-                      className='hover:text-destructive'
-                    >
-                      <X className='w-3 h-3' />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {lineItems.groups.length > 0 && (
-            <div>
-              <p className='text-xs text-foreground/50 mb-1'>{t('Groups')}:</p>
-              <div className='flex flex-wrap gap-2'>
-                {lineItems.groups.map(selectedGroup => (
-                  <span
-                    key={selectedGroup.id}
-                    className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
-                  >
-                    {selectedGroup.name}
-                    <button
-                      type='button'
-                      onClick={() => handleRemoveItem('groups', selectedGroup.id)}
                       className='hover:text-destructive'
                     >
                       <X className='w-3 h-3' />
@@ -1432,15 +1443,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
             type='button'
             variant='outline'
             size='sm'
-            onClick={() => setActiveSelector(activeSelector === 'group' ? null : 'group')}
-          >
-            <PlusCircle className='w-4 h-4 mr-1' />
-            {textOptions.group.buttonLabel}
-          </Button>
-          <Button
-            type='button'
-            variant='outline'
-            size='sm'
             onClick={() => setActiveSelector(activeSelector === 'role' ? null : 'role')}
           >
             <PlusCircle className='w-4 h-4 mr-1' />
@@ -1465,7 +1467,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                     : (
                       <CommandGroup heading={textOptions[activeSelector].heading}>
                         {items.map((item) => {
-                          const itemType = activeSelector === 'track' ? 'tracks' : activeSelector === 'group' ? 'groups' : 'roles'
+                          const itemType = activeSelector === 'track' ? 'tracks' : 'roles'
                           const isSelected = lineItems[itemType].find(i => i.id === item.id)
                           return (
                             <CommandItem
