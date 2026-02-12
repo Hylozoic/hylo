@@ -127,39 +127,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
   send: function () {
     return this.ensureLoad(['creator', 'group', 'tag'])
-    .then(() => {
-      const { creator, group } = this.relations
-      const email = this.get('email')
-
-      const data = {
-        version: 'Redesign 2025',
-        subject: this.get('subject'),
-        message: this.get('message'),
-        inviter_avatar_url: creator.get('avatar_url'),
-        inviter_name: creator.get('name'),
-        inviter_email: creator.get('email'),
-        locale: creator.get('settings').locale || 'en',
-        group_name: group.get('name'),
-        group_avatar_url: group.get('avatar_url'),
-        group_url: Frontend.Route.group(group),
-        invite_link: Frontend.Route.useInvitation(this.get('token'), email),
-        tracking_pixel_url: Analytics.pixelUrl('Invitation', {
-          recipient: email,
-          group: group.get('name')
-        })
-      }
-      return this.save({
-        sent_count: this.get('sent_count') + 1,
-        last_sent_at: new Date()
-      })
       .then(() => {
-        if (this.get('tag_id')) {
-          throw new Error('need to re-implement tag invitations')
-        } else {
-          return Email.sendInvitation(email, data)
+        const { creator, group } = this.relations
+        const email = this.get('email')
+
+        const data = {
+          subject: this.get('subject'),
+          message: this.get('message'),
+          inviter_avatar_url: creator.get('avatar_url'),
+          inviter_name: creator.get('name'),
+          inviter_email: creator.get('email'),
+          locale: creator.get('settings').locale || 'en',
+          group_name: group.get('name'),
+          group_avatar_url: group.get('avatar_url'),
+          group_url: Frontend.Route.group(group),
+          invite_link: Frontend.Route.useInvitation(this.get('token'), email),
+          tracking_pixel_url: Analytics.pixelUrl('Invitation', {
+            recipient: email,
+            group: group.get('name')
+          })
         }
+        return this.save({
+          sent_count: this.get('sent_count') + 1,
+          last_sent_at: new Date()
+        })
+          .then(() => {
+            if (this.get('tag_id')) {
+              throw new Error('need to re-implement tag invitations')
+            } else {
+              return Email.sendInvitation(email, data)
+            }
+          })
       })
-    })
   }
 
 }, EnsureLoad), {

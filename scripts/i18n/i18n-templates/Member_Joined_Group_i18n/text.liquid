@@ -1,0 +1,17 @@
+[ https://www.hylo.com ]
+{% set group_name_var = group_name %}
+{% set group_url_var = group_url %}
+{% trans %}Your group {{group_name_var}} [ {{group_url_var}} ] is growing!{% endtrans %}
+
+{% set member_name_e = member_name|e %}
+{% set member_profile_url_var = member_profile_url %}
+{% set message_url_var = message_url %}
+{% trans %}Your newest member is {{member_name_e}} [ {{member_profile_url_var}} ] , send them a note to say hello [ {{message_url_var}} ] !{% endtrans %}
+{% if join_questions %} 
+{% trans %}Their join question responses:{% endtrans %} 
+{% for question in join_questions %} 
+{% set question_text_e = question.text|e %}
+{% set question_answer_e = question.answer|e %}
+{% trans %}- {{question_text_e}}: {{question_answer_e}}{% endtrans %} 
+{% endfor %} 
+{% endif %}

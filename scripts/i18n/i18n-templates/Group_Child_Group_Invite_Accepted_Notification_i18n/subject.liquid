@@ -1,0 +1,5 @@
+{% if memberOf == 'child' %}
+  {% trans %}Your group {{child_group_name}} has joined {{parent_group_name}}{% endtrans %}
+{% else %} 
+  {% trans %}{{child_group_name}} has joined your group {{parent_group_name}}{% endtrans %}
+{% endif %}

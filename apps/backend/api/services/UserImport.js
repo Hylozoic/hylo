@@ -67,34 +67,35 @@ export function createUser (attrs, options) {
   }
 
   return User.isEmailUnique(email)
-  .then(unique => {
-    if (!unique) {
-      if (verbose) console.error('email already exists: ' + email)
-      return
-    }
-
-    if (dryRun) {
-      console.log(`dry run: ${name} <${email}>`)
-      return
-    }
-
-    // TODO handle skills as tags
-    return User.create(_.merge(attrs, {
-      group: group,
-      settings: {},
-      created_at: new Date(),
-      updated_at: new Date()
-    }))
-    .tap(user => {
-      if (group && group.id === '9') {
-        return Email.sendSimpleEmail(
-          user.get('email'), 'tem_GC822hsXScRMV23pddPNZM',
-          {recipient_name: name.split(' ')[0]},
-          {sender: {name: 'Impact Hub Oakland'}}
-        )
+    .then(unique => {
+      if (!unique) {
+        if (verbose) console.error('email already exists: ' + email)
+        return
       }
+
+      if (dryRun) {
+        console.log(`dry run: ${name} <${email}>`)
+        return
+      }
+
+      // TODO handle skills as tags
+      return User.create(_.merge(attrs, {
+        group,
+        settings: {},
+        created_at: new Date(),
+        updated_at: new Date()
+      }))
+        .tap(user => {
+          if (group && group.id === '9') {
+            return Email.sendSimpleEmail(
+              user.get('email'), 'tem_DQVRF6JK9WBtRBTjxrmt46y4',
+              { recipient_name: name.split(' ')[0] },
+              { sender: { name: 'Impact Hub Oakland' } },
+              'en-US'
+            )
+          }
+        })
     })
-  })
 }
 
 export const converters = {

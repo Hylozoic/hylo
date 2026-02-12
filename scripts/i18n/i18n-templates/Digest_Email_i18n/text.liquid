@@ -1,0 +1,99 @@
+{% macro avatar_box(class, avatar_url) -%}
+{{ caller() }}
+{%- endmacro %} {% macro post_anchor(post) -%}post{{post.id}}{% endmacro -%} {% macro post_item(post) -%} {% set post_title = post.title %}
+{% set post_user_name = post.user.name %}
+{% set post_details_safe = post.details|safe %}
+{% call avatar_box('post sub-section', post.user.avatar_url) %}
+{% trans %}{{post_title}}{% endtrans %}
+
+{% trans %}Created by: {{post_user_name}}{% endtrans %}
+
+{% trans %}{{post_details_safe}}{% endtrans %}
+{% if post.requests|length > 0 %}
+{% trans %}Requests:{% endtrans %}
+
+{% for request in post.requests %}
+{{request}}
+{% endfor %}
+{% endif %} {% if post.when or post.location %}
+{% if post.when %}
+{% set post_when = post.when %}
+{% trans %}When: {{post_when}}{% endtrans %}
+{% endif %} {% if post.location %}
+{% set post_location = post.location %}
+{% trans %}Where: {{post_location}}{% endtrans %}
+{% endif %}
+{% endif %} {% if post.link_preview %} {% set post_link_preview_title = post.link_preview.title %}
+{% set post_link_preview_description = post.link_preview.description|truncate(140) if post.link_preview.description %}
+{% set post_link_preview_url = post.link_preview.url %}
+{% if post.link_preview.image_url %}{% endif %}
+{% trans %}{{post_link_preview_title}}{% endtrans %}
+
+{% trans %}{{post_link_preview_description}}{% endtrans %}
+
+{% trans %}[ {{post_link_preview_url}} ]{% endtrans %} {% endif %} {% set post_url = post.url %}
+{% trans %}View on Hylo [ {{post_url}} ]{% endtrans %} {% endcall %} {%- endmacro %} {% macro generic_headline(name, title, href='') -%}
+{% trans %}{{name}} {{title}} [ {{href}} ]{% endtrans %}
+{% endmacro %} {% macro post_headline(post) -%} {% set post_user_name = post.user.name %}
+{% set post_title = post.title %}
+{% set post_anchor_str = '#' ~ post_anchor(post) %}
+{{ generic_headline(post_user_name ~ ':', post_title, post_anchor_str) }} {% endmacro %} {% macro comment_count(n) -%} {% if n > 1 %}
+{% trans %}{{n}} new comments in Hylo{% endtrans %}
+{% else %}
+{% trans %}{{n}} new comment in Hylo{% endtrans %}
+{% endif %} {% endmacro%} {% macro new_activity_headline(activity) -%} {% set activity_title = activity.title %}
+{% set activity_url = activity.url %}
+{% set comment_count_result = comment_count(activity.comment_count) %}
+{{ generic_headline(activity_title, comment_count_result, activity_url) }} {% endmacro %} {% macro headline_sub_section(name, post_list, divider=true) %} {% if post_list|length > 0 %}
+
+{% trans %}{{name}}{% endtrans %}
+{% for post in post_list %}{{ post_headline(post) }}{% endfor %}
+{% endif %} {% endmacro %}
+{% set swu_webview_url = swu.webview_url %}
+{% trans %}View this email in a browser [ {{swu_webview_url}} ]{% endtrans %}
+
+{% trans %}{{group_name}}{% endtrans %}
+
+{% trans %}Visit Group [ {{group_url}} ]{% endtrans %}
+{% if no_new_activity %}{% else %}
+{% set recipient_first_name = recipient.name.split(' ')|first %}
+{% trans %}Hey, {{recipient_first_name}}! Here's what's happening in our group.{% endtrans %}
+{% endif %}
+{% if requests|length > 0 or offers|length > 0 or resources|length > 0 or conversations|length > 0 %}
+
+{% trans %}New Posts{% endtrans %}
+{{headline_sub_section('Requests', requests)}} {{headline_sub_section('Offers', offers)}} {{headline_sub_section('Resources', resources)}} {{headline_sub_section('All Topics', conversations, false)}}
+{% endif %} {% if projects|length > 0 or events|length > 0 %}
+
+{% trans %}New Projects and Events{% endtrans %}
+{{headline_sub_section('Events', events)}} {{headline_sub_section('Projects', projects, false)}}
+{% endif %} {% if postsWithNewComments|length > 0 %}
+
+{% trans %}New Activity{% endtrans %}
+{% for post in postsWithNewComments %}{{ new_activity_headline(post) }}{% endfor %}
+{% endif %} {% if requests|length > 0 %}
+
+{% trans %}Requests{% endtrans %}
+{% for post in requests %}{{ post_item(post) }}{% endfor %}
+{% endif %} {% if offers|length > 0%}
+
+{% trans %}Offers{% endtrans %}
+{% for post in offers %}{{ post_item(post) }}{% endfor %}
+{% endif %} {% if resources|length > 0%}
+
+{% trans %}Resources{% endtrans %}
+{% for post in resources %}{{ post_item(post) }}{% endfor %}
+{% endif %} {% if conversations|length > 0 %}
+
+{% trans %}All Topics{% endtrans %}
+{% for post in conversations %}{{ post_item(post) }}{% endfor %}
+{% endif %} {% if projects|length %}
+
+{% trans %}New Projects{% endtrans %}
+{% for project in projects %}{{ post_item(project) }}{% endfor %}
+{% endif %} {% if events|length > 0 %}
+
+{% trans %}New Events{% endtrans %}
+{% for event in events %}{{ post_item(event) }}{% endfor %}
+{% endif %}
+{% trans %}Reply to this email if you have questions or comments for the Hylo team. Click here [ {{email_settings_url}} ] to change your email settings.{% endtrans %}

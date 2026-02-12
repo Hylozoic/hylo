@@ -1,0 +1,10 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set body_text = body %}
+  {% trans %}{{body_text}}{% endtrans %}
+</p>
+
+<a href='btn btn-blue' href='{{post_url}}'>{% trans %}View the post{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

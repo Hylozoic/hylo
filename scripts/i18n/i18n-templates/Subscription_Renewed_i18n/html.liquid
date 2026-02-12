@@ -1,0 +1,25 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>
+  {% set offering_name_var = offering_name %}
+  {% set group_name_var = group_name %}
+  {% trans %}Your subscription to{% endtrans %} <strong>{{offering_name_var}}</strong> {% trans %}for{% endtrans %} {{group_name_var}} {% trans %}has been renewed successfully.{% endtrans %}
+</p>
+
+<p><strong>{% trans %}Amount Paid:{% endtrans %}</strong> {{amount_paid}}</p>
+<p><strong>{% trans %}Payment Date:{% endtrans %}</strong> {{payment_date}}</p>
+<p><strong>{% trans %}Next Renewal:{% endtrans %}</strong> {{next_renewal_date}}</p>
+
+{% if stripe_receipt_url %}
+  <p><a data-click-track-id="8498" href="{{stripe_receipt_url}}">{% trans %}View Receipt{% endtrans %}</a></p>
+{% endif %}
+
+<p><a class='btn btn-blue' href="{{group_url}}" clicktracking="off">{% trans %}Continue Accessing Content{% endtrans %}</a></p>
+<a class='btn btn-blue' href="{{manage_subscription_url}}" clicktracking="off">{% trans %}Manage Subscription{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

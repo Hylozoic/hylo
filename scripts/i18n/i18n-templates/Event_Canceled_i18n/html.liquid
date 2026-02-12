@@ -1,0 +1,17 @@
+{% snippet header_redesign %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>{% trans %}The event{% endtrans %}</p>
+<h2>{{event_name}}</h2> 
+<p>
+  {% set group_names_var = group_names %}
+  {% trans %}from {{group_names_var}}{% endtrans %}
+</p> 
+
+<p>{% trans %}has been canceled. You can remove from your calendar.{% endtrans %}</p>
+
+{% snippet footer_redesign %}
