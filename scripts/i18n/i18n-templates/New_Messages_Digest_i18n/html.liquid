@@ -1,0 +1,42 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: avatar_box" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+  {% if count > 1 %}
+    {% trans %}{{count}} new direct messages{% endtrans %}
+  {% else %}
+    {% trans %}{{count}} new direct message{% endtrans %}
+  {% endif %}
+  {#on {{date}}#}
+</p>
+
+<div class='card'>
+  <div style='border-bottom: 1px solid gray; padding-bottom: 10px; margin-bottom: 10px;'>
+    <img src='{{participant_avatars}}' class='avatar' style='vertical-align: middle;' />
+    <span style='vertical-align: middle; margin-left: 5px;'>{{participant_names}}</span>
+  </div> 
+  
+  {% for message in messages %}
+    {% call avatar_box('comment', message.avatar_url) %}
+      <p>
+        <span style='font-weight: bold;'>{{message.name}}</span>
+        {# <span style='color: gray; font-size: 11px; float: right;'>{{message.timestamp}}</span> #}
+        <br style='clear: right;'/>
+        {% if message.text|length > 0 %}<span>{{message.text}}</span>{% endif %}
+        {% if message.image %}
+          <br />
+          <a clicktracking="off" data-click-track-id="4420" href="{{comment.image.url}}" target="_blank">
+            <img src="{{message.image.thumbnail_url}}">
+          </a>
+        {% endif %}
+      </p>
+    {% endcall %}
+  {% endfor %}
+</div>
+
+<p class='center'>{% trans %}Reply to this email to respond or{% endtrans %}</p>
+  
+<a class='btn btn-blue' href='{{thread_url}}'>{% trans %}Join the conversation on Hylo{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

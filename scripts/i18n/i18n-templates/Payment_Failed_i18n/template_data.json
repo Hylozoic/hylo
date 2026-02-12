@@ -1,0 +1,12 @@
+{
+  "user_name": "John Doe",
+  "user_email": "john@example.com",
+  "offering_name": "Premium Membership",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "failure_reason": "Card declined",
+  "retry_date": "January 5, 2026",
+  "access_ends_date": "January 10, 2026",
+  "update_payment_url": "https://billing.stripe.com/p/session/...",
+  "manage_subscription_url": "https://hylo.com/settings/subscriptions"
+}

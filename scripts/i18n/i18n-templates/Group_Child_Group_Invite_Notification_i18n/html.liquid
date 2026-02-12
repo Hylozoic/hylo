@@ -1,0 +1,15 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+{% set inviter_pill = actor_pill(inviter_name, inviter_avatar_url, inviter_profile_url) %}
+{% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_settings_url) %}
+{% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+{{inviter_pill}} {% trans %}has invited{% endtrans %} {{child_group_pill}} {% trans %}to be a part of{% endtrans %} {{parent_group_pill}}
+</p>
+
+<p>{% trans %}When your group becomes a part of another group, your members will be able to join that group.{% endtrans %}</p>  
+
+<a class='btn btn-blue' href="{{child_group_settings_url}}">{% trans %}Respond to this Invitation{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

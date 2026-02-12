@@ -1,0 +1,30 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set offering_name_var = offering_name %}
+  {% set group_name_var = group_name %}
+  {% trans %}Your subscription to{% endtrans %} <strong>{{offering_name_var}}</strong> {% trans %}for{% endtrans %} {{group_name_var}} {% trans %}has been cancelled.{% endtrans %}
+</p>
+
+<p><strong>{% trans %}Cancelled:{% endtrans %}</strong> {{cancelled_at}}</p>
+
+{% if access_ends_at %}
+  <p>{% trans %}Your access will continue until{% endtrans %} <strong>{{access_ends_at}}</strong> {% trans %}(end of your current billing period).{% endtrans %}</p>
+{% else %}
+  <p>{% trans %}Your access has ended immediately.{% endtrans %}</p>
+{% endif %}
+
+{% if reason %}
+  <p><strong>{% trans %}Reason:{% endtrans %}</strong> {{reason}}</p>
+{% endif %}
+
+<p>{% trans %}We're sorry to see you go! If you change your mind, you can resubscribe at any time.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{resubscribe_url}}" clicktracking="off">{% trans %}Resubscribe{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

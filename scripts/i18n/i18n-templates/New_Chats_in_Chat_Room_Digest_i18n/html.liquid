@@ -1,0 +1,35 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: avatar_box" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+  {% set group_chat_pill = actor_pill(group_name + ' #' + chat_topic, group_avatar_url, chat_room_url) %}
+  {% if count > 1 %}
+    {% trans %}{{count}} new chats in{% endtrans %} {{group_chat_pill}} {# on {{date}} #}
+  {% else %}
+    {% trans %}{{count}} new chat in{% endtrans %} {{group_chat_pill}} {# on {{date}} #}
+  {% endif %}
+</p>
+
+<div class='card'>
+{% for post in posts %}
+  {% call avatar_box('comment', post.creator_avatar_url) %}
+    <p>
+      <span style='font-weight: bold;'>{{post.creator_name}}</span>
+      {# <span style='color: gray; font-size: 11px; float: right;'>{{post.timestamp}}</span> #}
+      <br style='clear: right;'/>
+      <span>{{post.content}}</span>
+      {% for image in post.images %}
+        <br/>
+        <a clicktracking="off" data-click-track-id="4420" href="{{image.url}}" target="_blank">
+          <img src="{{image.thumbnail_url}}">
+        </a>
+      {% endfor %}
+    </p>
+  {% endcall %}
+{% endfor %}
+</div>
+
+    <a class='btn btn-blue' href='{{chat_room_url}}'>{% trans %}Join the conversation or change your notifications{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

@@ -1,0 +1,26 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set offering_name_var = offering_name %}
+  {% set group_name_var = group_name %}
+  {% trans %}Your subscription to{% endtrans %} <strong>{{offering_name_var}}</strong> {% trans %}for{% endtrans %} {{group_name_var}} {% trans %}will renew in 7 days.{% endtrans %}
+</p>
+
+<p><strong>{% trans %}Renewal Date:{% endtrans %}</strong> {{renewal_date}}</p>
+<p><strong>{% trans %}Amount:{% endtrans %}</strong> {{renewal_amount}}</p>
+<p><strong>{% trans %}Billing Period:{% endtrans %}</strong> {{renewal_period}}</p>
+
+<p>{% trans %}Your payment method on file will be charged automatically. If you need to update your payment method or cancel your subscription, please do so before the renewal date.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{manage_subscription_url}}" clicktracking="off">{% trans %}Manage Subscription{% endtrans %}</a>
+<br>
+{% if update_payment_url %}
+  <a class='btn btn-blue' href="{{update_payment_url}}" clicktracking="off">{% trans %}Update Payment Method{% endtrans %}</a>
+{% endif %}
+
+{% snippet 'footer_redesign' %}

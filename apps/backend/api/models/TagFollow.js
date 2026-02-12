@@ -207,7 +207,6 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }).toString()
 
       const result = await Email.sendChatDigest({
-        version: 'Redesign 2025',
         email: tagFollow.relations.user.get('email'),
         locale,
         sender: {

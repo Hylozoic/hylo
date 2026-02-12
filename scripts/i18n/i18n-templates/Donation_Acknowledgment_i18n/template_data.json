@@ -1,0 +1,15 @@
+{
+  "currency": "USD",
+  "donation_amount": "$5.00",
+  "donation_date": "January 2, 2026",
+  "donation_type": "one-time",
+  "fiscal_sponsor_name": "Fiscal Sponsor Name",
+  "group_name": "My Community",
+  "impact_message": "Your donation helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.",
+  "is_recurring": false,
+  "is_tax_deductible": true,
+  "purchase_context": "Premium Membership purchase",
+  "tax_receipt_info": "A tax receipt will be issued by our fiscal sponsor for your records.",
+  "user_email": "john@example.com",
+  "user_name": "John Doe"
+}

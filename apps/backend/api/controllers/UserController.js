@@ -63,7 +63,6 @@ module.exports = {
             group_name: group && group.get('name'),
             group_avatar_url: group && group.get('avatar_url'),
             group_url: Frontend.Route.group(group),
-            version: 'Redesign 2025',
             verify_url: Frontend.Route.verifyEmail(email, user.generateJWT())
           }
         })

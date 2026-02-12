@@ -1,0 +1,49 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: avatar_box" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+  {% if count > 1 %}
+    {% trans %}{{count}} new comments on{% endtrans %}
+  {% else %}
+    {% trans %}{{count}} new comment on{% endtrans %}
+  {% endif %}
+  <a href='{% trans %}{{thread_url}}{% endtrans %}'>{{post_title}}</a> {% trans %}on {{date}}{% endtrans %}
+</p>
+
+<div class='card'>
+  <div style='border-bottom: 1px solid gray; padding-bottom: 10px; margin-bottom: 10px;'>
+    <img src='{% trans %}{{post_creator_avatar_url}}{% endtrans %}' class='avatar' style='vertical-align: middle;'/>
+    <span style='vertical-align: middle;'>{% trans %}{{post_title}}{% endtrans %}</span>
+  </div> 
+  
+  {% for comment in comments %}
+    {% set comment_name = comment.name %}
+    {% set comment_timestamp = comment.timestamp %}
+    {% set comment_text = comment.text %}
+    {% if comment.image %}
+      {% set comment_image_url = comment.image.url %}
+      {% set comment_image_thumbnail_url = comment.image.thumbnail_url %}
+    {% endif %}
+    {% call avatar_box('comment', comment.avatar_url) %}
+      <p>
+        <span style='font-weight: bold;'>{% trans %}{{comment_name}}{% endtrans %}</span>
+        <span style='color: gray; font-size: 11px; float: right;'>{% trans %}{{comment_timestamp}}{% endtrans %}</span>
+        <br style='clear: right;'/>
+        {% if comment_text|length > 0 %}<span>{% trans %}{{comment_text}}{% endtrans %}</span>{% endif %}
+        {% if comment.image %}
+          <br />
+          <a clicktracking="off" data-click-track-id="4420" href='{% trans %}{{comment_image_url}}{% endtrans %}' target="_blank">
+            <img src='{% trans %}{{comment_image_thumbnail_url}}{% endtrans %}'>
+          </a>
+        {% endif %}
+      </p>
+    {% endcall %}
+  {% endfor %}
+</div>
+
+<p class='center'>{% trans %}Reply to this email to comment or{% endtrans %}</p>
+  
+<a class='btn btn-blue' href='{% trans %}{{thread_url}}{% endtrans %}'>{% trans %}Join the conversation on Hylo{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

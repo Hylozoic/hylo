@@ -1,0 +1,5 @@
+{% macro avatar_box(class, avatar_url) -%}
+{{ caller() }}
+{%- endmacro %} {% call avatar_box('post section', requester_avatar_url) %} {% trans %}{{requester_name}} [ {{requester_profile_url}} ] has asked to join {{community_name}}.{% endtrans %}
+
+{% trans %}Manage their request [ {{settings_url}} ]{% endtrans %} {% endcall %}

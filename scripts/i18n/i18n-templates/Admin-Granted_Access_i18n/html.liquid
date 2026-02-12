@@ -1,0 +1,37 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>
+  {% set granted_by_name_var = granted_by_name %}
+  {% trans %}{{granted_by_name_var}} has granted you access to:{% endtrans %}
+</p>
+
+<h2>{{access_name}}</h2>
+
+{% if group_name and access_type != 'group' %}
+  {% set group_name_var = group_name %}
+  <p>{% trans %}in {{group_name_var}}{% endtrans %}</p>
+{% endif %}
+
+{% if access_url %}
+  {% if access_type == 'track' %}
+    <a class='btn btn-blue' href="{{access_url}}" clicktracking="off">{% trans %}Start Learning{% endtrans %}</a>
+  {% elif access_type == 'group' %}
+    <a class='btn btn-blue' href="{{access_url}}" clicktracking="off">{% trans %}Visit Group{% endtrans %}</a>
+  {% else %}
+    <a class='btn btn-blue' href="{{access_url}}" clicktracking="off">{% trans %}Access Content{% endtrans %}</a>
+  {% endif %}
+{% endif %}
+
+<br>
+{% if expires_at %}
+  <p><strong>{% trans %}Access Expires:{% endtrans %}</strong> {{expires_at}}</p>
+{% else %}
+  <p>{% trans %}You have ongoing access to this content.{% endtrans %}</p>
+{% endif %}
+
+{% snippet 'footer_redesign' %}

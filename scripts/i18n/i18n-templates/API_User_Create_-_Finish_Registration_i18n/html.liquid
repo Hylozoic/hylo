@@ -1,0 +1,15 @@
+{% snippet 'header_redesign' %}
+
+<p class="lead">
+  {% set group_name_default = group_name|default(api_client) %}
+  {% trans %}You've been invited to join{% endtrans %} <a class='group-pill' href="{{group_url}}" clicktracking="off"><img src='{{group_avatar_url}}' /> {{group_name_default}}</a> {% trans %}on Hylo!{% endtrans %}
+</p> 
+ 
+<div class='card'>
+  {% set group_name_default = group_name|default(api_client) %}
+  {% trans %}Welcome to Hylo, the community platform for purpose driven groups.{% endtrans %} {{group_name_default}} {% trans %}is using Hylo for their community.{% endtrans %}
+</div>   
+
+<a class='btn btn-blue' href='{{verify_url}}'>{% trans %}Complete your registration{% endtrans %}</a> 
+
+{% snippet 'footer_redesign' %}

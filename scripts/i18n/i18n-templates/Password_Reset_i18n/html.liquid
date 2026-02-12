@@ -1,0 +1,10 @@
+{% snippet 'header_redesign' %}
+<p>{% trans %}We’ve received a request to reset your Hylo password. If you did not make this request, you can safely ignore this email.{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{login_url}}" clicktracking="off">{% trans %}Reset your password{% endtrans %}</a>
+<br/>
+
+<p style='font-size: 10px'>{% trans %}If the link above doesnt work you can copy and paste this link into your browser:{% endtrans %} </p>
+<a name='dontautlink' style='font-size: 10px; color: black; text-decoration: none; word-wrap: break-word; word-break: break-word;'>{{login_url}}</a>
+
+{% snippet 'footer_redesign' %}

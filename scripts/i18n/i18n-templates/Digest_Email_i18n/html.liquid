@@ -1,0 +1,145 @@
+{% snippet 'header_redesign' %}
+{% snippet 'macro: post_card' %}
+{% snippet 'macro: actor_pill' %}
+{% snippet 'macro: post_icon' %}
+
+{% macro avatar_box(class, avatar_url) -%}
+  <table class='{{class}}'>
+    <tbody>
+      <tr>
+        <td class='avatar-cell'>
+          <img class='avatar' src='{{avatar_url}}' />
+        </td>
+        <td class='content-cell'>
+          {{ caller() }}
+        </td>
+      </tr> 
+    </tbody>
+  </table>  
+{%- endmacro %} 
+
+{% macro jump_to_sub_section(name, post_list) %}
+  {% if post_list|length > 0 %}
+    <a href='#{{name}}'>{% trans %}{{name}}{% endtrans %}</a>,
+  {% endif %}  
+{% endmacro %} 
+
+{% macro posts_section(name, posts) %}
+  {% if posts and posts|length > 0 %}
+    <span id='{{name}}'></span>
+    <div class='section'>
+      <h3 class='section-title'>{% trans %}New {% endtrans %}{{name}}</h3>
+      {% for post in posts %}{{ post_card(post, true) }}{% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %} 
+
+<div class='section'>
+  {% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+  {% trans %}Here's what's happened in the last {% endtrans %}{{ time_period }} {% trans %}in {% endtrans %}{{ group_pill }}
+
+  {% set jump_links = [] %}
+  {% if discussions|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Discussions'>{% trans %}Discussions{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if events|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Events'>{% trans %}Events{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if offers|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Offers'>{% trans %}Offers{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if requests|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Requests'>{% trans %}Requests{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if resources|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Resources'>{% trans %}Resources{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if projects|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Projects'>{% trans %}Projects{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if proposals|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#Proposals'>{% trans %}Proposals{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if upcoming|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#upcoming'>{% trans %}Upcoming Reminders{% endtrans %}</a>"] %}
+  {% endif %}
+  {% if ending|length > 0 %}
+    {% set jump_links = jump_links + ["<a href='#ending'>{% trans %}Ending Soon{% endtrans %}</a>"] %}
+  {% endif %}
+  
+  {% if jump_links and jump_links|length > 2 %}
+    <p style='margin-top: 5px;'>
+      {% trans %}Jump to {% endtrans %}{{ jump_links|join(', ')|safe }}
+    </p>
+  {% endif %}
+</div> 
+
+{% if posts_with_new_comments|length > 0 or topics_with_chats|length > 0 %}
+<div class='section'>
+  <h3 class='section-title'>{% trans %}Active Conversations{% endtrans %}</h3>
+  <div class='card'>
+    {% for topic in topics_with_chats %}
+      {% set topic_num_new_chats = topic.num_new_chats %}
+      <div class='post-headline'> 
+        {% if topic_num_new_chats > 1 %}
+          {% trans %}{{topic_num_new_chats}} new chats in{% endtrans %}
+        {% else %}
+          {% trans %}{{topic_num_new_chats}} new chat in{% endtrans %}
+        {% endif %}
+        <a class='title' href='{{topic.url}}'>#{{topic.name}}</a>
+      </div>
+    {% endfor %}
+    
+    {% for post in posts_with_new_comments %}
+      {% set post_comment_count = post.comment_count %}
+      <div class='post-headline'>
+        {% if post_comment_count > 1 %}
+          {% trans %}{{post_comment_count}} new comments in{% endtrans %}
+        {% else %}
+          {% trans %}{{post_comment_count}} new comment in{% endtrans %}
+        {% endif %}
+        <a href='{{post.url}}' class='title'>{{post.title}}</a>  
+      </div>
+    {% endfor %}
+  </div>
+</div> 
+{% endif %}
+ 
+{{posts_section('Discussions', discussions)}}  
+{{posts_section('Events', events)}}
+{{posts_section('Offers', offers)}}
+{{posts_section('Requests', requests)}}
+{{posts_section('Resources', resources)}}
+{{posts_section('Projects', projects)}} 
+{{posts_section('Proposals', proposals)}} 
+ 
+{% if upcoming|length > 0 %}
+<div class='section'> 
+  <span id='upcoming'></span>
+      <h3 class='section-title'>
+        {% trans %}Coming up in the next {% endtrans %}
+        {% if time_period == 'day' %}2 days{% else %}week{% endif %}
+      </h3>
+  {% for post in upcoming %}
+    <div class='card post-headline'> 
+      {{post_icon(post.type)}} <span>{{post.start_time}} - <a href='{{post.url}}'>{{post.title}}</a></span>
+    </div> 
+  {% endfor %}
+</div> 
+{% endif %}
+ 
+{% if ending|length > 0 %}
+<div class='section'>
+  <span id='ending'></span>
+      <h3 class='section-title'>
+        {% trans %}Ending in the next {% endtrans %}
+        {% if time_period == 'day' %}2 days{% else %}week{% endif %}
+      </h3>
+  {% for post in ending %}
+    <div class='card post-headline'> 
+      {{post_icon(post.type)}} <span>{{post.end_time}} - <a href='{{post.url}}'>{{post.title}}</a></span>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% snippet 'footer_redesign' %}

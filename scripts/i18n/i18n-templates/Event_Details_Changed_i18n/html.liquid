@@ -1,0 +1,33 @@
+{% snippet header_redesign %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>{% trans %}The event details have changed for event you are {% endtrans %}{{response}}:</p>
+
+<h2>{{event_name}}</h2> 
+<p>
+  {% set group_names_var = group_names %}
+  {% trans %}from {% endtrans %}{{group_names_var}}
+</p> 
+
+{% if newDate %} 
+  <p>{% trans %}Date has changed to {% endtrans %}<strong>{{newDate}}</strong></p>
+{% endif %}
+
+{% if newLocation %} 
+  <p>{% trans %}Location has changed to {% endtrans %}<strong>{{newLocation}}</strong></p>
+{% endif %}
+
+<br>
+
+<a class='btn btn-blue' href="{{event_url}}" clicktracking="off">{% trans %}Event Page{% endtrans %}</a>
+
+<br>
+<br>
+
+<p>{% trans %}Attached is an updated calendar invite.{% endtrans %}</p>
+
+{% snippet footer_redesign %}

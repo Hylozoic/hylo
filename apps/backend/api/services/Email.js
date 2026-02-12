@@ -56,26 +56,25 @@ module.exports = {
   sendSimpleEmail,
 
   sendRawEmail: ({ email, data, extraOptions }) =>
-    sendSimpleEmail(email, 'tem_nt4RmzAfN4KyPZYxFJWpFE', data, extraOptions),
+    sendSimpleEmail(email, 'tem_jFYJ3bxMyfbbtbwgDGS4JGfK', data, extraOptions),
 
   sendPasswordReset: opts =>
-    sendSimpleEmail(opts.email, 'tem_mccpcJNEzS4822mAnDNmGT', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_phRPHm3y6RHvRFww6Vc3VBVB', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
 
   sendEmailVerification: opts =>
-    sendSimpleEmail(opts.email, 'tem_tt6gJkFMgjThCHHR6MwpPPrT', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_h99yGHv9MXTpMrPSDVTjQFyB', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
 
   sendFinishRegistration: opts =>
-    sendSimpleEmail(opts.email, 'tem_BcfBCCHdDmkvcvkBSGPWYcjJ', opts.templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(opts.locale)),
+    sendSimpleEmail(opts.email, 'tem_fqGSrDrSK6WpjTBFXSfY79k4', opts.templateData, {}, mapLocaleToSendWithUS(opts.locale)),
 
   sendModerationAction: ({ email, templateData, locale }) =>
-    sendSimpleEmail(email, 'tem_Bpb3WGd8dbFHXyKcfV4TTmGB', templateData, { version_name: 'Redesign 2025' }, mapLocaleToSendWithUS(locale)),
+    sendSimpleEmail(email, 'tem_BXYk4Hxt74R9jH3pkdGfqbJM', templateData, {}, mapLocaleToSendWithUS(locale)),
 
   sendInvitation: (email, data) =>
-    sendEmailWithOptions('tem_ZXZuvouDYKKhCrdEWYbEp9', {
+    sendEmailWithOptions('tem_GTwXKBfkTpTHRfHpmJWbYr9d', {
       email,
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
-      version: 'Redesign 2025',
       sender: {
         name: `${data.inviter_name} (via Hylo)`,
         reply_to: data.inviter_email
@@ -84,42 +83,41 @@ module.exports = {
 
   // TODO: not used, remove this
   sendTagInvitation: (email, data) =>
-    sendEmailWithOptions('tem_tmEEpPvtQ69wGkmf9njCx8', {
+    sendEmailWithOptions('tem_dwY7bkbHhxrb4vdc8mhjTBgQ', {
       email,
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
-      version: 'default',
       sender: {
         name: `${data.inviter_name} (via Hylo)`,
         reply_to: data.inviter_email
       }
     }),
 
-  sendPostNotification: sendEmailWithOptions('tem_xMGgjc4cfHCYDr8gWRKwhdXF'),
-  sendPostMentionNotification: sendEmailWithOptions('tem_wXiqtyNzAr8EF4fqBna5WQ'),
-  sendJoinRequestNotification: sendEmailWithOptions('tem_9sW4aBxaLi5ve57bp7FGXZ'),
-  sendApprovedJoinRequestNotification: sendEmailWithOptions('tem_eMJADwteU3zPyjmuCAAYVK'),
-  sendMemberJoinedGroupNotification: sendEmailWithOptions('tem_94twpVMrvWmF8QxHPBY6bKg3'),
-  sendDonationToEmail: sendEmailWithOptions('tem_bhptVWGW6k67tpFtqRDWKTHQ'),
-  sendDonationFromEmail: sendEmailWithOptions('tem_TCgS9xJykShS9mJjwj9Kd3v6'),
-  sendEventInvitationEmail: sendEmailWithOptions('tem_DxG3FjMdcvYh63rKvh7gDmmY'),
-  sendEventRsvpEmail: sendEmailWithOptions('tem_36CYP4XjSmSjPtqqdBJBRcjF'),
-  sendEventRsvpUpdateEmail: sendEmailWithOptions('tem_rQpvDV9yc37FfdW4MC9PCkWY'),
-  sendEventRsvpCancelEmail: sendEmailWithOptions('tem_hHcpgSQfFjbCyXjXrkhxrr64'),
-  sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_vwd7DKxrGrXPX8Wq63VkTvMd'),
-  sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_CWcM3KrQVcQkvHbwVmWXwyvR'),
-  sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PrBkcV4WTwwdKm4MyPK7kVJB'),
-  sendGroupParentGroupJoinRequestAcceptedNotification: sendEmailWithOptions('tem_KcSfYRQCh4pgTGF7pcPjStqP'),
-  sendGroupPeerGroupInviteNotification: sendEmailWithOptions('tem_Rg6cVCt6GSgp7dR6YK833wb3'),
-  sendGroupPeerGroupInviteAcceptedNotification: sendEmailWithOptions('tem_X6RtW9pDgGYYGtPQDfppQd9T'),
-  sendExportMembersList: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
-  sendExportUserAccount: sendEmailWithOptions('tem_GQPPQmq4dPrQWxkWdDKVcKWT'),
-  sendTrackCompletedEmail: sendEmailWithOptions('tem_cbYqGkw78DtXwF88v64MY4v3'),
-  sendTrackEnrollmentEmail: sendEmailWithOptions('tem_HQ8KG3pwPbDJkJjhbvhrbcxQ'),
-  sendWelcomeEmail: sendEmailWithOptions('tem_7TwDyk3dR67C8WrWg3h7ycvd'),
-  sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_jpbfjBVT36gpQdVQDpFGxH97'),
-  sendFundingRoundPhaseTransitionEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
-  sendFundingRoundReminderEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
+  sendPostNotification: sendEmailWithOptions('tem_cPYpXw7d9pCdm6M8QmtPvPGG'),
+  sendPostMentionNotification: sendEmailWithOptions('tem_77d99tkvmTBJt7rD83DD4XRP'),
+  sendJoinRequestNotification: sendEmailWithOptions('tem_Dkvtfv9HGgYgjqD4KCXPPdy6'),
+  sendApprovedJoinRequestNotification: sendEmailWithOptions('tem_JjPbSJqj4wbJqSydqw49VrfT'),
+  sendMemberJoinedGroupNotification: sendEmailWithOptions('tem_rvbqYrfMK8VQkqCPJXBRd6KR'),
+  sendDonationToEmail: sendEmailWithOptions('tem_MyJccrgp83dCcb9jtP6pRfG3'),
+  sendDonationFromEmail: sendEmailWithOptions('tem_vc664DPVTSTY6JSmpcjt8xTb'),
+  sendEventInvitationEmail: sendEmailWithOptions('tem_8pt9FjFkxRGQ7XYhRRW3BBrK'),
+  sendEventRsvpEmail: sendEmailWithOptions('tem_93YXdBV6bg4WmD8w3krpGP7H'),
+  sendEventRsvpUpdateEmail: sendEmailWithOptions('tem_77XY6QJTVYKKFhDtkVgW3W93'),
+  sendEventRsvpCancelEmail: sendEmailWithOptions('tem_YCTQy4pJywkRDw6pfhShDg9H'),
+  sendGroupChildGroupInviteNotification: sendEmailWithOptions('tem_7tcVCp6WrxFSRRt9qxfmMm9K'),
+  sendGroupChildGroupInviteAcceptedNotification: sendEmailWithOptions('tem_VYrh6YFTB3X6yq66Rm6qMtgD'),
+  sendGroupParentGroupJoinRequestNotification: sendEmailWithOptions('tem_PVd9yJtHHBVK4jhm3fpdVBMV'),
+  sendGroupParentGroupJoinRequestAcceptedNotification: sendEmailWithOptions('tem_mm6hdXBxRc9dckCp6C386rGG'),
+  sendGroupPeerGroupInviteNotification: sendEmailWithOptions('tem_8SjfcXpkCgdCVxrBXd9KD8YY'),
+  sendGroupPeerGroupInviteAcceptedNotification: sendEmailWithOptions('tem_W7Vm9KqfKHBvTDJvJYDkHHK4'),
+  sendExportMembersList: sendEmailWithOptions('tem_qRkBwBC4MVwqww87gDgRdHSG'),
+  sendExportUserAccount: sendEmailWithOptions('tem_qRkBwBC4MVwqww87gDgRdHSG'),
+  sendTrackCompletedEmail: sendEmailWithOptions('tem_G69qyjJ6xVHxMJMqcwp98dfF'),
+  sendTrackEnrollmentEmail: sendEmailWithOptions('tem_tFrcKvJvTRVYMbDYSrTHwVfV'),
+  sendWelcomeEmail: sendEmailWithOptions('tem_jkdjbcSVK9cmGvwXbtX9PQbJ'),
+  sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_dMt4Dwm493JvYdXGWBpTxxR7'),
+  sendFundingRoundPhaseTransitionEmail: sendEmailWithOptions('tem_RpRYTwYhTpRmy3Y6tcrCGMwB'),
+  sendFundingRoundReminderEmail: sendEmailWithOptions('tem_RpRYTwYhTpRmy3Y6tcrCGMwB'),
 
   // Paid content email templates
   sendPurchaseConfirmation: sendEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
@@ -134,16 +132,13 @@ module.exports = {
   sendTrackAccessPurchased: sendEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
 
   sendMessageDigest: opts =>
-    sendEmailWithOptions('tem_xwQCfpdRT9K6hvrRFqDdhBRK',
-      Object.assign({ version: 'Redesign 2025' }, opts)),
+    sendEmailWithOptions('tem_y8HpjwxFSxC9jRqwfVpPxY8d', opts),
 
   sendCommentDigest: opts =>
-    sendEmailWithOptions('tem_tP6JzrYzvvDXhgTNmtkxuW',
-      Object.assign({ version: 'Redesign 2025' }, opts)),
+    sendEmailWithOptions('tem_Kyq6CbvMmbdjcf7KvpJJFpmX', opts),
 
   sendChatDigest: opts =>
-    sendEmailWithOptions('tem_rpHJjcbDQQmCFQvGqYFx3g73',
-      Object.assign({ version: 'Redesign 2025' }, opts)),
+    sendEmailWithOptions('tem_XjjSPdy6ykMpwq4JGpchmFk6', opts),
 
   postReplyAddress: function (postId, userId) {
     const plaintext = format('%s%s|%s', process.env.INBOUND_EMAIL_SALT, postId, userId)

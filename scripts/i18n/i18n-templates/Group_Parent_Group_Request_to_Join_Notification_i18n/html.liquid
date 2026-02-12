@@ -1,0 +1,15 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+<p>
+{% set requester_pill = actor_pill(requester_name, requester_avatar_url, requester_profile_url) %}
+{% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_settings_url) %}
+{% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+{% trans %}{{requester_pill}} has requested that their group {{child_group_pill}} join {{parent_group_pill}}{% endtrans %}
+</p>
+
+<p>{% trans %}When a group becomes a part of your group, your members will be able to join that group.{% endtrans %}</p>  
+
+<a class='btn btn-blue' href="{{parent_group_settings_url}}">{% trans %}Respond to this Request{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

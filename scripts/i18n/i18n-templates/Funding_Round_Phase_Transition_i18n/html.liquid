@@ -1,0 +1,10 @@
+{% snippet 'header_redesign' %}
+{% set transition_text_var = transition_text %}
+{% set funding_round_url_var = funding_round_url %}
+{% set action_url_var = action_url %}
+{% set button_text_var = button_text %}
+<h3>{% trans %}{{transition_text_var}} in Funding Round {% endtrans %}<a href='{{funding_round_url_var}}'>{{funding_round_title}}</a></h3>
+
+<a class='btn btn-blue' href="{{action_url_var}}">{% trans %}{{button_text_var}}{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}
