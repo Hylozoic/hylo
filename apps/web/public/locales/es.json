@@ -2047,6 +2047,8 @@
   "Duration": "Duración",
   "Failed to start payment process: {{error}}": "Error al iniciar el proceso de pago: {{error}}",
   "Grants access to the group": "Otorga acceso al grupo",
+  "Grant access to this group": "Otorgar acceso a este grupo",
+  "When enabled, purchasing this offering grants access to join this group": "Cuando está habilitado, comprar esta oferta otorga acceso para unirse a este grupo",
   "Lifetime": "De por vida",
   "Loading payment options...": "Cargando opciones de pago...",
   "No payment options are currently available. Please contact the group administrators.": "No hay opciones de pago disponibles actualmente. Por favor, contacta a los administradores del grupo.",

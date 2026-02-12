@@ -2041,6 +2041,8 @@
   "Duration": "Duration",
   "Failed to start payment process: {{error}}": "Failed to start payment process: {{error}}",
   "Grants access to the group": "Grants access to the group",
+  "Grant access to this group": "Grant access to this group",
+  "When enabled, purchasing this offering grants access to join this group": "When enabled, purchasing this offering grants access to join this group",
   "Lifetime": "Lifetime",
   "Loading payment options...": "Loading payment options...",
   "No payment options are currently available. Please contact the group administrators.": "No payment options are currently available. Please contact the group administrators.",
