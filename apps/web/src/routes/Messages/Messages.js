@@ -21,7 +21,6 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { isMobileDevice } from 'util/mobile'
 
 import {
   createMessage,
@@ -85,7 +84,6 @@ const Messages = () => {
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
   const formRef = useRef(null)
-  const containerRef = useRef(null)
 
   useEffect(() => {
     fetchPeopleAction({})
@@ -188,78 +186,34 @@ const Messages = () => {
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
   return (
-    <div
-      className={cn('flex flex-col w-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}
-      style={isMobileDevice() && messageThreadId
-        ? {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: '100dvh',
-            width: '100vw',
-            zIndex: 100
-          }
-        : { height: '100%' }}
-    >
+    <div className={cn('flex flex-col w-full h-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div
-          ref={containerRef}
-          className='flex flex-col w-full px-3 relative'
-          style={isMobileDevice()
-            ? {
-                height: '100%',
-                maxHeight: '100dvh'
-              }
-            : { height: '100%' }}
-        >
-          <div
-            className='flex-1 overflow-y-auto min-h-0'
-            style={isMobileDevice()
-              ? { paddingBottom: '140px' }
-              : {}}
-          >
-            <MessageSection
-              socket={socket}
-              currentUser={currentUser}
-              fetchMessages={fetchMessagesAction}
-              messages={messages}
-              hasMore={hasMoreMessages}
-              pending={messagesPending}
-              updateThreadReadTime={updateThreadReadTimeAction}
-              messageThread={messageThread}
-            />
-          </div>
+        <div className='flex flex-col h-full w-full px-3'>
+          <MessageSection
+            socket={socket}
+            currentUser={currentUser}
+            fetchMessages={fetchMessagesAction}
+            messages={messages}
+            hasMore={hasMoreMessages}
+            pending={messagesPending}
+            updateThreadReadTime={updateThreadReadTimeAction}
+            messageThread={messageThread}
+          />
           <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
-          <div
-            className='bg-background z-10 px-3 pb-3 sm:relative sm:bg-transparent sm:pb-0'
-            style={isMobileDevice()
-              ? {
-                  position: 'fixed',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  width: '100%',
-                  maxWidth: '100vw'
-                }
-              : {}}
-          >
-            <MessageForm
-              disabled={!messageThreadId && participants.length === 0}
-              onSubmit={sendMessage}
-              onFocus={() => setPeopleSelectorOpen(false)}
-              currentUser={currentUser}
-              ref={formRef}
-              updateMessageText={updateMessageTextAction}
-              messageText={messageText}
-              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
-              pending={messageCreatePending}
-            />
-          </div>
+          <MessageForm
+            disabled={!messageThreadId && participants.length === 0}
+            onSubmit={sendMessage}
+            onFocus={() => setPeopleSelectorOpen(false)}
+            currentUser={currentUser}
+            ref={formRef}
+            updateMessageText={updateMessageTextAction}
+            messageText={messageText}
+            sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+            pending={messageCreatePending}
+          />
           {socket && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>
