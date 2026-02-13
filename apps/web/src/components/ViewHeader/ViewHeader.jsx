@@ -8,7 +8,6 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import isWebView from 'util/webView'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
@@ -114,16 +113,6 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  const handleBackClick = useCallback(() => {
-    if (backTo) {
-      navigate(backTo)
-    } else if (centered) {
-      navigate(previousLocation || '/')
-    } else {
-      navigate(-1)
-    }
-  }, [backTo, centered, navigate, previousLocation])
-
   // On small screens, the chevron always toggles the nav menu
   // On larger screens (sm+), if backButton is true, it navigates back
   const handleChevronClick = () => {
@@ -140,8 +129,9 @@ const ViewHeader = () => {
   }
 
   return (
-    <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
-      'justify-center': centered
+    <header className={cn('flex flex-row items-center z-10 p-2 w-full sticky top-0 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+      'justify-center': centered,
+      'bg-midground': true
     })}
     >
       {centered && backButton && (
