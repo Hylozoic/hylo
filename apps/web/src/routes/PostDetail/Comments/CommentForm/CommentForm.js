@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useRef, useCallback, useState } from 'react'
+import React, { useRef, useCallback, useState, useEffect } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -17,6 +17,7 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
+import { isMobileDevice } from 'util/mobile'
 
 import classes from './CommentForm.module.scss'
 
@@ -31,6 +32,8 @@ function CommentForm ({
   const editor = useRef()
   const dispatch = useDispatch()
   const [isFocused, setIsFocused] = useState(false)
+  const hasUserInteracted = useRef(false)
+  const mountTime = useRef(Date.now())
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(
@@ -62,7 +65,44 @@ function CommentForm ({
 
   const placeholderText = placeholder || t('Add a comment...')
 
+  // Track user interactions to distinguish between automatic and user-initiated focus
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      hasUserInteracted.current = true
+    }
+
+    // Listen for any user interaction
+    document.addEventListener('touchstart', handleUserInteraction, { once: true, passive: true })
+    document.addEventListener('mousedown', handleUserInteraction, { once: true, passive: true })
+
+    return () => {
+      document.removeEventListener('touchstart', handleUserInteraction)
+      document.removeEventListener('mousedown', handleUserInteraction)
+    }
+  }, [])
+
+  const handleFocus = useCallback(() => {
+    // On mobile, only prevent automatic focus (within first 500ms after mount or before user interaction)
+    // Allow user-initiated focus so they can tap to open the keyboard
+    if (isMobileDevice() && editor?.current) {
+      const timeSinceMount = Date.now() - mountTime.current
+      const isAutomaticFocus = !hasUserInteracted.current && timeSinceMount < 500
+
+      if (isAutomaticFocus) {
+        // This is an automatic focus - prevent it
+        editor.current.blur()
+        return
+      }
+      // This is user-initiated - allow it
+    }
+    setIsFocused(true)
+  }, [])
+
   const handleContainerMouseDown = useCallback(event => {
+    // Don't auto-focus on mobile devices to prevent keyboard from opening
+    if (isMobileDevice()) {
+      return
+    }
     if (!isFocused) {
       editor?.current?.focus()
     }
@@ -89,7 +129,7 @@ function CommentForm ({
             className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
             onUpdate={startTyping}
-            onFocus={() => setIsFocused(true)}
+            onFocus={handleFocus}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholderText}
             ref={editor}
