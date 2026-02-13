@@ -21,6 +21,7 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { isMobileDevice } from 'util/mobile'
 
 import {
   createMessage,
@@ -83,7 +84,9 @@ const Messages = () => {
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
+  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const formRef = useRef(null)
+  const containerRef = useRef(null)
 
   useEffect(() => {
     fetchPeopleAction({})
@@ -110,6 +113,32 @@ const Messages = () => {
     }
     focusForm()
   }, [messageThreadId])
+
+  // Handle viewport height changes on mobile (keyboard open/close)
+  useEffect(() => {
+    if (!isMobileDevice()) return
+
+    const updateViewportHeight = () => {
+      setViewportHeight(window.innerHeight)
+    }
+
+    // Use visual viewport API if available (better for mobile keyboards)
+    if (window.visualViewport) {
+      const handleResize = () => {
+        setViewportHeight(window.visualViewport.height)
+      }
+      window.visualViewport.addEventListener('resize', handleResize)
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleResize)
+      }
+    } else {
+      // Fallback to window resize
+      window.addEventListener('resize', updateViewportHeight)
+      return () => {
+        window.removeEventListener('resize', updateViewportHeight)
+      }
+    }
+  }, [])
 
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
@@ -191,8 +220,19 @@ const Messages = () => {
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div className='flex flex-col h-full w-full px-3 relative'>
-          <div className='flex-1 overflow-y-auto min-h-0'>
+        <div
+          ref={containerRef}
+          className='flex flex-col w-full px-3 relative'
+          style={isMobileDevice()
+            ? { height: `${viewportHeight}px` }
+            : { height: '100%' }}
+        >
+          <div
+            className='flex-1 overflow-y-auto min-h-0'
+            style={isMobileDevice()
+              ? { paddingBottom: '120px' }
+              : {}}
+          >
             <MessageSection
               socket={socket}
               currentUser={currentUser}
@@ -205,7 +245,18 @@ const Messages = () => {
             />
           </div>
           <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
-          <div className='sticky bottom-0 bg-background z-10 pb-3'>
+          <div
+            className='bg-background z-10 px-3 pb-3 sm:relative sm:bg-transparent sm:pb-0'
+            style={isMobileDevice()
+              ? {
+                  position: 'fixed',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  width: '100%'
+                }
+              : {}}
+          >
             <MessageForm
               disabled={!messageThreadId && participants.length === 0}
               onSubmit={sendMessage}
