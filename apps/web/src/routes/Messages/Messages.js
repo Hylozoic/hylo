@@ -191,29 +191,33 @@ const Messages = () => {
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div className='flex flex-col h-full w-full px-3'>
-          <MessageSection
-            socket={socket}
-            currentUser={currentUser}
-            fetchMessages={fetchMessagesAction}
-            messages={messages}
-            hasMore={hasMoreMessages}
-            pending={messagesPending}
-            updateThreadReadTime={updateThreadReadTimeAction}
-            messageThread={messageThread}
-          />
+        <div className='flex flex-col h-full w-full px-3 relative'>
+          <div className='flex-1 overflow-y-auto min-h-0'>
+            <MessageSection
+              socket={socket}
+              currentUser={currentUser}
+              fetchMessages={fetchMessagesAction}
+              messages={messages}
+              hasMore={hasMoreMessages}
+              pending={messagesPending}
+              updateThreadReadTime={updateThreadReadTimeAction}
+              messageThread={messageThread}
+            />
+          </div>
           <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
-          <MessageForm
-            disabled={!messageThreadId && participants.length === 0}
-            onSubmit={sendMessage}
-            onFocus={() => setPeopleSelectorOpen(false)}
-            currentUser={currentUser}
-            ref={formRef}
-            updateMessageText={updateMessageTextAction}
-            messageText={messageText}
-            sendIsTyping={status => sendIsTyping(messageThreadId, status)}
-            pending={messageCreatePending}
-          />
+          <div className='sticky bottom-0 bg-background z-10 pb-3'>
+            <MessageForm
+              disabled={!messageThreadId && participants.length === 0}
+              onSubmit={sendMessage}
+              onFocus={() => setPeopleSelectorOpen(false)}
+              currentUser={currentUser}
+              ref={formRef}
+              updateMessageText={updateMessageTextAction}
+              messageText={messageText}
+              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+              pending={messageCreatePending}
+            />
+          </div>
           {socket && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>
