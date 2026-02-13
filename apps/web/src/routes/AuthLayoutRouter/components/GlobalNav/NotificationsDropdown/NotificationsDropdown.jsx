@@ -19,6 +19,7 @@ import {
 } from './NotificationsDropdown.store'
 import getMe from 'store/selectors/getMe'
 import { FETCH_NOTIFICATIONS } from 'store/constants'
+import { isMobileDevice } from 'util/mobile'
 
 const NOTIFICATIONS_PAGE_SIZE = 20
 
@@ -103,20 +104,34 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
     }
   }, [pending, filteredNotifications, message, onClick, hasMore])
 
+  const handleTouchStart = useCallback((event) => {
+    event.stopPropagation()
+  }, [])
+
+  const handleTouchEnd = useCallback((event) => {
+    event.stopPropagation()
+  }, [])
+
   return (
     <Popover onOpenChange={handleOpenChange} open={modalOpen}>
       <PopoverTrigger>
         {renderToggleChildren(currentUser?.newNotificationCount > 0)}
       </PopoverTrigger>
-      <PopoverContent side='right' align='start' className='!p-0 !w-[248px] sm:!w-[300px]'>
-        <div className='flex items-center w-full z-10 p-2 pointer-events-auto'>
-          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'border-b-2 border-accent relative': !showingUnread })}>
+      <PopoverContent 
+        side='right' 
+        align='start' 
+        className='!p-0 !w-[248px] sm:!w-[300px]'
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className={cn('flex items-center w-full z-10 pointer-events-auto', { 'p-3': isMobileDevice(), 'p-2': !isMobileDevice() })}>
+          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice(), 'border-b-2 border-accent relative': !showingUnread })}>
             {t('Recent')}
           </span>
-          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'border-b-2 border-accent relative': showingUnread })}>
+          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice(), 'border-b-2 border-accent relative': showingUnread })}>
             {t('Unread')}
           </span>
-          <span onClick={() => dispatch(markAllActivitiesRead())} className='cursor-pointer text-accent ml-auto text-xs sm:text-sm'>{t('Mark all as read')}</span>
+          <span onClick={() => dispatch(markAllActivitiesRead())} className={cn('cursor-pointer text-accent ml-auto text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice() })}>{t('Mark all as read')}</span>
         </div>
         {body}
       </PopoverContent>
