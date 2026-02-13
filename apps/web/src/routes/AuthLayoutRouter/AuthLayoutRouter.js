@@ -365,8 +365,6 @@ export default function AuthLayoutRouter (props) {
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative' id='center-column-container'>
-            <ViewHeader />
-
             <Routes>
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -412,6 +410,7 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+              <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
