@@ -84,7 +84,6 @@ const Messages = () => {
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
-  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0)
   const formRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -113,32 +112,6 @@ const Messages = () => {
     }
     focusForm()
   }, [messageThreadId])
-
-  // Handle viewport height changes on mobile (keyboard open/close)
-  useEffect(() => {
-    if (!isMobileDevice()) return
-
-    const updateViewportHeight = () => {
-      setViewportHeight(window.innerHeight)
-    }
-
-    // Use visual viewport API if available (better for mobile keyboards)
-    if (window.visualViewport) {
-      const handleResize = () => {
-        setViewportHeight(window.visualViewport.height)
-      }
-      window.visualViewport.addEventListener('resize', handleResize)
-      return () => {
-        window.visualViewport.removeEventListener('resize', handleResize)
-      }
-    } else {
-      // Fallback to window resize
-      window.addEventListener('resize', updateViewportHeight)
-      return () => {
-        window.removeEventListener('resize', updateViewportHeight)
-      }
-    }
-  }, [])
 
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
@@ -215,7 +188,21 @@ const Messages = () => {
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
   return (
-    <div className={cn('flex flex-col w-full h-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}>
+    <div
+      className={cn('flex flex-col w-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}
+      style={isMobileDevice() && messageThreadId
+        ? {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: '100dvh',
+            width: '100vw',
+            zIndex: 100
+          }
+        : { height: '100%' }}
+    >
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
@@ -224,13 +211,16 @@ const Messages = () => {
           ref={containerRef}
           className='flex flex-col w-full px-3 relative'
           style={isMobileDevice()
-            ? { height: `${viewportHeight}px` }
+            ? {
+                height: '100%',
+                maxHeight: '100dvh'
+              }
             : { height: '100%' }}
         >
           <div
             className='flex-1 overflow-y-auto min-h-0'
             style={isMobileDevice()
-              ? { paddingBottom: '120px' }
+              ? { paddingBottom: '140px' }
               : {}}
           >
             <MessageSection
@@ -253,7 +243,8 @@ const Messages = () => {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  width: '100%'
+                  width: '100%',
+                  maxWidth: '100vw'
                 }
               : {}}
           >
