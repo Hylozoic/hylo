@@ -409,7 +409,7 @@ export default function ManageTab ({ round }) {
   return (
     <div className='flex flex-col gap-4 mt-4 pb-4'>
       <button
-        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
+        className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
         onClick={() => navigate(groupUrl(routeParams.groupSlug, `funding-rounds/${round?.id}/edit`))}
       >
         <Settings className='w-4 h-4' />
@@ -465,11 +465,11 @@ export default function ManageTab ({ round }) {
                     {phase.description}
                   </div>
                 </div>
-                <div className='flex gap-2 w-full items-center justify-center'>
+                <div className='flex flex-wrap gap-2 w-full items-center justify-center mt-4 mb-2'>
                   {showBackButton && (
                     <Button
                       size='sm'
-                      className='bg-transparent border-2 border-foreground/20 hover:border-foreground/40 text-foreground mt-4 mb-2'
+                      className='bg-transparent border-2 border-foreground/20 hover:border-foreground/40 text-foreground'
                       onClick={() => handleGoBackPhase(phase)}
                     >
                       {phase.backButtonText}
@@ -478,7 +478,7 @@ export default function ManageTab ({ round }) {
                   {phase.key === 'completed' && phase.isCurrent && (
                     <Button
                       size='sm'
-                      className='bg-selected text-foreground border-2 border-selected hover:bg-selected/90 mt-4 mb-2'
+                      className='bg-selected text-foreground border-2 border-selected hover:bg-selected/90 '
                       onClick={handleExportResults}
                       disabled={isExporting}
                     >
@@ -489,7 +489,7 @@ export default function ManageTab ({ round }) {
                   {showForwardButton && (
                     <Button
                       size='sm'
-                      className='bg-selected hover:bg-selected/90 text-foreground border-2 border-transparent mt-4 mb-2'
+                      className='bg-selected hover:bg-selected/90 text-foreground border-2 border-transparent'
                       onClick={() => handleStartPhase(phase)}
                     >
                       <ChevronsRight className='w-4 h-4 mr-1' />
@@ -519,7 +519,7 @@ export default function ManageTab ({ round }) {
               {confirmDialog.message}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className='gap-2'>
             <Button
               variant='outline'
               onClick={handleCancelConfirm}

@@ -3,10 +3,13 @@
 import knexPostgis from 'knex-postgis'
 import { GraphQLError } from 'graphql'
 import { clone, defaults, difference, flatten, intersection, isEmpty, mapValues, merge, sortBy, pick, omit, omitBy, isUndefined, trim, xor } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 import mbxGeocoder from '@mapbox/mapbox-sdk/services/geocoding'
 import fetch from 'node-fetch'
 import randomstring from 'randomstring'
 import wkx from 'wkx'
+import ical from 'ical-generator'
+import { writeStringToS3 } from '../../lib/uploader/storage'
 
 import mixpanel from '../../lib/mixpanel'
 import { AnalyticsEvents, LocationHelpers } from '@hylo/shared'
@@ -630,10 +633,17 @@ module.exports = bookshelf.Model.extend(merge({
     const existingMemberships = await this.memberships(true)
       .query(q => q.whereIn('user_id', userIds)).fetch({ transacting })
 
+    const pickedAttrs = pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST)
     const updatedAttribs = Object.assign(
       {},
-      pick(omitBy(attrs, isUndefined), GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST),
-      { settings: { joinQuestionsAnsweredAt: null, showJoinForm: true } } // updateAndSave will leave the rest of the settings intact
+      pickedAttrs,
+      {
+        settings: merge(
+          {},
+          pickedAttrs.settings || {},
+          { joinQuestionsAnsweredAt: null, showJoinForm: true }
+        )
+      } // updateAndSave will merge these with existing settings
     )
 
     return Promise.map(existingMemberships.models, ms => ms.updateAndSave(updatedAttribs, { transacting }))
@@ -645,6 +655,9 @@ module.exports = bookshelf.Model.extend(merge({
     if (existingWidgets.length > 0) {
       return // Group already has widgets set up
     }
+
+    // Get homeView from settings (defaults to 'CHAT' for backward compatibility)
+    const homeView = this.getSetting('homeView') || 'CHAT'
 
     // Create home widget first
     // TODO: this should be default view instead of home
@@ -666,16 +679,42 @@ module.exports = bookshelf.Model.extend(merge({
       await GroupTag.create({ group_id: this.id, tag_id: generalTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
     }
 
-    // Create general chat widget as child of home widget
-    await ContextWidget.forge({
-      group_id: this.id,
-      type: 'viewChat',
-      view_chat_id: generalTag.id,
-      parent_id: homeWidget.id,
-      order: 1,
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { transacting: trx })
+    // Create home view widget based on homeView setting
+    if (homeView === 'CHAT') {
+      // Create general chat widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        type: 'viewChat',
+        view_chat_id: generalTag.id,
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    } else if (homeView === 'STREAM') {
+      // Create stream widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        title: 'widget-stream',
+        view: 'stream',
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    } else if (homeView === 'MAP') {
+      // Create map widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        title: 'widget-map',
+        type: 'map',
+        view: 'map',
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    }
 
     // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
     const orderedWidgets = [
@@ -687,7 +726,9 @@ module.exports = bookshelf.Model.extend(merge({
     ]
 
     // These are accessible in the all view
-    const unorderedWidgets = [
+    // Filter out widgets that are already created as the home widget to avoid duplicates
+    // Also add general chat widget to unorderedWidgets when homeView is STREAM or MAP
+    const baseUnorderedWidgets = [
       { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
       { title: 'widget-events', type: 'events', view: 'events' },
@@ -703,6 +744,28 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' },
       { title: 'widget-funding-rounds', type: 'funding-rounds', view: 'funding-rounds', visibility: 'admin' }
     ]
+
+    // Add general chat widget to unorderedWidgets when homeView is STREAM or MAP
+    // (when homeView is CHAT, it's already created as child of home widget above)
+    if (homeView === 'STREAM' || homeView === 'MAP') {
+      baseUnorderedWidgets.push({
+        type: 'viewChat',
+        view_chat_id: generalTag.id,
+        title: generalTag.get('name') || DEFAULT_CHAT_ROOM
+      })
+    }
+
+    const unorderedWidgets = baseUnorderedWidgets.filter(widget => {
+      // Exclude stream widget if it's already the home view
+      if (homeView === 'STREAM' && widget.view === 'stream' && widget.title === 'widget-stream') {
+        return false
+      }
+      // Exclude map widget if it's already the home view
+      if (homeView === 'MAP' && widget.type === 'map' && widget.view === 'map' && widget.title === 'widget-map') {
+        return false
+      }
+      return true
+    })
 
     await Promise.all([
       ...orderedWidgets,
@@ -854,6 +917,9 @@ module.exports = bookshelf.Model.extend(merge({
 
             await currentView.updateTopics(topics, transacting)
           } else if (currentView) {
+            // Delete associated context widgets
+            await ContextWidget.where({ group_id: this.id, custom_view_id: currentView.id }).destroy({ transacting })
+
             await currentView.destroy({ transacting })
           } else {
             break
@@ -896,6 +962,16 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return Promise.resolve()
+  },
+
+  getEventCalendarPath: function () {
+    return `${process.env.UPLOADER_PATH_PREFIX}/group/${this.id}/calendar-${this.get('calendar_token')}.ics`
+  },
+
+  eventCalendarUrl: function () {
+    return this.get('calendar_token')
+      ? `${process.env.AWS_S3_CONTENT_URL}/${this.getEventCalendarPath()}`
+      : null
   }
 }, HasSettings), {
   // ****** Class constants ****** //
@@ -988,6 +1064,43 @@ module.exports = bookshelf.Model.extend(merge({
     }
   },
 
+  // create a calendar subscription for group events
+  async createEventCalendarSubscription ({ groupId }) {
+    const group = await Group.find(groupId)
+    if (!group) return
+
+    if (!group.get('calendar_token')) {
+      await group.save({ calendar_token: uuidv4() }, { patch: true })
+      await group.refresh()
+    }
+
+    // Fetch all events for this group
+    const fromDate = Post.eventCalSubDateLimit().toISO()
+    const events = await group.posts().query(q => {
+      q.where({ 'posts.type': 'event' })
+      q.where('posts.start_time', '>', fromDate)
+    }).fetch()
+
+    // Create the calendar and add the events
+    const cal = ical({
+      name: `All Events for ${group.get('name')}`,
+      description: `All the events in group ${group.get('name')} on Hylo`,
+      scale: 'gregorian'
+    })
+    for (const event of events.models) {
+      const calEvent = await event.getCalEventData({ url: Frontend.Route.post(event, group) })
+      cal.createEvent(calEvent).uid(calEvent.uid)
+    }
+
+    // Write the combined calendar file to S3
+    await writeStringToS3(
+      cal.toString(),
+      group.getEventCalendarPath(), {
+        ContentType: 'text/calendar'
+      }
+    )
+  },
+
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)
   async afterFinishedJoining ({ userId, groupId }) {
     const group = await Group.find(groupId)
@@ -1032,13 +1145,20 @@ module.exports = bookshelf.Model.extend(merge({
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
 
+    const defaultSettings = {
+      allow_group_invites: false,
+      agreements_last_updated_at: null,
+      public_member_directory: false,
+    }
+
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
     const group = new Group(merge(attrs, {
       access_code,
       created_at: new Date(),
       created_by_id: userId,
-      settings: { allow_group_invites: false, agreements_last_updated_at: null, public_member_directory: false }
+      settings: defaultSettings,
+      calendar_token: uuidv4()
     }))
 
     await bookshelf.transaction(async trx => {

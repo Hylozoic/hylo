@@ -126,24 +126,26 @@ export function fetchFundingRound (id) {
       query: `query ($id: ID) {
         fundingRound (id: $id) {
           id
+          allowSelfVoting
           bannerUrl
           canSubmit
           canVote
-          createdAt,
-          criteria,
-          description,
+          createdAt
+          criteria
+          description
           group { id name slug }
+          hideFinalResultsFromParticipants
           isParticipating
           joinedAt
-          maxTokenAllocation,
-          minTokenAllocation,
-          numParticipants,
-          numSubmissions,
-          phase,
-          publishedAt,
-          requireBudget,
-          submissionDescriptor,
-          submissionDescriptorPlural,
+          maxTokenAllocation
+          minTokenAllocation
+          numParticipants
+          numSubmissions
+          phase
+          publishedAt
+          requireBudget
+          submissionDescriptor
+          submissionDescriptorPlural
           submissions {
             items {
               ${PostFieldsFragment}

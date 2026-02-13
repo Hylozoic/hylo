@@ -12,6 +12,7 @@ FundingRound.modelName = 'FundingRound'
 
 FundingRound.fields = {
   id: attr(),
+  allowSelfVoting: attr(),
   bannerUrl: attr(),
   canSubmit: attr(),
   canVote: attr(),
@@ -19,6 +20,7 @@ FundingRound.fields = {
   criteria: attr(),
   description: attr(),
   group: fk('Group', 'fundingRounds'),
+  hideFinalResultsFromParticipants: attr(),
   isParticipating: attr(),
   maxTokenAllocation: attr(),
   minTokenAllocation: attr(),

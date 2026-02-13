@@ -1,5 +1,5 @@
 import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark } from 'lucide-react'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Trash2 } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { PureComponent } from 'react'
 import ReactDOM from 'react-dom'
@@ -47,6 +47,7 @@ class PostHeader extends PureComponent {
 
   render () {
     const {
+      chat,
       routeParams,
       post,
       canEdit,
@@ -107,13 +108,13 @@ class PostHeader extends PureComponent {
     }
 
     const dropdownItems = filter([
-      { icon: 'Edit', label: t('Edit'), onClick: editPost },
-      { icon: 'CopyLink', label: t('Copy Link'), onClick: copyLink },
-      { icon: savedAt ? <BookmarkCheck /> : <Bookmark />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
-      { icon: 'Flag', label: t('Flag'), onClick: this.flagPostFunc() },
-      { icon: 'Duplicate', label: t('Duplicate'), onClick: duplicatePost },
-      { icon: 'Trash', label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
-      { icon: 'Trash', label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
+      { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit'), onClick: editPost },
+      { icon: <Link2 className='w-4 h-4 text-foreground' />, label: t('Copy Link'), onClick: copyLink },
+      { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: this.flagPostFunc() },
+      { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Delete'), onClick: deletePost ? () => deletePost(t('Are you sure you want to delete this post? You cannot undo this.')) : undefined, red: true },
+      { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: removePost ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => isFunction(item.onClick))
 
     const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
@@ -151,9 +152,14 @@ class PostHeader extends PureComponent {
       timeWindow = startString
     }
 
+    // Chat mode: all header content is shown in the outer chat header in PostCard
+    if (chat) {
+      return null
+    }
+
     return (
-      <div className={cn('PostHeader relative', { 'mb-0 px-2': constrained }, className)}>
-        <div className='w-full bg-transparent rounded-t-lg'>
+      <div className={cn('PostHeader relative !bg-transparent', { 'mb-0 px-2': constrained }, className)}>
+        <div className='w-full rounded-t-lg'>
           <div className='flex justify-start items-center p-2'>
             <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3', { 'mr-2': constrained })} medium />
             <div className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'>
@@ -206,7 +212,7 @@ class PostHeader extends PureComponent {
         <div className={cn('flex flex-col xs:flex-row justify-between')}>
           {/* {topics?.length > 0 && <TopicsLine topics={topics} slug={routeParams.groupSlug} />} */}
           {canHaveTimes && timeWindow.length > 0 && (
-            <div className={cn('ml-2 mb-1 bg-secondary/10 p-1 rounded-lg text-secondary text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
+            <div className={cn('ml-2 mb-1 bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
               {timeWindow}
             </div>
           )}

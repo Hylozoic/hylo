@@ -50,6 +50,8 @@ export default gql`
     hasDevice
     intercomHash
     hasStripeAccount
+    calendarToken
+    rsvpCalendarUrl
     blockedUsers {
       id
       name
@@ -60,6 +62,7 @@ export default gql`
       commentNotifications
       locale
       mapBaseLayer
+      rsvpCalendarSub
       signupInProgress
       streamChildPosts
       streamViewMode

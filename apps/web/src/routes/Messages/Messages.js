@@ -1,6 +1,5 @@
 import { cn } from 'util/index'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { useLocation, useParams } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -44,7 +43,6 @@ import classes from './Messages.module.scss'
 export const NEW_THREAD_ID = 'new'
 
 const Messages = () => {
-  const { t } = useTranslation()
   const dispatch = useDispatch()
   const location = useLocation()
   const routeParams = useParams()
@@ -204,6 +202,7 @@ const Messages = () => {
             updateThreadReadTime={updateThreadReadTimeAction}
             messageThread={messageThread}
           />
+          <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
           <MessageForm
             disabled={!messageThreadId && participants.length === 0}
             onSubmit={sendMessage}
@@ -215,7 +214,6 @@ const Messages = () => {
             sendIsTyping={status => sendIsTyping(messageThreadId, status)}
             pending={messageCreatePending}
           />
-          <PeopleTyping className={classes.peopleTyping} />
           {socket && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>

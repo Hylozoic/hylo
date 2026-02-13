@@ -13,6 +13,7 @@ export default function ContextWidgetPresenter (widget) {
     iconName: iconNameResolver(widget, type),
     isDroppable: isDroppableResolver(widget),
     isEditable: isEditableResolver(widget),
+    isDeletable: isDeleteableResolver(widget),
     isValidHomeWidget: isValidHomeWidgetResolver(widget),
     title: titleResolver(widget),
     type,
@@ -109,6 +110,12 @@ function isEditableResolver (widget) {
   const type = widgetTypeResolver({ widget })
   return type === 'customView' ||
     type === 'container'
+}
+
+// Only custom created widgets can be fully deleted
+function isDeleteableResolver (widget) {
+  const type = widgetTypeResolver({ widget })
+  return ['container', 'viewGroup', 'viewPost', 'viewChat', 'customView', 'viewUser', 'viewChat', 'viewTrack', 'viewFundingRound'].includes(type)
 }
 
 // This internal resolver is exported to create mutation data prep in Web AllView#AddViewDialog
@@ -276,7 +283,6 @@ export function wrapItemInWidget (item, type) {
 }
 
 // Static widgets and widget data
-const TERMS_AND_CONDITIONS_URL = 'https://hylo-landing.surge.sh/terms'
 
 export const PUBLIC_CONTEXT_WIDGETS = [
   { type: 'home', url: '/public/stream' },
@@ -306,12 +312,12 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'groups', title: 'widget-my-groups', id: 'widget-my-groups', order: 3, parentId: 'widget-myself' },
   { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
   { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
-  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 6, parentId: 'widget-myself' },
-  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 7, parentId: 'widget-myself' },
-  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 8, parentId: 'widget-myself' },
-  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 9, parentId: 'widget-myself' },
-  { context: 'my', url: TERMS_AND_CONDITIONS_URL, title: 'widget-terms-and-conditions', id: 'widget-terms-and-conditions', order: 10, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 11, parentId: null }
+  { context: 'my', view: 'theme-settings', title: 'Appearance & Themes', id: 'widget-my-theme-settings', order: 6, parentId: 'widget-myself' },
+  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 7, parentId: 'widget-myself' },
+  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 8, parentId: 'widget-myself' },
+  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 9, parentId: 'widget-myself' },
+  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 10, parentId: 'widget-myself' },
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 12, parentId: null }
 ]
 
 export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })

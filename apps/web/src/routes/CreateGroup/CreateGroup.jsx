@@ -70,6 +70,7 @@ function CreateGroup () {
     accessibility: 1,
     avatarUrl: '',
     bannerUrl: '',
+    homeView: 'CHAT',
     nameCharacterCount: 0,
     invitees: [],
     name: initialGroupName || '',
@@ -165,13 +166,13 @@ function CreateGroup () {
   }
 
   const onSubmit = () => {
-    let { accessibility, avatarUrl, bannerUrl, name, parentGroups, purpose, slug, visibility } = state
+    let { accessibility, avatarUrl, bannerUrl, homeView, name, parentGroups, purpose, slug, visibility } = state
     name = typeof name === 'string' ? trim(name) : name
     purpose = typeof purpose === 'string' ? trim(purpose) : purpose
     avatarUrl = avatarUrl || DEFAULT_AVATAR
 
     if (isValid()) {
-      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
+      dispatch(createGroup({ accessibility, avatarUrl, bannerUrl, homeView, name, slug, parentIds: parentGroups.map(g => g.id), purpose, visibility }))
         .then(({ error }) => {
           if (error) {
             setState(prev => ({
@@ -186,7 +187,7 @@ function CreateGroup () {
   }
 
   // Parent groups are not used in the CreateGroup component -- we will add them back in the future -- add 'parentGroups' to the state object
-  const { accessibility, avatarUrl, bannerUrl, nameCharacterCount, edited, errors, name, slug, visibility } = state
+  const { accessibility, avatarUrl, bannerUrl, homeView, nameCharacterCount, edited, errors, name, slug, visibility } = state
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -202,7 +203,7 @@ function CreateGroup () {
           className='w-full group'
         >
           <div
-            className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+            className={cn('CreateGroupBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
             style={{ backgroundImage: `url(${bannerUrl})` }}
           >
             <div className='flex flex-col items-center justify-center gap-1'>
@@ -219,7 +220,7 @@ function CreateGroup () {
         >
           <div
             style={bgImageStyle(avatarUrl)}
-            className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-black/0 hover:bg-black/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
+            className={cn('relative w-20 h-20 rounded-lg border-dashed border-2 border-foreground/50 shadow-md flex items-center justify-center bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!avatarUrl })}
           >
             {!avatarUrl && (
               <div className='flex flex-col items-center justify-center gap-1'>
@@ -361,12 +362,59 @@ function CreateGroup () {
           </div>
         )}  */}
 
+        <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
+          <h3 className='text-foreground text-xl font-bold mb-2'>{t('Choose your home view')}</h3>
+          <p className='text-foreground/80 text-sm mb-4'>{t('home-view-choice-explainer')}</p>
+          <p className='text-foreground/60 text-xs mb-4 italic'>{t('You can change this anytime')}</p>
+          <div className='flex flex-col gap-3'>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('CHAT')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'CHAT'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Chat')}</div>
+              <div className='text-sm text-foreground/70'>{t('A short-form chat room experience for quick conversations and real-time discussions')}</div>
+            </button>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('STREAM')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'STREAM'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Stream')}</div>
+              <div className='text-sm text-foreground/70'>{t('A longer-form feed of posts, discussions, and updates from your group')}</div>
+            </button>
+            <button
+              type='button'
+              onClick={() => updateField('homeView')('MAP')}
+              className={cn(
+                'w-full p-4 rounded-lg border-2 text-left transition-all',
+                homeView === 'MAP'
+                  ? 'border-focus bg-focus/10'
+                  : 'border-foreground/20 hover:border-foreground/40'
+              )}
+            >
+              <div className='font-semibold text-foreground mb-1'>{t('Map')}</div>
+              <div className='text-sm text-foreground/70'>{t('A map displaying your group\'s locational context and geographic connections')}</div>
+            </button>
+          </div>
+        </div>
+
         <div className='mt-10'>
           <Button
             disabled={!edited || !isValid()}
             onClick={onSubmit}
             variant='outline'
-            className='border-2 border-foreground/50 hover:border-foreground/100 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50'
+            className='border-2 border-foreground/50 hover:border-foreground/50 hover:scale-105 transition-all disabled:bg-background/0 disabled:border-foreground/20 disabled:text-foreground/50 mb-10'
           >
             {t('Jump In')}
             <ArrowRight className={cn('w-4 h-4 ml-2', edited && isValid() ? 'text-foreground' : 'text-foreground/50')} />

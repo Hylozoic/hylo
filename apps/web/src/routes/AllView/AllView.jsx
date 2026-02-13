@@ -1,4 +1,4 @@
-import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes } from 'lucide-react'
+import { BadgeDollarSign, House, Plus, SquareDashed, Hash, FileStack, User, Users, StickyNote, Pencil, Shapes, Trash } from 'lucide-react'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -14,7 +14,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { RESP_ADMINISTRATION } from 'store/constants'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMyGroups from 'store/selectors/getMyGroups'
-import { createContextWidget, setHomeWidget, updateContextWidget } from 'store/actions/contextWidgets'
+import { createContextWidget, deleteContextWidget, setHomeWidget, updateContextWidget } from 'store/actions/contextWidgets'
 import findTopics from 'store/actions/findTopics'
 import fetchPeople from 'store/actions/fetchPeople'
 import {
@@ -109,6 +109,15 @@ export default function AllViews () {
     }))
   }, [updateContextWidget])
 
+  const handleDeleteWidget = useCallback((widget) => {
+    if (confirm('Are you sure you want to delete this view?')) {
+      dispatch(deleteContextWidget({
+        contextWidgetId: widget.id,
+        groupId: group.id
+      }))
+    }
+  }, [deleteContextWidget])
+
   // Filter and sort widgets and get them ready for display
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
@@ -137,15 +146,20 @@ export default function AllViews () {
             <span className='ml-2'>{widget.title}</span>
           </h3>
           {isEditing && widget.isEditable && (
-            <span
-              className='text-sm inline-block text-foreground'
-              onClick={(evt) => {
-                evt.stopPropagation()
-                handleEditWidget(widget)
-              }}
-            >
-              <Pencil />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleEditWidget(widget)
+                  }}
+                >
+                  <Pencil />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side='bottom'>{t('Edit View')}</TooltipContent>
+            </Tooltip>
           )}
           {isEditing && widget.isValidHomeWidget && (
             <Tooltip>
@@ -160,7 +174,7 @@ export default function AllViews () {
                   <House />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{t('Set as Home View')}</TooltipContent>
+              <TooltipContent side='bottom'>{t('Set as Home View')}</TooltipContent>
             </Tooltip>
           )}
 
@@ -171,9 +185,25 @@ export default function AllViews () {
                   <Plus />
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{t('Add to Group Menu')}</TooltipContent>
+              <TooltipContent side='bottom'>{t('Add to Group Menu')}</TooltipContent>
             </Tooltip>
+          )}
 
+          {isEditing && widget.isDeletable && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className='text-sm inline-block text-foreground hover:text-selected'
+                  onClick={(evt) => {
+                    evt.stopPropagation()
+                    handleDeleteWidget(widget)
+                  }}
+                >
+                  <Trash />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side='bottom'>{t('Delete View')}</TooltipContent>
+            </Tooltip>
           )}
         </div>
       )
@@ -223,7 +253,7 @@ export default function AllViews () {
 function AddOption ({ title, onClick, description, disabled = false, icon }) {
   const { t } = useTranslation()
   return (
-    <div onClick={disabled ? null : onClick} className={`p-2 group border-2 border-foreground/20 rounded-md shadow-sm cursor-pointer hover:border-foreground/100 transition-all ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+    <div onClick={disabled ? null : onClick} className={`p-2 group border-2 border-foreground/20 rounded-md shadow-sm cursor-pointer hover:border-foreground/50 transition-all ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
       <div className='flex flex-col relative'>
         <h3 className='text-base text-foreground mb-0 mt-0 relative z-10 flex items-center gap-2'>{icon} {title}</h3>
         <span className='text-xs text-selected/100 opacity-0 group-hover:opacity-100 z-20 transition-all absolute right-1 rounded-lg bg-selected/30 px-1 py-1'>{t('Add')}</span>
@@ -294,7 +324,7 @@ function AddViewDialog ({ group, orderInFrontOfWidgetId, parentId, addToEnd, par
   }, [])
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Add {{something}} to Menu', { something: addChoice ? t(capitalize(humanReadableTypeResolver(addChoice))) : 'Something' })}</div>
         <div>
@@ -447,7 +477,7 @@ function EditViewDialog ({ group, editWidgetId, contextWidgets }) {
   }, [])
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-darkening/50'>
       <div className='bg-midground rounded-lg shadow-lg p-4 w-full max-w-md'>
         <div className='text-lg font-semibold mb-4'>{t('Edit menu item')}</div>
         <div>

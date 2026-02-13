@@ -192,6 +192,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: () => isAdmin || false,
+        rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
     },
@@ -475,6 +476,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         completedAt: p => p.completedAtForUser(userId),
         completionResponse: p => p.completionResponseForUser(userId),
         details: p => p.details(userId),
+        fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
@@ -804,6 +806,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { groupExtensions: { querySet: true } }
       ],
       getters: {
+        eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         homeWidget: g => g.homeWidget(),
         invitePath: g =>
@@ -1327,10 +1330,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
     FundingRound: {
       model: FundingRound,
       attributes: [
+        'allow_self_voting',
         'banner_url',
         'created_at',
         'criteria',
         'description',
+        'hide_final_results_from_participants',
         'max_token_allocation',
         'min_token_allocation',
         'num_participants',

@@ -17,11 +17,13 @@ query (
     fundingRounds (first: $first, offset: $offset, order: $order, sortBy: $sortBy, published: $published, search: $search) {
       items {
         id
+        allowSelfVoting
         bannerUrl
         createdAt
         criteria
         description
         isParticipating
+        hideFinalResultsFromParticipants
         maxTokenAllocation
         minTokenAllocation
         numParticipants

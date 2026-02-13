@@ -1,11 +1,12 @@
-const { expect } = require('chai')
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
+const { expect } = require('chai')
 const {
   createContextWidget,
   updateContextWidget,
   reorderContextWidget,
   removeWidgetFromMenu,
+  deleteContextWidget
 } = require('./context_widgets')
 
 describe('mutations/context_widgets', () => {
@@ -175,6 +176,18 @@ describe('mutations/context_widgets', () => {
         })
       ).to.be.rejectedWith("You don't have permission to update context widgets for this group")
     })
+
+    it('prevents non-admin users from deleting widgets', async () => {
+      const widget = await createContextWidget({
+        userId: user.id,
+        groupId: group.id,
+        data: { title: 'test widget', type: 'test', view_post_id: post.id }
+      })
+
+      await expect(
+        deleteContextWidget(nonAdminUser.id, widget.id)
+      ).to.be.rejectedWith("You don't have permission to delete context widgets for this group")
+    })
   })
 
   describe('view references', () => {
@@ -213,6 +226,54 @@ describe('mutations/context_widgets', () => {
 
       expect(updated.get('view_post_id')).to.be.null
       expect(updated.get('view_chat_id')).to.equal(chat.id)
+    })
+  })
+
+  describe('deleteContextWidget', () => {
+    it('successfully deletes a non-system widget', async () => {
+      const widget = await createContextWidget({
+        userId: user.id,
+        groupId: group.id,
+        data: { title: 'test widget', type: 'test', view_post_id: post.id }
+      })
+
+      const result = await deleteContextWidget(user.id, widget.id)
+      expect(result).to.deep.equal({ success: true })
+
+      const deletedWidget = await ContextWidget.where({ id: widget.id }).fetch()
+      expect(deletedWidget).to.be.null
+    })
+
+    it('prevents deletion of system widgets', async () => {
+      const homeWidget = await ContextWidget.where({ type: 'home', group_id: group.id }).fetch()
+
+      await expect(
+        deleteContextWidget(user.id, homeWidget.id)
+      ).to.be.rejectedWith('Cannot delete a system widget')
+    })
+
+    it('throws error when widget does not exist', async () => {
+      await expect(
+        deleteContextWidget(user.id, 99999)
+      ).to.be.rejectedWith('Context widget not found')
+    })
+
+    it('throws error when userId is missing', async () => {
+      const widget = await createContextWidget({
+        userId: user.id,
+        groupId: group.id,
+        data: { title: 'test widget', type: 'test', view_post_id: post.id }
+      })
+
+      await expect(
+        deleteContextWidget(null, widget.id)
+      ).to.be.rejectedWith('No userId passed into function')
+    })
+
+    it('throws error when contextWidgetId is missing', async () => {
+      await expect(
+        deleteContextWidget(user.id, null)
+      ).to.be.rejectedWith('No context widget id passed into function')
     })
   })
 })

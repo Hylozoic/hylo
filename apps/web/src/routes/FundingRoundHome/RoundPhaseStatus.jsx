@@ -175,9 +175,9 @@ export default function RoundPhaseStatus ({
           {canVote && !joinedAfterVotingStarted && (
             <div>
               <p className='text-sm text-foreground/80 mt-0 mb-0 pt-0 font-normal'>
-                {t('Allocate your {{tokenType}} to the {{submissionDescriptor}} you think deserve support', {
+                {t('Allocate your {{tokenType}} to the {{submissionDescriptorPlural}} you think deserve support.', {
                   tokenType: round.tokenType || t('Votes'),
-                  submissionDescriptor: round.submissionDescriptor
+                  submissionDescriptorPlural: round.submissionDescriptorPlural
                 })}
               </p>
               {votingClosesDate && (
@@ -187,9 +187,15 @@ export default function RoundPhaseStatus ({
               )}
             </div>
           )}
+          <span className='text-sm font-normal pt-0 mt-0'>
+            {t('{{numSubmissions}} total {{submissionDescriptorPlural}}', {
+              submissionDescriptorPlural: round.submissionDescriptorPlural,
+              numSubmissions: round.numSubmissions || 0
+            })}
+          </span>
           {canVote && !joinedAfterVotingStarted && (
             <div className='flex flex-row gap-3 opacity-50'>
-              {round.minTokenAllocation && (
+              {typeof round.minTokenAllocation === 'number' && round.minTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0 border-r-2 border-foreground/20 pr-2'>
                   {t('Minimum of {{minTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     minTokenAllocation: round.minTokenAllocation,
@@ -198,7 +204,7 @@ export default function RoundPhaseStatus ({
                   })}
                 </p>
               )}
-              {round.maxTokenAllocation && (
+              {typeof round.maxTokenAllocation === 'number' && round.maxTokenAllocation > 0 && (
                 <p className='text-xs text-foreground/80 mb-1 font-normal pt-0 mt-0'>
                   {t('Maximum of {{maxTokenAllocation}} {{tokenType}} / {{submissionDescriptor}}', {
                     maxTokenAllocation: round.maxTokenAllocation,
@@ -221,10 +227,12 @@ export default function RoundPhaseStatus ({
             <h2 className='text-xl font-bold text-selected mt-0 mb-0'>{t('Round Complete!')}</h2>
           </div>
           <div className='text-base font-semibold text-foreground/80'>
-            {t('{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}}!', {
+            {t('{{numParticipants}} Participants allocated {{totalTokens}} {{tokenType}} to {{totalSubmissions}} {{submissionDescriptorPlural}}!', {
               numParticipants: round.numParticipants || 0,
               totalTokens: round.totalTokensAllocated || 0,
-              tokenType: round.tokenType || t('votes')
+              tokenType: round.tokenType || t('Votes'),
+              totalSubmissions: round.numSubmissions || 0,
+              submissionDescriptorPlural: round.submissionDescriptorPlural || t('Submissions')
             })}
           </div>
         </div>

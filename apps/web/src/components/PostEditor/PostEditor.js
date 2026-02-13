@@ -1,3 +1,4 @@
+/* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
@@ -44,6 +45,7 @@ import {
   VOTING_METHOD_MULTI_UNRESTRICTED,
   VOTING_METHOD_SINGLE
 } from 'store/models/Post'
+import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import isPendingFor from 'store/selectors/isPendingFor'
 import getMe from 'store/selectors/getMe'
 import getPost from 'store/selectors/getPost'
@@ -142,7 +144,8 @@ function PostEditor ({
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
-  const topicName = customTopicName || routeParams.topicName
+  const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
+  const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
@@ -152,8 +155,14 @@ function PostEditor ({
   const attachmentPostId = (editingPostId || fromPostId)
   const uploadFileAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }))
   const uploadImageAttachmentPending = useSelector(state => getUploadAttachmentPending(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }))
-  const imageAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
-  const fileAttachments = useSelector(state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }), (a, b) => a.length === b.length && a.every((item, index) => item.id === b[index].id))
+  const imageAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'image' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
+  const fileAttachments = useSelector(
+    state => getAttachments(state, { type: 'post', id: attachmentPostId, attachmentType: 'file' }),
+    (a, b) => a.length === b.length && a.every((item, index) => item?.url === b[index]?.url)
+  )
   const postPending = useSelector(state => isPendingFor([CREATE_POST, CREATE_PROJECT], state))
   const loading = useSelector(state => isPendingFor(FETCH_POST, state)) || !!uploadAttachmentPending
 
@@ -245,38 +254,99 @@ function PostEditor ({
     )
   }, [currentPost?.groups, groupOptions])
 
+  // Extract groupIds array for scoping topic and mention searches
+  // Priority:
+  // 1. Use selectedGroups if available (most common case - user has selected groups)
+  // 2. For public posts with no groups, allow all accessible topics/people (pass undefined)
+  // 3. Otherwise, fallback to currentGroup from route context
+  // Passing undefined allows backend to return all accessible topics/people based on user's group memberships
+  const groupIds = useMemo(() => {
+    if (selectedGroups && selectedGroups.length > 0) {
+      return selectedGroups.map(g => g.id).filter(Boolean)
+    }
+    // For public posts with no groups selected, allow all accessible topics/people
+    if (currentPost.isPublic && (!currentPost.groups || currentPost.groups.length === 0)) {
+      return undefined
+    }
+    // Fallback to currentGroup from route context
+    if (currentGroup?.id) {
+      return [currentGroup.id]
+    }
+    // No groups available - allow all accessible topics/people
+    return undefined
+  }, [selectedGroups, currentGroup, currentPost.isPublic, currentPost.groups])
+
   const toOptions = useMemo(() => {
     if (!groupOptions) return []
 
-    return groupOptions
+    // Sort groups so currentGroup appears first, then alphabetically
+    const sortedGroups = [...groupOptions]
       .filter(Boolean)
+      .sort((a, b) => {
+        const aIsCurrent = a.id === currentGroup?.id
+        const bIsCurrent = b.id === currentGroup?.id
+        if (aIsCurrent && !bIsCurrent) return -1
+        if (!aIsCurrent && bIsCurrent) return 1
+        return a.name.localeCompare(b.name)
+      })
+
+    // Build a map of selected group IDs to their selected topic names
+    // Only filter out topics for groups that are already selected
+    const selectedGroupIds = new Set((selectedGroups || []).map(g => g?.id).filter(Boolean))
+    const selectedTopicsByGroup = new Map()
+
+    // For each selected group, collect its selected topic names
+    if (selectedGroups && currentPost.topics) {
+      selectedGroups.forEach(group => {
+        if (!group?.id) return
+        const groupTopicNames = new Set()
+
+        // Find topics that belong to this group by checking chatRooms
+        group.chatRooms?.toModelArray?.()?.forEach(cr => {
+          const topic = cr?.groupTopic?.topic
+          if (topic && currentPost.topics.some(t => t?.id === topic.id)) {
+            groupTopicNames.add(topic.name)
+          }
+        })
+
+        if (groupTopicNames.size > 0) {
+          selectedTopicsByGroup.set(group.id, groupTopicNames)
+        }
+      })
+    }
+
+    return sortedGroups
       .map((g) => {
         if (!g) return []
-        return [{ id: `group_${g.id}`, name: g.name, avatarUrl: g.avatarUrl, group: g, allowInPublic: g.allowInPublic }]
-          .concat((g.chatRooms?.toModelArray() || [])
-            .map((cr) => ({
-              id: cr?.id,
-              group: g,
-              name: g.name + ' #' + cr?.groupTopic?.topic?.name,
-              topic: cr?.groupTopic?.topic,
-              avatarUrl: g.avatarUrl,
-              allowInPublic: g.allowInPublic
-            }))
-            .filter(Boolean)
-            .sort((a, b) => a.name.localeCompare(b.name)))
+        // Only show topic options (like "Group #general"), no group-only options
+        const isGroupSelected = selectedGroupIds.has(g.id)
+        const selectedTopicsForThisGroup = selectedTopicsByGroup.get(g.id) || new Set()
+
+        return (g.chatRooms?.toModelArray() || [])
+          .map((cr) => ({
+            id: cr?.id,
+            group: g,
+            name: g.name + ' #' + cr?.groupTopic?.topic?.name,
+            topic: cr?.groupTopic?.topic,
+            avatarUrl: g.avatarUrl,
+            allowInPublic: g.allowInPublic
+          }))
+          .filter(Boolean)
+          .filter(o => {
+            // Only filter out topics if this group is already selected AND this topic is already selected for this group
+            if (!isGroupSelected) return true // Group not selected, show all topics
+            return !selectedTopicsForThisGroup.has(o.topic?.name) // Group selected, hide only topics already selected for this group
+          })
+          .sort((a, b) => a.name.localeCompare(b.name))
       }).flat()
-  }, [groupOptions])
+  }, [groupOptions, currentGroup?.id, selectedGroups, currentPost.topics])
 
   const selectedToOptions = useMemo(() => {
     return selectedGroups.map((g) => {
       if (!g) return []
-      const baseOption = [{
-        id: `group_${g.id}`,
-        name: g.name,
-        avatarUrl: g.avatarUrl,
-        group: g
-      }]
 
+      // Get all selected topic options for this group
+      // If no topics are selected for a group, no pill is shown (group is not in selection)
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
@@ -294,7 +364,7 @@ function PostEditor ({
         })
         .filter(Boolean) || []
 
-      return baseOption.concat(chatRoomOptions)
+      return chatRoomOptions
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
 
@@ -343,30 +413,66 @@ function PostEditor ({
   }, [linkPreview])
 
   useEffect(() => {
-    // Ensure the route-derived topic is present and unique:
-    // - remove the previously injected route topic (if any)
-    // - add the new route topic (if present)
-    // User-added topics remain untouched.
+    // When switching between chatrooms (route topic changes), reset topics to only the new route topic
+    // This ensures users don't accidentally post to the wrong chatroom
     setCurrentPost(prev => {
-      let nextTopics = prev.topics || []
-
-      // Remove the prior route topic if it exists
-      if (routeTopicIdRef.current) {
-        nextTopics = nextTopics.filter(t => t && t.id !== routeTopicIdRef.current)
-      }
-
-      // Add the new route topic if present and not already included
-      if (topic?.id) {
-        const exists = nextTopics.some(t => t && t.id === topic.id)
-        if (!exists) nextTopics = [...nextTopics, topic]
+      // If route topic changed, reset topics to only contain the new route topic
+      if (topic?.id && topic.id !== routeTopicIdRef.current) {
         routeTopicIdRef.current = topic.id
-      } else {
-        routeTopicIdRef.current = null
+        return { ...prev, topics: [topic] }
       }
 
-      return { ...prev, topics: nextTopics }
+      // If route topic was removed (navigated away from chatroom), clear route topic reference
+      if (!topic?.id && routeTopicIdRef.current) {
+        const priorTopicId = routeTopicIdRef.current
+        routeTopicIdRef.current = null
+        // Remove the prior route topic if it exists
+        const nextTopics = (prev.topics || []).filter(t => t && t.id !== priorTopicId)
+        return { ...prev, topics: nextTopics }
+      }
+
+      // If route topic is the same, ensure it's present
+      if (topic?.id && topic.id === routeTopicIdRef.current) {
+        const exists = prev.topics?.some(t => t && t.id === topic.id)
+        if (!exists) {
+          return { ...prev, topics: [...(prev.topics || []), topic] }
+        }
+      }
+
+      return prev
     })
   }, [topic?.id])
+
+  // Auto-add topic when groups are selected
+  // If we're in a chatroom (topic from URL exists), use that topic
+  // Otherwise, default to #general topic
+  useEffect(() => {
+    if (!selectedGroups || selectedGroups.length === 0) return
+
+    // If we're in a chatroom, the route topic useEffect already handles adding it
+    // So we only need to add #general if we're NOT in a chatroom
+    if (topic?.id) return
+
+    // Find the general topic from any selected group's chatRooms
+    let generalTopic = null
+    for (const group of selectedGroups) {
+      const chatRooms = group.chatRooms?.toModelArray?.() || group.chatRooms || []
+      const generalChatRoom = chatRooms.find(cr => cr?.groupTopic?.topic?.name === DEFAULT_CHAT_TOPIC)
+      if (generalChatRoom?.groupTopic?.topic) {
+        generalTopic = generalChatRoom.groupTopic.topic
+        break
+      }
+    }
+
+    if (!generalTopic) return
+
+    setCurrentPost(prev => {
+      const alreadyHasGeneral = prev.topics?.some(t => t?.name === DEFAULT_CHAT_TOPIC)
+      if (alreadyHasGeneral) return prev
+
+      return { ...prev, topics: [...(prev.topics || []), generalTopic] }
+    })
+  }, [selectedGroups, topic?.id])
 
   /**
    * Resets the editor to its initial state
@@ -542,6 +648,38 @@ function PostEditor ({
       setIsDirty(true)
     }
   }, [currentPost])
+
+  /**
+   * Custom delete handler for ToField that implements conditional pill removal
+   * - When removing the #general pill:
+   *   - If there are other topics for that group: just remove #general, keep other topics
+   *   - If #general is the only topic: remove the entire group (all options with this group)
+   * - When removing any other topic pill: just remove that topic
+   */
+  const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
+    const groupId = deletedOption.group?.id
+
+    // Check if we're deleting the #general pill
+    if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
+      // Check if there are other topics for this group (beyond #general)
+      const otherTopicsForGroup = allSelected.filter(o =>
+        o.group?.id === groupId &&
+        o.topic &&
+        o.topic?.name !== DEFAULT_CHAT_TOPIC
+      )
+
+      if (otherTopicsForGroup.length > 0) {
+        // There are other topics - just remove #general, keep the group via other topics
+        return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+      }
+
+      // #general is the only topic - remove the entire group
+      return allSelected.filter(o => o.group?.id !== groupId)
+    }
+
+    // Deleting a non-general topic pill - just remove that topic
+    return allSelected.filter(o => o.topic?.id !== deletedOption.topic?.id)
+  }, [])
 
   const togglePublic = useCallback(() => {
     const { isPublic } = currentPost
@@ -839,7 +977,7 @@ function PostEditor ({
   }, [showSubmissionCriteria, showAllSubmissionCriteria, currentFundingRound?.criteria])
 
   return (
-    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
+    <div className={cn('flex flex-col rounded-lg bg-background p-3 shadow-2xl relative gap-4 border-2 border-foreground/30', { 'pb-1 pt-2': !modal, 'gap-2': !modal })}>
       <div
         className='absolute -top-[20px] left-0 right-0 h-[20px] bg-gradient-to-t from-black/10 to-transparent'
         style={{
@@ -903,6 +1041,7 @@ function PostEditor ({
               options={toOptions}
               selected={selectedToOptions}
               onChange={handleAddToOption}
+              onDelete={handleToOptionDelete}
               readOnly={loading}
               ref={toFieldRef}
               onFocus={() => setToFieldFocused(true)}
@@ -946,12 +1085,13 @@ function PostEditor ({
         {currentPost.details === null || loading
           ? <div className={styles.editor}><Loading /></div>
           : <HyloEditor
-              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: customTopicName ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
+              placeholder={isChat ? t('Send a chat to {{topicName}}', { topicName: hiddenTopic ? t('funding round') : '#' + currentPost?.topics?.[0]?.name }) : t('Add a description')}
               onUpdate={handleDetailsChange}
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
               contentHTML={currentPost.details}
+              groupIds={groupIds}
               menuClassName={cn({ 'pr-16': isChat })}
               showMenu
               readOnly={loading}
@@ -1004,7 +1144,7 @@ function PostEditor ({
         <div className={styles.sectionLabel}>{t('Topics')}</div>
         <div className={styles.sectionTopics}>
           <TopicSelector
-            forGroups={currentPost?.groups || [currentGroup]}
+            forGroups={selectedGroups && selectedGroups.length > 0 ? selectedGroups : (currentPost?.groups || (currentGroup ? [currentGroup] : []))}
             selectedTopics={currentPost.topics}
             onChange={handleTopicSelectorOnChange}
           />
@@ -1388,7 +1528,7 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
           </SelectContent>
         </Select>
       </div>
-      <div className='w-full p-2 bg-black/20 rounded-md'>
+      <div className='w-full p-2 bg-darkening/20 rounded-md'>
         <label className='inline-block mb-2'>{t('Completion Instructions for Members')}</label>
         <textarea
           className='w-full outline-none border-none bg-input rounded-md p-2 placeholder:text-foreground/50'

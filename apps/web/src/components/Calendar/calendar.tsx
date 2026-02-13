@@ -4,6 +4,7 @@ import React from 'react'
 import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
+import CalendarBodyDayCalendar from './body/day/calendar-body-day-calendar'
 import CalendarHeaderActions from './header/actions/calendar-header-actions'
 import CalendarHeaderDateChevrons from './header/date/calendar-header-date-chevrons'
 import CalendarHeaderActionsMode from './header/actions/calendar-header-actions-mode'
@@ -11,6 +12,7 @@ import CalendarProvider from './calendar-provider'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isMultiday } from './calendar-util'
+import CalendarBodyDay from './body/day/calendar-body-day'
 
 export default function Calendar ({
   posts,
@@ -50,13 +52,19 @@ export default function Calendar ({
       setDate={setDate}
       calendarIconIsToday={calendarIconIsToday}
     >
-      <CalendarHeader>
-        <CalendarHeaderDateChevrons />
-        <CalendarHeaderActions>
-          <CalendarHeaderActionsMode />
-        </CalendarHeaderActions>
-      </CalendarHeader>
-      <CalendarBody />
+      <div className='lg:hidden'>
+        <CalendarBodyDayCalendar />
+        <CalendarBodyDay />
+      </div>
+      <div className='hidden lg:block'>
+        <CalendarHeader>
+          <CalendarHeaderDateChevrons />
+          <CalendarHeaderActions>
+            <CalendarHeaderActionsMode />
+          </CalendarHeaderActions>
+        </CalendarHeader>
+        <CalendarBody />
+      </div>
     </CalendarProvider>
   )
 }

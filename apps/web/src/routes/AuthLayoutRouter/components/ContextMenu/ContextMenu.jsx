@@ -1,5 +1,6 @@
 import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import isMobile from 'ismobilejs'
 import { get } from 'lodash/fp'
 import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
@@ -217,66 +218,72 @@ export default function ContextMenu (props) {
       groupSlug={groupSlug}
       handlePositionedAdd={handlePositionedAdd}
     >
-      <div className={cn('ContextMenu bg-background z-20 !overflow-y-auto isolate pointer-events-auto h-screen h-dvh w-[250px] sm:w-[300px] shadow-md', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen }, className)}>
-        <div className='ContextDetails w-full z-20 relative'>
-          {routeParams.context === 'groups'
-            ? <GroupMenuHeader group={group} />
-            : isPublicContext
-              ? (
-                <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                  <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.5 }} />
-                  <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
-                  {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
-                  <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                    <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
-                  </div>
-                </div>
-                )
-              : isMyContext
+      <div
+        className={cn('ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
+        style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
+      >
+        <div className='relative min-h-full'>
+          <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
+          <div className='ContextDetails w-full z-20 relative'>
+            {routeParams.context === 'groups'
+              ? <GroupMenuHeader group={group} />
+              : isPublicContext
                 ? (
-                  <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
-                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.5 }} />
-                    <div className='absolute top-0 left-0 w-full h-full bg-theme-background z-0' />
+                  <div className='TheCommonsHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                    <div className='absolute inset-0 z-10 bg-cover' style={{ ...bgImageStyle('/the-commons.jpg'), opacity: 0.8 }} />
+                    <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0' />
+                    {/* <div style={bgImageStyle('/the-commons.jpg')} className='rounded-lg h-10 w-10 mr-2 shadow-md bg-cover bg-center' /> */}
                     <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
-                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                      <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('The Commons')}</h2>
                     </div>
                   </div>
                   )
-                : null}
-        </div>
-        {hasContextWidgets && (
-          <div className='relative flex flex-col items-center overflow-hidden z-20'>
-            <Routes>
-              <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
-            </Routes>
-
-            <DndContext
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-              collisionDetection={closestCorners}
-              modifiers={[restrictToVerticalAxis]}
-            >
-              <div className='w-full'>
-                <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
-              </div>
-              <DragOverlay wrapperElement='ul' dropAnimation={null}>
-                {activeWidget && !activeWidget.parentId && (
-                  <ContextMenuItem widget={activeWidget} isOverlay />
-                )}
-                {activeWidget && activeWidget.parentId && (
-                  <ListItemRenderer item={activeWidget} isOverlay canDnd={false} />
-                )}
-              </DragOverlay>
-            </DndContext>
-            {(!isMyContext && !isPublicContext && !isAllContext) && (
-              <div className='px-2 w-full mb-[0.05em] mt-6'>
-                <ContextMenuItem widget={allViewsWidget} />
-              </div>
-            )}
+                : isMyContext
+                  ? (
+                    <div className='MyHomeHeader relative flex flex-col justify-end p-2 bg-cover h-[190px] shadow-md'>
+                      <div className='absolute inset-0 z-10 bg-cover bg-center' style={{ ...bgImageStyle(currentUser.bannerUrl || '/default-user-banner.svg'), opacity: 0.8 }} />
+                      <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-100' />
+                      <div className='flex flex-col text-foreground drop-shadow-md overflow-hidden relative z-20'>
+                        <h2 className='text-white font-bold leading-3 text-lg drop-shadow-md'>{t('My Home')}</h2>
+                      </div>
+                    </div>
+                    )
+                  : null}
           </div>
-        )}
-        {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+          {hasContextWidgets && (
+            <div className='relative flex flex-col items-center overflow-hidden z-20'>
+              <Routes>
+                <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
+              </Routes>
+
+              <DndContext
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+                collisionDetection={closestCorners}
+                modifiers={[restrictToVerticalAxis]}
+              >
+                <div className='w-full'>
+                  <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
+                </div>
+                <DragOverlay wrapperElement='ul' dropAnimation={null}>
+                  {activeWidget && !activeWidget.parentId && (
+                    <ContextMenuItem widget={activeWidget} isOverlay />
+                  )}
+                  {activeWidget && activeWidget.parentId && (
+                    <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
+                  )}
+                </DragOverlay>
+              </DndContext>
+              {(!isMyContext && !isPublicContext && !isAllContext) && (
+                <div className='px-2 w-full mb-[0.05em] mt-6'>
+                  <ContextMenuItem widget={allViewsWidget} />
+                </div>
+              )}
+            </div>
+          )}
+          {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
+        </div>
       </div>
     </ContextMenuProvider>
   )
@@ -292,7 +299,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
   }
 
   return (
-    <ul className='m-2 p-0 mb-6'>
+    <ul className='m-0 p-3 mb-6'>
       {isEditing &&
         <li>
           <DropZone removalDropZone droppableParams={{ id: 'remove' }}>
@@ -304,7 +311,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
           className={`ContextMenuContextWidgetListItem items-start animate-slide-up invisible ${
             widget.childWidgets?.length > 0 ||
             ['container', 'home', 'chats', 'members'].includes(widget.type)
-              ? 'mb-6 mt-6'
+              ? 'mb-0 mt-0'
               : (isEditing ? 'mb-2' : 'mb-0')
           }`}
           style={{ '--delay': `${index * 35}ms` }}
@@ -317,7 +324,7 @@ function ContextWidgetList ({ newWidgetId, newWidgetRef }) {
       {isEditing && (
         <>
           <li>
-            <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+            <button onClick={() => handlePositionedAdd({ widget: { id: `bottom-of-list-${groupSlug}` }, addToEnd: true })} className='cursor-pointer text-sm text-foreground/40 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
               <Icon name='Plus' /> {t('Add new view')}
             </button>
           </li>
@@ -346,8 +353,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const isCreating = widget.id === 'creating'
 
   const handleLogout = async () => {
-    dispatch(replace('/login', null))
     await dispatch(logout())
+    dispatch(replace('/login', null))
   }
 
   // Draggable setup
@@ -388,7 +395,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
       <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
         <span className='flex justify-between items-center content-center'>
           <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex'>
+          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
             <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
           </MenuLink>
         </span>
@@ -409,7 +416,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               <MenuLink
                 to={url}
                 externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
-                className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 group'
+                className='ContextWidgetMenuLink flex text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full flex items-center justify-between transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 group'
+                isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={widget} />
@@ -430,6 +438,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                     to={url}
                     externalLink={widget?.customView?.type === 'externalLink' ? widget.customView.externalLink : null}
                     badgeCount={widget.highlightNumber}
+                    isEditing={isEditing}
                   >
                     <h3 className='text-base font-light opacity-50 text-foreground' data-testid={widget.type}>{title}</h3>
                   </MenuLink>
@@ -445,19 +454,19 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
               {widget.type !== 'members' && !isOverlay &&
                 <div className={cn('flex flex-col relative transition-all text-foreground',
                   {
-                    'border-2 border-dashed border-foreground/20 rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
+                    'border-2 border-dashed border-transparent rounded-md p-1 bg-background': isEditing && widget.type !== 'home'
                   })}
                 >
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='p-0'>
                     {loading && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && !isOverlay && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} isEditing={isEditing} />)}
                     {widget.id && isEditing && !['home', 'setup'].includes(widget.type) &&
                       <li>
                         <DropZone droppableParams={{ id: `bottom-of-child-list-${widget.id}`, data: { widget, parentWidget: widget, isOverlay, addToEnd: true, parentId: widget.id } }}>
                           &nbsp;
                         </DropZone>
-                        <button onClick={() => handlePositionedAdd({ id: `bottom-of-child-list-${widget.id}`, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100')}>
+                        <button onClick={() => handlePositionedAdd({ id: `bottom-of-child-list-${widget.id}`, addToEnd: true, parentId: widget.id })} className={cn('cursor-pointer text-base text-foreground/40 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100')}>
                           <Icon name='Plus' />
                           {widget.type === 'chats' ? <span> {t('Add new chat')}</span> : <span> {t('Add new view')}</span>}
                         </button>
@@ -465,11 +474,11 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
                   </ul>
                 </div>}
               {widget.type === 'members' && !isOverlay &&
-                <div className='ContextWidgetMenuItemMembers flex flex-col relative transition-all border-2 border-foreground/20 rounded-md bg-background text-foreground text-foreground hover:text-foreground'>
+                <div className='ContextWidgetMenuItemMembers bg-card/50 mb-8 flex flex-col relative transition-all border-2 border-transparent rounded-md hover:bg-card text-foreground text-foreground hover:text-foreground'>
                   <SpecialTopElementRenderer widget={widget} />
                   <ul className='px-1 pt-1 pb-2'>
                     {loading && presentedlistItems.length === 0 && <li key='loading'>Loading...</li>}
-                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} />)}
+                    {presentedlistItems.length > 0 && presentedlistItems.map(item => <ListItemRenderer key={item.id} item={item} widget={widget} canDnd={canDnd} isEditing={isEditing} />)}
                   </ul>
                 </div>}
             </div>)}
@@ -477,7 +486,7 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
       </div>
       {showEdit && (
         <div className='mb-[30px]'>
-          <MenuLink to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+          <MenuLink isEditing={isEditing} to={addQuerystringToPath(url, { cme: isEditing ? 'no' : 'yes' })} className='flex items-center text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
             <Pencil className='h-[16px]' />
             <span className='text-base'>{isEditing ? t('Done Editing') : t('Edit Menu')}</span>
           </MenuLink>
@@ -580,7 +589,7 @@ function DropZone ({ droppableParams, children, removalDropZone }) {
   )
 }
 
-function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
+function ListItemRenderer ({ item, widget, canDnd, isEditing, isOverlay = false }) {
   const { t } = useTranslation()
   const itemTitle = translateTitle(item.title, t)
   const { activeWidget, rootPath, groupSlug } = useContextMenuContext()
@@ -611,7 +620,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 badgeCount={item.highlightNumber}
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='ContextWidgetMenuItemChat flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItemChat flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground pl-2 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
@@ -627,6 +636,7 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
                 className='transition-all px-2 py-1 pb-2 text-foreground scale-1 hover:scale-110 scale-100 hover:text-foreground opacity-80 hover:opacity-100 flex align-items justify-between group'
+                isEditing={isEditing}
               >
                 <div className='flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
@@ -644,7 +654,8 @@ function ListItemRenderer ({ item, widget, canDnd, isOverlay = false }) {
               <MenuLink
                 to={itemUrl}
                 externalLink={item?.customView?.type === 'externalLink' ? item.customView.externalLink : null}
-                className='ContextWidgetMenuItem flex text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                className='ContextWidgetMenuItem flex text-base hover:bg-card text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex items-center justify-between group'
+                isEditing={isEditing}
               >
                 <div className='flex-1 flex items-center overflow-hidden'>
                   <WidgetIconResolver widget={item} />
@@ -685,18 +696,18 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'members' && canAddMembers) {
     return (
       <div className='relative'>
-        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+        <div className={cn('absolute -top-10 right-0 border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
           <MenuLink to={groupUrl(groupSlug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
             <Users className='w-4 h-4' />
             <span>{group.memberCount || 0}</span>
           </MenuLink>
         </div>
-        <MenuLink to={groupUrl(groupSlug, 'settings/invite')}>
-          <div className='flex items-center px-2 py-2 text-base font-medium text-foreground bg-foreground/20 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
+        <MenuLink to={groupUrl(groupSlug, 'settings/invite')} className='m-0 p-0'>
+          <div className='flex items-center px-2 py-2 text-base font-medium text-foreground bg-foreground/10 rounded-sm mb-2 w-full rounded-bl-none rounded-br-none hover:bg-foreground/30 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer animate-slide-up invisible'>
             <UserPlus className='inline-block h-[20px] mr-1' />
             <span className='flex-1'>{t('Add Members')}</span>
             <span
-              className='text-xs flex items-center gap-1 text-foreground/50 hover:text-foreground/100 transition-all border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-1 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'
+              className='text-xs flex items-center gap-1 text-foreground/50 hover:text-foreground/100 transition-all border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 bg-background text-foreground transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'
               onClick={handleCopyInviteLink}
             >
               {t('Copy Link')} <Copy className='w-4 h-4' />
@@ -710,7 +721,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'members' && !canAddMembers) {
     return (
       <div className='relative'>
-        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md bg-background text-foreground mb-[.5rem] transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
+        <div className={cn('absolute -top-10 right-0 border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md hover:bg-card text-foreground mb-[.5rem] transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100', isEditing && 'right-8')}>
           <MenuLink to={groupUrl(group.slug, 'members')} className='flex items-center gap-2 px-2 py-1 text-foreground/50 hover:text-foreground/100 transition-all'>
             <Users className='w-4 h-4' />
             <span>{group.memberCount || 0}</span>
@@ -722,7 +733,7 @@ function SpecialTopElementRenderer ({ widget }) {
 
   if (widget.type === 'about') {
     return (
-      <div className='w-full mb-8'>
+      <div className='w-full mb-4 bg-card/50 rounded-md p-2'>
         {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
         {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.description)} /></p>}
       </div>
@@ -734,7 +745,7 @@ function SpecialTopElementRenderer ({ widget }) {
 
     const listItemComponent = ({ title, url }) => (
       <li className='w-full animate-slide-up invisible'>
-        <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100'>
+        <MenuLink to={url} className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground mb-[.5rem] w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100'>
           {title}
         </MenuLink>
       </li>
@@ -742,12 +753,15 @@ function SpecialTopElementRenderer ({ widget }) {
 
     return (
       <div className='mb-2'>
-        <MenuLink to={groupUrl(groupSlug, 'settings')}>
-          <div className='text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 animate-slide-up invisible'>
-            {t('Settings')}
-          </div>
-        </MenuLink>
         <ul className='mt-0 pl-0 w-full'>
+          {listItemComponent({
+            title: t('Settings'),
+            url: groupUrl(groupSlug, 'settings')
+          })}
+          {!group.avatarUrl && listItemComponent({
+            title: t('Add Avatar'),
+            url: settingsUrl
+          })}
           {!group.avatarUrl && listItemComponent({
             title: t('Add Avatar'),
             url: settingsUrl
@@ -816,8 +830,8 @@ function GroupSettingsMenu ({ group }) {
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 
   return (
-    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background/60 z-[1050]'>
-      <div className='absolute h-full top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
+    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]'>
+      <div className='absolute h-full overflow-y-auto top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
@@ -828,8 +842,8 @@ function GroupSettingsMenu ({ group }) {
               <MenuLink
                 to={groupUrl(groupSlug, item.url)}
                 className={cn(
-                  'text-base text-foreground border-2 border-foreground/20 hover:border-foreground/100 hover:text-foreground rounded-md p-2 bg-background text-foreground w-full block transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100',
-                  { 'text-secondary border-secondary': location.pathname === groupUrl(groupSlug, item.url) }
+                  'text-base text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-1 pl-2 hover:bg-card text-foreground w-full block transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100',
+                  { 'border-secondary': location.pathname === groupUrl(groupSlug, item.url) }
                 )}
               >
                 {t(item.title)}

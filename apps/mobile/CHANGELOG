@@ -4,11 +4,19 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.1.13]
+## [6.2.1] - 2025-11-11
+- 
+
+## [6.2.0] - 2025-11-11
 ### Added
-- Save/unsave buttons to posts. View Saved Posts in the My Home screen.
+- Funding rounds now visible in the app. You can add submissions and vote on them.
+- Long clicking on an emoji shows who reacted with each emoji on that post
+
+### Fixed
+- New comments are always loaded when you open a post details screen
 
 ## [6.1.12] - 2025-10-20
+- Add save/unsave buttons to posts. View Saved Posts in the My Home screen.
 - Fix navigation bouncing for my and public options
 - Avoid deleting app cookie on crash reset
 - Avoid redundant navigation messaging from webview

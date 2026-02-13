@@ -47,7 +47,7 @@ function setupQueue (name, handler) {
       sails.log.debug(label + 'done')
       done()
     } catch (err) {
-      const data = {jobId: job.id, jobData: job.data}
+      const data = { jobId: job.id, jobData: job.data }
       const error = typeof err === 'string'
         ? new Error(err)
         : (err || new Error('kue job failed without error'))
@@ -60,9 +60,9 @@ function setupQueue (name, handler) {
 
 const throttledLog = throttle(error => {
   if (rollbar.disabled) {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
   } else {
-    sails.log.error(error.message)
+    sails.log.error('Error setting up worker: ' + error.message)
     rollbar.error(error)
   }
 }, 30000)

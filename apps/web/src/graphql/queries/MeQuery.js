@@ -49,12 +49,14 @@ export default gql`
     url
     intercomHash
     hasStripeAccount
+    rsvpCalendarUrl
     settings {
       alreadySeenTour
       dmNotifications
       commentNotifications
       locale
       mapBaseLayer
+      rsvpCalendarSub
       signupInProgress
       streamChildPosts
       streamViewMode

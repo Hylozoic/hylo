@@ -1,205 +1,262 @@
 import { cn } from 'util/index'
-import React, { useCallback, useEffect, useState, useRef } from 'react'
+import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
 import EventDate from 'components/PostCard/EventDate'
 import EventRSVP from 'components/PostCard/EventRSVP'
-import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import respondToEvent from 'store/actions/respondToEvent'
 import getMe from 'store/selectors/getMe'
-import { personUrl } from '@hylo/navigation'
 
-import classes from './PostBigGridItem.module.scss'
-
+/**
+ * PostBigGridItem displays a post as a large grid card (400px height)
+ * If the post has an image attachment, it shows the image as background with content overlay
+ * Otherwise, it shows a text-based card with title and details
+ * Supports events with RSVP, donations, file attachments, and emoji reactions
+ */
 export default function PostBigGridItem ({
   childPost,
   currentGroupId,
   post,
-  expanded
+  currentUser: propCurrentUser
 }) {
   const { t } = useTranslation()
-  const routeParams = useParams()
   const dispatch = useDispatch()
-  const currentUser = useSelector(getMe)
+  const currentUser = useSelector(getMe) || propCurrentUser
   const viewPostDetails = useViewPostDetails()
-  const [detailsMaxHeight, setDetailsMaxHeight] = useState('200px')
-  const contentSummaryRef = useRef(null)
-  const detailsRef = useRef(null)
+
   const handleRespondToEvent = useCallback((response) => {
     dispatch(respondToEvent(post, response))
-  }, [post])
+  }, [post, dispatch])
 
   const {
     title,
     details,
     creator,
-    createdTimestamp,
+    createdTimestampShort,
     attachments
   } = post
-  const numAttachments = attachments.length || 0
-  const firstAttachment = attachments[0] || 0
-  // XXX: we should figure out what to actually do with 'video' type attachments, which are almost never used
-  const attachmentType = (firstAttachment.type === 'video' ? 'file' : firstAttachment.type) || 0
-  const attachmentUrl = firstAttachment.url || 0
+
+  const firstAttachment = attachments?.[0]
+  const hasImage = firstAttachment?.type === 'image' && firstAttachment?.url
+  const imageUrl = hasImage ? firstAttachment.url : null
+  const hasFile = firstAttachment?.type === 'file'
+  const numAttachments = attachments?.length || 0
+
   const isFlagged = post.flaggedGroups && post.flaggedGroups.includes(currentGroupId)
+  const isEvent = post.type === 'event'
 
-  const detailLength = details.length
-  let detailClass = null
+  // Donation link detection
+  const donationMatch = post.donationsLink?.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/)
+  const donationService = donationMatch ? donationMatch[1] : null
 
-  detailLength < 75
-    ? detailClass = 'detail-extra-short'
-    : detailLength < 120
-      ? detailClass = 'detail-short'
-      : detailLength < 250
-        ? detailClass = 'detail-mid'
-        : detailLength < 400
-          ? detailClass = 'detail-full'
-          : detailClass = null
+  if (!creator) return null
 
-  const creatorUrl = personUrl(creator.id, routeParams.slug)
-  const unread = false
+  // Image card layout - image fills card with content overlay
+  if (hasImage) {
+    return (
+      <div
+        className={cn(
+          'h-[400px] w-full rounded-lg shadow-lg relative cursor-pointer',
+          'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
+          {
+            'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt
+          }
+        )}
+        onClick={() => viewPostDetails(post)}
+      >
+        {/* Background image */}
+        <div
+          className='absolute inset-0 bg-cover bg-center'
+          style={{ backgroundImage: `url(${imageUrl})` }}
+        />
 
-  const d = post.donationsLink ? post.donationsLink.match(/(cash|clover|gofundme|opencollective|paypal|squareup|venmo)/) : null
-  const donationService = d ? d[1] : null
+        {/* Gradient overlay for text readability */}
+        <div
+          className='absolute inset-0'
+          style={{
+            background: 'linear-gradient(to top, hsl(var(--darkening) / 0.95) 0%, hsl(var(--darkening) / 0.6) 50%, hsl(var(--darkening) / 0.2) 100%)'
+          }}
+        />
 
-  useEffect(() => {
-    if (contentSummaryRef.current && detailsRef.current) {
-      // Get the position of the details element
-      const detailsRect = detailsRef.current.getBoundingClientRect()
-      const containerRect = contentSummaryRef.current.getBoundingClientRect()
-
-      // Calculate available space (container height - distance from top of container to details - bottom padding)
-      const topOffset = detailsRect.top - containerRect.top
-      const bottomPadding = 60 // Space for emoji row and other bottom elements
-      const availableHeight = 400 - topOffset - bottomPadding
-
-      // Set max height with a minimum value to prevent negative values
-      setDetailsMaxHeight(`${Math.max(50, availableHeight)}px`)
-    }
-  }, [post, expanded, attachmentType])
-
-  const showDetailsTargeted = () => {
-    return attachmentType === 'image' || post.type === 'event' ? viewPostDetails(post.id) : null
-  }
-
-  if (!post.creator) return null
-
-  return (
-    <div
-      className={cn(
-        'w-full h-[400px] bg-card/50 hover:bg-card/100 transition-all rounded-lg shadow-lg relative p-2',
-        {
-          [classes.unread]: unread,
-          [classes.expanded]: expanded,
-          'opacity-60': post.fulfilledAt
-        },
-        classes[attachmentType],
-        classes[detailClass],
-        classes[post.type]
-      )}
-      onClick={attachmentType !== 'image' && post.type !== 'event' ? () => viewPostDetails(post.id) : null}
-    >
-      <div className={classes.contentSummary} ref={contentSummaryRef}>
+        {/* Child post indicator */}
         {childPost && (
           <div
-            className={classes.iconContainer}
+            className='absolute top-3 right-3 bg-white/90 rounded p-1.5 z-10'
             data-tooltip-content={t('Post from child group')}
             data-tooltip-id={'childgroup-tt' + post.id}
           >
-            <Icon
-              name='Subgroup'
-              className={classes.icon}
-            />
-            <Tooltip
-              delay={250}
-              id={'childgroup-tt' + post.id}
-            />
+            <Icon name='Subgroup' className='w-4 h-4' />
+            <Tooltip delay={250} id={'childgroup-tt' + post.id} />
           </div>
         )}
-        <div className='flex items-center gap-2'>
-          {post.type === 'event' && (
-            <div className='h-full' onClick={showDetailsTargeted}>
+
+        {/* Flagged indicator */}
+        {isFlagged && (
+          <div className='absolute inset-0 flex items-center justify-center backdrop-blur-sm z-20'>
+            <Icon name='Flag' className='w-12 h-12 text-destructive' />
+          </div>
+        )}
+
+        {/* Content overlay at bottom */}
+        <div className='absolute bottom-0 left-0 right-0 p-3 z-10'>
+          {/* Event date badge */}
+          {isEvent && (
+            <div className='mb-2'>
               <EventDate {...post} />
             </div>
           )}
-          <h3 className='font-bold text-foreground mb-0 mt-0 w-full' onClick={showDetailsTargeted}>
-            <span className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })}>
+
+          <div className='flex items-center gap-2 text-white'>
+            <div className='flex items-center gap-1 text-white font-bold h-6 text-xs'>
+              <Avatar avatarUrl={creator.avatarUrl} tiny />
+              <span className='truncate font-bold'>{creator.name}</span>
+            </div>
+            <span className='text-white/50 text-xs'>{createdTimestampShort}</span>
+          </div>
+          <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
+            <span className={cn({ 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
               {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
               {title}
             </span>
-            <div className='w-full flex items-center justify-between' onClick={() => viewPostDetails(post)}>
-              <div className='text-foreground/60 text-xs font-normal flex items-center gap-1'>
-                <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={classes.avatar} tiny />
-                {creator.name}
-              </div>
-              <div className='text-foreground/60 text-xs font-normal'>
-                {createdTimestamp}
-              </div>
-            </div>
           </h3>
-        </div>
 
-        {attachmentType === 'image'
-          ? <div style={{ backgroundImage: `url(${attachmentUrl})` }} className={cn(classes.firstImage, { [classes.isFlagged]: isFlagged && !post.clickthrough })} onClick={() => viewPostDetails(post)} />
-          : null}
-
-        {isFlagged && <Icon name='Flag' className={classes.flagIcon} />}
-
-        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough })} ref={detailsRef}>
-          <HyloHTML html={details} onClick={showDetailsTargeted} className='text-foreground/60 text-sm overflow-hidden' style={{ maxHeight: detailsMaxHeight }} />
-        </div>
-
-        <div className={cn({ [classes.isFlagged]: isFlagged && !post.clickthrough }, 'absolute bottom-0 rounded-b-lg left-0 right-0 p-2 bg-gradient-to-t from-card/100 to-card/80 pb-1')}>
-          <div className={classes.gridMetaRow1}>
-            <h3 className={classes.title} onClick={() => viewPostDetails(post)}>{title}</h3>
-            <div className={classes.contentSnippet}>
-              <HyloHTML html={details} onClick={showDetailsTargeted} className='line-clamp-6' />
+          {/* Event RSVP */}
+          {isEvent && (
+            <div className='flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-3'>
+              <span className='text-white text-sm'>{t('Can you go?')}</span>
+              <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
             </div>
-            <div className={classes.projectActions}>
-              {post.donationsLink && donationService && (
-                <div className={classes.donate}>
-                  <div><img src={`/assets/payment-services/${donationService}.svg`} alt={donationService} /></div>
-                  <div><a className={classes.projectButton} rel='noreferrer' href={post.donationsLink} target='_blank'>{t('Contribute')}</a></div>
-                </div>
+          )}
+
+          {/* Donation link */}
+          {post.donationsLink && (
+            <a
+              href={post.donationsLink}
+              target='_blank'
+              rel='noreferrer'
+              onClick={(e) => e.stopPropagation()}
+              className='flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-2 mb-3 hover:bg-white/20 transition-colors'
+            >
+              {donationService && (
+                <img src={`/assets/payment-services/${donationService}.svg`} alt={donationService} className='h-5' />
               )}
-              {post.donationsLink && !donationService && (
-                <div className={classes.donate}>
-                  <div>{t('Support this project')}</div>
-                  <div><a className={classes.projectButton} rel='noreferrer' href={post.donationsLink} target='_blank'>{t('Contribute')}</a></div>
-                </div>
-              )}
-              {attachmentType === 'file' && (
-                <div className={classes.fileAttachment}>
-                  {numAttachments > 1
-                    ? <div className={classes.attachmentNumber}>{numAttachments} {t('attachments')}</div>
-                    : null}
-                  <div className={classes.attachment}>
-                    <Icon name='Document' className={classes.fileIcon} />
-                    <div className={classes.attachmentName}>{attachmentUrl.substring(firstAttachment.url.lastIndexOf('/') + 1)}</div>
-                  </div>
-                </div>
-              )}
-              {post.type === 'event' && (
-                <div className='border-2 mt-2 items-center mb-2 justify-between flex border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 bg-midground/50 rounded-lg border-dashed relative text-center z-10'>
-                  <div className='text-foreground/100 text-sm'>{t('Can you go?')}</div>
-                  <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
-                </div>
-              )}
-            </div>
-          </div>
-          <div>
-            <EmojiRow
-              currentUser={currentUser}
-              post={post}
-            />
+              <span className='text-white text-sm'>{t('Contribute')}</span>
+            </a>
+          )}
+
+          {/* Footer: Author + timestamp + emoji */}
+          <div className='flex items-center justify-between text-white'>
+            <EmojiRow currentUser={currentUser} post={post} />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // Text card layout - no image, show full details
+  return (
+    <div
+      className={cn(
+        'h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
+        'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
+        'flex flex-col',
+        { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
+      )}
+      onClick={() => viewPostDetails(post)}
+    >
+      {/* Child post indicator */}
+      {childPost && (
+        <div
+          className='absolute top-3 right-3 bg-primary rounded p-1.5 z-10'
+          data-tooltip-content={t('Post from child group')}
+          data-tooltip-id={'childgroup-tt' + post.id}
+        >
+          <Icon name='Subgroup' className='w-4 h-4' />
+          <Tooltip delay={250} id={'childgroup-tt' + post.id} />
+        </div>
+      )}
+
+      {/* Flagged overlay */}
+      {isFlagged && (
+        <div className='absolute inset-0 flex items-center justify-center backdrop-blur-sm z-20'>
+          <Icon name='Flag' className='w-12 h-12 text-destructive' />
+        </div>
+      )}
+
+      {/* Content */}
+      <div className='p-3 flex-1 flex flex-col min-h-0 overflow-hidden'>
+        {/* Header: Event date + title */}
+        <div className='flex items-start gap-3 mb-2 shrink-0'>
+          {isEvent && <EventDate {...post} />}
+          <div className='flex-1 min-w-0'>
+            <div className='flex items-center gap-2 text-xs text-foreground/60'>
+              <Avatar avatarUrl={creator.avatarUrl} tiny />
+              <span className='font-bold text-foreground truncate max-w-[100px]'>{creator.name}</span>
+              <span>{createdTimestampShort}</span>
+            </div>
+            <h3 className='text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+              {title}
+            </h3>
+          </div>
+        </div>
+
+        {/* Details text */}
+        <p className='text-foreground/60 text-sm flex-1 overflow-hidden mb-2'>
+          {TextHelpers.presentHTMLToText(details, { truncate: 400 })}
+        </p>
+
+        {/* File attachment indicator */}
+        {hasFile && (
+          <div className='flex items-center gap-2 text-accent bg-accent/10 rounded-lg p-2 mb-2 shrink-0'>
+            <Icon name='Document' className='w-5 h-5' />
+            <span className='text-sm'>
+              {numAttachments > 1 ? `${numAttachments} ${t('attachments')}` : t('1 attachment')}
+            </span>
+          </div>
+        )}
+
+        {/* Event RSVP */}
+        {isEvent && (
+          <div className='flex items-center justify-between bg-midground/50 border-2 border-dashed border-foreground/20 rounded-lg p-3 mb-2 shrink-0'>
+            <span className='text-foreground text-sm'>{t('Can you go?')}</span>
+            <EventRSVP {...post} respondToEvent={handleRespondToEvent} position='top' />
+          </div>
+        )}
+
+        {/* Donation link */}
+        {post.donationsLink && (
+          <a
+            href={post.donationsLink}
+            target='_blank'
+            rel='noreferrer'
+            onClick={(e) => e.stopPropagation()}
+            className='flex items-center gap-2 bg-accent/10 rounded-lg p-2 mb-2 hover:bg-accent/20 transition-colors shrink-0'
+          >
+            {donationService && (
+              <img src={`/assets/payment-services/${donationService}.svg`} alt={donationService} className='h-5' />
+            )}
+            <span className='text-accent text-sm font-medium'>{t('Contribute')}</span>
+          </a>
+        )}
+      </div>
+
+      {/* Fade gradient over text leading to footer */}
+      <div
+        className='absolute bottom-12 left-0 right-0 h-8 pointer-events-none'
+        style={{
+          background: 'linear-gradient(to bottom, transparent, hsl(var(--card)))'
+        }}
+      />
+
+      {/* Footer */}
+      <div className='px-4 py-2 mt-auto bg-card relative z-10 border-t border-foreground/10'>
+        <EmojiRow currentUser={currentUser} post={post} />
       </div>
     </div>
   )
