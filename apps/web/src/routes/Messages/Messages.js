@@ -21,6 +21,7 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { isMobileDevice } from 'util/mobile'
 
 import {
   createMessage,
@@ -83,6 +84,7 @@ const Messages = () => {
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
   const formRef = useRef(null)
 
   useEffect(() => {
@@ -110,6 +112,35 @@ const Messages = () => {
     }
     focusForm()
   }, [messageThreadId])
+
+  // Track keyboard height using Visual Viewport API on mobile
+  useEffect(() => {
+    if (!isMobileDevice() || !window.visualViewport) {
+      return
+    }
+
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        // Calculate keyboard height as the difference between window height and visual viewport height
+        const keyboardHeight = window.innerHeight - window.visualViewport.height
+        setKeyboardHeight(Math.max(0, keyboardHeight))
+      }
+    }
+
+    // Initial calculation
+    handleViewportResize()
+
+    // Listen for viewport resize events (keyboard open/close)
+    window.visualViewport.addEventListener('resize', handleViewportResize)
+    window.visualViewport.addEventListener('scroll', handleViewportResize)
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize)
+        window.visualViewport.removeEventListener('scroll', handleViewportResize)
+      }
+    }
+  }, [])
 
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
@@ -191,7 +222,10 @@ const Messages = () => {
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div className='flex flex-col h-full w-full px-3'>
+        <div
+          className='flex flex-col h-full w-full px-3'
+          style={isMobileDevice() && keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : {}}
+        >
           <MessageSection
             socket={socket}
             currentUser={currentUser}
