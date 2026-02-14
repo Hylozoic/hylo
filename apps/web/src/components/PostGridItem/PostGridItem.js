@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { CircleCheckBig } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import Icon from 'components/Icon'
@@ -80,9 +81,9 @@ export default function PostGridItem ({
 
         {/* Content overlay at bottom */}
         <div className='absolute bottom-0 left-0 right-0 p-3 z-10 pb-0'>
-          <h3 className='text-white font-bold text-sm line-clamp-2 drop-shadow-md mb-0 mt-0 leading-tight'>
+          <h3 className='flex items-center text-white font-bold text-sm line-clamp-2 drop-shadow-md mb-0 mt-0 leading-tight'>
+            {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
-            {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
           </h3>
           <div className='flex items-center justify-between text-xs'>
             <div className='flex items-center gap-1.5 text-white h-8'>
@@ -128,9 +129,9 @@ export default function PostGridItem ({
 
       {/* Content */}
       <div className='p-3 flex-1 flex flex-col min-h-0 overflow-hidden pb-0'>
-        <h3 className='text-foreground font-bold text-sm line-clamp-2 mb-1 mt-0 shrink-0 leading-tight'>
+        <h3 className='flex items-center text-foreground font-bold text-sm line-clamp-2 mb-1 mt-0 shrink-0 leading-tight'>
+          {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
           {title}
-          {post.fulfilledAt && <span className='mr-1 align-middle'><Icon name='Checkmark' /></span>}
         </h3>
         <p className='text-foreground/60 text-xs flex-1 mt-0 mb-0 overflow-hidden'>
           {TextHelpers.presentHTMLToText(details, { truncate: 200 })}

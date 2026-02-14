@@ -32,11 +32,11 @@ export default function PostTitle ({
     <Highlight {...highlightProps}>
       <>
         <div onClick={onClick} className={cn('flex items-center text-xl font-bold', { [classes.constrained]: constrained, 'mb-1': type !== 'event' }, 'hdr-headline')}>
-          {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='text-xl text-green-500' /></span>}
+          {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
           {title}
         </div>
         {post.fulfilledAt && (
-          <div className='flex items-center text-sm font-bold'>{t('Fulfilled at {{timestamp}}', { timestamp: DateTime.fromISO(post.fulfilledAt).toFormat('DD') })}</div>
+          <div className='flex items-center text-sm italic'>{t('Completed {{timestamp}}', { timestamp: DateTime.fromISO(post.fulfilledAt).toFormat('DD') })}</div>
         )}
         {location && (
           <div className={cn('text-xs text-foreground/50 flex items-center gap-1', { [classes.constrained]: constrained, 'mb-2': type !== 'event' })}>
