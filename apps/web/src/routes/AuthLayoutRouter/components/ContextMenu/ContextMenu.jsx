@@ -9,6 +9,9 @@ import { replace } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector } from 'reselect'
+import Loading from 'components/Loading'
+import isPendingFor from 'store/selectors/isPendingFor'
+import fetchForGroup from 'store/actions/fetchForGroup'
 
 import ContextWidgetPresenter, {
   isValidDropZone,
@@ -85,6 +88,7 @@ export default function ContextMenu (props) {
 
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
+  const isGroupLoading = useSelector(state => isPendingFor(fetchForGroup, state) && groupSlug && !group)
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
   const showPaywallBlock = group?.paywall && !hasAccess && groupSlug && routeParams.context === 'groups'
@@ -252,51 +256,57 @@ export default function ContextMenu (props) {
                     )
                   : null}
           </div>
-          {hasContextWidgets && (
-            <div className='relative flex flex-col items-center overflow-hidden z-20'>
-              <Routes>
-                <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
-              </Routes>
+          {(isGroupLoading || (routeParams.context === 'groups' && groupSlug && !group))
+            ? (
+              <div className='flex items-center justify-center h-full min-h-[200px]'>
+                <Loading />
+              </div>
+              )
+            : hasContextWidgets && (
+              <div className='relative flex flex-col items-center overflow-hidden z-20'>
+                <Routes>
+                  <Route path='settings/*' element={<GroupSettingsMenu group={group} />} />
+                </Routes>
 
-              <DndContext
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-                collisionDetection={closestCorners}
-                modifiers={[restrictToVerticalAxis]}
-              >
-                <div className='w-full'>
-                  <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
-                </div>
-                <DragOverlay wrapperElement='ul' dropAnimation={null}>
-                  {activeWidget && !activeWidget.parentId && (
-                    <ContextMenuItem widget={activeWidget} isOverlay />
-                  )}
-                  {activeWidget && activeWidget.parentId && (
-                    <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
-                  )}
-                </DragOverlay>
-              </DndContext>
-              {(!isMyContext && !isPublicContext && !isAllContext) && (
-                <div className='px-2 w-full mb-[0.05em] mt-6'>
-                  <ContextMenuItem widget={allViewsWidget} />
-                </div>
-              )}
-              {showPaywallBlock && (
-                <div
-                  className='absolute inset-0 bg-background/80 backdrop-blur-sm z-50 pointer-events-auto'
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigate(groupUrl(groupSlug, 'stream'))
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onMouseUp={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onTouchEnd={(e) => e.stopPropagation()}
-                />
-              )}
-            </div>
-          )}
+                <DndContext
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                  collisionDetection={closestCorners}
+                  modifiers={[restrictToVerticalAxis]}
+                >
+                  <div className='w-full'>
+                    <ContextWidgetList newWidgetId={newWidgetId} newWidgetRef={newWidgetRef} />
+                  </div>
+                  <DragOverlay wrapperElement='ul' dropAnimation={null}>
+                    {activeWidget && !activeWidget.parentId && (
+                      <ContextMenuItem widget={activeWidget} isOverlay />
+                    )}
+                    {activeWidget && activeWidget.parentId && (
+                      <ListItemRenderer item={activeWidget} isOverlay canDnd={false} isEditing={isEditing} />
+                    )}
+                  </DragOverlay>
+                </DndContext>
+                {(!isMyContext && !isPublicContext && !isAllContext) && (
+                  <div className='px-2 w-full mb-[0.05em] mt-6'>
+                    <ContextMenuItem widget={allViewsWidget} />
+                  </div>
+                )}
+                {showPaywallBlock && (
+                  <div
+                    className='absolute inset-0 bg-background/80 backdrop-blur-sm z-50 pointer-events-auto'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(groupUrl(groupSlug, 'stream'))
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onMouseUp={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                  />
+                )}
+              </div>
+            )}
           {isNavOpen && <div className={cn('ContextMenuCloseBg opacity-50 fixed right-0 top-0 w-full h-full z-10 transition-all duration-250 ease-in-out', { 'sm:block': isNavOpen })} onClick={toggleNavMenuAction} />}
         </div>
       </div>

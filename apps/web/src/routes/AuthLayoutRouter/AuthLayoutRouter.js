@@ -177,6 +177,37 @@ export default function AuthLayoutRouter (props) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
+  // Pre-load groups for all memberships after initial load
+  // Batch requests in chunks of 5 to avoid overwhelming the server
+  useEffect(() => {
+    if (!currentUserLoading && memberships.length > 0) {
+      // Get all unique group slugs from memberships
+      const groupSlugs = memberships
+        .map(m => m.group?.slug)
+        .filter(Boolean)
+        .filter((slug, index, self) => self.indexOf(slug) === index) // unique slugs
+
+      if (groupSlugs.length === 0) return
+
+      // Batch requests in chunks of 5
+      const CHUNK_SIZE = 5
+      const chunks = []
+      for (let i = 0; i < groupSlugs.length; i += CHUNK_SIZE) {
+        chunks.push(groupSlugs.slice(i, i + CHUNK_SIZE))
+      }
+
+      // Dispatch each chunk with a delay to avoid overwhelming the server
+      // The fetchForGroup action will handle deduplication if a group is already being fetched
+      chunks.forEach((chunk, chunkIndex) => {
+        setTimeout(() => {
+          chunk.forEach(slug => {
+            dispatch(fetchForGroup(slug))
+          })
+        }, chunkIndex * 200) // 200ms delay between chunks
+      })
+    }
+  }, [currentUserLoading, memberships, dispatch])
+
   useEffect(() => {
     if (currentUser?.id) {
       mixpanel.identify(currentUser.id)
