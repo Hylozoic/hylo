@@ -323,7 +323,7 @@ export default function AuthLayoutRouter (props) {
 
       <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-[280px] h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
             {!withoutNav && (
               <>
                 <GlobalNav
