@@ -11,6 +11,7 @@ import RoundImage from 'components/RoundImage'
 import Icon from 'components/Icon'
 import styles from './MessageForm.module.scss'
 import { Loader2 } from 'lucide-react'
+import { isMobileDevice } from 'util/mobile'
 
 const MessageForm = forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
@@ -64,6 +65,15 @@ const MessageForm = forwardRef((props, ref) => {
         onKeyDown={handleKeyDown}
         onFocus={(e) => {
           setHasFocus(true)
+          // Prevent automatic scrolling on mobile - we handle viewport with Visual Viewport API
+          if (isMobileDevice()) {
+            // Store scroll position and restore it immediately to prevent browser's automatic scroll
+            const initialScrollY = window.scrollY || window.pageYOffset
+            // Restore scroll position in next frame to override browser's scroll
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: initialScrollY, left: 0, behavior: 'auto' })
+            })
+          }
           if (props.onFocus) props.onFocus(e)
         }}
         onBlur={() => {

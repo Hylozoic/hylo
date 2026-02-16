@@ -149,7 +149,16 @@ const Messages = () => {
     )
   }
 
-  const focusForm = () => formRef.current && formRef.current.focus()
+  const focusForm = () => {
+    if (formRef.current) {
+      // Use preventScroll on mobile to avoid double scrolling (Visual Viewport API handles it)
+      if (isMobileDevice()) {
+        formRef.current.focus({ preventScroll: true })
+      } else {
+        formRef.current.focus()
+      }
+    }
+  }
 
   const header = forNewThread
     ? (
