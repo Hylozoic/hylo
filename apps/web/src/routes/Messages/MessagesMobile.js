@@ -83,8 +83,8 @@ const MessagesMobile = ({
     updateViewport()
 
     if (window.visualViewport) {
+      // Only listen to resize events - scroll events cause double scrolling
       window.visualViewport.addEventListener('resize', updateViewport)
-      window.visualViewport.addEventListener('scroll', updateViewport)
     }
 
     window.addEventListener('resize', updateViewport)
@@ -92,7 +92,6 @@ const MessagesMobile = ({
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', updateViewport)
-        window.visualViewport.removeEventListener('scroll', updateViewport)
       }
       window.removeEventListener('resize', updateViewport)
     }
