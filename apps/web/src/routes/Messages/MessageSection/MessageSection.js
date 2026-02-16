@@ -214,11 +214,11 @@ export default class MessageSection extends Component {
     const { showNewMessageButton } = this.state
 
     return (
-      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1 pb-4' onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='w-full overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
         {!pending && (
           <>
-            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end'>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end w-full'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

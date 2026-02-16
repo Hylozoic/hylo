@@ -13,6 +13,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
+import { isMobileDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -128,10 +129,14 @@ const ViewHeader = () => {
     }
   }
 
+  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
+  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+    return null
+  }
+
   return (
-    <header className={cn('flex flex-row items-center z-50 p-2 w-full fixed top-0 left-0 right-0 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
-      'justify-center': centered,
-      'bg-midground': true
+    <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+      'justify-center': centered
     })}
     >
       {centered && backButton && (
