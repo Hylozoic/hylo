@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { themes, defaultTheme } from '../themes'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { sendMessageToWebView } from 'util/webView'
 
 const ThemeContext = createContext()
 
@@ -12,13 +14,13 @@ const THEME_MIGRATIONS = {
 
 export function ThemeProvider ({ children }) {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
     // Handle theme migrations and invalid themes
     if (stored) {
       // Check if this is an old theme name that needs migration
       if (THEME_MIGRATIONS[stored]) {
         const migratedTheme = THEME_MIGRATIONS[stored]
-        localStorage.setItem(THEME_STORAGE_KEY, migratedTheme)
+        window.localStorage.setItem(THEME_STORAGE_KEY, migratedTheme)
         return migratedTheme
       }
       // Check if the stored theme exists in our themes
@@ -30,7 +32,7 @@ export function ThemeProvider ({ children }) {
   })
 
   const [colorScheme, setColorScheme] = useState(() => {
-    const stored = localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
+    const stored = window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
     return stored || 'auto'
   })
 
@@ -65,12 +67,18 @@ export function ThemeProvider ({ children }) {
     document.documentElement.classList.add(effectiveColorScheme)
 
     // Save preferences
-    localStorage.setItem(THEME_STORAGE_KEY, currentTheme)
+    window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme)
     if (colorScheme !== 'auto') {
-      localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, colorScheme)
+      window.localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, colorScheme)
     } else {
-      localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
+      window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
     }
+
+    // Notify the native mobile app so it can style safe area insets to match
+    sendMessageToWebView(WebViewMessageTypes.THEME_CHANGE, {
+      themeName: currentTheme,
+      colorScheme: effectiveColorScheme
+    })
   }, [currentTheme, colorScheme, effectiveColorScheme])
 
   const value = {

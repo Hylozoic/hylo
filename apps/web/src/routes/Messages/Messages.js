@@ -21,6 +21,8 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { isMobileDevice } from 'util/mobile'
+import MessagesMobile from './MessagesMobile'
 
 import {
   createMessage,
@@ -147,7 +149,16 @@ const Messages = () => {
     )
   }
 
-  const focusForm = () => formRef.current && formRef.current.focus()
+  const focusForm = () => {
+    if (formRef.current) {
+      // Use preventScroll on mobile to avoid double scrolling (Visual Viewport API handles it)
+      if (isMobileDevice()) {
+        formRef.current.focus({ preventScroll: true })
+      } else {
+        formRef.current.focus()
+      }
+    }
+  }
 
   const header = forNewThread
     ? (
@@ -178,15 +189,56 @@ const Messages = () => {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({
-      title: header,
-      icon: messageThreadId ? undefined : 'Messages',
-      search: false
-    })
+    // Don't set header details on mobile - MessagesMobile handles its own header
+    if (!isMobileDevice()) {
+      setHeaderDetails({
+        title: header,
+        icon: messageThreadId ? undefined : 'Messages',
+        search: false
+      })
+    }
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
+  // Render mobile version if on mobile device; this has been done to create a more sensible user AND developer experience for the rendering of DMs
+  if (isMobileDevice()) {
+    return (
+      <MessagesMobile
+        messageThreadId={messageThreadId}
+        messageThread={messageThread}
+        messages={messages}
+        hasMoreMessages={hasMoreMessages}
+        messagesPending={messagesPending}
+        messageText={messageText}
+        messageCreatePending={messageCreatePending}
+        currentUser={currentUser}
+        socket={socket}
+        forNewThread={forNewThread}
+        setForNewThread={setForNewThread}
+        participants={participants}
+        setParticipants={setParticipants}
+        peopleSelectorOpen={peopleSelectorOpen}
+        setPeopleSelectorOpen={setPeopleSelectorOpen}
+        contacts={contacts}
+        formRef={formRef}
+        focusForm={focusForm}
+        sendMessage={sendMessage}
+        fetchMessagesAction={fetchMessagesAction}
+        updateThreadReadTimeAction={updateThreadReadTimeAction}
+        fetchPeopleAction={fetchPeopleAction}
+        fetchRecentContactsAction={fetchRecentContactsAction}
+        setContactsSearchAction={setContactsSearchAction}
+        updateMessageTextAction={updateMessageTextAction}
+        addParticipant={addParticipant}
+        removeParticipant={removeParticipant}
+        createMessageAction={createMessageAction}
+        findOrCreateThreadAction={findOrCreateThreadAction}
+        goToThreadAction={goToThreadAction}
+      />
+    )
+  }
+
   return (
-    <div className={cn('flex flex-col w-full h-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}>
+    <div className={cn('flex flex-col w-full h-full', { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
@@ -202,18 +254,20 @@ const Messages = () => {
             updateThreadReadTime={updateThreadReadTimeAction}
             messageThread={messageThread}
           />
-          <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1' />
-          <MessageForm
-            disabled={!messageThreadId && participants.length === 0}
-            onSubmit={sendMessage}
-            onFocus={() => setPeopleSelectorOpen(false)}
-            currentUser={currentUser}
-            ref={formRef}
-            updateMessageText={updateMessageTextAction}
-            messageText={messageText}
-            sendIsTyping={status => sendIsTyping(messageThreadId, status)}
-            pending={messageCreatePending}
-          />
+          <PeopleTyping className='w-full mx-auto max-w-[750px] pl-16 py-1 flex-shrink-0 px-3' />
+          <div className='flex-shrink-0 px-3 pb-3'>
+            <MessageForm
+              disabled={!messageThreadId && participants.length === 0}
+              onSubmit={sendMessage}
+              onFocus={() => setPeopleSelectorOpen(false)}
+              currentUser={currentUser}
+              ref={formRef}
+              updateMessageText={updateMessageTextAction}
+              messageText={messageText}
+              sendIsTyping={status => sendIsTyping(messageThreadId, status)}
+              pending={messageCreatePending}
+            />
+          </div>
           {socket && <SocketSubscriber type='post' id={messageThreadId} />}
         </div>)}
     </div>

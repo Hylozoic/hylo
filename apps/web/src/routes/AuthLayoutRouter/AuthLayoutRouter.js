@@ -25,6 +25,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -210,6 +211,21 @@ export default function AuthLayoutRouter (props) {
     })()
   }, [currentGroupSlug])
 
+  // Pre-load context menu data for all membership groups in a single bulk request.
+  // This ensures context menus render immediately when switching groups.
+  useEffect(() => {
+    if (!currentUserLoading && memberships.length > 0) {
+      const groupIds = memberships
+        .map(m => m.group?.id)
+        .filter(Boolean)
+        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
+
+      if (groupIds.length > 0) {
+        dispatch(fetchGroupsMenuData(groupIds))
+      }
+    }
+  }, [currentUserLoading, memberships, dispatch])
+
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
     const centerColumn = document.getElementById(CENTER_COLUMN_ID)
@@ -323,7 +339,7 @@ export default function AuthLayoutRouter (props) {
 
       <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row h-full z-50', { 'flex absolute sm:relative': isNavOpen }, location.pathname.startsWith('/messages') ? 'max-w-[280px]' : 'max-w-420')}>
             {!withoutNav && (
               <>
                 <GlobalNav
@@ -349,8 +365,6 @@ export default function AuthLayoutRouter (props) {
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative' id='center-column-container'>
-            <ViewHeader />
-
             <Routes>
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -396,6 +410,7 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+              <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}

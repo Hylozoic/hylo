@@ -8,12 +8,12 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import isWebView from 'util/webView'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
+import { isMobileDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -114,16 +114,6 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  const handleBackClick = useCallback(() => {
-    if (backTo) {
-      navigate(backTo)
-    } else if (centered) {
-      navigate(previousLocation || '/')
-    } else {
-      navigate(-1)
-    }
-  }, [backTo, centered, navigate, previousLocation])
-
   // On small screens, the chevron always toggles the nav menu
   // On larger screens (sm+), if backButton is true, it navigates back
   const handleChevronClick = () => {
@@ -137,6 +127,11 @@ const ViewHeader = () => {
     } else {
       navigate(-1)
     }
+  }
+
+  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
+  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+    return null
   }
 
   return (

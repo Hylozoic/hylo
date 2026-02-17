@@ -10,7 +10,8 @@ const invalidPersonName = /[^a-z '-]+/gi
 export default function PeopleSelector (props) {
   const [currentMatch, setCurrentMatch] = useState(null)
   const [currentText, setCurrentText] = useState('')
-  const autocompleteInput = useRef(null)
+  const internalInputRef = useRef(null)
+  const autocompleteInput = props.inputRef || internalInputRef
   const { t } = useTranslation()
   const [selectedIndex, setSelectedIndex] = useState(-1) // -1 means input is focused
 
@@ -163,5 +164,7 @@ PeopleSelector.propTypes = {
   setPeopleSearch: PropTypes.func,
   selectedPeople: PropTypes.array,
   selectPerson: PropTypes.func.isRequired,
-  removePerson: PropTypes.func
+  removePerson: PropTypes.func,
+  inputRef: PropTypes.object,
+  autoFocus: PropTypes.bool
 }
