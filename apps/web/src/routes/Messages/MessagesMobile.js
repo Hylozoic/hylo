@@ -50,6 +50,7 @@ const MessagesMobile = ({
   const dispatch = useDispatch()
   const peopleSelectorInputRef = useRef(null)
   const [viewportHeight, setViewportHeight] = useState(0)
+  const [viewportOffset, setViewportOffset] = useState(0)
 
   // Recreate sendMessage logic for mobile with proper actions
   const sendMessageMobile = async () => {
@@ -70,9 +71,13 @@ const MessagesMobile = ({
     return false
   }
 
-  // Track viewport height for keyboard handling
+  // Track viewport height and offset for keyboard handling.
+  // When the user taps the input (vs programmatic focus with preventScroll: true),
+  // Safari scrolls the visual viewport to center the focused element, changing
+  // visualViewport.offsetTop. We track this offset so the fixed container follows
+  // the visual viewport and sits flush against the keyboard with no gap.
   useEffect(() => {
-    const updateViewport = () => {
+    const updateViewportSize = () => {
       if (window.visualViewport) {
         setViewportHeight(window.visualViewport.height)
       } else {
@@ -80,20 +85,30 @@ const MessagesMobile = ({
       }
     }
 
-    updateViewport()
-
-    if (window.visualViewport) {
-      // Only listen to resize events - scroll events cause double scrolling
-      window.visualViewport.addEventListener('resize', updateViewport)
+    const updateViewportOffset = () => {
+      if (window.visualViewport) {
+        setViewportOffset(window.visualViewport.offsetTop)
+      }
     }
 
-    window.addEventListener('resize', updateViewport)
+    updateViewportSize()
+    updateViewportOffset()
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewportSize)
+      // Track scroll separately — when Safari scrolls the visual viewport to
+      // center a focused input, we need to reposition the container to match
+      window.visualViewport.addEventListener('scroll', updateViewportOffset)
+    }
+
+    window.addEventListener('resize', updateViewportSize)
 
     return () => {
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateViewport)
+        window.visualViewport.removeEventListener('resize', updateViewportSize)
+        window.visualViewport.removeEventListener('scroll', updateViewportOffset)
       }
-      window.removeEventListener('resize', updateViewport)
+      window.removeEventListener('resize', updateViewportSize)
     }
   }, [])
 
@@ -174,8 +189,11 @@ const MessagesMobile = ({
 
   return (
     <div
-      className='flex flex-col w-full fixed inset-0 bg-background'
-      style={{ height: viewportHeight > 0 ? `${viewportHeight}px` : '100dvh' }}
+      className='flex flex-col w-full fixed left-0 right-0 bg-background'
+      style={{
+        height: viewportHeight > 0 ? `${viewportHeight}px` : '100dvh',
+        top: `${viewportOffset}px`
+      }}
     >
       <Helmet>
         <title>Messages | Hylo</title>
