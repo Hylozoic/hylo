@@ -25,6 +25,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -210,34 +211,18 @@ export default function AuthLayoutRouter (props) {
     })()
   }, [currentGroupSlug])
 
-  // Pre-load groups for all memberships after initial load
-  // Batch requests in chunks of 5 to avoid overwhelming the server
+  // Pre-load context menu data for all membership groups in a single bulk request.
+  // This ensures context menus render immediately when switching groups.
   useEffect(() => {
     if (!currentUserLoading && memberships.length > 0) {
-      // Get all unique group slugs from memberships
-      const groupSlugs = memberships
-        .map(m => m.group?.slug)
+      const groupIds = memberships
+        .map(m => m.group?.id)
         .filter(Boolean)
-        .filter((slug, index, self) => self.indexOf(slug) === index) // unique slugs
+        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
 
-      if (groupSlugs.length === 0) return
-
-      // Batch requests in chunks of 5
-      const CHUNK_SIZE = 5
-      const chunks = []
-      for (let i = 0; i < groupSlugs.length; i += CHUNK_SIZE) {
-        chunks.push(groupSlugs.slice(i, i + CHUNK_SIZE))
+      if (groupIds.length > 0) {
+        dispatch(fetchGroupsMenuData(groupIds))
       }
-
-      // Dispatch each chunk with a delay to avoid overwhelming the server
-      // The fetchForGroup action will handle deduplication if a group is already being fetched
-      chunks.forEach((chunk, chunkIndex) => {
-        setTimeout(() => {
-          chunk.forEach(slug => {
-            dispatch(fetchForGroup(slug))
-          })
-        }, chunkIndex * 200) // 200ms delay between chunks
-      })
     }
   }, [currentUserLoading, memberships, dispatch])
 
