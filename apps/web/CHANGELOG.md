@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.2] - 2026-01-27
+
+### Added
+- Ability to choose the home view when creating a group, with information about why you might want to choose each view.
+
+### Changed
+- Fulfilled posts show a checkmark by the title and are somewhat grayed out to make it more clear that they are fulfilled.
+- Improved UI/UX for un/fulfilling request and offer posts. Also improved language around asking people if posts are fulfilled or not.
+- Delete associated group menu widgets when deleting a custom view
+- Improved resolution of the Hylo favicon
+
+### Fixed
+- Accurately track show/hide active posts toggle in various Stream views.
+- Immediately hide fulfilled posts from views where we are only showing active posts.
+
 ## [6.3.1] - 2026-01-27
 
 ### Added

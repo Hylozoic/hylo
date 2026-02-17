@@ -656,6 +656,9 @@ module.exports = bookshelf.Model.extend(merge({
       return // Group already has widgets set up
     }
 
+    // Get homeView from settings (defaults to 'CHAT' for backward compatibility)
+    const homeView = this.getSetting('homeView') || 'CHAT'
+
     // Create home widget first
     // TODO: this should be default view instead of home
     const homeWidget = await ContextWidget.forge({
@@ -676,16 +679,42 @@ module.exports = bookshelf.Model.extend(merge({
       await GroupTag.create({ group_id: this.id, tag_id: generalTag.id, user_id: this.get('created_by_id'), is_default: true }, { transacting: trx })
     }
 
-    // Create general chat widget as child of home widget
-    await ContextWidget.forge({
-      group_id: this.id,
-      type: 'viewChat',
-      view_chat_id: generalTag.id,
-      parent_id: homeWidget.id,
-      order: 1,
-      created_at: new Date(),
-      updated_at: new Date()
-    }).save(null, { transacting: trx })
+    // Create home view widget based on homeView setting
+    if (homeView === 'CHAT') {
+      // Create general chat widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        type: 'viewChat',
+        view_chat_id: generalTag.id,
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    } else if (homeView === 'STREAM') {
+      // Create stream widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        title: 'widget-stream',
+        view: 'stream',
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    } else if (homeView === 'MAP') {
+      // Create map widget as child of home widget
+      await ContextWidget.forge({
+        group_id: this.id,
+        title: 'widget-map',
+        type: 'map',
+        view: 'map',
+        parent_id: homeWidget.id,
+        order: 1,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).save(null, { transacting: trx })
+    }
 
     // These are displayed in the menu, with the caveat being that the auto-view is hidden until it has child views
     const orderedWidgets = [
@@ -697,7 +726,9 @@ module.exports = bookshelf.Model.extend(merge({
     ]
 
     // These are accessible in the all view
-    const unorderedWidgets = [
+    // Filter out widgets that are already created as the home widget to avoid duplicates
+    // Also add general chat widget to unorderedWidgets when homeView is STREAM or MAP
+    const baseUnorderedWidgets = [
       { title: 'widget-about', type: 'about', view: 'about' },
       { title: 'widget-discussions', view: 'discussions' }, // non-typed widgets have no special behavior
       { title: 'widget-events', type: 'events', view: 'events' },
@@ -713,6 +744,28 @@ module.exports = bookshelf.Model.extend(merge({
       { title: 'widget-tracks', type: 'tracks', view: 'tracks', visibility: 'admin' },
       { title: 'widget-funding-rounds', type: 'funding-rounds', view: 'funding-rounds', visibility: 'admin' }
     ]
+
+    // Add general chat widget to unorderedWidgets when homeView is STREAM or MAP
+    // (when homeView is CHAT, it's already created as child of home widget above)
+    if (homeView === 'STREAM' || homeView === 'MAP') {
+      baseUnorderedWidgets.push({
+        type: 'viewChat',
+        view_chat_id: generalTag.id,
+        title: generalTag.get('name') || DEFAULT_CHAT_ROOM
+      })
+    }
+
+    const unorderedWidgets = baseUnorderedWidgets.filter(widget => {
+      // Exclude stream widget if it's already the home view
+      if (homeView === 'STREAM' && widget.view === 'stream' && widget.title === 'widget-stream') {
+        return false
+      }
+      // Exclude map widget if it's already the home view
+      if (homeView === 'MAP' && widget.type === 'map' && widget.view === 'map' && widget.title === 'widget-map') {
+        return false
+      }
+      return true
+    })
 
     await Promise.all([
       ...orderedWidgets,
@@ -1092,13 +1145,19 @@ module.exports = bookshelf.Model.extend(merge({
     // XXX: for now groups by default cannot post to public on production
     attrs.allow_in_public = process.env.NODE_ENV === 'development'
 
+    const defaultSettings = {
+      allow_group_invites: false,
+      agreements_last_updated_at: null,
+      public_member_directory: false,
+    }
+
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
     const group = new Group(merge(attrs, {
       access_code,
       created_at: new Date(),
       created_by_id: userId,
-      settings: { allow_group_invites: false, agreements_last_updated_at: null, public_member_directory: false },
+      settings: defaultSettings,
       calendar_token: uuidv4()
     }))
 
