@@ -113,7 +113,7 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
-  const activePostsOnly = querystringParams.activeOnly === 'true' || (customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly
+  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -195,7 +195,7 @@ export default function Stream (props) {
     return params
   }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
-  let name = customView?.name || systemView?.name || ''
+  let name = customView?.name || systemView?.name || 'Stream'
   let icon = customView?.icon || systemView?.iconName
   if (topicName) {
     name = '#' + topicName
