@@ -184,7 +184,7 @@ export default function PostCard (props) {
     const typeIconMap = {
       chat: 'Messages',
       offer: 'Offer',
-      request: 'HandRaised',
+      request: 'Heart',
       resource: 'Resource',
       project: 'Project',
       proposal: 'Proposal',
@@ -211,9 +211,9 @@ export default function PostCard (props) {
           <div className='flex items-center gap-1 text-sm flex-1 justify-between'>
             <div className='flex items-center gap-1'>
               <span onClick={showCreator} className='font-bold text-base cursor-pointer hover:underline'>{post.creator?.name}</span>
-              <span className='text-foreground/50'>{t('created at')}</span>
-              <div className='flex items-center border-2 border-foreground/20 rounded text-xs gap-0.5 capitalize px-1 text-foreground/70 py1 mr-4'>
-                <Icon name={getTypeIcon(postType)} className='w-4 h-4 text-foreground/70 items-center flex justify-center' />
+              <span className='text-foreground/50'>{t('created a')}</span>
+              <div className='flex items-center border-2 border-foreground/20 rounded text-xs gap-1 capitalize px-1 py-0.5 text-foreground/70 mr-4'>
+                <Icon name={getTypeIcon(postType)} />
                 <span className='text-foreground/70'>{postTypeName}</span>
               </div>
               {post.announcement && (
@@ -288,7 +288,8 @@ export default function PostCard (props) {
             {
               [classes.expanded]: expanded,
               [classes.constrained]: constrained,
-              'border-accent/50': highlighted
+              'border-accent/50': highlighted,
+              'opacity-60': post.fulfilledAt
             },
             className
           )}
@@ -380,7 +381,8 @@ export default function PostCard (props) {
           {
             [classes.expanded]: expanded,
             [classes.constrained]: constrained,
-            'border-accent/50': highlighted
+            'border-accent/50': highlighted,
+            'opacity-60': post.fulfilledAt
           },
           className
         )}
