@@ -28,7 +28,12 @@ const MessageForm = forwardRef((props, ref) => {
     props.onSubmit()
     // Maintain focus after submit
     if (textareaRef.current) {
-      textareaRef.current.focus()
+      // Use preventScroll on mobile to avoid scrolling issues (Visual Viewport API handles it)
+      if (isMobileDevice()) {
+        textareaRef.current.focus({ preventScroll: true })
+      } else {
+        textareaRef.current.focus()
+      }
     }
   }
 
@@ -65,15 +70,8 @@ const MessageForm = forwardRef((props, ref) => {
         onKeyDown={handleKeyDown}
         onFocus={(e) => {
           setHasFocus(true)
-          // Prevent automatic scrolling on mobile - we handle viewport with Visual Viewport API
-          if (isMobileDevice()) {
-            // Store scroll position and restore it immediately to prevent browser's automatic scroll
-            const initialScrollY = window.scrollY || window.pageYOffset
-            // Restore scroll position in next frame to override browser's scroll
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: initialScrollY, left: 0, behavior: 'auto' })
-            })
-          }
+          // Note: We rely on preventScroll: true in focus() calls and Visual Viewport API
+          // for proper keyboard handling. No manual scroll prevention needed here.
           if (props.onFocus) props.onFocus(e)
         }}
         onBlur={() => {
