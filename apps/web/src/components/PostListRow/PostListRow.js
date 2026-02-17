@@ -1,5 +1,6 @@
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
+import { CircleCheckBig } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -56,7 +57,7 @@ const PostListRow = (props) => {
         'px-4 py-3 border-b-2 border-b-background cursor-pointer',
         {
           'bg-card font-semibold': unread,
-          'opacity-60': isFlagged && !post.clickthrough
+          'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt
         },
         expanded && 'bg-card'
       )}
@@ -77,7 +78,8 @@ const PostListRow = (props) => {
       <div className='flex flex-col min-w-0'>
         <div className='flex items-center gap-2'>
           {isFlagged && <Icon name='Flag' className='w-3 h-3 text-destructive shrink-0' />}
-          <span className={cn('text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+          <span className={cn('flex items-center text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+            {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
           </span>
           {commentsTotal > 0

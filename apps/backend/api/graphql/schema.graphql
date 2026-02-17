@@ -4004,6 +4004,8 @@ input GroupInput {
   purpose: String
   # Group settings
   settings: GroupSettingsInput
+  # The default home view for the group: CHAT (general chat), MAP (map view), or STREAM (post stream)
+  homeView: String
   # NOT USED RIGHT NOW. For Slack integratiom
   slackHookUrl: String
   # NOT USED RIGHT NOW. For Slack integratiom
