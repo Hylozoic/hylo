@@ -66,6 +66,7 @@ import FundingRoundHome from 'routes/FundingRoundHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
+import Management from 'routes/Management'
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import isWebView from 'util/webView'
@@ -430,6 +431,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/tracks/*' element={<MyTracks />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
+                {/* **** Management Routes (Admin Only) **** */}
+                <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />

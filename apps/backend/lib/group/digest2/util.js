@@ -112,5 +112,9 @@ export async function getRecipients (groupId, type) {
   }).fetch().then(get('models'))
 
   // If email notifications are disabled, only send to testers
-  return recipients.filter(recipient => process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || recipient.isTester())
+  const testerChecks = await Promise.all(recipients.map(async recipient => {
+    const isTester = await recipient.isTester()
+    return process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || isTester
+  }))
+  return recipients.filter((recipient, index) => testerChecks[index])
 }

@@ -5,6 +5,7 @@ import Agreement from './Agreement'
 import Attachment from './Attachment'
 import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
+import EmailEnabledTester from './EmailEnabledTester'
 import CommonRole from './CommonRole'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
@@ -46,6 +47,7 @@ orm.register(
   Comment,
   CommonRole,
   CustomView,
+  EmailEnabledTester,
   EventInvitation,
   FundingRound,
   Group,
