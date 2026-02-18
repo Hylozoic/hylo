@@ -59,11 +59,11 @@ export default class Header extends React.Component {
     const showArrow = !!andOthers
 
     return (
-      <div className='flex w-full text-foreground' id='thread-header'>
+      <div className='flex w-full text-foreground min-w-0' id='thread-header'>
 
-        <div className='text/foreground flex justify-between'>
+        <div className='text/foreground flex justify-between min-w-0 flex-1'>
           {!pending && (
-            <div className='text-foreground flex flex-wrap gap-2'>
+            <div className='text-foreground flex flex-wrap gap-2 min-w-0 overflow-x-auto'>
               {displayNames}
               {andOthers && 'and' && (
                 <span className='text-foreground text-sm xs:text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
