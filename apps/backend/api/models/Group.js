@@ -484,6 +484,9 @@ module.exports = bookshelf.Model.extend(merge({
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+    const groupSettings = this.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const updatedAttribs = Object.assign(
       {},
       {
@@ -491,7 +494,7 @@ module.exports = bookshelf.Model.extend(merge({
         role: GroupMembership.Role.DEFAULT,
         settings: {
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           lastReadAt: attrs.lastReadAt || null
