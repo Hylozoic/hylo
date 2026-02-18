@@ -14,6 +14,7 @@ import fetchPeople from 'store/actions/fetchPeople'
 import fetchRecentContacts from 'store/actions/fetchRecentContacts'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -56,6 +57,7 @@ const Messages = () => {
   const forParticipants = useSelector(state => getParticipantsFromQuerystring(state, location))
   const prompt = getQuerystringParam('prompt', location)
   const currentUser = useSelector(getMe)
+  const memberships = useSelector(getMyMemberships)
   // const messageThreadPending = useSelector(state => isPendingFor(fetchThread, state))
   const messageThread = useSelector(state => getCurrentMessageThread(state, routeParams))
   const messageText = useSelector(state => getTextForCurrentMessageThread(state, routeParams))
@@ -78,7 +80,11 @@ const Messages = () => {
   const createMessageAction = useCallback((threadId, text, isNew) => dispatch(createMessage(threadId, text, isNew)), [dispatch])
   const changeQuerystringParamAction = useCallback((param, value) => dispatch(changeQuerystringParam(location, param, value)), [location])
   const fetchRecentContactsAction = useCallback(() => dispatch(fetchRecentContacts()), [dispatch])
-  const fetchPeopleAction = useCallback((options) => dispatch(fetchPeople(options)), [dispatch])
+  const fetchPeopleAction = useCallback((options) => {
+    // Always include groupIds to ensure we only show people who share a group
+    const groupIds = memberships.map(m => m.group?.id).filter(Boolean)
+    return dispatch(fetchPeople({ ...options, groupIds }))
+  }, [dispatch, memberships])
   const updateThreadReadTimeAction = useCallback((threadId, time) => dispatch(updateThreadReadTime(threadId, time)), [dispatch])
   const fetchThreadAction = useCallback(() => dispatch(fetchThread(messageThreadId)), [dispatch, messageThreadId])
   const goToThreadAction = useCallback((threadId) => dispatch(push(messageThreadUrl(threadId))), [dispatch])
@@ -114,7 +120,11 @@ const Messages = () => {
   }, [])
 
   useEffect(() => {
-    fetchPeopleAction({})
+    // Get group IDs from user's memberships to filter people who share a group
+    const groupIds = memberships.map(m => m.group?.id).filter(Boolean)
+    if (groupIds.length > 0) {
+      fetchPeopleAction({ groupIds })
+    }
 
     if (forParticipants) {
       forParticipants.forEach(p => addParticipant(p))
@@ -126,7 +136,7 @@ const Messages = () => {
       changeQuerystringParamAction('prompt', null)
       focusForm()
     }
-  }, [])
+  }, [memberships])
 
   useEffect(() => {
     if (messageThreadId) {

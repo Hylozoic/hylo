@@ -1,10 +1,40 @@
 import { any, arrayOf, func, object, shape, string, number } from 'prop-types'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import PeopleListItem from '../PeopleListItem'
 import classes from './PeopleList.module.scss'
 
-export default function PeopleList ({ currentMatch, onClick, onMouseOver, people, selectedIndex }) {
+export default function PeopleList ({ currentMatch, onClick, onMouseOver, people, selectedIndex, inputElement }) {
   const containerRef = useRef(null)
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+  const [mounted, setMounted] = useState(false)
+
+  // Mount portal on client side only
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Calculate position for portal rendering (fixed positioning uses viewport coordinates)
+  useEffect(() => {
+    if (inputElement) {
+      const updatePosition = () => {
+        const rect = inputElement.getBoundingClientRect()
+        setPosition({
+          top: rect.bottom + 4,
+          left: rect.left
+        })
+      }
+
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
+      }
+    }
+  }, [inputElement])
 
   useEffect(() => {
     if (selectedIndex >= 0 && containerRef.current) {
@@ -33,10 +63,10 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
     }
   }, [selectedIndex])
 
-  return (
+  const dropdownContent = (
     <div
       ref={containerRef}
-      className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip absolute top-12 bg-card shadow-xl rounded-lg z-50'
+      className='w-[320px] max-h-[400px] overflow-y-auto overflow-x-clip bg-card shadow-xl rounded-lg'
       tabIndex='-1'
       style={{ pointerEvents: 'auto' }}
     >
@@ -52,6 +82,27 @@ export default function PeopleList ({ currentMatch, onClick, onMouseOver, people
               className={index === selectedIndex ? 'bg-selected' : ''}
             />)}
         </ul>}
+    </div>
+  )
+
+  // Use portal to render outside overflow container if inputElement is provided (non-mobile)
+  // Otherwise use normal absolute positioning (mobile)
+  if (mounted && inputElement && typeof document !== 'undefined') {
+    return createPortal(
+      <div
+        className='fixed z-[100]'
+        style={{ top: `${position.top}px`, left: `${position.left}px` }}
+      >
+        {dropdownContent}
+      </div>,
+      document.body
+    )
+  }
+
+  // Mobile: use absolute positioning relative to parent
+  return (
+    <div className='absolute top-12 z-[100]'>
+      {dropdownContent}
     </div>
   )
 }

@@ -149,6 +149,7 @@ export default function PeopleSelector (props) {
                   setSelectedIndex(finalPeopleList.findIndex(p => p.id === person.id))
                 }}
                 selectedIndex={selectedIndex}
+                inputElement={autocompleteInput.current}
               />
             : ''}
         </div>
