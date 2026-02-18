@@ -24,17 +24,19 @@ export default function ThreadListItem ({
 
   return (
     <li>
-      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50 max-h-[110px] sm:max-h-[80px] transition-all', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })} onClick={toggleNavMenuAction}>
-        <div className='mr-2 flex flex-col justify-center'>
+      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50 max-h-[110px] sm:max-h-[80px] overflow-hidden transition-all', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })} onClick={toggleNavMenuAction}>
+        <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
-        <div className='w-full flex flex-col justify-center min-w-0'>
-          <div className='w-full mb-1'>
+        <div className='w-full flex flex-col justify-center min-w-0 overflow-hidden'>
+          <div className='w-full flex-shrink-0'>
             <ThreadNames names={names} unreadCount={unreadCount} active={active} />
           </div>
-          <div className='text-xs text-foreground opacity-70 mb-1'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
-          <div className='flex items-center w-full justify-between'>
-            <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 break-all leading-4 flex-1 min-w-0', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>{latestMessagePreview}</div>
+          <div className='text-xs text-foreground opacity-70 mb-2 flex-shrink-0'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
+          <div className='flex items-center w-full justify-between min-h-0'>
+            <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 leading-4 flex-1 min-w-0 overflow-hidden', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>
+              <div className='line-clamp-2 break-words'>{latestMessagePreview}</div>
+            </div>
             <div className='flex-shrink-0 ml-2'>{unreadCount > 0 && <Badge number={unreadCount} expanded />}</div>
           </div>
         </div>
