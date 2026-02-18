@@ -2,6 +2,7 @@ import { cn } from 'util/index'
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { CircleCheckBig } from 'lucide-react'
 import { TextHelpers } from '@hylo/shared'
 import Avatar from 'components/Avatar'
 import EmojiRow from 'components/EmojiRow'
@@ -64,7 +65,9 @@ export default function PostBigGridItem ({
         className={cn(
           'h-[400px] w-full rounded-lg shadow-lg relative cursor-pointer',
           'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
-          { 'opacity-60': isFlagged && !post.clickthrough }
+          {
+            'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt
+          }
         )}
         onClick={() => viewPostDetails(post)}
       >
@@ -118,7 +121,10 @@ export default function PostBigGridItem ({
             <span className='text-white/50 text-xs'>{createdTimestampShort}</span>
           </div>
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
-            {title}
+            <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
+              {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
+              {title}
+            </span>
           </h3>
 
           {/* Event RSVP */}
@@ -161,7 +167,7 @@ export default function PostBigGridItem ({
         'h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
         'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
-        { 'opacity-60': isFlagged && !post.clickthrough }
+        { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
       )}
       onClick={() => viewPostDetails(post)}
     >
@@ -195,7 +201,8 @@ export default function PostBigGridItem ({
               <span className='font-bold text-foreground truncate max-w-[100px]'>{creator.name}</span>
               <span>{createdTimestampShort}</span>
             </div>
-            <h3 className='text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+            <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
+              {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
               {title}
             </h3>
           </div>

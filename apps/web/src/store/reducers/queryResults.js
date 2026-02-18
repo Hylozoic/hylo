@@ -23,7 +23,9 @@ import {
   FETCH_COMMENTS,
   REMOVE_POST_PENDING,
   SAVE_POST_PENDING,
-  UNSAVE_POST_PENDING
+  UNSAVE_POST_PENDING,
+  FULFILL_POST_PENDING,
+  UNFULFILL_POST_PENDING
 } from 'store/constants'
 import {
   CREATE_TOPIC
@@ -126,6 +128,31 @@ export default function (state = {}, action) {
         }
       })
 
+    case FULFILL_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        // Only remove from query results that have activePostsOnly parameter
+        if (!get('params.activePostsOnly', keyObject)) return results
+        return {
+          ...results,
+          ids: results.ids.filter(id => id !== meta.postId),
+          total: (results.total || results.total === 0) && results.total - 1
+        }
+      })
+
+    case UNFULFILL_POST_PENDING:
+      return mapValues(state, (results, key) => {
+        const keyObject = JSON.parse(key)
+        // Only add to query results that have activePostsOnly parameter
+        if (!get('params.activePostsOnly', keyObject)) return results
+        // Don't add if already present
+        if (results.ids.includes(meta.postId)) return results
+        return {
+          ...results,
+          ids: [meta.postId].concat(results.ids),
+          total: (results.total || results.total === 0) && results.total + 1
+        }
+      })
     case CREATE_TOPIC:
       root = {
         isDefault: meta.data.isDefault,
