@@ -103,7 +103,7 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-visible w-full max-w-[320px] border-r-2 border-foreground/30'
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 border-r-2 border-foreground/30'
       )}
       onClick={handleContainerClick}
     >

@@ -172,7 +172,12 @@ const ViewHeader = () => {
       )}
       {/* )} */}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
+      <h2
+        className={cn('text-foreground m-0', {
+          'whitespace-nowrap': typeof title === 'string' || (title?.mobile && title?.desktop),
+          'min-w-0 overflow-x-auto': React.isValidElement(title)
+        })}
+      >
         {typeof title === 'string' || React.isValidElement(title)
           ? title
           : title?.mobile && title?.desktop

@@ -28,14 +28,14 @@ export default function ThreadListItem ({
         <div className='mr-2 flex flex-col justify-center'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
-        <div className='w-full flex flex-col justify-center'>
-          <div className='flex items-center justify-between w-full'>
-            <div className={cn('max-w-[130px] xs:max-w-[200px] w-full')}><ThreadNames names={names} unreadCount={unreadCount} active={active} /></div>
-            <div className='text-xs text-foreground opacity-70'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
+        <div className='w-full flex flex-col justify-center min-w-0'>
+          <div className='w-full mb-1'>
+            <ThreadNames names={names} unreadCount={unreadCount} active={active} />
           </div>
+          <div className='text-xs text-foreground opacity-70 mb-1'>{TextHelpers.humanDate(get('createdAt', latestMessage), true)}</div>
           <div className='flex items-center w-full justify-between'>
-            <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 break-all leading-4', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>{latestMessagePreview}</div>
-            <div>{unreadCount > 0 && <Badge number={unreadCount} expanded />}</div>
+            <div className={cn('text-sm text-foreground opacity-40 group-hover:opacity-100 break-all leading-4 flex-1 min-w-0', { 'opacity-100 font-bold': unreadCount > 0 }, { 'opacity-100': active })}>{latestMessagePreview}</div>
+            <div className='flex-shrink-0 ml-2'>{unreadCount > 0 && <Badge number={unreadCount} expanded />}</div>
           </div>
         </div>
       </Link>
@@ -87,5 +87,5 @@ function ThreadAvatars ({ avatarUrls }) {
 }
 
 function ThreadNames ({ names, unreadCount, active }) {
-  return <div className={cn('text-foreground/80 font-bold truncate group-hover:text-foreground/100', { 'text-foreground/100': unreadCount > 0 }, { 'text-foreground/100': active })}>{names}</div>
+  return <div className={cn('text-foreground/80 font-bold truncate group-hover:text-foreground/100 w-full', { 'text-foreground/100': unreadCount > 0 }, { 'text-foreground/100': active })}>{names}</div>
 }
