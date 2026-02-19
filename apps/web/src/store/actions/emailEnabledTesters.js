@@ -25,7 +25,6 @@ export function fetchEmailEnabledTesters () {
       variables: {}
     },
     meta: {
-      extractModel: 'EmailEnabledTester',
       extractQueryResults: {
         getItems: get('payload.data.emailEnabledTesters')
       }
@@ -53,15 +52,6 @@ export function addEmailEnabledTester (userId) {
         }
       `,
       variables: { userId }
-    },
-    meta: {
-      extractModel: [
-        {
-          getRoot: get('addEmailEnabledTester'),
-          modelName: 'EmailEnabledTester'
-        }
-      ],
-      then: () => fetchEmailEnabledTesters()
     }
   }
 }
@@ -76,9 +66,6 @@ export function removeEmailEnabledTester (userId) {
         }
       `,
       variables: { userId }
-    },
-    meta: {
-      then: () => fetchEmailEnabledTesters()
     }
   }
 }

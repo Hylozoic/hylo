@@ -4,23 +4,29 @@ import { Search, UserPlus, Trash2 } from 'lucide-react'
 import Loading from 'components/Loading'
 import { fetchEmailEnabledTesters, addEmailEnabledTester, removeEmailEnabledTester } from 'store/actions/emailEnabledTesters'
 import findMentions from 'store/actions/findMentions'
-import isPendingFor from 'store/selectors/isPendingFor'
 import getPeopleBySearchTerm from 'store/selectors/getPeopleBySearchTerm'
-import getEmailEnabledTesters from 'store/selectors/getEmailEnabledTesters'
 
 export default function StagingEmailTesters () {
   const dispatch = useDispatch()
   const [searchTerm, setSearchTerm] = useState('')
-
-  const testers = useSelector(getEmailEnabledTesters)
-
-  const fetchPending = useSelector(state => isPendingFor(fetchEmailEnabledTesters, state))
-  const removePending = useSelector(state => isPendingFor(removeEmailEnabledTester, state))
+  const [testers, setTesters] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [removing, setRemoving] = useState(false)
 
   const people = useSelector(state => getPeopleBySearchTerm(state, { searchTerm }))
 
   useEffect(() => {
     dispatch(fetchEmailEnabledTesters())
+      .then(result => {
+        if (result?.payload?.data?.emailEnabledTesters) {
+          setTesters(result.payload.data.emailEnabledTesters)
+        }
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error('Error fetching email-enabled testers:', error)
+        setLoading(false)
+      })
   }, [dispatch])
 
   const handleSearchChange = useCallback((e) => {
@@ -35,6 +41,11 @@ export default function StagingEmailTesters () {
     if (!user) return
     try {
       await dispatch(addEmailEnabledTester(user.id))
+      // Refetch the list after adding
+      const result = await dispatch(fetchEmailEnabledTesters())
+      if (result?.payload?.data?.emailEnabledTesters) {
+        setTesters(result.payload.data.emailEnabledTesters)
+      }
       setSearchTerm('')
     } catch (error) {
       console.error('Error adding email-enabled tester:', error)
@@ -45,10 +56,18 @@ export default function StagingEmailTesters () {
     if (!window.confirm('Are you sure you want to remove this user from the email-enabled testers list?')) {
       return
     }
+    setRemoving(true)
     try {
       await dispatch(removeEmailEnabledTester(userId))
+      // Refetch the list after removing
+      const result = await dispatch(fetchEmailEnabledTesters())
+      if (result?.payload?.data?.emailEnabledTesters) {
+        setTesters(result.payload.data.emailEnabledTesters)
+      }
     } catch (error) {
       console.error('Error removing email-enabled tester:', error)
+    } finally {
+      setRemoving(false)
     }
   }, [dispatch])
 
@@ -106,7 +125,7 @@ export default function StagingEmailTesters () {
 
       <div>
         <h2 className='text-lg font-semibold mb-4'>Current Email-Enabled Testers</h2>
-        {fetchPending
+        {loading
           ? <Loading />
           : testers.length === 0
             ? (
@@ -118,7 +137,7 @@ export default function StagingEmailTesters () {
               <div className='border border-foreground/20 rounded-md'>
                 <ul className='divide-y divide-foreground/10'>
                   {testers.map(tester => {
-                    const user = tester.user?.ref || tester.user
+                    const user = tester.user
                     const avatarUrl = user?.avatarUrl || user?.avatar
                     const userName = user?.name || `User ${tester.userId}`
                     return (
@@ -142,7 +161,7 @@ export default function StagingEmailTesters () {
                         </div>
                         <button
                           onClick={() => handleRemoveUser(tester.userId)}
-                          disabled={removePending}
+                          disabled={removing}
                           className='p-2 text-destructive hover:bg-destructive/10 rounded transition-colors'
                           title='Remove from email-enabled testers'
                         >
