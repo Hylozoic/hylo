@@ -34,16 +34,23 @@ const sendSimpleEmail = (address, templateId, data, extraOptions, locale = 'en-U
     locale: mapLocaleToSendWithUS(locale)
   }, extraOptions))
 
-const sendEmailWithOptions = curry((templateId, opts) =>
-  sendEmail(merge({}, defaultOptions, {
+const sendEmailWithOptions = curry((templateId, opts) => {
+  const emailOpts = merge({}, defaultOptions, {
     email_id: templateId,
     recipient: { address: opts.email },
     email_data: opts.data,
-    version_name: opts.version,
     locale: mapLocaleToSendWithUS(opts.locale),
     sender: opts.sender, // expects {name, reply_to}
     files: opts.files
-  })))
+  })
+  
+  // Only include version_name if provided (SendWithUs will use most recent published version if not specified)
+  if (opts.version) {
+    emailOpts.version_name = opts.version
+  }
+  
+  return sendEmail(emailOpts)
+})
 
 module.exports = {
   sendSimpleEmail,
@@ -113,6 +120,18 @@ module.exports = {
   sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_jpbfjBVT36gpQdVQDpFGxH97'),
   sendFundingRoundPhaseTransitionEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
   sendFundingRoundReminderEmail: sendEmailWithOptions('tem_8PBKqvdWGVXhq8hXpwwdRfSG'),
+
+  // Paid content email templates
+  sendPurchaseConfirmation: sendEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
+  sendAccessGranted: sendEmailWithOptions('tem_jfBqFPmhPP9jjfgSPB87YpDV'),
+  sendSubscriptionRenewalReminder: sendEmailWithOptions('tem_DrD9kmkKTkTCxTM7PhpW4jKf'),
+  sendSubscriptionRenewed: sendEmailWithOptions('tem_gvBCMVVxrCbt8S9cK98kYP9Q'),
+  sendPaymentFailed: sendEmailWithOptions('tem_YCXQrSjjqj8VqJWjhqHw66mF'),
+  sendSubscriptionCancelled: sendEmailWithOptions('tem_XfXjrYGdvDrPK4Sjprq7FtbS'),
+  sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),
+  sendAccessExpired: sendEmailWithOptions('tem_HVKwWYTMDbhWvvd3TGxtMkMG'),
+  sendDonationAcknowledgment: sendEmailWithOptions('tem_yXtGDQrJPb3Wdd8h4hpRV4yM'),
+  sendTrackAccessPurchased: sendEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
 
   sendMessageDigest: opts =>
     sendEmailWithOptions('tem_xwQCfpdRT9K6hvrRFqDdhBRK',

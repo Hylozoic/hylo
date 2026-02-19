@@ -21,6 +21,7 @@ import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
 import { es } from '../../lib/i18n/es'
 import { en } from '../../lib/i18n/en'
+const { createGroupScope } = require('../../lib/scopes')
 
 const locales = { es, en }
 
@@ -51,6 +52,52 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     return response
+  },
+
+  /**
+   * Builds a Stripe Dashboard URL for this group's connected account
+   */
+  async stripeDashboardUrl () {
+    try {
+      const stripeAccountId = this.get('stripe_account_id')
+      if (!stripeAccountId) return null
+      const acct = await StripeAccount.where({ id: stripeAccountId }).fetch()
+      if (!acct) return null
+      const externalId = acct.get('stripe_account_external_id')
+      if (!externalId) return null
+      return `https://dashboard.stripe.com/${externalId}`
+    } catch (e) {
+      return null
+    }
+  },
+
+  /**
+   * Check if a user has access to this group
+   * If group has no paywall, returns true (free access)
+   * Otherwise checks: 1) full-access responsibilities, 2) scope-based access
+   * @param {String|Number} userId - User ID to check
+   * @returns {Promise<Boolean>}
+   */
+  async canAccess (userId) {
+    // If no paywall, group is freely accessible
+    if (!this.get('paywall')) {
+      return true
+    }
+
+    if (!userId) {
+      return false
+    }
+    
+    // Check if user has full-access responsibility (admin or content manager)
+    const groupId = this.get('id')
+    const hasFullAccess = await Group.hasFullAccessResponsibility(userId, groupId)
+    if (hasFullAccess) {
+      return true
+    }
+    
+    // Check scope-based access (purchased or granted)
+    const requiredScope = createGroupScope(groupId)
+    return await UserScope.canAccess(userId, requiredScope)
   },
 
   // ******** Getters ******* //
@@ -785,7 +832,7 @@ module.exports = bookshelf.Model.extend(merge({
       'about_video_uri', 'active', 'access_code', 'accessibility', 'avatar_url', 'banner_url',
       'description', 'geo_shape', 'location', 'location_id', 'name', 'purpose', 'settings',
       'steward_descriptor', 'steward_descriptor_plural', 'type_descriptor', 'type_descriptor_plural', 'visibility',
-      'welcome_page', 'website_url'
+      'welcome_page', 'website_url', 'stripe_account_id', 'stripe_charges_enabled', 'stripe_payouts_enabled', 'stripe_details_submitted', 'paywall'
     ]
     const trimAttrs = ['name', 'description', 'purpose']
 
@@ -1423,6 +1470,32 @@ module.exports = bookshelf.Model.extend(merge({
 
   findActive (key, opts = {}) {
     return this.find(key, merge({ active: true }, opts))
+  },
+
+  /**
+   * Check if a user has a responsibility that grants full access to group content
+   * Full-access responsibilities: Administration, Manage Content
+   * Limited responsibilities (no content access): Manage Rounds, Add Members, etc.
+   * 
+   * @param {String|Number} userId - User ID to check
+   * @param {String|Number} groupId - Group ID to check
+   * @returns {Promise<Boolean>}
+   */
+  hasFullAccessResponsibility: async function (userId, groupId) {
+    if (!userId || !groupId) {
+      return false
+    }
+
+    // Get all responsibilities for this user in this group
+    const responsibilities = await Responsibility.fetchForUserAndGroupAsStrings(userId, groupId)
+
+    // Check if user has any full-access responsibility
+    const fullAccessResponsibilities = [
+      Responsibility.constants.RESP_ADMINISTRATION,
+      Responsibility.constants.RESP_MANAGE_CONTENT
+    ]
+
+    return responsibilities.some(resp => fullAccessResponsibilities.includes(resp))
   },
 
   getNewAccessCode: function () {

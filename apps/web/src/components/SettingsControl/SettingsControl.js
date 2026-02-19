@@ -10,7 +10,8 @@ export default function SettingsControl (props) {
   let control
 
   if (renderControl) {
-    control = renderControl(props)
+    // Pass only the props that should go to the control element, excluding renderControl and helpText
+    control = renderControl({ id, value, onChange, ...otherProps })
   } else {
     switch (type) {
       case 'textarea':

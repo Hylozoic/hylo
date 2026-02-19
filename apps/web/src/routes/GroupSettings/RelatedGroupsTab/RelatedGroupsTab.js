@@ -12,7 +12,9 @@ import RoundImage from 'components/RoundImage'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { DEFAULT_AVATAR } from 'store/models/Group'
+import { DollarSign } from 'lucide-react'
 import { GROUP_RELATIONSHIP_TYPE } from 'store/models/GroupRelationshipInvite'
+import Tooltip from 'components/Tooltip'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { groupUrl } from '@hylo/navigation'
 import {
@@ -496,7 +498,19 @@ export function GroupCard ({ actionMenu, thisGroup, group, questionAnswers, type
       <div className='flex items-center justify-between p-4 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors'>
         <div className='flex items-center gap-2'>
           <RoundImage url={group.avatarUrl || DEFAULT_AVATAR} className='w-[30px] h-[30px] rounded-lg' size='30px' square />
-          <Link to={groupUrl(group.slug)} className='text-foreground hover:text-selected'>{group.name}</Link>
+          <Link to={groupUrl(group.slug)} className='text-foreground hover:text-selected flex items-center gap-1'>
+            {group.name}
+            {group.paywall && (
+              <>
+                <DollarSign
+                  className='w-4 h-4'
+                  data-tooltip-id={`paywall-tooltip-${group.id}`}
+                  data-tooltip-content={t('This group requires payment to join')}
+                />
+                <Tooltip id={`paywall-tooltip-${group.id}`} />
+              </>
+            )}
+          </Link>
         </div>
         {actionMenu}
       </div>

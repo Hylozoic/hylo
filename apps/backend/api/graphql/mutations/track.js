@@ -45,9 +45,21 @@ export async function duplicateTrack (userId, trackId) {
 }
 
 export async function enrollInTrack (userId, trackId) {
-  // TODO: check if the user can see the track?
+  const track = await Track.find(trackId)
+  if (!track) {
+    throw new GraphQLError('Track not found')
+  }
+
+  // Check if track is access-controlled and user has access
+  if (track.get('access_controlled')) {
+    const hasAccess = await track.canAccess(userId)
+    if (!hasAccess) {
+      throw new GraphQLError('You do not have access to this track. Please purchase access to enroll.')
+    }
+  }
+
   await Track.enroll(trackId, userId)
-  return Track.find(trackId)
+  return track
 }
 
 export async function leaveTrack (userId, trackId) {

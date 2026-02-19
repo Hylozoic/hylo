@@ -311,13 +311,14 @@ export const MY_CONTEXT_WIDGETS = (profileUrl) => [
   { context: 'my', view: 'edit-profile', title: 'widget-my-edit-profile', id: 'widget-my-edit-profile', order: 2, parentId: 'widget-myself' },
   { context: 'my', view: 'groups', title: 'widget-my-groups', id: 'widget-my-groups', order: 3, parentId: 'widget-myself' },
   { context: 'my', view: 'invitations', title: 'widget-my-invites', id: 'widget-my-invites', order: 4, parentId: 'widget-myself' },
-  { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 5, parentId: 'widget-myself' },
-  { context: 'my', view: 'theme-settings', title: 'Appearance & Themes', id: 'widget-my-theme-settings', order: 6, parentId: 'widget-myself' },
-  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 7, parentId: 'widget-myself' },
-  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 8, parentId: 'widget-myself' },
-  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 9, parentId: 'widget-myself' },
-  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 10, parentId: 'widget-myself' },
-  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 12, parentId: null }
+  { context: 'my', view: 'transactions', iconName: 'CreditCard', title: 'widget-my-transactions', id: 'widget-my-transactions', order: 5, parentId: 'widget-myself' },
+  { context: 'my', view: 'notifications', title: 'widget-my-notifications', id: 'widget-my-notifications', order: 6, parentId: 'widget-myself' },
+  { context: 'my', view: 'theme-settings', title: 'Appearance & Themes', id: 'widget-my-theme-settings', order: 7, parentId: 'widget-myself' },
+  { context: 'my', view: 'locale', title: 'widget-my-locale', id: 'widget-my-locale', order: 8, parentId: 'widget-myself' },
+  { context: 'my', view: 'blocked-users', title: 'widget-my-blocked-users', id: 'widget-my-blocked-users', order: 9, parentId: 'widget-myself' },
+  { context: 'my', view: 'saved-searches', title: 'widget-my-saved-searches', id: 'widget-my-saved-searches', order: 10, parentId: 'widget-myself' },
+  { context: 'my', view: 'account', title: 'widget-my-account', id: 'widget-my-account', order: 11, parentId: 'widget-myself' },
+  { view: 'logout', title: 'widget-my-logout', id: 'widget-my-logout', type: 'logout', iconName: 'LogOut', order: 13, parentId: null }
 ]
 
 export const allViewsWidget = ContextWidgetPresenter({ id: 'all-views', title: 'widget-all', type: 'all-views', view: 'all-views', iconName: 'Grid3x3', childWidgets: [] })
