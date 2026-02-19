@@ -1196,6 +1196,7 @@ module.exports = bookshelf.Model.extend(merge({
       allow_group_invites: false,
       agreements_last_updated_at: null,
       public_member_directory: false,
+      homeView: data.home_view || 'CHAT'
     }
 
     // eslint-disable-next-line camelcase
