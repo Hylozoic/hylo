@@ -1,9 +1,10 @@
 import { get } from 'lodash/fp'
 import { FETCH_GROUPS_MENU_DATA } from 'store/constants'
 
-// Fetches context menu data for multiple groups in a single bulk request.
+// Fetches context menu data for a batch of groups.
 // This preloads the contextWidgets and related fields needed to render
 // group context menus immediately, without waiting for individual group fetches.
+// Accepts a subset of groupIds to support pagination (typically 10 at a time).
 export default function fetchGroupsMenuData (groupIds) {
   return {
     type: FETCH_GROUPS_MENU_DATA,

@@ -179,21 +179,6 @@ export default function AuthLayoutRouter (props) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  // Pre-load context menu data for all membership groups in a single bulk request.
-  // This ensures context menus render immediately when switching groups.
-  useEffect(() => {
-    if (!currentUserLoading && memberships.length > 0) {
-      const groupIds = memberships
-        .map(m => m.group?.id)
-        .filter(Boolean)
-        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
-
-      if (groupIds.length > 0) {
-        dispatch(fetchGroupsMenuData(groupIds))
-      }
-    }
-  }, [currentUserLoading, memberships, dispatch])
-
   useEffect(() => {
     if (currentUser?.id) {
       mixpanel.identify(currentUser.id)
@@ -242,6 +227,40 @@ export default function AuthLayoutRouter (props) {
       }
     }
   }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate])
+
+  // Pre-load context menu data for all membership groups in paginated batches.
+  // This ensures context menus render immediately when switching groups.
+  // Batches are processed sequentially (10 groups at a time) with a delay
+  // after initial page load to let critical requests complete first.
+  useEffect(() => {
+    if (!currentUserLoading && memberships.length > 0) {
+      const groupIds = memberships
+        .map(m => m.group?.id)
+        .filter(Boolean)
+        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
+
+      if (groupIds.length === 0) return
+
+      // Delay initial request to let critical page load requests complete first
+      const INITIAL_DELAY = 3000 // 3 second delay
+      const BATCH_SIZE = 10
+
+      const timeoutId = setTimeout(async () => {
+        // Split into batches of 10
+        const batches = []
+        for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
+          batches.push(groupIds.slice(i, i + BATCH_SIZE))
+        }
+
+        // Process batches sequentially (wait for each to complete before starting next)
+        for (const batch of batches) {
+          await dispatch(fetchGroupsMenuData(batch))
+        }
+      }, INITIAL_DELAY)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [currentUserLoading, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
