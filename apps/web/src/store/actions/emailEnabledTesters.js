@@ -55,7 +55,12 @@ export function addEmailEnabledTester (userId) {
       variables: { userId }
     },
     meta: {
-      extractModel: 'EmailEnabledTester',
+      extractModel: [
+        {
+          getRoot: get('addEmailEnabledTester'),
+          modelName: 'EmailEnabledTester'
+        }
+      ],
       then: () => fetchEmailEnabledTesters()
     }
   }

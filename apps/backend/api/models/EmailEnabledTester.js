@@ -8,11 +8,12 @@ module.exports = bookshelf.Model.extend({
   }
 }, {
   create: async function (userId) {
-    const existing = await EmailEnabledTester.where({ user_id: userId }).fetch()
+    const existing = await EmailEnabledTester.where({ user_id: userId }).fetch({ withRelated: ['user'] })
     if (existing) {
       return existing
     }
-    return EmailEnabledTester.forge({ user_id: userId }).save()
+    const tester = await EmailEnabledTester.forge({ user_id: userId }).save()
+    return tester.fetch({ withRelated: ['user'] })
   },
 
   find: function (id) {
@@ -21,7 +22,11 @@ module.exports = bookshelf.Model.extend({
   },
 
   findAll: function () {
-    return EmailEnabledTester.query().orderBy('created_at', 'desc')
+    return bookshelf.knex('email_enabled_testers')
+      .orderBy('created_at', 'desc')
+      .then(rows => {
+        return EmailEnabledTester.collection(rows.map(row => EmailEnabledTester.forge(row)))
+      })
   },
 
   findByUserId: function (userId) {

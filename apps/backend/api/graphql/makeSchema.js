@@ -400,7 +400,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
         throw new GraphQLError('Unauthorized: Admin access required')
       }
       const testers = await EmailEnabledTester.findAll()
-      return testers
+      return testers.toModelArray ? testers.toModelArray() : testers
     }
   }
 }
