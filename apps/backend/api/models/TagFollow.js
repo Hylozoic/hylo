@@ -151,7 +151,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     for (const tagFollow of tagFollowsWithNewPosts) {
       // TODO: check global notification setting once we have it if (!tagFollow.relations.user.enabledNotification(Notification.MEDIUM.Email)) return
-      if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !User.isTester(tagFollow.get('user_id'))) continue
+      if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !(await User.isTester(tagFollow.get('user_id')))) continue
       const groupMembership = await tagFollow.groupMembership().fetch()
       if (!groupMembership || !groupMembership.get('active') || !groupMembership.getSetting('sendEmail')) continue
 

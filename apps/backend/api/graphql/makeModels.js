@@ -1779,6 +1779,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
           return metadata.subscription_cancel_reason || null
         }
       }
+    },
+
+    EmailEnabledTester: {
+      model: EmailEnabledTester,
+      attributes: [
+        'id',
+        'user_id',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { user: { alias: 'user' } }
+      ],
+      getters: {
+        userId: e => e.get('user_id'),
+        createdAt: e => e.get('created_at'),
+        updatedAt: e => e.get('updated_at')
+      }
     }
   }
 }
