@@ -1,7 +1,6 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
-import { isTestAdmin } from 'util/admin'
 import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
@@ -278,7 +277,7 @@ function SettingsMenu ({ currentUser }) {
           <Shield className='mr-2 h-4 w-4' />
           <span>{t('Account Settings')}</span>
         </DropdownMenuItem>
-        {isTestAdmin(currentUser?.id, currentUser?.email) && (
+        {currentUser?.isAdmin && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleManagement}>
