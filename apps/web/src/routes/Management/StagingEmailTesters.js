@@ -59,11 +59,8 @@ export default function StagingEmailTesters () {
     setRemoving(true)
     try {
       await dispatch(removeEmailEnabledTester(userId))
-      // Refetch the list after removing
-      const result = await dispatch(fetchEmailEnabledTesters())
-      if (result?.payload?.data?.emailEnabledTesters) {
-        setTesters(result.payload.data.emailEnabledTesters)
-      }
+      // Update local state by removing the user from the list
+      setTesters(prevTesters => prevTesters.filter(tester => tester.userId !== userId))
     } catch (error) {
       console.error('Error removing email-enabled tester:', error)
     } finally {
