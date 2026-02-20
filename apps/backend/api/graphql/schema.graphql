@@ -1259,6 +1259,8 @@ type GroupSettings {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
@@ -3536,6 +3538,8 @@ input GroupSettingsInput {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
