@@ -1,0 +1,26 @@
+{% snippet 'header_redesign' %}
+{% snippet 'macro: post_card' %}
+
+{% set post_topic_name = post.topic_name %}
+{% if post.announcement %}
+  {{ post_card(post, false, 'announced') }}
+{% elif post_topic_name %}
+  {% set posted_in_topic_text = 'posted in #' %}
+  {% set post_status_text = posted_in_topic_text + post_topic_name %}
+  {{ post_card(post, false, post_status_text) }}
+{% else %}
+  {% set posted_text = 'posted' %}
+  {{ post_card(post, false, posted_text) }}
+{% endif %}
+ 
+<p class="center">
+  {% trans %}Reply to this email to comment on the post, or {% endtrans %}
+</p> 
+  
+{% set post_url = post.url %}
+<a href='{{post_url}}' class='btn btn-blue'>{% trans %}Reply in the Group{% endtrans %}</a>
+
+<p style='text-align: center; margin-top: 40px;'><a clicktracking="off" data-click-track-id="6388" href="{{unfollow_url}}">{% trans %}Turn off notifications for this post{% endtrans %}</a>
+</p>
+
+{% snippet 'footer_redesign' %}

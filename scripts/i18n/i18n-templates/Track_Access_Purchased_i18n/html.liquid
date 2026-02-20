@@ -1,0 +1,29 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>{% trans %}Congratulations! You now have access to:{% endtrans %}</p>
+
+<h2>{{track_name}}</h2>
+
+{% if track_description %}
+  <p>{{track_description}}</p>
+{% endif %}
+
+{% set group_name_var = group_name %}
+<p>{% trans %}in{% endtrans %} <strong>{{group_name_var}}</strong></p>
+
+<p><strong>{% trans %}Purchase Date:{% endtrans %}</strong> {{purchase_date}}</p>
+<p><strong>{% trans %}Amount:{% endtrans %}</strong> {{price_formatted}}</p>
+
+{% if is_enrolled %}
+  <p>{% trans %}You've been automatically enrolled in this track and can start learning right away!{% endtrans %}</p>
+  <a class='btn btn-blue' href="{{start_learning_url}}" clicktracking="off">{% trans %}Start Learning{% endtrans %}</a>
+{% else %}
+  <a class='btn btn-blue' href="{{track_url}}" clicktracking="off">{% trans %}View Track{% endtrans %}</a>
+{% endif %}
+
+{% snippet 'footer_redesign' %}

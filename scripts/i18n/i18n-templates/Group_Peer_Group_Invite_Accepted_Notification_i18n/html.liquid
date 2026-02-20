@@ -1,0 +1,14 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+{% set child_group_pill = actor_pill(child_group_name, child_group_avatar_url, child_group_url) %}
+{% set parent_group_pill = actor_pill(parent_group_name, parent_group_avatar_url, parent_group_url) %}
+
+{% if memberType == 'member' %}
+  <p>{% trans %}Your group {{child_group_pill}} has been connected to group {{parent_group_pill}}.{% endtrans %} {% if prent_group_accessibility != 'closed' %} {% trans %}You can now join {{parent_group_pill}}.{% endtrans %} {% endif %}</p>
+{% elif memberType == 'moderator' %}
+  <p>{% trans %}Your group {{child_group_pill}} has been connected to group {{parent_group_pill}}!{% endtrans %} {% if accepter_name %}{{accepter_name}} {% trans %}accepted the invitation to connect.{% endtrans %} {% endif %} {% if parent_group_accessibility != 'closed' %} {% trans %}You can now join {{parent_group_pill}}.{% endtrans %} {% endif %}
+  </p>
+{% endif %}
+
+{% snippet "footer_redesign" %}

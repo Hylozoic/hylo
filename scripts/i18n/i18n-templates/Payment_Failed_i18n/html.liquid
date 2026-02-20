@@ -1,0 +1,29 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p><strong>{% trans %}Action Required:{% endtrans %}</strong>
+  {% set offering_name_var = offering_name %}
+  {% set group_name_var = group_name %}
+  {% trans %}We were unable to process your payment for your subscription to {% endtrans %}<strong>{{offering_name_var}}</strong> {% trans %}for {% endtrans %}{{group_name_var}}.</p>
+
+<p><strong>{% trans %}Reason:{% endtrans %}</strong> {{failure_reason}}</p>
+
+{% if retry_date %}
+  <p>{% trans %}We will automatically retry your payment on {% endtrans %}<strong>{{retry_date}}</strong>{% trans %}.{% endtrans %}</p>
+{% endif %}
+
+{% if access_ends_date %}
+  <p><strong>{% trans %}Important:{% endtrans %}</strong> {% trans %}Your access will end on {% endtrans %}{{access_ends_date}} {% trans %}if payment is not successful.{% endtrans %}</p>
+{% endif %}
+
+<p>{% trans %}Please update your payment method to ensure uninterrupted access:{% endtrans %}</p>
+
+<a class='btn btn-blue' href="{{update_payment_url}}" clicktracking="off">{% trans %}Update Payment Method{% endtrans %}</a>
+<br>
+<a class='btn btn-blue' href="{{manage_subscription_url}}" clicktracking="off">{% trans %}Manage Subscription{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

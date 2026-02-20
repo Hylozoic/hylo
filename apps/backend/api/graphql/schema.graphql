@@ -332,6 +332,9 @@ type Query {
   ): TopicQuerySet
 
   track(id: ID): Track
+
+  # Query for email-enabled testers (admin only)
+  emailEnabledTesters: [EmailEnabledTester]
 }
 
 union Update = Message | MessageThread | Notification
@@ -2740,6 +2743,15 @@ type UserSettings {
   streamPostType: String
 }
 
+# Email-enabled tester account (for staging/testing environments)
+type EmailEnabledTester {
+  id: ID!
+  userId: ID!
+  user: Person
+  createdAt: Date
+  updatedAt: Date
+}
+
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
 type ProposalOptionQuerySet {
   total: Int
@@ -3154,6 +3166,10 @@ type Mutation {
     # Your unique invitation token
     invitationToken: String
   ): InvitationUseResult
+  # Add a user to the email-enabled testers list (admin only)
+  addEmailEnabledTester(userId: ID!): EmailEnabledTester
+  # Remove a user from the email-enabled testers list (admin only)
+  removeEmailEnabledTester(userId: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email

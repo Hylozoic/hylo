@@ -1,0 +1,7 @@
+{% set post_topic_name = post.topic_name %}
+{% set post_title = post.title %}
+{% if post_topic_name %}
+{% trans %}New post in {{group_name}} #{{post_topic_name}}: {{post_title}}{% endtrans %}
+{% else %}
+{% trans %}New post in {{group_name}}: {{post_title}}{% endtrans %}
+{% endif %}

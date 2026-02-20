@@ -191,7 +191,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
-        isAdmin: () => isAdmin || false,
+        isAdmin: u => isAdmin || false,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -1541,6 +1541,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'id',
         'name'
       ]
+    },
+
+    EmailEnabledTester: {
+      model: EmailEnabledTester,
+      attributes: [
+        'id',
+        'user_id',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { user: { alias: 'user' } }
+      ],
+      getters: {
+        userId: e => e.get('user_id'),
+        createdAt: e => e.get('created_at'),
+        updatedAt: e => e.get('updated_at')
+      }
     }
   }
 }

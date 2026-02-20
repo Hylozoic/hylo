@@ -1,0 +1,15 @@
+{
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "is_enrolled": true,
+  "offering_name": "Track Access",
+  "price_formatted": "$49.99",
+  "purchase_date": "January 2, 2026",
+  "start_learning_url": "https://hylo.com/groups/my-community/tracks/123/actions",
+  "track_description": "A 6-week course on leadership principles and practices",
+  "track_image_url": "https://...",
+  "track_name": "Leadership Fundamentals",
+  "track_url": "https://hylo.com/groups/my-community/tracks/123",
+  "user_email": "john@example.com",
+  "user_name": "John Doe"
+}

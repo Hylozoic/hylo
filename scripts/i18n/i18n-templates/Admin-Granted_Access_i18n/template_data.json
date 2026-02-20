@@ -1,0 +1,11 @@
+{
+  "user_name": "John Doe",
+  "user_email": "john@example.com",
+  "access_type": "track",
+  "access_name": "Leadership Course",
+  "access_url": "https://hylo.com/groups/my-community/tracks/123",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "granted_by_name": "Admin User",
+  "expires_at": "February 2, 2026"
+}
