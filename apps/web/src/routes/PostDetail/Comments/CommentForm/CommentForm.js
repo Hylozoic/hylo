@@ -1,8 +1,8 @@
 import isMobile from 'ismobilejs'
-import React, { useRef, useCallback, useState } from 'react'
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { SendHorizontal } from 'lucide-react'
 import { sendIsTyping } from 'client/websockets'
 import AttachmentManager from 'components/AttachmentManager'
@@ -17,6 +17,7 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
+import useDraftStorage, { hasDraftContent } from 'hooks/useDraftStorage'
 
 import classes from './CommentForm.module.scss'
 
@@ -30,6 +31,13 @@ function CommentForm ({
   const { t } = useTranslation()
   const editor = useRef()
   const dispatch = useDispatch()
+  const location = useLocation()
+  const { pathname, search } = location
+
+  const draftStorageKey = useMemo(() => `draft:comment:${pathname}${search}:post:${postId}`, [pathname, search, postId])
+  const { loadDraft, saveDraft, clearDraft } = useDraftStorage(draftStorageKey)
+  const draftRef = useRef(editorContent || loadDraft())
+
   const [isFocused, setIsFocused] = useState(false)
 
   const currentUser = useSelector(getMe)
@@ -40,6 +48,14 @@ function CommentForm ({
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
+
+  useEffect(() => {
+    const draft = editorContent || loadDraft() || ''
+    draftRef.current = draft
+    if (editor.current) {
+      editor.current.setContent(draft)
+    }
+  }, [editorContent, loadDraft, postId])
 
   const startTyping = useCallback(throttle(STARTED_TYPING_INTERVAL, () => {
     sendIsTypingAction(true)
@@ -56,9 +72,22 @@ function CommentForm ({
     sendIsTypingAction(false)
     createComment({ text: contentHTML, attachments })
     clearAttachmentsAction()
+    draftRef.current = ''
+    clearDraft()
 
     return true
-  }, [attachments, clearAttachmentsAction, createComment, sendIsTypingAction, startTyping])
+  }, [attachments, clearAttachmentsAction, clearDraft, createComment, sendIsTypingAction, startTyping])
+
+  const handleEditorUpdate = useCallback((html) => {
+    startTyping()
+    if (hasDraftContent(html)) {
+      draftRef.current = html
+      saveDraft(html)
+    } else {
+      draftRef.current = ''
+      clearDraft()
+    }
+  }, [clearDraft, saveDraft, startTyping])
 
   const placeholderText = placeholder || t('Add a comment...')
 
@@ -84,11 +113,11 @@ function CommentForm ({
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
-            contentHTML={editorContent}
+            contentHTML={editorContent ?? draftRef.current}
             onAltEnter={handleSubmit}
             className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
-            onUpdate={startTyping}
+            onUpdate={handleEditorUpdate}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholderText}
