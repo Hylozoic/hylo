@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
 import { debounce } from 'lodash/fp'
+import { keyBy } from 'lodash'
 import { Bell, BellDot, BellMinus, BellOff, ChevronDown, Copy, Send } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { EditorView } from 'prosemirror-view'
@@ -18,6 +19,7 @@ import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
+import { addSkill, removeSkill } from 'components/SkillsSection/SkillsSection.store'
 import Tooltip from 'components/Tooltip'
 import Button from 'components/ui/button'
 import {
@@ -27,7 +29,10 @@ import {
   SelectTrigger
 } from '@/components/ui/select'
 import ChatPost from './ChatPost'
+import JoinSection from 'routes/GroupDetail/JoinSection'
+import { createJoinRequest, joinGroup } from 'routes/GroupDetail/GroupDetail.store'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useGetJoinRequests } from 'hooks/useGetJoinRequests'
 import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
@@ -40,6 +45,7 @@ import { makeDropQueryResults, makeQueryResultsModelSelector } from 'store/reduc
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getPostResults } from 'store/selectors/getPosts'
 import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurrentRoute'
@@ -109,6 +115,10 @@ export default function ChatRoom (props) {
 
   const currentUser = useSelector(getMe)
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
+  const myMemberships = useSelector(state => getMyMemberships(state))
+  const isMember = useMemo(() => group && currentUser ? myMemberships.find(m => m.group.id === group.id) : false, [group, currentUser, myMemberships])
+  const joinRequests = useGetJoinRequests()
+  const groupsWithPendingRequests = useMemo(() => keyBy(joinRequests, 'group.id'), [joinRequests])
   const topicFollow = useSelector(state => getTopicFollowForCurrentRoute(state, group?.id, topicName))
   const topicFollowLoading = useSelector(state => isPendingFor([FETCH_TOPIC_FOLLOW], state))
   const querystringParams = getQuerystringParam(['search', 'postId'], location)
@@ -569,6 +579,18 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
   }, [currentUser])
 
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
+    await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+    navigate(groupUrl(group.slug))
+  }, [dispatch, group, navigate])
+
+  const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
+    dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
+  }, [dispatch])
+
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     !hiddenTopic && setHeaderDetails({
@@ -598,6 +620,32 @@ export default function ChatRoom (props) {
       search: !isWebView()
     })
   }, [hiddenTopic, topicName, notificationsSetting])
+
+  // Show join section if user is logged in but not a member
+  if (currentUser && !isMember && group) {
+    return (
+      <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+        <Helmet>
+          <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
+        </Helmet>
+        <div className='flex flex-col items-center justify-center h-full w-full max-w-[750px] px-4'>
+          <h2 className='text-xl font-semibold text-center mb-4'>{t('Join {{groupName}} to participate in this chat', { groupName: group.name })}</h2>
+          <JoinSection
+            addSkill={addSkill}
+            currentUser={currentUser}
+            fullPage
+            group={group}
+            groupsWithPendingRequests={groupsWithPendingRequests}
+            joinGroup={joinGroupHandler}
+            requestToJoinGroup={requestToJoinGroup}
+            removeSkill={removeSkill}
+            routeParams={routeParams}
+            t={t}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
