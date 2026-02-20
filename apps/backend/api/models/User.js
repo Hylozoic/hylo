@@ -376,6 +376,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   joinGroup: async function (group, { role = GroupMembership.Role.DEFAULT, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+    const groupSettings = group.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const memberships = await group.addMembers([this.id],
       {
         role,
@@ -383,7 +386,7 @@ module.exports = bookshelf.Model.extend(merge({
           // XXX: A user choosing to join a group has aleady seen/filled out the join questions (enforced on the front-end)
           joinQuestionsAnsweredAt: fromInvitation ? null : new Date(),
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           showJoinForm: true

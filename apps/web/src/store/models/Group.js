@@ -69,6 +69,11 @@ export const visibilityString = (visibility) => {
   return Object.keys(GROUP_VISIBILITY).find(key => GROUP_VISIBILITY[key] === visibility)
 }
 
+export const DEFAULT_DIGEST_FREQUENCY = {
+  daily: 'Daily',
+  weekly: 'Weekly'
+}
+
 export const LOCATION_PRECISION = {
   precise: 'Display exact location',
   near: 'Display only nearest city and show nearby location on the map',
