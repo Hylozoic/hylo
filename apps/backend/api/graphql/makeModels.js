@@ -191,7 +191,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
-        isAdmin: () => isAdmin || false,
+        isAdmin: u => isAdmin || false,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }

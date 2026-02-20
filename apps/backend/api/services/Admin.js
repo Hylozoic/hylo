@@ -1,6 +1,16 @@
 module.exports = {
   isSignedIn: function (req) {
-    return req.session.userId && (!!(req.session.userEmail || '').match(/@hylo\.com|@terran\.io$/) || (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id)).includes(req.session.userId))
+    const userId = req.session.userId
+    if (!userId) {
+      return false
+    }
+    
+    const email = req.session.userEmail || ''
+    const emailMatches = !!(email.match(/@hylo\.com|@terran\.io$/))
+    const adminIds = (process.env.HYLO_ADMINS || '').split(',').map(id => Number(id.trim())).filter(id => !isNaN(id))
+    const isInAdminList = adminIds.includes(Number(userId))
+    
+    return emailMatches || isInAdminList
   },
 
   isTestAdmin: async function (userId) {
