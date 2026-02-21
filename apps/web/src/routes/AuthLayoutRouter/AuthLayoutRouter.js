@@ -215,8 +215,9 @@ export default function AuthLayoutRouter (props) {
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
   // after initial page load to let critical requests complete first.
+  // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
   useEffect(() => {
-    if (!currentUserLoading && memberships.length > 0) {
+    if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
       const groupIds = memberships
         .map(m => m.group?.id)
         .filter(Boolean)
