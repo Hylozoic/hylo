@@ -17,12 +17,15 @@ import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
+import useSwipeGesture from 'hooks/useSwipeGesture'
+import usePullToRefresh from 'hooks/usePullToRefresh'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -68,8 +71,9 @@ import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
-import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
+// DEPRECATED: isWebView no longer needed here - withoutNav logic simplified
+// import isWebView from 'util/webView'
+import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -77,7 +81,8 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  // DEPRECATED: No longer treat webview differently
+  const withoutNav = /* isWebView() || */ hideNavLayout
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -133,6 +138,26 @@ export default function AuthLayoutRouter (props) {
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState()
 
+  // Swipe gestures for navigation menu on mobile
+  // - Swipe from left edge to open menu
+  // - Swipe right-to-left to close menu when open
+  useSwipeGesture(
+    () => dispatch(toggleNavMenu(true)), // Open menu on swipe from left
+    {
+      enabled: !withoutNav, // Enable when nav is available
+      edgeWidth: 30, // Detect swipes starting within 30px of left edge
+      minSwipeDistance: 80, // Require at least 80px swipe distance
+      onSwipeRight: isNavOpen ? () => dispatch(toggleNavMenu(false)) : null // Close menu on right swipe when open
+    }
+  )
+
+  // Pull-to-refresh gesture for WebView (web-side implementation)
+  // Requires user to pull down AND hold for a moment to prevent accidental triggers
+  const { isPulling, isReadyToRefresh, isRefreshing } = usePullToRefresh(
+    () => window.location.reload(),
+    { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
+  )
+
   useEffect(() => {
     (async function () {
       await dispatch(fetchCommonRoles())
@@ -185,6 +210,41 @@ export default function AuthLayoutRouter (props) {
       }
     })()
   }, [currentGroupSlug])
+
+  // Pre-load context menu data for all membership groups in paginated batches.
+  // This ensures context menus render immediately when switching groups.
+  // Batches are processed sequentially (10 groups at a time) with a delay
+  // after initial page load to let critical requests complete first.
+  // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
+  useEffect(() => {
+    if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
+      const groupIds = memberships
+        .map(m => m.group?.id)
+        .filter(Boolean)
+        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
+
+      if (groupIds.length === 0) return
+
+      // Delay initial request to let critical page load requests complete first
+      const INITIAL_DELAY = 3000 // 3 second delay
+      const BATCH_SIZE = 10
+
+      const timeoutId = setTimeout(async () => {
+        // Split into batches of 10
+        const batches = []
+        for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
+          batches.push(groupIds.slice(i, i + BATCH_SIZE))
+        }
+
+        // Process batches sequentially (wait for each to complete before starting next)
+        for (const batch of batches) {
+          await dispatch(fetchGroupsMenuData(batch))
+        }
+      }, INITIAL_DELAY)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [currentUserLoading, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
@@ -250,6 +310,27 @@ export default function AuthLayoutRouter (props) {
 
   return (
     <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+      {/* Pull-to-refresh indicator - shows during and after gesture */}
+      {(isPulling || isRefreshing) && (
+        <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>
+          <div className={`bg-background border rounded-full p-3 shadow-lg transition-all duration-200 ${isReadyToRefresh || isRefreshing ? 'border-primary scale-110' : 'border-border'}`}>
+            {isRefreshing
+              ? (
+                <svg className='w-5 h-5 animate-spin text-primary' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'>
+                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
+                </svg>
+                )
+              : (
+                <svg className={`w-5 h-5 transition-all duration-200 ${isReadyToRefresh ? 'text-primary' : 'text-muted-foreground'}`} xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth='2'>
+                  {isReadyToRefresh
+                    ? <path strokeLinecap='round' strokeLinejoin='round' d='M5 13l4 4L19 7' />
+                    : <path strokeLinecap='round' strokeLinejoin='round' d='M19 14l-7 7m0 0l-7-7m7 7V3' />}
+                </svg>
+                )}
+          </div>
+        </div>
+      )}
       <Helmet>
         <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -268,16 +349,17 @@ export default function AuthLayoutRouter (props) {
         {/* Redirect manage notifications page to settings page when logged in */}
         <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
-        {!isWebView() && (
-          <>
-            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-          </>
-        )}
+        {/* DEPRECATED: Now always show GroupWelcomeModal */}
+        {/* {!isWebView() && ( */}
+        <>
+          <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+        </>
+        {/* )} */}
       </Routes>
 
       <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row h-full z-50 flex-shrink-0 overflow-hidden', { 'flex absolute sm:relative': isNavOpen }, location.pathname.startsWith('/messages') ? 'w-[360px] sm:w-[320px] md:w-[340px] max-w-[360px] sm:max-w-[340px]' : 'max-w-420')}>
             {!withoutNav && (
               <>
                 <GlobalNav
@@ -302,9 +384,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>}
           </div> {/* END NavContainer */}
 
-          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative' id='center-column-container'>
-            <ViewHeader />
-
+          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative flex-1 min-w-0' id='center-column-container'>
             <Routes>
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -350,6 +430,7 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+              <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}

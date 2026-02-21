@@ -13,9 +13,10 @@ import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
 import isWebView from 'util/webView'
 
-if (isWebView()) {
-  window.addHyloWebViewListener(history)
-}
+// DEPRECATED: History listener no longer needed - web app handles all navigation
+// if (isWebView()) {
+//   window.addHyloWebViewListener(history)
+// }
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {

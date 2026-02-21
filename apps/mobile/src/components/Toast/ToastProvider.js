@@ -1,3 +1,9 @@
+// DEPRECATED: This provider is no longer used.
+// All toast notifications are now handled by the web app in the WebView.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import React, { createContext, useCallback, useContext, useState } from 'react'
 import Toast from './Toast'
 
@@ -36,4 +42,16 @@ export function useToast() {
     throw new Error('useToast must be used within a ToastProvider')
   }
   return context
-} 
+}
+*/
+
+import React from 'react'
+
+// No-op exports - component is deprecated
+export function ToastProvider ({ children }) {
+  return children
+}
+
+export function useToast () {
+  return () => {} // no-op function
+}

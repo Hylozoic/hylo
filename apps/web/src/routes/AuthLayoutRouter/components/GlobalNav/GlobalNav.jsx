@@ -52,6 +52,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import isWebView from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -90,7 +91,18 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   }
 
   return (
-    <div ref={handleRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={handleRef}
+      style={{
+        ...style,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -279,8 +291,9 @@ export default function GlobalNav (props) {
   const { t } = useTranslation()
   const [visibleCount, setVisibleCount] = useState(0)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
-  const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
+  const hoverDelayTimeoutRef = useRef(null)
+  const ignoreTouchRef = useRef(true) // Ignore touch events briefly after mount
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
@@ -301,6 +314,15 @@ export default function GlobalNav (props) {
 
     return () => clearInterval(interval)
   }, [sortedGroups.length])
+
+  // Ignore touch events for 200ms after mount to prevent accidental triggers
+  // when the drawer opens and a lingering touch event fires on the nav
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      ignoreTouchRef.current = false
+    }, 200)
+    return () => clearTimeout(timeoutId)
+  }, [])
 
   // Add effect to handle menu timeout
   useEffect(() => {
@@ -477,19 +499,27 @@ export default function GlobalNav (props) {
   }
 
   const handleContainerMouseEnter = () => {
-    setIsContainerHovered(true)
-    setTimeout(() => {
+    // Clear any existing timeout to avoid race conditions
+    if (hoverDelayTimeoutRef.current) {
+      clearTimeout(hoverDelayTimeoutRef.current)
+    }
+    // Delay showing hover state by 200ms on desktop to prevent accidental triggers
+    hoverDelayTimeoutRef.current = setTimeout(() => {
       // Check current hover state directly from DOM instead of using the captured state variable
       const navContainer = document.querySelector('.globalNavContainer')
       if (navContainer && navContainer.matches(':hover') && !isMobileDevice()) {
-        setShowGradient(true)
+        setIsContainerHovered(true)
       }
     }, 200)
   }
 
   const clearHover = () => {
+    // Clear any pending hover delay timeout
+    if (hoverDelayTimeoutRef.current) {
+      clearTimeout(hoverDelayTimeoutRef.current)
+      hoverDelayTimeoutRef.current = null
+    }
     setIsContainerHovered(false)
-    setShowGradient(false)
   }
 
   const handleContainerMouseLeave = () => {
@@ -503,8 +533,12 @@ export default function GlobalNav (props) {
   // Touch events to handle hover state on mobile
   const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
   const handleContainerTouchStart = () => {
+    // Ignore touch events briefly after mount to prevent accidental triggers
+    // when drawer opens and a lingering touch event fires on the nav
+    if (ignoreTouchRef.current) return
+
+    // On touch, show immediately (no delay like desktop mouse hover)
     setIsContainerHovered(true)
-    setShowGradient(true)
     if (clearHoverTimeout) {
       clearTimeout(clearHoverTimeout)
       setClearHoverTimeout(null)
@@ -514,7 +548,7 @@ export default function GlobalNav (props) {
   const handleContainerTouchEnd = () => {
     setClearHoverTimeout(setTimeout(() => {
       clearHover()
-    }, 1000))
+    }, 3000)) // 3 seconds to give users time to read and select
   }
 
   const handleSupportClick = () => {
@@ -568,6 +602,13 @@ export default function GlobalNav (props) {
     }
   }
 
+  // Prevent default browser context menu on mobile devices
+  const handleContextMenu = (e) => {
+    if (isMobileDevice()) {
+      e.preventDefault()
+    }
+  }
+
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
   useEffect(() => {
     const nav = document.querySelector('.globalNavContainer')
@@ -576,7 +617,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
       style={{
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
@@ -653,7 +694,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -685,7 +726,7 @@ export default function GlobalNav (props) {
               }}
             >
               <RightClickMenu>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <GlobalNavItem
                     badgeCount={group.newPostCount ? '-' : 0}
                     img={group.avatarUrl}
@@ -709,8 +750,8 @@ export default function GlobalNav (props) {
           'fixed z-0 bottom-0 w-[400px] h-full',
           'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
-            'opacity-80 translate-x-0': !showGradient,
-            'opacity-0 -translate-x-full': !showGradient
+            'opacity-80 translate-x-0': isContainerHovered,
+            'opacity-0 -translate-x-full': !isContainerHovered
           }
         )}
         style={{
@@ -767,7 +808,7 @@ export default function GlobalNav (props) {
               <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>
+              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
               <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (

@@ -128,9 +128,10 @@ function UserGroupsTab () {
           setMemberships(newMemberships)
         }
 
-        if (isWebView()) {
-          sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
-        }
+        // DEPRECATED: No longer send message to mobile app - web handles all navigation
+        // if (isWebView()) {
+        //   sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
+        // }
       })
       .finally(() => {
         setGroupToLeave(null)

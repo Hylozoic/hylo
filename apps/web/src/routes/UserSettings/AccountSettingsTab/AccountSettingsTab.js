@@ -250,23 +250,23 @@ function AccountSettingsTab ({
         </Button>
       </div>
 
-      <div className='pt-4 flex flex-row gap-4 flex-wrap items-center'>
+      <div className='pt-4 flex flex-col sm:flex-row gap-4 items-center max-w-[280px] sm:max-w-none mx-auto sm:mx-0'>
         <Button
           onClick={handleExportProfile}
           disabled={state.exportStatus === 'exporting'}
-          className='bg-accent hover:bg-accent/80 text-white px-6 py-2 rounded-lg transition-all disabled:opacity-50'
+          className='bg-accent hover:bg-accent/80 text-white px-6 py-2 rounded-lg transition-all disabled:opacity-50 text-center'
         >
           {state.exportStatus === 'exporting' ? t('Exporting...') : t('Export Profile Data')}
         </Button>
         <Button
           onClick={() => setState(prev => ({ ...prev, showDeactivateModal: true }))}
-          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
+          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent text-center'
         >
           {t('Deactivate Account')}
         </Button>
         <Button
           onClick={() => setState(prev => ({ ...prev, showDeleteModal: true }))}
-          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent'
+          className='border-2 border-accent/20 hover:border-accent/100 text-accent p-2 rounded-lg transition-all bg-transparent text-center'
         >
           {t('Delete Account')}
         </Button>

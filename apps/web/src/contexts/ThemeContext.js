@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { themes, defaultTheme } from '../themes'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { sendMessageToWebView } from 'util/webView'
 
 const ThemeContext = createContext()
 
@@ -71,6 +73,12 @@ export function ThemeProvider ({ children }) {
     } else {
       window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
     }
+
+    // Notify the native mobile app so it can style safe area insets to match
+    sendMessageToWebView(WebViewMessageTypes.THEME_CHANGE, {
+      themeName: currentTheme,
+      colorScheme: effectiveColorScheme
+    })
   }, [currentTheme, colorScheme, effectiveColorScheme])
 
   const value = {

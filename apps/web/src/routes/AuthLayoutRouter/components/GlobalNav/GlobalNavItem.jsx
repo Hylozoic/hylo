@@ -94,6 +94,14 @@ export default function GlobalNavItem ({
     }
   }, [checkPosition])
 
+  // Reset local hover state when parent stops showing tooltips
+  // This prevents "sticky" tooltips on mobile where mouseleave doesn't fire reliably
+  useEffect(() => {
+    if (!parentShowTooltip) {
+      setIsHovered(false)
+    }
+  }, [parentShowTooltip])
+
   const handleClick = useCallback(() => {
     setIsHovered(false)
     if (url) {
@@ -140,7 +148,13 @@ export default function GlobalNavItem ({
               },
               className
             )}
-            style={style}
+            style={{
+              ...style,
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              msUserSelect: 'none'
+            }}
             role='button'
           >
             {isDefaultAvatar && (

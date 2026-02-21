@@ -8,12 +8,12 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import isWebView from 'util/webView'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
+import { isMobileDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -114,15 +114,25 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  const handleBackClick = useCallback(() => {
-    if (backTo) {
+  // On small screens, the chevron always toggles the nav menu
+  // On larger screens (sm+), if backButton is true, it navigates back
+  const handleChevronClick = () => {
+    const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
+    if (isSmallScreen) {
+      dispatch(toggleNavMenu())
+    } else if (backTo) {
       navigate(backTo)
     } else if (centered) {
       navigate(previousLocation || '/')
     } else {
       navigate(-1)
     }
-  }, [backTo, centered, navigate, previousLocation])
+  }
+
+  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
+  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+    return null
+  }
 
   return (
     <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
@@ -130,17 +140,23 @@ const ViewHeader = () => {
     })}
     >
       {centered && backButton && (
-        <ChevronLeft
-          className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
-          onClick={handleBackClick}
-        />
+        <button
+          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+          onClick={handleChevronClick}
+        >
+          <ChevronLeft className='w-6 h-6' />
+        </button>
       )}
-      {!isWebView() && !centered && (
+      {/* DEPRECATED: Now always show back button/menu toggle */}
+      {/* {!isWebView() && !centered && ( */}
+      {!centered && (
         <>
-          <ChevronLeft
-            className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
-            onClick={() => backButton ? handleBackClick() : dispatch(toggleNavMenu())}
-          />
+          <button
+            className={cn('sm:hidden p-2 -ml-1 mr-1 cursor-pointer', { 'sm:block': backButton })}
+            onClick={handleChevronClick}
+          >
+            <ChevronLeft className='w-6 h-6' />
+          </button>
           {context !== 'messages' && (
             <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
               {context === 'groups'
@@ -152,9 +168,16 @@ const ViewHeader = () => {
                     : null}
             </div>
           )}
-        </>)}
+        </>
+      )}
+      {/* )} */}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
+      <h2
+        className={cn('text-foreground m-0', {
+          'whitespace-nowrap': typeof title === 'string' || (title?.mobile && title?.desktop),
+          'min-w-0 overflow-x-auto': React.isValidElement(title)
+        })}
+      >
         {typeof title === 'string' || React.isValidElement(title)
           ? title
           : title?.mobile && title?.desktop

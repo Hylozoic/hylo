@@ -1,8 +1,13 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text, TouchableOpacity, TouchableWithoutFeedback } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
-import { PenSquare, Users } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { PenSquare, Users } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function CreationOptions () {

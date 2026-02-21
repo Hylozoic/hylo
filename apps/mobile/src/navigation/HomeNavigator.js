@@ -1,3 +1,10 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Home/stream navigation and all nested screens have been replaced.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import React, { useEffect } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Header } from '@react-navigation/elements'
@@ -39,7 +46,7 @@ export default function HomeNavigator () {
   useHandleCurrentGroup()
 
   const navigatorProps = {
-    initialRouteName: 'No Context Fallback', // This is an emergency fallback to avoid rare blank screen loads. Tempting to replace with a loading UI that centralizes some redirection logic
+    initialRouteName: 'No Context Fallback',
     screenOptions: {
       header: props => <TabStackHeader {...props} />,
       headerMode: 'float'
@@ -51,27 +58,25 @@ export default function HomeNavigator () {
       <HomeTab.Screen
         name='No Context Fallback'
         component={NoContextFallbackScreen}
-                  options={{
-            header: () => (
-              <Header
-                title="Hylo"
-                headerTitleAlign="center"
-                headerLeft={() => null}
-                headerStyle={{ backgroundColor: twBackground }}
-                headerTitleStyle={{
-                  fontFamily: 'Circular-Bold',
-                  fontSize: 18
-                }}
-              />
-            )
-          }}
+        options={{
+          header: () => (
+            <Header
+              title="Hylo"
+              headerTitleAlign="center"
+              headerLeft={() => null}
+              headerStyle={{ backgroundColor: twBackground }}
+              headerTitleStyle={{
+                fontFamily: 'Circular-Bold',
+                fontSize: 18
+              }}
+            />
+          )
+        }}
       />
-      {/* WebView screens (may link/route internally) */}
       <HomeTab.Screen name='Chat Room' component={ChatRoomWebView} />
       <HomeTab.Screen name='Group Settings' component={GroupSettingsWebView} />
       <HomeTab.Screen name='User Settings' component={UserSettingsWebView} />
       <HomeTab.Screen name='Web View' component={HyloWebView} />
-      {/* Other screens */}
       <HomeTab.Screen name='Stream' component={Stream} options={{ lazy: false }} />
       <HomeTab.Screen name='All Views' component={AllViews} />
       <HomeTab.Screen name='Funding Rounds' component={FundingRounds} />
@@ -92,4 +97,10 @@ export default function HomeNavigator () {
       <HomeTab.Screen name='Context Menu' component={ContextMenu} />
     </HomeTab.Navigator>
   )
+}
+*/
+
+// No-op export - navigator is deprecated
+export default function HomeNavigator () {
+  return null
 }

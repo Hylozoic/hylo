@@ -1,3 +1,9 @@
+// DEPRECATED: This component is no longer used in the app.
+// All HTML rendering is now handled by the web app in the WebView.
+// Kept for reference - may revisit if native screens are restored.
+// Last used: 2025-01-28
+
+/*
 import React, { useMemo } from 'react'
 import { useWindowDimensions } from 'react-native'
 import { RenderHTMLConfigProvider, RenderHTMLSource } from 'react-native-render-html'
@@ -102,5 +108,18 @@ const HyloHTML = React.memo(
     )
   }
 )
+
+export default HyloHTML
+*/
+
+import React from 'react'
+
+// No-op provider that just renders children (for any remaining imports)
+export function HyloHTMLConfigProvider ({ children }) {
+  return children
+}
+
+// No-op component (for any remaining imports)
+const HyloHTML = () => null
 
 export default HyloHTML

@@ -1,8 +1,13 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useEffect } from 'react'
 import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { X } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { X } from 'lucide-react-native'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import { GROUP_ACCESSIBILITY } from '@hylo/presenters/GroupPresenter'
 import { isIOS } from 'util/platform'

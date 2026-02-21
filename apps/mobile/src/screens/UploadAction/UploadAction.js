@@ -1,8 +1,13 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useEffect, useMemo, useCallback, useState } from 'react'
 import { Alert, View, KeyboardAvoidingView, Platform, TouchableOpacity, Text, ScrollView } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { gql, useQuery, useMutation } from 'urql'
-import { Upload, Check } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Upload, Check } from 'lucide-react-native'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
