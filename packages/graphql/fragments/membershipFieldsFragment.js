@@ -19,6 +19,7 @@ export default gql`
     }
     group {
       id
+      homeRoute
       agreements {
         items {
           id

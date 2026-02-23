@@ -1155,6 +1155,8 @@ module.exports = bookshelf.Model.extend(merge({
       homeView: data.home_view || 'CHAT'
     }
 
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
+
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
     const group = new Group(merge(attrs, {
@@ -1162,7 +1164,8 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       created_by_id: userId,
       settings: defaultSettings,
-      calendar_token: uuidv4()
+      calendar_token: uuidv4(),
+      home_route: homeRoute
     }))
 
     await bookshelf.transaction(async trx => {
