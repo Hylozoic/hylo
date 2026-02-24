@@ -154,6 +154,23 @@ module.exports = bookshelf.Model.extend({
     VIEW: 'view'
   },
 
+  /**
+   * Compute the home route path (e.g. /stream, /map, /chat/general) from a context widget.
+   * Used to persist group.home_route so we can redirect without loading context widgets.
+   */
+  computeHomeRoutePath (widget) {
+    if (!widget) return '/stream'
+    if (widget.get('view')) return '/' + widget.get('view')
+    if (widget.get('view_chat_id')) {
+      const chatName = widget.related('viewChat')?.get('name') || 'general'
+      return '/chat/' + chatName
+    }
+    if (widget.get('custom_view_id')) return '/custom/' + widget.get('custom_view_id')
+    if (widget.get('view_track_id')) return '/tracks/' + widget.get('view_track_id')
+    if (widget.get('view_funding_round_id')) return '/funding-rounds/' + widget.get('view_funding_round_id')
+    return '/stream'
+  },
+
   // Static methods
   create: async function (data) {
     return await bookshelf.transaction(async trx => {
@@ -359,6 +376,17 @@ module.exports = bookshelf.Model.extend({
       `
 
       await bookshelf.knex.raw(query).transacting(trx)
+
+      // Update group.home_route so redirect works without loading context widgets
+      const newHomeWidget = await ContextWidget.where({ id }).fetch({
+        withRelated: ['viewChat'],
+        transacting: trx
+      })
+      if (newHomeWidget) {
+        const homeRoute = ContextWidget.computeHomeRoutePath(newHomeWidget)
+        await bookshelf.knex('groups').where({ id: groupId }).update({ home_route: homeRoute }).transacting(trx)
+      }
+
       return { success: true }
     }
 

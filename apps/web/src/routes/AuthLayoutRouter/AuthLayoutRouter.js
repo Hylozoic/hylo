@@ -34,8 +34,7 @@ import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
 import {
-  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl,
-  groupHomeUrl
+  POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
 import { CENTER_COLUMN_ID, DETAIL_COLUMN_ID } from 'util/scrolling'
 import AllTopics from 'routes/AllTopics'
@@ -74,7 +73,6 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
-import { GROUP_TYPES } from 'store/models/Group'
 import { getLocaleFromLocalStorage } from 'util/locale'
 // DEPRECATED: isWebView no longer needed here - withoutNav logic simplified
 // import isWebView from 'util/webView'
@@ -307,6 +305,11 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
+  // Looking at a group that doesn't exist or current user doesn't have access to it
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+    return <NotFound />
+  }
+
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
   if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
@@ -315,15 +318,9 @@ export default function AuthLayoutRouter (props) {
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
-      navigate(groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup }), { replace: true })
+      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute}`, { replace: true })
     }
   }
-
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
-    return <NotFound />
-  }
-
-  const homeRoute = currentGroup?.contextWidgets?.items?.length > 0 ? <Navigate to={groupHomeUrl({ routeParams: pathMatchParams, group: currentGroup })} replace /> : returnDefaultView(currentGroup, 'groups')
 
   return (
     <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
@@ -474,9 +471,6 @@ export default function AuthLayoutRouter (props) {
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
                 <Route path='h/use-invitation' element={<JoinGroup />} />
-                {currentGroupLoading && (
-                  <Route path='groups/:groupSlug/*' element={<Loading />} />
-                )}
                 <Route
                   path='groups/:groupSlug/*'
                   element={
@@ -517,7 +511,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={homeRoute} />
+                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
                           </Routes>
                           )
                     }
@@ -588,15 +582,4 @@ export default function AuthLayoutRouter (props) {
       </div>
     </IntercomProvider>
   )
-}
-
-function returnDefaultView (group, context) {
-  if (!group) return <Stream context={context} />
-
-  switch (group.type) {
-    case GROUP_TYPES.farm:
-      return <LandingPage />
-    default:
-      return <Stream context='groups' />
-  }
 }

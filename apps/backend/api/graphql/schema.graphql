@@ -926,6 +926,8 @@ type Group {
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
+  # Cached path for group home redirect (e.g. /stream, /map, /chat/general). Used so we can redirect without loading context widgets.
+  homeRoute: String
   # home widget
   homeWidget: ContextWidget
   # The current invite link for this group
@@ -1424,6 +1426,8 @@ type GroupSettings {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
@@ -4089,6 +4093,8 @@ input GroupSettingsInput {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location

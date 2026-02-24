@@ -112,6 +112,7 @@ export default gql`
         id
         avatarUrl
         bannerUrl
+        homeRoute
         name
         memberCount
         stewardDescriptor

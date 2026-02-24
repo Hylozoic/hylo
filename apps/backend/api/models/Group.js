@@ -531,6 +531,9 @@ module.exports = bookshelf.Model.extend(merge({
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+    const groupSettings = this.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const updatedAttribs = Object.assign(
       {},
       {
@@ -538,7 +541,7 @@ module.exports = bookshelf.Model.extend(merge({
         role: GroupMembership.Role.DEFAULT,
         settings: {
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           lastReadAt: attrs.lastReadAt || null
@@ -1199,6 +1202,8 @@ module.exports = bookshelf.Model.extend(merge({
       homeView: data.home_view || 'CHAT'
     }
 
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
+
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
     const group = new Group(merge(attrs, {
@@ -1206,7 +1211,8 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       created_by_id: userId,
       settings: defaultSettings,
-      calendar_token: uuidv4()
+      calendar_token: uuidv4(),
+      home_route: homeRoute
     }))
 
     await bookshelf.transaction(async trx => {

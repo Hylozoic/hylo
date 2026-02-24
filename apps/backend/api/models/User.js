@@ -376,6 +376,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   joinGroup: async function (group, { role = GroupMembership.Role.DEFAULT, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+    const groupSettings = group.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const memberships = await group.addMembers([this.id],
       {
         role,
@@ -383,7 +386,7 @@ module.exports = bookshelf.Model.extend(merge({
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           showJoinForm: true
