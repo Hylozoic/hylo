@@ -21,8 +21,9 @@ import removePostAction from 'store/actions/removePost'
 import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.store'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { createSelector } from 'reselect'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { groupUrl, personUrl, editPostUrl } from '@hylo/navigation'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -31,6 +32,19 @@ import PostGroups from './PostGroups'
 import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
+
+const EMPTY_RESPONSIBILITY_TITLES = []
+
+/** Returns a memoized selector that returns stable array of responsibility titles for (group, currentUser). */
+function makeGetCurrentUserResponsibilities (group, currentUser) {
+  return createSelector(
+    [state => {
+      const responsibilities = group ? getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id }) : []
+      return responsibilities.map(r => r.title).join('\0')
+    }],
+    titlesStr => titlesStr ? titlesStr.split('\0') : EMPTY_RESPONSIBILITY_TITLES
+  )
+}
 
 export { PostHeader, PostFooter, PostBody, PostGroups, EventBody }
 
@@ -68,9 +82,11 @@ export default function PostCard (props) {
   const [flaggingVisible, setFlaggingVisible] = useState(false)
 
   const currentUser = useSelector(getMe)
-  const currentUserResponsibilities = useSelector(state =>
-    group ? getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id }) : []
-  ).map(r => r.title)
+  const getCurrentUserResponsibilities = useMemo(
+    () => makeGetCurrentUserResponsibilities(group, currentUser),
+    [group?.id, currentUser?.id]
+  )
+  const currentUserResponsibilities = useSelector(getCurrentUserResponsibilities)
 
   const viewPostDetails = useViewPostDetails()
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
