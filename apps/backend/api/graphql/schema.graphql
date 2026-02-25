@@ -799,6 +799,8 @@ type Group {
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
+  # Cached path for group home redirect (e.g. /stream, /map, /chat/general). Used so we can redirect without loading context widgets.
+  homeRoute: String
   # home widget
   homeWidget: ContextWidget
   # The current invite link for this group

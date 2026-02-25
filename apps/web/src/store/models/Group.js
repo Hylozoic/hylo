@@ -169,6 +169,7 @@ Group.fields = {
   feedOrder: attr(),
   geoShape: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
+  homeRoute: attr(),
   id: attr(),
   joinQuestions: many('GroupJoinQuestion'),
   location: attr(),
