@@ -14,8 +14,9 @@ export default function Membership ({ membership, index, archive, rowStyle }) {
   const { group, person } = membership
   const { t } = useTranslation()
 
-  // Pass in person.id here since the person loaded through the membership won't have membershipCommonRoles associated
-  const roles = useSelector(state => getRolesForGroup(state, { person: person.id, groupId: group.id }))
+  // person can be an id (from getMemberships) or an object; getRolesForGroup expects person id
+  const personId = person && (typeof person === 'object' ? person.id : person)
+  const roles = useSelector(state => getRolesForGroup(state, { person: personId, groupId: group.id }))
 
   const leave = () => {
     if (window.confirm(t('Are you sure you want to leave {{groupName}}?', { groupName: group.name }))) {

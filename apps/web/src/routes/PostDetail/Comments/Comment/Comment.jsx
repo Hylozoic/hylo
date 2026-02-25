@@ -146,7 +146,7 @@ function Comment ({
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
-                <div key={item.icon} className={styles.commentAction} onClick={item.onClick}>
+                <div key={item.label} className={styles.commentAction} onClick={item.onClick}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon, { 'data-testid': item.label })
                     : <Icon name={item.icon} dataTestId={item.label} />}

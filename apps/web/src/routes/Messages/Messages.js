@@ -172,7 +172,6 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
-        pending={messagesPending}
       />
       )
 
@@ -183,7 +182,7 @@ const Messages = () => {
       icon: messageThreadId ? undefined : 'Messages',
       search: false
     })
-  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
+  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts])
 
   return (
     <div className={cn('flex flex-col w-full h-full justify-center w-full', { [classes.messagesOpen]: messageThreadId })}>
