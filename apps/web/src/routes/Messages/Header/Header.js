@@ -51,7 +51,7 @@ export default class Header extends React.Component {
 
   render () {
     const { showAll } = this.state
-    const { currentUser, messageThread, pending } = this.props
+    const { currentUser, messageThread } = this.props
     const participants = get('participants', messageThread) || []
     const otherParticipants = this.getOthers(currentUser, participants)
     const maxShown = calculateMaxShown(showAll, otherParticipants, MAX_CHARACTERS)
@@ -60,20 +60,17 @@ export default class Header extends React.Component {
 
     return (
       <div className='flex w-full text-foreground min-w-0' id='thread-header'>
-
         <div className='text/foreground flex justify-between min-w-0 flex-1'>
-          {!pending && (
-            <div className='text-foreground flex flex-wrap gap-2 min-w-0 overflow-x-auto'>
-              {displayNames}
-              {andOthers && 'and' && (
-                <span className='text-foreground text-sm xs:text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
-                  {andOthers}
-                  {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
-                </span>
-              )}
-              {showAll && <span className='text-foreground text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
-            </div>
-          )}
+          <div className='text-foreground flex flex-wrap gap-2 min-w-0 overflow-x-auto'>
+            {displayNames}
+            {andOthers && 'and' && (
+              <span className='text-foreground text-sm xs:text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
+                {andOthers}
+                {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
+              </span>
+            )}
+            {showAll && <span className='text-foreground text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
+          </div>
         </div>
       </div>
     )

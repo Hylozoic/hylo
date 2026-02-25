@@ -219,7 +219,6 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
-        pending={messagesPending}
       />
       )
 
@@ -233,7 +232,7 @@ const Messages = () => {
         search: false
       })
     }
-  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
+  }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts])
 
   // Render mobile version if on mobile device; this has been done to create a more sensible user AND developer experience for the rendering of DMs
   if (isMobileDevice()) {
