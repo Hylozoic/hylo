@@ -116,13 +116,14 @@ function TopicSelector (props) {
   // Keep slug for backward compatibility fallback
   const slug = useMemo(() => get('forGroups[0].slug', props), [forGroups])
 
-  useEffect(() => {
-    if (groupIds && groupIds.length > 0) {
-      dispatch(fetchDefaultTopics({ groupIds }))
-    } else if (slug) {
-      dispatch(fetchDefaultTopics({ groupSlug: slug }))
-    }
-  }, [groupIds, slug, dispatch])
+  // XXX: this is currently breaking the back-end with a million queries, and we don't use default topics right now, so let's just disable for now
+  // useEffect(() => {
+  //   if (groupIds && groupIds.length > 0) {
+  //     dispatch(fetchDefaultTopics({ groupIds }))
+  //   } else if (slug) {
+  //    dispatch(fetchDefaultTopics({ groupSlug: slug }))
+  //   }
+  // }, [groupIds, slug, dispatch])
 
   useEffect(() => {
     if (topicsEdited) return
