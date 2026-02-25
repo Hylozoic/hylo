@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.3] - 2026-02-25
+
+### Fixed
+- Issue loading the posts the first time a group is loaded when the home view is set to Stream
+- Adding topic filters to custom views
+- Show correct roles in user profile memberships list
+- Loading of recent activity on user profiles
+- Various issues related to scrolling up and loading old DMs in a thread
+- Warning when loading comments
+
 ## [6.3.2] - 2026-01-27
 
 ### Added
