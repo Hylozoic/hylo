@@ -116,9 +116,12 @@ export default class MessageSection extends Component {
       get('id', messages[messages.length - 1]) === get('id', prevProps.messages[prevProps.messages.length - 1])
     if (prependedOlderMessages) {
       const messageList = document.querySelector('#message-list')
+      const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = snapshot
       if (messageList) {
-        const deltaHeight = messageList.scrollHeight - snapshot.scrollHeight
-        messageList.scrollTop = snapshot.scrollTop + deltaHeight
+        requestAnimationFrame(() => {
+          const deltaHeight = messageList.scrollHeight - prevScrollHeight
+          messageList.scrollTop = prevScrollTop + deltaHeight
+        })
       }
     }
 
@@ -237,7 +240,7 @@ export default class MessageSection extends Component {
         {!isInitialLoad && (
           <>
             {pending && (
-              <div className='max-w-[750px] mx-auto pt-4 flex justify-center'>
+              <div className='absolute top-0 left-0 right-0 z-10 flex justify-center pt-4' aria-hidden>
                 <Loading />
               </div>
             )}
