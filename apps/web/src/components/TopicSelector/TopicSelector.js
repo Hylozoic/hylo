@@ -5,7 +5,6 @@ import AsyncCreatableSelect from 'react-select/async-creatable'
 import { isEmpty, uniqBy, orderBy, get, includes } from 'lodash/fp'
 import { Validators } from '@hylo/shared'
 import Icon from 'components/Icon'
-import { fetchDefaultTopics } from 'store/actions/fetchTopics'
 import findTopics from 'store/actions/findTopics'
 import getDefaultTopics from 'store/selectors/getDefaultTopics'
 
