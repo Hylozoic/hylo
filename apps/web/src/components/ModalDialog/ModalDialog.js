@@ -82,6 +82,7 @@ class ModalDialog extends Component {
       }
       this.modalRef.current.addEventListener('keydown', this.handleKeydown)
     }
+    document.addEventListener('keydown', this.handleKeydown)
     document.addEventListener('mousedown', this.handleMousedown)
     // disable main window scrolling
     this.previousOverflowStyle = document.body.style.overflow
@@ -89,7 +90,10 @@ class ModalDialog extends Component {
   }
 
   componentWillUnmount () {
-    this.modalRef.current.removeEventListener('keydown', this.handleKeydown)
+    if (this.modalRef.current) {
+      this.modalRef.current.removeEventListener('keydown', this.handleKeydown)
+    }
+    document.removeEventListener('keydown', this.handleKeydown)
     document.removeEventListener('mousedown', this.handleMousedown)
     // re-enable main window scrolling
     document.body.style.overflow = this.previousOverflowStyle

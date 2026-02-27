@@ -67,10 +67,8 @@ const StreamViewControls = ({
   postTypeFilter,
   postTypesAvailable,
   searchValue,
-  showCalendarLinks,
   sortBy,
   timeframe,
-  toggleCalendarLinks,
   view,
   viewMode
 }) => {
@@ -135,19 +133,6 @@ const StreamViewControls = ({
               <Icon name='Subgroup' className={cn('p-1 rounded transition-all group-hover:bg-selected/50', { 'bg-selected': childPostInclusion === 'yes' })} />
             </div>
           )}
-          {/* {view === 'events' && (
-            <div
-              className={classes.visibilitySettings}
-              data-tooltip-content={showCalendarLinks ? t('Hide calendar subscription links') : t('Show calendar subscription links')}
-              data-tooltip-id='show-calendar-links-tip'
-            >
-              <VisibilityToggle
-                checked={showCalendarLinks}
-                onChange={() => toggleCalendarLinks(!showCalendarLinks)}
-              />
-              <Tooltip id='show-calendar-links-tip' position='bottom' />
-            </div>
-          )} */}
         </div>
         <div className='bg-background border-foreground/20 border-2 shadow-xl rounded p-1 flex gap-2 items-center'>
           <div
