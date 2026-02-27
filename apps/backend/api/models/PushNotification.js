@@ -17,6 +17,7 @@ module.exports = bookshelf.Model.extend({
     const path = this.get('path')
     const badgeNo = this.get('badge_no')
     const user = await User.find(this.get('user_id'))
+    const iconUrl = options && options.iconUrl
 
     if (!user) {
       // If no user, mark as disabled and return
@@ -32,7 +33,7 @@ module.exports = bookshelf.Model.extend({
     await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     if (!disabled) {
       await OneSignal.notify({
-        readerId, alert, path, badgeNo
+        readerId, alert, path, badgeNo, iconUrl
       })
     }
     return this
