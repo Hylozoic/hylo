@@ -7,6 +7,22 @@ import Icon from 'components/Icon'
 import logout from 'store/actions/logout'
 import { cn } from 'util/index'
 
+/**
+ * SafeLink component - Renders an external link safely
+ */
+function SafeLink ({ href, children, className }) {
+  return (
+    <a 
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+    >
+      {children}
+    </a>
+  )
+}
+
 export default function Agreements () {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -32,20 +48,6 @@ export default function Agreements () {
     setAccepted(e.target.checked)
   }
 
-  const renderAgreementText = (key) => {
-    const codeOfConductLink = `<a href="https://www.hylo.com/agreements/#code-of-conduct" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('codeOfConductText')}</a>`
-    const termsOfUseLink = `<a href="https://www.hylo.com/terms/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('termsOfUseText')}</a>`
-    const fullAgreementsLink = `<a href="https://www.hylo.com/agreements/#hylo-platform-agreements" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">${t('agreementTitle')}</a>`
-
-    const text = t(key, {
-      codeOfConductLink,
-      termsOfUseLink,
-      fullAgreementsLink
-    })
-
-    return <span dangerouslySetInnerHTML={{ __html: text }} />
-  }
-
   return (
     <div className='bg-background shadow-lg rounded-lg w-[320px] md:w-[640px] max-h-[70vh] flex flex-col mt-20'>
       <div className='relative flex-1 overflow-y-auto'>
@@ -59,36 +61,59 @@ export default function Agreements () {
           <p className='text-sm text-muted-foreground text-center mb-6'>{t('agreementSubtitle')}</p>
 
           <div className='space-y-4 text-sm text-foreground/80 leading-relaxed'>
-            <p>{renderAgreementText('agreementChunk1')}</p>
+            <p>
+              {t('agreementChunk1', {
+                codeOfConductLink: '',
+                termsOfUseLink: '',
+                fullAgreementsLink: ''
+              })}
+              <SafeLink 
+                href="https://www.hylo.com/agreements/#code-of-conduct"
+                className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+              >
+                {t('codeOfConductText')}
+              </SafeLink>
+              {' '}{t('and')}{' '}
+              <SafeLink 
+                href="https://www.hylo.com/terms/"
+                className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+              >
+                {t('termsOfUseText')}
+              </SafeLink>
+              .
+            </p>
             <div className='space-y-3'>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk2')}</span>
+                <span>{t('agreementChunk2')}</span>
               </p>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk3')}</span>
+                <span>{t('agreementChunk3')}</span>
               </p>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk4')}</span>
+                <span>{t('agreementChunk4')}</span>
               </p>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk5')}</span>
+                <span>{t('agreementChunk5')}</span>
               </p>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk6')}</span>
+                <span>{t('agreementChunk6')}</span>
               </p>
               <p className='font-medium text-foreground flex items-start gap-2'>
                 <span className='text-blue-600'>•</span>
-                <span>{renderAgreementText('agreementChunk7')}</span>
+                <span>{t('agreementChunk7')}</span>
               </p>
               <p>
-                <a href='https://www.hylo.com/agreements/#hylo-platform-agreements' target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:text-blue-800 hover:underline font-medium'>
+                <SafeLink 
+                  href="https://www.hylo.com/agreements/#hylo-platform-agreements"
+                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                >
                   {t('viewDetailedAgreements')}
-                </a>
+                </SafeLink>
               </p>
             </div>
           </div>

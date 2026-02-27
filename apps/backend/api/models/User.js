@@ -252,6 +252,47 @@ module.exports = bookshelf.Model.extend(merge({
     return this.belongsTo(StripeAccount)
   },
 
+  // Bot-related relationships
+  botOwner: function () {
+    return this.belongsTo(User, 'bot_owner_id')
+  },
+
+  botApplication: function () {
+    return this.belongsTo(Application, 'bot_application_id')
+  },
+
+  ownedApplications: function () {
+    return this.hasMany(Application, 'owner_id')
+  },
+
+  botGroupPermissions: function () {
+    return this.hasMany(BotGroupPermission, 'bot_user_id')
+  },
+
+  /**
+   * Check if this user is a bot
+   */
+  isBot: function () {
+    return this.get('is_bot') === true
+  },
+
+  /**
+   * Get groups where this bot has been invited
+   */
+  botGroups: function () {
+    if (!this.get('is_bot')) return null
+    return this.belongsToMany(Group, 'bot_group_permissions', 'bot_user_id', 'group_id')
+      .where('bot_group_permissions.is_active', true)
+  },
+
+  /**
+   * Check if bot has permission in a specific group
+   */
+  async hasBotPermission (groupId, permission) {
+    if (!this.get('is_bot')) return false
+    return BotGroupPermission.checkPermission(this.id, groupId, permission)
+  },
+
   tagFollows: function () {
     return this.hasMany(TagFollow)
   },
@@ -739,6 +780,36 @@ module.exports = bookshelf.Model.extend(merge({
           return user
         })
     )
+  },
+
+  /**
+   * Create a bot user for an application
+   */
+  createBot: async function ({ name, applicationId, ownerId }, opts = {}) {
+    const botEmail = `bot-${applicationId}@bots.hylo.com`
+
+    const bot = await new User({
+      name: name,
+      email: botEmail,
+      avatar_url: User.gravatar(botEmail),
+      is_bot: true,
+      bot_owner_id: ownerId,
+      bot_application_id: applicationId,
+      created_at: new Date(),
+      updated_at: new Date(),
+      settings: {},
+      active: true
+    }).save(null, opts)
+
+    return bot
+  },
+
+  /**
+   * Find all bots owned by a user
+   */
+  findBotsOwnedBy: function (userId, opts = {}) {
+    if (!userId) return Promise.resolve([])
+    return this.where({ bot_owner_id: userId, is_bot: true }).fetchAll(opts)
   },
 
   find: function (idEmailOrName, options, activeFilter = true) {

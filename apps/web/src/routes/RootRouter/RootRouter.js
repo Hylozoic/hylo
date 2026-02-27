@@ -63,6 +63,8 @@ export default function RootRouter () {
       <Routes>
         {/* If authenticated we still need to do oauth stuff when requested */}
         <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+        {/* Web-only OAuth routes for 3rd party clients on mobile browsers (not intercepted by mobile app deep links) */}
+        <Route path='/web/oauth/*' element={<OAuthLayoutRouter />} />
         <Route path='*' element={<AuthLayoutRouter />} />
       </Routes>
     )
@@ -76,6 +78,8 @@ export default function RootRouter () {
         />
 
         <Route path='/oauth/*' element={<OAuthLayoutRouter />} />
+        {/* Web-only OAuth routes for 3rd party clients on mobile browsers (not intercepted by mobile app deep links) */}
+        <Route path='/web/oauth/*' element={<OAuthLayoutRouter />} />
 
         <Route path='/post/:postId/*' element={<PublicPostDetail />} />
 
