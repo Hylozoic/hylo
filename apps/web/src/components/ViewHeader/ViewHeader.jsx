@@ -135,7 +135,7 @@ const ViewHeader = () => {
   }
 
   return (
-    <header className={cn('flex flex-row items-center z-10 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered
     })}
     >
