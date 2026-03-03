@@ -825,6 +825,7 @@ function GroupSettingsMenu ({ group }) {
     canAdminister && { title: 'Related Groups', url: 'settings/relationships' },
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
+    canAdminister && { title: 'Bots', url: 'settings/bots' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])

@@ -148,6 +148,9 @@ module.exports = bookshelf.Model.extend(merge({
   groupRoles () {
     return this.hasMany(GroupRole)
   },
+  botPermissions () {
+    return this.hasMany(require("./BotGroupPermission"), "group_id")
+  },
 
   groupTags () {
     return this.hasMany(GroupTag)

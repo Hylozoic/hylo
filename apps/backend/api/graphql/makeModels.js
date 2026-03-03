@@ -48,6 +48,44 @@ export default function makeModels (userId, isAdmin, apiClient) {
       }
     },
 
+    BotGroupPermission: {      model: BotGroupPermission,      attributes: [        "bot_user_id",        "group_id",        "permissions",        "is_active",        "created_at"      ],      relations: [        { bot: { alias: "bot" } },        { group: { alias: "group" } },        { invitedBy: { alias: "invitedBy" } }      ],      getters: {        botUserId: m => m.get("bot_user_id"),        groupId: m => m.get("group_id"),        isActive: m => m.get("is_active")      }    },
+    Application: {
+      model: Application,
+      isDefaultTypeForTable: true,
+      attributes: [
+        'id',
+        'name',
+        'description',
+        'client_id',
+        'icon_url',
+        'redirect_uris',
+        'scopes',
+        'has_bot',
+        'webhook_url',
+        'webhook_events',
+        'is_public',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        'owner',
+        'bot'
+      ],
+      getters: {
+        clientId: a => a.get('client_id'),
+        iconUrl: a => a.get('icon_url'),
+        redirectUris: a => a.getRedirectUris ? a.getRedirectUris() : (a.get('redirect_uris') || []),
+        scopes: a => a.getScopes ? a.getScopes() : (a.get('scopes') || ['openid', 'profile']),
+        hasBot: a => a.get('has_bot'),
+        webhookUrl: a => a.get('webhook_url'),
+        webhookEvents: a => a.getWebhookEvents ? a.getWebhookEvents() : (a.get('webhook_events') || []),
+        isPublic: a => a.get('is_public'),
+        createdAt: a => a.get('created_at'),
+        updatedAt: a => a.get('updated_at')
+      }
+    },
+
+
     CookieConsent: {
       model: CookieConsent,
       attributes: [
@@ -193,7 +231,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         hasStripeAccount: u => u.hasStripeAccount(),
         isAdmin: () => isAdmin || false,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
-        settings: u => mapKeys(camelCase, u.get('settings'))
+        settings: u => mapKeys(camelCase, u.get('settings')),
+        developerModeEnabled: u => u.getSetting('developerModeEnabled') || false,
+        applications: async u => {
+          const apps = await Application.findByOwner(u.id)
+          return apps ? apps.models : []
+        }
       }
     },
 
@@ -629,6 +672,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       relations: [
         { activeMembers: { querySet: true } },
         { agreements: { querySet: true } },
+        { botPermissions: { querySet: true } },
         { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
         { contextWidgets: { querySet: true } },

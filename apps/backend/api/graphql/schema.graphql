@@ -863,6 +863,9 @@ type Group {
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
 
+  # Bots that have been invited to this group
+  botPermissions: BotGroupPermissionQuerySet
+
   chatRooms: ContextWidgetQuerySet
 
   # Child groups of this group
@@ -1743,6 +1746,14 @@ type Me {
 
   # Cookie consent preferences for the current user
   cookieConsentPreferences: CookieConsent
+
+  # Developer Mode
+  # Whether the current user has developer mode enabled
+  developerModeEnabled: Boolean
+  # Applications created by this user (only visible if developer mode is enabled)
+  applications: [Application!]
+  # Bots owned by this user
+  ownedBots: [Person!]
 }
 
 # A user's group membership
@@ -3167,6 +3178,31 @@ type Mutation {
   ): SignupResult
   # Upvote a post, or remove upvote. DEPRECATED, use reactOn instead
   vote(postId: ID, isUpvote: Boolean): Post
+
+  # ========================================
+  # Developer Applications & Bot Support
+  # ========================================
+
+  # Enable or disable developer mode for the current user
+  updateDeveloperMode(enabled: Boolean!): GenericResult
+  # Create a new OAuth application
+  createApplication(data: ApplicationInput!): CreateApplicationResult
+  # Update an existing application
+  updateApplication(id: ID!, changes: ApplicationInput!): Application
+  # Delete an application
+  deleteApplication(id: ID!): GenericResult
+  # Regenerate the client secret for an application (returns new secret once)
+  regenerateClientSecret(applicationId: ID!): String
+  # Create a bot user for an application
+  createBotForApplication(applicationId: ID!): Person
+  deleteBotForApplication(applicationId: ID!): GenericResult
+  updateBot(botId: ID!, changes: BotInput!): Person
+  # Invite a bot to a group (requires group admin permissions)
+  inviteBotToGroup(data: InviteBotInput!): BotGroupPermission
+  # Remove a bot from a group
+  removeBotFromGroup(botGroupPermissionId: ID!): GenericResult
+  # Update bot permissions in a group
+  updateBotPermissions(botGroupPermissionId: ID!, permissions: [String!]!): BotGroupPermission
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -3937,4 +3973,107 @@ input UserSettingsInput {
   streamSortBy: String
   # The most recent stream post type filter used by this person
   streamPostType: String
+}
+
+# ========================================
+# Developer Applications & Bot Support
+# ========================================
+
+# An OAuth application registered by a developer
+type Application {
+  id: ID!
+  # Name of the application
+  name: String!
+  # Description of what the application does
+  description: String
+  # URL of the application's icon
+  iconUrl: String
+  # OAuth client ID
+  clientId: String!
+  # Redirect URIs for OAuth flow
+  redirectUris: [String!]!
+  # OAuth scopes this application can request
+  scopes: [String!]!
+  # Whether this application has an associated bot
+  hasBot: Boolean!
+  # The bot user associated with this application
+  bot: Person
+  # Webhook URL for event delivery
+  webhookUrl: String
+  # Events this application subscribes to
+  webhookEvents: [String!]
+  # Whether this application is public
+  isPublic: Boolean!
+  # When the application was created
+  createdAt: Date!
+  # When the application was last updated
+  updatedAt: Date
+  # The user who owns this application
+  owner: Person!
+}
+
+# Result of creating an application (includes one-time secret)
+type CreateApplicationResult {
+  # The created application
+  application: Application!
+  # The client secret (only shown once!)
+  clientSecret: String!
+}
+
+# Bot permissions within a specific group
+type BotGroupPermission {
+  # The bot user ID
+  botUserId: ID!
+  # The group ID
+  groupId: ID!
+  id: ID!
+  # The bot user
+  bot: Person!
+  # The group where the bot has been invited
+  group: Group!
+  # Who invited the bot
+  invitedBy: Person!
+  # List of permissions granted to the bot in this group
+  permissions: [String!]!
+  # Whether the bot is currently active in this group
+  isActive: Boolean!
+  # When the bot was invited to this group
+  createdAt: Date!
+}
+
+# Query set for bot group permissions
+type BotGroupPermissionQuerySet {
+  items: [BotGroupPermission]
+  total: Int
+}
+
+# Input for creating or updating an application
+input ApplicationInput {
+  # Name of the application
+  name: String!
+  # Description of what the application does
+  description: String
+  # URL of the application's icon
+  iconUrl: String
+  # Redirect URIs for OAuth flow
+  redirectUris: [String!]
+  # OAuth scopes this application can request
+  scopes: [String!]
+}
+# Input for updating a bot
+input BotInput {
+  # New name for the bot
+  name: String
+  # New avatar URL for the bot
+  avatarUrl: String
+}
+
+# Input for inviting a bot to a group
+input InviteBotInput {
+  # The bot user ID to invite
+  botUserId: ID!
+  # The group to invite the bot to
+  groupId: ID!
+  # Permissions to grant the bot
+  permissions: [String!]!
 }
