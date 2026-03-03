@@ -143,7 +143,7 @@ function MapDrawer ({
       <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       {currentTab === localizedTabNames.posts
         ? (
-          <div id='mapDrawerWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
+          <div id='mapDrawerWrapper' className='w-full h-[calc(100dvh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
             <div className={styles.postsHeader}>
               {![CONTEXT_MY, 'all', 'public'].includes(context) && (
                 <>

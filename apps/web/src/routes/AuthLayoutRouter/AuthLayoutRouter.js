@@ -357,9 +357,9 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row h-full z-50 flex-shrink-0 overflow-hidden', { 'flex absolute sm:relative': isNavOpen }, location.pathname.startsWith('/messages') ? 'w-[360px] sm:w-[320px] md:w-[340px] max-w-[360px] sm:max-w-[340px]' : 'max-w-420')}>
+          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row h-full z-50 flex-shrink-0 overflow-hidden', { 'flex absolute sm:relative w-full sm:w-auto': isNavOpen }, location.pathname.startsWith('/messages') ? 'sm:w-[320px] md:w-[340px] sm:max-w-[340px]' : 'sm:max-w-420')}>
             {!withoutNav && (
               <>
                 <GlobalNav
@@ -429,7 +429,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
