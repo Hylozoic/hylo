@@ -174,11 +174,11 @@ function SettingsMenu ({ currentUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
-          <Settings className='w-6 h-6' />
+        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
+          <Settings className='w-7 h-7 sm:w-6 sm:h-6' />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side='right' align='start' className='min-w-[200px] bg-card'>
+      <DropdownMenuContent side='right' align='start' className='min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className='mr-2 h-4 w-4' />
           <span>{t('Logout')}</span>
