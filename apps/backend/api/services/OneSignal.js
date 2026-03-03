@@ -15,7 +15,7 @@ const configuration = OneSignal.createConfiguration(authConfig)
 const client = new OneSignal.DefaultApi(configuration)
 
 // Helper function to create notification object for SDK
-function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
+function createNotificationObject ({ readerId, alert, path, appId, badgeNo, iconUrl }) {
   if (!readerId) {
     throw new Error('Need a readerId to send a push notification')
   }
@@ -36,6 +36,11 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'
     notification.ios_badgeCount = badgeNo
+  }
+
+  if (iconUrl) {
+    notification.large_icon = iconUrl
+    notification.ios_attachments = { id1: iconUrl }
   }
 
   return notification

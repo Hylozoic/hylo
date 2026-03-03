@@ -8,6 +8,44 @@ import { en } from '../../lib/i18n/en'
 import { es } from '../../lib/i18n/es'
 const locales = { en, es }
 
+const DEFAULT_USER_AVATAR = 'https://www.gravatar.com/avatar'
+const DEFAULT_GROUP_AVATAR = '/default-group-avatar.svg'
+
+async function getIconUrl (notification) {
+  const { activity } = notification.relations
+  const reasons = activity.get('meta').reasons
+  const reason = Notification.priorityReason(reasons)
+  const groupRelatedReasons = [
+    'joinRequest',
+    'approvedJoinRequest',
+    'announcement',
+    'groupChildGroupInvite',
+    'groupChildGroupInviteAccepted',
+    'groupParentGroupJoinRequest',
+    'groupParentGroupJoinRequestAccepted',
+    'newPost',
+    'memberJoinedGroup'
+  ]
+
+  let iconUrl
+
+  if (groupRelatedReasons.includes(reason)) {
+    await activity.load('group')
+    iconUrl = activity.relations.group.get('avatar_url')
+    if (iconUrl && iconUrl.includes(DEFAULT_GROUP_AVATAR)) {
+      return null
+    }
+  } else {
+    await activity.load('actor')
+    iconUrl = activity.relations.actor.get('avatar_url')
+    if (iconUrl && iconUrl.includes(DEFAULT_USER_AVATAR)) {
+      return null
+    }
+  }
+
+  return iconUrl
+}
+
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
   Chat: 'chat', // someone chats you in a chat room you subscribe to
@@ -170,40 +208,37 @@ module.exports = bookshelf.Model.extend({
     }
   },
 
-  sendApprovedJoinRequestPush: function () {
+  sendApprovedJoinRequestPush: async function () {
     const groupIds = Activity.groupIds(this.relations.activity)
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     const locale = this.locale()
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.group(group)).pathname
-        const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await Group.find(groupIds[0])
+    const path = new URL(Frontend.Route.group(group)).pathname
+    const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
-  sendAnnouncementPush: function (version) {
+  sendAnnouncementPush: async function (version) {
     const post = this.post()
     const groupIds = Activity.groupIds(this.relations.activity)
     const locale = this.locale()
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
-        const alertText = PushNotification.textForAnnouncement(post, group, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await Group.find(groupIds[0])
+    const path = new URL(Frontend.Route.post(post, group)).pathname
+    const alertText = PushNotification.textForAnnouncement(post, group, locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
-  sendContributionPush: function (version) {
+  sendContributionPush: async function (version) {
     const locale = this.locale()
-    return this.load(['contribution', 'contribution.post'])
-      .then(() => {
-        const { contribution } = this.relations.activity.relations
-        const path = new URL(Frontend.Route.post(contribution.relations.post)).pathname
-        const alertText = PushNotification.textForContribution(contribution, version, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    await this.load(['contribution', 'contribution.post'])
+    const { contribution } = this.relations.activity.relations
+    const path = new URL(Frontend.Route.post(contribution.relations.post)).pathname
+    const alertText = PushNotification.textForContribution(contribution, version, locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendTrackCompletedPush: async function () {
@@ -211,7 +246,8 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.track(track)).pathname
     const alertText = PushNotification.textForTrackCompleted(track, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendTrackEnrollmentPush: async function () {
@@ -219,21 +255,21 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.track(track)).pathname
     const alertText = PushNotification.textForTrackEnrollment(track, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
-  sendEventInvitationPush: function () {
+  sendEventInvitationPush: async function () {
     const post = this.post()
     const actor = this.actor()
     const locale = this.locale()
     const groupIds = Activity.groupIds(this.relations.activity)
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
-        const alertText = PushNotification.textForEventInvitation(post, actor, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await Group.find(groupIds[0])
+    const path = new URL(Frontend.Route.post(post, group)).pathname
+    const alertText = PushNotification.textForEventInvitation(post, actor, locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendPostPush: async function (version) {
@@ -244,15 +280,14 @@ module.exports = bookshelf.Model.extend({
     const firstTag = tags && tags.first()?.get('name')
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     // TODO: include all groups in the notification?
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
-        const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await Group.find(groupIds[0])
+    const path = new URL(Frontend.Route.post(post, group)).pathname
+    const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
-  sendCommentPush: function (version) {
+  sendCommentPush: async function (version) {
     const comment = this.comment()
     const post = comment.relations.post
     const group = post.relations.groups.first()
@@ -262,19 +297,19 @@ module.exports = bookshelf.Model.extend({
     if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
       return Promise.resolve()
     }
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
-  sendJoinRequestPush: function () {
+  sendJoinRequestPush: async function () {
     const groupIds = Activity.groupIds(this.relations.activity)
     const locale = this.locale()
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.groupJoinRequests(group)).pathname
-        const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+    const group = await Group.find(groupIds[0])
+    const path = new URL(Frontend.Route.groupJoinRequests(group)).pathname
+    const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendGroupChildGroupInvitePush: async function () {
@@ -284,7 +319,8 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = new URL(Frontend.Route.groupRelationshipInvites(childGroup)).pathname
     const alertText = PushNotification.textForGroupChildGroupInvite(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendGroupChildGroupInviteAcceptedPush: async function () {
@@ -309,7 +345,8 @@ module.exports = bookshelf.Model.extend({
       alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedChildMember(parentGroup, childGroup, this.actor(), locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, alertPath, iconUrl)
   },
 
   sendGroupParentGroupJoinRequestPush: async function () {
@@ -319,7 +356,8 @@ module.exports = bookshelf.Model.extend({
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
     const path = new URL(Frontend.Route.groupRelationshipJoinRequests(parentGroup)).pathname
     const alertText = PushNotification.textForGroupParentGroupJoinRequest(parentGroup, childGroup, this.actor(), locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendGroupParentGroupJoinRequestAcceptedPush: async function () {
@@ -344,7 +382,8 @@ module.exports = bookshelf.Model.extend({
       alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedChildMember(parentGroup, childGroup, locale)
     }
-    return this.reader().sendPushNotification(alertText, alertPath)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, alertPath, iconUrl)
   },
 
   sendGroupPeerGroupInvitePush: async function () {
@@ -375,7 +414,8 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.post(projectContribution.relations.project)).pathname
     const alertText = PushNotification.textForDonationTo(projectContribution, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendPushDonationFrom: async function () {
@@ -384,7 +424,8 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.post(projectContribution.relations.project)).pathname
     const alertText = PushNotification.textForDonationFrom(projectContribution, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendMemberJoinedGroupPush: async function () {
@@ -393,7 +434,8 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.profile(actor, group)).pathname
     const alertText = PushNotification.textForMemberJoinedGroup(group, actor, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    const iconUrl = await getIconUrl(this)
+    return this.reader().sendPushNotification(alertText, path, iconUrl)
   },
 
   sendEmail: async function () {
