@@ -101,7 +101,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
-      search: true
+      search: true,
+      backButton: true,
+      mobileBackButton: true
     })
   }, [person])
 

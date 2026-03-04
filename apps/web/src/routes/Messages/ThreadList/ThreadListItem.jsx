@@ -24,7 +24,7 @@ export default function ThreadListItem ({
 
   return (
     <li>
-      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50 max-h-[110px] sm:max-h-[80px] overflow-hidden transition-all', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })} onClick={toggleNavMenuAction}>
+      <Link to={`/messages/${id}`} className={cn('group flex flex-row bg-transparent m-0 p-2 hover:scale-105 transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })} onClick={toggleNavMenuAction}>
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>

@@ -1,9 +1,8 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { isEmpty, filter, get, map } from 'lodash/fp'
 import Icon from 'components/Icon'
-import { personUrl } from '@hylo/navigation'
+import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { others } from 'store/models/MessageThread'
 
 const MAX_CHARACTERS = 60
@@ -98,7 +97,11 @@ export function calculateMaxShown (showAll, otherParticipants, maxCharacters) {
 }
 
 export const getFormattedLinkToProfile = (user) => {
-  return <Link key={user.id} to={personUrl(user.id)} className='text-foreground font-bold inline-block p-2 rounded bg-darkening/20 text-sm xs:text-base transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>{user.name}</Link>
+  return (
+    <ProfileCardDialog key={user.id} personId={user.id}>
+      <span className='text-foreground font-bold inline-block p-2 rounded bg-darkening/20 text-sm xs:text-base transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>{user.name}</span>
+    </ProfileCardDialog>
+  )
 }
 
 export function generateDisplayNames (maxShown, participants, currentUser) {

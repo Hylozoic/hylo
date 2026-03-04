@@ -103,8 +103,9 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 border-r-2 border-foreground/30'
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 sm:w-[300px] sm:flex-shrink-0'
       )}
+      style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
     >
       <div className={cn(classes.header, 'flex items-center gap-3')}>

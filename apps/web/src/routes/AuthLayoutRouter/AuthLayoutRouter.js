@@ -576,7 +576,7 @@ export default function AuthLayoutRouter (props) {
               'fixed left-0 top-0 z-[101] h-dvh w-full',
               // Desktop: back in normal flow
               'sm:relative sm:z-50 sm:h-full sm:w-auto',
-              location.pathname.startsWith('/messages') ? 'sm:w-[320px] md:w-[340px] sm:max-w-[340px]' : 'sm:max-w-420'
+              'sm:max-w-420'
             )}
           >
             {!withoutNav && (
