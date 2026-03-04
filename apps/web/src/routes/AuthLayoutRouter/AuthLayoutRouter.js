@@ -212,7 +212,7 @@ export default function AuthLayoutRouter (props) {
     let touchStartX = null
     let touchStartY = null
     let touchStartTime = null
-    let isOpenGesture = false  // attempting to open (nav currently closed)
+    let isOpenGesture = false // attempting to open (nav currently closed)
     let isCloseGesture = false // attempting to close (nav currently open)
     let isDragging = false
     let directionLocked = false
@@ -242,6 +242,8 @@ export default function AuthLayoutRouter (props) {
       backdropEl.style.pointerEvents = open ? 'auto' : 'none'
     }
 
+    let touchTarget = null
+
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
       const navEl = navContainerRef.current
@@ -252,6 +254,7 @@ export default function AuthLayoutRouter (props) {
       touchStartX = touch.clientX
       touchStartY = touch.clientY
       touchStartTime = Date.now()
+      touchTarget = e.target
       navWidth = navEl.offsetWidth
       isDragging = false
       directionLocked = false
@@ -287,6 +290,22 @@ export default function AuthLayoutRouter (props) {
         // Validate direction: only right swipe opens, only left swipe closes
         if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
         if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If opening (right swipe), check if touch is inside a horizontally
+        // scrolled container — let native scroll handle scrolling back first
+        if (isOpenGesture && touchTarget) {
+          let el = touchTarget
+          while (el && el !== document.body) {
+            if (el.scrollLeft > 0) {
+              const overflowX = window.getComputedStyle(el).overflowX
+              if (overflowX === 'auto' || overflowX === 'scroll') {
+                touchStartX = null
+                return
+              }
+            }
+            el = el.parentElement
+          }
+        }
       }
 
       // Only remove transitions once we've confirmed a valid horizontal drag
