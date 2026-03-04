@@ -46,7 +46,7 @@ import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurr
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
-import isWebView from 'util/webView'
+import isWebView from 'util/webView' // eslint-disable-line no-unused-vars
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -413,7 +413,7 @@ export default function ChatRoom (props) {
       // Remove the scroll to post from the url so we can click on a notification to scroll to it again
       // DEPRECATED: Now always clean up the URL parameter
       // if (!isWebView()) {
-        dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      dispatch(changeQuerystringParam(location, 'postId', null, null, true))
       // }
     }
   }, [querystringParams?.postId])
@@ -575,7 +575,7 @@ export default function ChatRoom (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     !hiddenTopic && setHeaderDetails({
-      backButton: true, // Ensure back/menu button shows on all devices
+      backButton: false,
       title: (
         <span className='flex items-center gap-2'>
           #{topicName}
