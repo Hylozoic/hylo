@@ -175,7 +175,7 @@ const ViewHeader = () => {
       <h2
         className={cn('text-foreground m-0', {
           'whitespace-nowrap': typeof title === 'string' || (title?.mobile && title?.desktop),
-          'min-w-0 overflow-x-auto': React.isValidElement(title)
+          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title)
         })}
       >
         {typeof title === 'string' || React.isValidElement(title)
