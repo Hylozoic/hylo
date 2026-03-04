@@ -178,7 +178,7 @@ function SettingsMenu ({ currentUser }) {
           <Settings className='w-7 h-7 sm:w-6 sm:h-6' />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side='right' align='start' className='min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
+      <DropdownMenuContent side='right' align='start' className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className='mr-2 h-4 w-4' />
           <span>{t('Logout')}</span>
@@ -209,7 +209,7 @@ function SettingsMenu ({ currentUser }) {
             <Palette className='mr-2 h-4 w-4' />
             <span>{t('Appearance')}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='bg-card'>
+          <DropdownMenuSubContent className='z-[200] bg-card'>
             <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
             <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
               <DropdownMenuRadioItem value='auto'>
@@ -238,7 +238,7 @@ function SettingsMenu ({ currentUser }) {
             <Languages className='mr-2 h-4 w-4' />
             <span>{t('Language')}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='bg-card'>
+          <DropdownMenuSubContent className='z-[200] bg-card'>
             <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
               <DropdownMenuRadioItem value='en'>
                 🇬🇧 {t('English')}
