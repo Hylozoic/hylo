@@ -186,12 +186,19 @@ function PostDetail () {
     // Attach listeners to the scroll container so we can intercept before native scroll
     const listenTarget = scrollContainer || el
 
+    // The overlay is the scroll container when inside a dialog
+    const overlay = scrollContainer?.classList?.contains('PostDialog-Overlay') ? scrollContainer : null
+
     const resetStyles = () => {
       if (dragTarget) {
         dragTarget.style.transform = ''
         dragTarget.style.opacity = ''
         dragTarget.style.borderRadius = ''
         dragTarget.style.willChange = ''
+      }
+      if (overlay) {
+        overlay.style.backgroundColor = ''
+        overlay.style.backdropFilter = ''
       }
     }
 
@@ -227,6 +234,13 @@ function PostDetail () {
         dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
         dragTarget.style.transformOrigin = 'top center'
         dragTarget.style.willChange = 'transform, opacity'
+
+        // Fade the overlay background as the card is dragged
+        if (overlay) {
+          const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
+          overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
+          overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
+        }
       } else if (isDraggingDown.current) {
         isDraggingDown.current = false
         resetStyles()
@@ -251,10 +265,18 @@ function PostDetail () {
         dragTarget.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
         dragTarget.style.transform = 'translateY(60vh) scale(0.9)'
         dragTarget.style.opacity = '0'
+        if (overlay) {
+          overlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
+          overlay.style.backgroundColor = 'transparent'
+          overlay.style.backdropFilter = 'blur(0px)'
+        }
         setTimeout(() => onCloseRef.current(), 200)
       } else {
         if (dragTarget) {
           dragTarget.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, border-radius 0.3s ease'
+        }
+        if (overlay) {
+          overlay.style.transition = 'background-color 0.3s ease, backdrop-filter 0.3s ease'
         }
         resetStyles()
       }
@@ -275,6 +297,9 @@ function PostDetail () {
       resetStyles()
       if (dragTarget) {
         dragTarget.style.transition = ''
+      }
+      if (overlay) {
+        overlay.style.transition = ''
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
