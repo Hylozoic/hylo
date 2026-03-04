@@ -43,7 +43,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
 import { removePostFromUrl } from '@hylo/navigation'
-import { DETAIL_COLUMN_ID, position } from 'util/scrolling'
+import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
 
@@ -154,6 +154,133 @@ function PostDetail () {
     navigate(closeLocation)
   }, [location])
 
+  // Pull-to-close: drag the dialog/container down to dismiss when scrolled to top
+  const pullTouchRef = useRef(null)
+  const touchStartY = useRef(null)
+  const touchStartScrollTop = useRef(null)
+  const isDraggingDown = useRef(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const PULL_THRESHOLD = 100
+
+  useEffect(() => {
+    const el = pullTouchRef.current
+    if (!el) return
+
+    // The drag target is the dialog content wrapper (or the detail column if not in a dialog)
+    const getDragTarget = () =>
+      document.getElementById('post-dialog-content') || document.getElementById(DETAIL_COLUMN_ID)
+
+    // The scroll container is the dialog overlay (has overflow-y: auto) or the detail column
+    const getScrollContainer = () => {
+      const dialog = document.getElementById('post-dialog-content')
+      if (dialog) {
+        // The overlay is the dialog content's parent
+        return dialog.closest('.PostDialog-Overlay') || dialog.parentElement
+      }
+      return document.getElementById(DETAIL_COLUMN_ID) || document.getElementById(CENTER_COLUMN_ID)
+    }
+
+    const dragTarget = getDragTarget()
+    const scrollContainer = getScrollContainer()
+    // Attach listeners to the scroll container so we can intercept before native scroll
+    const listenTarget = scrollContainer || el
+
+    const resetStyles = () => {
+      if (dragTarget) {
+        dragTarget.style.transform = ''
+        dragTarget.style.opacity = ''
+        dragTarget.style.borderRadius = ''
+        dragTarget.style.willChange = ''
+      }
+    }
+
+    const handleTouchStart = (e) => {
+      if (!scrollContainer) return
+      touchStartY.current = e.touches[0].clientY
+      touchStartScrollTop.current = scrollContainer.scrollTop
+      isDraggingDown.current = false
+      if (dragTarget) {
+        dragTarget.style.transition = 'none'
+      }
+    }
+
+    const handleTouchMove = (e) => {
+      if (touchStartY.current === null || touchStartScrollTop.current === null) return
+      if (touchStartScrollTop.current > 0) return
+      if (!scrollContainer || !dragTarget) return
+
+      const currentY = e.touches[0].clientY
+      const rawDelta = currentY - touchStartY.current
+
+      if (rawDelta > 0 && scrollContainer.scrollTop <= 0) {
+        e.preventDefault()
+
+        isDraggingDown.current = true
+        const dampened = rawDelta * 0.45
+        const progress = Math.min(dampened / PULL_THRESHOLD, 1.5)
+        const opacity = Math.max(1 - progress * 0.4, 0.3)
+        const scale = Math.max(1 - progress * 0.04, 0.92)
+
+        dragTarget.style.transform = `translateY(${dampened}px) scale(${scale})`
+        dragTarget.style.opacity = opacity
+        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+        dragTarget.style.transformOrigin = 'top center'
+        dragTarget.style.willChange = 'transform, opacity'
+      } else if (isDraggingDown.current) {
+        isDraggingDown.current = false
+        resetStyles()
+      }
+    }
+
+    const handleTouchEnd = (e) => {
+      if (touchStartY.current === null || touchStartScrollTop.current === null) return
+
+      if (!isDraggingDown.current || touchStartScrollTop.current > 0) {
+        touchStartY.current = null
+        touchStartScrollTop.current = null
+        isDraggingDown.current = false
+        return
+      }
+
+      const touchEndY = e.changedTouches[0].clientY
+      const rawDelta = touchEndY - touchStartY.current
+      const dampened = rawDelta * 0.45
+
+      if (dampened >= PULL_THRESHOLD && dragTarget) {
+        dragTarget.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
+        dragTarget.style.transform = 'translateY(60vh) scale(0.9)'
+        dragTarget.style.opacity = '0'
+        setTimeout(() => onCloseRef.current(), 200)
+      } else {
+        if (dragTarget) {
+          dragTarget.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, border-radius 0.3s ease'
+        }
+        resetStyles()
+      }
+
+      touchStartY.current = null
+      touchStartScrollTop.current = null
+      isDraggingDown.current = false
+    }
+
+    listenTarget.addEventListener('touchstart', handleTouchStart, { passive: true })
+    listenTarget.addEventListener('touchmove', handleTouchMove, { passive: false })
+    listenTarget.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    return () => {
+      listenTarget.removeEventListener('touchstart', handleTouchStart)
+      listenTarget.removeEventListener('touchmove', handleTouchMove)
+      listenTarget.removeEventListener('touchend', handleTouchEnd)
+      resetStyles()
+      if (dragTarget) {
+        dragTarget.style.transition = ''
+      }
+    }
+  // Re-run when post loads (ref won't be set until post renders the JSX)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId, !!post])
+
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)
     detail.scrollTop = detail.scrollHeight
@@ -203,7 +330,14 @@ function PostDetail () {
   }
 
   return (
-    <div ref={ref} id={`post-detail-container-${post.id}`} className={cn('PostDetail max-w-[960px] mx-auto min-w-[290px] sm:min-w-[350px] bg-background relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}>
+    <div
+      ref={(node) => {
+        ref(node)
+        pullTouchRef.current = node
+      }}
+      id={`post-detail-container-${post.id}`}
+      className={cn('PostDetail max-w-[960px] mx-auto min-w-[290px] sm:min-w-[350px] relative', { [classes.noUser]: !currentUser, [classes.headerPad]: state.atHeader })}
+    >
       <Helmet>
         <title>
           {`${post.title || TextHelpers.presentHTMLToText(post.details, { truncate: 20 })} | Hylo`}
