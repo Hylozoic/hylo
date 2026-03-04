@@ -207,6 +207,11 @@ export default function ContextMenu (props) {
     menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
   }, [])
 
+  // When the context menu scrolls, dismiss GlobalNav tooltips immediately
+  const handleScroll = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('contextMenuScroll'))
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -221,6 +226,7 @@ export default function ContextMenu (props) {
       <div
         className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0 sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
+        onScroll={handleScroll}
       >
         <div className='relative min-h-full'>
           <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />

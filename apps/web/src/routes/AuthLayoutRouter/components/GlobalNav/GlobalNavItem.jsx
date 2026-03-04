@@ -40,6 +40,7 @@ export default function GlobalNavItem ({
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
   const itemRef = useRef(null)
+  const suppressHoverRef = useRef(false)
   const [isInViewport, setIsInViewport] = useState(true)
 
   /**
@@ -94,6 +95,17 @@ export default function GlobalNavItem ({
     }
   }, [checkPosition])
 
+  // Listen for hover suppression from GlobalNav (fired when nav opens on mobile)
+  // Blocks ALL hover events regardless of pointerType during the grace period
+  useEffect(() => {
+    const handleSuppress = (e) => {
+      suppressHoverRef.current = e.detail
+      if (e.detail) setIsHovered(false)
+    }
+    window.addEventListener('navHoverSuppress', handleSuppress)
+    return () => window.removeEventListener('navHoverSuppress', handleSuppress)
+  }, [])
+
   // Reset local hover state when parent stops showing tooltips
   // This prevents "sticky" tooltips on mobile where mouseleave doesn't fire reliably
   useEffect(() => {
@@ -109,11 +121,14 @@ export default function GlobalNavItem ({
     }
   }, [url, navigate])
 
-  const handleMouseEnter = useCallback(() => {
+  const handlePointerEnter = useCallback((e) => {
+    // Ignore touch-originated pointer events and suppress during nav open grace period
+    if (e.pointerType === 'touch' || suppressHoverRef.current) return
     setIsHovered(true)
   }, [])
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerLeave = useCallback((e) => {
+    if (e.pointerType === 'touch') return
     setIsHovered(false)
   }, [])
 
@@ -134,8 +149,8 @@ export default function GlobalNavItem ({
         <TooltipTrigger asChild>
           <div
             onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
             className={cn(
               'bg-primary relative transition-all ease-in-out duration-250 overflow-visible',
               'flex flex-col items-center justify-center w-14 h-14 min-h-10',

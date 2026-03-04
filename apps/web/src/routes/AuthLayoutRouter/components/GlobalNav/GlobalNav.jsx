@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
 import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -285,6 +285,7 @@ export default function GlobalNav (props) {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const sortedGroups = useSelector(getMyGroups)
+  const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
@@ -293,7 +294,7 @@ export default function GlobalNav (props) {
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
-  const ignoreTouchRef = useRef(true) // Ignore touch events briefly after mount
+  const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
@@ -315,13 +316,33 @@ export default function GlobalNav (props) {
     return () => clearInterval(interval)
   }, [sortedGroups.length])
 
-  // Ignore touch events for 200ms after mount to prevent accidental triggers
-  // when the drawer opens and a lingering touch event fires on the nav
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
+  // Suppress all hover/tooltip interactions briefly each time the nav becomes visible,
+  // preventing phantom hover/tooltips from the tap that opened the nav.
+  // useLayoutEffect ensures this runs synchronously after DOM mutation but
+  // BEFORE the browser paints — so no events can slip through the gap.
+  useLayoutEffect(() => {
+    if (isNavOpen) {
+      ignoreTouchRef.current = true
+      window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: true }))
+      const timeoutId = setTimeout(() => {
+        ignoreTouchRef.current = false
+        window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: false }))
+      }, 400) // Long enough for the open animation + finger lift
+      return () => clearTimeout(timeoutId)
+    } else {
+      // Clear immediately when nav closes (or on desktop where isNavOpen is always false)
       ignoreTouchRef.current = false
-    }, 200)
-    return () => clearTimeout(timeoutId)
+      window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: false }))
+    }
+  }, [isNavOpen])
+
+  // Dismiss tooltips immediately when the adjacent ContextMenu scrolls
+  useEffect(() => {
+    const handleContextMenuScroll = () => {
+      clearHover()
+    }
+    window.addEventListener('contextMenuScroll', handleContextMenuScroll)
+    return () => window.removeEventListener('contextMenuScroll', handleContextMenuScroll)
   }, [])
 
   // Add effect to handle menu timeout
@@ -498,7 +519,11 @@ export default function GlobalNav (props) {
     return index < visibleCount ? '' : 'opacity-0'
   }
 
-  const handleContainerMouseEnter = () => {
+  const handleContainerPointerEnter = (e) => {
+    // Ignore touch-originated pointer events — prevents phantom hover/tooltip
+    // when the nav slides open and lands under the user's finger
+    if (e.pointerType === 'touch' || ignoreTouchRef.current) return
+
     // Clear any existing timeout to avoid race conditions
     if (hoverDelayTimeoutRef.current) {
       clearTimeout(hoverDelayTimeoutRef.current)
@@ -507,7 +532,7 @@ export default function GlobalNav (props) {
     hoverDelayTimeoutRef.current = setTimeout(() => {
       // Check current hover state directly from DOM instead of using the captured state variable
       const navContainer = document.querySelector('.globalNavContainer')
-      if (navContainer && navContainer.matches(':hover') && !isMobileDevice()) {
+      if (navContainer && navContainer.matches(':hover')) {
         setIsContainerHovered(true)
       }
     }, 200)
@@ -522,7 +547,8 @@ export default function GlobalNav (props) {
     setIsContainerHovered(false)
   }
 
-  const handleContainerMouseLeave = () => {
+  const handleContainerPointerLeave = (e) => {
+    if (e.pointerType === 'touch') return
     clearHover()
   }
 
@@ -533,8 +559,8 @@ export default function GlobalNav (props) {
   // Touch events to handle hover state on mobile
   const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
   const handleContainerTouchStart = () => {
-    // Ignore touch events briefly after mount to prevent accidental triggers
-    // when drawer opens and a lingering touch event fires on the nav
+    // Ignore touch events briefly after nav opens to prevent accidental triggers
+    // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
@@ -637,8 +663,8 @@ export default function GlobalNav (props) {
           paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
         }}
         onClick={handleClick}
-        onMouseLeave={handleContainerMouseLeave}
-        onMouseEnter={handleContainerMouseEnter}
+        onPointerLeave={handleContainerPointerLeave}
+        onPointerEnter={handleContainerPointerEnter}
         onTouchStart={handleContainerTouchStart}
         onTouchEnd={handleContainerTouchEnd}
       >
