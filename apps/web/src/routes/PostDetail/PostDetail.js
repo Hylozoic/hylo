@@ -154,11 +154,14 @@ function PostDetail () {
     navigate(closeLocation)
   }, [location])
 
-  // Pull-to-close: drag the dialog/container down to dismiss when scrolled to top
+  // Pull-to-close: drag down to dismiss when scrolled to top,
+  // or drag up to dismiss when scrolled to bottom
   const pullTouchRef = useRef(null)
   const touchStartY = useRef(null)
   const touchStartScrollTop = useRef(null)
+  const touchStartAtBottom = useRef(false)
   const isDraggingDown = useRef(false)
+  const isDraggingUp = useRef(false)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const PULL_THRESHOLD = 100
@@ -179,6 +182,11 @@ function PostDetail () {
         return dialog.closest('.PostDialog-Overlay') || dialog.parentElement
       }
       return document.getElementById(DETAIL_COLUMN_ID) || document.getElementById(CENTER_COLUMN_ID)
+    }
+
+    const isAtBottom = (sc) => {
+      if (!sc) return false
+      return sc.scrollHeight - sc.scrollTop - sc.clientHeight <= 1
     }
 
     const dragTarget = getDragTarget()
@@ -202,11 +210,31 @@ function PostDetail () {
       }
     }
 
+    const applyDragStyles = (dampened, progress, direction) => {
+      const opacity = Math.max(1 - progress * 0.4, 0.3)
+      const scale = Math.max(1 - progress * 0.04, 0.92)
+      const translate = direction === 'down' ? dampened : -dampened
+
+      dragTarget.style.transform = `translateY(${translate}px) scale(${scale})`
+      dragTarget.style.opacity = opacity
+      dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
+      dragTarget.style.transformOrigin = direction === 'down' ? 'top center' : 'bottom center'
+      dragTarget.style.willChange = 'transform, opacity'
+
+      if (overlay) {
+        const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
+        overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
+        overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
+      }
+    }
+
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
+      touchStartAtBottom.current = isAtBottom(scrollContainer)
       isDraggingDown.current = false
+      isDraggingUp.current = false
       if (dragTarget) {
         dragTarget.style.transition = 'none'
       }
@@ -214,35 +242,31 @@ function PostDetail () {
 
     const handleTouchMove = (e) => {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
-      if (touchStartScrollTop.current > 0) return
       if (!scrollContainer || !dragTarget) return
 
       const currentY = e.touches[0].clientY
       const rawDelta = currentY - touchStartY.current
 
-      if (rawDelta > 0 && scrollContainer.scrollTop <= 0) {
+      // Pull DOWN to close (at top)
+      if (rawDelta > 0 && scrollContainer.scrollTop <= 0 && touchStartScrollTop.current <= 0) {
         e.preventDefault()
-
         isDraggingDown.current = true
+        isDraggingUp.current = false
         const dampened = rawDelta * 0.45
         const progress = Math.min(dampened / PULL_THRESHOLD, 1.5)
-        const opacity = Math.max(1 - progress * 0.4, 0.3)
-        const scale = Math.max(1 - progress * 0.04, 0.92)
-
-        dragTarget.style.transform = `translateY(${dampened}px) scale(${scale})`
-        dragTarget.style.opacity = opacity
-        dragTarget.style.borderRadius = `${Math.min(progress * 16, 16)}px`
-        dragTarget.style.transformOrigin = 'top center'
-        dragTarget.style.willChange = 'transform, opacity'
-
-        // Fade the overlay background as the card is dragged
-        if (overlay) {
-          const overlayOpacity = Math.max(1 - progress * 0.6, 0.1)
-          overlay.style.backgroundColor = `rgba(0, 0, 0, ${overlayOpacity * 0.5})`
-          overlay.style.backdropFilter = `blur(${Math.max(12 - progress * 8, 0)}px)`
-        }
-      } else if (isDraggingDown.current) {
+        applyDragStyles(dampened, progress, 'down')
+      // Pull UP to close (at bottom)
+      } else if (rawDelta < 0 && isAtBottom(scrollContainer) && touchStartAtBottom.current) {
+        e.preventDefault()
+        isDraggingUp.current = true
         isDraggingDown.current = false
+        const absDelta = Math.abs(rawDelta)
+        const dampened = absDelta * 0.45
+        const progress = Math.min(dampened / PULL_THRESHOLD, 1.5)
+        applyDragStyles(dampened, progress, 'up')
+      } else if (isDraggingDown.current || isDraggingUp.current) {
+        isDraggingDown.current = false
+        isDraggingUp.current = false
         resetStyles()
       }
     }
@@ -250,20 +274,27 @@ function PostDetail () {
     const handleTouchEnd = (e) => {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
 
-      if (!isDraggingDown.current || touchStartScrollTop.current > 0) {
+      const wasDragging = isDraggingDown.current || isDraggingUp.current
+
+      if (!wasDragging) {
         touchStartY.current = null
         touchStartScrollTop.current = null
+        touchStartAtBottom.current = false
         isDraggingDown.current = false
+        isDraggingUp.current = false
         return
       }
 
       const touchEndY = e.changedTouches[0].clientY
       const rawDelta = touchEndY - touchStartY.current
-      const dampened = rawDelta * 0.45
+      const absDelta = Math.abs(rawDelta)
+      const dampened = absDelta * 0.45
+      const direction = isDraggingDown.current ? 'down' : 'up'
 
       if (dampened >= PULL_THRESHOLD && dragTarget) {
+        const dismissTranslate = direction === 'down' ? '60vh' : '-60vh'
         dragTarget.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'
-        dragTarget.style.transform = 'translateY(60vh) scale(0.9)'
+        dragTarget.style.transform = `translateY(${dismissTranslate}) scale(0.9)`
         dragTarget.style.opacity = '0'
         if (overlay) {
           overlay.style.transition = 'background-color 0.25s ease-out, backdrop-filter 0.25s ease-out'
@@ -283,7 +314,9 @@ function PostDetail () {
 
       touchStartY.current = null
       touchStartScrollTop.current = null
+      touchStartAtBottom.current = false
       isDraggingDown.current = false
+      isDraggingUp.current = false
     }
 
     listenTarget.addEventListener('touchstart', handleTouchStart, { passive: true })
