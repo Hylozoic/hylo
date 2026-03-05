@@ -28,6 +28,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   const [modalOpen, setModalOpen] = useState(false)
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const isMobile = isMobileDevice()
 
   const notifications = useSelector(getNotifications)
   const hasMore = useSelector(getHasMoreNotifications)
@@ -86,7 +87,13 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       return <NoItems message={message} />
     } else {
       return (
-        <div className='overflow-y-auto h-[calc(100dvh-100px)] pointer-events-auto' id='notifications-scroll-list'>
+        <div
+          className={cn(
+            'overflow-y-auto pointer-events-auto',
+            isMobile ? 'flex-1 min-h-0' : 'h-[calc(100dvh-100px)]'
+          )}
+          id='notifications-scroll-list'
+        >
           {filteredNotifications.map(notification => (
             <NotificationItem
               notification={notification}
@@ -102,7 +109,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
         </div>
       )
     }
-  }, [pending, filteredNotifications, message, onClick, hasMore])
+  }, [pending, filteredNotifications, message, onClick, hasMore, isMobile])
 
   const handleTouchStart = useCallback((event) => {
     event.stopPropagation()
@@ -117,23 +124,32 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       <PopoverTrigger>
         {renderToggleChildren(currentUser?.newNotificationCount > 0)}
       </PopoverTrigger>
-      <PopoverContent 
-        side='right' 
-        align='start' 
-        className='!p-0 !w-[248px] sm:!w-[300px]'
+      <PopoverContent
+        side='right'
+        align='start'
+        sideOffset={isMobile ? 0 : 8}
+        collisionPadding={isMobile ? 0 : undefined}
+        className={cn(
+          '!p-0',
+          isMobile
+            ? '!w-[var(--radix-popover-content-available-width)] !h-[var(--radix-popover-content-available-height)] !max-h-[var(--radix-popover-content-available-height)] !rounded-none'
+            : '!w-[300px]'
+        )}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className={cn('flex items-center w-full z-10 pointer-events-auto', { 'p-3': isMobileDevice(), 'p-2': !isMobileDevice() })}>
-          <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice(), 'border-b-2 border-accent relative': !showingUnread })}>
-            {t('Recent')}
-          </span>
-          <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice(), 'border-b-2 border-accent relative': showingUnread })}>
-            {t('Unread')}
-          </span>
-          <span onClick={() => dispatch(markAllActivitiesRead())} className={cn('cursor-pointer text-accent ml-auto text-xs sm:text-sm', { 'py-3': isMobileDevice(), 'py-1': !isMobileDevice() })}>{t('Mark all as read')}</span>
+        <div className={cn('flex flex-col', isMobile ? 'h-full' : '')}>
+          <div className={cn('flex items-center w-full z-10 pointer-events-auto flex-shrink-0', { 'p-3': isMobile, 'p-2': !isMobile })}>
+            <span onClick={showRecent} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobile, 'py-1': !isMobile, 'border-b-2 border-accent relative': !showingUnread })}>
+              {t('Recent')}
+            </span>
+            <span onClick={showUnread} className={cn('cursor-pointer text-accent mr-5 px-2 text-xs sm:text-sm', { 'py-3': isMobile, 'py-1': !isMobile, 'border-b-2 border-accent relative': showingUnread })}>
+              {t('Unread')}
+            </span>
+            <span onClick={() => dispatch(markAllActivitiesRead())} className={cn('cursor-pointer text-accent ml-auto text-xs sm:text-sm', { 'py-3': isMobile, 'py-1': !isMobile })}>{t('Mark all as read')}</span>
+          </div>
+          {body}
         </div>
-        {body}
       </PopoverContent>
     </Popover>
   )
