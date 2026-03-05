@@ -128,7 +128,7 @@ module.exports = bookshelf.Model.extend({
         body: reporteeMessageContent +
         `${link}\n\n`
       },
-      local: reporteeLocale
+      locale: reporteeLocale
     })
   },
 
