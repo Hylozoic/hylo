@@ -41,7 +41,6 @@ export default gql`
             postsTotal
             followersTotal
             isSubscribed
-            newPostCount
             isDefault
             visibility
           }

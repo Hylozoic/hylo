@@ -202,8 +202,8 @@ function MapDrawer ({
           )
         : currentTab === localizedTabNames.members
           ? (
-            <div className='overflow-y-scroll pb-10'>
-              <div className='w-full flex flex-col gap-2 p-2 bg-midground' id='contentList'>
+            <div id='mapDrawerMembersWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-hidden pb-10'>
+              <div className='flex flex-col gap-2 p-2' id='contentList'>
                 {members.map(m => (
                   <Member
                     location={m.location}

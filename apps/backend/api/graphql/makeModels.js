@@ -612,6 +612,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'home_route',
         'homeWidget',
         'location',
         'geo_shape',
