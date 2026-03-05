@@ -4,7 +4,7 @@
  * Uploads manually fixed templates back to SendWithUs
  * 
  * This script:
- * 1. Reads fixed template files from the failed-templates directory
+ * 1. Reads template files from the i18n-templates directory
  * 2. Creates new versions in SendWithUs with the fixed content
  * 3. Optionally publishes the new versions
  */
@@ -13,7 +13,7 @@ const fs = require('fs')
 const path = require('path')
 const { createTemplateVersion, createClient } = require('./sendwithus-client')
 
-const TEMPLATES_DIR = path.resolve(__dirname, 'failed-templates')
+const TEMPLATES_DIR = path.resolve(__dirname, 'i18n-templates')
 
 /**
  * Reads a template file
@@ -122,7 +122,6 @@ async function main () {
   
   if (!fs.existsSync(TEMPLATES_DIR)) {
     console.error(`❌ Templates directory not found: ${TEMPLATES_DIR}`)
-    console.error(`   Run download-failing-templates.js first`)
     process.exit(1)
   }
   
