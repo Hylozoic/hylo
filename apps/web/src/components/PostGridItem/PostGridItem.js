@@ -85,12 +85,10 @@ export default function PostGridItem ({
             {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}
           </h3>
-          <div className='flex items-center justify-between text-xs'>
-            <div className='flex items-center gap-1.5 text-white h-8'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny />
-              <span className='truncate max-w-[100px] font-bold'>{creator.name}</span>
-            </div>
-            <span className='text-white/60'>{createdTimestampShort}</span>
+          <div className='flex items-center gap-1.5 text-xs text-white h-8 min-w-0'>
+            <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+            <span className='truncate font-bold min-w-0'>{creator.name}</span>
+            <span className='text-white/60 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
           </div>
         </div>
       </div>
@@ -101,7 +99,7 @@ export default function PostGridItem ({
   return (
     <div
       className={cn(
-        'h-[180px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
+        'max-h-[180px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
         'hover:scale-105 hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
         { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
@@ -138,23 +136,11 @@ export default function PostGridItem ({
         </p>
       </div>
 
-      {/* Fade gradient over text leading to footer */}
-      <div
-        className='absolute bottom-8 left-0 right-0 h-8 pointer-events-none'
-        style={{
-          background: 'linear-gradient(to bottom, transparent, hsl(var(--card)))'
-        }}
-      />
-
       {/* Footer */}
-      <div className='flex items-center justify-between w-full text-xs h-8 px-3 mt-auto bg-card relative z-10'>
-        <div className='flex items-center text-foreground/70'>
-          <div className='flex items-center gap-1 text-foreground/100 font-bold'>
-            <Avatar avatarUrl={creator.avatarUrl} tiny />
-            <span className='truncate max-w-[100px]'>{creator.name}</span>
-          </div>
-        </div>
-        <span className='text-foreground/70'>{createdTimestampShort}</span>
+      <div className='flex items-center gap-1 w-full text-xs h-8 px-3 mt-auto bg-card relative z-10 min-w-0'>
+        <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+        <span className='truncate text-foreground font-bold min-w-0'>{creator.name}</span>
+        <span className='text-foreground/70 ml-auto flex-shrink-0'>{createdTimestampShort}</span>
       </div>
     </div>
   )

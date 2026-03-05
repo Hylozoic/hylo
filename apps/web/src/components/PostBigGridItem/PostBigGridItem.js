@@ -113,12 +113,12 @@ export default function PostBigGridItem ({
             </div>
           )}
 
-          <div className='flex items-center gap-2 text-white'>
-            <div className='flex items-center gap-1 text-white font-bold h-6 text-xs'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny />
+          <div className='flex items-center gap-2 text-white min-w-0'>
+            <div className='flex items-center gap-1 text-white font-bold h-6 text-xs min-w-0'>
+              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
               <span className='truncate font-bold'>{creator.name}</span>
             </div>
-            <span className='text-white/50 text-xs'>{createdTimestampShort}</span>
+            <span className='text-white/50 text-xs flex-shrink-0'>{createdTimestampShort}</span>
           </div>
           <h3 className='text-white font-bold text-lg line-clamp-2 drop-shadow-md mb-1 mt-0 leading-tight'>
             <span className={cn('flex items-center', { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt })}>
@@ -164,7 +164,7 @@ export default function PostBigGridItem ({
   return (
     <div
       className={cn(
-        'h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
+        'max-h-[400px] w-full bg-card rounded-lg shadow-lg relative cursor-pointer',
         'hover:scale-[1.02] hover:shadow-xl transition-all overflow-hidden border-2 border-transparent hover:border-foreground/50',
         'flex flex-col',
         { 'opacity-60': (isFlagged && !post.clickthrough) || post.fulfilledAt }
@@ -196,10 +196,10 @@ export default function PostBigGridItem ({
         <div className='flex items-start gap-3 mb-2 shrink-0'>
           {isEvent && <EventDate {...post} />}
           <div className='flex-1 min-w-0'>
-            <div className='flex items-center gap-2 text-xs text-foreground/60'>
-              <Avatar avatarUrl={creator.avatarUrl} tiny />
-              <span className='font-bold text-foreground truncate max-w-[100px]'>{creator.name}</span>
-              <span>{createdTimestampShort}</span>
+            <div className='flex items-center gap-2 text-xs text-foreground/60 min-w-0'>
+              <Avatar avatarUrl={creator.avatarUrl} tiny className='flex-shrink-0' />
+              <span className='font-bold text-foreground truncate'>{creator.name}</span>
+              <span className='flex-shrink-0'>{createdTimestampShort}</span>
             </div>
             <h3 className='flex items-center text-foreground font-bold text-lg line-clamp-2 mb-1 mt-0 leading-tight'>
               {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-5 text-green-500' /></span>}
