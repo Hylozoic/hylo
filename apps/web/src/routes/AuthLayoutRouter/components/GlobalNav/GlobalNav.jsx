@@ -557,25 +557,72 @@ export default function GlobalNav (props) {
   }
 
   // Touch events to handle hover state on mobile
-  const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
+  const clearHoverTimeoutRef = useRef(null)
+  const isScrollingRef = useRef(false)
+  const scrollEndTimeoutRef = useRef(null)
+  const touchEndedRef = useRef(false)
+
+  const startClearHoverCountdown = useCallback(() => {
+    // Only start the countdown if the touch has already ended
+    if (!touchEndedRef.current) return
+    if (clearHoverTimeoutRef.current) clearTimeout(clearHoverTimeoutRef.current)
+    clearHoverTimeoutRef.current = setTimeout(() => {
+      clearHover()
+      clearHoverTimeoutRef.current = null
+    }, 3000) // 3 seconds to give users time to read and select
+  }, [])
+
   const handleContainerTouchStart = () => {
     // Ignore touch events briefly after nav opens to prevent accidental triggers
     // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
+    touchEndedRef.current = false
     setIsContainerHovered(true)
-    if (clearHoverTimeout) {
-      clearTimeout(clearHoverTimeout)
-      setClearHoverTimeout(null)
+    if (clearHoverTimeoutRef.current) {
+      clearTimeout(clearHoverTimeoutRef.current)
+      clearHoverTimeoutRef.current = null
     }
   }
 
   const handleContainerTouchEnd = () => {
-    setClearHoverTimeout(setTimeout(() => {
-      clearHover()
-    }, 3000)) // 3 seconds to give users time to read and select
+    touchEndedRef.current = true
+    // If the container is currently momentum-scrolling, don't start the
+    // countdown yet — the scroll handler will start it once scrolling stops.
+    if (!isScrollingRef.current) {
+      startClearHoverCountdown()
+    }
   }
+
+  // Keep the menu open while the nav container is momentum-scrolling.
+  // After scrolling stops, restart the close countdown.
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const handleNavScroll = () => {
+      isScrollingRef.current = true
+      // While scrolling, cancel any pending close timeout
+      if (clearHoverTimeoutRef.current) {
+        clearTimeout(clearHoverTimeoutRef.current)
+        clearHoverTimeoutRef.current = null
+      }
+      // Reset the "scroll ended" debounce
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+      scrollEndTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false
+        // Scrolling has stopped — now start the close countdown if touch already ended
+        startClearHoverCountdown()
+      }, 150)
+    }
+
+    container.addEventListener('scroll', handleNavScroll, { passive: true })
+    return () => {
+      container.removeEventListener('scroll', handleNavScroll)
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+    }
+  }, [startClearHoverCountdown])
 
   const handleSupportClick = () => {
     const consent = getCookieConsent()
