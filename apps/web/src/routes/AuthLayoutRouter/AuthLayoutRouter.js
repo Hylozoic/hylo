@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -17,7 +17,7 @@ import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
-import useSwipeGesture from 'hooks/useSwipeGesture'
+// useSwipeGesture replaced by interactive nav drawer gesture below
 import usePullToRefresh from 'hooks/usePullToRefresh'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
@@ -141,18 +141,237 @@ export default function AuthLayoutRouter (props) {
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState()
 
-  // Swipe gestures for navigation menu on mobile
-  // - Swipe from left edge to open menu
-  // - Swipe right-to-left to close menu when open
-  useSwipeGesture(
-    () => dispatch(toggleNavMenu(true)), // Open menu on swipe from left
-    {
-      enabled: !withoutNav, // Enable when nav is available
-      edgeWidth: 30, // Detect swipes starting within 30px of left edge
-      minSwipeDistance: 80, // Require at least 80px swipe distance
-      onSwipeRight: isNavOpen ? () => dispatch(toggleNavMenu(false)) : null // Close menu on right swipe when open
+  // Refs for mobile nav drawer animation
+  const navContainerRef = useRef(null)
+  const backdropRef = useRef(null)
+  const isNavOpenRef = useRef(isNavOpen)
+  const isDraggingNavRef = useRef(false)
+
+  // Keep isNavOpen ref in sync for use in touch handlers
+  useEffect(() => { isNavOpenRef.current = isNavOpen }, [isNavOpen])
+
+  // Callback refs set the initial off-screen position the instant the elements
+  // mount into the DOM (after the loading screen), preventing any flash.
+  const setNavContainerRef = useCallback((node) => {
+    navContainerRef.current = node
+    if (node && window.innerWidth < 640) {
+      node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
     }
-  )
+  }, [])
+  const setBackdropRef = useCallback((node) => {
+    backdropRef.current = node
+    if (node && window.innerWidth < 640) {
+      node.style.opacity = isNavOpenRef.current ? '1' : '0'
+      node.style.pointerEvents = isNavOpenRef.current ? 'auto' : 'none'
+    }
+  }, [])
+
+  // Clear mobile nav inline styles when resizing to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) {
+        const navEl = navContainerRef.current
+        const backdropEl = backdropRef.current
+        if (navEl) { navEl.style.transform = ''; navEl.style.transition = '' }
+        if (backdropEl) { backdropEl.style.opacity = '0'; backdropEl.style.pointerEvents = 'none' }
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Animate nav position when isNavOpen changes (from chevron press or menu link click)
+  useEffect(() => {
+    const navEl = navContainerRef.current
+    const backdropEl = backdropRef.current
+    if (!navEl || !backdropEl || window.innerWidth >= 640) return
+    if (isDraggingNavRef.current) return // Drag handler manages position during drag
+
+    navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+    backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+
+    if (isNavOpen) {
+      navEl.style.transform = 'translateX(0)'
+      backdropEl.style.opacity = '1'
+      backdropEl.style.pointerEvents = 'auto'
+    } else {
+      navEl.style.transform = 'translateX(-100%)'
+      backdropEl.style.opacity = '0'
+      backdropEl.style.pointerEvents = 'none'
+    }
+  }, [isNavOpen])
+
+  // Interactive drag gesture for mobile nav drawer
+  // - Drag from left edge to open (with real-time visual feedback)
+  // - Drag right-to-left to close when open (with real-time visual feedback)
+  // Refs are read lazily inside handlers so listeners work even before the
+  // nav container mounts (e.g. while the loading screen is still showing).
+  useEffect(() => {
+    if (withoutNav) return
+
+    const VELOCITY_THRESHOLD = 0.3 // px/ms — fast flick overrides position
+    const POSITION_THRESHOLD = 0.4 // 40% of nav width to snap open
+
+    let touchStartX = null
+    let touchStartY = null
+    let touchStartTime = null
+    let isOpenGesture = false // attempting to open (nav currently closed)
+    let isCloseGesture = false // attempting to close (nav currently open)
+    let isDragging = false
+    let directionLocked = false
+    let navWidth = 0
+    let startTranslateX = 0
+
+    const setNavPosition = (translateXPx) => {
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+      navWidth = navEl.offsetWidth
+      const clampedX = Math.min(0, Math.max(-navWidth, translateXPx))
+      navEl.style.transform = `translateX(${clampedX}px)`
+      const progress = 1 - Math.abs(clampedX) / navWidth
+      backdropEl.style.opacity = String(progress)
+      backdropEl.style.pointerEvents = progress > 0.01 ? 'auto' : 'none'
+    }
+
+    const animateNavTo = (open) => {
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+      navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+      backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+      navEl.style.transform = open ? 'translateX(0)' : 'translateX(-100%)'
+      backdropEl.style.opacity = open ? '1' : '0'
+      backdropEl.style.pointerEvents = open ? 'auto' : 'none'
+    }
+
+    let touchTarget = null
+
+    const handleTouchStart = (e) => {
+      if (window.innerWidth >= 640) return
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+
+      const touch = e.touches[0]
+      touchStartX = touch.clientX
+      touchStartY = touch.clientY
+      touchStartTime = Date.now()
+      touchTarget = e.target
+      navWidth = navEl.offsetWidth
+      isDragging = false
+      directionLocked = false
+
+      // Determine gesture type based on current nav state
+      isOpenGesture = !isNavOpenRef.current
+      isCloseGesture = isNavOpenRef.current
+
+      startTranslateX = isCloseGesture ? 0 : -navWidth
+    }
+
+    const handleTouchMove = (e) => {
+      if (touchStartX === null) return
+
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - touchStartX
+      const deltaY = touch.clientY - touchStartY
+
+      // Lock direction after sufficient movement
+      if (!directionLocked) {
+        if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          // Vertical scroll — abort (transitions never removed, no cleanup needed)
+          touchStartX = null
+          return
+        }
+        directionLocked = true
+
+        // Validate direction: only right swipe opens, only left swipe closes
+        if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
+        if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If opening (right swipe), check if touch is inside a horizontally
+        // scrolled container — let native scroll handle scrolling back first
+        if (isOpenGesture && touchTarget) {
+          let el = touchTarget
+          while (el && el !== document.body) {
+            if (el.scrollLeft > 0) {
+              const overflowX = window.getComputedStyle(el).overflowX
+              if (overflowX === 'auto' || overflowX === 'scroll') {
+                touchStartX = null
+                return
+              }
+            }
+            el = el.parentElement
+          }
+        }
+      }
+
+      // Only remove transitions once we've confirmed a valid horizontal drag
+      if (!isDragging) {
+        navEl.style.transition = 'none'
+        backdropEl.style.transition = 'none'
+      }
+
+      isDragging = true
+      isDraggingNavRef.current = true
+      e.preventDefault()
+
+      setNavPosition(startTranslateX + deltaX)
+    }
+
+    const handleTouchEnd = (e) => {
+      if (!isDragging || touchStartX === null) {
+        touchStartX = null
+        touchStartY = null
+        return
+      }
+
+      const touch = e.changedTouches[0]
+      const deltaX = touch.clientX - touchStartX
+      const elapsed = Date.now() - touchStartTime
+      const velocity = Math.abs(deltaX) / Math.max(elapsed, 1)
+
+      const navEl = navContainerRef.current
+      navWidth = navEl ? navEl.offsetWidth : navWidth
+      const finalTranslateX = startTranslateX + deltaX
+      const clampedX = Math.min(0, Math.max(-navWidth, finalTranslateX))
+      const progress = 1 - Math.abs(clampedX) / navWidth
+
+      // High velocity flick: use direction; otherwise use position
+      const shouldOpen = velocity > VELOCITY_THRESHOLD
+        ? deltaX > 0
+        : progress > POSITION_THRESHOLD
+
+      animateNavTo(shouldOpen)
+      isDraggingNavRef.current = false
+
+      // Only update Redux if state actually changes
+      if (shouldOpen !== isNavOpenRef.current) {
+        dispatch(toggleNavMenu(shouldOpen))
+      }
+
+      touchStartX = null
+      touchStartY = null
+      isDragging = false
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: true })
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchcancel', handleTouchEnd)
+    }
+  }, [withoutNav, dispatch])
 
   // Pull-to-refresh gesture for WebView (web-side implementation)
   // Requires user to pull down AND hold for a moment to prevent accidental triggers
@@ -371,9 +590,28 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row h-full z-50 flex-shrink-0 overflow-hidden', { 'flex absolute sm:relative': isNavOpen }, location.pathname.startsWith('/messages') ? 'w-[360px] sm:w-[320px] md:w-[340px] max-w-[360px] sm:max-w-[340px]' : 'max-w-420')}>
+          {/* Mobile nav backdrop overlay */}
+          {!withoutNav && (
+            <div
+              ref={setBackdropRef}
+              className='sm:hidden fixed inset-0 z-[100] bg-black/50'
+              style={{ opacity: 0, pointerEvents: 'none' }}
+              onClick={() => dispatch(toggleNavMenu(false))}
+            />
+          )}
+          <div
+            ref={setNavContainerRef}
+            className={cn(
+              'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
+              // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+              'fixed left-0 top-0 z-[101] h-dvh w-full',
+              // Desktop: back in normal flow
+              'sm:relative sm:z-50 sm:h-full sm:w-auto',
+              'sm:max-w-420'
+            )}
+          >
             {!withoutNav && (
               <>
                 <GlobalNav
@@ -443,7 +681,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>

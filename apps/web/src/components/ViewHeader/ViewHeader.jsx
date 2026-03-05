@@ -24,7 +24,7 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, title, icon, info, search, centered } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
 
@@ -114,11 +114,11 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  // On small screens, the chevron always toggles the nav menu
+  // On small screens, the chevron toggles the nav menu unless mobileBackButton is set
   // On larger screens (sm+), if backButton is true, it navigates back
   const handleChevronClick = () => {
     const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
-    if (isSmallScreen) {
+    if (isSmallScreen && !mobileBackButton) {
       dispatch(toggleNavMenu())
     } else if (backTo) {
       navigate(backTo)
@@ -135,7 +135,7 @@ const ViewHeader = () => {
   }
 
   return (
-    <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered
     })}
     >
@@ -175,7 +175,7 @@ const ViewHeader = () => {
       <h2
         className={cn('text-foreground m-0', {
           'whitespace-nowrap': typeof title === 'string' || (title?.mobile && title?.desktop),
-          'min-w-0 overflow-x-auto': React.isValidElement(title)
+          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title)
         })}
       >
         {typeof title === 'string' || React.isValidElement(title)

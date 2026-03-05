@@ -86,7 +86,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
       return <NoItems message={message} />
     } else {
       return (
-        <div className='overflow-y-auto h-[calc(100vh-100px)] pointer-events-auto' id='notifications-scroll-list'>
+        <div className='overflow-y-auto h-[calc(100dvh-100px)] pointer-events-auto' id='notifications-scroll-list'>
           {filteredNotifications.map(notification => (
             <NotificationItem
               notification={notification}
