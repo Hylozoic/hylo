@@ -209,7 +209,7 @@ export default function PostBigGridItem ({
         </div>
 
         {/* Details text */}
-        <p className='text-foreground/60 text-sm flex-1 overflow-hidden mb-2'>
+        <p className='text-foreground/60 text-sm flex-1 line-clamp-[8] mb-2 mt-0'>
           {TextHelpers.presentHTMLToText(details, { truncate: 400 })}
         </p>
 
