@@ -290,7 +290,7 @@ export default function GlobalNav (props) {
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
-  const [visibleCount, setVisibleCount] = useState(0)
+  const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
@@ -301,20 +301,14 @@ export default function GlobalNav (props) {
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
 
+  // Reveal all nav items in a single state flip after first paint.
+  // Previously, items were revealed one-by-one via setInterval (50ms each),
+  // causing N re-renders of GlobalNav for N groups. For users with many groups,
+  // this blocked the main thread for 5-10 seconds, preventing all interaction.
   useEffect(() => {
-    const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
-    let currentCount = 0
-    const interval = setInterval(() => {
-      if (currentCount >= totalItems) {
-        clearInterval(interval)
-        return
-      }
-      currentCount++
-      setVisibleCount(currentCount)
-    }, 50) // 50ms between each item
-
-    return () => clearInterval(interval)
-  }, [sortedGroups.length])
+    const raf = requestAnimationFrame(() => setNavReady(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   // Suppress all hover/tooltip interactions briefly each time the nav becomes visible,
   // preventing phantom hover/tooltips from the tap that opened the nav.
@@ -514,9 +508,10 @@ export default function GlobalNav (props) {
   }, [groupsWithBadges])
 
   const isVisible = (index) => {
-    // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
-    if (index === 0 || index === 1 || index === 2 || index === 3) return 'opacity-100'
-    return index < visibleCount ? '' : 'opacity-0'
+    // Fixed items (profile, notifications, messages, the commons) are always fully visible
+    if (index <= 3) return 'opacity-100'
+    // All other items revealed together after first paint (single re-render)
+    return navReady ? '' : 'opacity-0'
   }
 
   const handleContainerPointerEnter = (e) => {
