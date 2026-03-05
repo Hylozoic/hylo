@@ -1268,6 +1268,9 @@ module.exports = bookshelf.Model.extend(merge({
 
     await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
 
+    // Send email to creator
+    await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
+
     return group
   },
 
@@ -1574,6 +1577,32 @@ module.exports = bookshelf.Model.extend(merge({
               address: 'dev+bot@hylo.com'
             }
           }
+        })
+      })
+  },
+
+  sendGroupCreatedEmail: function (opts) {
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
+      .then(async group => {
+        if (!group) return
+        const creator = group.relations.creator
+        if (!creator) return
+
+        const userLocale = creator.getLocale()
+        const userName = creator.get('name') || ''
+        const firstName = userName.split(' ')[0] || userName
+
+        Email.sendGroupCreatedEmail({
+          email: creator.get('email'),
+          data: {
+            first_name: firstName,
+            group_name: group.get('name'),
+            add_purpose_url: Frontend.Route.groupSettings(group),
+            edit_welcome_page_url: Frontend.Route.groupSettings(group) + '/welcome',
+            stewardship_support_url: 'https://hylozoic.gitbook.io/hylo/about/community-stewardship-support-program-csaas',
+            community_call_url: 'https://www.hylo.com/participate/'
+          },
+          locale: userLocale
         })
       })
   },
