@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
-import Loading from 'components/Loading'
+import LoadingScreen from 'screens/LoadingScreen'
 import NoInternetConnection from 'screens/NoInternetConnection'
 import useLogout from 'hooks/useLogout'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -94,12 +94,7 @@ export default function PrimaryWebView() {
   // Show loading while fetching user data
   // This ensures we have a valid authenticated user before rendering the WebView
   if (fetchingUser || !currentUser) {
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
-        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
-        <Loading size='large' />
-      </SafeAreaView>
-    )
+    return <LoadingScreen />
   }
   
   /**
@@ -193,11 +188,9 @@ export default function PrimaryWebView() {
           left: 0, 
           right: 0, 
           bottom: 0, 
-          justifyContent: 'center', 
-          alignItems: 'center',
           zIndex: 1
         }}>
-          <Loading size='large' />
+          <LoadingScreen />
         </View>
       )}
       <HyloWebView
