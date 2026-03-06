@@ -18,10 +18,34 @@ import { cn } from 'util/index'
 import { groupUrl } from '@hylo/navigation'
 import { createTrack, updateTrack } from 'store/actions/trackActions'
 
+// Hook to detect on-screen keyboard height via the Visual Viewport API.
+// Returns the keyboard height in pixels (0 when keyboard is hidden).
+function useKeyboardHeight () {
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const handleResize = () => {
+      // When the keyboard opens, visualViewport.height shrinks while
+      // window.innerHeight stays the same (on most mobile browsers).
+      const kb = Math.max(0, Math.round(window.innerHeight - vv.height))
+      setKeyboardHeight(kb)
+    }
+
+    vv.addEventListener('resize', handleResize)
+    return () => vv.removeEventListener('resize', handleResize)
+  }, [])
+
+  return keyboardHeight
+}
+
 function TrackEditor (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const routeParams = useParams()
+  const keyboardHeight = useKeyboardHeight()
 
   // Selectors
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
@@ -235,6 +259,7 @@ function TrackEditor (props) {
   const { accessControlled, actionDescriptor, actionDescriptorPlural, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
   return (
+    <>
     <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
       <div className='p-0'>
         <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{props.editingTrack ? t('Edit Track') : t('Create Track')}</h1>
@@ -249,9 +274,9 @@ function TrackEditor (props) {
           className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
           style={{ backgroundImage: `url(${bannerUrl})` }}
         >
-          <div className='flex flex-col items-center justify-center gap-1'>
+          <div className='flex flex-col items-center justify-center gap-1 bg-midground/70 rounded-lg px-3 py-2'>
             <ImagePlus className='inline-block' />
-            <span className='ml-2 text-xs opacity-40 group-hover:opacity-100 transition-all'>{t('Set track banner')}</span>
+            <span className='ml-2 text-xs transition-all'>{t('Set track banner')}</span>
           </div>
         </div>
       </UploadAttachmentButton>
@@ -493,6 +518,9 @@ function TrackEditor (props) {
         )}
       </div>
     </div>
+    {/* Transparent spacer so the scroll container extends past the keyboard */}
+    {keyboardHeight > 0 && <div style={{ height: keyboardHeight }} />}
+    </>
   )
 }
 

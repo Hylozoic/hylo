@@ -42,6 +42,7 @@ export default function GlobalNavItem ({
   const itemRef = useRef(null)
   const suppressHoverRef = useRef(false)
   const [isInViewport, setIsInViewport] = useState(true)
+  const hasShownInSessionRef = useRef(false)
 
   /**
    * Checks if the tooltip would appear below the maximum allowed Y position
@@ -50,34 +51,43 @@ export default function GlobalNavItem ({
     if (itemRef.current) {
       const rect = itemRef.current.getBoundingClientRect()
       const maxAllowedY = window.innerHeight * 0.85 // 85% of viewport height
-      setIsInViewport(rect.top < maxAllowedY)
+      setIsInViewport(rect.top < maxAllowedY && rect.bottom > 0)
     }
   }, [])
 
   /**
    * Handles tooltip visibility and animation states
    * - Immediate show on direct hover
-   * - Staggered show when parent triggers cascade
+   * - Staggered show when parent first triggers cascade
+   * - Immediate restore if already shown in this hover session
+   *   (prevents stagger timer reset when scrolling toggles isInViewport)
    * - Hide when neither condition is true
    */
   useEffect(() => {
-    if (!isInViewport) {
-      setOpen(false)
-      return
-    }
-
     if (isHovered) {
       setOpen(true)
       setShouldAnimate(true)
-    } else if (parentShowTooltip) {
-      const timer = setTimeout(() => {
+      hasShownInSessionRef.current = true
+    } else if (parentShowTooltip && isInViewport) {
+      if (hasShownInSessionRef.current) {
+        // Already shown in this cascade — restore immediately (no re-stagger)
         setOpen(true)
         setShouldAnimate(true)
-      }, 300 + (index * 100))
-      return () => clearTimeout(timer)
-    } else {
+      } else {
+        const timer = setTimeout(() => {
+          setOpen(true)
+          setShouldAnimate(true)
+          hasShownInSessionRef.current = true
+        }, 300 + (index * 100))
+        return () => clearTimeout(timer)
+      }
+    } else if (!parentShowTooltip) {
       setOpen(false)
       setShouldAnimate(false)
+      hasShownInSessionRef.current = false
+    } else {
+      // parentShowTooltip is true but item is out of viewport
+      setOpen(false)
     }
   }, [parentShowTooltip, isHovered, index, isInViewport])
 

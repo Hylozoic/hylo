@@ -56,6 +56,7 @@
     "cross-fetch": "^4.1.0",
     "graphql": "^16.9.0",
     "lodash": "^4.17.21",
+    "lottie-react-native": "^7.3.6",
     "mixpanel-react-native": "^3.0.8",
     "nativewind": "^4.1.23",
     "path-to-regexp": "^6.2.2",

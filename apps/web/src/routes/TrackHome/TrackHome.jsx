@@ -115,116 +115,111 @@ function TrackHome () {
 
   return (
     <div className='w-full h-full' ref={setContainer}>
-      <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
-        <div className='w-full h-full flex-1 flex flex-col'>
-          {(isEnrolled || canEdit) && canViewFullTrack && (
-            <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
+      <div className='pt-4 px-4 w-full h-full flex flex-col'>
+        {(isEnrolled || canEdit) && canViewFullTrack && (
+          <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
+            <Link
+              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              to=''
+            >
+              {t('About')}
+            </Link>
+            <Link
+              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              to='actions'
+            >
+              {currentTrack.actionDescriptorPlural}
+              <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                {currentTrack.numActions}
+              </span>
+            </Link>
+            <Link
+              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              to='people'
+            >
+              {t('People')}
+              <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                {currentTrack.enrolledUsers.length}
+              </span>
+            </Link>
+            {canEdit && (
               <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                to=''
+                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                to='manage'
               >
-                {t('About')}
+                {t('Manage')}
               </Link>
-              <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                to='actions'
-              >
-                {currentTrack.actionDescriptorPlural}
-                <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                  {currentTrack.numActions}
-                </span>
-              </Link>
-              <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                to='people'
-              >
-                {t('People')}
-                {currentTrack.enrolledUsers?.length > 0 && (
-                  <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                    {currentTrack.enrolledUsers.length}
-                  </span>
-                )}
-              </Link>
-              {canEdit && (
-                <Link
-                  className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
-                  to='manage'
-                >
-                  {t('Manage')}
-                </Link>
-              )}
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {canViewFullTrack
-            ? (
-              <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
-                <div className='w-full max-w-[750px] mx-auto pb-20'>
-                  <Routes>
-                    <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
-                    <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
-                    <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
-                    <Route path='manage/create/*' element={<CreateModal context='groups' />} />
-                    <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
-                    <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
-                    <Route path='*' element={<AboutTab track={currentTrack} />} />
-                  </Routes>
-                </div>
+        {canViewFullTrack
+          ? (
+            <div className='flex-1 overflow-y-auto w-full min-h-0' style={{ scrollbarGutter: 'stable both-edges' }}>
+              <div className='w-full max-w-[750px] mx-auto pb-20'>
+                <Routes>
+                  <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
+                  <Route path='people/*' element={<PeopleTab track={currentTrack} />} />
+                  <Route path='manage/*' element={<ManageTab track={currentTrack} />} />
+                  <Route path='manage/create/*' element={<CreateModal context='groups' />} />
+                  <Route path='manage/post/:postId/edit/*' element={<CreateModal context='groups' editingPost />} />
+                  <Route path='actions/post/:postId' element={<PostDialog container={container} />} />
+                  <Route path='*' element={<AboutTab track={currentTrack} />} />
+                </Routes>
               </div>
-              )
-            : (
-              <AboutTab track={currentTrack} showPaywall />
-              )}
-        </div>
+            </div>
+            )
+          : (
+            <AboutTab track={currentTrack} showPaywall />
+            )}
+      </div>
 
-        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
-          {!publishedAt
+      <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20 flex-shrink-0'>
+        {!publishedAt
+          ? (
+            <>
+              <span className='flex-1'>{t('This track is not yet published')}</span>
+              <Button
+                variant='secondary'
+                onClick={(e) => handlePublishTrack(new Date().toISOString())}
+              >
+                <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
+              </Button>
+            </>
+            )
+          : didComplete
             ? (
               <>
-                <span className='flex-1'>{t('This track is not yet published')}</span>
-                <Button
-                  variant='secondary'
-                  onClick={(e) => handlePublishTrack(new Date().toISOString())}
-                >
-                  <Eye className='w-5 h-5 inline-block' /> <span className='inline-block'>{t('Publish')}</span>
-                </Button>
+                <Check className='w-4 h-4 text-selected' />
+                <span>{t('You completed this track')}</span>
               </>
               )
-            : didComplete
+            : isEnrolled && currentTab === 'about'
               ? (
                 <>
-                  <Check className='w-4 h-4 text-selected' />
-                  <span>{t('You completed this track')}</span>
+                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                    <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
+                    <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 whitespace-nowrap' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                  </div>
                 </>
                 )
-              : isEnrolled && currentTab === 'about'
-                ? (
-                  <>
-                    <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                      <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
-                    </div>
-                  </>
-                  )
-                : !isEnrolled && hasAccess && (
-                  <div className='flex flex-row gap-2 items-center justify-between w-full'>
-                    <span>{t('Ready to jump in?')}</span>
-                    <button
-                      className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center disabled:opacity-50 disabled:cursor-not-allowed'
-                      onClick={handleEnrollInTrack}
-                      disabled={accessControlled && canAccess === false}
-                      data-tooltip-id='enroll-tooltip'
-                      data-tooltip-content={accessControlled && canAccess === false ? t('You need to purchase access to enroll in this track') : ''}
-                    >
-                      <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
-                    </button>
-                  </div>
-                )}
-        </div>
-
-        <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
-        <Tooltip id='enroll-tooltip' />
+              : !isEnrolled && hasAccess && (
+                <div className='flex flex-row gap-2 items-center justify-between w-full'>
+                  <span>{t('Ready to jump in?')}</span>
+                  <button
+                    className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed'
+                    onClick={handleEnrollInTrack}
+                    disabled={accessControlled && canAccess === false}
+                    data-tooltip-id='enroll-tooltip'
+                    data-tooltip-content={accessControlled && canAccess === false ? t('You need to purchase access to enroll in this track') : ''}
+                  >
+                    <ChevronsRight className='w-4 h-4' /> {t('Enroll')}
+                  </button>
+                </div>)}
       </div>
+
+      <WelcomeMessage currentTrack={currentTrack} showWelcomeMessage={showWelcomeMessage} setShowWelcomeMessage={setShowWelcomeMessage} />
+      <Tooltip id='enroll-tooltip' />
     </div>
   )
 }

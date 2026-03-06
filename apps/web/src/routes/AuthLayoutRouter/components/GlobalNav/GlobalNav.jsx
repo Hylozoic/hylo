@@ -303,7 +303,7 @@ export default function GlobalNav (props) {
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
-  const [visibleCount, setVisibleCount] = useState(0)
+  const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
   const hoverDelayTimeoutRef = useRef(null)
@@ -314,20 +314,14 @@ export default function GlobalNav (props) {
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
 
+  // Reveal all nav items in a single state flip after first paint.
+  // Previously, items were revealed one-by-one via setInterval (50ms each),
+  // causing N re-renders of GlobalNav for N groups. For users with many groups,
+  // this blocked the main thread for 5-10 seconds, preventing all interaction.
   useEffect(() => {
-    const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
-    let currentCount = 0
-    const interval = setInterval(() => {
-      if (currentCount >= totalItems) {
-        clearInterval(interval)
-        return
-      }
-      currentCount++
-      setVisibleCount(currentCount)
-    }, 50) // 50ms between each item
-
-    return () => clearInterval(interval)
-  }, [sortedGroups.length])
+    const raf = requestAnimationFrame(() => setNavReady(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
   // Suppress all hover/tooltip interactions briefly each time the nav becomes visible,
   // preventing phantom hover/tooltips from the tap that opened the nav.
@@ -527,9 +521,10 @@ export default function GlobalNav (props) {
   }, [groupsWithBadges])
 
   const isVisible = (index) => {
-    // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
-    if (index === 0 || index === 1 || index === 2 || index === 3) return 'opacity-100'
-    return index < visibleCount ? '' : 'opacity-0'
+    // Fixed items (profile, notifications, messages, the commons) are always fully visible
+    if (index <= 3) return 'opacity-100'
+    // All other items revealed together after first paint (single re-render)
+    return navReady ? '' : 'opacity-0'
   }
 
   const handleContainerPointerEnter = (e) => {
@@ -570,25 +565,72 @@ export default function GlobalNav (props) {
   }
 
   // Touch events to handle hover state on mobile
-  const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
+  const clearHoverTimeoutRef = useRef(null)
+  const isScrollingRef = useRef(false)
+  const scrollEndTimeoutRef = useRef(null)
+  const touchEndedRef = useRef(false)
+
+  const startClearHoverCountdown = useCallback(() => {
+    // Only start the countdown if the touch has already ended
+    if (!touchEndedRef.current) return
+    if (clearHoverTimeoutRef.current) clearTimeout(clearHoverTimeoutRef.current)
+    clearHoverTimeoutRef.current = setTimeout(() => {
+      clearHover()
+      clearHoverTimeoutRef.current = null
+    }, 3000) // 3 seconds to give users time to read and select
+  }, [])
+
   const handleContainerTouchStart = () => {
     // Ignore touch events briefly after nav opens to prevent accidental triggers
     // when the nav slides in and a lingering touch event fires
     if (ignoreTouchRef.current) return
 
     // On touch, show immediately (no delay like desktop mouse hover)
+    touchEndedRef.current = false
     setIsContainerHovered(true)
-    if (clearHoverTimeout) {
-      clearTimeout(clearHoverTimeout)
-      setClearHoverTimeout(null)
+    if (clearHoverTimeoutRef.current) {
+      clearTimeout(clearHoverTimeoutRef.current)
+      clearHoverTimeoutRef.current = null
     }
   }
 
   const handleContainerTouchEnd = () => {
-    setClearHoverTimeout(setTimeout(() => {
-      clearHover()
-    }, 3000)) // 3 seconds to give users time to read and select
+    touchEndedRef.current = true
+    // If the container is currently momentum-scrolling, don't start the
+    // countdown yet — the scroll handler will start it once scrolling stops.
+    if (!isScrollingRef.current) {
+      startClearHoverCountdown()
+    }
   }
+
+  // Keep the menu open while the nav container is momentum-scrolling.
+  // After scrolling stops, restart the close countdown.
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const handleNavScroll = () => {
+      isScrollingRef.current = true
+      // While scrolling, cancel any pending close timeout
+      if (clearHoverTimeoutRef.current) {
+        clearTimeout(clearHoverTimeoutRef.current)
+        clearHoverTimeoutRef.current = null
+      }
+      // Reset the "scroll ended" debounce
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+      scrollEndTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false
+        // Scrolling has stopped — now start the close countdown if touch already ended
+        startClearHoverCountdown()
+      }, 150)
+    }
+
+    container.addEventListener('scroll', handleNavScroll, { passive: true })
+    return () => {
+      container.removeEventListener('scroll', handleNavScroll)
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+    }
+  }, [startClearHoverCountdown])
 
   const handleSupportClick = () => {
     const consent = getCookieConsent()

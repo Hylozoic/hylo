@@ -174,7 +174,8 @@ const ViewHeader = () => {
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
       <h2
         className={cn('text-foreground m-0', {
-          'whitespace-nowrap': typeof title === 'string' || (title?.mobile && title?.desktop),
+          'truncate min-w-0 flex-1': typeof title === 'string',
+          'whitespace-nowrap': title?.mobile && title?.desktop,
           'min-w-0 overflow-x-auto flex-1': React.isValidElement(title)
         })}
       >
@@ -191,14 +192,21 @@ const ViewHeader = () => {
       </h2>
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
-        <div className='flex-1 flex justify-end relative'>
+        <div className='flex justify-end relative ml-2'>
           <div ref={searchContainerRef} className='relative flex items-center'>
-            <Icon name='Search' className='left-2 absolute opacity-50' />
+            <button
+              type='button'
+              className='sm:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none'
+              onClick={() => searchInputRef.current?.focus()}
+            >
+              <Icon name='Search' className='opacity-60 text-xl' />
+            </button>
+            <Icon name='Search' className='hidden sm:block left-2 absolute opacity-50 z-10' />
             <input
               ref={searchInputRef}
               type='text'
               placeholder={t('Search')}
-              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[250px] transition-all outline-none focus:outline-focus focus:outline-2'
+              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-0 sm:w-[90px] py-1 pl-0 sm:pl-7 focus:w-[200px] sm:focus:w-[250px] focus:pl-7 transition-all outline-none focus:outline-focus focus:outline-2'
               value={searchValue}
               onFocus={() => {
                 if (searchOptions.length) {

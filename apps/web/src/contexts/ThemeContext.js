@@ -62,9 +62,12 @@ export function ThemeProvider ({ children }) {
       document.documentElement.style.setProperty(`--${key}`, value)
     })
 
-    // Update root class for dark mode
+    // Update root class and color-scheme for dark mode
+    // Setting color-scheme tells the browser (and iOS WebView) to use
+    // dark-themed native UI chrome (keyboard, scrollbars, form controls, etc.)
     document.documentElement.classList.remove('light', 'dark')
     document.documentElement.classList.add(effectiveColorScheme)
+    document.documentElement.style.colorScheme = effectiveColorScheme
 
     // Save preferences
     window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme)
