@@ -24,7 +24,7 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
 
@@ -190,6 +190,7 @@ const ViewHeader = () => {
               )
             : ''}
       </h2>
+      {!centered && headerActions && <div className='flex items-center ml-2 shrink-0'>{headerActions}</div>}
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
         <div className='flex justify-end relative ml-2'>
