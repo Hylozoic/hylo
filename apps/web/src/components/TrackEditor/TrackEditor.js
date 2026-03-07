@@ -202,7 +202,7 @@ function TrackEditor (props) {
         <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}*</div>
         <input
           autoFocus
-          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 w-full'
+          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 pr-20 w-full'
           maxLength='120'
           name='name'
           onChange={updateField('name')}
