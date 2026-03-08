@@ -177,200 +177,200 @@ function TrackEditor (props) {
 
   return (
     <>
-    <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
-      <div className='p-0'>
-        <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{props.editingTrack ? t('Edit Track') : t('Create Track')}</h1>
-      </div>
+      <div className='flex flex-col rounded-lg bg-background p-3 shadow-2xl relative'>
+        <div className='p-0'>
+          <h1 className='w-full text-sm block text-foreground m-0 p-0 mb-4'>{props.editingTrack ? t('Edit Track') : t('Create Track')}</h1>
+        </div>
 
-      <UploadAttachmentButton
-        type='trackBanner'
-        onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
-        className='w-full group'
-      >
-        <div
-          className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
-          style={{ backgroundImage: `url(${bannerUrl})` }}
+        <UploadAttachmentButton
+          type='trackBanner'
+          onInitialUpload={({ url }) => updateField('bannerUrl')(url)}
+          className='w-full group'
         >
-          <div className='flex flex-col items-center justify-center gap-1 bg-midground/70 rounded-lg px-3 py-2'>
-            <ImagePlus className='inline-block' />
-            <span className='ml-2 text-xs transition-all'>{t('Set track banner')}</span>
+          <div
+            className={cn('TrackEditorBannerContainer relative w-full h-[20vh] flex flex-col items-center justify-center border-2 border-dashed border-foreground/50 rounded-lg shadow-md bg-cover bg-center bg-darkening/0 hover:bg-darkening/20 scale-1 hover:scale-105 transition-all cursor-pointer', { 'border-none': !!bannerUrl })}
+            style={{ backgroundImage: `url(${bannerUrl})` }}
+          >
+            <div className='flex flex-col items-center justify-center gap-1 bg-midground/70 rounded-lg px-3 py-2'>
+              <ImagePlus className='inline-block' />
+              <span className='ml-2 text-xs transition-all'>{t('Set track banner')}</span>
+            </div>
+          </div>
+        </UploadAttachmentButton>
+
+        <div className='mt-3 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
+          <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}*</div>
+          <input
+            autoFocus
+            className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 pr-20 w-full'
+            maxLength='120'
+            name='name'
+            onChange={updateField('name')}
+            value={name}
+            placeholder={t('Your tracks name')}
+            type='text'
+          />
+          <span className='absolute right-3 text-sm text-gray-500'>{nameCharacterCount} / 120</span>
+        </div>
+
+        <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
+          <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Description</h3>
+          <HyloEditor
+            key={currentGroup.id}
+            containerClassName='mt-2'
+            contentHTML={description}
+            className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+            extendedMenu
+            groupIds={[currentGroup.id]}
+            onUpdate={(html) => {
+              setEdited(!isEqual(html, description))
+            }}
+            placeholder={t('Your track description here')}
+            ref={descriptionEditorRef}
+            showMenu
+            type='trackDescription'
+          />
+        </div>
+
+        <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
+          <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
+            {t('Welcome Message')}
+          </h3>
+          <HyloEditor
+            key={currentGroup.id}
+            contentHTML={welcomeMessage}
+            className='h-full p-2 min-h-20 m-0'
+            extendedMenu
+            groupIds={[currentGroup.id]}
+            onUpdate={(html) => {
+              setEdited(!isEqual(html, welcomeMessage))
+            }}
+            placeholder={t('This message will be shown to members when they enroll in the track')}
+            ref={welcomeMessageEditorRef}
+            showMenu
+            type='trackWelcomeMessage'
+          />
+        </div>
+
+        <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
+          <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Completion Message</h3>
+          <HyloEditor
+            key={currentGroup.id}
+            containerClassName='mt-2'
+            contentHTML={completionMessage}
+            className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
+            extendedMenu
+            groupIds={[currentGroup.id]}
+            onUpdate={(html) => {
+              setEdited(!isEqual(html, completionMessage))
+            }}
+            placeholder={t('This message will be shown to members who complete the track')}
+            ref={completionMessageEditorRef}
+            showMenu
+            type='trackCompletionMessage'
+          />
+        </div>
+
+        <div>
+          <h3>Completion badge or role</h3>
+          <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
+            <Select
+              onValueChange={(roleId) => {
+                const role = roles.find(r => r.id === roleId)
+                if (role) {
+                  updateField('completionRole')(role)
+                }
+              }}
+              value={completionRole?.id || ''}
+            >
+              <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
+                <SelectValue>
+                  {selectedRole ? selectedRole.emoji + ' ' + selectedRole.name : t('Select a badge or role given to members who complete the track')}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.emoji} {role.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </UploadAttachmentButton>
 
-      <div className='mt-3 flex relative border-2 items-center border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-md mb-8'>
-        <div className='text-xs text-foreground/50 px-2 py-1 w-[90px]'>{t('Track name')}*</div>
-        <input
-          autoFocus
-          className='border-none outline-none bg-transparent placeholder:text-foreground/50 p-2 pr-20 w-full'
-          maxLength='120'
-          name='name'
-          onChange={updateField('name')}
-          value={name}
-          placeholder={t('Your tracks name')}
-          type='text'
-        />
-        <span className='absolute right-3 text-sm text-gray-500'>{nameCharacterCount} / 120</span>
-      </div>
-
-      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
-        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Description</h3>
-        <HyloEditor
-          key={currentGroup.id}
-          containerClassName='mt-2'
-          contentHTML={description}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
-          extendedMenu
-          groupIds={[currentGroup.id]}
-          onUpdate={(html) => {
-            setEdited(!isEqual(html, description))
-          }}
-          placeholder={t('Your track description here')}
-          ref={descriptionEditorRef}
-          showMenu
-          type='trackDescription'
-        />
-      </div>
-
-      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md mb-8'>
-        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
-          {t('Welcome Message')}
-        </h3>
-        <HyloEditor
-          key={currentGroup.id}
-          contentHTML={welcomeMessage}
-          className='h-full p-2 min-h-20 m-0'
-          extendedMenu
-          groupIds={[currentGroup.id]}
-          onUpdate={(html) => {
-            setEdited(!isEqual(html, welcomeMessage))
-          }}
-          placeholder={t('This message will be shown to members when they enroll in the track')}
-          ref={welcomeMessageEditorRef}
-          showMenu
-          type='trackWelcomeMessage'
-        />
-      </div>
-
-      <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input mb-4 rounded-tr-md rounded-br-md rounded-bl-md'>
-        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>Completion Message</h3>
-        <HyloEditor
-          key={currentGroup.id}
-          containerClassName='mt-2'
-          contentHTML={completionMessage}
-          className='h-full p-2 border-border border-2 border-dashed min-h-20 mt-1'
-          extendedMenu
-          groupIds={[currentGroup.id]}
-          onUpdate={(html) => {
-            setEdited(!isEqual(html, completionMessage))
-          }}
-          placeholder={t('This message will be shown to members who complete the track')}
-          ref={completionMessageEditorRef}
-          showMenu
-          type='trackCompletionMessage'
-        />
-      </div>
-
-      <div>
-        <h3>Completion badge or role</h3>
-        <div className='flex flex-row items-center relative p-1 border-transparent transition-all duration-200 group focus-within:border-focus mb-4 rounded-md'>
-          <Select
-            onValueChange={(roleId) => {
-              const role = roles.find(r => r.id === roleId)
-              if (role) {
-                updateField('completionRole')(role)
-              }
-            }}
-            value={completionRole?.id || ''}
-          >
-            <SelectTrigger className='w-fit border-2 bg-input border-foreground/30 rounded-md p-2 text-base'>
-              <SelectValue>
-                {selectedRole ? selectedRole.emoji + ' ' + selectedRole.name : t('Select a badge or role given to members who complete the track')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.emoji} {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div>
+          <h3>Term to describe track units</h3>
+          <p className='text-xs text-foreground/60'>{t('actionsTermHelp')}</p>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+            <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
+            <input
+              className='p-2 border-none bg-transparent w-full'
+              maxLength='40'
+              name='actionDescriptor'
+              onChange={updateField('actionDescriptor')}
+              value={actionDescriptor}
+              type='text'
+            />
+          </div>
+          <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+            <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
+            <input
+              className='p-2 border-none bg-transparent w-full'
+              maxLength='40'
+              name='actionDescriptorPlural'
+              onChange={updateField('actionDescriptorPlural')}
+              value={actionDescriptorPlural}
+              type='text'
+            />
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3>Term to describe track units</h3>
-        <p className='text-xs text-foreground/60'>{t('actionsTermHelp')}</p>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
-          <input
-            className='p-2 border-none bg-transparent w-full'
-            maxLength='40'
-            name='actionDescriptor'
-            onChange={updateField('actionDescriptor')}
-            value={actionDescriptor}
-            type='text'
-          />
+          {/* <span className='mr-2'>Publish At</span>
+          <DateTimePicker
+            hourCycle={getHourCycle()}
+            granularity='minute'
+            value={publishedAt}
+            placeholder={t('When to Publish')}
+            onChange={updateField('publishedAt')}
+            onMonthChange={() => {}}
+          /> */}
+          <div className='flex items-center gap-2'>
+            <button
+              className={cn(
+                'p-2 rounded-md transition-colors',
+                publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
+              )}
+              onClick={() => updateField('publishedAt')(null)}
+            >
+              <EyeOff className='w-5 h-5' />
+            </button>
+            <button
+              className={cn(
+                'p-2 rounded-md transition-colors',
+                publishedAt ? 'bg-accent text-white' : 'bg-foreground/10'
+              )}
+              onClick={() => updateField('publishedAt')(new Date().toISOString())}
+            >
+              <Eye className='w-5 h-5' />
+            </button>
+            <span className='mr-2'>{publishedAt ? t('Publish Now') : t('Unpublished')}</span>
+          </div>
         </div>
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
-          <input
-            className='p-2 border-none bg-transparent w-full'
-            maxLength='40'
-            name='actionDescriptorPlural'
-            onChange={updateField('actionDescriptorPlural')}
-            value={actionDescriptorPlural}
-            type='text'
-          />
-        </div>
-      </div>
 
-      <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
-        {/* <span className='mr-2'>Publish At</span>
-        <DateTimePicker
-          hourCycle={getHourCycle()}
-          granularity='minute'
-          value={publishedAt}
-          placeholder={t('When to Publish')}
-          onChange={updateField('publishedAt')}
-          onMonthChange={() => {}}
-        /> */}
-        <div className='flex items-center gap-2'>
-          <button
-            className={cn(
-              'p-2 rounded-md transition-colors',
-              publishedAt ? 'bg-foreground/10' : 'bg-accent text-white'
-            )}
-            onClick={() => updateField('publishedAt')(null)}
+        <div className=''>
+          <Button
+            variant='secondary'
+            disabled={!edited || !isValid || saving}
+            onClick={onSubmit}
           >
-            <EyeOff className='w-5 h-5' />
-          </button>
-          <button
-            className={cn(
-              'p-2 rounded-md transition-colors',
-              publishedAt ? 'bg-accent text-white' : 'bg-foreground/10'
-            )}
-            onClick={() => updateField('publishedAt')(new Date().toISOString())}
-          >
-            <Eye className='w-5 h-5' />
-          </button>
-          <span className='mr-2'>{publishedAt ? t('Publish Now') : t('Unpublished')}</span>
+            <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{editingTrack ? t('Update Track') : t('Create Track')}
+          </Button>
         </div>
       </div>
-
-      <div className=''>
-        <Button
-          variant='secondary'
-          disabled={!edited || !isValid || saving}
-          onClick={onSubmit}
-        >
-          <Plus className={cn('w-4 h-4 text-white', { 'bg-secondary': edited && isValid })} />{editingTrack ? t('Update Track') : t('Create Track')}
-        </Button>
-      </div>
-    </div>
-    {/* Transparent spacer so the scroll container extends past the keyboard */}
-    {keyboardHeight > 0 && <div style={{ height: keyboardHeight }} />}
+      {/* Transparent spacer so the scroll container extends past the keyboard */}
+      {keyboardHeight > 0 && <div style={{ height: keyboardHeight }} />}
     </>
   )
 }
