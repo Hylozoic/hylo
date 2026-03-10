@@ -12,7 +12,7 @@ module.exports = bookshelf.Model.extend({
     return this.belongsTo(User)
   },
 
-  send: async function ({ pushMetadata } = {}) {
+  send: async function (options) {
     const alert = this.get('alert')
     const path = this.get('path')
     const badgeNo = this.get('badge_no')
@@ -20,7 +20,7 @@ module.exports = bookshelf.Model.extend({
 
     if (!user) {
       // If no user, mark as disabled and return
-      await this.save({ sent_at: new Date().toISOString(), disabled: true })
+      await this.save({ sent_at: new Date().toISOString(), disabled: true }, options)
       return this
     }
 
@@ -30,10 +30,10 @@ module.exports = bookshelf.Model.extend({
       process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !isTester
     )
 
-    await this.save({ sent_at: new Date().toISOString(), disabled })
+    await this.save({ sent_at: new Date().toISOString(), disabled }, options)
     if (!disabled) {
       await OneSignal.notify({
-        readerId, alert, path, badgeNo, pushMetadata
+        readerId, alert, path, badgeNo
       })
     }
     return this
