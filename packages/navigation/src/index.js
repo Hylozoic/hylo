@@ -252,6 +252,20 @@ export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
   return `${baseUrl({ context, groupSlug })}/custom/${customViewId}`
 }
 
+/**
+ * Compute the home route path (e.g. /stream, /map, /chat/general) from a context widget.
+ * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
+ */
+export function homeRoutePathForWidget (widget) {
+  if (!widget) return '/stream'
+  if (widget.view) return '/' + widget.view
+  if (widget.viewChat) return '/chat/' + (widget.viewChat.name || 'general')
+  if (widget.customView) return '/custom/' + widget.customView.id
+  if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
+  if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
+  return '/stream'
+}
+
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
 

@@ -219,7 +219,6 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
-        pending={messagesPending}
       />
       )
 

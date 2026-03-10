@@ -35,7 +35,6 @@ export default `query FetchTopics (
           followersTotal
           isDefault
           isSubscribed
-          newPostCount
           postsTotal
           visibility
           group {

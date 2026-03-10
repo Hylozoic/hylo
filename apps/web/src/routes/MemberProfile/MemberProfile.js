@@ -110,7 +110,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
     checkGroupsHeight()
-  }, [])
+  }, [personId])
 
   useEffect(() => {
     checkGroupsHeight()

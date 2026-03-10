@@ -36,8 +36,12 @@ export default function acceptInvitation (inviteCodes = {}) {
               }
               settings {
                 agreementsAcceptedAt
+                digestFrequency
                 joinQuestionsAnsweredAt
+                postNotifications
+                sendEmail
                 showJoinForm
+                sendPushNotifications
               }
             }
             error

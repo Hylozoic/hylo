@@ -122,7 +122,7 @@ export default function AllViews () {
   const visibleWidgets = useMemo(() => {
     return contextWidgets.filter(widget => {
       // When not editing only show widgets with a related view or chat room
-      if (!isEditing && !widget.view && !widget.customView && widget.type !== 'chat') return false
+      if (!isEditing && !widget.view && !widget.customView && !widget.viewChat && widget.type !== 'chat' && widget.type !== 'viewChat') return false
       // When editing only show widgets that have not already been added
       if (isEditing && widget.order) return false
       // Hide widgets that are not visible to the user

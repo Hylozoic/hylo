@@ -66,6 +66,12 @@ export default class MessageSection extends Component {
     document && document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
+  getSnapshotBeforeUpdate () {
+    const messageList = document.querySelector('#message-list')
+    if (!messageList) return null
+    return { scrollHeight: messageList.scrollHeight, scrollTop: messageList.scrollTop }
+  }
+
   UNSAFE_componentWillUpdate (nextProps) {
     const { currentUser, messages, pending } = nextProps
     if (pending) return
@@ -103,10 +109,24 @@ export default class MessageSection extends Component {
     }
   }
 
-  componentDidUpdate (prevProps) {
+  componentDidUpdate (prevProps, prevState, snapshot) {
+    const { currentUser, messages, pending, hasMore } = this.props
+    const prependedOlderMessages = snapshot &&
+      messages.length > prevProps.messages.length &&
+      get('id', messages[messages.length - 1]) === get('id', prevProps.messages[prevProps.messages.length - 1])
+    if (prependedOlderMessages) {
+      const messageList = document.querySelector('#message-list')
+      const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = snapshot
+      if (messageList) {
+        requestAnimationFrame(() => {
+          const deltaHeight = messageList.scrollHeight - prevScrollHeight
+          messageList.scrollTop = prevScrollTop + deltaHeight
+        })
+      }
+    }
+
     if (this.shouldScroll) setTimeout(() => this.scrollToBottom(), 200)
 
-    const { currentUser, messages, pending, hasMore } = this.props
     // Skip if loading
     if (pending) return
 

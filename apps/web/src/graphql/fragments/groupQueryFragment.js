@@ -54,6 +54,7 @@ export default function groupQueryFragment () {
       allowGroupInvites
       askGroupToGroupJoinQuestions
       askJoinQuestions
+      defaultDigestFrequency
       hideExtensionData
       locationDisplayPrecision
       publicMemberDirectory
