@@ -1,0 +1,31 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set admin_name_var = admin_name %}
+  {% trans %}Hi {{admin_name_var}}{% endtrans %},
+</p>
+
+<p>
+  {% set group_name_var = group_name %}
+  {% trans %}A subscription has been cancelled for {{group_name_var}}.{% endtrans %}
+</p>
+
+<p><strong>{% trans %}User:{% endtrans %}</strong> <a data-click-track-id="1273" href="{{user_profile_url}}">{{user_name}}</a> ({{user_email}})</p>
+<p><strong>{% trans %}Offering:{% endtrans %}</strong> {{offering_name}}</p>
+<p><strong>{% trans %}Cancelled:{% endtrans %}</strong> {{cancelled_at}}</p>
+
+{% if access_ends_at %}
+  <p><strong>{% trans %}Access Ends:{% endtrans %}</strong> {{access_ends_at}}</p>
+{% endif %}
+
+{% if reason %}
+  <p><strong>{% trans %}Reason:{% endtrans %}</strong> {{reason}}</p>
+{% endif %}
+
+<p><strong>{% trans %}Revenue Impact:{% endtrans %} {{subscription_amount}} {% trans %}per{% endtrans %} {{subscription_period}}</p>
+<p>
+<a class='btn btn-blue' href="{{view_content_access_url}}" clicktracking="off">{% trans %}View Content Access{% endtrans %}</a>
+</p>
+<a class='btn btn-blue' href="{{contact_user_url}}" clicktracking="off">{% trans %}Contact User{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

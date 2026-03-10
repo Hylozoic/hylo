@@ -1,0 +1,49 @@
+{% snippet 'header_redesign' %}
+
+<p>
+  {% set user_name_var = user_name %}
+  {% trans %}Hi {{user_name_var}}{% endtrans %},
+</p>
+
+<p>{% trans %}Thank you for your purchase! Your payment has been processed successfully.{% endtrans %}</p>
+
+<h2>{{offering_name}}</h2>
+
+{% if offering_description %}
+  <p>{{offering_description}}</p>
+{% endif %}
+
+<p><strong>{% trans %}Amount:{% endtrans %}</strong> {{price_formatted}} {{currency}}</p>
+<p><strong>{% trans %}Purchase Date:{% endtrans %}</strong> {{purchase_date}}</p>
+
+{% if is_subscription %}
+  <p>{% trans %}This is a recurring subscription that will renew automatically.{% endtrans %}</p>
+  <p><strong>{% trans %}Next Renewal:{% endtrans %}</strong> {{renewal_date}}</p>
+  <p><strong>{% trans %}Billing Period:{% endtrans %}</strong> {{renewal_period}}</p>
+  <a class='btn btn-blue' href="{{manage_subscription_url}}" clicktracking="off">{% trans %}Manage Subscription{% endtrans %}</a>
+{% else %}
+  {% if expires_at %}
+    <p><strong>{% trans %}Access Expires:{% endtrans %}</strong> {{expires_at}}</p>
+  {% else %}
+    <p>{% trans %}You have lifetime access to this content.{% endtrans %}</p>
+  {% endif %}
+{% endif %}
+<br>
+{% if access_type == 'group' %}
+  {% set group_name_var = group_name %}
+  <p>{% trans %}You now have access to {% endtrans %}<strong>{{group_name_var}}</strong>.</p>
+  <a class='btn btn-blue' href="{{group_url}}" clicktracking="off">{% trans %}Visit Group{% endtrans %}</a>
+{% elif access_type == 'track' %}
+  {% set track_name_var = track_name %}
+  {% set group_name_var = group_name %}
+  <p>{% trans %}You now have access to the track {% endtrans %}<strong>{{track_name_var}}</strong> {% trans %}in {% endtrans %}{{group_name_var}}.</p>
+  <a class='btn btn-blue' href="{{track_url}}" clicktracking="off">{% trans %}Start Learning{% endtrans %}</a>
+{% endif %}
+
+{% if stripe_receipt_url %}
+  <br>
+  <br>
+  <p><a data-click-track-id="5325" href="{{stripe_receipt_url}}">{% trans %}View Receipt{% endtrans %}</a></p>
+{% endif %}
+
+{% snippet 'footer_redesign' %}

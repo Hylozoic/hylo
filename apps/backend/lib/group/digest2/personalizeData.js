@@ -142,8 +142,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
     email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
     tracking_pixel_url: Analytics.pixelUrl('Digest', {
       userId: user.id,
-      group: data.group_name,
-      'Email Version': opts.versionName
+      group: data.group_name
     }),
     // TODO: these not being used right now, bring them back?
     post_creation_action_url: Frontend.Route.emailPostForm(),

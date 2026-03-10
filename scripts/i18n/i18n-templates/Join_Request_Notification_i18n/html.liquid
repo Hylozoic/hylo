@@ -1,0 +1,26 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+{% set requester_pill = actor_pill(requester_name, requester_avatar_url, requester_profile_url) %}
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>{% trans %}{{requester_pill}} wants to join {{group_pill}}!{% endtrans %}</p>
+
+{% if join_question_answers %}
+{% for question in join_question_answers %}
+{% set question_text = question.text %}
+{% set question_answer_e = question.answer|e %}
+<div class='card'>
+  {{group_pill}}
+  <h3>{% trans %}{{question_text}}{% endtrans %}</h3>
+  
+  {{requester_pill}}
+  <p>{% trans %}{{question_answer_e}}{% endtrans %}</p>
+  </ul>
+</div>
+{% endfor %}
+{% endif %}
+
+<a class='btn btn-blue' href="{{settings_url}}">{% trans %}Respond to their Request{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

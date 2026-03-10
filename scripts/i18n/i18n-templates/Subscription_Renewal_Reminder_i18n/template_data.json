@@ -1,0 +1,12 @@
+{
+  "user_name": "John Doe",
+  "user_email": "john@example.com",
+  "offering_name": "Premium Membership",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "renewal_date": "January 9, 2026",
+  "renewal_amount": "$19.99",
+  "renewal_period": "monthly",
+  "manage_subscription_url": "https://hylo.com/settings/subscriptions",
+  "update_payment_url": "https://billing.stripe.com/p/session/..."
+}
