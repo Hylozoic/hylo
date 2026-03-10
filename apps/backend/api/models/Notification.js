@@ -95,12 +95,12 @@ module.exports = bookshelf.Model.extend({
     const userId = this.reader().id
     switch (this.get('medium')) {
       case MEDIUM.Push:
-        if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
+        if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           await this.sendPush()
         }
         break
       case MEDIUM.Email:
-        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
+        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           await this.sendEmail()
         }
         break
@@ -312,7 +312,7 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
-  sendCommentPush: function (version) {
+  sendCommentPush: async function (version) {
     const comment = this.comment()
     const post = comment.relations.post
     const group = post.relations.groups.first()
@@ -320,7 +320,7 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
-    if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
+    if (!(await this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push))) {
       return Promise.resolve()
     }
     const blurb = TextHelpers.presentHTMLToText(comment.text(), { truncate: 140 })
@@ -625,7 +625,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -662,7 +661,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -697,7 +695,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostMentionNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -810,7 +807,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: group.get('name') + ' (via Hylo)' },
@@ -844,7 +840,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendApprovedJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: group.get('name') + ' (via Hylo)' },
@@ -875,7 +870,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupChildGroupInviteNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: actor.get('name') + ' from ' + parentGroup.get('name') },
@@ -911,7 +905,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupChildGroupInviteAcceptedNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: 'The Team at Hylo' },
@@ -949,7 +942,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupParentGroupJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: actor.get('name') + ' from ' + childGroup.get('name') },
@@ -985,7 +977,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupParentGroupJoinRequestAcceptedNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: 'The Team at Hylo' },
@@ -1084,7 +1075,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendEventInvitationEmail({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {

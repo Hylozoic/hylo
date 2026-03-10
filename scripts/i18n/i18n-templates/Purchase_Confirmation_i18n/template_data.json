@@ -1,0 +1,17 @@
+{
+  "access_type": "group",
+  "currency": "USD",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "is_subscription": true,
+  "manage_subscription_url": "https://hylo.com/settings/subscriptions",
+  "offering_description": "Access to all premium content and exclusive features",
+  "offering_name": "Premium Membership",
+  "price_formatted": "$19.99",
+  "purchase_date": "January 2, 2026",
+  "renewal_date": "February 2, 2026",
+  "renewal_period": "monthly",
+  "stripe_receipt_url": "https://pay.stripe.com/receipts/...",
+  "user_email": "john@example.com",
+  "user_name": "John Doe"
+}

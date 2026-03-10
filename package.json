@@ -48,5 +48,8 @@
     "nativewind/react-native-css-interop": "0.1.22",
     "react-native-reanimated": "3.18.0"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "dependencies": {
+    "archiver": "^7.0.1"
+  }
 }
