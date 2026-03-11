@@ -119,6 +119,7 @@ export default function AuthLayoutRouter (props) {
   const currentGroupSlug = pathMatchParams?.groupSlug
   const isMapView = pathMatchParams?.view === 'map'
   const isWelcomeContext = pathMatchParams?.context === 'welcome'
+  const isCreateGroupRoute = location.pathname.startsWith('/create-group')
 
   // Store
   const dispatch = useDispatch()
@@ -574,8 +575,9 @@ export default function AuthLayoutRouter (props) {
 
       <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          {/* Mobile nav backdrop overlay */}
-          {!withoutNav && (
+          {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
+          {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
+          {!withoutNav && !isCreateGroupRoute && (
             <div
               ref={setBackdropRef}
               className='sm:hidden fixed inset-0 z-[100] bg-black/50'
@@ -591,7 +593,9 @@ export default function AuthLayoutRouter (props) {
               'fixed left-0 top-0 z-[101] h-dvh w-full',
               // Desktop: back in normal flow
               'sm:relative sm:z-50 sm:h-full sm:w-auto',
-              'sm:max-w-420'
+              'sm:max-w-420',
+              // Hide nav on small screens for full-page Create Group flow
+              { 'hidden sm:relative': isCreateGroupRoute }
             )}
           >
             {!withoutNav && (

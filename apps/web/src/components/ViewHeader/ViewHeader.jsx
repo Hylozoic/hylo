@@ -114,11 +114,13 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  // On small screens, the chevron toggles the nav menu unless mobileBackButton is set
-  // On larger screens (sm+), if backButton is true, it navigates back
+  // On small screens, the chevron toggles the nav menu only when there is no
+  // explicit back behavior (backButton/mobileBackButton). If a screen declares
+  // a back button, we always treat the chevron as \"back\" so it never takes
+  // two taps.
   const handleChevronClick = () => {
     const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
-    if (isSmallScreen && !mobileBackButton) {
+    if (isSmallScreen && !mobileBackButton && !backButton) {
       dispatch(toggleNavMenu())
     } else if (backTo) {
       navigate(backTo)
@@ -139,9 +141,9 @@ const ViewHeader = () => {
       'justify-center': centered
     })}
     >
-      {centered && backButton && (
+      {centered && (backButton || mobileBackButton) && (
         <button
-          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0 z-10 bg-background', { 'sm:block': backButton })}
           onClick={handleChevronClick}
         >
           <ChevronLeft className='w-6 h-6' />
@@ -176,7 +178,8 @@ const ViewHeader = () => {
         className={cn('text-foreground m-0', {
           'truncate min-w-0 flex-1': typeof title === 'string',
           'whitespace-nowrap': title?.mobile && title?.desktop,
-          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title)
+          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title),
+          'pl-12 sm:pl-0': centered && (backButton || mobileBackButton)
         })}
       >
         {typeof title === 'string' || React.isValidElement(title)
@@ -197,12 +200,18 @@ const ViewHeader = () => {
           <div ref={searchContainerRef} className='relative flex items-center'>
             <button
               type='button'
-              className='sm:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none'
+              className={cn(
+                'sm:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none',
+                searchOpen && 'hidden'
+              )}
               onClick={() => searchInputRef.current?.focus()}
             >
               <Icon name='Search' className='opacity-60 text-xl' />
             </button>
-            <Icon name='Search' className='hidden sm:block left-2 absolute opacity-50 z-10' />
+            <Icon
+              name='Search'
+              className={cn('left-2 absolute opacity-50 z-10', searchOpen ? 'block' : 'hidden', 'sm:block')}
+            />
             <input
               ref={searchInputRef}
               type='text'
@@ -210,9 +219,7 @@ const ViewHeader = () => {
               className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-0 sm:w-[90px] py-1 pl-0 sm:pl-7 focus:w-[200px] sm:focus:w-[250px] focus:pl-7 transition-all outline-none focus:outline-focus focus:outline-2'
               value={searchValue}
               onFocus={() => {
-                if (searchOptions.length) {
-                  setSearchOpen(true)
-                }
+                setSearchOpen(true)
               }}
               onChange={(event) => {
                 setSearchValue(event.target.value)

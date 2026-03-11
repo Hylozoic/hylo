@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.0] - 2026-03-11
+
+### Added
+- Many improvements to the UI/UX of Hylo in a mobile web browser. This supports our brand new upcoming Hylo mobile app that is fully wrapping the Hylo web app and this has all the features of the web app.
+- On mobile you can dismiss a post by pulling it down
+- On mobile you can open the nav drawer by swiping in from the left and close it by swiping in from the right
+
+### Changed
+- Change copy link action button to edit when hovering over post card in a chat room
+
+### Fixed
+- Scrolling of the member list in the map drawer
+
 ## [6.3.3] - 2026-02-25
 
 ### Change
