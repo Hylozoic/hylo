@@ -797,6 +797,7 @@
   "New Message With": "Neue Nachricht mit",
   "New Password": "Neues Passwort",
   "New Password (Confirm)": "Neues Passwort (Bestätigen)",
+  "New Post at this location": "Neuer Beitrag an dieser Stelle",
   "New Submission to Funding Round <strong>{{fundingRoundName}}</strong>": "Neue Einreichung für die Finanzierungsrunde <strong>{{fundingRoundName}}</strong>",
   "New announcement in <strong>{{groupName}}</strong>": "Neue Ankündigung in <strong>{{groupName}}</strong>",
   "New chat in {{groupName}} <strong>#{{name}}</strong>": "Neuer Chat in {{groupName}} <strong>#{{name}}</strong>",

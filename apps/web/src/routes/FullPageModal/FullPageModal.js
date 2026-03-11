@@ -1,7 +1,6 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
-import isWebView from 'util/webView'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
@@ -9,23 +8,6 @@ export default function FullPageModal ({
 }) {
   const multipleTabs = Array.isArray(content)
 
-  // DEPRECATED: No longer render differently for webview - use standard layout
-  // if (isWebView()) {
-  //   return (
-  //     <div className='bg-background overflow-y-auto relative top-0 p-10'>
-  //       <Routes>
-  //         {multipleTabs && content.map(tab => (
-  //           <Route
-  //             path={tab.path}
-  //             element={tab.render ? tab.render() : tab.component}
-  //             key={tab.path}
-  //           />
-  //         ))}
-  //       </Routes>
-  //       {!multipleTabs && (content || children)}
-  //     </div>
-  //   )
-  // } else {
   return (
     <div className={cn('bg-midground h-full')}>
       {multipleTabs && (
@@ -43,5 +25,4 @@ export default function FullPageModal ({
       {!multipleTabs && <div className={cn('w-full max-w-[750px] mx-auto px-8 py-8')}>{content || children}</div>}
     </div>
   )
-  // }
 }

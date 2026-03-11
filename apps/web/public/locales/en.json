@@ -801,6 +801,7 @@
   "New Message With": "New Message With",
   "New Password": "New Password",
   "New Password (Confirm)": "New Password (Confirm)",
+  "New Post at this location": "New Post at this location",
   "New Submission to Funding Round <strong>{{fundingRoundName}}</strong>": "New Submission to Funding Round <strong>{{fundingRoundName}}</strong>",
   "New announcement in <strong>{{groupName}}</strong>": "New announcement in <strong>{{groupName}}</strong>",
   "New chat in {{groupName}} <strong>#{{name}}</strong>": "New chat in {{groupName}} <strong>#{{name}}</strong>",

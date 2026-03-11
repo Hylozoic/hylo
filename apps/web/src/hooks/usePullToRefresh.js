@@ -3,17 +3,17 @@ import isWebView from 'util/webView'
 
 /**
  * Hook to detect pull-to-refresh gesture (web-side implementation)
- * 
+ *
  * Only triggers when:
  * 1. User is at scroll position 0 (top of page)
  * 2. User pulls DOWN past the threshold
  * 3. User HOLDS the pull position for the required duration
  * 4. Visual indicator shows when "ready to refresh"
- * 
+ *
  * This prevents accidental triggers from quick swipes or taps.
- * 
+ *
  * Performance: Minimal state updates - only when crossing threshold boundaries.
- * 
+ *
  * @param {Function} onRefresh - Callback when pull-to-refresh is triggered
  * @param {Object} options - Configuration options
  * @param {number} options.threshold - Pixels to pull before triggering (default: 120)
@@ -118,4 +118,3 @@ export default function usePullToRefresh (onRefresh, options = {}) {
 
   return { isPulling, isReadyToRefresh, isRefreshing }
 }
-

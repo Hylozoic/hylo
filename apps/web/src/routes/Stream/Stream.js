@@ -50,7 +50,6 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
 
 import styles from './Stream.module.scss'
 
