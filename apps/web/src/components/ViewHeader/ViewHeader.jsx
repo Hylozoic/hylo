@@ -8,12 +8,12 @@ import InfoButton from 'components/ui/info'
 import { Command, CommandItem, CommandList } from 'components/ui/command'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
-import isWebView from 'util/webView'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
+import { isMobileDevice } from 'util/mobile'
 
 const ViewHeader = () => {
   const dispatch = useDispatch()
@@ -24,7 +24,7 @@ const ViewHeader = () => {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const { headerDetails } = useViewHeader()
-  const { backButton, backTo, title, icon, info, search, centered } = headerDetails
+  const { backButton, backTo, mobileBackButton, title, icon, info, search, centered, headerActions } = headerDetails
 
   const previousLocation = useSelector(getPreviousLocation)
 
@@ -114,33 +114,49 @@ const ViewHeader = () => {
     }
   }, [activeOptionIndex, handleSearch, searchOptions])
 
-  const handleBackClick = useCallback(() => {
-    if (backTo) {
+  // On small screens, the chevron toggles the nav menu unless mobileBackButton is set
+  // On larger screens (sm+), if backButton is true, it navigates back
+  const handleChevronClick = () => {
+    const isSmallScreen = window.innerWidth < 640 // Tailwind 'sm' breakpoint
+    if (isSmallScreen && !mobileBackButton) {
+      dispatch(toggleNavMenu())
+    } else if (backTo) {
       navigate(backTo)
     } else if (centered) {
       navigate(previousLocation || '/')
     } else {
       navigate(-1)
     }
-  }, [backTo, centered, navigate, previousLocation])
+  }
+
+  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
+  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+    return null
+  }
 
   return (
-    <header className={cn('flex flex-row items-center z-10 p-2 relative w-full bg-white/5 shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
+    <header className={cn('flex flex-row items-center z-20 p-2 sticky top-0 w-full bg-background shadow-[0_4px_15px_0px_rgba(0,0,0,0.1)]', {
       'justify-center': centered
     })}
     >
       {centered && backButton && (
-        <ChevronLeft
-          className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer absolute left-0', { 'sm:block': backButton })}
-          onClick={handleBackClick}
-        />
+        <button
+          className={cn('sm:hidden p-2 -ml-1 cursor-pointer absolute left-0', { 'sm:block': backButton })}
+          onClick={handleChevronClick}
+        >
+          <ChevronLeft className='w-6 h-6' />
+        </button>
       )}
-      {!isWebView() && !centered && (
+      {/* DEPRECATED: Now always show back button/menu toggle */}
+      {/* {!isWebView() && !centered && ( */}
+      {!centered && (
         <>
-          <ChevronLeft
-            className={cn('sm:hidden min-w-6 min-h-6 mr-3 cursor-pointer', { 'sm:block': backButton })}
-            onClick={() => backButton ? handleBackClick() : dispatch(toggleNavMenu())}
-          />
+          <button
+            className={cn('sm:hidden p-2 -ml-1 mr-1 cursor-pointer', { 'sm:block': backButton })}
+            onClick={handleChevronClick}
+          >
+            <ChevronLeft className='w-6 h-6' />
+          </button>
           {context !== 'messages' && (
             <div className='ViewHeaderContextIcon sm:hidden mr-3 w-8 h-8 rounded-lg drop-shadow-md'>
               {context === 'groups'
@@ -152,9 +168,17 @@ const ViewHeader = () => {
                     : null}
             </div>
           )}
-        </>)}
+        </>
+      )}
+      {/* )} */}
       {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
-      <h2 className={cn('text-foreground m-0 whitespace-nowrap')}>
+      <h2
+        className={cn('text-foreground m-0', {
+          'truncate min-w-0 flex-1': typeof title === 'string',
+          'whitespace-nowrap': title?.mobile && title?.desktop,
+          'min-w-0 overflow-x-auto flex-1': React.isValidElement(title)
+        })}
+      >
         {typeof title === 'string' || React.isValidElement(title)
           ? title
           : title?.mobile && title?.desktop
@@ -166,16 +190,24 @@ const ViewHeader = () => {
               )
             : ''}
       </h2>
+      {!centered && headerActions && <div className='flex items-center ml-2 shrink-0'>{headerActions}</div>}
       {!centered && info && <InfoButton content={info} className='ml-2' />}
       {!centered && search && (
-        <div className='flex-1 flex justify-end relative'>
+        <div className='flex justify-end relative ml-2'>
           <div ref={searchContainerRef} className='relative flex items-center'>
-            <Icon name='Search' className='left-2 absolute opacity-50' />
+            <button
+              type='button'
+              className='sm:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-input/60 cursor-pointer border-none'
+              onClick={() => searchInputRef.current?.focus()}
+            >
+              <Icon name='Search' className='opacity-60 text-xl' />
+            </button>
+            <Icon name='Search' className='hidden sm:block left-2 absolute opacity-50 z-10' />
             <input
               ref={searchInputRef}
               type='text'
               placeholder={t('Search')}
-              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-[90px] py-1 pl-7 focus:w-[250px] transition-all outline-none focus:outline-focus focus:outline-2'
+              className='bg-input/60 focus:bg-input/100 rounded-lg text-foreground placeholder-foreground/40 w-0 sm:w-[90px] py-1 pl-0 sm:pl-7 focus:w-[200px] sm:focus:w-[250px] focus:pl-7 transition-all outline-none focus:outline-focus focus:outline-2'
               value={searchValue}
               onFocus={() => {
                 if (searchOptions.length) {

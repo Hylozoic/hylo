@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -17,12 +17,15 @@ import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import ViewHeader from 'components/ViewHeader'
+// useSwipeGesture replaced by interactive nav drawer gesture below
+import usePullToRefresh from 'hooks/usePullToRefresh'
 import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkForNewNotifications from 'store/actions/checkForNewNotifications'
 import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
@@ -67,8 +70,8 @@ import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
-import { setMembershipLastViewedAt } from './AuthLayoutRouter.store'
+import { isLegacyWebView } from 'util/webView'
+import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -76,7 +79,7 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -132,6 +135,245 @@ export default function AuthLayoutRouter (props) {
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
   const [currentGroupLoading, setCurrentGroupLoading] = useState()
 
+  // Refs for mobile nav drawer animation
+  const navContainerRef = useRef(null)
+  const backdropRef = useRef(null)
+  const isNavOpenRef = useRef(isNavOpen)
+  const isDraggingNavRef = useRef(false)
+
+  // Keep isNavOpen ref in sync for use in touch handlers
+  useEffect(() => { isNavOpenRef.current = isNavOpen }, [isNavOpen])
+
+  // Callback refs set the initial off-screen position the instant the elements
+  // mount into the DOM (after the loading screen), preventing any flash.
+  const setNavContainerRef = useCallback((node) => {
+    navContainerRef.current = node
+    if (node && window.innerWidth < 640) {
+      node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
+    }
+  }, [])
+  const setBackdropRef = useCallback((node) => {
+    backdropRef.current = node
+    if (node && window.innerWidth < 640) {
+      node.style.opacity = isNavOpenRef.current ? '1' : '0'
+      node.style.pointerEvents = isNavOpenRef.current ? 'auto' : 'none'
+    }
+  }, [])
+
+  // Clear mobile nav inline styles when resizing to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) {
+        const navEl = navContainerRef.current
+        const backdropEl = backdropRef.current
+        if (navEl) { navEl.style.transform = ''; navEl.style.transition = '' }
+        if (backdropEl) { backdropEl.style.opacity = '0'; backdropEl.style.pointerEvents = 'none' }
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Animate nav position when isNavOpen changes (from chevron press or menu link click)
+  useEffect(() => {
+    const navEl = navContainerRef.current
+    const backdropEl = backdropRef.current
+    if (!navEl || !backdropEl || window.innerWidth >= 640) return
+    if (isDraggingNavRef.current) return // Drag handler manages position during drag
+
+    navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+    backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+
+    if (isNavOpen) {
+      navEl.style.transform = 'translateX(0)'
+      backdropEl.style.opacity = '1'
+      backdropEl.style.pointerEvents = 'auto'
+    } else {
+      navEl.style.transform = 'translateX(-100%)'
+      backdropEl.style.opacity = '0'
+      backdropEl.style.pointerEvents = 'none'
+    }
+  }, [isNavOpen])
+
+  // Interactive drag gesture for mobile nav drawer
+  // - Drag from left edge to open (with real-time visual feedback)
+  // - Drag right-to-left to close when open (with real-time visual feedback)
+  // Refs are read lazily inside handlers so listeners work even before the
+  // nav container mounts (e.g. while the loading screen is still showing).
+  useEffect(() => {
+    if (withoutNav) return
+
+    const VELOCITY_THRESHOLD = 0.3 // px/ms — fast flick overrides position
+    const POSITION_THRESHOLD = 0.4 // 40% of nav width to snap open
+
+    let touchStartX = null
+    let touchStartY = null
+    let touchStartTime = null
+    let isOpenGesture = false // attempting to open (nav currently closed)
+    let isCloseGesture = false // attempting to close (nav currently open)
+    let isDragging = false
+    let directionLocked = false
+    let navWidth = 0
+    let startTranslateX = 0
+
+    const setNavPosition = (translateXPx) => {
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+      navWidth = navEl.offsetWidth
+      const clampedX = Math.min(0, Math.max(-navWidth, translateXPx))
+      navEl.style.transform = `translateX(${clampedX}px)`
+      const progress = 1 - Math.abs(clampedX) / navWidth
+      backdropEl.style.opacity = String(progress)
+      backdropEl.style.pointerEvents = progress > 0.01 ? 'auto' : 'none'
+    }
+
+    const animateNavTo = (open) => {
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+      navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+      backdropEl.style.transition = 'opacity 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
+      navEl.style.transform = open ? 'translateX(0)' : 'translateX(-100%)'
+      backdropEl.style.opacity = open ? '1' : '0'
+      backdropEl.style.pointerEvents = open ? 'auto' : 'none'
+    }
+
+    let touchTarget = null
+
+    const handleTouchStart = (e) => {
+      if (window.innerWidth >= 640) return
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+
+      const touch = e.touches[0]
+      touchStartX = touch.clientX
+      touchStartY = touch.clientY
+      touchStartTime = Date.now()
+      touchTarget = e.target
+      navWidth = navEl.offsetWidth
+      isDragging = false
+      directionLocked = false
+
+      // Determine gesture type based on current nav state
+      isOpenGesture = !isNavOpenRef.current
+      isCloseGesture = isNavOpenRef.current
+
+      startTranslateX = isCloseGesture ? 0 : -navWidth
+    }
+
+    const handleTouchMove = (e) => {
+      if (touchStartX === null) return
+
+      const navEl = navContainerRef.current
+      const backdropEl = backdropRef.current
+      if (!navEl || !backdropEl) return
+
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - touchStartX
+      const deltaY = touch.clientY - touchStartY
+
+      // Lock direction after sufficient movement
+      if (!directionLocked) {
+        if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          // Vertical scroll — abort (transitions never removed, no cleanup needed)
+          touchStartX = null
+          return
+        }
+        directionLocked = true
+
+        // Validate direction: only right swipe opens, only left swipe closes
+        if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
+        if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If opening (right swipe), check if touch is inside a horizontally
+        // scrolled container — let native scroll handle scrolling back first
+        if (isOpenGesture && touchTarget) {
+          let el = touchTarget
+          while (el && el !== document.body) {
+            if (el.scrollLeft > 0) {
+              const overflowX = window.getComputedStyle(el).overflowX
+              if (overflowX === 'auto' || overflowX === 'scroll') {
+                touchStartX = null
+                return
+              }
+            }
+            el = el.parentElement
+          }
+        }
+      }
+
+      // Only remove transitions once we've confirmed a valid horizontal drag
+      if (!isDragging) {
+        navEl.style.transition = 'none'
+        backdropEl.style.transition = 'none'
+      }
+
+      isDragging = true
+      isDraggingNavRef.current = true
+      e.preventDefault()
+
+      setNavPosition(startTranslateX + deltaX)
+    }
+
+    const handleTouchEnd = (e) => {
+      if (!isDragging || touchStartX === null) {
+        touchStartX = null
+        touchStartY = null
+        return
+      }
+
+      const touch = e.changedTouches[0]
+      const deltaX = touch.clientX - touchStartX
+      const elapsed = Date.now() - touchStartTime
+      const velocity = Math.abs(deltaX) / Math.max(elapsed, 1)
+
+      const navEl = navContainerRef.current
+      navWidth = navEl ? navEl.offsetWidth : navWidth
+      const finalTranslateX = startTranslateX + deltaX
+      const clampedX = Math.min(0, Math.max(-navWidth, finalTranslateX))
+      const progress = 1 - Math.abs(clampedX) / navWidth
+
+      // High velocity flick: use direction; otherwise use position
+      const shouldOpen = velocity > VELOCITY_THRESHOLD
+        ? deltaX > 0
+        : progress > POSITION_THRESHOLD
+
+      animateNavTo(shouldOpen)
+      isDraggingNavRef.current = false
+
+      // Only update Redux if state actually changes
+      if (shouldOpen !== isNavOpenRef.current) {
+        dispatch(toggleNavMenu(shouldOpen))
+      }
+
+      touchStartX = null
+      touchStartY = null
+      isDragging = false
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+    document.addEventListener('touchcancel', handleTouchEnd, { passive: true })
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchcancel', handleTouchEnd)
+    }
+  }, [withoutNav, dispatch])
+
+  // Pull-to-refresh gesture for WebView (web-side implementation)
+  // Requires user to pull down AND hold for a moment to prevent accidental triggers
+  const { isPulling, isReadyToRefresh, isRefreshing } = usePullToRefresh(
+    () => window.location.reload(),
+    { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
+  )
+
   useEffect(() => {
     (async function () {
       await dispatch(fetchCommonRoles())
@@ -184,6 +426,41 @@ export default function AuthLayoutRouter (props) {
       }
     })()
   }, [currentGroupSlug])
+
+  // Pre-load context menu data for all membership groups in paginated batches.
+  // This ensures context menus render immediately when switching groups.
+  // Batches are processed sequentially (10 groups at a time) with a delay
+  // after initial page load to let critical requests complete first.
+  // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
+  useEffect(() => {
+    if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
+      const groupIds = memberships
+        .map(m => m.group?.id)
+        .filter(Boolean)
+        .filter((id, index, self) => self.indexOf(id) === index) // unique ids
+
+      if (groupIds.length === 0) return
+
+      // Delay initial request to let critical page load requests complete first
+      const INITIAL_DELAY = 3000 // 3 second delay
+      const BATCH_SIZE = 10
+
+      const timeoutId = setTimeout(async () => {
+        // Split into batches of 10
+        const batches = []
+        for (let i = 0; i < groupIds.length; i += BATCH_SIZE) {
+          batches.push(groupIds.slice(i, i + BATCH_SIZE))
+        }
+
+        // Process batches sequentially (wait for each to complete before starting next)
+        for (const batch of batches) {
+          await dispatch(fetchGroupsMenuData(batch))
+        }
+      }, INITIAL_DELAY)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [currentUserLoading, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
@@ -248,6 +525,27 @@ export default function AuthLayoutRouter (props) {
 
   return (
     <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+      {/* Pull-to-refresh indicator - shows during and after gesture */}
+      {(isPulling || isRefreshing) && (
+        <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>
+          <div className={`bg-background border rounded-full p-3 shadow-lg transition-all duration-200 ${isReadyToRefresh || isRefreshing ? 'border-primary scale-110' : 'border-border'}`}>
+            {isRefreshing
+              ? (
+                <svg className='w-5 h-5 animate-spin text-primary' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'>
+                  <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+                  <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
+                </svg>
+                )
+              : (
+                <svg className={`w-5 h-5 transition-all duration-200 ${isReadyToRefresh ? 'text-primary' : 'text-muted-foreground'}`} xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth='2'>
+                  {isReadyToRefresh
+                    ? <path strokeLinecap='round' strokeLinejoin='round' d='M5 13l4 4L19 7' />
+                    : <path strokeLinecap='round' strokeLinejoin='round' d='M19 14l-7 7m0 0l-7-7m7 7V3' />}
+                </svg>
+                )}
+          </div>
+        </div>
+      )}
       <Helmet>
         <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -266,16 +564,36 @@ export default function AuthLayoutRouter (props) {
         {/* Redirect manage notifications page to settings page when logged in */}
         <Route path='notifications' element={<Navigate to='/my/notifications' replace />} />
 
-        {!isWebView() && (
-          <>
-            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-          </>
-        )}
+        {/* DEPRECATED: Now always show GroupWelcomeModal */}
+        {/* {!isWebView() && ( */}
+        <>
+          <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+        </>
+        {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100vh] h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
-          <div className={cn('AuthLayoutRouterNavContainer hidden sm:flex flex-row max-w-420 h-full z-50', { 'flex absolute sm:relative': isNavOpen })}>
+          {/* Mobile nav backdrop overlay */}
+          {!withoutNav && (
+            <div
+              ref={setBackdropRef}
+              className='sm:hidden fixed inset-0 z-[100] bg-black/50'
+              style={{ opacity: 0, pointerEvents: 'none' }}
+              onClick={() => dispatch(toggleNavMenu(false))}
+            />
+          )}
+          <div
+            ref={setNavContainerRef}
+            className={cn(
+              'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
+              // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+              'fixed left-0 top-0 z-[101] h-dvh w-full',
+              // Desktop: back in normal flow
+              'sm:relative sm:z-50 sm:h-full sm:w-auto',
+              'sm:max-w-420'
+            )}
+          >
             {!withoutNav && (
               <>
                 <GlobalNav
@@ -300,9 +618,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>}
           </div> {/* END NavContainer */}
 
-          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative' id='center-column-container'>
-            <ViewHeader />
-
+          <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative flex-1 min-w-0' id='center-column-container'>
             <Routes>
               <Route path='groups/:groupSlug/topics/:topicName/create/*' element={<CreateModal context='groups' />} />
               <Route path='groups/:groupSlug/topics/:topicName/post/:postId/create/*' element={<CreateModal context='groups' />} />
@@ -347,7 +663,8 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+              <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}

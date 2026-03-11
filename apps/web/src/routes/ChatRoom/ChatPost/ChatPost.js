@@ -27,7 +27,6 @@ import useReactionActions from 'hooks/useReactionActions'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -320,7 +319,7 @@ export default function ChatPost ({
             onEnter={handleEditSave}
             placeholder='Edit Post'
             ref={editorRef}
-            showMenu={!isWebView()}
+            showMenu
             className={cn(styles.editing, 'p-0 m-0')}
           />
         )}

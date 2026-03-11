@@ -27,7 +27,7 @@ import {
 } from 'store/constants'
 import orm from 'store/models'
 import { cn } from 'util/index'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
 import { createAffiliation, deleteAffiliation, leaveGroup } from './UserGroupsTab.store'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -128,7 +128,7 @@ function UserGroupsTab () {
           setMemberships(newMemberships)
         }
 
-        if (isWebView()) {
+        if (isLegacyWebView()) {
           sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
         }
       })

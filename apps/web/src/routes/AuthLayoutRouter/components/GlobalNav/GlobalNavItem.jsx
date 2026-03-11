@@ -40,7 +40,9 @@ export default function GlobalNavItem ({
   const [open, setOpen] = useState(false)
   const [shouldAnimate, setShouldAnimate] = useState(false)
   const itemRef = useRef(null)
+  const suppressHoverRef = useRef(false)
   const [isInViewport, setIsInViewport] = useState(true)
+  const hasShownInSessionRef = useRef(false)
 
   /**
    * Checks if the tooltip would appear below the maximum allowed Y position
@@ -49,34 +51,43 @@ export default function GlobalNavItem ({
     if (itemRef.current) {
       const rect = itemRef.current.getBoundingClientRect()
       const maxAllowedY = window.innerHeight * 0.85 // 85% of viewport height
-      setIsInViewport(rect.top < maxAllowedY)
+      setIsInViewport(rect.top < maxAllowedY && rect.bottom > 0)
     }
   }, [])
 
   /**
    * Handles tooltip visibility and animation states
    * - Immediate show on direct hover
-   * - Staggered show when parent triggers cascade
+   * - Staggered show when parent first triggers cascade
+   * - Immediate restore if already shown in this hover session
+   *   (prevents stagger timer reset when scrolling toggles isInViewport)
    * - Hide when neither condition is true
    */
   useEffect(() => {
-    if (!isInViewport) {
-      setOpen(false)
-      return
-    }
-
     if (isHovered) {
       setOpen(true)
       setShouldAnimate(true)
-    } else if (parentShowTooltip) {
-      const timer = setTimeout(() => {
+      hasShownInSessionRef.current = true
+    } else if (parentShowTooltip && isInViewport) {
+      if (hasShownInSessionRef.current) {
+        // Already shown in this cascade — restore immediately (no re-stagger)
         setOpen(true)
         setShouldAnimate(true)
-      }, 300 + (index * 100))
-      return () => clearTimeout(timer)
-    } else {
+      } else {
+        const timer = setTimeout(() => {
+          setOpen(true)
+          setShouldAnimate(true)
+          hasShownInSessionRef.current = true
+        }, 300 + (index * 100))
+        return () => clearTimeout(timer)
+      }
+    } else if (!parentShowTooltip) {
       setOpen(false)
       setShouldAnimate(false)
+      hasShownInSessionRef.current = false
+    } else {
+      // parentShowTooltip is true but item is out of viewport
+      setOpen(false)
     }
   }, [parentShowTooltip, isHovered, index, isInViewport])
 
@@ -94,6 +105,25 @@ export default function GlobalNavItem ({
     }
   }, [checkPosition])
 
+  // Listen for hover suppression from GlobalNav (fired when nav opens on mobile)
+  // Blocks ALL hover events regardless of pointerType during the grace period
+  useEffect(() => {
+    const handleSuppress = (e) => {
+      suppressHoverRef.current = e.detail
+      if (e.detail) setIsHovered(false)
+    }
+    window.addEventListener('navHoverSuppress', handleSuppress)
+    return () => window.removeEventListener('navHoverSuppress', handleSuppress)
+  }, [])
+
+  // Reset local hover state when parent stops showing tooltips
+  // This prevents "sticky" tooltips on mobile where mouseleave doesn't fire reliably
+  useEffect(() => {
+    if (!parentShowTooltip) {
+      setIsHovered(false)
+    }
+  }, [parentShowTooltip])
+
   const handleClick = useCallback(() => {
     setIsHovered(false)
     if (url) {
@@ -101,11 +131,14 @@ export default function GlobalNavItem ({
     }
   }, [url, navigate])
 
-  const handleMouseEnter = useCallback(() => {
+  const handlePointerEnter = useCallback((e) => {
+    // Ignore touch-originated pointer events and suppress during nav open grace period
+    if (e.pointerType === 'touch' || suppressHoverRef.current) return
     setIsHovered(true)
   }, [])
 
-  const handleMouseLeave = useCallback(() => {
+  const handlePointerLeave = useCallback((e) => {
+    if (e.pointerType === 'touch') return
     setIsHovered(false)
   }, [])
 
@@ -126,8 +159,8 @@ export default function GlobalNavItem ({
         <TooltipTrigger asChild>
           <div
             onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
             className={cn(
               'bg-primary relative transition-all ease-in-out duration-250 overflow-visible',
               'flex flex-col items-center justify-center w-14 h-14 min-h-10',
@@ -140,7 +173,13 @@ export default function GlobalNavItem ({
               },
               className
             )}
-            style={style}
+            style={{
+              ...style,
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
+              msUserSelect: 'none'
+            }}
             role='button'
           >
             {isDefaultAvatar && (

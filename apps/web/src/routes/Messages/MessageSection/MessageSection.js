@@ -232,19 +232,13 @@ export default class MessageSection extends Component {
   render () {
     const { messages, pending, messageThread } = this.props
     const { showNewMessageButton } = this.state
-    const isInitialLoad = pending && messages.length === 0
 
     return (
-      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1 pb-4' onScroll={this.handleScroll} data-testid='message-section'>
-        {isInitialLoad && <Loading />}
-        {!isInitialLoad && (
+      <div id='message-list' className='w-full overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
+        {pending && <Loading />}
+        {!pending && (
           <>
-            {pending && (
-              <div className='absolute top-0 left-0 right-0 z-10 flex justify-center pt-4' aria-hidden>
-                <Loading />
-              </div>
-            )}
-            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end'>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end w-full'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

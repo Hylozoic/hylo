@@ -46,7 +46,7 @@ import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurr
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -96,7 +96,7 @@ export default function ChatRoom (props) {
   const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   const { customTopicName } = props
   const { groupSlug, postId: selectedPostId } = routeParams
@@ -134,7 +134,8 @@ export default function ChatRoom (props) {
   const [initialAnimationComplete, setInitialAnimationComplete] = useState(false)
 
   // The number of posts that should fill a screen plus a few more to make sure we have enough posts to scroll through
-  const INITIAL_POSTS_TO_LOAD = isWebView() || isMobile.any ? 17 : 25
+  // DEPRECATED: Load same number for all mobile (including webview)
+  const INITIAL_POSTS_TO_LOAD = isMobile.any ? 17 : 25
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
@@ -408,10 +409,11 @@ export default function ChatRoom (props) {
         ])
       }
 
-      // Remove the scroll to post from the url so we can click on a notification to scroll to it again but only if its the regular web app (not mobile webview)
-      if (!isWebView()) {
-        dispatch(changeQuerystringParam(location, 'postId', null, null, true))
-      }
+      // Remove the scroll to post from the url so we can click on a notification to scroll to it again
+      // DEPRECATED: Now always clean up the URL parameter
+      // if (!isWebView()) {
+      dispatch(changeQuerystringParam(location, 'postId', null, null, true))
+      // }
     }
   }, [querystringParams?.postId])
 
@@ -572,9 +574,10 @@ export default function ChatRoom (props) {
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
     !hiddenTopic && setHeaderDetails({
-      title: (
-        <span className='flex items-center gap-2'>
-          #{topicName}
+      backButton: false,
+      title: `#${topicName}`,
+      headerActions: (
+        <>
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
               icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
@@ -591,16 +594,17 @@ export default function ChatRoom (props) {
             place='bottom-start'
             id='notifications-tt'
           />
-        </span>
+        </>
       ),
       icon: null,
       info: '',
-      search: !isWebView()
+      // DEPRECATED: Now always enable search
+      search: true // !isWebView()
     })
   }, [hiddenTopic, topicName, notificationsSetting])
 
   return (
-    <div className={cn('ChatRoom h-full shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
+    <div className={cn('ChatRoom flex-1 min-h-0 shadow-md flex flex-col overflow-hidden items-center justify-center', { [styles.withoutNav]: withoutNav })} ref={setContainer}>
       <Helmet>
         <title>#{topicName} | {group ? `${group.name} | ` : ''}Hylo</title>
       </Helmet>
@@ -664,12 +668,12 @@ export default function ChatRoom (props) {
           afterSave={afterCreate}
         />
       </div>
-      {/* This is hidden for webView in mobile; stops two different versions of a post detail view getting rendered */}
-      {!isWebView() && (
-        <Routes>
-          <Route path='post/:postId' element={<PostDialog container={container} />} />
-        </Routes>
-      )}
+      {/* DEPRECATED: Now always show PostDialog routes */}
+      {/* {!isWebView() && ( */}
+      <Routes>
+        <Route path='post/:postId' element={<PostDialog container={container} />} />
+      </Routes>
+      {/* )} */}
     </div>
   )
 }
