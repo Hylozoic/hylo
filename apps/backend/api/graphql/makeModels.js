@@ -193,7 +193,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
-        isAdmin: () => isAdmin || false,
+        isAdmin: u => isAdmin || false,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -616,6 +616,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'home_route',
         'homeWidget',
         'location',
         'geo_shape',
@@ -1778,6 +1779,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const metadata = ca.get('metadata') || {}
           return metadata.subscription_cancel_reason || null
         }
+      }
+    },
+
+    EmailEnabledTester: {
+      model: EmailEnabledTester,
+      attributes: [
+        'id',
+        'user_id',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { user: { alias: 'user' } }
+      ],
+      getters: {
+        userId: e => e.get('user_id'),
+        createdAt: e => e.get('created_at'),
+        updatedAt: e => e.get('updated_at')
       }
     }
   }

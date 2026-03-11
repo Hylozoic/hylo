@@ -102,38 +102,38 @@ function TrackHome () {
   return (
     <div className='w-full h-full' ref={setContainer}>
       <div className='pt-4 px-4 w-full h-full relative flex flex-col'>
-        <div className='w-full h-full flex-1 flex flex-col'>
+        <div className='w-full h-full flex-1 flex flex-col min-h-0'>
           {(isEnrolled || canEdit) && canViewFullTrack && (
-            <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
+            <div className={cn('flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2', { 'text-sm sm:text-base': canEdit })}>
               <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
                 to=''
               >
                 {t('About')}
               </Link>
               <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
                 to='actions'
               >
                 {currentTrack.actionDescriptorPlural}
-                <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                <span className='ml-1 sm:ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
                   {currentTrack.numActions}
                 </span>
               </Link>
               <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
                 to='people'
               >
                 {t('People')}
                 {currentTrack.enrolledUsers?.length > 0 && (
-                  <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  <span className='ml-1 sm:ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
                     {currentTrack.enrolledUsers.length}
                   </span>
                 )}
               </Link>
               {canEdit && (
                 <Link
-                  className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                  className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
                   to='manage'
                 >
                   {t('Manage')}
@@ -144,7 +144,7 @@ function TrackHome () {
 
           {canViewFullTrack
             ? (
-              <div className='flex-1 overflow-y-auto w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+              <div className='flex-1 overflow-y-auto w-full min-h-0' style={{ scrollbarGutter: 'stable both-edges' }}>
                 <div className='w-full max-w-[750px] mx-auto pb-20'>
                   <Routes>
                     <Route path='actions/*' element={<ActionsTab track={currentTrack} container={container} />} />
@@ -163,7 +163,7 @@ function TrackHome () {
               )}
         </div>
 
-        <div className='absolute bottom-0 right-0 left-0 flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20'>
+        <div className='flex flex-row gap-2 mx-auto w-full max-w-[750px] px-4 py-2 items-center bg-input rounded-t-md shadow-lg border-1 border-foreground/20 flex-shrink-0'>
           {!publishedAt
             ? (
               <>
@@ -188,14 +188,14 @@ function TrackHome () {
                   <>
                     <div className='flex flex-row gap-2 items-center justify-between w-full'>
                       <span className='flex flex-row gap-2 items-center'><Check className='w-4 h-4 text-selected' /> {t('You are currently enrolled in this track')}</span>
-                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 ' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
+                      <button className='border-2 border-foreground/20 flex flex-row gap-2 items-center rounded-md p-2 px-4 whitespace-nowrap' onClick={() => dispatch(leaveTrack(currentTrack.id))}><DoorOpen className='w-4 h-4' />{t('Leave Track')}</button>
                     </div>
                   </>
                   )
                 : !isEnrolled && hasAccess && (
                   <div className='flex flex-row gap-2 items-center justify-between w-full'>
                     <span>{t('Ready to jump in?')}</span>
-                    <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
+                    <button className='bg-selected text-foreground rounded-md p-2 px-4 flex flex-row gap-2 items-center whitespace-nowrap' onClick={handleEnrollInTrack}><ChevronsRight className='w-4 h-4' /> {t('Enroll')}</button>
                   </div>
                   )}
         </div>

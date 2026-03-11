@@ -531,6 +531,9 @@ module.exports = bookshelf.Model.extend(merge({
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+    const groupSettings = this.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const updatedAttribs = Object.assign(
       {},
       {
@@ -538,7 +541,7 @@ module.exports = bookshelf.Model.extend(merge({
         role: GroupMembership.Role.DEFAULT,
         settings: {
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           lastReadAt: attrs.lastReadAt || null
@@ -1196,7 +1199,10 @@ module.exports = bookshelf.Model.extend(merge({
       allow_group_invites: false,
       agreements_last_updated_at: null,
       public_member_directory: false,
+      homeView: data.home_view || 'CHAT'
     }
+
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
 
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
@@ -1205,7 +1211,8 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       created_by_id: userId,
       settings: defaultSettings,
-      calendar_token: uuidv4()
+      calendar_token: uuidv4(),
+      home_route: homeRoute
     }))
 
     await bookshelf.transaction(async trx => {
@@ -1260,6 +1267,9 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+
+    // Send email to creator
+    await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
 
     return group
   },
@@ -1567,6 +1577,32 @@ module.exports = bookshelf.Model.extend(merge({
               address: 'dev+bot@hylo.com'
             }
           }
+        })
+      })
+  },
+
+  sendGroupCreatedEmail: function (opts) {
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
+      .then(async group => {
+        if (!group) return
+        const creator = group.relations.creator
+        if (!creator) return
+
+        const userLocale = creator.getLocale()
+        const userName = creator.get('name') || ''
+        const firstName = userName.split(' ')[0] || userName
+
+        Email.sendGroupCreatedEmail({
+          email: creator.get('email'),
+          data: {
+            first_name: firstName,
+            group_name: group.get('name'),
+            add_purpose_url: Frontend.Route.groupSettings(group),
+            edit_welcome_page_url: Frontend.Route.groupSettings(group) + '/welcome',
+            stewardship_support_url: 'https://hylozoic.gitbook.io/hylo/about/community-stewardship-support-program-csaas',
+            community_call_url: 'https://www.hylo.com/participate/'
+          },
+          locale: userLocale
         })
       })
   },

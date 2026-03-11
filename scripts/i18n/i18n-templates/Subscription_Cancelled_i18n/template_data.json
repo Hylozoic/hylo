@@ -1,0 +1,11 @@
+{
+  "user_name": "John Doe",
+  "user_email": "john@example.com",
+  "offering_name": "Premium Membership",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "cancelled_at": "January 2, 2026",
+  "access_ends_at": "January 15, 2026",
+  "reason": "User requested",
+  "resubscribe_url": "https://hylo.com/groups/my-community/about"
+}

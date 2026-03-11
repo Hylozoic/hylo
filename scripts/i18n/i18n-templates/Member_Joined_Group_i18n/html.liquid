@@ -1,0 +1,31 @@
+{% snippet 'header_redesign' %}
+{% snippet 'macro: actor_pill' %}
+
+{% set member_pill = actor_pill(member_name, member_avatar_url, member_profile_url) %}
+{% set group_pill = actor_pill(group_name, group_avatar_url, group_url) %}
+
+<p>{% trans %}Your group is growing!{% endtrans %}</p>
+
+<div class='card center'>
+{{member_pill}} {% trans %}has joined{% endtrans %} {{group_pill}}
+</div>
+
+{% if join_question_answers %}
+{% for question in join_question_answers %}
+{% set question_text = question.text %}
+{% set question_answer_e = question.answer|e %}
+<div class='card'>
+  {{group_pill}}
+  <h3>{% trans %}{{question_text}}{% endtrans %}</h3>
+  
+  {{member_pill}}
+  <p>{% trans %}{{question_answer_e}}{% endtrans %}</p>
+  </ul>
+</div>
+{% endfor %}
+{% endif %}
+
+{% set member_name_var = member_name %}
+<a href='{{group_url}}' class='btn btn-blue'>{% trans %}Welcome {{member_name_var}} to the group{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

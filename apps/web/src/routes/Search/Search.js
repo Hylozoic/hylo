@@ -88,7 +88,7 @@ export default function Search (props) {
         <div className='relative flex items-center'>
           <Icon name='Search' className='left-2 absolute opacity-50 z-50' />
           <TextInput
-            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[375px] max-w-[750px] bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
+            inputClassName='border-2 border-transparent transition-all duration-200 focus:border-focus w-full min-w-[300px] sm:min-w-[375px] max-w-[750px] bg-input rounded-lg text-foreground placeholder-foreground/40 py-1 pl-7 outline-none'
             inputRef={inputRef}
             value={searchForInput}
             placeholder={t('Search for people, posts and comments')}
@@ -133,6 +133,7 @@ export default function Search (props) {
       title: <SearchInput />,
       centered: true,
       backButton: true,
+      mobileBackButton: true,
       backTo: backDestination,
       icon: undefined,
       search: false
@@ -140,7 +141,7 @@ export default function Search (props) {
   }, [SearchInput, backDestination, setHeaderDetails])
 
   return (
-    <div className='w-full m-2'>
+    <div className='w-full p-2 overflow-hidden'>
       <div className='w-full max-w-[750px] mx-auto flex flex-col gap-2 relative'>
         {group && (
           <span className='flex fit-content align-center items-center px-2 py-1 rounded-md bg-selected/40 border-2 border-selected'>

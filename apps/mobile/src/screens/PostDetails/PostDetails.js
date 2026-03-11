@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useEffect, useMemo, useState } from 'react'
 import { Alert, View } from 'react-native'
 import { useNavigation } from '@react-navigation/native'

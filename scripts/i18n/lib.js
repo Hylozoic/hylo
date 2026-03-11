@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 
 function isPlainObject (value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -52,6 +53,7 @@ function pathToString (segments) {
     .replace(/^\./, '')
 }
 
+/* eslint-disable n/no-callback-literal */
 function walkLocaleEntries (value, callback, path = []) {
   if (typeof value === 'string') {
     callback({ type: 'string', path, value })
@@ -73,6 +75,7 @@ function walkLocaleEntries (value, callback, path = []) {
   }
   callback({ type: typeof value, path, value })
 }
+/* eslint-enable n/no-callback-literal */
 
 function ensureContainer (root, path) {
   let cursor = root
@@ -126,6 +129,61 @@ function extractPlaceholders (text) {
   return placeholders
 }
 
+/**
+ * Reads environment variables from a .env file
+ * @param {string} envPath - Path to the .env file
+ * @returns {Object} Object with environment variable key-value pairs
+ */
+function readEnvFile (envPath) {
+  if (!fs.existsSync(envPath)) return {}
+  const content = fs.readFileSync(envPath, 'utf8')
+  const env = {}
+  for (const line of content.split(/\r?\n/)) {
+    if (!line || line.trim().startsWith('#')) continue
+    const idx = line.indexOf('=')
+    if (idx === -1) continue
+    const key = line.slice(0, idx).trim()
+    let value = line.slice(idx + 1).trim()
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1)
+    }
+    env[key] = value
+  }
+  return env
+}
+
+/**
+ * Gets environment variable from multiple possible sources:
+ * 1. Process environment variables
+ * 2. scripts/i18n/.env file
+ * 3. apps/backend/.env file (fallback)
+ * @param {string} key - Environment variable key
+ * @param {string} [customEnvPath] - Optional custom path to .env file
+ * @returns {string|undefined} Environment variable value
+ */
+function getEnvVar (key, customEnvPath) {
+  // First check process environment
+  if (process.env[key]) return process.env[key]
+
+  // Check custom path if provided
+  if (customEnvPath) {
+    const env = readEnvFile(customEnvPath)
+    if (env[key]) return env[key]
+  }
+
+  // Check scripts/i18n/.env
+  const scriptsEnvPath = path.resolve(__dirname, '.env')
+  const scriptsEnv = readEnvFile(scriptsEnvPath)
+  if (scriptsEnv[key]) return scriptsEnv[key]
+
+  // Fallback to apps/backend/.env
+  const backendEnvPath = path.resolve(process.cwd(), 'apps/backend/.env')
+  const backendEnv = readEnvFile(backendEnvPath)
+  if (backendEnv[key]) return backendEnv[key]
+
+  return undefined
+}
+
 module.exports = {
   isPlainObject,
   readJson,
@@ -134,5 +192,7 @@ module.exports = {
   walkLocaleEntries,
   getAtPath,
   setAtPath,
-  extractPlaceholders
+  extractPlaceholders,
+  readEnvFile,
+  getEnvVar
 }

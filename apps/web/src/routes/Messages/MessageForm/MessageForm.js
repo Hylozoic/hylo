@@ -11,6 +11,7 @@ import RoundImage from 'components/RoundImage'
 import Icon from 'components/Icon'
 import styles from './MessageForm.module.scss'
 import { Loader2 } from 'lucide-react'
+import { isMobileDevice } from 'util/mobile'
 
 const MessageForm = forwardRef((props, ref) => {
   const [hasFocus, setHasFocus] = useState(false)
@@ -27,7 +28,12 @@ const MessageForm = forwardRef((props, ref) => {
     props.onSubmit()
     // Maintain focus after submit
     if (textareaRef.current) {
-      textareaRef.current.focus()
+      // Use preventScroll on mobile to avoid scrolling issues (Visual Viewport API handles it)
+      if (isMobileDevice()) {
+        textareaRef.current.focus({ preventScroll: true })
+      } else {
+        textareaRef.current.focus()
+      }
     }
   }
 
@@ -64,6 +70,8 @@ const MessageForm = forwardRef((props, ref) => {
         onKeyDown={handleKeyDown}
         onFocus={(e) => {
           setHasFocus(true)
+          // Note: We rely on preventScroll: true in focus() calls and Visual Viewport API
+          // for proper keyboard handling. No manual scroll prevention needed here.
           if (props.onFocus) props.onFocus(e)
         }}
         onBlur={() => {

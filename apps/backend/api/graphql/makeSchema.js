@@ -49,6 +49,8 @@ import {
   deactivateUser,
   deleteUser,
   declineJoinRequest,
+  addEmailEnabledTester,
+  removeEmailEnabledTester,
   deleteAffiliation,
   deleteComment,
   deleteContextWidget,
@@ -445,7 +447,14 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
     topics: (root, args) => fetchMany('Topic', args),
-    track: (root, { id }) => fetchOne('Track', id)
+    track: (root, { id }) => fetchOne('Track', id),
+    emailEnabledTesters: async (root, args, context) => {
+      if (!(await Admin.isTestAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      const testers = await EmailEnabledTester.findAll()
+      return testers.toModelArray ? testers.toModelArray() : testers
+    }
   }
 }
 
@@ -757,7 +766,11 @@ export function makeMutations ({ fetchOne }) {
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 
-    useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode)
+    useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
+
+    addEmailEnabledTester: (root, { userId }, context) => addEmailEnabledTester(context.currentUserId, userId),
+
+    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId)
   }
 }
 

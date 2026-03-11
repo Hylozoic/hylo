@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from 'util/index'
 import Tooltip from 'components/Tooltip'
 import classes from './badgeEmoji.module.scss'
@@ -12,6 +13,29 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
   // XXX: hacky way to determine if this is an important system role, having a responsibilit of Administration, Manage Content, or Remove Members
   common = common || responsibilities.find(r => ['1', '3', '4'].includes(r.id))
 
+  const tooltipId = `${id}-${name}-badge-tt`
+
+  const tooltipContent = (
+    <Tooltip
+      delay={150}
+      position='bottom'
+      id={tooltipId}
+      content={() => (
+        <div className={classes.tipContent}>
+          <span>{name}</span>
+          {responsibilities.length > 0 && (
+            <ul>
+              {responsibilities.map(r => (
+                <li key={r.id}>{r.title}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      className='!z-[9999]'
+    />
+  )
+
   return (
     <>
       <span
@@ -21,27 +45,12 @@ export default function Badge ({ emoji, expanded, className, common, border, onC
           { [classes.border]: border, 'bg-focus/10 border-focus/20 hover:bg-focus/30 hover:border-focus/40': common }
         )}
         onClick={onClick}
-        data-tooltip-id={`${id}-${name}-badge-tt`}
+        data-tooltip-id={tooltipId}
+        data-tooltip-position-strategy='fixed'
       >
         <span className={expanded ? 'text-xs' : classes.badgeSymbolCollapsed}>{emoji}</span>
       </span>
-      <Tooltip
-        delay={150}
-        position='bottom'
-        id={`${id}-${name}-badge-tt`}
-        content={() => (
-          <div className={classes.tipContent}>
-            <span>{name}</span>
-            {responsibilities.length > 0 && (
-              <ul>
-                {responsibilities.map(r => (
-                  <li key={r.id}>{r.title}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      />
+      {typeof document !== 'undefined' && createPortal(tooltipContent, document.body)}
     </>
   )
 }

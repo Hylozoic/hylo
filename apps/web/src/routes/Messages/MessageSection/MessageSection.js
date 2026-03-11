@@ -66,6 +66,12 @@ export default class MessageSection extends Component {
     document && document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   }
 
+  getSnapshotBeforeUpdate () {
+    const messageList = document.querySelector('#message-list')
+    if (!messageList) return null
+    return { scrollHeight: messageList.scrollHeight, scrollTop: messageList.scrollTop }
+  }
+
   UNSAFE_componentWillUpdate (nextProps) {
     const { currentUser, messages, pending } = nextProps
     if (pending) return
@@ -103,10 +109,24 @@ export default class MessageSection extends Component {
     }
   }
 
-  componentDidUpdate (prevProps) {
+  componentDidUpdate (prevProps, prevState, snapshot) {
+    const { currentUser, messages, pending, hasMore } = this.props
+    const prependedOlderMessages = snapshot &&
+      messages.length > prevProps.messages.length &&
+      get('id', messages[messages.length - 1]) === get('id', prevProps.messages[prevProps.messages.length - 1])
+    if (prependedOlderMessages) {
+      const messageList = document.querySelector('#message-list')
+      const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = snapshot
+      if (messageList) {
+        requestAnimationFrame(() => {
+          const deltaHeight = messageList.scrollHeight - prevScrollHeight
+          messageList.scrollTop = prevScrollTop + deltaHeight
+        })
+      }
+    }
+
     if (this.shouldScroll) setTimeout(() => this.scrollToBottom(), 200)
 
-    const { currentUser, messages, pending, hasMore } = this.props
     // Skip if loading
     if (pending) return
 
@@ -214,11 +234,11 @@ export default class MessageSection extends Component {
     const { showNewMessageButton } = this.state
 
     return (
-      <div id='message-list' className='w-full overflow-y-auto mx-3 relative flex-1 pb-4' onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='w-full overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
         {pending && <Loading />}
         {!pending && (
           <>
-            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end'>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end w-full'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

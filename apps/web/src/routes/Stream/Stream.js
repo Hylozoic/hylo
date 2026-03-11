@@ -22,6 +22,7 @@ import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
+import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
@@ -50,7 +51,6 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
 
 import styles from './Stream.module.scss'
 
@@ -142,7 +142,8 @@ export default function Stream (props) {
   const isCalendarViewMode = viewMode === 'calendar'
 
   const fetchPostsParam = useMemo(() => {
-    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
+    // DEPRECATED: Load same number of posts for all mobile (including webview)
+    const numPostsToLoad = isMobile.any ? 10 : 20
 
     const params = {
       activePostsOnly,
@@ -467,11 +468,14 @@ export default function Stream (props) {
           : (
             <>
               {!isCalendarViewMode && (
-                <div className={cn(styles.streamItems, {
-                  [styles.streamGrid]: viewMode === 'grid',
-                  [styles.bigGrid]: viewMode === 'bigGrid',
-                  'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
-                })}
+                <MasonryGrid
+                  enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+                  gap={8}
+                  className={cn(styles.streamItems, {
+                    [styles.streamGrid]: viewMode === 'grid',
+                    [styles.bigGrid]: viewMode === 'bigGrid',
+                    'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
+                  })}
                 >
                   {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
                   {posts.map(post => {
@@ -490,7 +494,7 @@ export default function Stream (props) {
                       />
                     )
                   })}
-                </div>
+                </MasonryGrid>
               )}
             </>
             )}

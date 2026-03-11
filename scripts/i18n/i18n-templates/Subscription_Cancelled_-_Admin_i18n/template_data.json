@@ -1,0 +1,19 @@
+{
+  "admin_name": "Admin User",
+  "admin_email": "admin@example.com",
+  "user_name": "John Doe",
+  "user_email": "john@example.com",
+  "user_profile_url": "https://hylo.com/u/john-doe",
+  "offering_name": "Premium Membership",
+  "group_name": "My Community",
+  "group_url": "https://hylo.com/groups/my-community",
+  "cancelled_at": "January 2, 2026",
+  "access_ends_at": "January 15, 2026",
+  "cancellation_type": "at_period_end",
+  "reason": "User requested",
+  "subscription_amount": "$19.99",
+  "subscription_period": "monthly",
+  "revenue_lost": "$19.99",
+  "view_content_access_url": "https://hylo.com/groups/my-community/settings/paid-content/access",
+  "contact_user_url": "https://hylo.com/u/john-doe/message"
+}

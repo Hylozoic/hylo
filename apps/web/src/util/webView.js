@@ -9,3 +9,14 @@ export function sendMessageToWebView (type, data) {
 export default function isWebView () {
   return typeof window !== 'undefined' && window.ReactNativeWebView
 }
+
+/**
+ * Returns true when running inside an OLD mobile app's WebView that hasn't
+ * been updated to the v2 architecture. The new mobile app injects
+ * `window.HyloMobileV2 = true` before content loads; old apps don't.
+ * Use this to preserve backward-compatible behavior (e.g. hiding web nav,
+ * sending native messages) until old app versions are sunset.
+ */
+export function isLegacyWebView () {
+  return isWebView() && !window.HyloMobileV2
+}

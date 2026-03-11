@@ -11,9 +11,10 @@ import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 
-if (isWebView()) {
+// Legacy mobile apps inject addHyloWebViewListener and rely on NAVIGATION messages
+if (isLegacyWebView()) {
   window.addHyloWebViewListener(history)
 }
 
