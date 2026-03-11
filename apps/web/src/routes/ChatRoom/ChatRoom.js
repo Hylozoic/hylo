@@ -46,7 +46,7 @@ import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurr
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
-import isWebView from 'util/webView' // eslint-disable-line no-unused-vars
+import { isLegacyWebView } from 'util/webView'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -96,8 +96,7 @@ export default function ChatRoom (props) {
   const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
-  // DEPRECATED: No longer treat webview differently
-  const withoutNav = /* isWebView() || */ hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   const { customTopicName } = props
   const { groupSlug, postId: selectedPostId } = routeParams

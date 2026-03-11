@@ -42,7 +42,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
 import {
   createJoinRequest,
@@ -81,12 +81,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
     await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
-    // DEPRECATED: No longer send message to mobile app - web handles all navigation
-    // if (isWebView()) {
-    //   sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
-    // } else {
+    if (isLegacyWebView()) {
+      sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else {
       navigate(groupUrl(group.slug))
-    // }
+    }
   }, [dispatch, group])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {

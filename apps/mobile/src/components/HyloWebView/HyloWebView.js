@@ -312,8 +312,9 @@ const HyloWebView = React.forwardRef(({
     <AutoHeightWebView
       customScript={`
         window.HyloWebView = true;
+        window.HyloMobileV2 = true;
         ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
-        
+
       `}
       customStyle={customStyle}
       geolocationEnabled

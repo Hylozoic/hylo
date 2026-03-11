@@ -70,8 +70,7 @@ import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
-// DEPRECATED: isWebView no longer needed here - withoutNav logic simplified
-// import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -80,8 +79,7 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
-  // DEPRECATED: No longer treat webview differently
-  const withoutNav = /* isWebView() || */ hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()

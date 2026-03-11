@@ -11,12 +11,12 @@ import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
 import store, { history } from '../store'
 import RootRouter from 'routes/RootRouter'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 
-// DEPRECATED: History listener no longer needed - web app handles all navigation
-// if (isWebView()) {
-//   window.addHyloWebViewListener(history)
-// }
+// Legacy mobile apps inject addHyloWebViewListener and rely on NAVIGATION messages
+if (isLegacyWebView()) {
+  window.addHyloWebViewListener(history)
+}
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {
