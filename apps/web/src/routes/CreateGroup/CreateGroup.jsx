@@ -191,7 +191,7 @@ function CreateGroup () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, search: false })
+    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, mobileBackButton: true, search: false })
   }, [])
 
   return (

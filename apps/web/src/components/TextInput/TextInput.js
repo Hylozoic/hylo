@@ -71,12 +71,13 @@ const TextInput = forwardRef(({
   }
 
   id = id || generateTempID()
+  const showClearButton = hasValue && !noClearButton && props.type !== 'number'
 
   return (
 
     <div
       className={cn(
-        'flex items-center relative rounded bg-input text-foreground h-fit',
+        'flex items-center relative rounded-md bg-input text-foreground h-fit',
         theme.wrapper,
         className
       )}
@@ -87,7 +88,10 @@ const TextInput = forwardRef(({
         type={props.type || 'text'}
         className={cn(
           inputClassName || (styles[theme.inputStyle] || 'bg-input p-4 rounded-md w-full text-foreground text-sm sm:text-base placeholder:text-muted-foreground'),
-          theme.input
+          theme.input,
+          {
+            'pr-6': showClearButton
+          }
         )}
         onAnimationStart={handleAnimation}
         onKeyDown={onKeyDown}
@@ -110,10 +114,10 @@ const TextInput = forwardRef(({
         </label>
       )}
 
-      {hasValue && !noClearButton && props.type !== 'number' &&
+      {showClearButton &&
         <div
           className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer mr-2 transition-colors text-foreground/60 hover:text-foreground/100'
+            'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer transition-colors text-foreground/60 hover:text-foreground/100'
           )}
           onClick={clear}
           role='button'
