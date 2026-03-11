@@ -24,7 +24,7 @@
     "lint": "yarn exec standard",
     "lint:fix": "yarn exec standard --fix",
     "serve": "node src/server/index.js",
-    "prepare": "husky install",
+    "prepare": "cd $(git rev-parse --show-toplevel) && node apps/web/node_modules/husky/lib/bin.js install apps/web/.husky",
     "heroku-postbuild": "yarn install && yarn build",
     "preview": "vite preview"
   },

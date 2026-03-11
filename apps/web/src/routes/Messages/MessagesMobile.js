@@ -180,7 +180,6 @@ const MessagesMobile = ({
             <Header
               messageThread={messageThread}
               currentUser={currentUser}
-              pending={messagesPending}
             />
           </div>
         </div>
