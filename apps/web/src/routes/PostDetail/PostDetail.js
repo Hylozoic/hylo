@@ -336,7 +336,6 @@ function PostDetail () {
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId, !!post])
 
   const scrollToBottom = useCallback(() => {
