@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.1] - 2026-03-11
+
+### Added
+- New email to group stewards when creating a group
+- Translation of all our emails in Portugese, French, German, Hindi, and Spanish
+
 ## [6.3.0] - 2026-01-27
 
 ### Added
