@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import Tooltip from 'components/Tooltip'
 
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -46,8 +46,7 @@ function MapDrawer ({
   const searchText = filters.search
 
   const { hideNavLayout } = useLayoutFlags()
-  // DEPRECATED: No longer treat webview differently
-  const withoutNav = /* isWebView() || */ hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
   const [search, setSearch] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [currentTab, setCurrentTab] = useState(localizedTabNames.posts)

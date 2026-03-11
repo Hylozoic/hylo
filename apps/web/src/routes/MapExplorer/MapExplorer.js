@@ -14,7 +14,7 @@ import booleanWithin from '@turf/boolean-within'
 import center from '@turf/center'
 import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import Dropdown from 'components/Dropdown'
 import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
@@ -734,8 +734,7 @@ function MapExplorer (props) {
   }, [showSavedSearches])
 
   const { hideNavLayout } = layoutFlags
-  // DEPRECATED: No longer treat webview differently
-  const withoutNav = /* isWebView() || */ hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>

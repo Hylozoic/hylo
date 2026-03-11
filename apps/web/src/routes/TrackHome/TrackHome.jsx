@@ -117,34 +117,36 @@ function TrackHome () {
     <div className='w-full h-full' ref={setContainer}>
       <div className='pt-4 px-4 w-full h-full flex flex-col'>
         {(isEnrolled || canEdit) && canViewFullTrack && (
-          <div className='flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2'>
+          <div className={cn('flex gap-2 w-full max-w-[750px] mx-auto justify-center items-center bg-darkening/20 rounded-md p-2', { 'text-sm sm:text-base': canEdit })}>
             <Link
-              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'about' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
               to=''
             >
               {t('About')}
             </Link>
             <Link
-              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'actions' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
               to='actions'
             >
               {currentTrack.actionDescriptorPlural}
-              <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+              <span className='ml-1 sm:ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
                 {currentTrack.numActions}
               </span>
             </Link>
             <Link
-              className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+              className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'people' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
               to='people'
             >
               {t('People')}
-              <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                {currentTrack.enrolledUsers.length}
-              </span>
+              {currentTrack.enrolledUsers?.length > 0 && (
+                <span className='ml-1 sm:ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
+                  {currentTrack.enrolledUsers.length}
+                </span>
+              )}
             </Link>
             {canEdit && (
               <Link
-                className={`py-1 px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all ${currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent'}`}
+                className={cn('py-1 px-2 sm:px-4 rounded-md !text-foreground border-2 border-foreground/20 hover:text-foreground hover:border-foreground transition-all', currentTab === 'manage' ? 'bg-selected border-selected hover:border-selected/100 shadow-md hover:scale-105' : 'bg-transparent')}
                 to='manage'
               >
                 {t('Manage')}

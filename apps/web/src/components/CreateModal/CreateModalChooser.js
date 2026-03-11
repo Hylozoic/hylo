@@ -1,6 +1,5 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import isWebView from 'util/webView'
 import { POST_TYPES } from 'store/models/Post'
 import Icon from 'components/Icon'
 import classes from './CreateModal.module.scss'
@@ -32,7 +31,7 @@ export default function CreateModalChooser () {
 
   return (
     <div className={classes.chooser}>
-      <h1>{hasLocation && t('New Post at this location:') + ' '}{t('What would you like to create?')}</h1>
+      <h1>{hasLocation && t('New Post at this location') + ': '}{t('What would you like to create?')}</h1>
       {postTypes.map(postType => {
         querystringParams.set('newPostType', postType)
 

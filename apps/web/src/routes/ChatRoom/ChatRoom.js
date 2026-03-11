@@ -46,7 +46,7 @@ import getTopicFollowForCurrentRoute from 'store/selectors/getTopicFollowForCurr
 import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { groupInviteUrl, groupUrl } from '@hylo/navigation'
-import isWebView from 'util/webView' // eslint-disable-line no-unused-vars
+import { isLegacyWebView } from 'util/webView'
 import { getLocaleFromLocalStorage } from 'util/locale'
 
 import styles from './ChatRoom.module.scss'
@@ -96,8 +96,7 @@ export default function ChatRoom (props) {
   const routeParams = useRouteParams()
   const location = useLocation()
   const { hideNavLayout } = useLayoutFlags()
-  // DEPRECATED: No longer treat webview differently
-  const withoutNav = /* isWebView() || */ hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   const { customTopicName } = props
   const { groupSlug, postId: selectedPostId } = routeParams
@@ -576,9 +575,9 @@ export default function ChatRoom (props) {
   useEffect(() => {
     !hiddenTopic && setHeaderDetails({
       backButton: false,
-      title: (
-        <span className='flex items-center gap-2'>
-          #{topicName}
+      title: `#${topicName}`,
+      headerActions: (
+        <>
           <Select value={notificationsSetting} onValueChange={updateNotificationsSetting}>
             <SelectTrigger
               icon={<NotificationsIcon type={notificationsSetting} className='w-8 h-8 p-1 rounded-lg cursor-pointer border-2 border-foreground/20 transition-all duration-200 hover:border-foreground/50' />}
@@ -595,7 +594,7 @@ export default function ChatRoom (props) {
             place='bottom-start'
             id='notifications-tt'
           />
-        </span>
+        </>
       ),
       icon: null,
       info: '',

@@ -27,7 +27,7 @@ import {
 } from 'store/constants'
 import orm from 'store/models'
 import { cn } from 'util/index'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
 import { createAffiliation, deleteAffiliation, leaveGroup } from './UserGroupsTab.store'
 import getMyMemberships from 'store/selectors/getMyMemberships'
@@ -128,10 +128,9 @@ function UserGroupsTab () {
           setMemberships(newMemberships)
         }
 
-        // DEPRECATED: No longer send message to mobile app - web handles all navigation
-        // if (isWebView()) {
-        //   sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
-        // }
+        if (isLegacyWebView()) {
+          sendMessageToWebView(WebViewMessageTypes.LEFT_GROUP, { groupId: deletedGroupId })
+        }
       })
       .finally(() => {
         setGroupToLeave(null)

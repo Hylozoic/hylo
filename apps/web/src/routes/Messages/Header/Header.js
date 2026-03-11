@@ -97,8 +97,8 @@ export default function Header ({ currentUser, messageThread, pending }) {
 
       <div className={cn(
         'text-foreground flex gap-2 min-w-0 flex-1 items-center',
-        showAll ? 'flex-wrap' : 'flex-nowrap overflow-hidden'
-      )}>
+        showAll ? 'flex-wrap' : 'flex-nowrap overflow-hidden')}
+      >
         {noOthers
           ? (
             <ProfileCardDialog personId={currentUser.id}>

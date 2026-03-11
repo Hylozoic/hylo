@@ -43,7 +43,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 
 import {
@@ -132,10 +132,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
       true // acceptAgreements - user accepted during join flow
     ))
     // DEPRECATED: No longer send message to mobile app - web handles all navigation
-    // if (isWebView()) {
-    //   sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
-    // } else {
-    navigate(groupUrl(group.slug))
+    if (isLegacyWebView()) {
+      sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
+    } else {
+      navigate(groupUrl(group.slug))
+    }
   }, [dispatch, group, accessCode, invitationToken])
 
   const requestToJoinGroup = useCallback((groupId, questionAnswers) => {
