@@ -1,3 +1,10 @@
+// DEPRECATED: This header component is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Native stack headers have been replaced by web app headers.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import React, { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -98,3 +105,11 @@ export const styles = StyleSheet.create({
     borderRadius: 4
   }
 })
+*/
+
+// No-op export - header is deprecated
+export default function TabStackHeader () {
+  return null
+}
+
+export const styles = {}

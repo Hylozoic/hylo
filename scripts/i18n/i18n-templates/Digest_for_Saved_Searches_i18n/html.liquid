@@ -1,0 +1,156 @@
+{% snippet 'header_redesign' %}
+
+{% macro avatar_box(class, avatar_url) -%}
+  <table class='{{class}}'>
+    <tbody>
+      <tr>
+        <td class='avatar-cell'>
+          <img class='avatar' src='{{avatar_url}}' />
+        </td>
+        <td class='content-cell'>
+          {{ caller() }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+{%- endmacro %} 
+
+{% macro jump_to_sub_section(name, post_list) %}
+  {% if post_list|length > 0 %}
+    <a href='#{{name}}'>{% trans %}{{name}}{% endtrans %}</a> - 
+  {% endif %} 
+{% endmacro %} 
+
+{% macro posts_section(name, posts) %}
+  {% if posts|length > 0 %} 
+    <div id='{{name}}' class='section'>
+      <h3 class='section-title'>{% trans %}New {{name}}{% endtrans %}</h3>
+      {% for post in posts %}{{ post_item(post) }}{% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %} 
+
+{% macro post_item(post) -%}
+  <div class='card post'> 
+    <div class='post-header'> 
+      <img class='avatar' style='vertical-align: middle;' src='{{post.user.avatar_url}}' />
+      <span class='post-author'>{{post.user.name}}</span>
+      <span style='float: right;'>
+        <a class='btn btn-black' href={{post.url}}>
+          {% if post.type == 'event' %}
+            {% trans %}RSVP{% endtrans %}
+          {% elif post.type == 'project' %}
+            {% trans %}Join{% endtrans %}
+          {% elif post.type == 'proposal' %}
+            {% trans %}Vote{% endtrans %}
+          {% else %}
+            {% trans %}Reply{% endtrans %}
+          {% endif %}
+        </a>
+      </span>
+    </div>
+    
+    <table class='post-title-container'><tbody>
+      <tr> 
+        {% if post.type == 'event' %}
+          <td class='calendar-icon-container'> 
+            <div class='calendar-icon'>
+              <div class='calendar-month'>{{post.month}}</div>
+              <div class='calendar-day'>{{post.day}}</div>
+            </div>
+          </td>
+        {% endif %}
+        <td>
+          {% if post.when %}<div class='post-when'>{{post.when}}</div>{% endif %}
+          <h1 class='post-title'>{{post.title}}</h1>
+          {% if post.location %}<div class='post-location'>{{post.location}}</div>{% endif %}
+        </td>
+      </tr>
+    </tbody></table> 
+    
+    <div class='details'>{{post.details|safe}}</div>
+    
+    {% if post.link_preview %} 
+    <a class="link-preview" data-click-track-id="4762" href="{{post.link_preview.url}}">
+      {% if post.link_preview.image_url %}
+        <img src="{{post.link_preview.image_url}}" />
+      {% endif %}
+      {% set post_link_preview_title = post.link_preview.title %}
+      {% set post_link_preview_description = post.link_preview.description|truncate(140) if post.link_preview.description %}
+      <div class="title">{% trans %}{{post_link_preview_title}}{% endtrans %}</div>
+      <div class="description">{% trans %}{{post_link_preview_description}}{% endtrans %}</div>
+      <div class="clearfix"></div>
+    </a>
+    {% endif %}
+  </div> 
+{%- endmacro %}
+
+<div class='section'>
+  <table class='header'>
+    <tr>
+      <td>
+        <a href='{{group_url}}'><img class='avatar' src='{{group_avatar_url}}'></a>
+      </td>
+      <td>
+        <h2 class='group-name' ><a href='{{group_url}}'>{{group_name}}</a></h2>
+      </td> 
+    </tr>
+  </table>
+
+{% if num_sections > 1 %}
+  <div class='internal-menu'>
+    <strong>{% trans %}Jump to section:{% endtrans %} </h3>
+    {{jump_to_sub_section('Discussions', discussions)}}
+    {{jump_to_sub_section('Events', events)}}
+    {{jump_to_sub_section('Offers', offers)}}
+    {{jump_to_sub_section('Requests', requests)}}
+    {{jump_to_sub_section('Resources', resources)}}
+    {{jump_to_sub_section('Projects', projects)}}
+    {{jump_to_sub_section('Proposals', projects)}}
+  </div>
+{% endif %}
+
+</div> 
+
+{% if postsWithNewComments|length > 0 or topicsWithChats|length > 0 %}
+<div class='section'>
+  <h3 class='section-title'>{% trans %}Active Conversations{% endtrans %}</h3>
+  <div class='card'>
+    {% for topic in topicsWithChats %}
+      {% set topic_num_new_chats = topic.num_new_chats %}
+      <div class='post-headline'>
+        {% if topic_num_new_chats > 1 %}
+          {% trans %}{{topic_num_new_chats}} new chats in{% endtrans %}
+        {% else %}
+          {% trans %}{{topic_num_new_chats}} new chat in{% endtrans %}
+        {% endif %} 
+        <a class='title' href='{{topic.url}}'>#{{topic.name}}</a>
+      </div>
+    {% endfor %}
+  
+    {% for post in postsWithNewComments %}
+      {% set post_comment_count = post.comment_count %}
+      <div class='post-headline'>
+        <span class='name'>
+          {% if post_comment_count > 1 %}
+            {% trans %}{{post_comment_count}} new comments in{% endtrans %}
+          {% else %}
+            {% trans %}{{post_comment_count}} new comment in{% endtrans %}
+          {% endif %}
+        </span>
+        <a href='{{post.url}}' class='title'>{{post.title}}</a>  
+      </div>
+    {% endfor %}
+  </div>
+</div> 
+{% endif %}
+
+{{posts_section('Discussions', discussions)}}  
+{{posts_section('Events', events)}}
+{{posts_section('Offers', offers)}}
+{{posts_section('Requests', requests)}}
+{{posts_section('Resources', resources)}}
+{{posts_section('Projects', projects)}}
+{{posts_section('Proposals', proposals)}}
+
+{% snippet 'footer_redesign' %}

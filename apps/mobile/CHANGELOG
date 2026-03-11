@@ -4,8 +4,10 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.2.1] - 2025-11-11
-- 
+## [6.3.0] - 2026-02-07
+- Themes now available in mobile
+- Proposal creation now available in mobile
+- Various bug and stability fixes
 
 ## [6.2.0] - 2025-11-11
 ### Added
