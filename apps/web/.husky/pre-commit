@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# Only run lint when HYLO_LINT_ON_COMMIT is set. Enable by adding HYLO_LINT_ON_COMMIT=1 to
+# apps/web/.env, or by exporting it in your shell (e.g. in .zshrc).
+if [ -f apps/web/.env ]; then
+  . apps/web/.env
+fi
+if [ -z "${HYLO_LINT_ON_COMMIT}" ]; then
+  exit 0
+fi
+
+# Lint staged files under apps/web
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^apps/web/.*\.(js|jsx|ts|tsx|cjs)$' || true)
+if [ -z "$STAGED" ]; then
+  echo 'No staged files to lint (stage some apps/web .js/.jsx/.ts/.tsx/.cjs files first).'
+  exit 0
+fi
+
+# Paths relative to apps/web for standard
+STAGED_REL=$(echo "$STAGED" | sed 's|^apps/web/||' | tr '\n' ' ')
+echo "Linting ${STAGED_REL}..."
+cd apps/web && ../../node_modules/.bin/standard $STAGED_REL
