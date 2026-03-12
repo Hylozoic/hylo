@@ -52,13 +52,14 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView from 'util/webView'
+import isWebView, { sendMessageToWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
+import { WebViewMessageTypes } from '@hylo/shared'
 import { useTheme } from 'contexts/ThemeContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
@@ -128,7 +129,11 @@ function SettingsMenu ({ currentUser }) {
 
   const handleLogout = async () => {
     await dispatch(logout())
-    dispatch(replace('/login', null))
+    if (window.HyloMobileV2) {
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    } else {
+      dispatch(replace('/login', null))
+    }
   }
 
   const handleViewProfile = () => {
