@@ -29,7 +29,7 @@ import {
   addQuerystringToPath,
   personUrl
 } from '@hylo/navigation'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -49,6 +49,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
+import { sendMessageToWebView } from 'util/webView'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -360,7 +361,11 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 
   const handleLogout = async () => {
     await dispatch(logout())
-    dispatch(replace('/login', null))
+    if (window.HyloMobileV2) {
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    } else {
+      dispatch(replace('/login', null))
+    }
   }
 
   // Draggable setup

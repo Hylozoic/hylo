@@ -14,6 +14,8 @@ import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
+import { sendMessageToWebView } from 'util/webView'
+import { WebViewMessageTypes } from '@hylo/shared'
 
 if (!isTest) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -67,6 +69,13 @@ export default function RootRouter () {
       </Routes>
     )
   }
+  // Safety net: never show the web login page inside the new mobile WebView.
+  // If the session expires or logout happens through any path, signal native to handle it.
+  if (!isAuthorized && window.HyloMobileV2) {
+    sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    return null
+  }
+
   if (!isAuthorized) {
     return (
       <Routes>
