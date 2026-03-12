@@ -15,7 +15,7 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import isWebView from 'util/webView'
 
 if (!isTest) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -70,14 +70,12 @@ export default function RootRouter () {
     )
   }
   if (!isAuthorized) {
-    // In the mobile WebView the native app owns the auth flow. Sending LOGOUT
-    // clears the native session and navigates to the native Login screen (with
-    // the native Google Sign-In SDK), preventing the web login page from ever
-    // rendering inside a WebView where window.open() would escape to Safari.
-    if (isWebView()) {
-      sendMessageToWebView('LOGOUT')
-      return <Loading type='fullscreen' />
-    }
+    // In the mobile WebView the native app owns the auth flow. Render a
+    // loading screen so the web login page never appears inside the WebView
+    // (where window.open() for Google OAuth would escape to Safari).
+    // The native PrimaryWebView handles session-expiry logout independently
+    // via its own currentUser check.
+    if (isWebView()) return <Loading type='fullscreen' />
 
     return (
       <Routes>

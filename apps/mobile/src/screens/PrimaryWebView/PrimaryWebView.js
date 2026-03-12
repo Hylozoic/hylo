@@ -91,9 +91,15 @@ export default function PrimaryWebView() {
     return null
   }
   
-  // Show loading while fetching user data
-  // This ensures we have a valid authenticated user before rendering the WebView
-  if (fetchingUser || !currentUser) {
+  // Session expired server-side: the network-fresh query returned no user
+  // and no error, meaning the cookie is present but the session is gone.
+  // Trigger native logout so RootNavigator switches to the native Login screen.
+  if (!fetchingUser && !currentUser) {
+    logout()
+    return null
+  }
+
+  if (fetchingUser) {
     return <LoadingScreen />
   }
   
