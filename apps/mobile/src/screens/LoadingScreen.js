@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { StyleSheet, View, StatusBar } from 'react-native'
+import { Dimensions, StyleSheet, View, StatusBar } from 'react-native'
 import LottieView from 'lottie-react-native'
 import Animated, {
   useSharedValue,
@@ -74,14 +74,25 @@ export default function LoadingScreen () {
 
 const GLYPH_SIZE = 120
 
+// lottie-react-native requires explicit width/height to render at correct size; without them
+// the native view can collapse to a few pixels. Use window dimensions so the loading screen
+// and particles background always have known size (e.g. when used as an overlay).
+const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get('window')
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center'
   },
   particles: {
-    ...StyleSheet.absoluteFillObject
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT
   },
   glyphContainer: {
     width: GLYPH_SIZE,
