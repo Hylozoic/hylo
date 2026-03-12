@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react'
-import { StyleSheet, View, StatusBar } from 'react-native'
+import { StyleSheet, View, StatusBar, useWindowDimensions } from 'react-native'
 import LottieView from 'lottie-react-native'
 import Animated, {
   useSharedValue,
@@ -21,6 +21,7 @@ const glyph = {
 }
 
 export default function LoadingScreen () {
+  const { width, height } = useWindowDimensions()
   const { colorScheme, backgroundColor } = useThemeStore()
   const isDark = colorScheme === 'dark'
   const scheme = isDark ? 'dark' : 'light'
@@ -42,29 +43,35 @@ export default function LoadingScreen () {
     )
   }, [scale])
 
+  // Both JSONs are authored at 390×844 (full-screen artboard). Rendering them in a
+  // small box (e.g. 120×120) makes the native view scale/clip the whole composition into
+  // a tiny area — looks like a few pixels. Match the view size to the screen so the
+  // composition displays at the intended scale (same as design).
+  const fullScreen = { width, height }
+
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor }, fullScreen]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Background: looping particles */}
+      {/* Background: looping particles — full screen */}
       <LottieView
         source={particles[scheme]}
         autoPlay
         loop
         speed={1}
         resizeMode='cover'
-        style={styles.particles}
+        style={[styles.fill, fullScreen]}
       />
 
-      {/* Foreground: glyph plays once, then pulses */}
-      <Animated.View style={[styles.glyphContainer, animatedGlyphStyle]}>
+      {/* Foreground: glyph is also a full-screen composition; pulse wraps full screen */}
+      <Animated.View style={[styles.fill, fullScreen, styles.glyphLayer, animatedGlyphStyle]}>
         <LottieView
           source={glyph[scheme]}
           autoPlay
           loop={false}
           speed={1}
           resizeMode='contain'
-          style={styles.glyph}
+          style={[styles.fill, fullScreen]}
           onAnimationFinish={handleGlyphFinish}
         />
       </Animated.View>
@@ -72,25 +79,18 @@ export default function LoadingScreen () {
   )
 }
 
-const GLYPH_SIZE = 120
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center'
   },
-  particles: {
-    ...StyleSheet.absoluteFillObject
+  fill: {
+    position: 'absolute',
+    left: 0,
+    top: 0
   },
-  glyphContainer: {
-    width: GLYPH_SIZE,
-    height: GLYPH_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  glyph: {
-    width: GLYPH_SIZE,
-    height: GLYPH_SIZE
+  // Glyph draws above particles
+  glyphLayer: {
+    zIndex: 1
   }
 })

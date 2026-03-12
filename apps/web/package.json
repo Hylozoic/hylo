@@ -38,10 +38,13 @@
       "afterEach",
       "beforeAll",
       "beforeEach",
+      "cancelAnimationFrame",
       "describe",
       "expect",
       "it",
       "jest",
+      "requestAnimationFrame",
+      "ResizeObserver",
       "test"
     ]
   },
