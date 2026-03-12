@@ -86,7 +86,7 @@ export default function EmojiRow (props) {
                     'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 transition-all cursor-pointer hover:bg-selected/50 z-0 hover:z-50 whitespace-nowrap',
                     { 'bg-selected text-foreground': hasAnySelected }
                   )}
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault() }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <span className='sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
                   <span className='hidden sm:inline'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
