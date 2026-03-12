@@ -1,8 +1,13 @@
 #!/usr/bin/env sh
 # Only run lint when HYLO_LINT_ON_COMMIT is set. Enable by adding HYLO_LINT_ON_COMMIT=1 to
 # apps/web/.env, or by exporting it in your shell (e.g. in .zshrc).
+# Skip this hook for one commit: HYLO_SKIP_LINT=1 git commit -m "msg"
+# Skip all hooks: git commit --no-verify -m "msg"
 if [ -f apps/web/.env ]; then
   . apps/web/.env
+fi
+if [ -n "${HYLO_SKIP_LINT}" ]; then
+  exit 0
 fi
 if [ -z "${HYLO_LINT_ON_COMMIT}" ]; then
   exit 0
