@@ -40,6 +40,29 @@ PODS:
   - libwebp/sharpyuv (1.5.0)
   - libwebp/webp (1.5.0):
     - libwebp/sharpyuv
+  - lottie-ios (4.6.0)
+  - lottie-react-native (7.3.6):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - lottie-ios (= 4.6.0)
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - Mixpanel-swift (4.3.0):
     - Mixpanel-swift/Complete (= 4.3.0)
   - Mixpanel-swift/Complete (4.3.0)
@@ -2159,6 +2182,7 @@ DEPENDENCIES:
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - "intercom-react-native (from `../node_modules/@intercom/intercom-react-native`)"
   - IQKeyboardManagerSwift (from `https://github.com/douglasjunior/IQKeyboardManager.git`, branch `react-native-keyboard-manager`)
+  - lottie-react-native (from `../node_modules/lottie-react-native`)
   - MixpanelReactNative (from `../node_modules/mixpanel-react-native`)
   - OneSignalXCFramework (< 6.0, >= 5.0.0)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
@@ -2258,6 +2282,7 @@ SPEC REPOS:
     - GTMSessionFetcher
     - Intercom
     - libwebp
+    - lottie-ios
     - Mixpanel-swift
     - OneSignalXCFramework
     - SDWebImage
@@ -2286,6 +2311,8 @@ EXTERNAL SOURCES:
   IQKeyboardManagerSwift:
     :branch: react-native-keyboard-manager
     :git: https://github.com/douglasjunior/IQKeyboardManager.git
+  lottie-react-native:
+    :path: "../node_modules/lottie-react-native"
   MixpanelReactNative:
     :path: "../node_modules/mixpanel-react-native"
   RCT-Folly:
@@ -2481,6 +2508,8 @@ SPEC CHECKSUMS:
   intercom-react-native: 511f30d73fbdc07f8c731c446e55c597009348ed
   IQKeyboardManagerSwift: 90ba81812fbbd6694924a95a271fa3affdf04a14
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
+  lottie-react-native: 466e4d8ea1771667520a53deb83e263546927ce1
   Mixpanel-swift: 2192b9a24cf41b870749e4e0e10fbc9822bb2b4a
   MixpanelReactNative: 76314cf184a17d493e2dd8a3e367c81d91361eea
   OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
