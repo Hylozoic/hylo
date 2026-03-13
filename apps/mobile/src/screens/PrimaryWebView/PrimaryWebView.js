@@ -123,8 +123,10 @@ export default function PrimaryWebView() {
     setWebViewError(nativeEvent)
   }, [])
 
-  // Use originalLinkingPath if available, otherwise path, otherwise default to '/'
-  const webViewPath = originalLinkingPath || path || '/'
+  // Use originalLinkingPath if available, otherwise path, otherwise fallback to '/app'.
+  // Do NOT fallback to '/' — the proxy serves the marketing landing page there for
+  // unauthenticated requests, and the React app never loads to fire the LOGOUT guard.
+  const webViewPath = originalLinkingPath || path || '/app'
   
   if (__DEV__) {
     console.log('📱 PrimaryWebView loading path:', {
