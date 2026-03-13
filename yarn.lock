@@ -26549,23 +26549,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lottie-react-native@npm:^7.3.6":
-  version: 7.3.6
-  resolution: "lottie-react-native@npm:7.3.6"
-  peerDependencies:
-    "@lottiefiles/dotlottie-react": ^0.13.5
-    react: "*"
-    react-native: ">=0.46"
-    react-native-windows: ">=0.63.x"
-  peerDependenciesMeta:
-    "@lottiefiles/dotlottie-react":
-      optional: true
-    react-native-windows:
-      optional: true
-  checksum: 10/8d22f2883d9ddcd6fa0c8e45e0c2b174f44c2bd6efc661cb291e5b20026c8faf2275793125bce2dd743f2db680c27edd8f57248c6014a760b707c2ddf7a9c656
-  languageName: node
-  linkType: hard
-
 "loupe@npm:^2.3.6":
   version: 2.3.7
   resolution: "loupe@npm:2.3.7"
@@ -28070,7 +28053,6 @@ __metadata:
     jest-watch-typeahead: "npm:^2.2.2"
     jsdom: "npm:^26.0.0"
     lodash: "npm:^4.17.21"
-    lottie-react-native: "npm:^7.3.6"
     mixpanel-react-native: "npm:^3.0.8"
     msw: "npm:^2.7.0"
     nativewind: "npm:^4.1.23"
