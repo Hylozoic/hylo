@@ -80,8 +80,8 @@ const handledWebRoutesJavascriptCreator = (handledWebRoutes) => {
   `
 }
 
-/* Should probably just be applied to Hylo Web stylesheet 
-  as what this solves is not necessarily WebView specific, 
+/* Should probably just be applied to Hylo Web stylesheet
+  as what this solves is not necessarily WebView specific,
   but putting here for now to limit possible untested impact
   on Hylo Web generally */
 const baseCustomStyle = `
@@ -90,7 +90,7 @@ const baseCustomStyle = `
     width: 0 !important;
     height: 0 !important;
   }
-  
+
   html, body {
     overflow: hidden;
     overflow-y: hidden;
@@ -99,7 +99,7 @@ const baseCustomStyle = `
     margin: 0;
     padding: 0;
   }
-  
+
   body {
     width: 100vw !important;
     position: fixed !important;
@@ -129,7 +129,11 @@ const HyloWebView = React.forwardRef(({
   const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
-  const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
+  const baseUri = source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`
+  const params = new URLSearchParams()
+  params.set('hylo_mobile_v2', '1')
+  if (postId) params.set('postId', postId)
+  const uri = baseUri + (baseUri.includes('?') ? '&' : '?') + params.toString()
   const { isAuthenticated, isAuthorized, checkAuth, logout } = useAuth()
   const openURL = useOpenURL()
   const [, queryCurrentUser] = useCurrentUser()
@@ -167,7 +171,7 @@ const HyloWebView = React.forwardRef(({
     } else {
       setShowSessionRecovery(false)
     }
-    
+
     return () => {
       if (timer) clearTimeout(timer)
     }
@@ -235,7 +239,7 @@ const HyloWebView = React.forwardRef(({
         break
       }
       */
-      
+
       // DEPRECATED: GROUP_DELETED message type no longer used
       // Web app now handles group deletion navigation
       // Kept commented for reference in case we need native notification
@@ -244,20 +248,20 @@ const HyloWebView = React.forwardRef(({
         // Handle group deletion from webview
         if (data?.groupSlug) {
           console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
-          
+
           // Set current group to 'my' to clear the deleted group slug
           setCurrentGroupSlug('my')
-          
+
           // Refresh current user data to update memberships
           queryCurrentUser({ requestPolicy: 'network-only' })
-          
+
           // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
           openURL('/groups/my/no-context-fallback')
         }
         break
       }
       */
-      
+
       default:
         // Log unknown message types in development for debugging
         if (__DEV__ && type) {
@@ -268,7 +272,6 @@ const HyloWebView = React.forwardRef(({
     messageHandler && messageHandler(parsedMessage)
   }
 
-
   if (!cookie || !uri) {
     if (showSessionRecovery) {
       // Show simple session recovery interface
@@ -278,16 +281,16 @@ const HyloWebView = React.forwardRef(({
             <Text className="text-xl font-bold mb-4 text-center text-card-foreground">
               🔐 Session Required
             </Text>
-            
+
             <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
               Your session has expired. Please log out and log back in to continue.
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={async () => {
                 try {
                   // Clear the session and trigger logout
-                  await clearSessionCookie() 
+                  await clearSessionCookie()
                   await logout()
                   // The auth state change will automatically navigate to login
                 } catch (error) {
