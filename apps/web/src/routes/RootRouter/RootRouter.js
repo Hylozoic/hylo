@@ -72,7 +72,9 @@ export default function RootRouter () {
   }
   // Safety net: never show the web login page inside the new mobile WebView.
   // If the session expires or logout happens through any path, signal native to handle it.
-  if (!isAuthorized && window.HyloMobileV2) {
+  // Check both window.HyloMobileV2 (set by injected script) and URL param (available before script runs).
+  const isMobileWebView = window.HyloMobileV2 || (typeof window !== 'undefined' && new URLSearchParams(window.location?.search || '').get('hylo_mobile_v2') === '1')
+  if (!isAuthorized && isMobileWebView) {
     sendMessageToWebView(WebViewMessageTypes.LOGOUT)
     return null
   }

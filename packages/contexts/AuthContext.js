@@ -28,8 +28,11 @@ const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
   const { setIsAuthenticated, setIsAuthorized } = useAuthStore()
+  // Use network-only so we never show the auth stack (and thus the WebView) based on
+  // stale cache. Otherwise on production, cached "me" can make the app show the web
+  // landing page briefly before the network response confirms the user is logged out.
   const [{ data, fetching, error }, checkAuth] = useQuery({
-    requestPolicy: 'cache-and-network',
+    requestPolicy: 'network-only',
     query: meCheckAuthQuery
   })
   const [, executeLogin] = useMutation(loginMutation)
