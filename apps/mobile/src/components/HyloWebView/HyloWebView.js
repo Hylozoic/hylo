@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
@@ -157,13 +156,14 @@ const HyloWebView = React.forwardRef(({
     }
   }, [isAuthenticated])
 
-  // Only show session recovery after a delay to prevent flashing
+  // Brief debounce before triggering logout when no cookie is found,
+  // to avoid acting on transient states during focus transitions.
   useEffect(() => {
     let timer
     if (!cookie && !isLoading) {
       timer = setTimeout(() => {
         setShowSessionRecovery(true)
-      }, 2000) // Wait 2 seconds before showing recovery UI
+      }, 2000)
     } else {
       setShowSessionRecovery(false)
     }
@@ -181,7 +181,7 @@ const HyloWebView = React.forwardRef(({
           const newCookie = await getSessionCookie()
           setCookie(newCookie)
         } catch (error) {
-          // Cookie retrieval failed - will trigger session recovery UI
+          // Cookie retrieval failed - will trigger native logout after debounce
           console.error('Cookie retrieval failed', error)
         }
       }
@@ -269,41 +269,12 @@ const HyloWebView = React.forwardRef(({
   }
 
 
+  // No session cookie means the native session is out of sync with the WebView.
+  // Trigger logout immediately so native handles navigation to its login screens.
+  // We never want to show a web-side recovery UI inside the mobile app.
   if (!cookie || !uri) {
     if (showSessionRecovery) {
-      // Show simple session recovery interface
-      return (
-        <View className="flex-1 bg-background p-5 justify-center">
-          <View className="bg-card p-5 rounded-lg shadow-sm border border-border">
-            <Text className="text-xl font-bold mb-4 text-center text-card-foreground">
-              🔐 Session Required
-            </Text>
-            
-            <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
-              Your session has expired. Please log out and log back in to continue.
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={async () => {
-                try {
-                  // Clear the session and trigger logout
-                  await clearSessionCookie() 
-                  await logout()
-                  // The auth state change will automatically navigate to login
-                } catch (error) {
-                  // Fallback: try direct navigation to login without reset
-                  openURL('/login')
-                }
-              }}
-              className="bg-accent p-4 rounded-md items-center"
-            >
-              <Text className="text-accent-foreground font-bold text-base">
-                🔑 Log Out & Log Back In
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )
+      clearSessionCookie().then(() => logout()).catch(() => logout())
     }
     return null
   }
@@ -363,7 +334,7 @@ const HyloWebView = React.forwardRef(({
       sharedCookiesEnabled
       source={{
         uri,
-        headers: { cookie }
+        headers: { cookie, 'X-Hylo-Mobile': 'v2' }
       }}
       // DEPRECATED: Native pull-to-refresh doesn't work with AutoHeightWebView
       // AutoHeightWebView manages its own height and scrolling happens inside the WebView
