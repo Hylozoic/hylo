@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebViewMessageTypes } from '@hylo/shared'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
-import LoadingScreen from 'screens/LoadingScreen'
+import Loading from 'components/Loading'
 import NoInternetConnection from 'screens/NoInternetConnection'
 import useLogout from 'hooks/useLogout'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
@@ -55,48 +55,7 @@ export default function PrimaryWebView() {
   // Get the path from the route params
   // This comes from the linking table catch-all: ':path(.*)' -> Main
   const { path, originalLinkingPath } = useRouteParams()
-  
-  // Use originalLinkingPath if available, otherwise path, otherwise default to '/'
-  const webViewPath = originalLinkingPath || path || '/'
-  
-  if (__DEV__) {
-    console.log('📱 PrimaryWebView loading path:', {
-      path,
-      originalLinkingPath,
-      webViewPath,
-      currentUser: currentUser?.id,
-      fetchingUser
-    })
-  }
-  
-  // Check internet connectivity - show error screen if offline
-  if (!isConnected || !isInternetReachable) {
-    return (
-      <NoInternetConnection 
-        onRetry={() => {
-          // Clear any WebView error state when retrying
-          setWebViewError(null)
-          // Retry will happen automatically when connectivity is restored
-          // via the useEffect in NoInternetConnection component
-        }} 
-      />
-    )
-  }
 
-  // Handle user authentication errors
-  if (userError) {
-    console.error('📱 PrimaryWebView: Error loading current user:', userError)
-    // Logout and let AuthContext handle redirect to login
-    logout()
-    return null
-  }
-  
-  // Show loading while fetching user data
-  // This ensures we have a valid authenticated user before rendering the WebView
-  if (fetchingUser || !currentUser) {
-    return <LoadingScreen />
-  }
-  
   /**
    * Message handler for WebView → Native communication.
    *
@@ -108,7 +67,7 @@ export default function PrimaryWebView() {
     const { type, data } = message
     
     switch (type) {
-      case 'LOGOUT':
+      case WebViewMessageTypes.LOGOUT:
         // Web app triggers logout, native handles the actual logout
         console.log('📱 Logout triggered from WebView')
         logout()
@@ -163,7 +122,55 @@ export default function PrimaryWebView() {
     setIsWebViewLoading(false)
     setWebViewError(nativeEvent)
   }, [])
+
+  // Use originalLinkingPath if available, otherwise path, otherwise fallback to '/app'.
+  // Do NOT fallback to '/' — the proxy serves the marketing landing page there for
+  // unauthenticated requests, and the React app never loads to fire the LOGOUT guard.
+  const webViewPath = originalLinkingPath || path || '/app'
   
+  if (__DEV__) {
+    console.log('📱 PrimaryWebView loading path:', {
+      path,
+      originalLinkingPath,
+      webViewPath,
+      currentUser: currentUser?.id,
+      fetchingUser
+    })
+  }
+  
+  // Check internet connectivity - show error screen if offline
+  if (!isConnected || !isInternetReachable) {
+    return (
+      <NoInternetConnection 
+        onRetry={() => {
+          // Clear any WebView error state when retrying
+          setWebViewError(null)
+          // Retry will happen automatically when connectivity is restored
+          // via the useEffect in NoInternetConnection component
+        }} 
+      />
+    )
+  }
+
+  // Handle user authentication errors
+  if (userError) {
+    console.error('📱 PrimaryWebView: Error loading current user:', userError)
+    // Logout and let AuthContext handle redirect to login
+    logout()
+    return null
+  }
+  
+  // Show loading while fetching user data
+  // This ensures we have a valid authenticated user before rendering the WebView
+  if (fetchingUser || !currentUser) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
+        <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+        <Loading size='large' />
+      </SafeAreaView>
+    )
+  }
+
   // Show error screen if WebView failed to load due to network issues
   if (webViewError && (!isConnected || !isInternetReachable)) {
     return (
@@ -188,9 +195,11 @@ export default function PrimaryWebView() {
           left: 0, 
           right: 0, 
           bottom: 0, 
+          justifyContent: 'center', 
+          alignItems: 'center',
           zIndex: 1
         }}>
-          <LoadingScreen />
+          <Loading size='large' />
         </View>
       )}
       <HyloWebView
