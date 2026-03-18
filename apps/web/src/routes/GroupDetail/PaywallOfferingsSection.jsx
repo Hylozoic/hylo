@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
+import HyloHTML from 'components/HyloHTML'
 import { DollarSign, CreditCard, LogIn } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
@@ -244,7 +245,9 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
         <div className='flex-1'>
           <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
           {offering.description && (
-            <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
+            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
+              <HyloHTML html={offering.description} />
+            </div>
           )}
           <div className='flex items-center gap-4 text-sm text-foreground/60'>
             {offering.priceInCents && (

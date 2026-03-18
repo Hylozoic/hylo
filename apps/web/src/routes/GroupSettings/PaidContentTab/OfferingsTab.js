@@ -15,6 +15,8 @@ import { CreditCard, AlertCircle, PlusCircle, Edit, X, Link2, Users, ChevronDown
 import CopyToClipboard from 'react-copy-to-clipboard'
 
 import Button from 'components/ui/button'
+import HyloEditor from 'components/HyloEditor'
+import HyloHTML from 'components/HyloHTML'
 import Loading from 'components/Loading'
 import SettingsControl from 'components/SettingsControl'
 import { Switch } from 'components/ui/switch'
@@ -103,6 +105,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [showArchived, setShowArchived] = useState(false)
   const [accessFilter, setAccessFilter] = useState('all')
   const [expandedOfferingId, setExpandedOfferingId] = useState(null)
+  const descriptionEditorRef = useRef(null)
 
   /**
    * Toggle subscriber view for an offering
@@ -230,11 +233,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
       }
 
+      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+
       const result = await dispatch(createOffering(
         group.id,
         accountId,
         formData.name,
-        formData.description,
+        description,
         priceInCents,
         formData.currency,
         Object.keys(accessGrants).length > 0 ? accessGrants : null,
@@ -313,9 +318,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         return normalized
       }
 
+      const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+
       const updates = {}
       if (formData.name !== editingOffering.name) updates.name = formData.name
-      if (formData.description !== (editingOffering.description || '')) updates.description = formData.description || null
+      if (description !== (editingOffering.description || '')) updates.description = description || null
       if (formData.duration !== (editingOffering.duration || '')) updates.duration = formData.duration || null
       if (formData.publishStatus !== (editingOffering.publishStatus || 'unpublished')) updates.publishStatus = formData.publishStatus || 'unpublished'
 
@@ -496,12 +503,23 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               placeholder={t('e.g., Premium Membership')}
               required
             />
-            <SettingsControl
-              label={t('Description')}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder={t('What does this offering include?')}
-            />
+            <div className='flex flex-col gap-1'>
+              <label className='text-sm font-medium text-foreground'>{t('Description')}</label>
+              <div className='border-2 border-border border-dashed rounded-md focus-within:border-focus focus-within:ring-1 focus-within:ring-focus'>
+                <HyloEditor
+                  ref={descriptionEditorRef}
+                  contentHTML={formData.description}
+                  onUpdate={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                  placeholder={t('What does this offering include?')}
+                  groupIds={group?.id ? [group.id] : []}
+                  showMenu
+                  extendedMenu
+                  type='offeringDescription'
+                  className='min-h-[120px] p-2'
+                  containerClassName='mt-0'
+                />
+              </div>
+            </div>
             <div className='flex gap-3'>
               <div className='flex-1'>
                 <SettingsControl
@@ -607,12 +625,23 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               placeholder={t('e.g., Premium Membership')}
               required
             />
-            <SettingsControl
-              label={t('Description')}
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder={t('What does this offering include?')}
-            />
+            <div className='flex flex-col gap-1'>
+              <label className='text-sm font-medium text-foreground'>{t('Description')}</label>
+              <div className='border-2 border-border border-dashed rounded-md focus-within:border-focus focus-within:ring-1 focus-within:ring-focus'>
+                <HyloEditor
+                  ref={descriptionEditorRef}
+                  contentHTML={formData.description}
+                  onUpdate={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                  placeholder={t('What does this offering include?')}
+                  groupIds={group?.id ? [group.id] : []}
+                  showMenu
+                  extendedMenu
+                  type='offeringDescription'
+                  className='min-h-[120px] p-2'
+                  containerClassName='mt-0'
+                />
+              </div>
+            </div>
             <SettingsControl
               label={t('Duration')}
               helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
@@ -1119,7 +1148,9 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
             </span>
           </div>
           {offering.description && (
-            <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
+            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
+              <HyloHTML html={offering.description} />
+            </div>
           )}
           <div className='flex items-center gap-4 text-xs text-foreground/50 mb-2'>
             {offering.priceInCents && (

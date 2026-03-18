@@ -180,7 +180,9 @@ export default function OfferingDetails () {
             <h1 className='text-4xl font-bold text-foreground mb-4'>{offering.name}</h1>
 
             {offering.description && (
-              <p className='text-lg text-foreground/70 mb-6 leading-relaxed'>{offering.description}</p>
+              <div className='text-lg text-foreground/70 mb-6 leading-relaxed global-postContent'>
+                <HyloHTML html={offering.description} />
+              </div>
             )}
 
             <div className='flex flex-col gap-4 mb-6'>
