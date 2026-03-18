@@ -2826,6 +2826,8 @@ type StripeOffering {
   duration: String
   # Publish status: unpublished, unlisted, published
   publishStatus: PublishStatus
+  # Optional custom label for the buy button (e.g. "Join now", "Subscribe"); stored in accessGrants.buyButtonText
+  buyButtonText: String
 }
 
 type ContentAccess {

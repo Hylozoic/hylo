@@ -88,12 +88,15 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     currency: 'usd',
     duration: '',
     publishStatus: 'unpublished',
+    buyButtonText: '',
     lineItems: {
       tracks: [],
       groups: [],
       roles: []
     }
   })
+
+  const BUY_BUTTON_TEXT_MAX_LENGTH = 30
   const [creating, setCreating] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [updatingPaywall, setUpdatingPaywall] = useState(false)
@@ -222,6 +225,10 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       if (formData.lineItems.groups.length > 0) {
         accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
+      const trimmedButtonText = formData.buyButtonText?.trim?.()
+      if (trimmedButtonText) {
+        accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
+      }
 
       const result = await dispatch(createOffering(
         group.id,
@@ -240,7 +247,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Reset form and refresh offerings
-      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', lineItems: { tracks: [], groups: [], roles: [] } })
+      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
       setShowCreateForm(false)
       onRefreshOfferings()
     } catch (error) {
@@ -285,17 +292,24 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       if (formData.lineItems.groups.length > 0) {
         accessGrants.groupIds = formData.lineItems.groups.map(g => parseInt(g.id))
       }
+      const trimmedButtonText = formData.buyButtonText?.trim?.()
+      if (trimmedButtonText) {
+        accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
+      }
 
       // Parse existing accessGrants for comparison
       const existingAccessGrants = parseAccessGrants(editingOffering.accessGrants)
 
-      // Normalize for comparison
+      // Normalize for comparison (includes buyButtonText so changes to button label trigger update)
       const normalizeAccessGrants = (ag) => {
         const normalized = {}
         if (ag.trackIds && ag.trackIds.length > 0) normalized.trackIds = [...ag.trackIds].sort()
         if (ag.commonRoleIds && ag.commonRoleIds.length > 0) normalized.commonRoleIds = [...ag.commonRoleIds].sort()
         if (ag.groupRoleIds && ag.groupRoleIds.length > 0) normalized.groupRoleIds = [...ag.groupRoleIds].sort()
         if (ag.groupIds && ag.groupIds.length > 0) normalized.groupIds = [...ag.groupIds].sort()
+        if (ag.buyButtonText != null && String(ag.buyButtonText).trim() !== '') {
+          normalized.buyButtonText = String(ag.buyButtonText).trim().slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
+        }
         return normalized
       }
 
@@ -333,7 +347,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
       // Reset form and refresh offerings
       setEditingOffering(null)
-      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', lineItems: { tracks: [], groups: [], roles: [] } })
+      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
       onRefreshOfferings()
     } catch (error) {
       console.error('Error updating offering:', error)
@@ -404,6 +418,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       currency: 'usd',
       duration: offering.duration || '',
       publishStatus: offering.publishStatus || 'unpublished',
+      buyButtonText: offering.buyButtonText || (accessGrants.buyButtonText && String(accessGrants.buyButtonText).trim()) || '',
       lineItems
     })
     setShowCreateForm(false)
@@ -411,13 +426,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
   const handleCancelEdit = useCallback(() => {
     setEditingOffering(null)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
     setShowCreateForm(false)
   }, [])
 
   const handleDiscardForm = useCallback(() => {
     setShowCreateForm(false)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
   }, [])
 
   return (
@@ -533,6 +548,14 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
             />
 
             <SettingsControl
+              label={t('Buy button text')}
+              helpText={t('Optional custom label for the purchase button (e.g. "Join now", "Subscribe"). Leave blank for "Buy Now". Max {{max}} characters.', { max: BUY_BUTTON_TEXT_MAX_LENGTH })}
+              value={formData.buyButtonText}
+              onChange={(e) => setFormData(prev => ({ ...prev, buyButtonText: e.target.value.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH) }))}
+              placeholder={t('e.g., Join now')}
+            />
+
+            <SettingsControl
               label={t('Publish Status')}
               helpText={t('Control when and how this offering is visible')}
               value={formData.publishStatus}
@@ -604,6 +627,14 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                   <option value='annual'>{t('Annual (recurring)')}</option>
                 </select>
               )}
+            />
+
+            <SettingsControl
+              label={t('Buy button text')}
+              helpText={t('Optional custom label for the purchase button (e.g. "Join now", "Subscribe"). Leave blank for "Buy Now". Max {{max}} characters.', { max: BUY_BUTTON_TEXT_MAX_LENGTH })}
+              value={formData.buyButtonText}
+              onChange={(e) => setFormData(prev => ({ ...prev, buyButtonText: e.target.value.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH) }))}
+              placeholder={t('e.g., Join now')}
             />
 
             <SettingsControl

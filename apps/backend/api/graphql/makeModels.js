@@ -1347,8 +1347,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         canAccess: t => t ? t.canAccess(userId) : false,
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
-        userSettings: t => t && userId ? t.userSettings(userId) : null,
-
+        userSettings: t => t && userId ? t.userSettings(userId) : null
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
@@ -1615,6 +1614,13 @@ export default function makeModels (userId, isAdmin, apiClient) {
         accessGrants: sp => sp.get('access_grants'),
         renewalPolicy: sp => sp.get('renewal_policy'),
         publishStatus: sp => sp.get('publish_status'),
+        buyButtonText: (sp) => {
+          const ag = sp.get('access_grants')
+          if (!ag) return null
+          const grants = typeof ag === 'string' ? (() => { try { return JSON.parse(ag) } catch { return {} } })() : ag
+          const text = grants?.buyButtonText
+          return (text != null && String(text).trim() !== '') ? String(text).trim() : null
+        },
         tracks: async (sp) => {
           if (!sp) return []
           const accessGrants = sp.get('access_grants')
@@ -1643,7 +1649,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           // Fetch tracks
           const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
-        },
+        }
       }
     },
 

@@ -7,7 +7,9 @@
  *   groupIds: [4, 5, 6],
  *   commonRoleIds: [7, 8],  // Common roles (from common_roles table)
  *   groupRoleIds: [9, 10],   // Group roles (from groups_roles table)
+ *   buyButtonText: "Join now"  // Optional custom label for the buy button (UI only; not used for access)
  * }
+ * All code that iterates access grants uses only the known keys above; buyButtonText is ignored for access logic.
  */
 
 /**

@@ -319,7 +319,7 @@ export default function OfferingDetails () {
                   ? (
                     <>
                       <CreditCard className='w-5 h-5' />
-                      {checkoutLoading ? t('Processing...') : t('Buy Now')}
+                      {checkoutLoading ? t('Processing...') : (offering.buyButtonText || t('Buy Now'))}
                     </>
                     )
                   : (

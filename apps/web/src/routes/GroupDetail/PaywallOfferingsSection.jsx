@@ -332,7 +332,7 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
           ? (
             <>
               <CreditCard className='w-4 h-4' />
-              {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
+              {checkoutLoading === offering.id ? t('Processing...') : (offering.buyButtonText || t('Purchase Access'))}
             </>
             )
           : (
