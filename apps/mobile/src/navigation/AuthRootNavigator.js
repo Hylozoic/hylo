@@ -33,10 +33,13 @@ export default function AuthRootNavigator () {
   const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
-  const [{ currentUser, fetching: currentUserFetching, error }] = useCurrentUser({ 
+  // network-only is intentional here — required for SocialAuth to reflect server state immediately.
+  // Safe destructuring with fallback in case the query result is transiently null/undefined.
+  const currentUserResult = useCurrentUser({
     requestPolicy: 'network-only',
-    pause: !isConnected || !isInternetReachable // Don't fetch if no internet
+    pause: !isConnected || !isInternetReachable
   })
+  const { currentUser, fetching: currentUserFetching, error } = currentUserResult?.[0] ?? {}
   const [loading, setLoading] = useState(true)
   const [initialized, setInitialize] = useState(false)
   const [, resetNotificationsCount] = useMutation(resetNotificationsCountMutation)
