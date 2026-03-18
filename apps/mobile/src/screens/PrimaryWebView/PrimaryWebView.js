@@ -43,12 +43,22 @@ export default function PrimaryWebView() {
   const bottomInset = isIOS ? Math.max(insets.bottom * 0.5, 8) : insets.bottom
   const safeAreaEdges = isIOS ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']
   
-  // Verify user is authenticated before showing WebView
-  // This provides an additional auth check at the component level
-  const [{ currentUser, fetching: fetchingUser, error: userError }] = useCurrentUser({ 
-    requestPolicy: 'network-only',
-    pause: !isConnected || !isInternetReachable // Don't fetch if no internet
+  // Verify user is authenticated before showing WebView.
+  // cache-and-network (not network-only) is intentional: with network-only, any
+  // re-execution of this query (e.g. caused by a NetInfo null→false→true flicker)
+  // clears currentUser to undefined while the request is in flight, which unmounts
+  // the WebView and resets isWebViewLoading — causing the infinite loading loop.
+  // cache-and-network keeps stale data available so currentUser stays truthy during re-fetches.
+  const currentUserResult = useCurrentUser({
+    requestPolicy: 'cache-and-network',
+    pause: !isConnected || !isInternetReachable
   })
+  const { currentUser, fetching: fetchingUser, error: userError } = currentUserResult?.[0] ?? {}
+
+  // Once we've verified a user, never unmount the WebView due to a re-fetch.
+  // If the session truly expires, the web app's RootRouter LOGOUT guard fires instead.
+  const hasLoadedUser = useRef(false)
+  if (currentUser) hasLoadedUser.current = true
   const [isWebViewLoading, setIsWebViewLoading] = useState(true)
   const [webViewError, setWebViewError] = useState(null)
   
@@ -153,16 +163,16 @@ export default function PrimaryWebView() {
   }
 
   // Handle user authentication errors
-  if (userError) {
+  if (userError && !hasLoadedUser.current) {
     console.error('📱 PrimaryWebView: Error loading current user:', userError)
-    // Logout and let AuthContext handle redirect to login
     logout()
     return null
   }
-  
-  // Show loading while fetching user data
-  // This ensures we have a valid authenticated user before rendering the WebView
-  if (fetchingUser || !currentUser) {
+
+  // Show loading only on the very first render before we've ever resolved a user.
+  // After that, keep the WebView mounted — the web app's RootRouter LOGOUT guard handles
+  // session expiry by sending a LOGOUT message back to native.
+  if (!hasLoadedUser.current && (fetchingUser || !currentUser)) {
     return (
       <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor, paddingBottom: bottomInset }} edges={safeAreaEdges}>
         <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
