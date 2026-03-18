@@ -20,7 +20,8 @@ export default function useCurrentUser (useQueryArgs = {}) {
 
   if (error) {
     console.log('!!! URQL error when trying to retrieve currentUser:', error)
-    return null
+    // Return a safe empty tuple so callers can always destructure without crashing.
+    return [{ currentUser: undefined, fetching: false, error, stale: false }, queryCurrentUser]
   }
 
   return [{ currentUser: validatedCurrentUser, fetching, error, stale }, queryCurrentUser]

@@ -11,16 +11,18 @@ export default function useNetworkConnectivity () {
   const [isInternetReachable, setIsInternetReachable] = useState(true)
 
   useEffect(() => {
-    // Fetch initial connectivity status
+    // Fetch initial connectivity status.
+    // isInternetReachable can be null (especially on Android before the probe completes).
+    // Treat null as true (fail open) — a false negative here unmounts the WebView.
     NetInfo.fetch().then(state => {
-      setIsConnected(state.isConnected ?? false)
-      setIsInternetReachable(state.isInternetReachable ?? false)
+      setIsConnected(state.isConnected ?? true)
+      setIsInternetReachable(state.isInternetReachable ?? true)
     })
 
     // Set up listener for connectivity changes
     const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected ?? false)
-      setIsInternetReachable(state.isInternetReachable ?? false)
+      setIsConnected(state.isConnected ?? true)
+      setIsInternetReachable(state.isInternetReachable ?? true)
     })
 
     // Cleanup listener on unmount
