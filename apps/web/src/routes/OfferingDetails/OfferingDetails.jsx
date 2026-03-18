@@ -83,7 +83,7 @@ export default function OfferingDetails () {
    */
   const handlePurchase = useCallback(async () => {
     if (!offering?.id || !offering?.group?.id) {
-      alert(t('Unable to process payment. Please contact support.'))
+      window.alert(t('Unable to process payment. Please contact support.'))
       return
     }
 
@@ -118,7 +118,7 @@ export default function OfferingDetails () {
       window.location.href = checkoutData.url
     } catch (err) {
       console.error('Error creating checkout session:', err)
-      alert(t('Failed to start payment process: {{error}}', { error: err.message }))
+      window.alert(t('Failed to start payment process: {{error}}', { error: err.message }))
       setCheckoutLoading(false)
     }
   }, [offering, offeringId, t])
@@ -176,165 +176,165 @@ export default function OfferingDetails () {
 
         {/* Offering Details Content */}
         <div className='max-w-4xl mx-auto p-6 pb-12 w-full'>
-        <div className='bg-midground rounded-xl p-6 shadow-lg'>
-          <h1 className='text-4xl font-bold text-foreground mb-4'>{offering.name}</h1>
+          <div className='bg-midground rounded-xl p-6 shadow-lg'>
+            <h1 className='text-4xl font-bold text-foreground mb-4'>{offering.name}</h1>
 
-          {offering.description && (
-            <p className='text-lg text-foreground/70 mb-6 leading-relaxed'>{offering.description}</p>
-          )}
-
-          <div className='flex flex-col gap-4 mb-6'>
-            {offering.priceInCents && (
-              <div className='flex items-center gap-2'>
-                <span className='text-2xl font-bold text-foreground'>
-                  ${(offering.priceInCents / 100).toFixed(2)}
-                </span>
-                <span className='text-lg text-foreground/70'>
-                  {offering.currency?.toUpperCase()}
-                </span>
-              </div>
+            {offering.description && (
+              <p className='text-lg text-foreground/70 mb-6 leading-relaxed'>{offering.description}</p>
             )}
 
-            {offering.duration
-              ? (
-                <div className='text-foreground/70'>
-                  <span className='font-semibold'>{t('Duration')}: </span>
-                  <span>
-                    {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}
+            <div className='flex flex-col gap-4 mb-6'>
+              {offering.priceInCents && (
+                <div className='flex items-center gap-2'>
+                  <span className='text-2xl font-bold text-foreground'>
+                    ${(offering.priceInCents / 100).toFixed(2)}
+                  </span>
+                  <span className='text-lg text-foreground/70'>
+                    {offering.currency?.toUpperCase()}
                   </span>
                 </div>
-                )
-              : (
-                <div className='text-foreground/70'>
-                  <span className='font-semibold'>{t('Duration')}: </span>
-                  <span>{t('Lifetime')}</span>
-                </div>
-                )}
-          </div>
+              )}
 
-          {/* Access Grants Section */}
-          {(() => {
-            // Lookup roles from group context using IDs from accessGrants
-            const accessGrants = parseAccessGrants(offering.accessGrants)
-            const groupRoles = group?.groupRoles?.items || []
-            const allRoles = []
-
-            if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
-              accessGrants.groupRoleIds.forEach(roleId => {
-                const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
-                if (role) allRoles.push(role)
-              })
-            }
-
-            if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
-              accessGrants.commonRoleIds.forEach(roleId => {
-                const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
-                if (role) allRoles.push(role)
-              })
-            }
-            const hasTracks = offering.tracks && offering.tracks.length > 0
-            const hasRoles = allRoles.length > 0
-            return (grantsGroupAccess || hasTracks || hasRoles) && (
-              <div className='border-t border-foreground/10 pt-6 mt-6'>
-                {grantsGroupAccess && (
-                  <p className='text-sm font-bold text-foreground mb-4'>
-                    {t('Grants access to the group')}
-                  </p>
-                )}
-
-                {(hasTracks || hasRoles)
-                  ? (
-                    <>
-                      <p className='text-xs font-semibold text-foreground/70 mb-3'>
-                        {t('Grants access to')}:
-                      </p>
-                      <div className='flex flex-col gap-3'>
-                        {hasTracks && (
-                          <div>
-                            <span className='font-medium text-sm text-foreground/70 mb-2 block'>
-                              {t('Tracks')}:
-                            </span>
-                            <div className='flex flex-wrap gap-2'>
-                              {offering.tracks.map(track => (
-                                <div
-                                  key={track.id}
-                                  className='inline-flex items-center gap-2 px-3 py-2 rounded-md bg-selected/20 text-foreground'
-                                >
-                                  {track.bannerUrl && (
-                                    <img
-                                      src={track.bannerUrl}
-                                      alt={track.name}
-                                      className='w-8 h-8 rounded object-cover'
-                                    />
-                                  )}
-                                  <div className='flex flex-col'>
-                                    <span className='text-sm font-medium'>{track.name}</span>
-                                    {track.description && (
-                                      <div className='text-xs text-foreground/70 line-clamp-1'>
-                                        <HyloHTML html={track.description} />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {hasRoles && (
-                          <div>
-                            <span className='font-medium text-sm text-foreground/70 mb-2 block'>
-                              {t('Roles')}:
-                            </span>
-                            <div className='flex flex-wrap gap-2'>
-                              {allRoles.map(role => (
-                                <span
-                                  key={role.id}
-                                  className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
-                                >
-                                  {role.emoji && <span>{role.emoji}</span>}
-                                  <span>{role.name}</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                    )
-                  : null}
-              </div>
-            )
-          })()}
-
-          {/* Buy Now Button */}
-          <div className='border-t border-foreground/10 pt-6 mt-6'>
-            <Button
-              variant='primary'
-              size='lg'
-              className='w-full flex items-center justify-center gap-2'
-              onClick={handlePurchase}
-              disabled={checkoutLoading}
-            >
-              {currentUser
+              {offering.duration
                 ? (
-                  <>
-                    <CreditCard className='w-5 h-5' />
-                    {checkoutLoading ? t('Processing...') : t('Buy Now')}
-                  </>
+                  <div className='text-foreground/70'>
+                    <span className='font-semibold'>{t('Duration')}: </span>
+                    <span>
+                      {offering.duration === 'month' ? t('Monthly (recurring)') : offering.duration === 'season' ? t('Every 3 months (recurring)') : offering.duration === 'annual' ? t('Annual (recurring)') : offering.duration}
+                    </span>
+                  </div>
                   )
                 : (
-                  <>
-                    <LogIn className='w-5 h-5' />
-                    {t('Sign up to Purchase')}
-                  </>
+                  <div className='text-foreground/70'>
+                    <span className='font-semibold'>{t('Duration')}: </span>
+                    <span>{t('Lifetime')}</span>
+                  </div>
                   )}
-            </Button>
-            <p className='text-xs text-foreground/60 mt-3 text-center'>
-              {t('You\'ll have the option to add a donation to Hylo during checkout')}
-            </p>
+            </div>
+
+            {/* Access Grants Section */}
+            {(() => {
+              // Lookup roles from group context using IDs from accessGrants
+              const accessGrants = parseAccessGrants(offering.accessGrants)
+              const groupRoles = group?.groupRoles?.items || []
+              const allRoles = []
+
+              if (accessGrants.groupRoleIds && Array.isArray(accessGrants.groupRoleIds)) {
+                accessGrants.groupRoleIds.forEach(roleId => {
+                  const role = groupRoles.find(r => parseInt(r.id) === parseInt(roleId))
+                  if (role) allRoles.push(role)
+                })
+              }
+
+              if (accessGrants.commonRoleIds && Array.isArray(accessGrants.commonRoleIds)) {
+                accessGrants.commonRoleIds.forEach(roleId => {
+                  const role = commonRoles.find(r => parseInt(r.id) === parseInt(roleId))
+                  if (role) allRoles.push(role)
+                })
+              }
+              const hasTracks = offering.tracks && offering.tracks.length > 0
+              const hasRoles = allRoles.length > 0
+              return (grantsGroupAccess || hasTracks || hasRoles) && (
+                <div className='border-t border-foreground/10 pt-6 mt-6'>
+                  {grantsGroupAccess && (
+                    <p className='text-sm font-bold text-foreground mb-4'>
+                      {t('Grants access to the group')}
+                    </p>
+                  )}
+
+                  {(hasTracks || hasRoles)
+                    ? (
+                      <>
+                        <p className='text-xs font-semibold text-foreground/70 mb-3'>
+                          {t('Grants access to')}:
+                        </p>
+                        <div className='flex flex-col gap-3'>
+                          {hasTracks && (
+                            <div>
+                              <span className='font-medium text-sm text-foreground/70 mb-2 block'>
+                                {t('Tracks')}:
+                              </span>
+                              <div className='flex flex-wrap gap-2'>
+                                {offering.tracks.map(track => (
+                                  <div
+                                    key={track.id}
+                                    className='inline-flex items-center gap-2 px-3 py-2 rounded-md bg-selected/20 text-foreground'
+                                  >
+                                    {track.bannerUrl && (
+                                      <img
+                                        src={track.bannerUrl}
+                                        alt={track.name}
+                                        className='w-8 h-8 rounded object-cover'
+                                      />
+                                    )}
+                                    <div className='flex flex-col'>
+                                      <span className='text-sm font-medium'>{track.name}</span>
+                                      {track.description && (
+                                        <div className='text-xs text-foreground/70 line-clamp-1'>
+                                          <HyloHTML html={track.description} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {hasRoles && (
+                            <div>
+                              <span className='font-medium text-sm text-foreground/70 mb-2 block'>
+                                {t('Roles')}:
+                              </span>
+                              <div className='flex flex-wrap gap-2'>
+                                {allRoles.map(role => (
+                                  <span
+                                    key={role.id}
+                                    className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
+                                  >
+                                    {role.emoji && <span>{role.emoji}</span>}
+                                    <span>{role.name}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                      )
+                    : null}
+                </div>
+              )
+            })()}
+
+            {/* Buy Now Button */}
+            <div className='border-t border-foreground/10 pt-6 mt-6'>
+              <Button
+                variant='primary'
+                size='lg'
+                className='w-full flex items-center justify-center gap-2'
+                onClick={handlePurchase}
+                disabled={checkoutLoading}
+              >
+                {currentUser
+                  ? (
+                    <>
+                      <CreditCard className='w-5 h-5' />
+                      {checkoutLoading ? t('Processing...') : t('Buy Now')}
+                    </>
+                    )
+                  : (
+                    <>
+                      <LogIn className='w-5 h-5' />
+                      {t('Sign up to Purchase')}
+                    </>
+                    )}
+              </Button>
+              <p className='text-xs text-foreground/60 mt-3 text-center'>
+                {t('You\'ll have the option to add a donation to Hylo during checkout')}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </Div100vh>
   )

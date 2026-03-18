@@ -518,16 +518,16 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
             </div>
             <SettingsControl
               label={t('Duration')}
-              helpText={t('How long does access last? Leave empty for lifetime access')}
+              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
                   <option value='day'>{t('1 Day (Testing)')}</option>
-                  <option value='month'>{t('1 Month')}</option>
-                  <option value='season'>{t('1 Season (3 months)')}</option>
-                  <option value='annual'>{t('1 Year')}</option>
+                  <option value='month'>{t('Monthly (recurring)')}</option>
+                  <option value='season'>{t('Every 3 months (recurring)')}</option>
+                  <option value='annual'>{t('Annual (recurring)')}</option>
                 </select>
               )}
             />
@@ -592,16 +592,16 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
             />
             <SettingsControl
               label={t('Duration')}
-              helpText={t('How long does access last? Leave empty for lifetime access')}
+              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
                   <option value='day'>{t('1 Day (Testing)')}</option>
-                  <option value='month'>{t('1 Month')}</option>
-                  <option value='season'>{t('1 Season (3 months)')}</option>
-                  <option value='annual'>{t('1 Year')}</option>
+                  <option value='month'>{t('Monthly (recurring)')}</option>
+                  <option value='season'>{t('Every 3 months (recurring)')}</option>
+                  <option value='annual'>{t('Annual (recurring)')}</option>
                 </select>
               )}
             />
@@ -1099,11 +1099,11 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
                 {t('Duration')}: {offering.duration === 'day'
                   ? t('1 Day')
                   : offering.duration === 'month'
-                    ? t('1 Month')
+                    ? t('Monthly (recurring)')
                     : offering.duration === 'season'
-                      ? t('1 Season')
+                      ? t('Every 3 months (recurring)')
                       : offering.duration === 'annual'
-                        ? t('1 Year')
+                        ? t('Annual (recurring)')
                         : offering.duration}
               </span>
             )}
@@ -1259,7 +1259,6 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
 
     getTracks()
   }, [debouncedSearch, dispatch, activeSelector, group.id])
-
 
   // Filter roles when role selector is active
   useEffect(() => {

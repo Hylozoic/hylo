@@ -65,7 +65,7 @@ export default function TrackPaywallOfferingsSection ({ track }) {
    */
   const handlePurchase = useCallback(async (offering) => {
     if (!group?.id || !offering?.id) {
-      alert(t('Unable to process payment. Please contact support.'))
+      window.alert(t('Unable to process payment. Please contact support.'))
       return
     }
 
@@ -93,7 +93,7 @@ export default function TrackPaywallOfferingsSection ({ track }) {
       window.location.href = checkoutData.url
     } catch (error) {
       console.error('Error creating checkout session:', error)
-      alert(t('Failed to start payment process: {{error}}', { error: error.message }))
+      window.alert(t('Failed to start payment process: {{error}}', { error: error.message }))
       setCheckoutLoading(null)
     }
   }, [group, track, t])
@@ -147,7 +147,7 @@ export default function TrackPaywallOfferingsSection ({ track }) {
                   )}
                   {offering.duration && (
                     <span>
-                      {t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}
+                      {t('Duration')}: {offering.duration === 'month' ? t('Monthly (recurring)') : offering.duration === 'season' ? t('Every 3 months (recurring)') : offering.duration === 'annual' ? t('Annual (recurring)') : offering.duration}
                     </span>
                   )}
                   {!offering.duration && (
