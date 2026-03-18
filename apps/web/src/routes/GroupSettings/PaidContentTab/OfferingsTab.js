@@ -1237,7 +1237,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
     ...groupRoles.map(role => ({ ...role, type: 'group', label: `${role.emoji || ''} ${role.name}`.trim() }))
   ], [commonRoles, groupRoles])
 
-  // Fetch tracks when track selector is active
+  // Fetch tracks when track selector is active.
   useEffect(() => {
     async function getTracks () {
       if (activeSelector !== 'track') return
@@ -1247,7 +1247,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
         const response = await dispatch(fetchGroupTracks(group.id, {
           autocomplete: debouncedSearch || '',
           first: 20,
-          published: true
+          published: null
         }))
         setItems(response?.payload?.data?.group?.tracks?.items || [])
       } catch (error) {
@@ -1391,6 +1391,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                     className='inline-flex items-center gap-1 px-2 py-1 rounded-md bg-selected/20 text-foreground text-sm'
                   >
                     {track.name}
+                    {'publishedAt' in track && !track.publishedAt && <span className='text-foreground/50 text-xs'>({t('Draft')})</span>}
                     <button
                       type='button'
                       onClick={() => handleRemoveItem('tracks', track.id)}
@@ -1479,6 +1480,9 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                             >
                               {activeSelector === 'role' && item.emoji && <span className='mr-2'>{item.emoji}</span>}
                               <span>{item.name}</span>
+                              {activeSelector === 'track' && !item.publishedAt && (
+                                <span className='ml-2 text-xs text-foreground/50'>({t('Draft')})</span>
+                              )}
                               {isSelected && <span className='ml-2 text-xs text-foreground/50'>({t('Already selected')})</span>}
                             </CommandItem>
                           )
