@@ -22,6 +22,10 @@ const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
 // Key: accountId (or 'platform' for platform account), Value: priceId
 const cachedDonationPriceIds = {}
 
+// Cached sliding-scale unit price IDs per account+currency (created programmatically on first use)
+// Key: `${accountId || 'platform'}:${currency}`, Value: priceId
+const cachedSlidingScaleUnitPriceIds = {}
+
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
   throw new Error(
@@ -141,6 +145,110 @@ module.exports = {
     } catch (error) {
       console.error('Error ensuring donation price exists:', error)
       throw new Error(`Failed to ensure donation price exists: ${error.message}`)
+    }
+  },
+
+  /**
+   * Ensures a sliding-scale \"unit\" product+price exist in Stripe for a currency.
+   *
+   * This is intended to support pay-what-you-want / sliding-scale offerings by using
+   * quantity on a single unit price (e.g. 1 unit = $1.00 USD).
+   *
+   * @param {String} accountId - Connected account ID (required)
+   * @param {String} currency - Currency code (e.g. 'usd', 'eur')
+   * @param {String|null} billingInterval - Optional recurring interval ('day', 'week', 'month', 'year')
+   * @param {Number} billingIntervalCount - Optional recurring interval count (e.g. 3 for quarterly)
+   * @returns {Promise<String>} The unit price ID
+   */
+  async ensureSlidingScaleUnitPriceExists (accountId, currency = 'usd', billingInterval = null, billingIntervalCount = 1) {
+    const normalizedCurrency = (currency || 'usd').toLowerCase()
+    const intervalKey = billingInterval ? `${billingInterval}:${billingIntervalCount || 1}` : 'one_time'
+    const cacheKey = `${accountId || 'platform'}:${normalizedCurrency}:${intervalKey}`
+
+    if (cachedSlidingScaleUnitPriceIds[cacheKey]) {
+      return cachedSlidingScaleUnitPriceIds[cacheKey]
+    }
+
+    if (!accountId) {
+      throw new Error('Account ID is required to ensure sliding scale unit price exists')
+    }
+
+    try {
+      const UNIT_PRODUCT_METADATA_KEY = 'hylo_sliding_scale_unit_product'
+      const UNIT_CURRENCY_METADATA_KEY = 'hylo_sliding_scale_unit_currency'
+
+      const stripeOptions = { stripeAccount: accountId }
+
+      // products.search is not available on connected accounts, so list + filter
+      const products = await stripe.products.list({
+        active: true,
+        limit: 100
+      }, stripeOptions)
+
+      let unitProduct = products.data.find(
+        p => p.metadata &&
+          p.metadata[UNIT_PRODUCT_METADATA_KEY] === 'true' &&
+          p.metadata[UNIT_CURRENCY_METADATA_KEY] === normalizedCurrency
+      )
+
+      if (!unitProduct) {
+        unitProduct = await stripe.products.create({
+          name: `Hylo Sliding Scale Unit (${normalizedCurrency.toUpperCase()})`,
+          description: 'Unit price used for sliding-scale offerings (quantity-based pricing).',
+          metadata: {
+            [UNIT_PRODUCT_METADATA_KEY]: 'true',
+            [UNIT_CURRENCY_METADATA_KEY]: normalizedCurrency
+          }
+        }, stripeOptions)
+      }
+
+      const existingPrices = await stripe.prices.list({
+        product: unitProduct.id,
+        active: true,
+        limit: 10
+      }, stripeOptions)
+
+      let unitPrice = null
+      if (billingInterval) {
+        const expectedCount = billingIntervalCount || 1
+        unitPrice = existingPrices.data.find(p => {
+          if (p.unit_amount !== 100) return false
+          if (p.currency !== normalizedCurrency) return false
+          if (!p.recurring) return false
+          if (p.recurring.interval !== billingInterval) return false
+          return (p.recurring.interval_count || 1) === expectedCount
+        })
+      } else {
+        unitPrice = existingPrices.data.find(
+          p => p.unit_amount === 100 && p.currency === normalizedCurrency && !p.recurring
+        )
+      }
+
+      if (!unitPrice) {
+        const priceData = {
+          product: unitProduct.id,
+          unit_amount: 100,
+          currency: normalizedCurrency,
+          metadata: {
+            hylo_sliding_scale_unit_price: 'true'
+          }
+        }
+
+        if (billingInterval) {
+          priceData.recurring = {
+            interval: billingInterval,
+            interval_count: billingIntervalCount || 1
+          }
+        }
+
+        unitPrice = await stripe.prices.create(priceData, stripeOptions)
+      }
+
+      cachedSlidingScaleUnitPriceIds[cacheKey] = unitPrice.id
+      return cachedSlidingScaleUnitPriceIds[cacheKey]
+    } catch (error) {
+      console.error('Error ensuring sliding scale unit price exists:', error)
+      throw new Error(`Failed to ensure sliding scale unit price exists: ${error.message}`)
     }
   },
 
@@ -649,6 +757,7 @@ module.exports = {
     accountId,
     priceId,
     quantity = 1,
+    adjustableQuantity = null,
     applicationFeeAmount,
     successUrl,
     cancelUrl,
@@ -665,7 +774,7 @@ module.exports = {
         throw new Error('Price ID is required')
       }
 
-      if (!applicationFeeAmount || applicationFeeAmount < 0) {
+      if (applicationFeeAmount === undefined || applicationFeeAmount === null || applicationFeeAmount < 0) {
         throw new Error('Valid application fee amount is required')
       }
 
@@ -673,17 +782,29 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
-      // Get currency and recurring info from the price to match donation configuration
-      const priceObject = await this.getPrice(accountId, priceId)
-      const currency = priceObject.currency || 'usd'
-      const isRecurring = mode === 'subscription' && priceObject.recurring
+      // Retrieve price to validate it exists on the connected account
+      await this.getPrice(accountId, priceId)
 
       // Build session configuration based on mode
+      const lineItem = {
+        price: priceId,
+        quantity
+      }
+
+      if (adjustableQuantity && adjustableQuantity.enabled) {
+        // Provide safety defaults so sliding-scale can omit min/max.
+        const safeMinimum = adjustableQuantity.minimum ?? 1
+        const safeMaximum = adjustableQuantity.maximum ?? 999999
+
+        lineItem.adjustable_quantity = {
+          enabled: true,
+          minimum: safeMinimum,
+          maximum: safeMaximum
+        }
+      }
+
       const sessionConfig = {
-        line_items: [{
-          price: priceId,
-          quantity
-        }],
+        line_items: [lineItem],
         mode,
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -707,7 +828,7 @@ module.exports = {
             quantity: 5, // This displays as an add-on
             adjustable_quantity: {
               enabled: true,
-              minimum: 0, 
+              minimum: 0,
               maximum: 100
             }
           }
@@ -1251,7 +1372,7 @@ module.exports = {
         throw new Error('Either chargeId, paymentIntentId, or subscriptionId is required')
       }
 
-      let refundParams = {}
+      const refundParams = {}
 
       // If we have a subscription ID, find a refundable payment
       if (subscriptionId && !chargeId && !paymentIntentId) {

@@ -7,6 +7,7 @@ const { expect } = require('chai')
 /* global StripeAccount, GroupMembership, StripeProduct */
 
 // Mock StripeService to avoid real API calls
+let lastCreateCheckoutSessionArgs = null
 const mockStripeService = {
   createConnectedAccount: async ({ email, country, businessName, groupId }) => ({
     id: 'acct_test_123',
@@ -74,14 +75,29 @@ const mockStripeService = {
 
   getPrice: async (accountId, priceId) => ({
     id: priceId,
-    unit_amount: 2000,
+    unit_amount: priceId === 'price_unit_test' ? 100 : 2000,
     currency: 'usd'
   }),
 
-  createCheckoutSession: async ({ accountId, priceId, quantity, applicationFeeAmount, successUrl, cancelUrl, metadata }) => ({
-    id: 'cs_test_123',
-    url: 'https://checkout.stripe.com/pay/cs_test_123'
-  })
+  ensureSlidingScaleUnitPriceExists: async () => 'price_unit_test',
+
+  createCheckoutSession: async ({ accountId, priceId, quantity, applicationFeeAmount, successUrl, cancelUrl, metadata, adjustableQuantity }) => {
+    lastCreateCheckoutSessionArgs = {
+      accountId,
+      priceId,
+      quantity,
+      applicationFeeAmount,
+      successUrl,
+      cancelUrl,
+      metadata,
+      adjustableQuantity
+    }
+
+    return {
+      id: 'cs_test_123',
+      url: 'https://checkout.stripe.com/pay/cs_test_123'
+    }
+  }
 }
 
 // Mock the StripeService BEFORE importing the mutations
@@ -580,6 +596,96 @@ describe('Stripe Mutations', () => {
 
       expect(result.success).to.be.true
       expect(result.sessionId).to.equal('cs_test_123')
+    })
+
+    it('forwards adjustableQuantity to StripeService and uses minimum quantity', async () => {
+      lastCreateCheckoutSessionArgs = null
+
+      const adjustableQuantity = {
+        enabled: true,
+        minimum: 2,
+        maximum: 10
+      }
+
+      const result = await createStripeCheckoutSession(user.id, {
+        groupId: group.id,
+        offeringId: testOffering.id,
+        adjustableQuantity,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel'
+      })
+
+      expect(result.success).to.be.true
+      expect(lastCreateCheckoutSessionArgs).to.not.equal(null)
+      expect(lastCreateCheckoutSessionArgs.priceId).to.equal('price_unit_test')
+      expect(lastCreateCheckoutSessionArgs.adjustableQuantity).to.deep.equal(adjustableQuantity)
+      expect(lastCreateCheckoutSessionArgs.quantity).to.equal(2)
+    })
+
+    it('infers adjustableQuantity from offering.access_grants.slidingScale', async () => {
+      lastCreateCheckoutSessionArgs = null
+
+      const currentAccessGrants = testOffering.get('access_grants') || {}
+      const slidingScale = {
+        enabled: true,
+        minimum: 3,
+        maximum: 12
+      }
+
+      await testOffering.save({
+        access_grants: {
+          ...currentAccessGrants,
+          slidingScale
+        }
+      })
+
+      const result = await createStripeCheckoutSession(user.id, {
+        groupId: group.id,
+        offeringId: testOffering.id,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel'
+      })
+
+      expect(result.success).to.be.true
+      expect(lastCreateCheckoutSessionArgs).to.not.equal(null)
+      expect(lastCreateCheckoutSessionArgs.priceId).to.equal('price_unit_test')
+      expect(lastCreateCheckoutSessionArgs.adjustableQuantity).to.deep.equal({
+        enabled: true,
+        minimum: 3,
+        maximum: 12
+      })
+      expect(lastCreateCheckoutSessionArgs.quantity).to.equal(3)
+    })
+
+    it('defaults slidingScale min/max when omitted', async () => {
+      lastCreateCheckoutSessionArgs = null
+
+      const currentAccessGrants = testOffering.get('access_grants') || {}
+      await testOffering.save({
+        access_grants: {
+          ...currentAccessGrants,
+          slidingScale: {
+            enabled: true
+          }
+        }
+      })
+
+      const result = await createStripeCheckoutSession(user.id, {
+        groupId: group.id,
+        offeringId: testOffering.id,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel'
+      })
+
+      expect(result.success).to.be.true
+      expect(lastCreateCheckoutSessionArgs).to.not.equal(null)
+      expect(lastCreateCheckoutSessionArgs.priceId).to.equal('price_unit_test')
+      expect(lastCreateCheckoutSessionArgs.adjustableQuantity).to.deep.equal({
+        enabled: true,
+        minimum: 1,
+        maximum: 999999
+      })
+      expect(lastCreateCheckoutSessionArgs.quantity).to.equal(1)
     })
 
     it('rejects unauthenticated checkout sessions', async () => {

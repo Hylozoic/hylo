@@ -466,7 +466,7 @@ export function makePublicMutations ({ fetchOne }) {
     sendPasswordReset,
     register: register(fetchOne),
     verifyEmail: verifyEmail(fetchOne),
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata })
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }
 }
 
@@ -665,7 +665,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
 

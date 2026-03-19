@@ -77,6 +77,34 @@ export default function OfferingDetails () {
     return offeringGrantsGroupAccess(offering, offering.group.id)
   }, [offering])
 
+  const slidingScaleDisplay = useMemo(() => {
+    if (!offering?.priceInCents) return null
+    const accessGrants = parseAccessGrants(offering.accessGrants)
+    const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
+    if (!slidingScale?.enabled) return null
+
+    const unitAmount = offering.priceInCents / 100
+    const currencyCode = offering.currency?.toUpperCase() || 'USD'
+
+    const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
+    const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
+
+    const minAmount = unitAmount * minQuantity
+    if (maxQuantity != null) {
+      const maxAmount = unitAmount * maxQuantity
+      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+        min: minAmount.toFixed(2),
+        max: maxAmount.toFixed(2),
+        currency: currencyCode
+      })
+    }
+
+    return t('Pay at least {{min}} {{currency}} (your choice)', {
+      min: minAmount.toFixed(2),
+      currency: currencyCode
+    })
+  }, [offering, t])
+
   /**
    * Creates a Stripe checkout session and redirects to payment
    * Non-authenticated users are redirected to sign-up first
@@ -186,7 +214,12 @@ export default function OfferingDetails () {
             )}
 
             <div className='flex flex-col gap-4 mb-6'>
-              {offering.priceInCents && (
+              {slidingScaleDisplay && (
+                <div className='text-2xl font-bold text-foreground'>
+                  {slidingScaleDisplay}
+                </div>
+              )}
+              {!slidingScaleDisplay && offering.priceInCents && (
                 <div className='flex items-center gap-2'>
                   <span className='text-2xl font-bold text-foreground'>
                     ${(offering.priceInCents / 100).toFixed(2)}

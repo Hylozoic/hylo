@@ -74,7 +74,7 @@ export default function SettingsControl (props) {
             onChange={onChange}
             readOnly={!onChange}
             className='bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
-            type='text'
+            type={type || 'text'}
             style={inputStyle}
             value={value}
             {...otherProps}

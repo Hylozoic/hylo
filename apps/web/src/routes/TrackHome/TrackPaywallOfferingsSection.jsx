@@ -7,7 +7,7 @@ import { DollarSign, CreditCard } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
 import { createStripeCheckoutSession } from 'util/offerings'
-import { offeringGrantsTrackAccess } from 'util/accessGrants'
+import { offeringGrantsTrackAccess, parseAccessGrants } from 'util/accessGrants'
 import useRouteParams from 'hooks/useRouteParams'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 
@@ -35,6 +35,35 @@ export default function TrackPaywallOfferingsSection ({ track }) {
 
     return offerings.filter(offering => offeringGrantsTrackAccess(offering, track.id))
   }, [offerings, track?.id])
+
+  const getSlidingScaleDisplay = useCallback((offering) => {
+    const accessGrants = parseAccessGrants(offering.accessGrants)
+    const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
+
+    if (!slidingScale?.enabled) return null
+    if (!offering.priceInCents) return null
+
+    const unitAmount = offering.priceInCents / 100
+    const currencyCode = offering.currency?.toUpperCase() || 'USD'
+
+    const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
+    const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
+
+    const minAmount = unitAmount * minQuantity
+    if (maxQuantity != null) {
+      const maxAmount = unitAmount * maxQuantity
+      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+        min: minAmount.toFixed(2),
+        max: maxAmount.toFixed(2),
+        currency: currencyCode
+      })
+    }
+
+    return t('Pay at least {{min}} {{currency}} (your choice)', {
+      min: minAmount.toFixed(2),
+      currency: currencyCode
+    })
+  }, [t])
 
   // Fetch offerings for the group using public query
   useEffect(() => {
@@ -129,47 +158,61 @@ export default function TrackPaywallOfferingsSection ({ track }) {
         {t('Choose a payment option below to gain access to this track:')}
       </p>
       <div className='flex flex-col gap-3'>
-        {trackAccessOfferings.map(offering => (
-          <div
-            key={offering.id}
-            className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'
-          >
-            <div className='flex items-start justify-between mb-2'>
-              <div className='flex-1'>
-                <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
-                {offering.description && (
-                  <div className='text-sm text-foreground/70 mb-2 global-postContent'>
-                    <HyloHTML html={offering.description} />
+        {trackAccessOfferings.map(offering => {
+          const slidingScaleDisplay = getSlidingScaleDisplay(offering)
+          return (
+            <div
+              key={offering.id}
+              className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'
+            >
+              <div className='flex items-start justify-between mb-2'>
+                <div className='flex-1'>
+                  <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
+                  {offering.description && (
+                    <div className='text-sm text-foreground/70 mb-2 global-postContent'>
+                      <HyloHTML html={offering.description} />
+                    </div>
+                  )}
+                  <div className='flex items-center gap-4 text-sm text-foreground/60'>
+                    {slidingScaleDisplay && (
+                      <span>{slidingScaleDisplay}</span>
+                    )}
+                    {!slidingScaleDisplay && offering.priceInCents && (
+                      <span>
+                        {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
+                      </span>
+                    )}
+                    {offering.duration && (
+                      <span>
+                        {t('Duration')}: {offering.duration === 'month'
+                          ? t('Monthly (recurring)')
+                          : offering.duration === 'season'
+                            ? t('Every 3 months (recurring)')
+                            : offering.duration === 'annual'
+                              ? t('Annual (recurring)')
+                              : offering.duration}
+                      </span>
+                    )}
+                    {!offering.duration && (
+                      <span>{t('Duration')}: {t('Lifetime')}</span>
+                    )}
                   </div>
-                )}
-                <div className='flex items-center gap-4 text-sm text-foreground/60'>
-                  {offering.priceInCents && (
-                    <span>
-                      {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
-                    </span>
-                  )}
-                  {offering.duration && (
-                    <span>
-                      {t('Duration')}: {offering.duration === 'month' ? t('Monthly (recurring)') : offering.duration === 'season' ? t('Every 3 months (recurring)') : offering.duration === 'annual' ? t('Annual (recurring)') : offering.duration}
-                    </span>
-                  )}
-                  {!offering.duration && (
-                    <span>{t('Duration')}: {t('Lifetime')}</span>
-                  )}
                 </div>
               </div>
+              <Button
+                variant='secondary'
+                className='w-full mt-3 flex items-center justify-center gap-2'
+                onClick={() => handlePurchase(offering)}
+                disabled={checkoutLoading === offering.id}
+              >
+                <CreditCard className='w-4 h-4' />
+                {checkoutLoading === offering.id
+                  ? t('Processing...')
+                  : (offering.buyButtonText || t('Purchase Access'))}
+              </Button>
             </div>
-            <Button
-              variant='secondary'
-              className='w-full mt-3 flex items-center justify-center gap-2'
-              onClick={() => handlePurchase(offering)}
-              disabled={checkoutLoading === offering.id}
-            >
-              <CreditCard className='w-4 h-4' />
-              {checkoutLoading === offering.id ? t('Processing...') : (offering.buyButtonText || t('Purchase Access'))}
-            </Button>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

@@ -453,6 +453,7 @@ module.exports = {
     groupId,
     offeringId,
     quantity,
+    adjustableQuantity,
     successUrl,
     cancelUrl,
     metadata
@@ -493,34 +494,115 @@ module.exports = {
         throw new GraphQLError('Offering does not have a Stripe price ID')
       }
 
+      // Optional sliding-scale settings can be stashed in access_grants
+      // Shape:
+      //   access_grants.slidingScale = { enabled: true, minimum: Int, maximum: Int }
+      const accessGrants = offering.get('access_grants') || {}
+      const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale || null
+      const parseOptionalInt = (value) => {
+        if (value == null || value === '') return null
+        const parsed = parseInt(value, 10)
+        return Number.isNaN(parsed) ? null : parsed
+      }
+      const inferredAdjustableQuantity = slidingScale?.enabled
+        ? {
+            enabled: true,
+            minimum: parseOptionalInt(slidingScale.minimum),
+            maximum: parseOptionalInt(slidingScale.maximum)
+          }
+        : null
+
+      const effectiveAdjustableQuantity = adjustableQuantity || inferredAdjustableQuantity
+
       // Convert database ID to external account ID if needed
       const externalAccountId = await getExternalAccountId(stripeAccountId)
 
-      // Fetch the actual price from Stripe to calculate the application fee accurately
-      const priceObject = await StripeService.getPrice(externalAccountId, stripePriceId)
+      // If sliding scale is enabled, we should charge using a shared unit price
+      // for the offering currency (1 unit * chosen quantity).
+      const offeringCurrency = offering.get('currency') || 'usd'
+      const isSlidingScaleEnabled = effectiveAdjustableQuantity?.enabled
 
-      // Calculate the total amount (price * quantity)
-      const totalAmount = priceObject.unit_amount * (quantity || 1)
+      // Safety defaults:
+      // - minimum defaults to 1 (avoid $0 purchases granting access)
+      // - maximum defaults to 999999 (Stripe adjustable_quantity supported upper bound)
+      const effectiveMinimum = isSlidingScaleEnabled
+        ? (effectiveAdjustableQuantity.minimum ?? 1)
+        : null
+      const effectiveMaximum = isSlidingScaleEnabled
+        ? (effectiveAdjustableQuantity.maximum ?? 999999)
+        : null
 
-      // Calculate application fee (7% of total)
-      // TODO STRIPE: Consider making this configurable per group or product
-      const applicationFeePercentage = 0.07 // 7%
-      const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+      const sanitizedAdjustableQuantity = isSlidingScaleEnabled
+        ? {
+            enabled: true,
+            minimum: effectiveMinimum,
+            maximum: effectiveMaximum
+          }
+        : null
 
       // Determine checkout mode based on renewal policy
       // If automatic renewal, use subscription mode; otherwise payment mode
       const renewalPolicy = offering.get('renewal_policy')
       const checkoutMode = renewalPolicy === 'automatic' ? 'subscription' : 'payment'
 
+      let effectiveStripePriceId = stripePriceId
+      if (sanitizedAdjustableQuantity?.enabled) {
+        // In subscription mode, Stripe requires a recurring price.
+        // Ensure our shared sliding-scale unit price matches the offering's interval.
+        const duration = offering.get('duration')
+        let billingInterval = null
+        let billingIntervalCount = 1
+
+        if (checkoutMode === 'subscription') {
+          if (duration === 'day') {
+            billingInterval = 'day'
+            billingIntervalCount = 1
+          } else if (duration === 'month') {
+            billingInterval = 'month'
+            billingIntervalCount = 1
+          } else if (duration === 'season') {
+            billingInterval = 'month'
+            billingIntervalCount = 3
+          } else if (duration === 'annual') {
+            billingInterval = 'year'
+            billingIntervalCount = 1
+          } else {
+            throw new GraphQLError('Sliding scale subscriptions require a recurring duration (month, season, annual, or day)')
+          }
+        }
+
+        effectiveStripePriceId = await StripeService.ensureSlidingScaleUnitPriceExists(
+          externalAccountId,
+          offeringCurrency,
+          billingInterval,
+          billingIntervalCount
+        )
+      }
+
+      // Fetch the actual price from Stripe to calculate the application fee accurately
+      const priceObject = await StripeService.getPrice(externalAccountId, effectiveStripePriceId)
+
+      // Calculate the total amount (price * initialQuantity)
+      // If adjustableQuantity is provided, we use it to pick a safe initial quantity
+      // for fee calculation until the customer picks their final quantity in Stripe Checkout.
+      const initialQuantity = sanitizedAdjustableQuantity?.minimum ?? quantity ?? 1
+      const totalAmount = priceObject.unit_amount * initialQuantity
+
+      // Calculate application fee (7% of total)
+      // TODO STRIPE: Consider making this configurable per group or product
+      const applicationFeePercentage = 0.07 // 7%
+      const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
         accountId: externalAccountId,
-        priceId: stripePriceId,
-        quantity: quantity || 1,
+        priceId: effectiveStripePriceId,
+        quantity: initialQuantity,
         applicationFeeAmount,
         successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
         cancelUrl,
         mode: checkoutMode,
+        adjustableQuantity: sanitizedAdjustableQuantity,
         metadata: {
           groupId,
           offeringId,

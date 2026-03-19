@@ -31,6 +31,51 @@ import getCommonRoles from 'store/selectors/getCommonRoles'
 import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 
+function estimateStripeCardFeeUsdStyle (amount) {
+  // Stripe fees vary by country/payment method. This is a common US cards estimate.
+  return (amount * 0.029) + 0.30
+}
+
+function estimateHyloPlatformFee (amount) {
+  // Our current platform application fee is 7% of the transaction amount.
+  return amount * 0.07
+}
+
+function OfferingPriceFeeBreakdown ({ price, currency, t }) {
+  const amount = useMemo(() => {
+    const parsed = parseFloat(price)
+    if (Number.isNaN(parsed) || parsed <= 0) return null
+    return parsed
+  }, [price])
+
+  if (!amount) return null
+
+  const upperCurrency = (currency || 'usd').toUpperCase()
+  const stripeFee = estimateStripeCardFeeUsdStyle(amount)
+  const hyloFee = estimateHyloPlatformFee(amount)
+  const netToGroup = amount - stripeFee - hyloFee
+
+  return (
+    <div className='mt-1 text-xs text-foreground/60 space-y-0.5'>
+      <div className='flex justify-between gap-3'>
+        <span>{t('Estimated Stripe fee (US cards)')}</span>
+        <span className='tabular-nums'>{stripeFee.toFixed(2)} <span className='font-semibold'>{upperCurrency}</span></span>
+      </div>
+      <div className='flex justify-between gap-3'>
+        <span>{t('Hylo platform fee (7%)')}</span>
+        <span className='tabular-nums'>{hyloFee.toFixed(2)} <span className='font-semibold'>{upperCurrency}</span></span>
+      </div>
+      <div className='flex justify-between gap-3 font-medium text-foreground/80'>
+        <span>{t('Estimated net to group')}</span>
+        <span className='tabular-nums'>{netToGroup.toFixed(2)} <span className='font-semibold'>{upperCurrency}</span></span>
+      </div>
+      <div className='text-foreground/50'>
+        {t('Estimates only. Stripe fees vary by country, payment method, and account settings.')}
+      </div>
+    </div>
+  )
+}
+
 /**
  * GraphQL query for fetching offering subscription stats
  */
@@ -91,6 +136,9 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     duration: '',
     publishStatus: 'unpublished',
     buyButtonText: '',
+    slidingScaleEnabled: false,
+    slidingScaleMinQuantity: '',
+    slidingScaleMaxQuantity: '',
     lineItems: {
       tracks: [],
       groups: [],
@@ -194,7 +242,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const handleCreateOffering = useCallback(async (e) => {
     e.preventDefault()
 
-    if (!formData.name || !formData.price) {
+    if (!formData.name || (!formData.slidingScaleEnabled && !formData.price)) {
       window.alert(t('Please fill in all required fields'))
       return
     }
@@ -202,7 +250,10 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     setCreating(true)
 
     try {
-      const priceInCents = Math.round(parseFloat(formData.price) * 100)
+      const rawPrice = formData.slidingScaleEnabled
+        ? (formData.price && formData.price !== '' ? formData.price : '1')
+        : formData.price
+      const priceInCents = Math.round(parseFloat(rawPrice) * 100)
 
       if (isNaN(priceInCents) || priceInCents < 0) {
         throw new Error(t('Invalid price'))
@@ -233,6 +284,28 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
       }
 
+      if (formData.slidingScaleEnabled) {
+        const hasMinimum = formData.slidingScaleMinQuantity !== '' && formData.slidingScaleMinQuantity != null
+        const hasMaximum = formData.slidingScaleMaxQuantity !== '' && formData.slidingScaleMaxQuantity != null
+
+        const minimum = hasMinimum ? parseInt(formData.slidingScaleMinQuantity, 10) : null
+        const maximum = hasMaximum ? parseInt(formData.slidingScaleMaxQuantity, 10) : null
+
+        if (hasMinimum && (isNaN(minimum) || minimum < 1)) {
+          throw new Error(t('Sliding scale minimum must be at least 1'))
+        }
+        if (hasMaximum && (isNaN(maximum) || maximum < 1)) {
+          throw new Error(t('Sliding scale maximum must be at least 1'))
+        }
+        if (hasMinimum && hasMaximum && maximum < minimum) {
+          throw new Error(t('Sliding scale maximum must be >= minimum'))
+        }
+
+        accessGrants.slidingScale = { enabled: true }
+        if (minimum != null) accessGrants.slidingScale.minimum = minimum
+        if (maximum != null) accessGrants.slidingScale.maximum = maximum
+      }
+
       const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
 
       const result = await dispatch(createOffering(
@@ -252,7 +325,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       // Reset form and refresh offerings
-      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
+      setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
       setShowCreateForm(false)
       onRefreshOfferings()
     } catch (error) {
@@ -433,13 +506,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
   const handleCancelEdit = useCallback(() => {
     setEditingOffering(null)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
     setShowCreateForm(false)
   }, [])
 
   const handleDiscardForm = useCallback(() => {
     setShowCreateForm(false)
-    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', lineItems: { tracks: [], groups: [], roles: [] } })
+    setFormData({ name: '', description: '', price: '', currency: 'usd', duration: '', publishStatus: 'unpublished', buyButtonText: '', slidingScaleEnabled: false, slidingScaleMinQuantity: '', slidingScaleMaxQuantity: '', lineItems: { tracks: [], groups: [], roles: [] } })
   }, [])
 
   return (
@@ -509,7 +582,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 <HyloEditor
                   ref={descriptionEditorRef}
                   contentHTML={formData.description}
-                  onUpdate={(html) => setFormData(prev => ({ ...prev, description: html }))}
                   placeholder={t('What does this offering include?')}
                   groupIds={group?.id ? [group.id] : []}
                   showMenu
@@ -521,19 +593,22 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               </div>
             </div>
             <div className='flex gap-3'>
-              <div className='flex-1'>
-                <SettingsControl
-                  label={t('Price')}
-                  type='number'
-                  step='0.01'
-                  min='0'
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  placeholder='20.00'
-                  required
-                />
-              </div>
-              <div className='w-24'>
+              {!formData.slidingScaleEnabled && (
+                <div className='flex-1'>
+                  <SettingsControl
+                    label={t('Price')}
+                    type='number'
+                    step='0.01'
+                    min='0'
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder='20.00'
+                    required
+                  />
+                  <OfferingPriceFeeBreakdown price={formData.price} currency={formData.currency} t={t} />
+                </div>
+              )}
+              <div className={formData.slidingScaleEnabled ? 'flex-1' : 'w-24'}>
                 <SettingsControl
                   label={t('Currency')}
                   value={formData.currency}
@@ -549,6 +624,59 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 />
               </div>
             </div>
+            <div className='flex items-center justify-between gap-4 pt-1 border-t border-foreground/10'>
+              <label className='flex items-center gap-3 text-sm cursor-pointer select-none'>
+                <Switch
+                  checked={formData.slidingScaleEnabled}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      slidingScaleEnabled: checked,
+                      price: checked ? '' : prev.price,
+                      slidingScaleMinQuantity: checked ? prev.slidingScaleMinQuantity : '',
+                      slidingScaleMaxQuantity: checked ? prev.slidingScaleMaxQuantity : ''
+                    }))
+                  }}
+                />
+                <span>{t('Sliding scale')}</span>
+              </label>
+              <div className='text-xs text-foreground/50'>
+                {t('Users choose quantity in Stripe within this range')}
+              </div>
+            </div>
+
+            {formData.slidingScaleEnabled && (
+              <div className='flex gap-3'>
+                <div className='flex-1'>
+                  <SettingsControl
+                    label={t('Minimum quantity')}
+                    type='number'
+                    step='1'
+                    min='1'
+                    value={formData.slidingScaleMinQuantity}
+                    onChange={(e) => {
+                      const next = e.target.value.replace(/[^\d]/g, '')
+                      setFormData(prev => ({ ...prev, slidingScaleMinQuantity: next }))
+                    }}
+                    placeholder='1'
+                  />
+                </div>
+                <div className='flex-1'>
+                  <SettingsControl
+                    label={t('Maximum quantity')}
+                    type='number'
+                    step='1'
+                    min='1'
+                    value={formData.slidingScaleMaxQuantity}
+                    onChange={(e) => {
+                      const next = e.target.value.replace(/[^\d]/g, '')
+                      setFormData(prev => ({ ...prev, slidingScaleMaxQuantity: next }))
+                    }}
+                    placeholder='10'
+                  />
+                </div>
+              </div>
+            )}
             <SettingsControl
               label={t('Duration')}
               helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
@@ -631,7 +759,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 <HyloEditor
                   ref={descriptionEditorRef}
                   contentHTML={formData.description}
-                  onUpdate={(html) => setFormData(prev => ({ ...prev, description: html }))}
                   placeholder={t('What does this offering include?')}
                   groupIds={group?.id ? [group.id] : []}
                   showMenu
@@ -1122,6 +1249,33 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
 
   const hasAccessContent = accessDetails.tracks.length > 0 || accessDetails.roles.length > 0 || accessDetails.hasGroups
 
+  const slidingScaleDisplay = useMemo(() => {
+    const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
+    if (!slidingScale?.enabled) return null
+    if (!offering.priceInCents) return null
+
+    const unitAmount = offering.priceInCents / 100
+    const currencyCode = offering.currency?.toUpperCase() || 'USD'
+
+    const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
+    const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
+
+    const minAmount = unitAmount * minQuantity
+    if (maxQuantity != null) {
+      const maxAmount = unitAmount * maxQuantity
+      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+        min: minAmount.toFixed(2),
+        max: maxAmount.toFixed(2),
+        currency: currencyCode
+      })
+    }
+
+    return t('Pay at least {{min}} {{currency}} (your choice)', {
+      min: minAmount.toFixed(2),
+      currency: currencyCode
+    })
+  }, [accessGrants.slidingScale, accessGrants.sliding_scale, offering.priceInCents, offering.currency, t])
+
   return (
     <div className={`border-2 rounded-lg p-4 transition-all ${isEditing ? 'border-blue-500 bg-blue-500/10 opacity-75' : 'border-foreground/20 hover:border-foreground/40'}`}>
       <div className='flex items-start justify-between'>
@@ -1153,7 +1307,10 @@ function OfferingListItem ({ offering, onEdit, group, isEditing, isExpanded, onT
             </div>
           )}
           <div className='flex items-center gap-4 text-xs text-foreground/50 mb-2'>
-            {offering.priceInCents && (
+            {slidingScaleDisplay && (
+              <span>{slidingScaleDisplay}</span>
+            )}
+            {!slidingScaleDisplay && offering.priceInCents && (
               <span>{t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}</span>
             )}
             {offering.duration && (

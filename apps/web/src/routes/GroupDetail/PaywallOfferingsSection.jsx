@@ -239,6 +239,34 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
   const hasRoles = allRoles.length > 0
   const hasAccessGrants = grantsGroupAccess || hasTracks || hasRoles
 
+  const slidingScaleDisplay = useMemo(() => {
+    if (!offering?.priceInCents) return null
+    const accessGrants = parseAccessGrants(offering.accessGrants)
+    const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
+    if (!slidingScale?.enabled) return null
+
+    const unitAmount = offering.priceInCents / 100
+    const currencyCode = offering.currency?.toUpperCase() || 'USD'
+
+    const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
+    const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
+
+    const minAmount = unitAmount * minQuantity
+    if (maxQuantity != null) {
+      const maxAmount = unitAmount * maxQuantity
+      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+        min: minAmount.toFixed(2),
+        max: maxAmount.toFixed(2),
+        currency: currencyCode
+      })
+    }
+
+    return t('Pay at least {{min}} {{currency}} (your choice)', {
+      min: minAmount.toFixed(2),
+      currency: currencyCode
+    })
+  }, [offering?.priceInCents, offering?.accessGrants, offering?.currency, t])
+
   return (
     <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'>
       <div className='flex items-start justify-between mb-2'>
@@ -250,7 +278,10 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
             </div>
           )}
           <div className='flex items-center gap-4 text-sm text-foreground/60'>
-            {offering.priceInCents && (
+            {slidingScaleDisplay && (
+              <span>{slidingScaleDisplay}</span>
+            )}
+            {!slidingScaleDisplay && offering.priceInCents && (
               <span>
                 {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
               </span>

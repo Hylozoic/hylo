@@ -3592,6 +3592,7 @@ type Mutation {
     groupId: ID!
     offeringId: ID!
     quantity: Int
+    adjustableQuantity: AdjustableQuantityInput
     successUrl: String!
     cancelUrl: String!
     metadata: JSON
@@ -4149,6 +4150,14 @@ input StripeOfferingInput {
   duration: String
   # Publish status: unpublished, unlisted, published, archived
   publishStatus: PublishStatus
+}
+
+# Adjustable quantity settings for Stripe Checkout line items.
+# Used for sliding-scale / pay-what-you-want flows.
+input AdjustableQuantityInput {
+  enabled: Boolean
+  minimum: Int
+  maximum: Int
 }
 
 # Details passed along when Flagging a Post
