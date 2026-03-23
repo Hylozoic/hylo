@@ -36,12 +36,10 @@ export default function makeResolvers (models, fetcher) {
 export function createResolverForModel (spec, fetcher) {
   const { attributes, getters, relations, model } = spec
 
+  // Getters are merged last so explicit getters override deprecated relation *Total emitters
+  // (e.g. Post.followers adds followersTotal via hasTotal, which would otherwise mask getters).
   return Object.assign(
     transform(attributes, resolveAttribute, {}),
-
-    transform(getters, (result, fn, attr) => {
-      result[attr] = fn
-    }, {}),
 
     transform(relations, (result, attr) => {
       let graphqlName, bookshelfName, typename
@@ -126,6 +124,10 @@ export function createResolverForModel (spec, fetcher) {
             setTimeout(() => reject(new Error('timeout')), 6000)
           })
       }
+    }, {}),
+
+    transform(getters, (result, fn, attr) => {
+      result[attr] = fn
     }, {})
   )
 }

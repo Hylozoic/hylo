@@ -1515,7 +1515,8 @@ CREATE TABLE public.groups (
     purpose text,
     welcome_page text,
     website_url text,
-    calendar_token character varying(255)
+    calendar_token character varying(255),
+    home_route character varying(255)
 );
 
 

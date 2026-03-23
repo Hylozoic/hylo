@@ -7,35 +7,12 @@ import Busboy from 'busboy'
 
 module.exports = {
   createFromEmail: function (req, res) {
-    // Now parsing with Sendgrid which uses multipart/form-data
-    if (!req.is('multipart/form-data')) {
-      return res.status(422).send({ error: 'Invalid Content-Type' })
-    }
-
-    let busboy
-    const params = {}
-
-    try {
-      // this can throw errors due to invalid Content-Type
-      busboy = new Busboy({
-        headers: req.headers,
-        limits: { files: 1, fileSize: 10 * 1048576 }
-      })
-    } catch (err) {
-      res.status(422).send({ error: err.message })
-    }
-
-    busboy.on('field', (name, value) => {
-      params[name] = value
-    })
-
-    busboy.on('error', err => res.serverError(err))
-    busboy.on('finish', () => {
+    const handleParams = (params) => {
       let replyData
       try {
-        replyData = Email.decodePostReplyAddress(params.to)
+        replyData = Email.decodePostReplyAddress(params.to || params.To)
       } catch (e) {
-        return res.status(422).send('Invalid reply address: ' + params.to)
+        return res.status(422).send('Invalid reply address: ' + (params.to || params.To))
       }
 
       // Check for autoresponder patterns
@@ -83,15 +60,45 @@ module.exports = {
             }
           })
 
-          const text = Comment.cleanEmailText(user, params.text || params.html, {
+          const emailBody = params.text || params['stripped-text'] || params.html || params['stripped-html']
+          const text = Comment.cleanEmailText(user, emailBody, {
             useMarkdown: !post.isThread()
           })
           return createComment(replyData.userId, { text, post, created_from: 'email' })
             .then(() => res.ok({}), res.serverError)
         })
-    })
+    }
 
-    req.pipe(busboy)
+    // Backward-compatible path for existing tests/non-multipart webhook payloads
+    if (typeof req.is !== 'function') {
+      return handleParams(req.params || {})
+    }
+
+    // Parse multipart/form-data payloads from email providers
+    if (!req.is('multipart/form-data')) {
+      return res.status(422).send({ error: 'Invalid Content-Type' })
+    }
+
+    let busboy
+    const params = {}
+
+    try {
+      // this can throw errors due to invalid Content-Type
+      busboy = new Busboy({
+        headers: req.headers,
+        limits: { files: 1, fileSize: 10 * 1048576 }
+      })
+    } catch (err) {
+      return res.status(422).send({ error: err.message })
+    }
+
+    busboy.on('field', (name, value) => {
+      params[name] = value
+    })
+    busboy.on('error', err => res.serverError(err))
+    busboy.on('finish', () => handleParams(params))
+
+    return req.pipe(busboy)
   },
 
   createBatchFromEmailForm: function (req, res) {
