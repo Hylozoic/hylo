@@ -90,5 +90,8 @@ exports.hi = {
     }
     return `${reminderMessages[reminderType] || 'समय सीमा निकट है'}`
   },
-  theTeamAtHylo: 'Hylo की टीम'
+  theTeamAtHylo: 'Hylo की टीम',
+  donationTaxReceiptInfo: () => 'आपके रिकॉर्ड के लिए हमारे वित्त प्रायोजक द्वारा कर रसीद जारी की जाएगी।',
+  donationImpactMessage: () => 'आपका दान Hylo प्लेटफ़ॉर्म और दुनिया भर के समुदायों में बेहतर समन्वय और सहयोग सक्षम करने के हमारे मिशन का समर्थन करता है।',
+  donationRecurringImpactMessage: () => 'आपका आवर्ती दान Hylo प्लेटफ़ॉर्म और दुनिया भर के समुदायों में बेहतर समन्वय और सहयोग सक्षम करने के हमारे मिशन का समर्थन करता है।'
 }

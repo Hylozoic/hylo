@@ -90,5 +90,8 @@ exports.fr = {
     }
     return `${reminderMessages[reminderType] || 'Échéance proche'}`
   },
-  theTeamAtHylo: 'L’équipe Hylo'
+  theTeamAtHylo: 'L’équipe Hylo',
+  donationTaxReceiptInfo: () => 'Un reçu fiscal sera délivré par notre sponsor fiscal pour vos dossiers.',
+  donationImpactMessage: () => 'Votre don soutient la plateforme Hylo et notre mission de meilleure coordination et collaboration entre communautés dans le monde.',
+  donationRecurringImpactMessage: () => 'Votre don récurrent soutient la plateforme Hylo et notre mission de meilleure coordination et collaboration entre communautés dans le monde.'
 }

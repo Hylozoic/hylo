@@ -13,9 +13,7 @@ const Stripe = require('stripe')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
-const { en } = require('../../lib/i18n/en')
-const { es } = require('../../lib/i18n/es')
-const locales = { en, es }
+const { getLocaleStrings } = require('../../lib/i18n/locales')
 
 /* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend */
 
@@ -521,7 +519,7 @@ module.exports = {
 
                     // Fiscal sponsor info (use env var or default)
                     const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                    const localeObj = locales[userLocale] || locales.en
+                    const localeObj = getLocaleStrings(userLocale)
                     const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
                     const impactMessage = donationDetails.isRecurring
                       ? localeObj.donationRecurringImpactMessage()
@@ -1726,7 +1724,7 @@ module.exports = {
 
                         // Fiscal sponsor info (use env var or default)
                         const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                        const localeObj = locales[userLocale] || locales.en
+                        const localeObj = getLocaleStrings(userLocale)
                         const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
                         const impactMessage = localeObj.donationRecurringImpactMessage()
 
