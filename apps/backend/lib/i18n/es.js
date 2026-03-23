@@ -1,7 +1,7 @@
 exports.es = {
   apiInviteMessageContent: (name) => `${name} se complace en invitarlo a unirse a nuestra comunidad en Hylo.`,
   apiInviteMessageSubject: (name) => `Únete a mí ${name} en Hylo!`,
-  clientInviteSubjectDefault: (name) => `You've been invited to join ${name} on Hylo`,
+  clientInviteSubjectDefault: (name) => `Te han invitado a unirte a ${name} en Hylo`,
   clientInviteMessageDefault: ({ userName, groupName }) => `Hola ${userName}, <br><br> Estamos emocionados de darle la bienvenida a nuestra comunidad. Haga clic a continuación para unirse ${groupName} en Hylo.`,
   createInvitationSubject: (name) => `Únete a mí ${name} en Hylo!`,
   CreatorEmail: () => 'Correo Electrónico del Creador',
@@ -14,20 +14,20 @@ exports.es = {
   groupCreatedNotifySubject: (name) => `Nuevo Grupo de Hylo Creado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {
-      submissionsOpen: 'Agregar tu presentación',
-      submissionsClose: 'Discutir las presentaciones',
-      votingOpens: 'Votar en la ronda',
-      votingCloses: 'Ver los resultados',
+      submissions: 'Agregar tu presentación',
+      discussion: 'Discutir las presentaciones',
+      voting: 'Votar en la ronda',
+      completed: 'Ver los resultados',
       viewRound: 'Ver la Ronda'
     }
     return buttonTextMessages[phase] || 'Ver la ronda'
   },
   fundingRoundTransitionText: ({ phase }) => {
     const transitionTextMessages = {
-      submissionsOpen: 'Las presentaciones están ahora abiertas',
-      submissionsClose: 'Las presentaciones están ahora cerradas',
-      votingOpens: 'La votación está ahora abierta',
-      votingCloses: 'La votación está ahora cerrada'
+      submissions: 'Las presentaciones están ahora abiertas',
+      discussion: 'Las presentaciones están ahora cerradas',
+      voting: 'La votación está ahora abierta',
+      completed: 'La votación está ahora cerrada'
     }
     return transitionTextMessages[phase] || 'Estado actualizado'
   },
@@ -51,7 +51,7 @@ exports.es = {
   textForContribution: post => `Se le ha agregado como colaborador de la solicitud: "${post.summary()}"`,
   textForDonationTo: ({ amount, postName }) => `Contribuiste con $${amount} a "${postName}"`,
   textForDonationFrom: ({ amount, actor, postName }) => `${actor.get('name')} contribuyó $${amount} a "${postName}"`,
-  textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} Julia te invitó a "${postName}"`,
+  textForEventInvitation: ({ actor, postName }) => `${actor.get('name')} te invitó a "${postName}"`,
   textForJoinRequest: ({ actor, groupName }) => `${actor.get('name')} pidió unirte ${groupName}`,
   textForGroupInvitation: ({ actor, groupName }) => `${actor.get('name')} te invitó a unirte ${groupName}`,
   textForGroupInvitationAccepted: ({ actor, groupName }) => `${actor.get('name')} aceptó tu invitación para unirse ${groupName}`,
@@ -63,7 +63,7 @@ exports.es = {
   textForGroupParentGroupJoinRequest: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} solicita agregar su grupo ${childGroup.get('name')} como miembro de su grupo ${parentGroup.get('name')}`,
   textForGroupParentGroupJoinRequestAcceptedParentModerator: ({ actor, parentGroup, childGroup }) => `${actor.get('name')} aceptó una solicitud para agregar ${childGroup.get('name')} a su grupo ${parentGroup.get('name')}`,
   textForGroupParentGroupJoinRequestAcceptedChildModerator: ({ actor, parentGroup, childGroup }) => `Tu grupo ${childGroup.get('name')} ha sido aceptado como miembro de ${parentGroup.get('name')} por ${actor.get('name')}`,
-  textForGroupParentGroupInviteAcceptedParentMember: ({ parentGroup, childGroup }) => `¡El grupo ${childGroup.get('name')} acaba de unirse a su grupo ${parentGroup.get('name')}!`,
+  textForGroupParentGroupJoinRequestAcceptedParentMember: ({ parentGroup, childGroup }) => `¡El grupo ${childGroup.get('name')} acaba de unirse a su grupo ${parentGroup.get('name')}!`,
   textForGroupParentGroupJoinRequestAcceptedChildMember: ({ parentGroup, childGroup }) => `Tu grupo ${childGroup.get('name')} te ha unido a ${parentGroup.get('name')}.`,
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
@@ -76,21 +76,21 @@ exports.es = {
   textForFundingRoundNewSubmission: ({ fundingRound, post, actor }) => `${actor.get('name')} presentó "${post.summary()}" a "${fundingRound.get('title')}"`,
   textForFundingRoundPhaseTransition: ({ fundingRound, phase }) => {
     const phaseMessages = {
-      submissionsOpen: 'Las presentaciones están ahora abiertas',
-      submissionsClose: 'Las presentaciones han cerrado y las discusiones están abiertas',
-      votingOpens: 'La votación está ahora abierta',
-      votingCloses: 'La votación ha cerrado y la ronda ha terminado'
+      submissions: 'Las presentaciones están ahora abiertas',
+      discussion: 'Las presentaciones han cerrado y las discusiones están abiertas',
+      voting: 'La votación está ahora abierta',
+      completed: 'La votación ha cerrado y la ronda ha terminado'
     }
     return `${fundingRound.get('title')}: ${phaseMessages[phase] || 'Estado actualizado'}`
   },
-  textForFundingRoundReminder: ({ fundingRound, reminderType }) => {
+  textForFundingRoundReminder: ({ reminderType }) => {
     const reminderMessages = {
       submissionsClosing1Day: 'Las presentaciones cierran en 1 día',
       submissionsClosing3Days: 'Las presentaciones cierran en 3 días',
       votingClosing1Day: 'La votación cierra en 1 día',
       votingClosing3Days: 'La votación cierra en 3 días'
     }
-    return `${fundingRound.get('title')}: ${reminderMessages[reminderType] || 'Fecha límite próxima'}`
+    return `${reminderMessages[reminderType] || 'Fecha límite próxima'}`
   },
   theTeamAtHylo: 'El equipo de Hylo',
   donationTaxReceiptInfo: () => 'Se emitirá un recibo fiscal por nuestro patrocinador fiscal para sus registros.',
