@@ -69,14 +69,10 @@ module.exports = {
         })
     }
 
-    // Backward-compatible path for existing tests/non-multipart webhook payloads
-    if (typeof req.is !== 'function') {
-      return handleParams(req.params || {})
-    }
-
-    // Parse multipart/form-data payloads from email providers
-    if (!req.is('multipart/form-data')) {
-      return res.status(422).send({ error: 'Invalid Content-Type' })
+    // Inbound email webhooks send multipart/form-data; parse with Busboy (same path as production).
+    if (typeof req.is !== 'function' || !req.is('multipart/form-data')) {
+      res.status(422).send({ error: 'Invalid Content-Type' })
+      return Promise.resolve()
     }
 
     let busboy
@@ -89,16 +85,23 @@ module.exports = {
         limits: { files: 1, fileSize: 10 * 1048576 }
       })
     } catch (err) {
-      return res.status(422).send({ error: err.message })
+      res.status(422).send({ error: err.message })
+      return Promise.resolve()
     }
 
-    busboy.on('field', (name, value) => {
-      params[name] = value
+    return new Promise((resolve, reject) => {
+      busboy.on('field', (name, value) => {
+        params[name] = value
+      })
+      busboy.on('error', err => {
+        res.serverError(err)
+        reject(err)
+      })
+      busboy.on('finish', () => {
+        Promise.resolve(handleParams(params)).then(resolve).catch(reject)
+      })
+      req.pipe(busboy)
     })
-    busboy.on('error', err => res.serverError(err))
-    busboy.on('finish', () => handleParams(params))
-
-    return req.pipe(busboy)
   },
 
   createBatchFromEmailForm: function (req, res) {
