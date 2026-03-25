@@ -124,9 +124,11 @@ export default function AuthRootNavigator () {
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
   
-  // Check internet connectivity before attempting to load app
-  // This prevents crashes from network calls when offline
-  if (!isConnected || !isInternetReachable) {
+  // Only show NoInternetConnection during the INITIAL load (before initialized).
+  // After initialization, keep the navigator tree mounted — Android fires
+  // isInternetReachable=false events on resume that would otherwise unmount and
+  // remount PrimaryWebView, causing the 3-4 reload loop on app icon reopen.
+  if (!initialized && (!isConnected || !isInternetReachable)) {
     return (
       <NoInternetConnection 
         onRetry={() => {
