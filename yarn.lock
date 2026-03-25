@@ -7842,6 +7842,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-cookies/cookies@npm:^6.2.1":
+  version: 6.2.1
+  resolution: "@react-native-cookies/cookies@npm:6.2.1"
+  dependencies:
+    invariant: "npm:^2.2.4"
+  peerDependencies:
+    react-native: ">= 0.60.2"
+  checksum: 10/cf479715f803f346dc46d4e73b08de76115370657bbc298ce0e6f2d87fafcd8c75a618b0a4943435ef312df142f2134deacf8a1aae7086f14f1265d1b46f8a56
+  languageName: node
+  linkType: hard
+
 "@react-native-documents/picker@npm:10.1.7":
   version: 10.1.7
   resolution: "@react-native-documents/picker@npm:10.1.7"
@@ -28003,6 +28014,7 @@ __metadata:
     "@react-native-community/geolocation": "npm:^3.4.0"
     "@react-native-community/hooks": "npm:^3.0.0"
     "@react-native-community/netinfo": "npm:^11.2.1"
+    "@react-native-cookies/cookies": "npm:^6.2.1"
     "@react-native-documents/picker": "npm:10.1.7"
     "@react-native-google-signin/google-signin": "npm:^11.0.0"
     "@react-native-picker/picker": "npm:^2.11.0"

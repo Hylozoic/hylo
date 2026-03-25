@@ -1,6 +1,6 @@
 {
   "name": "mobile",
-  "version": "6.3.2",
+  "version": "6.3.3",
   "private": true,
   "scripts": {
     "android": "adb reverse tcp:3001 tcp:3001 && adb reverse tcp:3000 tcp:3000 && react-native run-android",
@@ -105,6 +105,7 @@
     "@react-native-community/cli": "15.0.1",
     "@react-native-community/cli-platform-android": "15.0.1",
     "@react-native-community/cli-platform-ios": "15.0.1",
+    "@react-native-cookies/cookies": "^6.2.1",
     "@react-native/babel-preset": "0.77.3",
     "@react-native/eslint-config": "0.77.3",
     "@react-native/metro-config": "0.77.3",
