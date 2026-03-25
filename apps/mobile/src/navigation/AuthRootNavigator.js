@@ -25,18 +25,17 @@ import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
-  // TODO: URQL - network-only seems to be required only for SocialAuth,
-  // but can't yet figure out why. Explore further and hopefully reset
-  // to cache-and-network or cache-first (default). It may be fine here, but it is
-  // the only place we should do this with useCurrentUser as it would be expensive
-  // lower in the stack where it may get called in any loops and such.
+  // NOTE: cache-and-network is used (not network-only) — see comment below.
   const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
-  // network-only is intentional here — required for SocialAuth to reflect server state immediately.
-  // Safe destructuring with fallback in case the query result is transiently null/undefined.
+  // cache-and-network keeps currentUser available from the urql cache during re-fetches.
+  // network-only would clear currentUser to undefined on every re-fetch (e.g. Android
+  // network transitions on wake), causing the loading condition below to go true, which
+  // unmounts the entire navigator tree and restarts the WebView — causing an infinite loop.
+  // Safe destructuring with fallback in case the result is transiently null/undefined.
   const currentUserResult = useCurrentUser({
-    requestPolicy: 'network-only',
+    requestPolicy: 'cache-and-network',
     pause: !isConnected || !isInternetReachable
   })
   const { currentUser, fetching: currentUserFetching, error } = currentUserResult?.[0] ?? {}
@@ -57,7 +56,12 @@ export default function AuthRootNavigator () {
   useHandleLinking()
 
   useEffect(() => {
-    setLoading(!initialized || !currentUser || currentUserFetching)
+    // Only show the loading screen during the INITIAL auth check before the app is
+    // initialized. Once initialized, never go back to loading — network re-fetches
+    // (caused by Android connectivity events on wake) must not unmount the navigator
+    // tree or the WebView will reload in a loop.
+    if (initialized) return
+    setLoading(!currentUser || currentUserFetching)
   }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {

@@ -1,8 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
 import Config from 'react-native-config'
+import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
+
+// WKWebView on iOS needs useWebKit=true to target the WebKit cookie store.
+// Android WebView uses the system CookieManager (useWebKit=false).
+const USE_WEBKIT = Platform.OS === 'ios'
 
 export async function setSessionCookie (resp) {
   const header = resp.headers.get('set-cookie')
@@ -16,6 +22,12 @@ export async function setSessionCookie (resp) {
   const cookie = serializeCookie(merged)
   await AsyncStorage.setItem(COOKIE_KEY, cookie)
 
+  // Mirror into the WebView's native cookie jar so in-WebView requests (fetch/XHR
+  // after initial page load) use the same session as the native GraphQL client.
+  syncCookiesToWebView(merged).catch(err =>
+    console.warn('Failed to sync cookies to WebView cookie jar:', err)
+  )
+
   return cookie
 }
 
@@ -24,7 +36,27 @@ export async function getSessionCookie () {
 }
 
 export async function clearSessionCookie () {
-  return AsyncStorage.removeItem(COOKIE_KEY)
+  await AsyncStorage.removeItem(COOKIE_KEY)
+  // Also invalidate the WebView's cookie jar so the session is fully cleared on logout.
+  await CookieManager.clearAll(USE_WEBKIT).catch(err =>
+    console.warn('Failed to clear WebView cookie jar:', err)
+  )
+}
+
+/**
+ * Writes each key-value pair from a parsed cookie object into the WebView's native
+ * cookie store for HYLO_WEB_BASE_URL. Called after every setSessionCookie to keep
+ * the AsyncStorage cookie and the WebView's jar in sync.
+ */
+async function syncCookiesToWebView (cookieObj) {
+  const url = Config.HYLO_WEB_BASE_URL
+  if (!url || !cookieObj) return
+
+  await Promise.all(
+    Object.entries(cookieObj).map(([name, value]) =>
+      CookieManager.set(url, { name, value, path: '/' }, USE_WEBKIT)
+    )
+  )
 }
 
 // this is a bag of hacks that probably only works with our current backend.
