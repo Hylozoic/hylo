@@ -7,7 +7,7 @@ import queryString from 'query-string'
 import { WebViewMessageTypes } from '@hylo/shared'
 import useOpenURL from 'hooks/useOpenURL'
 import { modalScreenName } from 'hooks/useIsModalScreen'
-import { getSessionCookie, clearSessionCookie } from 'util/session'
+import { getSessionCookie, clearSessionCookie, ensureWebViewCookies } from 'util/session'
 import { match, pathToRegexp } from 'path-to-regexp'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
@@ -180,6 +180,16 @@ const HyloWebView = React.forwardRef(({
         try {
           const newCookie = await getSessionCookie()
           setCookie(newCookie)
+          // Pre-populate the WebView's native cookie jar so in-WebView XHR calls are
+          // authenticated. sharedCookiesEnabled is iOS-only; on Android the WebView's
+          // CookieManager is separate from the native HTTP stack, so if the server
+          // didn't send Set-Cookie (valid session, no refresh), the jar stays empty
+          // and API calls from within the page fail auth → redirects → reload loop.
+          if (newCookie) {
+            ensureWebViewCookies().catch(err =>
+              console.warn('Failed to populate WebView cookie jar:', err)
+            )
+          }
         } catch (error) {
           // Cookie retrieval failed - will trigger native logout after debounce
           console.error('Cookie retrieval failed', error)
@@ -281,12 +291,20 @@ const HyloWebView = React.forwardRef(({
 
   return (
     <AutoHeightWebView
-      customScript={`
+      // Runs before ANY page JavaScript so `isLegacyWebView()` in the web app sees
+      // HyloMobileV2=true immediately and skips the legacy `addHyloWebViewListener`
+      // setup (which calls history.back() on every React Router navigation — the
+      // main cause of the Android partial-load restart).
+      // The no-op stub for addHyloWebViewListener is a safety net in case the flag
+      // check somehow races; it prevents a TypeError without doing anything harmful.
+      // Must end with `true` to avoid an Android WebView crash.
+      injectedJavaScriptBeforeContentLoaded={`
         window.HyloWebView = true;
         window.HyloMobileV2 = true;
-        ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
-
+        window.addHyloWebViewListener = function() {};
+        true;
       `}
+      customScript={``}
       customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}

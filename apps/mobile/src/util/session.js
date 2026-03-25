@@ -44,6 +44,25 @@ export async function clearSessionCookie () {
 }
 
 /**
+ * Reads the current session cookie from AsyncStorage and writes it into the WebView's
+ * native cookie jar. Call this before the WebView loads (e.g. in useFocusEffect).
+ *
+ * Why this is needed on Android: sharedCookiesEnabled is iOS-only. On Android the
+ * WebView's CookieManager is completely separate from the native HTTP stack. If the
+ * server doesn't send Set-Cookie on the current request (valid session, no refresh),
+ * syncCookiesToWebView never runs and the jar stays empty. In-WebView XHR calls then
+ * fail auth, causing the web app to redirect and the page to visually "restart".
+ */
+export async function ensureWebViewCookies () {
+  const cookieStr = await getSessionCookie()
+  if (!cookieStr) return
+  const cookieObj = omitBy(parseCookies(cookieStr), invalidPair)
+  await syncCookiesToWebView(cookieObj).catch(err =>
+    console.warn('Failed to pre-populate WebView cookie jar:', err)
+  )
+}
+
+/**
  * Writes each key-value pair from a parsed cookie object into the WebView's native
  * cookie store for HYLO_WEB_BASE_URL. Called after every setSessionCookie to keep
  * the AsyncStorage cookie and the WebView's jar in sync.
