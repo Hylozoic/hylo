@@ -7,9 +7,11 @@
  *   groupIds: [4, 5, 6],
  *   commonRoleIds: [7, 8],  // Common roles (from common_roles table)
  *   groupRoleIds: [9, 10],   // Group roles (from groups_roles table)
- *   buyButtonText: "Join now"  // Optional custom label for the buy button (UI only; not used for access)
+ *   buyButtonText: "Join now"  // Optional; UI/checkout only (also stored on stripe_products.metadata)
+ *   slidingScale: { enabled, minimum?, maximum? }  // Optional; checkout quantity range (also in metadata)
  * }
- * All code that iterates access grants uses only the known keys above; buyButtonText is ignored for access logic.
+ * Access logic uses trackIds, groupIds, commonRoleIds, groupRoleIds; presentation fields are ignored there.
+ * The client may still send buyButtonText / slidingScale inside this object; the API persists them in metadata.
  */
 
 /**

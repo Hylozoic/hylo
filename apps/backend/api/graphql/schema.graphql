@@ -236,6 +236,26 @@ type Query {
     paymentType: String
   ): UserTransactionQuerySet
 
+  # Published recurring offerings that grant group access (for subscription change UI). Excludes test-only day duration.
+  membershipChangeEligibleOfferings(groupId: ID!): MembershipChangeEligibleOfferingsResult
+
+  # Rule outcome for changing between two offerings (does not call Stripe). Optional flags for Stripe-backed state.
+  membershipChangePreview(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+    isPastDue: Boolean
+    isSlidingScaleQuantityOnly: Boolean
+  ): MembershipChangePreview
+
+  # Stripe upcoming invoice preview for immediate-proration membership changes.
+  # For non-immediate modes, returns mode/reason with null pricing fields.
+  membershipChangeInvoicePreview(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+  ): MembershipChangeInvoicePreview
+
   # Query notifications for the currently logged in user
   notifications(
     # Number of notifications to load
@@ -2793,6 +2813,54 @@ type TrackUser {
   user: Person
 }
 
+# Preview of subscription change rules (v1)
+type MembershipChangePreview {
+  mode: String!
+  reason: String
+  meta: JSON
+}
+
+type MembershipChangeEligibleOfferingsResult {
+  offerings: [StripeOffering]
+  success: Boolean
+}
+
+type MembershipChangeInvoicePreviewLine {
+  description: String
+  amount: Int
+  currency: String
+  proration: Boolean
+}
+
+type MembershipChangeInvoicePreview {
+  mode: String!
+  reason: String
+  amountDue: Int
+  currency: String
+  subtotal: Int
+  total: Int
+  nextPaymentAttempt: Date
+  lines: [MembershipChangeInvoicePreviewLine]
+  # Hylo linear unused-time credit (same basis as customer balance on commit); may also appear as a line
+  hyloPrepaidCreditCents: Int
+}
+
+# Result of membershipChangeCommit mutation
+type MembershipChangeCommitResult {
+  success: Boolean!
+  message: String
+  # Resolved mode from subscriptionChangeRules (e.g. immediate_upgrade)
+  mode: String
+  subscriptionChangeEventId: ID
+}
+
+# Pending membership plan change (row in subscription_change_events, status pending)
+type PendingMembershipSubscriptionChange {
+  mode: String!
+  effectiveAt: Date
+  toOffering: StripeOffering
+}
+
 # Stripe offering for paid content access
 type StripeOffering {
   id: ID
@@ -2816,8 +2884,10 @@ type StripeOffering {
   # Optional track this offering grants access to (legacy field)
   track: Track
   trackId: ID
-  # JSONB object defining what access this offering grants
+  # JSONB object defining what access this offering grants (scopes only; API merges metadata for presentation)
   accessGrants: JSON
+  # Presentation / checkout options (buyButtonText, slidingScale), not access scopes
+  metadata: JSON
   # Tracks this offering grants access to (resolved from accessGrants.trackIds)
   tracks: [Track]
   # Renewal policy: automatic or manual
@@ -2826,7 +2896,7 @@ type StripeOffering {
   duration: String
   # Publish status: unpublished, unlisted, published
   publishStatus: PublishStatus
-  # Optional custom label for the buy button (e.g. "Join now", "Subscribe"); stored in accessGrants.buyButtonText
+  # Optional custom label for the buy button (e.g. "Join now", "Subscribe"); stored in metadata.buyButtonText
   buyButtonText: String
 }
 
@@ -2943,6 +3013,8 @@ type UserTransaction {
   manageUrl: String
   # URL to view receipt
   receiptUrl: String
+  # When a plan change is scheduled for period end (or lifetime path), surfaced from subscription_change_events
+  pendingMembershipSubscriptionChange: PendingMembershipSubscriptionChange
 }
 
 type UserTransactionQuerySet {
@@ -3600,6 +3672,15 @@ type Mutation {
 
   # Check Stripe account status and update database values
   checkStripeStatus(groupId: ID!): StripeStatusCheckResult
+
+  # Apply a membership subscription change (Stripe Connect). Call membershipChangePreview first; unsupported modes error until implemented.
+  membershipChangeCommit(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+    # Sliding-scale quantity-only change: same offering, new unit count (next-cycle behavior in Stripe rules)
+    newQuantity: Int
+  ): MembershipChangeCommitResult
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -4143,6 +4224,7 @@ input StripeOfferingInput {
   currency: String
   # JSONB object defining what access this offering grants
   # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "commonRoleIds": [5, 6], "groupIds": [7, 8] }
+  # buyButtonText and slidingScale may be sent here for convenience; they are stored in metadata
   accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String

@@ -15,7 +15,268 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 })
 const { getLocaleStrings } = require('../../lib/i18n/locales')
 
-/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend */
+/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
+
+/**
+ * Request options for Stripe API calls when the webhook is for a Connect connected account.
+ *
+ * @param {object} event - Stripe Event
+ * @returns {{ stripeAccount?: string }}
+ */
+function getStripeConnectRequestOptions (event) {
+  const acct = event.account
+  if (!acct) return {}
+  return { stripeAccount: acct }
+}
+
+/**
+ * Ensures Connect webhooks reference a Stripe account we know (avoids acting on wrong-tenant payloads).
+ *
+ * @param {object} event - Stripe Event
+ * @returns {Promise<boolean>} true if ok to process
+ */
+async function verifyStripeConnectAccountKnown (event) {
+  const acct = event.account
+  if (!acct) return true
+
+  const row = await StripeAccount.where({ stripe_account_external_id: acct }).fetch()
+  if (!row) {
+    console.warn(`Stripe webhook: unknown connected account ${acct} for event ${event.id} type ${event.type}`)
+    return false
+  }
+  return true
+}
+
+/**
+ * Returns true if this event was already fully processed (successful completion recorded).
+ *
+ * @param {string} eventId
+ * @returns {Promise<boolean>}
+ */
+async function isStripeWebhookAlreadyProcessed (eventId) {
+  const row = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: eventId }).first()
+  return !!row
+}
+
+/**
+ * Persists successful webhook handling so Stripe retries become no-ops.
+ *
+ * @param {string} eventId
+ */
+async function markStripeWebhookProcessed (eventId) {
+  try {
+    await bookshelf.knex('stripe_webhook_processed_events').insert({ stripe_event_id: eventId })
+  } catch (e) {
+    if (e.code === '23505') {
+      return
+    }
+    throw e
+  }
+}
+
+const SCHEDULED_CHANGE_MODES = new Set([
+  'scheduled_period_end'
+])
+
+const IMMEDIATE_MEMBERSHIP_SYNC_MODES = new Set([
+  'immediate_upgrade',
+  'past_due_no_proration'
+])
+
+function getPrimaryPriceId (subscription) {
+  return subscription?.items?.data?.[0]?.price?.id || null
+}
+
+/**
+ * @param {number|null|undefined} unixSec
+ * @returns {Date|null}
+ */
+function dateFromStripeUnixSeconds (unixSec) {
+  if (unixSec == null || !Number.isFinite(Number(unixSec))) return null
+  const d = new Date(Number(unixSec) * 1000)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * Resolves billing period bounds when subscription top-level fields are missing (some invoices / API shapes).
+ *
+ * @param {object} subscription
+ * @param {object} invoice Stripe invoice from webhook
+ * @returns {{ periodStart: Date|null, periodEnd: Date|null }}
+ */
+function resolveSubscriptionInvoicePeriodBounds (subscription, invoice) {
+  let periodEnd = dateFromStripeUnixSeconds(subscription?.current_period_end)
+  let periodStart = dateFromStripeUnixSeconds(subscription?.current_period_start)
+
+  if (!periodEnd && invoice?.lines?.data?.length) {
+    for (const line of invoice.lines.data) {
+      const end = dateFromStripeUnixSeconds(line?.period?.end)
+      if (end) {
+        periodEnd = end
+        break
+      }
+    }
+  }
+  if (!periodStart && invoice?.lines?.data?.length) {
+    for (const line of invoice.lines.data) {
+      const start = dateFromStripeUnixSeconds(line?.period?.start)
+      if (start) {
+        periodStart = start
+        break
+      }
+    }
+  }
+  if (!periodEnd) {
+    periodEnd = dateFromStripeUnixSeconds(invoice?.period_end)
+  }
+  if (!periodStart) {
+    periodStart = dateFromStripeUnixSeconds(invoice?.period_start)
+  }
+  return { periodStart, periodEnd }
+}
+
+/**
+ * After membershipChangeCommit immediate paths, subscription metadata carries hylo_correlation_id.
+ * Sync content_access.product_id when Stripe primary price matches the change event target.
+ *
+ * @param {object} subscription event.data.object
+ * @param {object} event Stripe event
+ */
+async function markImmediateMembershipChangeSyncedFromSubscription (subscription, event) {
+  const correlationId = subscription?.metadata?.hylo_correlation_id
+  if (!correlationId) return
+
+  const currentPriceId = getPrimaryPriceId(subscription)
+  if (!currentPriceId) return
+
+  const changeEvent = await SubscriptionChangeEvent.query((qb) => {
+    qb.where({
+      correlation_id: correlationId,
+      stripe_subscription_id: subscription.id
+    })
+    qb.whereIn('mode', Array.from(IMMEDIATE_MEMBERSHIP_SYNC_MODES))
+    qb.whereIn('status', ['pending', 'applied'])
+    qb.orderBy('id', 'desc')
+  }).fetch()
+
+  if (!changeEvent) {
+    return
+  }
+
+  const payload = changeEvent.get('payload') || {}
+  const targetStripePriceId = payload.targetStripePriceId
+  if (!targetStripePriceId || targetStripePriceId !== currentPriceId) {
+    return
+  }
+
+  await syncContentAccessForAppliedSubscriptionChange(changeEvent, event)
+}
+
+async function syncContentAccessForAppliedSubscriptionChange (changeEvent, event) {
+  const toProductId = changeEvent.get('to_product_id')
+  if (!toProductId) return
+
+  const subscriptionId = changeEvent.get('stripe_subscription_id')
+  if (!subscriptionId) return
+
+  const fromProductId = changeEvent.get('from_product_id')
+  const now = new Date()
+  const baseQuery = bookshelf.knex('content_access')
+    .where({
+      stripe_subscription_id: subscriptionId,
+      status: ContentAccess.Status.ACTIVE
+    })
+
+  if (fromProductId) {
+    baseQuery.where({ product_id: fromProductId })
+  }
+
+  const updatedCount = await baseQuery.update({
+    product_id: toProductId,
+    updated_at: now
+  })
+
+  if (updatedCount > 0) {
+    const payload = changeEvent.get('payload') || {}
+    await changeEvent.save({
+      payload: {
+        ...payload,
+        syncedContentAccessAt: now.toISOString(),
+        syncedContentAccessCount: updatedCount,
+        syncedFromWebhookType: event.type,
+        syncedFromWebhookEventId: event.id
+      }
+    }, { patch: true })
+  }
+}
+
+async function markScheduledChangeEventAppliedFromSubscription (subscription, event) {
+  const correlationId = subscription?.metadata?.hylo_correlation_id
+  if (!correlationId) return
+
+  const pending = await SubscriptionChangeEvent.where({
+    correlation_id: correlationId
+  }).fetch()
+
+  if (!pending || pending.get('status') !== 'pending') {
+    return
+  }
+
+  if (!SCHEDULED_CHANGE_MODES.has(pending.get('mode'))) {
+    return
+  }
+
+  const payload = pending.get('payload') || {}
+  const targetStripePriceId = payload.targetStripePriceId || null
+  const currentPriceId = getPrimaryPriceId(subscription)
+  if (!targetStripePriceId || !currentPriceId || targetStripePriceId !== currentPriceId) {
+    return
+  }
+
+  await syncContentAccessForAppliedSubscriptionChange(pending, event)
+
+  await pending.save({
+    status: 'applied',
+    applied_at: new Date(),
+    payload: {
+      ...payload,
+      applied: true,
+      appliedFromWebhookType: event.type,
+      appliedFromWebhookEventId: event.id
+    }
+  }, { patch: true })
+}
+
+async function markLifetimeChangeEventAppliedForSubscriptionEnd (subscriptionId, event) {
+  if (!subscriptionId) return
+
+  const pendingEvents = await SubscriptionChangeEvent.query((qb) => {
+    qb.where({
+      stripe_subscription_id: subscriptionId,
+      mode: 'lifetime_no_proration',
+      status: 'pending'
+    })
+    qb.orderBy('id', 'desc')
+  }).fetchAll()
+
+  if (!pendingEvents || !pendingEvents.length) {
+    return
+  }
+
+  await Promise.all(pendingEvents.models.map(async (changeEvent) => {
+    const payload = changeEvent.get('payload') || {}
+    await changeEvent.save({
+      status: 'applied',
+      applied_at: new Date(),
+      payload: {
+        ...payload,
+        applied: true,
+        appliedFromWebhookType: event.type,
+        appliedFromWebhookEventId: event.id
+      }
+    }, { patch: true })
+  }))
+}
 
 module.exports = {
 
@@ -135,6 +396,18 @@ module.exports = {
         console.log(`Processing webhook event: ${event.type}`)
       }
 
+      const connectOk = await verifyStripeConnectAccountKnown(event)
+      if (!connectOk) {
+        return res.json({ received: true, skipped: 'unknown_connect_account' })
+      }
+
+      if (await isStripeWebhookAlreadyProcessed(event.id)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Duplicate Stripe webhook event ${event.id}, skipping handlers`)
+        }
+        return res.json({ received: true, duplicate: true })
+      }
+
       // Handle different event types
       // Use module.exports to access handler methods (this context is lost in Sails controllers)
       const handlers = module.exports
@@ -180,6 +453,8 @@ module.exports = {
             console.log(`Unhandled event type: ${event.type}`)
           }
       }
+
+      await markStripeWebhookProcessed(event.id)
 
       // Return a 200 response to acknowledge receipt of the event
       return res.json({ received: true })
@@ -256,6 +531,7 @@ module.exports = {
   handleCheckoutSessionCompleted: async function (event) {
     try {
       const session = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Checkout session completed: ${session.id}`)
       }
@@ -365,6 +641,7 @@ module.exports = {
         userId: userIdNum,
         sessionId: session.id,
         stripeSubscriptionId,
+        stripeCustomerId: session.customer || null,
         metadata: {
           paymentAmount: session.amount_total,
           currency: session.currency,
@@ -699,7 +976,7 @@ module.exports = {
             let stripeReceiptUrl = null
             if (session.invoice) {
               try {
-                const invoice = await stripe.invoices.retrieve(session.invoice)
+                const invoice = await stripe.invoices.retrieve(session.invoice, {}, connectOpts)
                 stripeReceiptUrl = invoice.hosted_invoice_url || invoice.invoice_pdf
               } catch (invoiceError) {
                 // Receipt URL is optional, continue without it
@@ -825,6 +1102,7 @@ module.exports = {
   handleProductUpdated: async function (event) {
     try {
       const product = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Product updated in Stripe: ${product.id}`)
       }
@@ -841,7 +1119,7 @@ module.exports = {
       // Get the current price information
       const expandedProduct = await stripe.products.retrieve(product.id, {
         expand: ['default_price']
-      })
+      }, connectOpts)
 
       // Check if our database record needs updating
       const needsUpdate = {}
@@ -914,10 +1192,11 @@ module.exports = {
 
       // If metadata is missing, try to find the checkout session
       if (!offeringId || !userId) {
+        const connectOpts = getStripeConnectRequestOptions(event)
         const sessions = await stripe.checkout.sessions.list({
           subscription: subscription.id,
           limit: 1
-        })
+        }, connectOpts)
 
         if (sessions && sessions.data.length > 0) {
           const session = sessions.data[0]
@@ -1011,6 +1290,7 @@ module.exports = {
         userId: userIdNum,
         sessionId: sessionId || subscription.id, // Use subscription ID if no session
         stripeSubscriptionId: subscription.id,
+        stripeCustomerId: subscription.customer || null,
         metadata: {
           created_via_webhook: 'customer.subscription.created',
           subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -1035,6 +1315,8 @@ module.exports = {
   handleSubscriptionUpdated: async function (event) {
     try {
       const subscription = event.data.object
+      await markScheduledChangeEventAppliedFromSubscription(subscription, event)
+      await markImmediateMembershipChangeSyncedFromSubscription(subscription, event)
       // Determine if subscription is scheduled to be cancelled
       // Stripe has two cancellation modes:
       // 1. cancel_at_period_end: true - Cancel at end of billing period
@@ -1161,6 +1443,7 @@ module.exports = {
   handleSubscriptionDeleted: async function (event) {
     try {
       const subscription = event.data.object
+      await markLifetimeChangeEventAppliedForSubscriptionEnd(subscription.id, event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Subscription deleted: ${subscription.id}`)
       }
@@ -1396,6 +1679,7 @@ module.exports = {
   handleInvoicePaid: async function (event) {
     try {
       const invoice = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Invoice paid: ${invoice.id}`)
       }
@@ -1443,7 +1727,7 @@ module.exports = {
           // Cancel the subscription at period end
           await stripe.subscriptions.update(subscriptionId, {
             cancel_at_period_end: true
-          })
+          }, connectOpts)
 
           // Don't extend access - let it expire naturally
           if (process.env.NODE_ENV === 'development') {
@@ -1454,22 +1738,47 @@ module.exports = {
         }
       }
 
-      // Get subscription details to get the new period end
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-      const newExpiresAt = new Date(subscription.current_period_end * 1000)
+      // Get subscription details to get the new period end (expand lines on invoice fallback below)
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price', 'items.data.plan']
+      }, connectOpts)
+
+      let { periodStart, periodEnd } = resolveSubscriptionInvoicePeriodBounds(subscription, invoice)
+      if (!periodEnd && invoice?.id) {
+        try {
+          const invFull = await stripe.invoices.retrieve(invoice.id, { expand: ['lines.data'] }, connectOpts)
+          const again = resolveSubscriptionInvoicePeriodBounds(subscription, invFull)
+          if (again.periodEnd) periodEnd = again.periodEnd
+          if (again.periodStart) periodStart = again.periodStart
+        } catch (invErr) {
+          console.error('invoice.paid: invoice retrieve for period fallback failed:', invErr.message)
+        }
+      }
+      const newExpiresAt = periodEnd
+
+      if (!newExpiresAt) {
+        console.error(
+          `invoice.paid: could not resolve current_period_end / invoice period for subscription ${subscriptionId}; skip extendAccess`
+        )
+        return
+      }
+
+      const extraMeta = {
+        renewed_at: new Date().toISOString(),
+        invoice_id: invoice.id,
+        billing_reason: invoice.billing_reason
+      }
+      if (periodStart) {
+        extraMeta.subscription_period_start = periodStart.toISOString()
+      }
+      extraMeta.subscription_period_end = newExpiresAt.toISOString()
 
       // Extend access for all associated records
       await Promise.all(accessRecords.map(async (access) => {
         await ContentAccess.extendAccess(
           access.id,
           newExpiresAt,
-          {
-            renewed_at: new Date().toISOString(),
-            invoice_id: invoice.id,
-            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            subscription_period_end: newExpiresAt.toISOString(),
-            billing_reason: invoice.billing_reason
-          }
+          extraMeta
         )
       }))
 
@@ -1794,6 +2103,7 @@ module.exports = {
   handleInvoicePaymentFailed: async function (event) {
     try {
       const invoice = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Invoice payment failed: ${invoice.id}`)
       }
@@ -1885,7 +2195,7 @@ module.exports = {
             failureReason = invoice.last_payment_error.message
           } else if (invoice.payment_intent) {
             try {
-              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent)
+              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent, {}, connectOpts)
               if (paymentIntent.last_payment_error?.message) {
                 failureReason = paymentIntent.last_payment_error.message
               }

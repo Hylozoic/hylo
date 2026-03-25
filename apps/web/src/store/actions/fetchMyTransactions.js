@@ -7,6 +7,7 @@
  */
 
 export const FETCH_MY_TRANSACTIONS = 'FETCH_MY_TRANSACTIONS'
+export const APPLY_OPTIMISTIC_MEMBERSHIP_CHANGE = 'APPLY_OPTIMISTIC_MEMBERSHIP_CHANGE'
 
 const query = `
 query FetchMyTransactions (
@@ -47,9 +48,22 @@ query FetchMyTransactions (
       currency
       manageUrl
       receiptUrl
+      pendingMembershipSubscriptionChange {
+        mode
+        effectiveAt
+        toOffering {
+          id
+          name
+          duration
+          priceInCents
+          currency
+        }
+      }
       offering {
         id
         name
+        duration
+        priceInCents
       }
       group {
         id
@@ -86,6 +100,34 @@ export default function fetchMyTransactions ({
         offeringId,
         paymentType
       }
+    }
+  }
+}
+
+/**
+ * After a successful membershipChangeCommit, patch the matching subscription row in the
+ * store so My Transactions reflects the new plan without waiting for Stripe webhooks.
+ */
+export function applyOptimisticMembershipChange ({
+  groupId,
+  fromOfferingId,
+  toOffering,
+  amountPaid,
+  currency
+}) {
+  return {
+    type: APPLY_OPTIMISTIC_MEMBERSHIP_CHANGE,
+    payload: {
+      groupId: String(groupId),
+      fromOfferingId: String(fromOfferingId),
+      toOffering: {
+        id: toOffering.id,
+        name: toOffering.name,
+        duration: toOffering.duration,
+        priceInCents: toOffering.priceInCents
+      },
+      amountPaid,
+      currency
     }
   }
 }

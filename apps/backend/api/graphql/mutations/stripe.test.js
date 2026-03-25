@@ -688,6 +688,36 @@ describe('Stripe Mutations', () => {
       expect(lastCreateCheckoutSessionArgs.quantity).to.equal(1)
     })
 
+    it('infers adjustableQuantity from offering.metadata.slidingScale', async () => {
+      lastCreateCheckoutSessionArgs = null
+
+      await testOffering.save({
+        access_grants: { groupIds: [group.id] },
+        metadata: {
+          slidingScale: {
+            enabled: true,
+            minimum: 4,
+            maximum: 9
+          }
+        }
+      })
+
+      const result = await createStripeCheckoutSession(user.id, {
+        groupId: group.id,
+        offeringId: testOffering.id,
+        successUrl: 'https://example.com/success',
+        cancelUrl: 'https://example.com/cancel'
+      })
+
+      expect(result.success).to.be.true
+      expect(lastCreateCheckoutSessionArgs.adjustableQuantity).to.deep.equal({
+        enabled: true,
+        minimum: 4,
+        maximum: 9
+      })
+      expect(lastCreateCheckoutSessionArgs.quantity).to.equal(4)
+    })
+
     it('rejects unauthenticated checkout sessions', async () => {
       await expect(
         createStripeCheckoutSession(null, {

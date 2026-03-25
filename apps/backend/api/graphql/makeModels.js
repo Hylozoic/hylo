@@ -22,6 +22,10 @@ import {
   filterAndSortUsers
 } from '../services/Search/util'
 const { createGroupRoleScope } = require('../../lib/scopes')
+const {
+  mergeAccessGrantsForPresentation,
+  getBuyButtonTextFromOffering
+} = require('../../lib/stripeOfferingMetadata')
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -1598,6 +1602,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'currency',
         'track_id',
         'access_grants',
+        'metadata',
         'renewal_policy',
         'duration',
         'publish_status'
@@ -1611,16 +1616,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripePriceId: sp => sp.get('stripe_price_id'),
         priceInCents: sp => sp.get('price_in_cents'),
         trackId: sp => sp.get('track_id'),
-        accessGrants: sp => sp.get('access_grants'),
+        accessGrants: sp => mergeAccessGrantsForPresentation(sp),
         renewalPolicy: sp => sp.get('renewal_policy'),
         publishStatus: sp => sp.get('publish_status'),
-        buyButtonText: (sp) => {
-          const ag = sp.get('access_grants')
-          if (!ag) return null
-          const grants = typeof ag === 'string' ? (() => { try { return JSON.parse(ag) } catch { return {} } })() : ag
-          const text = grants?.buyButtonText
-          return (text != null && String(text).trim() !== '') ? String(text).trim() : null
-        },
+        buyButtonText: (sp) => getBuyButtonTextFromOffering(sp),
         tracks: async (sp) => {
           if (!sp) return []
           const accessGrants = sp.get('access_grants')

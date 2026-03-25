@@ -174,6 +174,9 @@ export {
   checkStripeStatus
 } from './stripe'
 export {
+  membershipChangeCommit
+} from './membershipChange'
+export {
   addEmailEnabledTester,
   removeEmailEnabledTester
 } from './emailEnabledTesters'

@@ -6,13 +6,38 @@
  */
 
 import { CreditCard, ExternalLink } from 'lucide-react'
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import ChangeSubscriptionModal from './ChangeSubscriptionModal'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
+import { Label } from 'components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from 'components/ui/select'
+import { cn } from 'util/index'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import fetchMyTransactions from 'store/actions/fetchMyTransactions'
+import { membershipChangeDefersToPeriodEnd } from 'util/membershipChangeModes'
 import { getMyTransactions } from 'store/reducers/myTransactions'
+
+const filterSelectTriggerClassName = cn(
+  'h-10 w-full text-sm font-medium',
+  /* Contrast with parent `bg-card` (avoid `bg-card` on `bg-card`) */
+  'bg-muted/60 text-foreground dark:bg-muted/40',
+  'border-2 border-foreground/25 shadow-sm',
+  'ring-offset-0 focus:ring-inset focus:ring-offset-0',
+  'hover:border-foreground/40 hover:bg-muted/80 dark:hover:bg-muted/55',
+  'focus:ring-2 focus:ring-ring',
+  'data-[state=open]:border-foreground/45 data-[state=open]:bg-muted/85 dark:data-[state=open]:bg-muted/60',
+  /* Radix SelectValue + chevron: avoid faint / same-as-bg look */
+  '[&>span]:text-foreground',
+  '[&_svg]:opacity-100 [&_svg]:text-foreground/80'
+)
 
 /**
  * Formats a date for display
@@ -39,11 +64,74 @@ function formatPrice (cents, currency = 'usd') {
 }
 
 /**
+ * Hylo offering.duration → billing cadence label (subscriptions).
+ */
+function billingPeriodLabelForDuration (duration, t) {
+  switch (duration) {
+    case 'day':
+      return t('transactions.billingPeriod.day')
+    case 'month':
+      return t('transactions.billingPeriod.month')
+    case 'season':
+      return t('transactions.billingPeriod.season')
+    case 'annual':
+      return t('transactions.billingPeriod.annual')
+    case 'lifetime':
+      return t('transactions.billingPeriod.lifetime')
+    default:
+      return null
+  }
+}
+
+/**
+ * Short suffix after formatted price (e.g. "per 3 months").
+ */
+function priceCadenceSuffixForDuration (duration, t) {
+  switch (duration) {
+    case 'day':
+      return t('transactions.priceCadence.day')
+    case 'month':
+      return t('transactions.priceCadence.month')
+    case 'season':
+      return t('transactions.priceCadence.season')
+    case 'annual':
+      return t('transactions.priceCadence.annual')
+    default:
+      return null
+  }
+}
+
+/**
+ * Copy for pendingMembershipSubscriptionChange on a subscription transaction.
+ */
+function pendingMembershipChangeDescription (pending, t) {
+  if (!pending?.mode) return null
+  const offeringName = pending.toOffering?.name || t('Unnamed Offering')
+  const dateStr = pending.effectiveAt ? formatDate(pending.effectiveAt) : null
+  if (pending.mode === 'scheduled_period_end') {
+    return dateStr
+      ? t('transactions.pendingChange.scheduled_period_end', { offeringName, date: dateStr })
+      : t('transactions.pendingChange.scheduled_period_end_noDate', { offeringName })
+  }
+  if (pending.mode === 'lifetime_no_proration') {
+    return dateStr
+      ? t('transactions.pendingChange.lifetime_no_proration', { date: dateStr })
+      : t('transactions.pendingChange.lifetime_no_proration_noDate')
+  }
+  return t('transactions.pendingChange.generic', {
+    offeringName,
+    date: dateStr || ''
+  })
+}
+
+/**
  * Transaction card component
  */
-function TransactionCard ({ transaction, t }) {
+function TransactionCard ({ transaction, t, onMembershipChangeCommitted }) {
+  const [changeSubscriptionOpen, setChangeSubscriptionOpen] = useState(false)
   const {
     offeringName,
+    offering,
     group,
     groupName,
     trackName,
@@ -59,7 +147,8 @@ function TransactionCard ({ transaction, t }) {
     amountPaid,
     currency,
     manageUrl,
-    receiptUrl
+    receiptUrl,
+    pendingMembershipSubscriptionChange
   } = transaction
 
   // Determine status badge color
@@ -89,6 +178,14 @@ function TransactionCard ({ transaction, t }) {
   // Get the group URL
   const groupUrl = group?.slug ? `/groups/${group.slug}` : null
 
+  const showChangeSubscription =
+    paymentType === 'subscription' &&
+    status === 'active' &&
+    group?.id &&
+    (offering?.id != null)
+
+  const currentOfferingName = offeringName || offering?.name
+
   // Determine the primary action URL based on payment type
   const stripeActionUrl = paymentType === 'subscription' ? manageUrl : receiptUrl
   const stripeActionLabel = paymentType === 'subscription'
@@ -106,6 +203,18 @@ function TransactionCard ({ transaction, t }) {
           {getStatusLabel()}
         </span>
       </div>
+
+      {paymentType === 'subscription' && pendingMembershipSubscriptionChange && (
+        <div
+          className='rounded-md border border-accent/40 bg-accent/10 px-3 py-2.5 text-sm text-foreground shadow-sm'
+          role='status'
+        >
+          <p className='font-medium'>{t('transactions.pendingChangeTitle')}</p>
+          <p className='mt-1 leading-snug text-muted-foreground'>
+            {pendingMembershipChangeDescription(pendingMembershipSubscriptionChange, t)}
+          </p>
+        </div>
+      )}
 
       {/* Details grid */}
       <div className='grid grid-cols-2 gap-x-4 gap-y-2 text-sm'>
@@ -139,13 +248,26 @@ function TransactionCard ({ transaction, t }) {
           {paymentType === 'subscription' ? t('Subscription') : t('One-time purchase')}
         </div>
 
+        {/* Billing period (Hylo offering duration; avoids implying every plan is monthly) */}
+        {paymentType === 'subscription' && billingPeriodLabelForDuration(offering?.duration, t) && (
+          <>
+            <div className='text-muted-foreground'>{t('transactions.billingPeriodLabel')}:</div>
+            <div className='text-foreground'>{billingPeriodLabelForDuration(offering?.duration, t)}</div>
+          </>
+        )}
+
         {/* Amount */}
         {amountPaid && (
           <>
             <div className='text-muted-foreground'>{t('Amount')}:</div>
             <div className='text-foreground font-medium'>
               {formatPrice(amountPaid, currency)}
-              {paymentType === 'subscription' && <span className='text-muted-foreground font-normal'> / {t('month')}</span>}
+              {paymentType === 'subscription' && priceCadenceSuffixForDuration(offering?.duration, t) && (
+                <span className='text-muted-foreground font-normal'>
+                  {' '}
+                  {priceCadenceSuffixForDuration(offering?.duration, t)}
+                </span>
+              )}
             </div>
           </>
         )}
@@ -187,9 +309,33 @@ function TransactionCard ({ transaction, t }) {
         )}
       </div>
 
-      {/* Stripe Action */}
-      {stripeActionUrl && (
-        <div className='pt-2 border-t border-border'>
+      {/* Change subscription + Stripe Action */}
+      <div className='pt-2 border-t border-border flex flex-col sm:flex-row flex-wrap gap-2'>
+        {showChangeSubscription && (
+          <>
+            <button
+              type='button'
+              onClick={() => setChangeSubscriptionOpen(true)}
+              className='inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md border-2 border-foreground/20 bg-background text-foreground hover:border-foreground/50 transition-colors'
+            >
+              {t('Change subscription')}
+            </button>
+            <ChangeSubscriptionModal
+              open={changeSubscriptionOpen}
+              onClose={() => setChangeSubscriptionOpen(false)}
+              groupId={group.id}
+              fromOfferingId={offering.id}
+              currentOfferingName={currentOfferingName}
+              subscriptionStatus={subscriptionStatus}
+              onCommitted={(commitResult) => {
+                if (typeof onMembershipChangeCommitted === 'function') {
+                  onMembershipChangeCommitted(commitResult)
+                }
+              }}
+            />
+          </>
+        )}
+        {stripeActionUrl && (
           <a
             href={stripeActionUrl}
             target='_blank'
@@ -200,8 +346,8 @@ function TransactionCard ({ transaction, t }) {
             {stripeActionLabel}
             <ExternalLink className='w-3 h-3' />
           </a>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -251,6 +397,42 @@ function MyTransactions () {
     dispatch(fetchMyTransactions(params))
   }, [dispatch, statusFilter, paymentTypeFilter, offeringFilter, offset])
 
+  const reconcileAfterMembershipChangeRef = useRef(null)
+
+  /**
+   * Re-fetch after a delay so the server (and Stripe webhooks) can catch up.
+   * An immediate refetch would overwrite the optimistic store patch with stale data.
+   */
+  const scheduleReconcileAfterMembershipChange = useCallback(() => {
+    if (reconcileAfterMembershipChangeRef.current != null) {
+      clearTimeout(reconcileAfterMembershipChangeRef.current)
+    }
+    reconcileAfterMembershipChangeRef.current = window.setTimeout(() => {
+      reconcileAfterMembershipChangeRef.current = null
+      fetchTransactions()
+    }, 8000)
+  }, [fetchTransactions])
+
+  /**
+   * Deferred plan changes are already stored as pending subscription_change_events;
+   * refetch immediately so the banner appears. Immediate swaps use optimistic UI + delayed refetch.
+   */
+  const handleMembershipChangeCommitted = useCallback((commitResult) => {
+    if (membershipChangeDefersToPeriodEnd(commitResult?.mode)) {
+      fetchTransactions()
+      return
+    }
+    scheduleReconcileAfterMembershipChange()
+  }, [fetchTransactions, scheduleReconcileAfterMembershipChange])
+
+  useEffect(() => {
+    return () => {
+      if (reconcileAfterMembershipChangeRef.current != null) {
+        clearTimeout(reconcileAfterMembershipChangeRef.current)
+      }
+    }
+  }, [])
+
   // Fetch transactions when filters or offset change
   useEffect(() => {
     fetchTransactions()
@@ -278,7 +460,7 @@ function MyTransactions () {
 
   // Determine if filters are active
   const hasActiveFilters = statusFilter !== 'all' || paymentTypeFilter !== 'all' || offeringFilter !== 'all'
-  
+
   // Determine if this is initial state (no transactions ever) vs filtered state (no results for current filters)
   const isInitialState = !loading && transactions.length === 0 && total === 0 && !hasActiveFilters
 
@@ -307,57 +489,63 @@ function MyTransactions () {
         <h3 className='text-sm font-semibold text-foreground mb-4'>{t('Filters')}</h3>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
           {/* Status Filter */}
-          <div>
-            <label className='block text-sm font-medium text-foreground mb-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='filter-status' className='text-sm font-medium'>
               {t('Status')}
-            </label>
-            <select
-              className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value='all'>{t('All Status')}</option>
-              <option value='active'>{t('Active')}</option>
-              <option value='expired'>{t('Expired')}</option>
-              <option value='revoked'>{t('Revoked')}</option>
-              <option value='refunded'>{t('Refunded')}</option>
-            </select>
+            </Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id='filter-status' className={filterSelectTriggerClassName}>
+                <SelectValue placeholder={t('All Status')} />
+              </SelectTrigger>
+              <SelectContent position='popper' className='z-[100]'>
+                <SelectItem value='all'>{t('All Status')}</SelectItem>
+                <SelectItem value='active'>{t('Active')}</SelectItem>
+                <SelectItem value='expired'>{t('Expired')}</SelectItem>
+                <SelectItem value='revoked'>{t('Revoked')}</SelectItem>
+                <SelectItem value='refunded'>{t('Refunded')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Payment Type Filter */}
-          <div>
-            <label className='block text-sm font-medium text-foreground mb-2'>
+          <div className='space-y-2'>
+            <Label htmlFor='filter-payment-type' className='text-sm font-medium'>
               {t('Payment Type')}
-            </label>
-            <select
-              className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
-              value={paymentTypeFilter}
-              onChange={(e) => setPaymentTypeFilter(e.target.value)}
-            >
-              <option value='all'>{t('All Types')}</option>
-              <option value='subscription'>{t('Subscription')}</option>
-              <option value='one_time'>{t('One-time purchase')}</option>
-            </select>
+            </Label>
+            <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+              <SelectTrigger id='filter-payment-type' className={filterSelectTriggerClassName}>
+                <SelectValue placeholder={t('All Types')} />
+              </SelectTrigger>
+              <SelectContent position='popper' className='z-[100]'>
+                <SelectItem value='all'>{t('All Types')}</SelectItem>
+                <SelectItem value='subscription'>{t('Subscription')}</SelectItem>
+                <SelectItem value='one_time'>{t('One-time purchase')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Offering Filter - Show if we have offerings OR if we're in a filtered state */}
           {(offerings.length > 0 || hasActiveFilters) && (
-            <div>
-              <label className='block text-sm font-medium text-foreground mb-2'>
+            <div className='space-y-2'>
+              <Label htmlFor='filter-offering' className='text-sm font-medium'>
                 {t('Offering')}
-              </label>
-              <select
-                className='w-full px-3 py-2 bg-input border border-foreground/20 rounded-md text-foreground focus:border-focus focus:outline-none'
-                value={offeringFilter}
-                onChange={(e) => setOfferingFilter(e.target.value)}
+              </Label>
+              <Select
+                value={offeringFilter === 'all' ? 'all' : String(offeringFilter)}
+                onValueChange={(v) => setOfferingFilter(v === 'all' ? 'all' : v)}
               >
-                <option value='all'>{t('All Offerings')}</option>
-                {offerings.map(offering => (
-                  <option key={offering.id} value={offering.id}>
-                    {offering.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id='filter-offering' className={filterSelectTriggerClassName}>
+                  <SelectValue placeholder={t('All Offerings')} />
+                </SelectTrigger>
+                <SelectContent position='popper' className='z-[100] max-h-[min(60vh,20rem)]'>
+                  <SelectItem value='all'>{t('All Offerings')}</SelectItem>
+                  {offerings.map(offering => (
+                    <SelectItem key={offering.id} value={String(offering.id)} className='whitespace-normal break-words'>
+                      {offering.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -367,7 +555,7 @@ function MyTransactions () {
       <div className='flex items-center gap-2'>
         {total > 0 && (
           <div className='text-sm text-foreground/70'>
-            {t('Showing {{count}} of {{total}} transactions', { count: transactions.length, total })}
+            {t('transactions.showingCountOfTotal', { count: transactions.length, total })}
           </div>
         )}
         {loading && (
@@ -406,6 +594,7 @@ function MyTransactions () {
               key={transaction.id}
               transaction={transaction}
               t={t}
+              onMembershipChangeCommitted={handleMembershipChangeCommitted}
             />
           ))}
         </div>

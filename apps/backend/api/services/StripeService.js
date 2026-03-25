@@ -7,6 +7,10 @@
  */
 
 const Stripe = require('stripe')
+const {
+  resolvePeriodUnitAmountCentsSync,
+  resolvePeriodPriceCentsForCredit
+} = require('../../lib/membershipChangeCredit')
 
 // Initialize Stripe with API version
 // TODO STRIPE: Replace with your actual Stripe secret key
@@ -1025,7 +1029,7 @@ module.exports = {
 
       // Retrieve the subscription with expanded items to get price info
       const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['items.data.price']
+        expand: ['items.data.price', 'items.data.plan']
       }, {
         stripeAccount: accountId
       })
@@ -1035,6 +1039,361 @@ module.exports = {
       console.error('Error retrieving subscription:', error)
       throw new Error(`Failed to retrieve subscription: ${error.message}`)
     }
+  },
+
+  /**
+   * Updates the first subscription line item to a new price (membership plan change).
+   *
+   * @param {object} params
+   * @param {string} params.accountId - Connected account id (acct_...)
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId - Stripe price id
+   * @param {number|null} [params.quantity] - optional quantity for sliding-scale targets
+   * @param {string} [params.prorationBehavior] - create_prorations | none
+   * @param {'now'|undefined} [params.billingCycleAnchor] - pass `now` to reset billing cycle to current time
+   * @param {object} [params.metadata] - Merged onto existing subscription metadata
+   * @returns {Promise<object>} Updated Stripe subscription
+   */
+  async updateSubscriptionPrimaryItemPrice ({
+    accountId,
+    subscriptionId,
+    newPriceId,
+    quantity = null,
+    prorationBehavior = 'create_prorations',
+    billingCycleAnchor,
+    metadata = {}
+  }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+    const updatePayload = {
+      items: [{
+        id: item.id,
+        price: newPriceId,
+        ...(quantity != null ? { quantity } : {})
+      }],
+      proration_behavior: prorationBehavior,
+      metadata: mergedMeta
+    }
+    if (billingCycleAnchor === 'now') {
+      updatePayload.billing_cycle_anchor = 'now'
+    }
+    return stripe.subscriptions.update(subscriptionId, updatePayload, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Adds customer credit (reduces amount owed) on a Connect account.
+   * Stripe expects a negative balance transaction amount for credit.
+   *
+   * @param {object} params
+   * @param {string} params.accountId - Connected account id (acct_...)
+   * @param {string} params.customerId - cus_...
+   * @param {number} params.amountCents - Positive credit value in smallest currency unit
+   * @param {string} params.currency - lowercase ISO currency
+   * @param {string} [params.description]
+   * @returns {Promise<object>} Balance transaction
+   */
+  /**
+   * Full recurring amount for the primary subscription line (per Stripe billing period), in cents.
+   * Uses expanded item price/plan when present; otherwise loads Price from Stripe (Connect) by id;
+   * finally Hylo product list price.
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {object} params.subscription
+   * @param {object} params.fromProduct Bookshelf StripeProduct
+   * @returns {Promise<number>}
+   */
+  async resolvePrimaryItemPeriodPriceCents ({ accountId, subscription, fromProduct }) {
+    const item = subscription?.items?.data?.[0]
+    const qty = item?.quantity != null ? item.quantity : 1
+    const unitSync = resolvePeriodUnitAmountCentsSync(subscription, fromProduct)
+    if (unitSync != null) {
+      return Math.round(unitSync * qty)
+    }
+
+    const price = item?.price
+    const priceId = typeof price === 'string' ? price : price?.id
+    if (priceId && accountId) {
+      try {
+        const p = await stripe.prices.retrieve(priceId, { stripeAccount: accountId })
+        if (p.unit_amount != null) {
+          return Math.round(p.unit_amount * qty)
+        }
+      } catch (err) {
+        console.error('resolvePrimaryItemPeriodPriceCents:', err.message)
+      }
+    }
+
+    return resolvePeriodPriceCentsForCredit(subscription, fromProduct)
+  },
+
+  async createCustomerBalanceCredit ({ accountId, customerId, amountCents, currency, description }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!customerId) throw new Error('Customer ID is required')
+    if (amountCents == null || amountCents < 1) {
+      throw new Error('Credit amount must be at least 1 cent')
+    }
+    const cur = (currency || 'usd').toLowerCase()
+    return stripe.customers.createBalanceTransaction(customerId, {
+      amount: -amountCents,
+      currency: cur,
+      description: description || 'Account credit'
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Updates quantity on the first subscription line item (e.g. sliding-scale units).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {number} params.quantity
+   * @param {string} [params.prorationBehavior] - default none (no mid-cycle proration for quantity-only rules)
+   * @param {object} [params.metadata]
+   * @returns {Promise<object>} Updated Stripe subscription
+   */
+  async updateSubscriptionPrimaryItemQuantity ({ accountId, subscriptionId, quantity, prorationBehavior = 'none', metadata = {} }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (quantity == null || quantity < 1) throw new Error('Quantity must be at least 1')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+    return stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: item.id, quantity }],
+      proration_behavior: prorationBehavior,
+      metadata: mergedMeta
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Previews invoice for replacing the first subscription line item price (Stripe invoices.createPreview).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {string} [params.prorationBehavior]
+   * @returns {Promise<object>} Upcoming invoice preview
+   */
+  async previewSubscriptionPrimaryItemPriceChange ({ accountId, subscriptionId, newPriceId, prorationBehavior = 'create_prorations' }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const customer = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id
+    if (!customer) {
+      throw new Error('Subscription customer not found')
+    }
+
+    return stripe.invoices.createPreview({
+      customer,
+      subscription: subscriptionId,
+      subscription_details: {
+        proration_behavior: prorationBehavior,
+        items: [{
+          id: item.id,
+          price: newPriceId
+        }]
+      },
+      expand: ['lines.data']
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Preview invoice for immediate membership upgrade: new price, billing cycle reset,
+   * no Stripe proration, optional Hylo prepaid credit as a negative invoice item.
+   * If Stripe rejects negative invoice items (e.g. automatic tax), retries without
+   * invoice_items and returns manualCreditCents for the caller to merge into totals.
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {number} params.creditCents - Hylo unused prepaid credit (0 allowed)
+   * @param {string} params.currency - lowercase ISO
+   * @param {string} [params.creditDescription]
+   * @returns {Promise<{ invoice: object, manualCreditCents: number|null }>}
+   */
+  async previewMembershipImmediateUpgradeWithHyloCredit ({
+    accountId,
+    subscriptionId,
+    newPriceId,
+    creditCents,
+    currency,
+    creditDescription
+  }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const customer = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id
+    if (!customer) {
+      throw new Error('Subscription customer not found')
+    }
+
+    const cur = (currency || subscription.currency || 'usd').toLowerCase()
+    const baseParams = {
+      customer,
+      subscription: subscriptionId,
+      subscription_details: {
+        proration_behavior: 'none',
+        billing_cycle_anchor: 'now',
+        items: [{
+          id: item.id,
+          price: newPriceId
+        }]
+      },
+      expand: ['lines.data']
+    }
+
+    const credit = Math.max(0, Math.round(creditCents || 0))
+    const desc = creditDescription || 'Unused prepaid time (prior membership offering)'
+
+    if (credit > 0) {
+      try {
+        const invoice = await stripe.invoices.createPreview({
+          ...baseParams,
+          invoice_items: [{
+            amount: -credit,
+            currency: cur,
+            description: desc
+          }]
+        }, {
+          stripeAccount: accountId
+        })
+        return { invoice, manualCreditCents: null }
+      } catch (_err) {
+        // Negative invoice lines can fail (e.g. automatic tax). Fall back: preview subscription only;
+        // caller merges manual credit into lines / amount_due.
+      }
+    }
+
+    const invoice = await stripe.invoices.createPreview(baseParams, {
+      stripeAccount: accountId
+    })
+    return {
+      invoice,
+      manualCreditCents: credit > 0 ? credit : null
+    }
+  },
+
+  /**
+   * Schedules a primary item price change at period end using a subscription schedule.
+   * Stripe does not allow custom phases or metadata on the same request as from_subscription;
+   * create does not accept phases[n].start_date — use create then update (Stripe docs).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {number|null} [params.quantity] - optional quantity for target phase
+   * @param {object} [params.metadata]
+   * @returns {Promise<object>} Stripe subscription schedule after update
+   */
+  async scheduleSubscriptionPrimaryItemPriceAtPeriodEnd ({ accountId, subscriptionId, newPriceId, quantity = null, metadata = {} }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id || !item?.price?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+
+    const created = await stripe.subscriptionSchedules.create({
+      from_subscription: subscriptionId
+    }, {
+      stripeAccount: accountId
+    })
+
+    const phase0 = created.phases?.[0]
+    // Stripe-node may expose snake_case or camelCase; after from_subscription, bounds also live on phase 0.
+    const periodEnd =
+      subscription.current_period_end ??
+      subscription.currentPeriodEnd ??
+      phase0?.end_date ??
+      phase0?.endDate
+    const firstPhaseStart =
+      phase0?.start_date ??
+      phase0?.startDate ??
+      subscription.current_period_start ??
+      subscription.currentPeriodStart
+
+    if (periodEnd == null || firstPhaseStart == null) {
+      throw new Error('Could not determine billing period start or end for subscription schedule')
+    }
+
+    const updatedSchedule = await stripe.subscriptionSchedules.update(
+      created.id,
+      {
+        phases: [
+          {
+            start_date: firstPhaseStart,
+            end_date: periodEnd,
+            items: [{ price: item.price.id, quantity: item.quantity || 1 }]
+          },
+          {
+            items: [{ price: newPriceId, quantity: quantity != null ? quantity : (item.quantity || 1) }]
+          }
+        ],
+        metadata: mergedMeta,
+        proration_behavior: 'none'
+      },
+      {
+        stripeAccount: accountId
+      }
+    )
+
+    // Webhooks receive the Subscription object; correlation id must live on subscription metadata.
+    await stripe.subscriptions.update(
+      subscriptionId,
+      { metadata: mergedMeta },
+      { stripeAccount: accountId }
+    )
+
+    return updatedSchedule
   },
 
   /**
@@ -1143,10 +1502,12 @@ module.exports = {
             : null
           result.customerId = subscription.customer
 
-          // Get amount from the subscription items
-          if (subscription.items?.data?.[0]?.price) {
-            result.amountPaid = subscription.items.data[0].price.unit_amount
-            result.currency = subscription.items.data[0].price.currency
+          // Amount per billing period (unit × quantity), not unit-only — matches Hylo list price semantics
+          const item0 = subscription.items?.data?.[0]
+          if (item0?.price && item0.price.unit_amount != null) {
+            const qty = item0.quantity != null ? item0.quantity : 1
+            result.amountPaid = Math.round(item0.price.unit_amount * qty)
+            result.currency = item0.price.currency
           }
 
           // Get receipt URL from latest invoice

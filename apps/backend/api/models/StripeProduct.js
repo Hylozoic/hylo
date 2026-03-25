@@ -49,6 +49,7 @@ module.exports = bookshelf.Model.extend({
     userId,
     sessionId,
     stripeSubscriptionId,
+    stripeCustomerId,
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
@@ -85,6 +86,7 @@ module.exports = bookshelf.Model.extend({
         productId: productIdNum,
         sessionId,
         stripeSubscriptionId,
+        stripeCustomerId,
         expiresAt: calculatedExpiresAt,
         metadata
       }, { transacting })
@@ -110,6 +112,7 @@ module.exports = bookshelf.Model.extend({
           productId: productIdNum,
           sessionId,
           stripeSubscriptionId,
+          stripeCustomerId,
           expiresAt: calculatedExpiresAt,
           metadata: {
             ...metadata,
@@ -143,6 +146,7 @@ module.exports = bookshelf.Model.extend({
             trackId: trackIdNum,
             sessionId,
             stripeSubscriptionId,
+            stripeCustomerId,
             expiresAt: calculatedExpiresAt,
             metadata: {
               ...metadata,
@@ -204,6 +208,7 @@ module.exports = bookshelf.Model.extend({
             groupRoleId: roleIdNum,
             sessionId,
             stripeSubscriptionId,
+            stripeCustomerId,
             expiresAt: calculatedExpiresAt,
             metadata
           }, { transacting })
@@ -249,6 +254,7 @@ module.exports = bookshelf.Model.extend({
             commonRoleId: commonRoleIdNum,
             sessionId,
             stripeSubscriptionId,
+            stripeCustomerId,
             expiresAt: calculatedExpiresAt,
             metadata
           }, { transacting })
@@ -307,6 +313,7 @@ module.exports = bookshelf.Model.extend({
     // Set default values if not provided
     const defaults = {
       access_grants: {},
+      metadata: {},
       renewal_policy: 'manual',
       duration: null,
       publish_status: 'unpublished'

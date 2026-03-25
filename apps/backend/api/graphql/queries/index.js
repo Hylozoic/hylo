@@ -20,3 +20,9 @@ export {
 export {
   myTransactions
 } from './transactions'
+
+export {
+  membershipChangeEligibleOfferings,
+  membershipChangePreview,
+  membershipChangeInvoicePreview
+} from './membershipChange'

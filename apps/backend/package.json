@@ -248,6 +248,7 @@
       "Skill",
       "StripeService",
       "StripeProduct",
+      "SubscriptionChangeEvent",
       "Tag",
       "TagFollow",
       "Thank",

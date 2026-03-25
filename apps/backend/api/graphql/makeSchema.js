@@ -157,6 +157,7 @@ import {
   updateStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
+  membershipChangeCommit,
   verifyEmail
 } from './mutations'
 import {
@@ -167,7 +168,10 @@ import {
   offeringSubscriptionStats,
   offeringSubscribers,
   checkContentAccess,
-  myTransactions
+  myTransactions,
+  membershipChangeEligibleOfferings,
+  membershipChangePreview,
+  membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
@@ -411,6 +415,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     joinRequests: (root, args) => fetchMany('JoinRequest', args),
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
     myTransactions: (root, args, context) => myTransactions(context.currentUserId, args),
+    membershipChangeEligibleOfferings: (root, { groupId }, context) =>
+      membershipChangeEligibleOfferings(context.currentUserId, { groupId }),
+    membershipChangePreview: (root, args, context) =>
+      membershipChangePreview(context.currentUserId, args),
+    membershipChangeInvoicePreview: (root, args, context) =>
+      membershipChangeInvoicePreview(context.currentUserId, args),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
@@ -668,6 +678,9 @@ export function makeMutations ({ fetchOne }) {
     createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
+
+    membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
+      membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
     reinviteAll: (root, { groupId }, context) => reinviteAll(context.currentUserId, groupId),
 

@@ -10,6 +10,7 @@
 
 import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
+import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
 
 /* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
 
@@ -255,6 +256,8 @@ module.exports = {
       // Default renewal_policy to 'automatic' for subscription-based products
       const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
 
+      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -263,7 +266,8 @@ module.exports = {
         description: product.description,
         price_in_cents: priceInCents,
         currency: currency || 'usd',
-        access_grants: accessGrants || {},
+        access_grants: cleanAccessGrants,
+        metadata: offeringMetadata,
         renewal_policy: effectiveRenewalPolicy,
         duration: duration || null,
         publish_status: publishStatus || 'unpublished'
@@ -363,7 +367,22 @@ module.exports = {
       }
 
       // Fields that are platform-only (don't sync with Stripe)
-      if (accessGrants !== undefined) updateAttrs.access_grants = accessGrants
+      if (accessGrants !== undefined) {
+        const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+        const nextMeta = { ...parseJsonObject(product.get('metadata')) }
+        if (offeringMetadata.buyButtonText != null) {
+          nextMeta.buyButtonText = offeringMetadata.buyButtonText
+        } else {
+          delete nextMeta.buyButtonText
+        }
+        if (offeringMetadata.slidingScale != null) {
+          nextMeta.slidingScale = offeringMetadata.slidingScale
+        } else {
+          delete nextMeta.slidingScale
+        }
+        updateAttrs.access_grants = cleanAccessGrants
+        updateAttrs.metadata = nextMeta
+      }
       if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
       if (duration !== undefined) updateAttrs.duration = duration
       if (publishStatus !== undefined) {
@@ -494,11 +513,8 @@ module.exports = {
         throw new GraphQLError('Offering does not have a Stripe price ID')
       }
 
-      // Optional sliding-scale settings can be stashed in access_grants
-      // Shape:
-      //   access_grants.slidingScale = { enabled: true, minimum: Int, maximum: Int }
-      const accessGrants = offering.get('access_grants') || {}
-      const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale || null
+      // Sliding scale: stripe_products.metadata.slidingScale (legacy: access_grants)
+      const slidingScale = getSlidingScaleFromOffering(offering)
       const parseOptionalInt = (value) => {
         if (value == null || value === '') return null
         const parsed = parseInt(value, 10)

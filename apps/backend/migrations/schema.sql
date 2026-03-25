@@ -3010,6 +3010,7 @@ CREATE TABLE public.stripe_products (
     currency character varying(3) NOT NULL DEFAULT 'usd'::character varying,
     track_id bigint,
     access_grants jsonb DEFAULT '{}'::jsonb,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     renewal_policy character varying(20) DEFAULT 'manual'::character varying,
     duration character varying(20),
     publish_status character varying(20) DEFAULT 'unpublished'::character varying,
@@ -3023,6 +3024,13 @@ CREATE TABLE public.stripe_products (
 --
 
 ALTER SEQUENCE public.stripe_products_id_seq OWNED BY public.stripe_products.id;
+
+
+--
+-- Name: COLUMN stripe_products.metadata; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.stripe_products.metadata IS 'Presentation / checkout options: buyButtonText, slidingScale (not access scopes)';
 
 
 --
@@ -3052,12 +3060,73 @@ CREATE TABLE public.content_access (
     access_type character varying(50) NOT NULL,
     stripe_session_id character varying(255),
     stripe_subscription_id character varying(255),
+    stripe_customer_id character varying(255),
     status character varying(50) NOT NULL DEFAULT 'active'::character varying,
     granted_by_id bigint,
     expires_at timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
+);
+
+
+--
+-- Name: subscription_change_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.subscription_change_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: subscription_change_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.subscription_change_events (
+    id bigint DEFAULT nextval('public.subscription_change_events_id_seq'::regclass) NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    correlation_id character varying(64) NOT NULL,
+    from_product_id bigint,
+    to_product_id bigint,
+    mode character varying(64) NOT NULL,
+    stripe_subscription_id character varying(255),
+    stripe_customer_id character varying(255),
+    status character varying(32) NOT NULL DEFAULT 'pending'::character varying,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    pending_effective_at timestamp with time zone,
+    applied_at timestamp with time zone,
+    error_message text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: subscription_change_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.subscription_change_events_id_seq OWNED BY public.subscription_change_events.id;
+
+
+--
+-- Name: COLUMN subscription_change_events.payload; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.subscription_change_events.payload IS 'Audit payload (mode reason, Stripe refs, etc.)';
+
+
+--
+-- Name: stripe_webhook_processed_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stripe_webhook_processed_events (
+    stripe_event_id character varying(255) NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -5775,6 +5844,34 @@ CREATE INDEX content_access_stripe_subscription_id_index ON public.content_acces
 
 
 --
+-- Name: subscription_change_events_correlation_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX subscription_change_events_correlation_id_unique ON public.subscription_change_events USING btree (correlation_id);
+
+
+--
+-- Name: subscription_change_events_user_id_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
+
+
+--
+-- Name: subscription_change_events_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_status_index ON public.subscription_change_events USING btree (status);
+
+
+--
+-- Name: subscription_change_events_stripe_subscription_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.subscription_change_events USING btree (stripe_subscription_id);
+
+
+--
 -- Name: user_scopes_user_id_scope_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5809,6 +5906,22 @@ ALTER TABLE ONLY public.stripe_products
 
 ALTER TABLE ONLY public.content_access
     ADD CONSTRAINT content_access_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: subscription_change_events subscription_change_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stripe_webhook_processed_events stripe_webhook_processed_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stripe_webhook_processed_events
+    ADD CONSTRAINT stripe_webhook_processed_events_pkey PRIMARY KEY (stripe_event_id);
 
 
 --
@@ -6905,6 +7018,38 @@ ALTER TABLE ONLY public.content_access
 
 ALTER TABLE ONLY public.content_access
     ADD CONSTRAINT content_access_granted_by_id_foreign FOREIGN KEY (granted_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_from_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_from_product_id_foreign FOREIGN KEY (from_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: subscription_change_events subscription_change_events_to_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_change_events
+    ADD CONSTRAINT subscription_change_events_to_product_id_foreign FOREIGN KEY (to_product_id) REFERENCES public.stripe_products(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
 
 
 --
