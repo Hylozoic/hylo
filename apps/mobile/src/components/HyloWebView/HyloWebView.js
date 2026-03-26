@@ -1,83 +1,11 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import React, { useCallback, useState, useEffect } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import queryString from 'query-string'
-import { WebViewMessageTypes } from '@hylo/shared'
-import useOpenURL from 'hooks/useOpenURL'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import { getSessionCookie, clearSessionCookie } from 'util/session'
-import { match, pathToRegexp } from 'path-to-regexp'
+import { getSessionCookie, clearSessionCookie, ensureWebViewCookies } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
-
-export const useNativeRouteHandler = () => {
-  const navigation = useNavigation()
-  const openURL = useOpenURL()
-
-  return ({ pathname, search }) => ({
-    '(.*)/:type(post|members)/:id': ({ routeParams }) => {
-      const { type, id } = routeParams
-
-      switch (type) {
-        case 'post': {
-          navigation.navigate('Post Details', { id })
-          break
-        }
-        case 'members': {
-          navigation.navigate('Member', { id })
-          break
-        }
-      }
-    },
-    '(.*)/post/:postId/edit': ({ routeParams }) => {
-      navigation.navigate('Edit Post', { id: routeParams.postId })
-    },
-    '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
-    },
-    '/:groupSlug(all)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Stream', { topicName })
-    },
-    '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Stream', { topicName })
-    },
-    '(.*)/chats/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Chat Room', { topicName })
-    },
-    '(.*)': () => {
-      openURL(pathname + search)
-    }
-  })
-}
-
-const handledWebRoutesJavascriptCreator = (handledWebRoutes) => {
-  const handledWebRoutesRegExps = handledWebRoutes.map(handledWebRoute => pathToRegexp(handledWebRoute))
-  const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
-
-  return `
-    window.addHyloWebViewListener = function (history) {
-      if (history) {
-        history.listen(({ location: { pathname, search } }) => {
-          const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
-          const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
-            return allowedRoutePathRegExp.test(pathname);
-          })
-
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: '${WebViewMessageTypes.NAVIGATION}',
-            data: { handled, pathname, search }
-          }))
-
-          history.back();
-        })
-      }
-    }
-  `
-}
 
 /* Should probably just be applied to Hylo Web stylesheet 
   as what this solves is not necessarily WebView specific, 
@@ -109,30 +37,21 @@ const baseCustomStyle = `
 `
 
 const HyloWebView = React.forwardRef(({
-  handledWebRoutes = [],
   messageHandler,
-  nativeRouteHandler: nativeRouteHandlerProp,
   path: pathProp,
   style,
   source,
   customStyle: providedCustomStyle = '',
-  enablePullToRefresh = false,
   enableScrolling = false,
-  onRefresh,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
-  const { isAuthenticated, isAuthorized, checkAuth, logout } = useAuth()
-  const openURL = useOpenURL()
-  const [, queryCurrentUser] = useCurrentUser()
-  const { setCurrentGroupSlug } = useCurrentGroupStore()
+  const { isAuthenticated, logout } = useAuth()
 
   // Debug logging for webview URI construction
   if (__DEV__) {
@@ -179,6 +98,15 @@ const HyloWebView = React.forwardRef(({
       const getCookieAsync = async () => {
         try {
           const newCookie = await getSessionCookie()
+          // Populate the WebView's native cookie jar BEFORE calling setCookie().
+          // setCookie() makes `cookie` truthy which immediately renders the WebView
+          // and starts loading. If we populate the jar after, there's a race where
+          // the web app mounts and fires XHR calls before the Android CookieManager
+          // has the session cookie, causing a 401 → redirect → ONE visible restart.
+          // sharedCookiesEnabled is iOS-only so this is especially important on Android.
+          if (newCookie) {
+            await ensureWebViewCookies()
+          }
           setCookie(newCookie)
         } catch (error) {
           // Cookie retrieval failed - will trigger native logout after debounce
@@ -202,67 +130,10 @@ const HyloWebView = React.forwardRef(({
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
-    const { type, data } = parsedMessage
+    const { type } = parsedMessage
 
-    switch (type) {
-      // DEPRECATED: NAVIGATION message type no longer used
-      // Web app now handles all navigation internally
-      // Kept commented for reference in case we need to revisit
-      /*
-      case WebViewMessageTypes.NAVIGATION: {
-        if (nativeRouteHandler) {
-          const { handled, pathname, search } = data
-
-          if (!handled) {
-            const nativeRouteHandlers = nativeRouteHandler({ pathname, search })
-            const searchParams = queryString.parse(search)
-
-            for (const pathMatcher in nativeRouteHandlers) {
-              const matched = match(pathMatcher)(pathname)
-
-              if (matched) {
-                nativeRouteHandlers[pathMatcher]({
-                  routeParams: matched.params,
-                  pathname,
-                  search,
-                  searchParams
-                })
-                break
-              }
-            }
-          }
-        }
-        break
-      }
-      */
-      
-      // DEPRECATED: GROUP_DELETED message type no longer used
-      // Web app now handles group deletion navigation
-      // Kept commented for reference in case we need native notification
-      /*
-      case WebViewMessageTypes.GROUP_DELETED: {
-        // Handle group deletion from webview
-        if (data?.groupSlug) {
-          console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
-          
-          // Set current group to 'my' to clear the deleted group slug
-          setCurrentGroupSlug('my')
-          
-          // Refresh current user data to update memberships
-          queryCurrentUser({ requestPolicy: 'network-only' })
-          
-          // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
-          openURL('/groups/my/no-context-fallback')
-        }
-        break
-      }
-      */
-      
-      default:
-        // Log unknown message types in development for debugging
-        if (__DEV__ && type) {
-          console.log('📱 Unhandled WebView message type:', type, data)
-        }
+    if (__DEV__ && type) {
+      console.log('📱 Unhandled WebView message type:', type)
     }
 
     messageHandler && messageHandler(parsedMessage)
@@ -281,12 +152,10 @@ const HyloWebView = React.forwardRef(({
 
   return (
     <AutoHeightWebView
-      customScript={`
-        window.HyloWebView = true;
-        window.HyloMobileV2 = true;
-        ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
-
-      `}
+      // Must run before page JS so window.HyloMobileV2 is visible when the web app's
+      // router initialises. Must end with `true` to avoid an Android WebView crash.
+      injectedJavaScriptBeforeContentLoaded='window.HyloWebView=true;window.HyloMobileV2=true;true;'
+      customScript=''
       customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}
@@ -294,28 +163,6 @@ const HyloWebView = React.forwardRef(({
       hideKeyboardAccessoryView
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
-      /*
-
-      // NOTE: The following is deprecated in favor of listening for the WebView
-      // post message type `WebViewMessageTypes.NAVIGATION` in combination with
-      // overriding HyloWeb navigation events in HyloWeb when `window.ReactNativeWebView`
-      // is true.
-
-      onShouldStartLoadWithRequest={params => {
-        const { url } = params
-
-        // Opens full URLs in external browser if not the
-        // initial URI specified on load of the WebView
-        if (url === uri) return true
-        if (url !== uri && url.slice(0, 4) === 'http') {
-          Linking.openURL(url)
-          return false
-        }
-
-        return onShouldStartLoadWithRequest(params)
-      }}
-
-      */
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
