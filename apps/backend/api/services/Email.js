@@ -43,12 +43,12 @@ const sendEmailWithOptions = curry((templateId, opts) => {
     sender: opts.sender, // expects {name, reply_to}
     files: opts.files
   })
-  
+
   // Only include version_name if provided (SendWithUs will use most recent published version if not specified)
   if (opts.version) {
     emailOpts.version_name = opts.version
   }
-  
+
   return sendEmail(emailOpts)
 })
 
@@ -119,6 +119,84 @@ module.exports = {
   sendFundingRoundNewSubmissionEmail: sendEmailWithOptions('tem_dMt4Dwm493JvYdXGWBpTxxR7'),
   sendFundingRoundPhaseTransitionEmail: sendEmailWithOptions('tem_RpRYTwYhTpRmy3Y6tcrCGMwB'),
   sendFundingRoundReminderEmail: sendEmailWithOptions('tem_RpRYTwYhTpRmy3Y6tcrCGMwB'),
+
+  /**
+   * Sends a plain-text alert to the Hylo stewards email (NEW_GROUP_EMAIL) about a Stripe
+   * dispute or refund threshold being exceeded for a connected group.
+   *
+   * Uses the generic raw-email template so we control the full subject + body.
+   *
+   * @param {object} opts
+   * @param {string} opts.groupName
+   * @param {string} opts.groupSlug
+   * @param {string} opts.groupUrl
+   * @param {string} opts.stripeAccountId - External Stripe account ID (acct_...)
+   * @param {string} opts.stripeDashboardUrl
+   * @param {string} opts.alertType - One of: dispute_rate_warning, dispute_rate_critical, dispute_spike
+   * @param {string} opts.thresholdTriggered - Human-readable threshold label
+   * @param {number} opts.disputeCount90d
+   * @param {number} opts.disputeCount7d
+   * @param {number} opts.refundCount90d
+   * @param {number} opts.totalCharges90d
+   * @param {number|null} opts.disputeRate90d - Rate as decimal e.g. 0.0082 for 0.82%
+   */
+  sendStripeAlertEmail: function (opts) {
+    const recipient = process.env.NEW_GROUP_EMAIL
+    if (!recipient) return Promise.resolve(false)
+
+    const rateDisplay = opts.disputeRate90d != null
+      ? `${(opts.disputeRate90d * 100).toFixed(2)}%`
+      : 'N/A'
+
+    const subject = `[Hylo Alert] Stripe ${opts.thresholdTriggered} — Group: ${opts.groupName}`
+
+    const body = `A Stripe alert threshold has been triggered for a group on Hylo. Details below.
+
+WHY THIS MATTERS
+----------------
+Stripe monitors dispute rates for connected accounts and can suspend or terminate accounts that
+exceed their thresholds (warning at 0.75%, critical at 1.0%). A sudden spike in disputes or
+refunds may also indicate that a group is misusing the platform — for example by selling
+access to content that doesn't match expectations, misleading members, or operating in a way
+that's generating buyer complaints.
+
+THRESHOLD TRIGGERED
+-------------------
+${opts.thresholdTriggered}
+
+GROUP DETAILS
+-------------
+Name:              ${opts.groupName}
+Slug:              ${opts.groupSlug}
+URL:               ${opts.groupUrl}
+Stripe Account ID: ${opts.stripeAccountId}
+Stripe Dashboard:  ${opts.stripeDashboardUrl}
+
+STATS (last 90 days unless noted)
+----------------------------------
+Total charges:      ${opts.totalCharges90d ?? 'N/A'}
+Disputes (90d):     ${opts.disputeCount90d ?? 'N/A'}
+Dispute rate (90d): ${rateDisplay}
+Disputes (7d):      ${opts.disputeCount7d ?? 'N/A'}
+Refunds (90d):      ${opts.refundCount90d ?? 'N/A'}
+
+RECOMMENDED NEXT STEPS
+-----------------------
+1. Review the group's Stripe dashboard (link above) for dispute details and evidence requirements.
+2. Check the group's offerings and recent activity on Hylo for any policy violations.
+3. If disputes appear fraudulent or the rate is very high, pause the group's sales in
+   Hylo Management > Paid Content > Disputes & Refunds until you've spoken with stewards.
+4. Reach out to the group stewards directly to understand what's happening.
+
+This alert will not repeat for this group for 24 hours.`
+
+    return sendSimpleEmail(recipient, 'tem_jFYJ3bxMyfbbtbwgDGS4JGfK', { subject, body }, {
+      sender: {
+        name: 'Hylo Platform Alerts',
+        address: 'dev+bot@hylo.com'
+      }
+    })
+  },
 
   // Paid content email templates
   sendPurchaseConfirmation: sendEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),

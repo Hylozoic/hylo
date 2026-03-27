@@ -506,6 +506,9 @@ module.exports = {
       if (!stripeAccountId) {
         throw new GraphQLError('Group does not have a Stripe account configured')
       }
+      if (group.get('stripe_sales_paused')) {
+        throw new GraphQLError('This group cannot accept payments right now. Please contact the group stewards.')
+      }
 
       // Get the Stripe price ID from the offering
       const stripePriceId = offering.get('stripe_price_id')

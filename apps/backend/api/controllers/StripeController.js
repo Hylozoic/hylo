@@ -17,6 +17,191 @@ const { getLocaleStrings } = require('../../lib/i18n/locales')
 
 /* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
 
+const Email = require('../services/Email')
+
+// Dispute rate thresholds matching Stripe's own early-warning and critical levels
+const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
+const DISPUTE_RATE_CRITICAL_THRESHOLD = 0.01 // 1.0% — Stripe serious risk
+const DISPUTE_SPIKE_WINDOW_DAYS = 7
+const DISPUTE_SPIKE_COUNT = 20
+const ALERT_COOLDOWN_HOURS = 24
+const STRIPE_LOG_TYPES = {
+  REFUND: 'refund',
+  DISPUTE: 'dispute',
+  ALERT: 'alert'
+}
+
+/**
+ * Looks up the internal StripeAccount row and linked Group for a given Stripe Connect account ID.
+ *
+ * @param {string} connectedAccountId - External Stripe account ID (acct_...)
+ * @returns {Promise<{ stripeAccountRow, group }|null>}
+ */
+async function findGroupForConnectedAccount (connectedAccountId) {
+  if (!connectedAccountId) return null
+  const stripeAccountRow = await StripeAccount.where({ stripe_account_external_id: connectedAccountId }).fetch()
+  if (!stripeAccountRow) return null
+  const group = await Group.where({ stripe_account_id: stripeAccountRow.id }).fetch()
+  if (!group) return null
+  return { stripeAccountRow, group }
+}
+
+/**
+ * Computes current dispute/refund stats for a group and sends alert emails for any thresholds
+ * that are newly exceeded and not on cooldown.
+ *
+ * @param {number} groupId
+ * @param {object} group - Bookshelf Group model instance
+ * @param {object} stripeAccountRow - Bookshelf StripeAccount model instance
+ */
+async function checkAndSendDisputeAlerts (groupId, group, stripeAccountRow) {
+  const now = new Date()
+  const cutoff90d = new Date(now - 90 * 24 * 60 * 60 * 1000)
+  const cutoff7d = new Date(now - DISPUTE_SPIKE_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+
+  const [disputeCount90d, disputeCount7d, refundCount90d, totalCharges90d] = await Promise.all([
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.DISPUTE })
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.DISPUTE })
+      .where('created_at', '>', cutoff7d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.REFUND })
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    // Proxy for total charges: paid content_access records created in last 90d
+    bookshelf.knex('content_access')
+      .where({ group_id: groupId })
+      .whereNotIn('status', ['cancelled'])
+      .whereNotNull('stripe_customer_id')
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10))
+  ])
+
+  const disputeRate90d = totalCharges90d > 0 ? disputeCount90d / totalCharges90d : 0
+
+  const baseAlertLog = {
+    group_id: groupId,
+    stripe_account_id: stripeAccountRow.id,
+    log_type: STRIPE_LOG_TYPES.ALERT,
+    metadata: {
+      dispute_count_90d: disputeCount90d,
+      refund_count_90d: refundCount90d,
+      dispute_count_7d: disputeCount7d,
+      total_charges_90d: totalCharges90d,
+      dispute_rate_90d: disputeRate90d
+    }
+  }
+
+  const emailOpts = {
+    groupName: group.get('name'),
+    groupSlug: group.get('slug'),
+    groupUrl: Frontend.Route.group(group),
+    stripeAccountId: stripeAccountRow.get('stripe_account_external_id'),
+    stripeDashboardUrl: group.stripeDashboardUrl ? group.stripeDashboardUrl() : '',
+    disputeCount90d,
+    disputeCount7d,
+    refundCount90d,
+    totalCharges90d,
+    disputeRate90d
+  }
+
+  async function isAlertOnCooldown (alertType) {
+    const cutoff = new Date(Date.now() - ALERT_COOLDOWN_HOURS * 60 * 60 * 1000)
+    const row = await bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.ALERT, alert_type: alertType })
+      .where('created_at', '>', cutoff)
+      .first()
+    return !!row
+  }
+
+  // Check each threshold independently with its own cooldown
+  if (disputeRate90d >= DISPUTE_RATE_CRITICAL_THRESHOLD) {
+    const alertType = 'dispute_rate_critical'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute rate critical — ${(disputeRate90d * 100).toFixed(2)}% exceeds Stripe's 1.0% threshold`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  } else if (disputeRate90d >= DISPUTE_RATE_WARNING_THRESHOLD) {
+    const alertType = 'dispute_rate_warning'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute rate warning — ${(disputeRate90d * 100).toFixed(2)}% exceeds Stripe's 0.75% early-warning threshold`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  }
+
+  if (disputeCount7d >= DISPUTE_SPIKE_COUNT) {
+    const alertType = 'dispute_spike'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute spike — ${disputeCount7d} disputes in the last ${DISPUTE_SPIKE_WINDOW_DAYS} days (threshold: ${DISPUTE_SPIKE_COUNT})`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  }
+}
+
+async function insertStripeLog (row) {
+  try {
+    await bookshelf.knex('stripe_logs').insert(row)
+  } catch (e) {
+    if (e.code !== '23505') throw e
+  }
+}
+
+async function upsertDisputeLog ({ groupId, stripeAccountId, dispute }) {
+  const existing = await bookshelf.knex('stripe_logs')
+    .where({ log_type: STRIPE_LOG_TYPES.DISPUTE, external_id: dispute.id })
+    .first()
+  if (existing) {
+    await bookshelf.knex('stripe_logs')
+      .where({ id: existing.id })
+      .update({
+        status: dispute.status,
+        reason: dispute.reason || null,
+        amount: dispute.amount,
+        currency: dispute.currency || 'usd',
+        charge_id: dispute.charge,
+        updated_at: new Date()
+      })
+    return
+  }
+
+  if (!groupId || !stripeAccountId) return
+
+  await insertStripeLog({
+    group_id: groupId,
+    stripe_account_id: stripeAccountId,
+    log_type: STRIPE_LOG_TYPES.DISPUTE,
+    external_id: dispute.id,
+    charge_id: dispute.charge,
+    amount: dispute.amount,
+    currency: dispute.currency || 'usd',
+    reason: dispute.reason || null,
+    status: dispute.status,
+    metadata: {}
+  })
+}
+
 /**
  * Request options for Stripe API calls when the webhook is for a Connect connected account.
  *
@@ -446,6 +631,18 @@ module.exports = {
 
         case 'charge.refunded':
           await handlers.handleChargeRefunded(event)
+          break
+
+        case 'charge.dispute.created':
+          await handlers.handleDisputeCreated(event)
+          break
+
+        case 'charge.dispute.updated':
+          await handlers.handleDisputeUpdated(event)
+          break
+
+        case 'charge.dispute.closed':
+          await handlers.handleDisputeClosed(event)
           break
 
         default:
@@ -2359,8 +2556,110 @@ module.exports = {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
       }
+
+      // Write an analytics/log record for this refund
+      const connectedResult = await findGroupForConnectedAccount(connectedAccountId)
+      if (connectedResult) {
+        const { stripeAccountRow, group } = connectedResult
+        const primaryAccess = accessRecords[0]
+        await insertStripeLog({
+          group_id: group.id,
+          stripe_account_id: stripeAccountRow.id,
+          log_type: STRIPE_LOG_TYPES.REFUND,
+          external_id: charge.id,
+          charge_id: charge.id,
+          content_access_id: primaryAccess ? primaryAccess.id : null,
+          amount: charge.amount_refunded || charge.amount,
+          currency: charge.currency || 'usd',
+          reason: charge.refunds?.data?.[0]?.reason || null,
+          metadata: {}
+        })
+      }
     } catch (error) {
       console.error('Error handling charge.refunded:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.created webhook events.
+   * Records the dispute and checks alert thresholds.
+   */
+  handleDisputeCreated: async function (event) {
+    try {
+      const dispute = event.data.object
+      const connectedAccountId = event.account
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute created: ${dispute.id} on account: ${connectedAccountId || 'platform'}`)
+      }
+
+      const connectedResult = await findGroupForConnectedAccount(connectedAccountId)
+      if (!connectedResult) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No group found for connected account ${connectedAccountId}, skipping dispute record`)
+        }
+        return
+      }
+
+      const { stripeAccountRow, group } = connectedResult
+
+      await upsertDisputeLog({
+        stripeAccountId: stripeAccountRow.id,
+        groupId: group.id,
+        dispute
+      })
+
+      // Check thresholds and fire alert emails if needed
+      await checkAndSendDisputeAlerts(group.id, group, stripeAccountRow)
+    } catch (error) {
+      console.error('Error handling charge.dispute.created:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.updated webhook events.
+   * Updates the dispute status in our records.
+   */
+  handleDisputeUpdated: async function (event) {
+    try {
+      const dispute = event.data.object
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute updated: ${dispute.id} status: ${dispute.status}`)
+      }
+
+      await upsertDisputeLog({
+        stripeAccountId: null,
+        groupId: null,
+        dispute
+      })
+    } catch (error) {
+      console.error('Error handling charge.dispute.updated:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.closed webhook events.
+   * Updates the final dispute status (won/lost/charge_refunded).
+   */
+  handleDisputeClosed: async function (event) {
+    try {
+      const dispute = event.data.object
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute closed: ${dispute.id} outcome: ${dispute.status}`)
+      }
+
+      await upsertDisputeLog({
+        stripeAccountId: null,
+        groupId: null,
+        dispute
+      })
+    } catch (error) {
+      console.error('Error handling charge.dispute.closed:', error)
       throw error
     }
   },
