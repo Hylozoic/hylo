@@ -144,7 +144,7 @@ export default function ContextMenu (props) {
   useEffect(() => {
     if (isEditing) {
       const element = document.querySelector('.ContextMenu')
-      element.scrollTop = element.scrollHeight
+      if (element) element.scrollTop = element.scrollHeight
     }
   }, [isEditing])
 
@@ -217,8 +217,7 @@ export default function ContextMenu (props) {
   }, [])
 
   // One-column layout: hide the sidebar context menu entirely (dashboard renders in center column)
-  // Exception: show normal ContextMenu when in edit mode (cme=yes) or settings
-  if (isOneColumnLayout && !location.pathname.includes('/settings') && !isEditing) {
+  if (isOneColumnLayout && !location.pathname.includes('/settings')) {
     return null
   }
 

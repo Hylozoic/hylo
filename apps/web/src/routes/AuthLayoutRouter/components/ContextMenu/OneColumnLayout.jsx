@@ -1,23 +1,36 @@
 import { cn, bgImageStyle } from 'util/index'
-import { Bell, Settings, Users, Copy, ExternalLink } from 'lucide-react'
-import React, { useMemo, useState, useEffect } from 'react'
+import { Bell, Settings, Users, Copy, ExternalLink, GripHorizontal, Plus, Pencil, Trash, House, X, Grid3x3 } from 'lucide-react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
+import {
+  DndContext,
+  DragOverlay,
+  useDroppable,
+  useDraggable,
+  closestCorners
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import ContextWidgetPresenter, {
   orderContextWidgetsForContextMenu,
   allViewsWidget,
   isHiddenInContextMenuResolver,
-  COMMON_VIEWS
+  COMMON_VIEWS,
+  translateTitle
 } from '@hylo/presenters/ContextWidgetPresenter'
 import { widgetUrl, groupUrl, currentUserSettingsUrl, postUrl, chatUrl, addQuerystringToPath } from '@hylo/navigation'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import WidgetIconResolver from 'components/WidgetIconResolver'
+import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
+import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
 import fetchPosts from 'store/actions/fetchPosts'
 import { fetchGroupMembers } from 'routes/Members/Members.store'
+import { updateContextWidget, removeWidgetFromMenu, setHomeWidget } from 'store/actions/contextWidgets'
 import getMe from 'store/selectors/getMe'
 
 function useRecentPosts ({ widget, groupSlug }) {
@@ -66,7 +79,6 @@ function useRecentPosts ({ widget, groupSlug }) {
     dispatch(fetchPosts(params)).then(result => {
       const items = result?.payload?.data?.group?.posts?.items || []
       const total = result?.payload?.data?.group?.posts?.total || 0
-      // Chat posts come newest-first but should display oldest-first (bottom = newest)
       setPosts(isChat ? [...items].reverse() : items)
       setTotalCount(total)
     }).catch(() => {})
@@ -100,7 +112,149 @@ function isUserOnline (lastActiveAt) {
   return new Date(parseInt(lastActiveAt)) > new Date(Date.now() - minute * 4)
 }
 
-function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
+// Drop zone between cards
+function CardDropZone ({ droppableParams, isRemoval, children }) {
+  const { setNodeRef, isOver } = useDroppable(droppableParams)
+
+  if (isRemoval) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={cn(
+          'w-full rounded-lg border-2 border-dashed p-3 text-center text-sm transition-all',
+          isOver ? 'bg-destructive/30 border-destructive' : 'bg-destructive/10 border-foreground/30'
+        )}
+      >
+        {children}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'transition-all duration-200 rounded-lg',
+        isOver ? 'h-[60px] bg-selected/30 border-2 border-dashed border-selected' : 'h-0'
+      )}
+    />
+  )
+}
+
+// Action buttons for editing a card
+function CardActionMenu ({ widget, group, dispatch, navigate, t }) {
+  const handleRemove = useCallback((e) => {
+    e.stopPropagation()
+    if (window.confirm(t('Are you sure you want to remove {{name}} from the menu?', { name: translateTitle(widget.title, t) }))) {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: widget.id, groupId: group.id }))
+    }
+  }, [widget.id, group.id])
+
+  const handleSetHome = useCallback((e) => {
+    e.stopPropagation()
+    if (window.confirm(t('Set this as the default home view for this group?'))) {
+      dispatch(setHomeWidget({ contextWidgetId: widget.id, groupId: group.id }))
+    }
+  }, [widget.id, group.id])
+
+  return (
+    <div className='absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10'>
+      {widget.isDeletable && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={handleRemove} className='p-1 rounded hover:bg-foreground/10'>
+              <Trash className='w-3.5 h-3.5 text-foreground/50' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Remove from Menu')}</TooltipContent>
+        </Tooltip>
+      )}
+      {widget.isValidHomeWidget && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={handleSetHome} className='p-1 rounded hover:bg-foreground/10'>
+              <House className='w-3.5 h-3.5 text-foreground/50' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Set as Home View')}</TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
+function AddExistingViewModal ({ open, onClose, contextWidgets, group, parentId, dispatch, t }) {
+  const availableWidgets = useMemo(() => {
+    return contextWidgets
+      .filter(w => !w.order && w.id)
+      .map(w => ({ ...w, title: w.title?.startsWith('widget-') ? t(w.title) : w.title }))
+      .sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+  }, [contextWidgets, t])
+
+  const handleAdd = useCallback((widget) => {
+    dispatch(updateContextWidget({
+      contextWidgetId: widget.id,
+      groupId: group.id,
+      data: { parentId: parentId || null, addToEnd: true }
+    }))
+    onClose()
+  }, [group?.id, parentId, onClose])
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className='max-w-[450px] max-h-[80vh] overflow-y-auto'>
+        <DialogTitle>{t('Add Existing View')}</DialogTitle>
+        {availableWidgets.length === 0
+          ? <p className='text-sm text-foreground/50 py-4 text-center'>{t('All views have been added to the menu')}</p>
+          : (
+            <div className='flex flex-col gap-1'>
+              {availableWidgets.map(widget => (
+                <button
+                  key={widget.id}
+                  onClick={() => handleAdd(widget)}
+                  className='flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-foreground/10 transition-colors text-left w-full'
+                >
+                  <span className='text-foreground/60 [&>svg]:w-5 [&>svg]:h-5 shrink-0'>
+                    <WidgetIconResolver widget={widget} />
+                  </span>
+                  <span className='text-sm text-foreground flex-1 truncate'>{widget.title}</span>
+                  <Plus className='w-4 h-4 text-foreground/30 shrink-0' />
+                </button>
+              ))}
+            </div>
+            )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AddViewCard ({ parentId, handlePositionedAdd, onShowAllViews, t, isChatSection }) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-foreground/20',
+        'p-4 gap-3 w-full max-w-[300px] min-h-[100px]'
+      )}
+    >
+      <button
+        onClick={() => handlePositionedAdd({ addToEnd: true, parentId })}
+        className='flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground/50 hover:text-foreground/70 transition-all'
+      >
+        <Plus className='w-3.5 h-3.5' />
+        {isChatSection ? t('Add new chat') : t('Add new view')}
+      </button>
+      <button
+        onClick={() => onShowAllViews(parentId)}
+        className='flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-xs text-foreground/50 hover:text-foreground/70 transition-all'
+      >
+        <Grid3x3 className='w-3.5 h-3.5' />
+        {t('Add existing view')}
+      </button>
+    </div>
+  )
+}
+
+function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group, dispatch }) {
   const url = widgetUrl({ widget, groupSlug, context: 'group' })
   const title = widget.title?.startsWith('widget-') ? t(widget.title) : widget.title
   const externalLink = widget.customView?.externalLink || widget.url
@@ -111,7 +265,12 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
   const members = useMembers({ widget, groupSlug, groupId })
   const isMembers = widget.type === 'members'
 
+  const canDrag = isEditing && widget.type !== 'home' && widget.type !== 'all-views'
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: widget.id, disabled: !canDrag })
+  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1 } : undefined
+
   const handleClick = () => {
+    if (isEditing) return
     if (isExternal && externalLink) {
       window.open(externalLink, '_blank', 'noopener,noreferrer')
     } else if (url) {
@@ -128,13 +287,22 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       onClick={handleClick}
       className={cn(
-        'flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50 hover:border-foreground/30',
-        'hover:shadow-md transition-all cursor-pointer p-4 gap-2',
-        'w-full max-w-[300px] min-h-[100px]'
+        'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50',
+        'transition-all p-4 gap-2 w-full max-w-[300px] min-h-[100px]',
+        isEditing ? 'cursor-grab' : 'cursor-pointer hover:border-foreground/30 hover:shadow-md'
       )}
     >
+      {isEditing && <CardActionMenu widget={widget} group={group} dispatch={dispatch} navigate={navigate} t={t} />}
+      {canDrag && (
+        <div {...listeners} {...attributes} className='absolute top-1 left-1 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab p-1'>
+          <GripHorizontal className='w-4 h-4 text-foreground/50' />
+        </div>
+      )}
+
       <div className='flex flex-col items-center gap-1 text-center'>
         <span className='text-foreground/60 [&>svg]:w-8 [&>svg]:h-8'>
           <WidgetIconResolver widget={widget} />
@@ -142,7 +310,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
         <h3 className='text-base font-semibold text-foreground line-clamp-2'>{title}</h3>
       </div>
 
-      {isExternal && externalLink && (
+      {!isEditing && isExternal && externalLink && (
         <div className='flex flex-col gap-2 mt-1'>
           <div className='flex items-center gap-1.5 bg-foreground/5 rounded-lg px-2 py-1.5'>
             <span className='truncate text-xs text-foreground/50 flex-1'>{copied ? t('Copied to clipboard') : externalLink}</span>
@@ -164,7 +332,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
         </div>
       )}
 
-      {isMembers && members.length > 0 && (
+      {!isEditing && isMembers && members.length > 0 && (
         <div className='flex flex-col gap-1.5 mt-1'>
           {members.map(member => (
             <div
@@ -189,7 +357,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
         </div>
       )}
 
-      {!isExternal && !isMembers && posts.length > 0 && (
+      {!isEditing && !isExternal && !isMembers && posts.length > 0 && (
         <div className='flex flex-col gap-1.5 mt-1'>
           {posts.map(post => {
             const postLink = widget.viewChat
@@ -225,7 +393,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t }) {
   )
 }
 
-function WidgetSection ({ widget, groupSlug, groupId, navigate, t }) {
+function WidgetSection ({ widget, groupSlug, groupId, navigate, t, isEditing, group, dispatch, handlePositionedAdd, onShowAllViews }) {
   const title = widget.title?.startsWith('widget-') ? t(widget.title) : widget.title
   const childItems = widget.childWidgets || []
 
@@ -234,15 +402,34 @@ function WidgetSection ({ widget, groupSlug, groupId, navigate, t }) {
       <h2 className='text-base font-semibold text-foreground/70 mb-3 px-1'>{title}</h2>
       <div className='flex flex-wrap gap-3'>
         {childItems.map(child => (
-          <WidgetCard
-            key={child.id}
-            widget={child}
-            groupSlug={groupSlug}
-            groupId={groupId}
-            navigate={navigate}
-            t={t}
-          />
+          <React.Fragment key={child.id}>
+            {isEditing && (
+              <CardDropZone droppableParams={{ id: `before-${child.id}`, data: { widget: child, parentWidget: widget, parentId: widget.id } }} />
+            )}
+            <WidgetCard
+              widget={child}
+              groupSlug={groupSlug}
+              groupId={groupId}
+              navigate={navigate}
+              t={t}
+              isEditing={isEditing}
+              group={group}
+              dispatch={dispatch}
+            />
+          </React.Fragment>
         ))}
+        {isEditing && (
+          <>
+            <CardDropZone droppableParams={{ id: `end-of-${widget.id}`, data: { addToEnd: true, parentId: widget.id } }} />
+            <AddViewCard
+              parentId={widget.id}
+              handlePositionedAdd={handlePositionedAdd}
+              onShowAllViews={onShowAllViews}
+              t={t}
+              isChatSection={widget.type === 'chats'}
+            />
+          </>
+        )}
       </div>
     </div>
   )
@@ -252,9 +439,11 @@ export default function OneColumnLayout ({ group }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  const dispatch = useDispatch()
   const groupSlug = group?.slug
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+  const isEditing = getQuerystringParam('cme', location) === 'yes' && canAdminister
 
   const rawContextWidgets = useSelector(state => getContextWidgets(state, group))
 
@@ -263,13 +452,154 @@ export default function OneColumnLayout ({ group }) {
   }, [rawContextWidgets])
 
   const orderedWidgets = useMemo(() => {
-    return orderContextWidgetsForContextMenu(contextWidgets)
-      .filter(w => !isHiddenInContextMenuResolver(w))
-  }, [contextWidgets])
+    const widgets = orderContextWidgetsForContextMenu(contextWidgets)
+    return isEditing ? widgets : widgets.filter(w => !isHiddenInContextMenuResolver(w))
+  }, [contextWidgets, isEditing])
 
   const bannerUrl = group?.bannerUrl || DEFAULT_BANNER
   const avatarUrl = group?.avatarUrl || DEFAULT_AVATAR
   const isDefaultAvatar = avatarUrl === DEFAULT_AVATAR
+
+  // DnD state
+  const [activeWidget, setActiveWidget] = useState(null)
+  const [allViewsModalParentId, setAllViewsModalParentId] = useState(null)
+  const showAllViewsModal = allViewsModalParentId !== null
+
+  const handleDragStart = useCallback(({ active }) => {
+    const found = orderedWidgets.find(w => w.id === active.id) ||
+      orderedWidgets.flatMap(w => w.childWidgets || []).find(w => w.id === active.id) ||
+      contextWidgets.find(w => w.id === active.id)
+    setActiveWidget(found)
+  }, [orderedWidgets, contextWidgets])
+
+  const handleDragEnd = useCallback((event) => {
+    const { active, over } = event
+    if (over && over.id !== active.id && over.id !== 'remove') {
+      const orderInFrontOfWidget = over.data?.current?.addToEnd ? null : over.data?.current?.widget
+      dispatch(updateContextWidget({
+        contextWidgetId: active.id,
+        groupId: group.id,
+        data: {
+          orderInFrontOfWidgetId: orderInFrontOfWidget?.id,
+          parentId: over.data.current?.widget?.parentId || over.data?.current?.parentId,
+          addToEnd: over.data?.current?.addToEnd
+        }
+      }))
+    }
+    if (over && over.id === 'remove') {
+      dispatch(removeWidgetFromMenu({ contextWidgetId: active.id, groupId: group.id }))
+    }
+    setActiveWidget(null)
+  }, [group?.id])
+
+  const handleDragCancel = useCallback(() => {
+    setActiveWidget(null)
+  }, [])
+
+  const handlePositionedAdd = useCallback(({ widget, addToEnd, parentId }) => {
+    navigate(addQuerystringToPath(location.pathname, {
+      addview: 'yes',
+      cme: 'yes',
+      parentId: parentId || widget?.parentId,
+      orderInFrontOfWidgetId: widget?.id || null
+    }))
+  }, [location.pathname])
+
+  const toggleEditing = useCallback(() => {
+    if (isEditing) {
+      // Remove cme param
+      const params = new URLSearchParams(location.search)
+      params.delete('cme')
+      params.delete('addview')
+      params.delete('parentId')
+      params.delete('orderInFrontOfWidgetId')
+      const newSearch = params.toString()
+      navigate(`${location.pathname}${newSearch ? `?${newSearch}` : ''}`)
+    } else {
+      navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))
+    }
+  }, [isEditing, location])
+
+  const cardGrid = (
+    <div className='flex flex-col gap-6'>
+      {/* Removal drop zone */}
+      {isEditing && activeWidget && (
+        <CardDropZone droppableParams={{ id: 'remove' }} isRemoval>
+          {t('Drag here to remove from menu')}
+        </CardDropZone>
+      )}
+
+      {/* Standalone cards (no children) */}
+      {orderedWidgets.some(w => !w.childWidgets?.length) && (
+        <div className='flex flex-wrap gap-3'>
+          {orderedWidgets
+            .filter(w => !w.childWidgets?.length)
+            .map(widget => (
+              <React.Fragment key={widget.id}>
+                {isEditing && (
+                  <CardDropZone droppableParams={{ id: `before-${widget.id}`, data: { widget } }} />
+                )}
+                <WidgetCard
+                  widget={widget}
+                  groupSlug={groupSlug}
+                  groupId={group?.id}
+                  navigate={navigate}
+                  t={t}
+                  isEditing={isEditing}
+                  group={group}
+                  dispatch={dispatch}
+                />
+              </React.Fragment>
+            ))}
+          {isEditing && (
+            <>
+              <CardDropZone droppableParams={{ id: 'end-of-standalone', data: { addToEnd: true } }} />
+              <AddViewCard
+                handlePositionedAdd={handlePositionedAdd}
+                onShowAllViews={(parentId) => setAllViewsModalParentId(parentId || '')}
+                t={t}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Sections (widgets with children) */}
+      {orderedWidgets
+        .filter(w => w.childWidgets?.length > 0)
+        .map(widget => (
+          <WidgetSection
+            key={widget.id}
+            widget={widget}
+            groupSlug={groupSlug}
+            groupId={group?.id}
+            navigate={navigate}
+            t={t}
+            isEditing={isEditing}
+            group={group}
+            dispatch={dispatch}
+            handlePositionedAdd={handlePositionedAdd}
+            onShowAllViews={(parentId) => setAllViewsModalParentId(parentId || '')}
+          />
+        ))}
+
+      {/* All Views card (non-editing) */}
+      {!isEditing && (
+        <div className='flex flex-wrap gap-3'>
+          <WidgetCard
+            widget={allViewsWidget}
+            groupSlug={groupSlug}
+            groupId={group?.id}
+            navigate={navigate}
+            t={t}
+            isEditing={false}
+            group={group}
+            dispatch={dispatch}
+          />
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className='OneColumnLayout w-full h-full overflow-y-auto'>
@@ -319,66 +649,67 @@ export default function OneColumnLayout ({ group }) {
         </div>
       </div>
 
-      {/* Widget Cards Grid */}
+      {/* Content area */}
       <div className='w-full max-w-[1000px] mx-auto px-4 py-6'>
-        <div className='flex flex-col gap-6'>
-          {/* Standalone cards (no children) at the top */}
-          {orderedWidgets.some(w => !w.childWidgets?.length) && (
-            <div className='flex flex-wrap gap-3'>
-              {orderedWidgets
-                .filter(w => !w.childWidgets?.length)
-                .map(widget => (
-                  <WidgetCard
-                    key={widget.id}
-                    widget={widget}
-                    groupSlug={groupSlug}
-                    groupId={group?.id}
-                    navigate={navigate}
-                    t={t}
-                  />
-                ))}
-            </div>
-          )}
+        {isEditing
+          ? (
+            <DndContext
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+              collisionDetection={closestCorners}
+            >
+              {cardGrid}
+              <DragOverlay dropAnimation={null}>
+                {activeWidget && (
+                  <div className='w-[300px] opacity-80 rotate-2'>
+                    <WidgetCard
+                      widget={activeWidget}
+                      groupSlug={groupSlug}
+                      groupId={group?.id}
+                      navigate={() => {}}
+                      t={t}
+                      isEditing
+                      group={group}
+                      dispatch={() => {}}
+                    />
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+            )
+          : cardGrid}
 
-          {/* Sections (widgets with children) */}
-          {orderedWidgets
-            .filter(w => w.childWidgets?.length > 0)
-            .map(widget => (
-              <WidgetSection
-                key={widget.id}
-                widget={widget}
-                groupSlug={groupSlug}
-                groupId={group?.id}
-                navigate={navigate}
-                t={t}
-              />
-            ))}
-
-          {/* All Views card */}
-          <div className='flex flex-wrap gap-3'>
-            <WidgetCard
-              widget={allViewsWidget}
-              groupSlug={groupSlug}
-              groupId={group?.id}
-              navigate={navigate}
-              t={t}
-            />
-          </div>
-        </div>
-
-        {/* Edit Menu button */}
+        {/* Edit / Done button */}
         {canAdminister && (
           <div className='flex justify-center mt-6'>
             <button
-              onClick={() => navigate(addQuerystringToPath(location.pathname, { cme: 'yes' }))}
-              className='flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 border-foreground/20 hover:border-foreground/40 text-sm text-foreground/60 hover:text-foreground/80 transition-all'
+              onClick={toggleEditing}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all',
+                isEditing
+                  ? 'border-selected bg-selected/10 text-selected hover:bg-selected/20'
+                  : 'border-foreground/20 hover:border-foreground/40 text-foreground/60 hover:text-foreground/80'
+              )}
             >
-              <Settings className='w-4 h-4' />
-              {t('Edit Menu')}
+              {isEditing
+                ? <><X className='w-4 h-4' /> {t('Done Editing')}</>
+                : <><Settings className='w-4 h-4' /> {t('Edit Menu')}</>}
             </button>
           </div>
         )}
       </div>
+
+      {/* Add Existing View Modal */}
+      <AddExistingViewModal
+        open={showAllViewsModal}
+        onClose={() => setAllViewsModalParentId(null)}
+        contextWidgets={contextWidgets}
+        group={group}
+        parentId={allViewsModalParentId || undefined}
+        dispatch={dispatch}
+        t={t}
+      />
     </div>
   )
 }
