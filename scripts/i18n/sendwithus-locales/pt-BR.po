@@ -1,3 +1,22 @@
+# Refund Processed template strings
+#, python-format
+msgid "Refund Processed: %(offering_name)s"
+msgstr "Reembolso processado: %(offering_name)s"
+
+msgid "Your refund has been processed successfully."
+msgstr "Seu reembolso foi processado com sucesso."
+
+msgid "We've issued a refund for your purchase of "
+msgstr "Emitimos um reembolso pela sua compra de "
+
+msgid "Refund amount:"
+msgstr "Valor do reembolso:"
+
+msgid "Refund date:"
+msgstr "Data do reembolso:"
+
+msgid "If you have any questions, reply to this email or contact"
+msgstr "Se você tiver alguma dúvida, responda a este e-mail ou entre em contato com"
 # Translation file for SendWithUs templates
 # Language: pt-BR
 # Generated automatically

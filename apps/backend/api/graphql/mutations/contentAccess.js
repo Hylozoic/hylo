@@ -13,6 +13,17 @@ const StripeService = require('../../services/StripeService')
 
 /* global ContentAccess, GroupMembership, User, Group, Responsibility, Track, StripeProduct, GroupRole, Frontend, StripeAccount */
 
+function formatCurrencyFromMinorUnits (amountMinor, currencyCode) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: (currencyCode || 'USD').toUpperCase()
+    }).format((amountMinor || 0) / 100)
+  } catch (e) {
+    return `${((amountMinor || 0) / 100).toFixed(2)} ${(currencyCode || 'USD').toUpperCase()}`
+  }
+}
+
 module.exports = {
 
   /**
@@ -607,6 +618,43 @@ module.exports = {
 
       // Refresh the access record to return current state
       await access.refresh()
+
+      // Send a refund confirmation email to the refunded member
+      try {
+        const refundedUser = await User.find(access.get('user_id'))
+        if (refundedUser && refundedUser.get('email')) {
+          const productId = access.get('product_id')
+          const product = productId ? await StripeProduct.find(productId) : null
+          const offeringName = product?.get('name') || 'Paid access'
+          const refundCurrency = (refund.currency || access.get('currency') || 'usd').toUpperCase()
+          const refundAmountFormatted = formatCurrencyFromMinorUnits(refund.amount, refundCurrency)
+          const refundDate = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+
+          await Email.sendRefundProcessed({
+            email: refundedUser.get('email'),
+            locale: refundedUser.getLocale(),
+            data: {
+              user_name: refundedUser.get('name') || refundedUser.get('email'),
+              offering_name: offeringName,
+              group_name: grantedByGroup.get('name'),
+              group_url: Frontend.Route.group(grantedByGroup),
+              refund_amount_formatted: refundAmountFormatted,
+              currency: refundCurrency,
+              refund_date: refundDate,
+              refund_reason: reason || null,
+              support_email: process.env.EMAIL_SENDER || 'help@hylo.com'
+            }
+          })
+        }
+      } catch (emailError) {
+        // Do not fail a successful refund if email delivery setup fails
+        console.error('Failed to send refund processed email:', emailError)
+      }
+
       return access
     } catch (error) {
       if (error instanceof GraphQLError) {
