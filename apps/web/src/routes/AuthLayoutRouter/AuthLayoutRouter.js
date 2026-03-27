@@ -12,6 +12,8 @@ import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
+import TopNav from './components/TopNav'
+import { useTheme } from 'contexts/ThemeContext'
 import NotFound from 'components/NotFound'
 import SocketListener from 'components/SocketListener'
 import SocketSubscriber from 'components/SocketSubscriber'
@@ -79,6 +81,8 @@ export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
+  const { navMode } = useTheme()
+  const isTabNav = navMode === 'tabs'
   const withoutNav = isLegacyWebView() || hideNavLayout
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
@@ -573,11 +577,16 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
-        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
+      <div className={cn('flex items-stretch bg-midground h-full', isTabNav ? 'flex-col' : 'flex-row', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+        {/* Top tab nav bar (when tab mode is active) */}
+        {isTabNav && !withoutNav && (
+          <TopNav currentUser={currentUser} />
+        )}
+
+        <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav || isTabNav, [classes.mainPad]: !withoutNav && !isTabNav })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
-          {!withoutNav && !isCreateGroupRoute && (
+          {!withoutNav && !isTabNav && !isCreateGroupRoute && (
             <div
               ref={setBackdropRef}
               className='sm:hidden fixed inset-0 z-[100] bg-black/50'
@@ -586,19 +595,23 @@ export default function AuthLayoutRouter (props) {
             />
           )}
           <div
-            ref={setNavContainerRef}
+            ref={isTabNav ? undefined : setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
-              'fixed left-0 top-0 z-[101] h-dvh w-full',
-              // Desktop: back in normal flow
-              'sm:relative sm:z-50 sm:h-full sm:w-auto',
-              'sm:max-w-420',
+              isTabNav
+                ? 'relative z-50 h-full w-auto'
+                : [
+                    // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+                    'fixed left-0 top-0 z-[101] h-dvh w-full',
+                    // Desktop: back in normal flow
+                    'sm:relative sm:z-50 sm:h-full sm:w-auto',
+                    'sm:max-w-420'
+                  ],
               // Hide nav on small screens for full-page Create Group flow
               { 'hidden sm:relative': isCreateGroupRoute }
             )}
           >
-            {!withoutNav && (
+            {!withoutNav && !isTabNav && (
               <>
                 <GlobalNav
                   group={currentGroup}

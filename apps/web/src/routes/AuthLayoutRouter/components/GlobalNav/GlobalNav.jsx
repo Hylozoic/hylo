@@ -120,11 +120,11 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
 const NotificationsDropdown = React.lazy(() => import('./NotificationsDropdown'))
 
 // Settings Menu Component
-function SettingsMenu ({ currentUser }) {
+function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', contentAlign = 'start' }) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, availableThemes } = useTheme()
+  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, availableThemes } = useTheme()
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
   const handleLogout = async () => {
@@ -183,11 +183,11 @@ function SettingsMenu ({ currentUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
-          <Settings className='w-7 h-7 sm:w-6 sm:h-6' />
+        <span className={triggerClassName || cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
+          <Settings className={triggerClassName ? 'w-5 h-5' : 'w-7 h-7 sm:w-6 sm:h-6'} />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side='right' align='start' className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
+      <DropdownMenuContent side={contentSide} align={contentAlign} className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className='mr-2 h-4 w-4' />
           <span>{t('Logout')}</span>
@@ -229,6 +229,16 @@ function SettingsMenu ({ currentUser }) {
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value='dark'>
                 {t('Dark')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Navigation')}</div>
+            <DropdownMenuRadioGroup value={navMode} onValueChange={setNavMode}>
+              <DropdownMenuRadioItem value='sidebar'>
+                {t('Sidebar')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='tabs'>
+                {t('Tabs')}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
@@ -925,4 +935,4 @@ export default function GlobalNav (props) {
   )
 }
 
-export { GlobalNavTooltipContainer }
+export { GlobalNavTooltipContainer, SettingsMenu }

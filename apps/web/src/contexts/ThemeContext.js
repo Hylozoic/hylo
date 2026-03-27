@@ -7,6 +7,7 @@ const ThemeContext = createContext()
 
 const THEME_STORAGE_KEY = 'hylo-theme'
 const COLOR_SCHEME_STORAGE_KEY = 'hylo-color-scheme'
+const NAV_MODE_STORAGE_KEY = 'hylo-nav-mode'
 
 // Theme migration map for handling renamed themes
 const THEME_MIGRATIONS = {
@@ -34,6 +35,11 @@ export function ThemeProvider ({ children }) {
   const [colorScheme, setColorScheme] = useState(() => {
     const stored = window.localStorage.getItem(COLOR_SCHEME_STORAGE_KEY)
     return stored || 'auto'
+  })
+
+  const [navMode, setNavMode] = useState(() => {
+    const stored = window.localStorage.getItem(NAV_MODE_STORAGE_KEY)
+    return stored === 'tabs' ? 'tabs' : 'sidebar'
   })
 
   const [systemColorScheme, setSystemColorScheme] = useState(() => {
@@ -77,12 +83,15 @@ export function ThemeProvider ({ children }) {
       window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
     }
 
+    // Persist nav mode
+    window.localStorage.setItem(NAV_MODE_STORAGE_KEY, navMode)
+
     // Notify the native mobile app so it can style safe area insets to match
     sendMessageToWebView(WebViewMessageTypes.THEME_CHANGE, {
       themeName: currentTheme,
       colorScheme: effectiveColorScheme
     })
-  }, [currentTheme, colorScheme, effectiveColorScheme])
+  }, [currentTheme, colorScheme, effectiveColorScheme, navMode])
 
   const value = {
     currentTheme,
@@ -90,6 +99,8 @@ export function ThemeProvider ({ children }) {
     colorScheme,
     setColorScheme,
     effectiveColorScheme,
+    navMode,
+    setNavMode,
     availableThemes: Object.keys(themes)
   }
 

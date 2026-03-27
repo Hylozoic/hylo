@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem } from 'lucide-react'
+import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, LayoutList } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { themes } from '../../themes'
 import { cn } from 'util/index'
@@ -62,6 +62,8 @@ export default function ThemeSelector ({ className }) {
     setCurrentTheme,
     colorScheme,
     setColorScheme,
+    navMode,
+    setNavMode,
     availableThemes
   } = useTheme()
 
@@ -108,6 +110,40 @@ export default function ThemeSelector ({ className }) {
             aria-label={t('Dark Mode')}
           >
             <Moon className='h-4 w-4' />
+          </button>
+        </div>
+      </div>
+
+      <div className='flex items-center justify-between'>
+        <label className='text-sm font-medium'>{t('Navigation Style')}</label>
+        <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
+          <button
+            onClick={() => setNavMode('sidebar')}
+            className={cn(
+              'p-2 rounded-md transition-colors flex items-center gap-1.5',
+              navMode === 'sidebar'
+                ? 'bg-selected text-selected-foreground'
+                : 'hover:bg-muted'
+            )}
+            aria-label={t('Sidebar')}
+            title={t('Sidebar')}
+          >
+            <PanelLeft className='h-4 w-4' />
+            <span className='text-xs'>{t('Sidebar')}</span>
+          </button>
+          <button
+            onClick={() => setNavMode('tabs')}
+            className={cn(
+              'p-2 rounded-md transition-colors flex items-center gap-1.5',
+              navMode === 'tabs'
+                ? 'bg-selected text-selected-foreground'
+                : 'hover:bg-muted'
+            )}
+            aria-label={t('Tabs')}
+            title={t('Tabs')}
+          >
+            <LayoutList className='h-4 w-4' />
+            <span className='text-xs'>{t('Tabs')}</span>
           </button>
         </div>
       </div>
