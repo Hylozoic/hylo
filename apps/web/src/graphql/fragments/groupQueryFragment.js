@@ -60,6 +60,7 @@ export default function groupQueryFragment () {
       publicMemberDirectory
       showSuggestedSkills
       showWelcomePage
+      layout
     }
     slug
     type

@@ -15,7 +15,7 @@ import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
 import { isMobileDevice } from 'util/mobile'
 
-const ViewHeader = () => {
+const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const dispatch = useDispatch()
   const { context, groupSlug } = useRouteParams()
   const navigate = useNavigate()
@@ -173,7 +173,25 @@ const ViewHeader = () => {
         </>
       )}
       {/* )} */}
-      {!centered && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {!centered && !oneColumnGroup && icon && (typeof icon === 'string' ? <Icon name={icon} className='mr-3 text-lg' /> : React.cloneElement(icon, { className: 'mr-3 text-lg' }))}
+      {oneColumnGroup && (
+        <div className='flex items-center gap-2 mr-2'>
+          {oneColumnGroup.avatarUrl && (
+            <div
+              className='w-6 h-6 rounded-sm bg-cover bg-center shrink-0 cursor-pointer hover:scale-110 transition-transform'
+              style={bgImageStyle(oneColumnGroup.avatarUrl)}
+              onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+            />
+          )}
+          <span
+            className='text-sm font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap'
+            onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
+          >
+            {oneColumnGroup.name}
+          </span>
+          {title && <span className='text-foreground/30'>{'>'}</span>}
+        </div>
+      )}
       <h2
         className={cn('text-foreground m-0', {
           'truncate min-w-0 flex-1': typeof title === 'string',

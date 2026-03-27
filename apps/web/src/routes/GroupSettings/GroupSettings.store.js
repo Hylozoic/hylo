@@ -65,6 +65,7 @@ export function fetchGroupSettings (slug) {
             publishMurmurationsProfile
             showSuggestedSkills
             showWelcomePage
+            layout
           }
           type
           slug
@@ -259,6 +260,7 @@ export function updateGroupSettings (id, changes) {
             defaultDigestFrequency
             locationDisplayPrecision
             showSuggestedSkills
+            layout
           }
           agreements {
             items {

@@ -12,6 +12,7 @@ import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
 import GlobalNav from './components/GlobalNav'
+import OneColumnLayout from './components/ContextMenu/OneColumnLayout'
 import TopNav from './components/TopNav'
 import { useTheme } from 'contexts/ThemeContext'
 import NotFound from 'components/NotFound'
@@ -128,6 +129,7 @@ export default function AuthLayoutRouter (props) {
   // Store
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
+  const isOneColumnGroup = pathMatchParams?.context === 'groups' && currentGroup?.settings?.layout === 'one-column'
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
   const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
@@ -681,7 +683,10 @@ export default function AuthLayoutRouter (props) {
             </Routes>
 
             <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
-              <ViewHeader />
+              <ViewHeader
+                oneColumnGroup={isOneColumnGroup ? currentGroup : null}
+                oneColumnGroupSlug={isOneColumnGroup ? currentGroupSlug : null}
+              />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
                 {/* **** Member Routes **** */}
@@ -745,7 +750,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
+                            <Route path='*' element={isOneColumnGroup ? <OneColumnLayout group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
                           </Routes>
                           )
                     }

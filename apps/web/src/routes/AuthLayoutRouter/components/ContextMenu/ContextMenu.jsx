@@ -33,6 +33,7 @@ import {
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
+import OneColumnLayout from './OneColumnLayout'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'
@@ -89,6 +90,7 @@ export default function ContextMenu (props) {
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const rootPath = baseUrl({ ...routeParams, view: null })
+  const isOneColumnLayout = routeParams.context === 'groups' && group?.settings?.layout === 'one-column'
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
   const isAllContext = routeParams.context === ALL_GROUPS_CONTEXT_SLUG
@@ -213,6 +215,12 @@ export default function ContextMenu (props) {
   const handleScroll = useCallback(() => {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
+
+  // One-column layout: hide the sidebar context menu entirely (dashboard renders in center column)
+  // Exception: show normal ContextMenu when in edit mode (cme=yes) or settings
+  if (isOneColumnLayout && !location.pathname.includes('/settings') && !isEditing) {
+    return null
+  }
 
   return (
     <ContextMenuProvider
@@ -839,6 +847,7 @@ function GroupSettingsMenu ({ group }) {
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 

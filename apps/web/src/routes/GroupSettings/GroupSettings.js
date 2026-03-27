@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { push } from 'redux-first-history'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
+import AppearanceTab from './AppearanceTab/AppearanceTab'
 import AgreementsTab from './AgreementsTab'
 import CustomViewsTab from './CustomViewsTab'
 import DeleteSettingsTab from './DeleteSettingsTab'
@@ -181,6 +182,12 @@ export default function GroupSettings () {
     component: <ExportDataTab group={group} />
   }
 
+  const appearanceSettings = {
+    name: t('Appearance & Layout'),
+    path: 'appearance',
+    component: <AppearanceTab group={group} updateGroupSettings={updateGroupSettingsAction} />
+  }
+
   const deleteSettings = {
     name: t('Delete'),
     path: 'delete',
@@ -205,6 +212,7 @@ export default function GroupSettings () {
         canManageTracks ? tracksSettings : null,
         canAdminister ? importSettings : null,
         canAdminister ? exportSettings : null,
+        canAdminister ? appearanceSettings : null,
         canAdminister ? deleteSettings : null
       ])}
     />

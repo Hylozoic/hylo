@@ -1278,6 +1278,8 @@ type GroupSettings {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
 }
 
 # A relationship between two Groups
@@ -3570,6 +3572,8 @@ input GroupSettingsInput {
   showSuggestedSkills: Boolean
   # Whether to display the custom Welcome Page when a member joins the group
   showWelcomePage: Boolean
+  # Layout mode for the group: 'two-column' (sidebar + content) or 'one-column' (dashboard cards)
+  layout: String
 }
 
 # Settings for a Widget in a particular Group's explore page
