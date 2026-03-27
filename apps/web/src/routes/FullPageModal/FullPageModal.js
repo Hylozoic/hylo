@@ -2,12 +2,15 @@ import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { isLegacyWebView } from 'util/webView'
+import { useTheme } from 'contexts/ThemeContext'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
   content, children, narrow, fullWidth, leftSideBarHidden
 }) {
   const multipleTabs = Array.isArray(content)
+  const { navMode } = useTheme()
+  const isTabNav = navMode === 'tabs'
 
   // DEPRECATED: New mobile app no longer longer renders differently for webview but uses standard layout
   if (isLegacyWebView()) {
@@ -29,7 +32,7 @@ export default function FullPageModal ({
     return (
       <div className={cn('bg-midground h-full')}>
         {multipleTabs && (
-          <div className={cn('w-full max-w-[750px] mx-auto px-2 py-2 sm:px-8 sm:py-8')}>
+          <div className={cn('w-full mx-auto px-2 py-2 sm:px-8 sm:py-8', !isTabNav && 'max-w-[750px]')}>
             <Routes>
               {content.map(tab =>
                 <Route
@@ -40,7 +43,7 @@ export default function FullPageModal ({
             </Routes>
           </div>
         )}
-        {!multipleTabs && <div className={cn('w-full max-w-[750px] mx-auto px-8 py-8')}>{content || children}</div>}
+        {!multipleTabs && <div className={cn('w-full mx-auto px-8 py-8', !isTabNav && 'max-w-[750px]')}>{content || children}</div>}
       </div>
     )
   }

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { createSelector } from 'reselect'
 
+import { useTheme } from 'contexts/ThemeContext'
 import ContextWidgetPresenter, {
   isValidDropZone,
   getStaticMenuWidgets,
@@ -841,8 +842,11 @@ function GroupSettingsMenu ({ group }) {
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 
+  const { navMode } = useTheme()
+  const isTabNav = navMode === 'tabs'
+
   return (
-    <div className='ContextMenu-GroupSettings fixed h-full top-0 left-[66px] sm:left-[80px] w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]'>
+    <div className={cn('ContextMenu-GroupSettings fixed h-full w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]', isTabNav ? 'top-11 left-0' : 'top-0 left-[66px] sm:left-[80px]')}>
       <div className='absolute h-full overflow-y-auto top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
