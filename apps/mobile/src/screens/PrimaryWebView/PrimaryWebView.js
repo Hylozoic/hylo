@@ -148,15 +148,14 @@ export default function PrimaryWebView() {
     })
   }
   
-  // Check internet connectivity - show error screen if offline
-  if (!isConnected || !isInternetReachable) {
+  // Only show NoInternetConnection on the very first load (before the WebView has loaded).
+  // After first load, keep the WebView mounted — Android fires isInternetReachable=false
+  // events on resume that would otherwise unmount/remount the WebView, causing reload loops.
+  if (!hasLoadedUser.current && (!isConnected || !isInternetReachable)) {
     return (
       <NoInternetConnection 
         onRetry={() => {
-          // Clear any WebView error state when retrying
           setWebViewError(null)
-          // Retry will happen automatically when connectivity is restored
-          // via the useEffect in NoInternetConnection component
         }} 
       />
     )

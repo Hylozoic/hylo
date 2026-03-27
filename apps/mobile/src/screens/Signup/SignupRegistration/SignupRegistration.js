@@ -16,6 +16,7 @@ import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupRegistration.styles'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export const registerMutation = gql`
   mutation RegisterMutation ($name: String!, $password: String!) {
@@ -29,6 +30,8 @@ export const registerMutation = gql`
 `
 
 export default function SignupRegistration ({ navigation, route }) {
+  // Collects the user's name + password before continuing signup.
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const confirmAlert = useConfirmAlert()
   const [, register] = useMutation(registerMutation)
@@ -86,7 +89,9 @@ export default function SignupRegistration ({ navigation, route }) {
   })
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }]}
+    >
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
         <View style={styles.header}>
           <Text style={styles.title}>{t('Lets do this!')}</Text>
