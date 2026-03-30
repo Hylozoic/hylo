@@ -13,8 +13,11 @@ import { LocationSelector } from 'components/LocationSelectorModal/LocationSelec
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
 import { caribbeanGreen, white, white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function SignupSetLocation ({ navigation }) {
+  // Lets the user pick a location during signup.
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [locationObject, setLocationObject] = useState()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
@@ -42,7 +45,9 @@ export default function SignupSetLocation ({ navigation }) {
   }
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }]}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>{t('Add your location')}</Text>
         <Text style={styles.subTitle}>
