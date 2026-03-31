@@ -1,6 +1,4 @@
-import groupTopicsQueryFragment from '@graphql/fragments/groupTopicsQueryFragment'
-
-// Core group fields + topics for stream / chat / nav (no parent/child/peer/relationship lists).
+// Core group fields for stream / chat / nav (groupTopics loaded on demand, e.g. community_topics widget).
 export default function groupQueryFragment () {
   return `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     id
@@ -214,6 +212,5 @@ export default function groupQueryFragment () {
         }
       }
     }
-    ${groupTopicsQueryFragment}
   }`
 }

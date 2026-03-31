@@ -1,5 +1,5 @@
 import { cn } from 'util/index'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 import Icon from 'components/Icon'
@@ -26,6 +26,7 @@ import JoinWidget from './JoinWidget'
 import TopicsWidget from './TopicsWidget'
 import { useSelector, useDispatch } from 'react-redux'
 import useEnsureCurrentGroup from 'hooks/useEnsureCurrentGroup'
+import fetchGroupTopics from 'store/actions/fetchGroupTopics'
 import getMe from 'store/selectors/getMe'
 import { updateWidget } from './Widget.store'
 
@@ -144,6 +145,11 @@ export default function Widget (props) {
   const { group } = useEnsureCurrentGroup()
   const currentUser = useSelector(getMe)
   const handleUpdateWidget = (id, changes) => dispatch(updateWidget(id, changes))
+
+  useEffect(() => {
+    if (name !== 'community_topics' || !group?.id) return
+    dispatch(fetchGroupTopics(group.id, { first: 50, offset: 0, subscribed: false }))
+  }, [dispatch, group?.id, name])
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isEditingSettings, setIsEditingSettings] = useState(false)

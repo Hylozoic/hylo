@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
-import config, { isTest } from 'config/index'
+import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -376,8 +376,11 @@ export default function AuthLayoutRouter (props) {
     { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
   )
 
+  // Baseline/regression: in Chrome DevTools open Performance (user timings: hylo-auth-bootstrap,
+  // hylo-fetch-for-group) and Network (GraphQL response sizes). Compare before/after deploy.
   useEffect(() => {
     (async function () {
+      if (isDev) performance.mark('hylo-auth-bootstrap-start')
       // Parallelise the two independent bootstrap fetches.
       // If the initial URL contains a post ID, race fetchPost alongside them
       // so the post data is ready (or nearly ready) by the time the auth shell renders.
@@ -387,8 +390,21 @@ export default function AuthLayoutRouter (props) {
         ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
       ]
       await Promise.all(bootstrapFetches)
+      if (isDev) {
+        performance.mark('hylo-auth-bootstrap-end')
+        try {
+          performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
+        } catch (e) {
+          // duplicate measure names across hot reload / strict mode
+        }
+      }
       setCurrentUserLoading(false)
-      dispatch(fetchThreads())
+      const runThreads = () => dispatch(fetchThreads())
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(runThreads, { timeout: 4000 })
+      } else {
+        setTimeout(runThreads, 2500)
+      }
     })()
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
@@ -427,14 +443,28 @@ export default function AuthLayoutRouter (props) {
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
   useEffect(() => {
-    (async function () {
-      if (currentGroupSlug) {
-        setCurrentGroupLoading(true)
-        await dispatch(fetchForGroup(currentGroupSlug))
-        setCurrentGroupLoading(false)
+    if (!currentGroupSlug) return
+
+    let cancelled = false
+
+    ;(async function () {
+      setCurrentGroupLoading(true)
+      if (isDev) performance.mark('hylo-fetch-group-start')
+      await dispatch(fetchForGroup(currentGroupSlug))
+      if (cancelled) return
+      setCurrentGroupLoading(false)
+      if (isDev) {
+        performance.mark('hylo-fetch-group-end')
+        try {
+          performance.measure('hylo-fetch-for-group', 'hylo-fetch-group-start', 'hylo-fetch-group-end')
+        } catch (e) {}
       }
     })()
-  }, [currentGroupSlug])
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentGroupSlug, dispatch])
 
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
@@ -443,15 +473,17 @@ export default function AuthLayoutRouter (props) {
   // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
   useEffect(() => {
     if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
+      const currentGroupId = currentGroup?.id
       const groupIds = memberships
         .map(m => m.group?.id)
         .filter(Boolean)
+        .filter(id => id !== currentGroupId)
         .filter((id, index, self) => self.indexOf(id) === index) // unique ids
 
       if (groupIds.length === 0) return
 
       // Delay initial request to let critical page load requests complete first
-      const INITIAL_DELAY = 3000 // 3 second delay
+      const INITIAL_DELAY = 4500
       const BATCH_SIZE = 10
 
       const timeoutId = setTimeout(async () => {
@@ -469,7 +501,7 @@ export default function AuthLayoutRouter (props) {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [currentUserLoading, memberships, dispatch])
+  }, [currentUserLoading, currentGroup?.id, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
