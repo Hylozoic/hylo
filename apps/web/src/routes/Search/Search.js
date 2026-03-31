@@ -141,7 +141,7 @@ export default function Search (props) {
   }, [SearchInput, backDestination, setHeaderDetails])
 
   return (
-    <div className='w-full p-2 overflow-hidden'>
+    <div className='w-full p-2'>
       <div className='w-full max-w-[750px] mx-auto flex flex-col gap-2 relative'>
         {group && (
           <span className='flex fit-content align-center items-center px-2 py-1 rounded-md bg-selected/40 border-2 border-selected'>
