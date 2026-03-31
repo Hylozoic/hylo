@@ -21,7 +21,7 @@ module.exports = bookshelf.Model.extend({
     const user = await this.user().fetch()
     const group = await this.group().fetch()
     if (user && group) {
-      user.joinGroup(group)
+      await user.joinGroup(group)
 
       // TODO: add tracking of who did the approving in the join_request
       await this.save({ status: JoinRequest.STATUS.Accepted }).then(async request => {
