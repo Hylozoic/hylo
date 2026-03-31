@@ -2,7 +2,7 @@ import { cn, bgImageStyle } from 'util/index'
 import { Bell, Settings, Users, Copy, ExternalLink, GripHorizontal, Plus, Pencil, Trash, House, X, Grid3x3 } from 'lucide-react'
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   DndContext,
@@ -32,6 +32,9 @@ import fetchPosts from 'store/actions/fetchPosts'
 import { fetchGroupMembers } from 'routes/Members/Members.store'
 import { updateContextWidget, removeWidgetFromMenu, setHomeWidget } from 'store/actions/contextWidgets'
 import getMe from 'store/selectors/getMe'
+import { mapbox as mapboxConfig } from 'config'
+import { useTheme } from 'contexts/ThemeContext'
+import PostDialog from 'components/PostDialog'
 
 function useRecentPosts ({ widget, groupSlug }) {
   const dispatch = useDispatch()
@@ -47,13 +50,15 @@ function useRecentPosts ({ widget, groupSlug }) {
       context: 'groups',
       slug: groupSlug,
       first: 2,
-      sortBy: 'created',
+      sortBy: 'updated',
       order: 'desc',
       childPostInclusion: 'no'
     }
 
-    if (widget.view === 'events') {
-      params = { ...baseParams, types: ['event'], sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
+    if (widget.view === 'map') {
+      params = { ...baseParams, first: 20 }
+    } else if (widget.view === 'events') {
+      params = { ...baseParams, first: 4, types: ['event'], sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
     } else if (widget.view && COMMON_VIEWS[widget.view]?.postTypes) {
       params = { ...baseParams, types: COMMON_VIEWS[widget.view].postTypes }
     } else if (widget.view === 'stream') {
@@ -68,7 +73,7 @@ function useRecentPosts ({ widget, groupSlug }) {
         ...(widget.customView.postTypes?.length ? { types: widget.customView.postTypes } : {}),
         ...(widget.customView.topics?.length ? { topics: widget.customView.topics.map(t => t.id) } : {}),
         ...(isCalendarView
-          ? { sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
+          ? { first: 4, sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
           : {})
       }
     }
@@ -261,9 +266,33 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
   const isExternal = !!(widget.customView?.externalLink || (widget.url && widget.url.startsWith('http')))
   const [copied, setCopied] = useState(false)
   const { posts, totalCount } = useRecentPosts({ widget, groupSlug })
-  const remainingCount = totalCount > 2 ? totalCount - 2 : 0
+  const remainingCount = totalCount > posts.length ? totalCount - posts.length : 0
   const members = useMembers({ widget, groupSlug, groupId })
   const isMembers = widget.type === 'members'
+  const isWelcome = widget.view === 'welcome'
+  const welcomeText = isWelcome && group?.welcomePage
+    ? group.welcomePage.replace(/<[^>]*>/g, '').trim()
+    : null
+  const isMap = widget.view === 'map'
+  const currentUser = useSelector(getMe)
+  const { effectiveColorScheme } = useTheme()
+  const mapStyle = effectiveColorScheme === 'dark' ? 'dark-v11' : 'light-v11'
+  const mapCenter = group?.locationObject?.center || currentUser?.locationObject?.center
+
+  // Build marker overlay from posts that have locations
+  const mapMarkers = useMemo(() => {
+    if (!isMap || !posts.length) return ''
+    const pins = posts
+      .filter(p => p.locationObject?.center?.lng && p.locationObject?.center?.lat)
+      .map(p => `pin-s+e74c3c(${p.locationObject.center.lng},${p.locationObject.center.lat})`)
+    return pins.length ? pins.join(',') + '/' : ''
+  }, [isMap, posts])
+
+  const staticMapUrl = isMap && mapboxConfig.token
+    ? mapCenter
+      ? `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapMarkers}${mapCenter.lng},${mapCenter.lat},4,0/280x200@2x?access_token=${mapboxConfig.token}`
+      : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapMarkers}0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
+    : null
 
   const canDrag = isEditing && widget.type !== 'home' && widget.type !== 'all-views'
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: widget.id, disabled: !canDrag })
@@ -292,10 +321,15 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
       onClick={handleClick}
       className={cn(
         'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50',
-        'transition-all p-4 gap-2 w-full max-w-[300px] min-h-[100px]',
+        'transition-all p-4 w-full max-w-[300px] aspect-[3/4]',
         isEditing ? 'cursor-grab' : 'cursor-pointer hover:border-foreground/30 hover:shadow-md'
       )}
     >
+      {!isEditing && widget.highlightNumber > 0 && (
+        <span className='absolute -top-2 -right-2 z-10 bg-accent text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1'>
+          {widget.highlightNumber}
+        </span>
+      )}
       {isEditing && <CardActionMenu widget={widget} group={group} dispatch={dispatch} navigate={navigate} t={t} />}
       {canDrag && (
         <div {...listeners} {...attributes} className='absolute top-1 left-1 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab p-1'>
@@ -303,15 +337,17 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
         </div>
       )}
 
-      <div className='flex flex-col items-center gap-1 text-center'>
-        <span className='text-foreground/60 [&>svg]:w-8 [&>svg]:h-8'>
+      {/* Icon + title centered in available space */}
+      <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
+        <span className='text-foreground/60 flex items-center justify-center w-[40px] h-[40px] [&>svg]:!w-full [&>svg]:!h-full [&>span]:!text-[40px] [&>span]:!leading-none'>
           <WidgetIconResolver widget={widget} />
         </span>
         <h3 className='text-base font-semibold text-foreground line-clamp-2'>{title}</h3>
       </div>
 
+      {/* Content pinned to bottom */}
       {!isEditing && isExternal && externalLink && (
-        <div className='flex flex-col gap-2 mt-1'>
+        <div className='flex flex-col gap-2 mt-auto'>
           <div className='flex items-center gap-1.5 bg-foreground/5 rounded-lg px-2 py-1.5'>
             <span className='truncate text-xs text-foreground/50 flex-1'>{copied ? t('Copied to clipboard') : externalLink}</span>
             <button
@@ -333,7 +369,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
       )}
 
       {!isEditing && isMembers && members.length > 0 && (
-        <div className='flex flex-col gap-1.5 mt-1'>
+        <div className='flex flex-col gap-1.5 mt-auto'>
           {members.map(member => (
             <div
               key={member.id}
@@ -357,12 +393,34 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
         </div>
       )}
 
-      {!isEditing && !isExternal && !isMembers && posts.length > 0 && (
-        <div className='flex flex-col gap-1.5 mt-1'>
+      {!isEditing && isMap && staticMapUrl && (
+        <div className='mt-auto -mx-2 -mb-2 rounded-b-lg overflow-hidden'>
+          <img
+            src={staticMapUrl}
+            alt={title}
+            className='w-full h-[120px] object-cover'
+          />
+        </div>
+      )}
+
+      {!isEditing && isWelcome && welcomeText && (
+        <div className='mt-auto px-1'>
+          <p className='text-xs text-foreground/60 line-clamp-5 leading-relaxed'>{welcomeText}</p>
+          <button
+            onClick={handleClick}
+            className='text-xs text-selected hover:text-selected/80 transition-colors mt-1'
+          >
+            {t('Read more...')}
+          </button>
+        </div>
+      )}
+
+      {!isEditing && !isExternal && !isMembers && !isWelcome && posts.length > 0 && (
+        <div className='flex flex-col gap-1.5 mt-auto'>
           {posts.map(post => {
             const postLink = widget.viewChat
               ? chatUrl(widget.viewChat.name, { groupSlug, context: 'group' })
-              : postUrl(post.id, { groupSlug, context: 'group' })
+              : postUrl(post.id, { groupSlug, context: 'groups' })
             return (
               <div
                 key={post.id}
@@ -602,7 +660,12 @@ export default function OneColumnLayout ({ group }) {
   )
 
   return (
-    <div className='OneColumnLayout w-full h-full overflow-y-auto'>
+    <div className='OneColumnLayout w-full h-full overflow-y-auto' id='one-column-layout'>
+      {/* Post dialog overlay */}
+      <Routes>
+        <Route path='post/:postId/*' element={<PostDialog container={document.getElementById('one-column-layout')} />} />
+      </Routes>
+
       {/* Group Banner - full width */}
       <div className='relative w-full'>
         <div className='relative h-[220px] overflow-hidden'>

@@ -129,7 +129,22 @@ export default function AuthLayoutRouter (props) {
   // Store
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
-  const isOneColumnGroup = pathMatchParams?.context === 'groups' && currentGroup?.settings?.layout === 'one-column'
+  const isOneColumnGroup = useMemo(() => {
+    if (pathMatchParams?.context !== 'groups') return false
+    // Use group settings if available
+    if (currentGroup?.settings?.layout) {
+      // Cache for instant access on next visit
+      if (currentGroupSlug) {
+        try { window.localStorage.setItem(`hylo-group-layout-${currentGroupSlug}`, currentGroup.settings.layout) } catch (e) {}
+      }
+      return currentGroup.settings.layout === 'one-column'
+    }
+    // Fall back to cached value to prevent flash
+    if (currentGroupSlug) {
+      try { return window.localStorage.getItem(`hylo-group-layout-${currentGroupSlug}`) === 'one-column' } catch (e) {}
+    }
+    return false
+  }, [pathMatchParams?.context, currentGroup?.settings?.layout, currentGroupSlug])
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
   const currentUser = useSelector(getMe)
   const isDrawerOpen = useSelector(state => get('AuthLayoutRouter.isDrawerOpen', state))
@@ -631,7 +646,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' />
-                <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
+                {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
+                {isOneColumnGroup && <Route path='groups/:groupSlug/settings/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
               </Routes>}
@@ -748,7 +764,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
-                            <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
+                            {!isOneColumnGroup && <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />}
                             <Route path='moderation/*' element={<Moderation context='groups' />} />
                             <Route path='*' element={isOneColumnGroup ? <OneColumnLayout group={currentGroup} /> : <Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
                           </Routes>

@@ -184,12 +184,12 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
             />
           )}
           <span
-            className='text-sm font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap'
+            className='font-semibold text-foreground/70 cursor-pointer hover:text-foreground transition-colors whitespace-nowrap'
             onClick={() => navigate(`/groups/${oneColumnGroupSlug}`)}
           >
             {oneColumnGroup.name}
           </span>
-          {title && <span className='text-foreground/30'>{'>'}</span>}
+          {title && <span className='text-foreground/30 text-lg'>{'>'}</span>}
         </div>
       )}
       <h2

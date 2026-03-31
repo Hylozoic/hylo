@@ -221,6 +221,11 @@ export default function ContextMenu (props) {
     return null
   }
 
+  // One-column layout on settings: only show the settings menu, not the full context menu
+  if (isOneColumnLayout && location.pathname.includes('/settings')) {
+    return <GroupSettingsMenu group={group} />
+  }
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
