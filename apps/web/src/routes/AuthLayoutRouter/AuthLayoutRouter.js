@@ -706,8 +706,10 @@ export default function AuthLayoutRouter (props) {
                 <Route
                   path='groups/:groupSlug/*'
                   element={
-                    /* When viewing a group, check membership first before rendering any group routes */
-                    currentGroupLoading
+                    /* When viewing a group, check membership first before rendering any group routes.
+                       Skip the loading gate for post detail URLs so PostDetail can render immediately
+                       using the post data that was pre-fetched during bootstrap. */
+                    currentGroupLoading && !paramPostId
                       ? <Loading />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
