@@ -19,10 +19,7 @@ import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
-import { es } from '../../lib/i18n/es'
-import { en } from '../../lib/i18n/en'
-
-const locales = { es, en }
+import { getLocaleStrings } from '../../lib/i18n/locales'
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
@@ -1485,17 +1482,17 @@ module.exports = bookshelf.Model.extend(merge({
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
-        const locale = creator.getLocale()
+        const L = getLocaleStrings(creator.getLocale())
         return Email.sendRawEmail({
           email: recipient,
           data: {
-            subject: locales[locale].groupCreatedNotifySubject(g.get('name')),
-            body: `${locales[locale].Group()}
-              ${locales[locale].Name()}: ${g.get('name')}
+            subject: L.groupCreatedNotifySubject(g.get('name')),
+            body: `${L.Group()}
+              ${L.Name()}: ${g.get('name')}
               URL: ${Frontend.Route.group(g)}
-              ${locales[locale].CreatorEmail()}: ${creator.get('email')}
-              ${locales[locale].CreatorName()}: ${creator.get('name')}
-              ${locales[locale].CreatorURL()}: ${Frontend.Route.profile(creator)}
+              ${L.CreatorEmail()}: ${creator.get('email')}
+              ${L.CreatorName()}: ${creator.get('name')}
+              ${L.CreatorURL()}: ${Frontend.Route.profile(creator)}
             `.replace(/^\s+/gm, '').replace(/\n/g, '<br/>\n')
           },
           extraOptions: {
