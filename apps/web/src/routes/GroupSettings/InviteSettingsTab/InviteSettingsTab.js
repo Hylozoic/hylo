@@ -49,7 +49,8 @@ I'm inviting you to join {{name}} on Hylo.
 
 {{name}} is using Hylo for our online community: this is our dedicated space for communication & collaboration.`, { name: group.name })
 
-  const [copied, setCopied] = useState(false)
+  const [copiedPublicLink, setCopiedPublicLink] = useState(false)
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false)
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
   const [message, setMessage] = useState(defaultMessage)
@@ -98,7 +99,8 @@ I'm inviting you to join {{name}} on Hylo.
     }
   }
 
-  const onCopy = () => setTemporaryState(setCopied, true)
+  const onCopyPublicLink = () => setTemporaryState(setCopiedPublicLink, true)
+  const onCopyInviteLink = () => setTemporaryState(setCopiedInviteLink, true)
 
   const buttonColor = highlight => highlight ? 'green' : 'green-white-green-border'
 
@@ -144,7 +146,7 @@ I'm inviting you to join {{name}} on Hylo.
                 <div className='text-sm'><strong>{t('Use this for people you don\'t know')}</strong> <span className='text-foreground/50'>{t('who you would like ask join questions to vet before they enter the group.')}</span></div>
               </div>
               <div>
-                <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopy}>
+                <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopyPublicLink}>
                   <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
                     <span className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</span>
                     <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
@@ -161,7 +163,7 @@ I'm inviting you to join {{name}} on Hylo.
                     delayShow={500}
                   />
                 )}
-                {copied && <span className={classes.copiedText}>{t('Copied!')}</span>}
+                {copiedPublicLink && <span className={classes.copiedText}>{t('Copied!')}</span>}
               </div>
             </div>
           )}
@@ -174,9 +176,9 @@ I'm inviting you to join {{name}} on Hylo.
             <div className='flex items-center gap-2'>
               {inviteLink && (
                 <div className='flex items-center gap-2'>
-                  {!copied && (
+                  {!copiedInviteLink && (
                     <>
-                      <CopyToClipboard text={inviteLink} onCopy={onCopy}>
+                      <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
                         <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
                           <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
                           <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
@@ -195,7 +197,7 @@ I'm inviting you to join {{name}} on Hylo.
                       )}
                     </>
                   )}
-                  {copied && t('Copied!')}
+                  {copiedInviteLink && t('Copied!')}
                 </div>
               )}
               <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
