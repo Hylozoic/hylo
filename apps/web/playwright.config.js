@@ -14,8 +14,17 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /auth\.setup\.js/,
       use: { ...devices['Desktop Chrome'] }
+    },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: './e2e/.auth/session.json'
+      },
+      dependencies: ['setup']
     }
   ],
   webServer: {
