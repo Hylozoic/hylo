@@ -61,11 +61,6 @@ const postCardFieldsFragment = `
       }
     }
   }
-  groups {
-    id
-    name
-    slug
-  }
   linkPreview {
     description
     id
