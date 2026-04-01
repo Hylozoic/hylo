@@ -25,6 +25,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
@@ -379,8 +380,15 @@ export default function AuthLayoutRouter (props) {
 
   useEffect(() => {
     (async function () {
-      await dispatch(fetchCommonRoles())
-      await dispatch(fetchForCurrentUser())
+      // Parallelise the two independent bootstrap fetches.
+      // If the initial URL contains a post ID, race fetchPost alongside them
+      // so the post data is ready (or nearly ready) by the time the auth shell renders.
+      const bootstrapFetches = [
+        dispatch(fetchCommonRoles()),
+        dispatch(fetchForCurrentUser()),
+        ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+      ]
+      await Promise.all(bootstrapFetches)
       setCurrentUserLoading(false)
       dispatch(fetchThreads())
     })()
@@ -705,8 +713,9 @@ export default function AuthLayoutRouter (props) {
                   path='groups/:groupSlug/*'
                   element={
                     /* When viewing a group, check membership first before rendering any group routes.
-                       Skip for post-detail URLs (PostDetail mounts immediately). Otherwise show
-                       route-shaped skeletons instead of a bare spinner. */
+                       Skip the loading gate for post-detail URLs so PostDetail can render immediately
+                       (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
+                       instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
                       ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
