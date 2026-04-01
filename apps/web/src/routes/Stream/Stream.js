@@ -50,6 +50,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 
 import styles from './Stream.module.scss'
 
@@ -362,8 +364,9 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !isCalendarViewMode && 'max-w-[750px]',
-          'flex flex-col flex-1 w-full mx-auto p-1 sm:p-4'
+          'flex flex-col flex-1',
+          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
         {hasPostPrompt && (
@@ -500,7 +503,12 @@ export default function Stream (props) {
             />
           </div>
         )}
-        {(pending || topicLoading) && <Loading />}
+        {(pending || topicLoading) && !isCalendarViewMode && (
+          posts.length === 0
+            ? <StreamSkeleton wrapWithMainColumn={false} />
+            : <Loading type='bottom' />
+        )}
+        {(pending || topicLoading) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

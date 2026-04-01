@@ -51,6 +51,8 @@ import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
 import Loading from 'components/Loading'
+import BootstrapShell from 'components/Skeleton/BootstrapShell'
+import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
@@ -472,7 +474,11 @@ export default function AuthLayoutRouter (props) {
   if (currentUserLoading) {
     return (
       <div className={classes.container} data-testid='loading-screen'>
-        <Loading type='loading-fullscreen' />
+        <Helmet>
+          <title>Hylo</title>
+          <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+        </Helmet>
+        <BootstrapShell withoutNav={withoutNav} className='flex-1 min-h-0' />
       </div>
     )
   }
@@ -698,9 +704,11 @@ export default function AuthLayoutRouter (props) {
                 <Route
                   path='groups/:groupSlug/*'
                   element={
-                    /* When viewing a group, check membership first before rendering any group routes */
-                    currentGroupLoading
-                      ? <Loading />
+                    /* When viewing a group, check membership first before rendering any group routes.
+                       Skip for post-detail URLs (PostDetail mounts immediately). Otherwise show
+                       route-shaped skeletons instead of a bare spinner. */
+                    currentGroupLoading && !paramPostId
+                      ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (

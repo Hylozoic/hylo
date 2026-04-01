@@ -15,6 +15,7 @@ import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
 import PostEditor from 'components/PostEditor/PostEditor'
 import Loading from 'components/Loading'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import NoPosts from 'components/NoPosts'
 import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
@@ -460,13 +461,13 @@ export default function ChatRoom (props) {
     }
   }, [topicFollow?.id, topicFollow?.lastReadPostId])
 
-  const onAddReaction = useCallback((post, emojiFull) => {
+  const handleAddReaction = useCallback((post, emojiFull) => {
     const optimisticUpdate = { postReactions: [...post.postReactions, { emojiFull, user: { name: currentUser.name, id: currentUser.id } }] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onRemoveReaction = useCallback((post, emojiFull) => {
+  const handleRemoveReaction = useCallback((post, emojiFull) => {
     const postReactions = post.postReactions.filter(reaction => {
       if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
       return true
@@ -475,14 +476,14 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onFlagPost = useCallback(({ post }) => {
+  const handleFlagPost = useCallback(({ post }) => {
     const flaggedGroups = post.flaggedGroups || []
     const optimisticUpdate = { flaggedGroups: [...flaggedGroups, group.id] }
     const newPost = { ...post, ...optimisticUpdate }
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [group?.id])
 
-  const onAddProposalVote = useCallback(({ post, optionId }) => {
+  const handleAddProposalVote = useCallback(({ post, optionId }) => {
     const optimisticUpdate = {
       proposalVotes: {
         ...post.proposalVotes,
@@ -500,7 +501,7 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onRemoveProposalVote = useCallback(({ post, optionId }) => {
+  const handleRemoveProposalVote = useCallback(({ post, optionId }) => {
     const voteIndex = post.proposalVotes.items.findIndex(vote =>
       vote?.user?.id === currentUser.id && vote.optionId === optionId)
 
@@ -520,7 +521,7 @@ export default function ChatRoom (props) {
     messageListRef.current?.data.map((item) => post.id === item.id || (post.localId && post.localId === item.localId) ? newPost : item)
   }, [currentUser])
 
-  const onSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
+  const handleSwapProposalVote = useCallback(({ post, addOptionId, removeOptionId }) => {
     const voteIndex = post.proposalVotes.items.findIndex(vote =>
       vote?.user?.id === currentUser.id && vote.optionId === removeOptionId)
 
@@ -567,7 +568,7 @@ export default function ChatRoom (props) {
     }
   }, [notificationsSetting])
 
-  const onRemovePost = useCallback((postId) => {
+  const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
   }, [currentUser])
 
@@ -611,7 +612,11 @@ export default function ChatRoom (props) {
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
         {initialPostToScrollTo === null || topicFollowLoading
-          ? <div style={{ height: '100%', width: '100%', marginTop: 'auto', overflowX: 'hidden' }}><Loading /></div>
+          ? (
+            <div className='h-full w-full mt-auto overflow-x-hidden flex flex-col justify-end min-h-[40vh]'>
+              <StreamSkeleton columnVariant='chat' />
+            </div>
+            )
           : (
             <VirtuosoMessageListLicense licenseKey={import.meta.env.VITE_VIRTUOSO_KEY}>
               <VirtuosoMessageList
@@ -629,13 +634,13 @@ export default function ChatRoom (props) {
                   loadingPast,
                   newPostCount: topicFollow?.newPostCount,
                   numPosts: postsForDisplay.length,
-                  onAddReaction,
-                  onFlagPost,
-                  onRemovePost,
-                  onRemoveReaction,
-                  onAddProposalVote,
-                  onRemoveProposalVote,
-                  onSwapProposalVote,
+                  handleAddReaction,
+                  handleFlagPost,
+                  handleRemovePost,
+                  handleRemoveReaction,
+                  handleAddProposalVote,
+                  handleRemoveProposalVote,
+                  handleSwapProposalVote,
                   loadToLatest,
                   postIdToStartAt,
                   selectedPostId,
@@ -684,7 +689,7 @@ const EmptyPlaceholder = ({ context }) => {
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
       {!context.loadedPast || !context.loadedFuture
-        ? <Loading />
+        ? <StreamSkeleton columnVariant='chat' />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
           : <NoPosts className={styles.noPosts} icon='message-dashed' message={t('No messages yet. Start the conversation!')} />}
@@ -759,6 +764,15 @@ const StickyFooter = ({ context }) => {
 }
 
 const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
+  const {
+    handleAddReaction,
+    handleFlagPost,
+    handleRemovePost,
+    handleRemoveReaction,
+    handleAddProposalVote,
+    handleRemoveProposalVote,
+    handleSwapProposalVote
+  } = context
   const { t } = useTranslation()
   const expanded = context.selectedPostId === post.id
   const highlighted = post.id && context.postIdToStartAt === post.id
@@ -812,10 +826,10 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               highlighted={highlighted}
               showHeader={showHeader}
               post={post}
-              onAddReaction={context.onAddReaction}
-              onFlagPost={context.onFlagPost}
-              onRemoveReaction={context.onRemoveReaction}
-              onRemovePost={context.onRemovePost}
+              onAddReaction={handleAddReaction}
+              onFlagPost={handleFlagPost}
+              onRemoveReaction={handleRemoveReaction}
+              onRemovePost={handleRemovePost}
             />
           </div>)
         : (
@@ -829,13 +843,13 @@ const ItemContent = ({ data: post, context, prevData, nextData, index }) => {
               expanded={expanded}
               highlighted={highlighted}
               post={post}
-              onAddReaction={context.onAddReaction}
-              onRemoveReaction={context.onRemoveReaction}
-              onRemovePost={context.onRemovePost}
-              onFlagPost={context.onFlagPost}
-              onAddProposalVote={context.onAddProposalVote}
-              onRemoveProposalVote={context.onRemoveProposalVote}
-              onSwapProposalVote={context.onSwapProposalVote}
+              onAddReaction={handleAddReaction}
+              onRemoveReaction={handleRemoveReaction}
+              onRemovePost={handleRemovePost}
+              onFlagPost={handleFlagPost}
+              onAddProposalVote={handleAddProposalVote}
+              onRemoveProposalVote={handleRemoveProposalVote}
+              onSwapProposalVote={handleSwapProposalVote}
             />
           </div>
           )}
