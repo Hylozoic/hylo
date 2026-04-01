@@ -147,10 +147,12 @@ I'm inviting you to join {{name}} on Hylo.
               </div>
               <div>
                 <CopyToClipboard text={`${window.location.origin}/groups/${group.slug}`} onCopy={onCopyPublicLink}>
-                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={t('Click to Copy')} data-tooltip-id='public-link-tooltip'>
+                  <button className='flex items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer' data-tooltip-content={!copiedPublicLink ? t('Click to Copy') : undefined} data-tooltip-id='public-link-tooltip'>
                     <span className='text-selected'>{`${window.location.origin}/groups/${group.slug}`}</span>
                     <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                      <Icon name='Copy' /> Copy
+                      {copiedPublicLink
+                        ? <>{t('Copied!')}</>
+                        : <><Icon name='Copy' /> {t('Copy')}</>}
                     </div>
                   </button>
                 </CopyToClipboard>
@@ -163,7 +165,6 @@ I'm inviting you to join {{name}} on Hylo.
                     delayShow={500}
                   />
                 )}
-                {copiedPublicLink && <span className={classes.copiedText}>{t('Copied!')}</span>}
               </div>
             </div>
           )}
@@ -176,28 +177,25 @@ I'm inviting you to join {{name}} on Hylo.
             <div className='flex items-center gap-2'>
               {inviteLink && (
                 <div className='flex items-center gap-2'>
-                  {!copiedInviteLink && (
-                    <>
-                      <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
-                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer justify-between' data-tooltip-content={t('Click to Copy')} data-tooltip-id='invite-link-tooltip'>
-                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
-                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                            <Icon name='Copy' /> Copy
-                          </div>
-                        </button>
-                      </CopyToClipboard>
-                      {!isMobile.any && (
-                        <Tooltip
-                          place='top'
-                          type='dark'
-                          id='invite-link-tooltip'
-                          effect='solid'
-                          delayShow={500}
-                        />
-                      )}
-                    </>
+                  <CopyToClipboard text={inviteLink} onCopy={onCopyInviteLink}>
+                    <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/50 transition-all hover:cursor-pointer justify-between' data-tooltip-content={!copiedInviteLink ? t('Click to Copy') : undefined} data-tooltip-id='invite-link-tooltip'>
+                      <span className='text-selected truncate w-[80%] max-w-[450px]'>{inviteLink}</span>
+                      <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
+                        {copiedInviteLink
+                          ? <>{t('Copied!')}</>
+                          : <><Icon name='Copy' /> {t('Copy')}</>}
+                      </div>
+                    </button>
+                  </CopyToClipboard>
+                  {!isMobile.any && (
+                    <Tooltip
+                      place='top'
+                      type='dark'
+                      id='invite-link-tooltip'
+                      effect='solid'
+                      delayShow={500}
+                    />
                   )}
-                  {copiedInviteLink && t('Copied!')}
                 </div>
               )}
               <button onClick={onReset} className='flex items-center text-nowrap group gap-2 bg-card border-2 border-accent/20 text-accent rounded-lg p-3 hover:border-foreground/50 transition-all hover:cursor-pointer text-sm' color={buttonColor(reset)}>
