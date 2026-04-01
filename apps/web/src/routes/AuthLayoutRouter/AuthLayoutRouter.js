@@ -511,7 +511,7 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div className={classes.container} data-testid='loading-screen'>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
         <Loading type='loading-fullscreen' />
       </div>
     )
@@ -707,7 +707,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
