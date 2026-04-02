@@ -1,7 +1,4 @@
-import groupTopicsQueryFragment from '@graphql/fragments/groupTopicsQueryFragment'
-
-// TODO: dont load all this unless looking at the explore page
-
+// Core group fields for stream / chat / nav (groupTopics loaded on demand, e.g. community_topics widget).
 export default function groupQueryFragment () {
   return `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     id
@@ -212,105 +209,6 @@ export default function groupQueryFragment () {
           isEnrolled
           numActions
           publishedAt
-        }
-      }
-    }
-    ${groupTopicsQueryFragment}
-    parentGroups {
-      items {
-        id
-        name
-        avatarUrl
-        bannerUrl
-        memberCount
-        visibility
-        accessibility
-        slug
-      }
-    }
-    childGroups {
-      items {
-        id
-        name
-        avatarUrl
-        bannerUrl
-        memberCount
-        visibility
-        accessibility
-        slug
-      }
-    }
-    peerGroups {
-      items {
-        id
-        name
-        avatarUrl
-        bannerUrl
-        memberCount
-        visibility
-        accessibility
-        slug
-      }
-    }
-    groupRelationshipInvitesFrom {
-      items {
-        id
-        fromGroup {
-          id
-          name
-          avatarUrl
-          bannerUrl
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        toGroup {
-          id
-          name
-          avatarUrl
-          bannerUrl
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        type
-        status
-        createdBy {
-          id
-          name
-        }
-      }
-    }
-    groupRelationshipInvitesTo {
-      items {
-        id
-        fromGroup {
-          id
-          name
-          avatarUrl
-          bannerUrl
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        toGroup {
-          id
-          name
-          avatarUrl
-          bannerUrl
-          memberCount
-          visibility
-          accessibility
-          slug
-        }
-        type
-        status
-        createdBy {
-          id
-          name
         }
       }
     }
