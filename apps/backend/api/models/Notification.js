@@ -11,11 +11,6 @@ const STALE_NOTIFICATION_CLAIM_MINUTES = 30
 
 const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
-// Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
-const STALE_NOTIFICATION_CLAIM_MINUTES = 30
-
-const UNSENT_NOTIFICATION_BATCH_SIZE = 200
-
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
   Chat: 'chat', // someone chats you in a chat room you subscribe to
