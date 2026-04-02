@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.1] - 2026-04-02
+
+### Changed
+- Performance improvements when loading Hylo
+- Loading spinner doesnt jump around so much when loading Hylo
+- Apply theme-aware styling to Upcoming Events and Projects cards on user profile
+
+### Fixed
+- Fix scrolling search results
+
 ## [6.4.0] - 2026-03-11
 
 ### Added

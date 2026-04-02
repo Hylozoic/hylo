@@ -107,6 +107,7 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Comment)
       .query(q => {
         q.join('posts', 'posts.id', 'comments.post_id')
+        q.queryContext({ alreadyJoinedPosts: true })
         q.whereNotIn('posts.user_id', BlockedUser.blockedFor(this.id))
         q.where(function () {
           this.where('posts.type', '!=', Post.Type.THREAD)

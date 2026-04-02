@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { createRef } from 'react'
 import { withTranslation } from 'react-i18next'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
@@ -15,8 +15,12 @@ class RecentActivity extends React.Component {
     loadingMore: false
   }
 
+  sentinelRef = createRef()
+  observer = null
+
   componentDidMount () {
     this.loadInitial()
+    this.setupObserver()
   }
 
   componentDidUpdate (prevProps, prevState) {
@@ -30,6 +34,24 @@ class RecentActivity extends React.Component {
     }
   }
 
+  componentWillUnmount () {
+    if (this.observer) this.observer.disconnect()
+  }
+
+  setupObserver = () => {
+    this.observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          this.loadMore()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    if (this.sentinelRef.current) {
+      this.observer.observe(this.sentinelRef.current)
+    }
+  }
+
   loadInitial = () => {
     this.setState({ offset: 0, items: [] }, () => {
       this.props.fetchRecentActivity(0)
@@ -40,18 +62,11 @@ class RecentActivity extends React.Component {
     if (this.state.loadingMore || !this.props.hasMore) return
     this.setState(
       state => ({ loadingMore: true, offset: state.offset + 10 }),
-      () => this.props.fetchRecentActivity(this.state.offset + 10)
+      () => this.props.fetchRecentActivity(this.state.offset)
     )
   }
 
   itemSelected = selectedItemId => selectedItemId === this.props.routeParams.postId
-
-  handleScroll = e => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target
-    if (scrollHeight - scrollTop - clientHeight < 100) {
-      this.loadMore()
-    }
-  }
 
   render () {
     const { t } = this.props
@@ -60,7 +75,7 @@ class RecentActivity extends React.Component {
     const { items, loadingMore } = this.state
 
     return (
-      <div style={{ overflowY: 'auto', maxHeight: '80vh' }} onScroll={this.handleScroll}>
+      <div>
         {items && items.map((item, i) => (
           <div className='bg-transparent' key={i} data-testid='activity-item'>
             {Object.prototype.hasOwnProperty.call(item, 'title')
@@ -69,9 +84,10 @@ class RecentActivity extends React.Component {
           </div>
         ))}
         {loadingMore && <Loading />}
-        {!this.props.hasMore && !loadingMore && (
+        {!this.props.hasMore && !loadingMore && items.length > 0 && (
           <div className='text-center text-gray-500 py-4'>{t('No more activity to load')}</div>
         )}
+        <div ref={this.sentinelRef} />
       </div>
     )
   }

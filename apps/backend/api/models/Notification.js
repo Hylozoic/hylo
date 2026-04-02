@@ -4,9 +4,12 @@ import { refineOne } from './util/relations'
 import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
-import { en } from '../../lib/i18n/en'
-import { es } from '../../lib/i18n/es'
-const locales = { en, es }
+import { getLocaleStrings } from '../../lib/i18n/locales'
+
+// Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
+const STALE_NOTIFICATION_CLAIM_MINUTES = 30
+
+const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -984,7 +987,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendTrackCompletedEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: locales[locale].theTeamAtHylo },
+      sender: { name: getLocaleStrings(locale).theTeamAtHylo },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         completer_name: actor.get('name'),
@@ -1100,30 +1103,31 @@ module.exports = bookshelf.Model.extend({
       group_avatar_url: group.get('avatar_url')
     }
 
+    const L = getLocaleStrings(locale)
     switch (phase) {
       case 'submissions':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, canSubmit ? 'submissions' : null) + clickthroughParams
         data.button_text = canSubmit
-          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'submissions' })
-          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'submissions' })
+          ? L.fundingRoundTransitionButtonText({ phase: 'submissions' })
+          : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'submissions' })
         break
       case 'discussion':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
-        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'discussion' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'discussion' })
+        data.button_text = L.fundingRoundTransitionButtonText({ phase: 'discussion' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'discussion' })
         break
       case 'voting':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, canVote ? 'voting' : null) + clickthroughParams
         data.button_text = canVote
-          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'voting' })
-          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'voting' })
+          ? L.fundingRoundTransitionButtonText({ phase: 'voting' })
+          : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'voting' })
         break
       case 'completed':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
-        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'completed' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'completed' })
+        data.button_text = L.fundingRoundTransitionButtonText({ phase: 'completed' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'completed' })
         break
     }
 
@@ -1161,6 +1165,7 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     const phase = reminderType.startsWith('submissions') ? 'submissions' : 'voting'
+    const L = getLocaleStrings(locale)
 
     return Email.sendFundingRoundReminderEmail({
       email: reader.get('email'),
@@ -1173,8 +1178,8 @@ module.exports = bookshelf.Model.extend({
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
         action_url: Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams,
-        button_text: locales[locale].fundingRoundTransitionButtonText({ phase }),
-        transition_text: locales[locale].textForFundingRoundReminder({ reminderType })
+        button_text: L.fundingRoundTransitionButtonText({ phase }),
+        transition_text: L.textForFundingRoundReminder({ reminderType })
       }
     })
   },
