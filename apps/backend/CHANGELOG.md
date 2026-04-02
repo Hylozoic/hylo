@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.2] - 2026-04-02
+
+### Fixed
+- Bug viewing recent activity on a profile
+
 ## [6.3.1] - 2026-03-11
 
 ### Added
