@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
-import config, { isTest } from 'config/index'
+import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -43,6 +43,8 @@ import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
+import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
+import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
@@ -61,6 +63,8 @@ import Messages from 'routes/Messages'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import MyTransactions from 'routes/MyTransactions'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
@@ -379,8 +383,11 @@ export default function AuthLayoutRouter (props) {
     { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
   )
 
+  // Baseline/regression: in Chrome DevTools open Performance (user timings: hylo-auth-bootstrap,
+  // hylo-fetch-for-group) and Network (GraphQL response sizes). Compare before/after deploy.
   useEffect(() => {
     (async function () {
+      if (isDev) performance.mark('hylo-auth-bootstrap-start')
       // Parallelise the two independent bootstrap fetches.
       // If the initial URL contains a post ID, race fetchPost alongside them
       // so the post data is ready (or nearly ready) by the time the auth shell renders.
@@ -390,8 +397,21 @@ export default function AuthLayoutRouter (props) {
         ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
       ]
       await Promise.all(bootstrapFetches)
+      if (isDev) {
+        performance.mark('hylo-auth-bootstrap-end')
+        try {
+          performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
+        } catch (e) {
+          // duplicate measure names across hot reload / strict mode
+        }
+      }
       setCurrentUserLoading(false)
-      dispatch(fetchThreads())
+      const runThreads = () => dispatch(fetchThreads())
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(runThreads, { timeout: 4000 })
+      } else {
+        setTimeout(runThreads, 2500)
+      }
     })()
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
@@ -449,15 +469,33 @@ export default function AuthLayoutRouter (props) {
     let cancelled = false
     const slug = currentGroupSlug
     ;(async function () {
+      if (isDev) performance.mark('hylo-fetch-group-start')
       await dispatch(fetchForGroup(slug))
-      if (!cancelled) {
-        setCurrentGroupLoading(false)
+      if (cancelled) return
+      setCurrentGroupLoading(false)
+      if (isDev) {
+        performance.mark('hylo-fetch-group-end')
+        try {
+          performance.measure('hylo-fetch-for-group', 'hylo-fetch-group-start', 'hylo-fetch-group-end')
+        } catch (e) {}
       }
     })()
     return () => {
       cancelled = true
     }
   }, [currentGroupSlug, dispatch])
+
+  // Redirect to stream if user is a member but doesn't have access (expired subscription)
+  useEffect(() => {
+    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
+      const currentPath = location.pathname
+      const streamPath = `/groups/${currentGroupSlug}/stream`
+      // Only redirect if not already on stream page
+      if (!currentPath.includes('/stream')) {
+        navigate(streamPath, { replace: true })
+      }
+    }
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate])
 
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
@@ -466,15 +504,17 @@ export default function AuthLayoutRouter (props) {
   // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
   useEffect(() => {
     if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
+      const currentGroupId = currentGroup?.id
       const groupIds = memberships
         .map(m => m.group?.id)
         .filter(Boolean)
+        .filter(id => id !== currentGroupId)
         .filter((id, index, self) => self.indexOf(id) === index) // unique ids
 
       if (groupIds.length === 0) return
 
       // Delay initial request to let critical page load requests complete first
-      const INITIAL_DELAY = 3000 // 3 second delay
+      const INITIAL_DELAY = 4500
       const BATCH_SIZE = 10
 
       const timeoutId = setTimeout(async () => {
@@ -492,7 +532,7 @@ export default function AuthLayoutRouter (props) {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [currentUserLoading, memberships, dispatch])
+  }, [currentUserLoading, currentGroup?.id, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
@@ -502,7 +542,7 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div className={classes.container} data-testid='loading-screen'>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
         <Helmet>
           <title>Hylo</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -702,7 +742,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
@@ -766,6 +806,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='payment/success' element={<PaymentSuccess />} />
+                            <Route path='payment/cancel' element={<PaymentFailure />} />
+                            <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
@@ -782,11 +825,13 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
