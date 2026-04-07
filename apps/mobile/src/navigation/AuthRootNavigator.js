@@ -56,13 +56,19 @@ export default function AuthRootNavigator () {
   useHandleLinking()
 
   useEffect(() => {
-    // Only show the loading screen during the INITIAL auth check before the app is
-    // initialized. Once initialized, never go back to loading — network re-fetches
-    // (caused by Android connectivity events on wake) must not unmount the navigator
-    // tree or the WebView will reload in a loop.
+    // Loading sequence gap (do not reintroduce `currentUserFetching` here):
+    // 1) urql cache-and-network often yields cached currentUser with fetching=false →
+    //    loading=false → PrimaryWebView mounts, WebView loads, user sees web skeleton.
+    // 2) The network leg starts → currentUserFetching=true while currentUser stays cached.
+    // 3) If we used setLoading(!currentUser || currentUserFetching), loading flips TRUE
+    //    before `initialized` is set (OneSignal/Intercom effect is still async).
+    // 4) That unmounts the whole navigator → PrimaryWebView remounts with fresh
+    //    isWebViewLoading=true → RN spinner flashes on top of the web UI, then WebView
+    //    loads again.
+    // So: gate only on “do we have a user record?”, not on background refetch.
     if (initialized) return
-    setLoading(!currentUser || currentUserFetching)
-  }, [initialized, currentUser, currentUserFetching])
+    setLoading(!currentUser)
+  }, [initialized, currentUser])
 
   useEffect(() => {
     resetNotificationsCount()
