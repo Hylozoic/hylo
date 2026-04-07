@@ -611,7 +611,7 @@ export default function ChatRoom (props) {
       </Helmet>
 
       <div id='chats' className='my-0 mx-auto h-[calc(100%-130px)] w-full flex flex-col flex-1 relative overflow-hidden px-1'>
-        {initialPostToScrollTo === null || topicFollowLoading
+        {initialPostToScrollTo === null || (topicFollowLoading && !topicFollow)
           ? (
             <div className='h-full w-full mt-auto overflow-x-hidden flex flex-col justify-end min-h-[40vh]'>
               <StreamSkeleton columnVariant='chat' />

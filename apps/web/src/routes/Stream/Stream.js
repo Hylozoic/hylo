@@ -99,6 +99,8 @@ export default function Stream (props) {
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
+  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
+  const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
@@ -480,7 +482,7 @@ export default function Stream (props) {
                     'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
                   })}
                 >
-                  {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {!pending && !topicBlockingStreams && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
                   {posts.map(post => {
                     const groupSlugs = post.groups.map(group => group.slug)
                     return (
@@ -515,12 +517,12 @@ export default function Stream (props) {
             />
           </div>
         )}
-        {(pending || topicLoading) && !isCalendarViewMode && (
+        {(pending || topicBlockingStreams) && !isCalendarViewMode && (
           posts.length === 0
             ? <StreamSkeleton wrapWithMainColumn={false} />
             : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
         )}
-        {(pending || topicLoading) && isCalendarViewMode && <Loading />}
+        {(pending || topicBlockingStreams) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

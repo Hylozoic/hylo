@@ -17,13 +17,15 @@ export function getEmptyState () {
   return combinedReducers({}, { type: '' })
 }
 
-// Persist only the ORM slice (user, groups, memberships, posts).
-// Everything else (pending flags, UI state, router) stays ephemeral.
+// Persist ORM entities plus queryResults (feed/list ordering keys). Without
+// queryResults, re-open shows empty lists until FETCH_POSTS completes even when
+// Post rows exist in the ORM — pending + empty ids caused skeleton/spinner flashes.
+// pending, router, and UI slices stay ephemeral.
 // Version bump here will purge and re-hydrate all clients.
 const persistConfig = {
   key: 'hylo',
   storage,
-  whitelist: ['orm'],
+  whitelist: ['orm', 'queryResults'],
   version: 1
 }
 
