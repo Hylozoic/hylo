@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -74,6 +74,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
+import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -137,7 +138,7 @@ export default function AuthLayoutRouter (props) {
   const signupInProgress = useSelector(getSignupInProgress)
 
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
-  const [currentGroupLoading, setCurrentGroupLoading] = useState()
+  const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
@@ -428,15 +429,35 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
+  // Keep group loading in sync with the URL before paint so we never mount Stream/chat,
+  // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).
+  useLayoutEffect(() => {
+    if (!currentGroupSlug) {
+      setCurrentGroupLoading(false)
+      return
+    }
+    const g = getGroupForSlug(store.getState(), currentGroupSlug)
+    if (g?.slug === currentGroupSlug) {
+      setCurrentGroupLoading(false)
+    } else {
+      setCurrentGroupLoading(true)
+    }
+  }, [currentGroupSlug])
+
   useEffect(() => {
-    (async function () {
-      if (currentGroupSlug) {
-        setCurrentGroupLoading(true)
-        await dispatch(fetchForGroup(currentGroupSlug))
+    if (!currentGroupSlug) return
+    let cancelled = false
+    const slug = currentGroupSlug
+    ;(async function () {
+      await dispatch(fetchForGroup(slug))
+      if (!cancelled) {
         setCurrentGroupLoading(false)
       }
     })()
-  }, [currentGroupSlug])
+    return () => {
+      cancelled = true
+    }
+  }, [currentGroupSlug, dispatch])
 
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.

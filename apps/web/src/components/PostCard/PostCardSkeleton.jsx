@@ -39,14 +39,17 @@ function PostCardSkeleton () {
  * @param {object} props
  * @param {boolean} [props.wrapWithMainColumn=true] — When true, applies max width + padding for stream or chat. Set false when already inside Stream’s `stream-inner-container`.
  * @param {'stream'|'chat'} [props.columnVariant='stream'] — `chat` uses the same column as ChatRoom’s message list.
+ * @param {number} [props.placeholderCount=4] — How many card placeholders to render (use fewer for “below cached posts” refresh).
  */
-export function StreamSkeleton ({ wrapWithMainColumn = true, columnVariant = 'stream' }) {
+export function StreamSkeleton ({ wrapWithMainColumn = true, columnVariant = 'stream', placeholderCount = 4 }) {
   const columnClass =
     columnVariant === 'chat' ? CHAT_MESSAGE_COLUMN_CLASS : STREAM_MAIN_COLUMN_CLASS
 
+  const indices = Array.from({ length: placeholderCount }, (_, i) => i)
+
   const list = (
     <>
-      {[0, 1, 2, 3].map(i => (
+      {indices.map(i => (
         <div
           key={i}
           style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'both' }}

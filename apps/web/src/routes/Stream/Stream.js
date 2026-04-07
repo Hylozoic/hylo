@@ -506,7 +506,7 @@ export default function Stream (props) {
         {(pending || topicLoading) && !isCalendarViewMode && (
           posts.length === 0
             ? <StreamSkeleton wrapWithMainColumn={false} />
-            : <Loading type='bottom' />
+            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
         )}
         {(pending || topicLoading) && isCalendarViewMode && <Loading />}
 
