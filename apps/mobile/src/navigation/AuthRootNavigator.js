@@ -56,14 +56,13 @@ export default function AuthRootNavigator () {
   useHandleLinking()
 
   useEffect(() => {
-    // Only show the loading screen until we know whether there is a logged-in user.
-    // Do NOT tie this to currentUserFetching: with cache-and-network, urql sets
-    // fetching=true on every background refetch while currentUser stays in the cache.
-    // That used to set loading=true here, unmount PrimaryWebView, remount it (fresh
-    // isWebViewLoading), and flash the native spinner on top of the web skeleton.
+    // Only show the loading screen during the INITIAL auth check before the app is
+    // initialized. Once initialized, never go back to loading — network re-fetches
+    // (caused by Android connectivity events on wake) must not unmount the navigator
+    // tree or the WebView will reload in a loop.
     if (initialized) return
-    setLoading(!currentUser)
-  }, [initialized, currentUser])
+    setLoading(!currentUser || currentUserFetching)
+  }, [initialized, currentUser, currentUserFetching])
 
   useEffect(() => {
     resetNotificationsCount()
