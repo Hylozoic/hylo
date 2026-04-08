@@ -144,7 +144,7 @@ Or use the package.json scripts: `yarn test:e2e`, `yarn screenshot`
 
 ## Code Conventions
 
-- Web app uses React with SCSS modules (camelCase class names)
-- GraphQL for API queries (`.graphql` files)
-- Shared logic goes in `packages/` when used by both web and mobile
+- Web app uses React with Tailwind CSS (legacy SCSS modules still exist but are being removed)
+- GraphQL for API queries (some in `.graphql` files, most defined inline)
+- Shared logic goes in `packages/` when used by both web and backend
 - Standard.js linting for the web app
