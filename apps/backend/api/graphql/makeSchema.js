@@ -334,6 +334,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
+    customView: (root, { id }) => fetchOne('CustomView', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
     fundingRound: (root, { id }) => fetchOne('FundingRound', id),
