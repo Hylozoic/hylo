@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -52,6 +52,8 @@ import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
 import Loading from 'components/Loading'
+import BootstrapShell from 'components/Skeleton/BootstrapShell'
+import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
@@ -72,6 +74,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
+import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
 
 import classes from './AuthLayoutRouter.module.scss'
@@ -135,7 +138,7 @@ export default function AuthLayoutRouter (props) {
   const signupInProgress = useSelector(getSignupInProgress)
 
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
-  const [currentGroupLoading, setCurrentGroupLoading] = useState()
+  const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
@@ -400,8 +403,8 @@ export default function AuthLayoutRouter (props) {
       }
       setCurrentUserLoading(false)
       const runThreads = () => dispatch(fetchThreads())
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(runThreads, { timeout: 4000 })
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(runThreads, { timeout: 4000 })
       } else {
         setTimeout(runThreads, 2500)
       }
@@ -442,15 +445,28 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
+  // Keep group loading in sync with the URL before paint so we never mount Stream/chat,
+  // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).
+  useLayoutEffect(() => {
+    if (!currentGroupSlug) {
+      setCurrentGroupLoading(false)
+      return
+    }
+    const g = getGroupForSlug(store.getState(), currentGroupSlug)
+    if (g?.slug === currentGroupSlug) {
+      setCurrentGroupLoading(false)
+    } else {
+      setCurrentGroupLoading(true)
+    }
+  }, [currentGroupSlug])
+
   useEffect(() => {
     if (!currentGroupSlug) return
-
     let cancelled = false
-
+    const slug = currentGroupSlug
     ;(async function () {
-      setCurrentGroupLoading(true)
       if (isDev) performance.mark('hylo-fetch-group-start')
-      await dispatch(fetchForGroup(currentGroupSlug))
+      await dispatch(fetchForGroup(slug))
       if (cancelled) return
       setCurrentGroupLoading(false)
       if (isDev) {
@@ -460,7 +476,6 @@ export default function AuthLayoutRouter (props) {
         } catch (e) {}
       }
     })()
-
     return () => {
       cancelled = true
     }
@@ -512,7 +527,11 @@ export default function AuthLayoutRouter (props) {
   if (currentUserLoading) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
-        <Loading type='loading-fullscreen' />
+        <Helmet>
+          <title>Hylo</title>
+          <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+        </Helmet>
+        <BootstrapShell withoutNav={withoutNav} className='flex-1 min-h-0' />
       </div>
     )
   }
@@ -739,10 +758,11 @@ export default function AuthLayoutRouter (props) {
                   path='groups/:groupSlug/*'
                   element={
                     /* When viewing a group, check membership first before rendering any group routes.
-                       Skip the loading gate for post detail URLs so PostDetail can render immediately
-                       using the post data that was pre-fetched during bootstrap. */
+                       Skip the loading gate for post-detail URLs so PostDetail can render immediately
+                       (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
+                       instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
-                      ? <Loading />
+                      ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (

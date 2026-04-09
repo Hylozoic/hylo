@@ -39,7 +39,8 @@ class RecentActivity extends React.Component {
   }
 
   setupObserver = () => {
-    this.observer = new IntersectionObserver(
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return
+    this.observer = new window.IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
           this.loadMore()
