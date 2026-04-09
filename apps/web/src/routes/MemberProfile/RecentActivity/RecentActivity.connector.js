@@ -8,8 +8,7 @@ import {
 export function mapStateToProps (state, props) {
   const personId = props.routeParams.personId
   const activityItems = getRecentActivity(state, props)
-  // Find the person in the ORM state
-  const person = state.orm?.Person?.items?.find(p => p.id === personId)
+  const person = state.orm?.Person?.itemsById?.[personId]
   return {
     activityItems,
     hasMore: hasMoreActivity(person)

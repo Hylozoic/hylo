@@ -4,7 +4,10 @@ export const commentFilter = userId => relation => relation.query(q => {
 
   if (userId) {
     q.leftJoin('groups_posts', 'comments.post_id', 'groups_posts.post_id')
-    q.join('posts', 'groups_posts.post_id', 'posts.id')
+    // Only join posts if not already joined (e.g. by the User.comments relation)
+    if (!q.queryContext()?.alreadyJoinedPosts) {
+      q.join('posts', 'groups_posts.post_id', 'posts.id')
+    }
     q.whereNotIn('comments.user_id', BlockedUser.blockedFor(userId))
 
     q.where(q2 => {
