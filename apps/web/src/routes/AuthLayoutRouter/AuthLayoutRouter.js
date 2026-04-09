@@ -481,18 +481,6 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
-  // Redirect to stream if user is a member but doesn't have access (expired subscription)
-  useEffect(() => {
-    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
-      const currentPath = location.pathname
-      const streamPath = `/groups/${currentGroupSlug}/stream`
-      // Only redirect if not already on stream page
-      if (!currentPath.includes('/stream')) {
-        navigate(streamPath, { replace: true })
-      }
-    }
-  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate])
-
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
