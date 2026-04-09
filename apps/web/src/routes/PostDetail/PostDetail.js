@@ -21,8 +21,8 @@ import ScrollListener from 'components/ScrollListener'
 import Comments from './Comments'
 import SocketSubscriber from 'components/SocketSubscriber'
 import Button from 'components/ui/button'
-import Loading from 'components/Loading'
 import NotFound from 'components/NotFound'
+import PostDetailSkeleton from './PostDetailSkeleton'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
 import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
@@ -376,7 +376,7 @@ function PostDetail () {
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
   if (!post && !pending) return <NotFound />
-  if (!post && pending) return <Loading />
+  if (!post && pending) return <PostDetailSkeleton />
 
   const headerStyle = {
     width: state.headerWidth + 'px'

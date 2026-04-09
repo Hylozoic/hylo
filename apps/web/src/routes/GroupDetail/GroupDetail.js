@@ -116,7 +116,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [group?.name])
 
   if (!group && !pending) return <NotFound />
-  if (pending) return <Loading />
+  if (!group && pending) return <Loading />
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
