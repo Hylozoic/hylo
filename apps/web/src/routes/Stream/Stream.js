@@ -32,11 +32,12 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import fetchCustomView from 'store/actions/fetchCustomView'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -97,6 +98,11 @@ export default function Stream (props) {
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
+
+  const customViewLoading = useSelector(state =>
+    customViewId ? isPendingFor(FETCH_CUSTOM_VIEW, state) : false
+  )
+
   // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
   const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
@@ -240,7 +246,11 @@ export default function Stream (props) {
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
   }, [pending, hasMore, fetchPostsParam])
 
-  // TODO: fetch custom view inc ase it has been updated?
+  useEffect(() => {
+    if (customViewId) {
+      dispatch(fetchCustomView(customViewId))
+    }
+  }, [customViewId, dispatch])
 
   useEffect(() => {
     if (topicName) {
@@ -472,7 +482,9 @@ export default function Stream (props) {
               'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
             })}
           >
-            {!pending && !topicBlockingStreams && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
+            {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
             {posts.map(post => {
               const groupSlugs = post.groups.map(group => group.slug)
               return (
@@ -491,7 +503,7 @@ export default function Stream (props) {
             })}
           </MasonryGrid>
         )}
-        {!pending && isCalendarViewMode && (
+        {!pending && !customViewLoading && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
@@ -505,12 +517,13 @@ export default function Stream (props) {
             />
           </div>
         )}
-        {(pending || topicBlockingStreams) && !isCalendarViewMode && (
+
+        {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
           posts.length === 0
             ? <StreamSkeleton wrapWithMainColumn={false} />
             : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
         )}
-        {(pending || topicBlockingStreams) && isCalendarViewMode && <Loading />}
+        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

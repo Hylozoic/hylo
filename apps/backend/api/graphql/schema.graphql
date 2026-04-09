@@ -30,6 +30,9 @@ type Query {
 
   collection(id: ID): Collection
 
+  # A Group CustomView by ID (stream, collection, or external link)
+  customView(id: ID): CustomView
+
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
