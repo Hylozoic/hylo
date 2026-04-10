@@ -26,7 +26,7 @@ const persistConfig = {
   key: 'hylo',
   storage,
   whitelist: ['orm', 'queryResults'],
-  version: 1
+  version: 1.1
 }
 
 const store = createStore(
