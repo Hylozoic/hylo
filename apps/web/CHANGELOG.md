@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.2] - 2026-04-02
+
+### Added
+- Skeleton imagery when loading app to make it look better as it loads
+- Add Playwright E2E testing and Claude Code workflow for faster and safer agent based development
+
+### Changed
+- Initial load time performance improvements
+
+### Fixed
+- Issue loading correct data when switching between chat rooms
+- Bug when creating a group and choosing chat as the home route it would redirect to /stream instead
+- Bug when joining a group it would join then immediately jump to a 404
+- Copy confirmation on wrong section in Invite Settings
+- Tooltip z-index behind images in posts
+
 ## [6.4.1] - 2026-04-02
 
 ### Changed
