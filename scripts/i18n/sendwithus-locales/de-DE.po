@@ -307,8 +307,8 @@ msgstr "Hier klicken [ %(email_settings_url)s ], um dich abzumelden oder E-Mail-
 msgid "No new search results"
 msgstr "Keine neuen Suchergebnisse"
 
-msgid "Thank you for your generous donation of "
-msgstr "Vielen Dank für deine großzügige Spende von "
+msgid "Thank you for your generous contribution of "
+msgstr "Vielen Dank für deinen großzügigen Beitrag in Höhe von "
 
 msgid " to Hylo!"
 msgstr " an Hylo!"
@@ -316,37 +316,37 @@ msgstr " an Hylo!"
 msgid "Your support helps us continue building tools for social coordination and community building."
 msgstr "Deine Unterstützung hilft uns, Tools für soziale Koordination und Community-Aufbau weiterzuentwickeln."
 
-msgid "Donation Date:"
-msgstr "Spendendatum:"
+msgid "Contribution date:"
+msgstr "Beitragsdatum:"
 
-msgid "Donation Type:"
-msgstr "Spendenart:"
+msgid "Contribution type:"
+msgstr "Beitragsart:"
 
-msgid "Tax-Deductible Donation"
-msgstr "Steuerlich absetzbare Spende"
+msgid "Tax-deductible contribution"
+msgstr "Steuerlich absetzbarer Beitrag"
 
 #, python-format
-msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
-msgstr "Deine Spende ist in den USA steuerlich absetzbar. Hylo wird von %(fiscal_sponsor_name_var)s, einer 501(c)(3)-Non-Profit-Organisation, finanziell gefördert."
+msgid "Your contribution is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Dein Beitrag ist in den USA steuerlich absetzbar. Hylo wird von %(fiscal_sponsor_name_var)s, einer 501(c)(3)-Non-Profit-Organisation, finanziell gefördert."
 
-msgid "This is a recurring donation that will automatically repeat "
-msgstr "Dies ist eine wiederkehrende Spende, die automatisch wiederholt wird "
+msgid "This is a recurring contribution that will automatically repeat "
+msgstr "Dies ist ein wiederkehrender Beitrag, der automatisch wiederholt wird "
 
 msgid "."
 msgstr "."
 
-msgid "Next Donation:"
-msgstr "Nächste Spende:"
+msgid "Next contribution:"
+msgstr "Nächster Beitrag:"
 
-msgid "Manage Recurring Donation"
-msgstr "Wiederkehrende Spende verwalten"
+msgid "Manage recurring contribution"
+msgstr "Wiederkehrenden Beitrag verwalten"
 
 #, python-format
-msgid "This donation was made as part of your %(purchase_context_var)s."
-msgstr "Diese Spende wurde im Rahmen deines %(purchase_context_var)s getätigt."
+msgid "This contribution was made as part of your %(purchase_context_var)s."
+msgstr "Dieser Beitrag wurde im Rahmen deines %(purchase_context_var)s getätigt."
 
-msgid "Thank you for your donation to Hylo"
-msgstr "Danke für deine Spende an Hylo"
+msgid "Thank you for your contribution to Hylo"
+msgstr "Danke für deinen Beitrag an Hylo"
 
 #, python-format
 msgid "%(subject)s"

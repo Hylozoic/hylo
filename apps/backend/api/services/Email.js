@@ -200,7 +200,7 @@ This alert will not repeat for this group for 24 hours.`
 
   /**
    * Notifies platform payments staff when a group creates a new Stripe Connect account.
-   * Recipient defaults to payments@hylo.com; override with PAYMENTS_NOTIFICATION_EMAIL.
+   * Requires PAYMENTS_NOTIFICATION_EMAIL; no email is sent if unset.
    *
    * @param {object} opts
    * @param {string} opts.groupName
@@ -213,7 +213,7 @@ This alert will not repeat for this group for 24 hours.`
    * @param {string} opts.actorProfileUrl - Absolute URL to the member profile
    */
   sendNewStripeConnectedAccountAdminNotification: function (opts) {
-    const recipient = process.env.PAYMENTS_NOTIFICATION_EMAIL || 'payments@hylo.com'
+    const recipient = process.env.PAYMENTS_NOTIFICATION_EMAIL
     if (!recipient) return Promise.resolve(false)
 
     const subject = `New Stripe Account: ${opts.groupName}`
