@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.3] - 2026-04-10
+
+### Added
+- API call to load a custom view on demand
+
 ## [6.3.2] - 2026-04-02
 
 ### Fixed

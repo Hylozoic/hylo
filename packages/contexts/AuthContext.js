@@ -28,8 +28,16 @@ const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
   const { setIsAuthenticated, setIsAuthorized } = useAuthStore()
+  // network-only is required here (not cache-and-network):
+  // After social login (Google/Apple), the urql cache still holds {me: null} from
+  // the pre-login unauthenticated state. cache-and-network would return that stale
+  // null first, causing isAuthorized=false and leaving the app stuck on the loading
+  // screen. network-only skips the cache and returns only the fresh server response,
+  // giving a single clean false→true transition after any login.
+  // RootNavigator's hasCompletedInitialAuthFetch guard prevents NavigationContainer
+  // from unmounting on background network-only refetches.
   const [{ data, fetching, error }, checkAuth] = useQuery({
-    requestPolicy: 'cache-and-network',
+    requestPolicy: 'network-only',
     query: meCheckAuthQuery
   })
   const [, executeLogin] = useMutation(loginMutation)

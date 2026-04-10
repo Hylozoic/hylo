@@ -25,17 +25,20 @@ import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
-  // NOTE: cache-and-network is used (not network-only) — see comment below.
   const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
-  // cache-and-network keeps currentUser available from the urql cache during re-fetches.
-  // network-only would clear currentUser to undefined on every re-fetch (e.g. Android
-  // network transitions on wake), causing the loading condition below to go true, which
-  // unmounts the entire navigator tree and restarts the WebView — causing an infinite loop.
-  // Safe destructuring with fallback in case the result is transiently null/undefined.
+  // network-only is required here (not cache-and-network):
+  // After social login (Google/Apple) on a fresh install, the graphcache still holds the
+  // pre-login Me:'me' = null entity. cache-and-network would serve that stale null first,
+  // keeping currentUser=null and loading=true indefinitely. network-only skips the cache
+  // and goes directly to the server, which returns the authenticated user via the freshly-set
+  // session cookie — giving a clean null→user transition after any login.
+  // Re-fetches after initialization are safe: the `if (initialized) return` guard in the
+  // loading effect below prevents loading from flipping back to true, so the navigator tree
+  // and WebView stay mounted even when currentUser is briefly undefined during a re-fetch.
   const currentUserResult = useCurrentUser({
-    requestPolicy: 'cache-and-network',
+    requestPolicy: 'network-only',
     pause: !isConnected || !isInternetReachable
   })
   const { currentUser, fetching: currentUserFetching, error } = currentUserResult?.[0] ?? {}
@@ -56,33 +59,23 @@ export default function AuthRootNavigator () {
   useHandleLinking()
 
   useEffect(() => {
-    // Only show the loading screen during the INITIAL auth check before the app is
-    // initialized. Once initialized, never go back to loading — network re-fetches
-    // (caused by Android connectivity events on wake) must not unmount the navigator
-    // tree or the WebView will reload in a loop.
+    // Loading sequence gap (do not reintroduce `currentUserFetching` here):
+    // 1) urql cache-and-network often yields cached currentUser with fetching=false →
+    //    loading=false → PrimaryWebView mounts, WebView loads, user sees web skeleton.
+    // 2) The network leg starts → currentUserFetching=true while currentUser stays cached.
+    // 3) If we used setLoading(!currentUser || currentUserFetching), loading flips TRUE
+    //    before `initialized` is set (OneSignal/Intercom effect is still async).
+    // 4) That unmounts the whole navigator → PrimaryWebView remounts with fresh
+    //    isWebViewLoading=true → RN spinner flashes on top of the web UI, then WebView
+    //    loads again.
+    // So: gate only on “do we have a user record?”, not on background refetch.
     if (initialized) return
-    setLoading(!currentUser || currentUserFetching)
-  }, [initialized, currentUser, currentUserFetching])
+    setLoading(!currentUser)
+  }, [initialized, currentUser])
 
   useEffect(() => {
     resetNotificationsCount()
   }, [])
-
-  // DEPRECATED: This is no longer used, all we need to do is log the user in and a subscription will be created. Remove after 2025-08-26
-  // const oneSignalChangeListener = ({ externalId, onesignalId }) => {
-  //   if (externalId === currentUser?.id) {
-  //     registerDevice({
-  //       playerId: onesignalId,
-  //       platform: Platform.OS + (isDev ? '_dev' : ''),
-  //       version: hyloAppVersion
-  //     })
-  //   } else {
-  //     console.warn(
-  //       'Not registering to OneSignal for push notifications:\n' +
-  //       `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
-  //     )
-  //   }
-  // }
 
   useEffect(() => {
     (async function () {
