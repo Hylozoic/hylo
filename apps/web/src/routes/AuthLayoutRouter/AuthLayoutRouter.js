@@ -492,10 +492,15 @@ export default function AuthLayoutRouter (props) {
       const streamPath = `/groups/${currentGroupSlug}/stream`
       // Only redirect if not already on stream page
       if (!currentPath.includes('/stream')) {
+        // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
+        // Close the nav so the paywall / no-access stream view is visible after redirect.
+        if (typeof window !== 'undefined' && window.innerWidth < 640) {
+          dispatch(toggleNavMenu(false))
+        }
         navigate(streamPath, { replace: true })
       }
     }
-  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate])
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
 
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
