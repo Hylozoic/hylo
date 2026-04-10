@@ -13,8 +13,6 @@ const Stripe = require('stripe')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
-const { getLocaleStrings } = require('../../lib/i18n/locales')
-
 /* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
 
 const Email = require('../services/Email')
@@ -29,6 +27,24 @@ const STRIPE_LOG_TYPES = {
   REFUND: 'refund',
   DISPUTE: 'dispute',
   ALERT: 'alert'
+}
+
+/**
+ * Detects optional Hylo platform contribution line items (matches current and legacy Stripe product names).
+ *
+ * @param {String} productName - Product name from Stripe line item
+ * @returns {Boolean}
+ */
+function isHyloPlatformContributionLineItem (productName) {
+  const n = (productName || '').toLowerCase()
+  return (
+    n.includes('hylo platform donation') ||
+    n.includes('donation to hylo') ||
+    n.includes('hylo platform contribution') ||
+    n.includes('contribution to hylo') ||
+    n.includes('recurring donation to hylo') ||
+    n.includes('recurring contribution to hylo')
+  )
 }
 
 /**
@@ -850,8 +866,7 @@ module.exports = {
         console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
       }
 
-      // Handle donation transfer if customer added optional donation item
-      // Check line items for donation to Hylo
+      // Transfer platform contribution to Hylo if the customer added the optional line item
       let donationAmount = 0
       try {
         // Get the group to find the connected account ID first
@@ -874,65 +889,36 @@ module.exports = {
 
             const externalAccountId = await getExternalAccountId(stripeAccountId)
 
-            // Retrieve full session with line items expanded to check for donations
+            // Retrieve full session with line items expanded to check for platform contributions
             const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
               expand: ['line_items']
             }, {
               stripeAccount: externalAccountId
             })
 
-            // Look for donation line items in the session
-            // Track donation details for acknowledgment email
-            const donationDetails = {
-              isRecurring: false,
-              recurringInterval: null,
-              donationType: 'one-time'
-            }
-
-            // Sum all donations (one-time and recurring) in case customer added both
+            // Sum platform contribution line items (one-time and recurring)
             if (fullSession.line_items?.data) {
               for (const lineItem of fullSession.line_items.data) {
                 const productName = lineItem.price?.product?.name || lineItem.description || ''
-                const isDonation = productName.toLowerCase().includes('donation to hylo')
+                const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
 
-                if (isDonation) {
-                  // Calculate donation amount: unit_amount * quantity
+                if (isPlatformContribution) {
                   const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
                   donationAmount += itemDonationAmount
 
-                  // Track donation type and recurring details
-                  const isRecurring = lineItem.price?.recurring !== null && lineItem.price?.recurring !== undefined
-                  if (isRecurring) {
-                    donationDetails.isRecurring = true
-                    donationDetails.donationType = 'recurring'
-                    // Map Stripe interval to template format
-                    const interval = lineItem.price.recurring.interval
-                    if (interval === 'month') {
-                      donationDetails.recurringInterval = 'monthly'
-                    } else if (interval === 'year') {
-                      donationDetails.recurringInterval = 'annually'
-                    } else if (interval === 'week') {
-                      donationDetails.recurringInterval = 'weekly'
-                    } else if (interval === 'day') {
-                      donationDetails.recurringInterval = 'daily'
-                    } else {
-                      donationDetails.recurringInterval = interval
-                    }
-                  }
-
                   if (process.env.NODE_ENV === 'development') {
-                    console.log(`Found ${isRecurring ? 'recurring' : 'one-time'} donation: ${itemDonationAmount} ${session.currency || 'usd'}`)
+                    const isRecurring = lineItem.price?.recurring != null
+                    console.log(`Found ${isRecurring ? 'recurring' : 'one-time'} platform contribution: ${itemDonationAmount} ${session.currency || 'usd'}`)
                   }
                 }
               }
             }
 
-            // Transfer donation if present
             if (donationAmount > 0) {
               const paymentIntentId = session.payment_intent
 
               if (paymentIntentId) {
-                await StripeService.transferDonationToPlatform({
+                await StripeService.transferContributionToPlatform({
                   connectedAccountId: externalAccountId,
                   paymentIntentId,
                   donationAmount,
@@ -940,113 +926,15 @@ module.exports = {
                 })
 
                 if (process.env.NODE_ENV === 'development') {
-                  console.log(`Transferred donation of ${donationAmount} ${session.currency || 'usd'} to platform`)
-                }
-
-                // Send Donation Acknowledgment email
-                try {
-                  const user = await User.find(userId)
-                  if (user && user.get('email')) {
-                    const userLocale = user.getLocale()
-                    const donationDate = new Date(session.created * 1000)
-                    const donationDateFormatted = donationDate.toLocaleDateString(
-                      userLocale === 'es' ? 'es-ES' : 'en-US',
-                      {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }
-                    )
-
-                    const donationAmountFormatted = StripeService.formatPrice(donationAmount, session.currency || 'usd')
-
-                    // Get group and offering info for context
-                    const group = await Group.find(groupId)
-                    const offering = await StripeProduct.where({ id: offeringId }).fetch()
-                    let purchaseContext = null
-                    if (offering) {
-                      purchaseContext = offering.get('name')
-                    }
-
-                    // Determine next donation date for recurring donations
-                    let nextDonationDate = null
-                    if (donationDetails.isRecurring && donationDetails.recurringInterval) {
-                      const nextDate = new Date(donationDate)
-                      if (donationDetails.recurringInterval === 'monthly') {
-                        nextDate.setMonth(nextDate.getMonth() + 1)
-                      } else if (donationDetails.recurringInterval === 'annually') {
-                        nextDate.setFullYear(nextDate.getFullYear() + 1)
-                      } else if (donationDetails.recurringInterval === 'weekly') {
-                        nextDate.setDate(nextDate.getDate() + 7)
-                      } else if (donationDetails.recurringInterval === 'daily') {
-                        nextDate.setDate(nextDate.getDate() + 1)
-                      }
-                      nextDonationDate = nextDate.toLocaleDateString(
-                        userLocale === 'es' ? 'es-ES' : 'en-US',
-                        {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }
-                      )
-                    }
-
-                    // Fiscal sponsor info (use env var or default)
-                    const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                    const localeObj = getLocaleStrings(userLocale)
-                    const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
-                    const impactMessage = donationDetails.isRecurring
-                      ? localeObj.donationRecurringImpactMessage()
-                      : localeObj.donationImpactMessage()
-
-                    const emailData = {
-                      user_name: user.get('name'),
-                      donation_amount: donationAmountFormatted,
-                      donation_type: donationDetails.donationType,
-                      donation_date: donationDateFormatted,
-                      is_tax_deductible: true,
-                      fiscal_sponsor_name: fiscalSponsorName,
-                      tax_receipt_info: taxReceiptInfo,
-                      is_recurring: donationDetails.isRecurring,
-                      impact_message: impactMessage
-                    }
-
-                    if (donationDetails.isRecurring) {
-                      emailData.next_donation_date = nextDonationDate
-                      emailData.recurring_interval = donationDetails.recurringInterval
-                      emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
-                    }
-
-                    if (purchaseContext) {
-                      emailData.purchase_context = purchaseContext
-                    }
-
-                    if (group) {
-                      emailData.group_name = group.get('name')
-                    }
-
-                    Queue.classMethod('Email', 'sendDonationAcknowledgment', {
-                      email: user.get('email'),
-                      data: emailData,
-                      version: 'Redesign 2025',
-                      locale: userLocale
-                    })
-
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`Queued Donation Acknowledgment email to user ${userId}`)
-                    }
-                  }
-                } catch (emailError) {
-                  // Log error but don't fail the entire webhook - email can be retried
-                  console.error('Error queueing donation acknowledgment email:', emailError)
+                  console.log(`Transferred platform contribution of ${donationAmount} ${session.currency || 'usd'} to platform`)
                 }
               }
             }
           }
         }
       } catch (donationError) {
-        // Log error but don't fail the entire webhook - donation transfer can be retried
-        console.error('Error processing donation transfer:', donationError)
+        // Log error but don't fail the entire webhook - contribution transfer can be retried
+        console.error('Error processing platform contribution transfer:', donationError)
       }
 
       // Send purchase confirmation email to user
@@ -2061,8 +1949,7 @@ module.exports = {
         console.error('Error queueing subscription renewed email:', emailError)
       }
 
-      // Handle recurring donations from subscription renewal invoices
-      // Check invoice line items for recurring donations
+      // Handle recurring platform contributions on subscription renewal invoices
       let donationAmount = 0
       try {
         // Get group ID from the first access record to find connected account
@@ -2100,54 +1987,27 @@ module.exports = {
                   stripeAccount: externalAccountId
                 })
 
-                // Look for recurring donation line items in the invoice
-                // Track donation details for acknowledgment email
-                const donationDetails = {
-                  isRecurring: true,
-                  recurringInterval: null,
-                  donationType: 'recurring'
-                }
-
                 if (fullInvoice.lines?.data) {
                   for (const lineItem of fullInvoice.lines.data) {
                     const productName = lineItem.price?.product?.name || lineItem.description || ''
-                    const isRecurringDonation = productName.toLowerCase().includes('recurring donation to hylo')
+                    const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
 
-                    if (isRecurringDonation) {
-                      // Calculate donation amount: unit_amount * quantity
+                    if (isPlatformContribution) {
                       const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
                       donationAmount += itemDonationAmount
 
-                      // Track recurring interval
-                      if (lineItem.price?.recurring) {
-                        const interval = lineItem.price.recurring.interval
-                        if (interval === 'month') {
-                          donationDetails.recurringInterval = 'monthly'
-                        } else if (interval === 'year') {
-                          donationDetails.recurringInterval = 'annually'
-                        } else if (interval === 'week') {
-                          donationDetails.recurringInterval = 'weekly'
-                        } else if (interval === 'day') {
-                          donationDetails.recurringInterval = 'daily'
-                        } else {
-                          donationDetails.recurringInterval = interval
-                        }
-                      }
-
                       if (process.env.NODE_ENV === 'development') {
-                        console.log(`Found recurring donation in renewal invoice: ${itemDonationAmount} ${invoice.currency || 'usd'}`)
+                        console.log(`Found recurring platform contribution in renewal invoice: ${itemDonationAmount} ${invoice.currency || 'usd'}`)
                       }
                     }
                   }
                 }
 
-                // Transfer recurring donation if present
                 if (donationAmount > 0) {
-                  // For invoices, we need to get the charge ID from the payment intent
                   const paymentIntentId = invoice.payment_intent
 
                   if (paymentIntentId) {
-                    await StripeService.transferDonationToPlatform({
+                    await StripeService.transferContributionToPlatform({
                       connectedAccountId: externalAccountId,
                       paymentIntentId,
                       donationAmount,
@@ -2155,127 +2015,7 @@ module.exports = {
                     })
 
                     if (process.env.NODE_ENV === 'development') {
-                      console.log(`Transferred recurring donation of ${donationAmount} ${invoice.currency || 'usd'} to platform from subscription renewal`)
-                    }
-
-                    // Send Donation Acknowledgment email for recurring donation
-                    try {
-                      const firstAccess = accessRecords.at(0)
-                      const userId = firstAccess.get('user_id')
-                      const user = await User.find(userId)
-
-                      if (user && user.get('email')) {
-                        const userLocale = user.getLocale()
-                        const donationDate = new Date(invoice.created * 1000)
-                        const donationDateFormatted = donationDate.toLocaleDateString(
-                          userLocale === 'es' ? 'es-ES' : 'en-US',
-                          {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }
-                        )
-
-                        const donationAmountFormatted = StripeService.formatPrice(donationAmount, invoice.currency || 'usd')
-
-                        // Get group and offering info for context
-                        const productId = firstAccess.get('product_id')
-                        const offering = productId ? await StripeProduct.where({ id: productId }).fetch() : null
-                        let purchaseContext = null
-                        if (offering) {
-                          purchaseContext = offering.get('name')
-                        }
-
-                        // Determine next donation date (based on subscription renewal date)
-                        let nextDonationDate = null
-                        if (donationDetails.recurringInterval) {
-                          // Get subscription to find next billing date
-                          try {
-                            const subscription = await stripe.subscriptions.retrieve(invoice.subscription, {
-                              stripeAccount: externalAccountId
-                            })
-                            if (subscription.current_period_end) {
-                              const nextDate = new Date(subscription.current_period_end * 1000)
-                              nextDonationDate = nextDate.toLocaleDateString(
-                                userLocale === 'es' ? 'es-ES' : 'en-US',
-                                {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                }
-                              )
-                            }
-                          } catch (subError) {
-                            // Fallback: calculate from interval
-                            const nextDate = new Date(donationDate)
-                            if (donationDetails.recurringInterval === 'monthly') {
-                              nextDate.setMonth(nextDate.getMonth() + 1)
-                            } else if (donationDetails.recurringInterval === 'annually') {
-                              nextDate.setFullYear(nextDate.getFullYear() + 1)
-                            } else if (donationDetails.recurringInterval === 'weekly') {
-                              nextDate.setDate(nextDate.getDate() + 7)
-                            } else if (donationDetails.recurringInterval === 'daily') {
-                              nextDate.setDate(nextDate.getDate() + 1)
-                            }
-                            nextDonationDate = nextDate.toLocaleDateString(
-                              userLocale === 'es' ? 'es-ES' : 'en-US',
-                              {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              }
-                            )
-                          }
-                        }
-
-                        // Fiscal sponsor info (use env var or default)
-                        const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                        const localeObj = getLocaleStrings(userLocale)
-                        const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
-                        const impactMessage = localeObj.donationRecurringImpactMessage()
-
-                        const emailData = {
-                          user_name: user.get('name'),
-                          donation_amount: donationAmountFormatted,
-                          donation_type: donationDetails.donationType,
-                          donation_date: donationDateFormatted,
-                          is_tax_deductible: true,
-                          fiscal_sponsor_name: fiscalSponsorName,
-                          tax_receipt_info: taxReceiptInfo,
-                          is_recurring: true,
-                          impact_message: impactMessage
-                        }
-
-                        if (nextDonationDate) {
-                          emailData.next_donation_date = nextDonationDate
-                        }
-                        if (donationDetails.recurringInterval) {
-                          emailData.recurring_interval = donationDetails.recurringInterval
-                        }
-                        emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
-
-                        if (purchaseContext) {
-                          emailData.purchase_context = purchaseContext
-                        }
-
-                        if (group) {
-                          emailData.group_name = group.get('name')
-                        }
-
-                        Queue.classMethod('Email', 'sendDonationAcknowledgment', {
-                          email: user.get('email'),
-                          data: emailData,
-                          version: 'Redesign 2025',
-                          locale: userLocale
-                        })
-
-                        if (process.env.NODE_ENV === 'development') {
-                          console.log(`Queued Donation Acknowledgment email to user ${userId} for recurring donation`)
-                        }
-                      }
-                    } catch (emailError) {
-                      // Log error but don't fail the entire webhook - email can be retried
-                      console.error('Error queueing donation acknowledgment email for recurring donation:', emailError)
+                      console.log(`Transferred recurring platform contribution of ${donationAmount} ${invoice.currency || 'usd'} to platform from subscription renewal`)
                     }
                   }
                 }
@@ -2284,8 +2024,8 @@ module.exports = {
           }
         }
       } catch (donationError) {
-        // Log error but don't fail the entire webhook - donation transfer can be retried
-        console.error('Error processing recurring donation from invoice:', donationError)
+        // Log error but don't fail the entire webhook - contribution transfer can be retried
+        console.error('Error processing recurring platform contribution from invoice:', donationError)
       }
     } catch (error) {
       console.error('Error handling invoice.paid:', error)

@@ -198,6 +198,51 @@ This alert will not repeat for this group for 24 hours.`
     })
   },
 
+  /**
+   * Notifies platform payments staff when a group creates a new Stripe Connect account.
+   * Recipient defaults to payments@hylo.com; override with PAYMENTS_NOTIFICATION_EMAIL.
+   *
+   * @param {object} opts
+   * @param {string} opts.groupName
+   * @param {string} opts.groupSlug
+   * @param {string} opts.groupUrl - Absolute URL to the group on Hylo
+   * @param {string} opts.groupId - Group database id
+   * @param {string} opts.stripeAccountExternalId - Stripe acct_... id
+   * @param {string} opts.actorName - Name of the admin who created the connection
+   * @param {string} opts.actorEmail
+   * @param {string} opts.actorProfileUrl - Absolute URL to the member profile
+   */
+  sendNewStripeConnectedAccountAdminNotification: function (opts) {
+    const recipient = process.env.PAYMENTS_NOTIFICATION_EMAIL || 'payments@hylo.com'
+    if (!recipient) return Promise.resolve(false)
+
+    const subject = `New Stripe Account: ${opts.groupName}`
+
+    const body = `A group created a new Stripe Connect account on Hylo.
+
+GROUP
+-----
+Name:                        ${opts.groupName}
+Slug:                        ${opts.groupSlug}
+Hylo group ID:               ${opts.groupId}
+Group URL:                   ${opts.groupUrl}
+Stripe connected account ID: ${opts.stripeAccountExternalId}
+
+INITIATED BY
+------------
+Name:    ${opts.actorName}
+Email:   ${opts.actorEmail}
+Profile: ${opts.actorProfileUrl}
+`
+
+    return sendSimpleEmail(recipient, 'tem_jFYJ3bxMyfbbtbwgDGS4JGfK', { subject, body }, {
+      sender: {
+        name: 'Hylo Platform Alerts',
+        address: 'dev+bot@hylo.com'
+      }
+    })
+  },
+
   // Paid content email templates
   sendPurchaseConfirmation: sendEmailWithOptions('tem_9gQQRW8XgygjQpGGxQKYGdMS'),
   sendAccessGranted: sendEmailWithOptions('tem_jfBqFPmhPP9jjfgSPB87YpDV'),
@@ -208,7 +253,6 @@ This alert will not repeat for this group for 24 hours.`
   sendSubscriptionCancelled: sendEmailWithOptions('tem_XfXjrYGdvDrPK4Sjprq7FtbS'),
   sendSubscriptionCancelledAdminNotification: sendEmailWithOptions('tem_9ySxcvxKGKBXFQHJm4vS8cDC'),
   sendAccessExpired: sendEmailWithOptions('tem_HVKwWYTMDbhWvvd3TGxtMkMG'),
-  sendDonationAcknowledgment: sendEmailWithOptions('tem_yXtGDQrJPb3Wdd8h4hpRV4yM'),
   sendTrackAccessPurchased: sendEmailWithOptions('tem_T63TXtFjmyqhyrw8yfp6YwH8'),
 
   sendMessageDigest: opts =>

@@ -91,7 +91,7 @@ exports.pt = {
     return `${reminderMessages[reminderType] || 'Prazo se aproximando'}`
   },
   theTeamAtHylo: 'A equipe Hylo',
-  donationTaxReceiptInfo: () => 'Um recibo para fins fiscais será emitido pelo nosso patrocinador fiscal para seus registros.',
-  donationImpactMessage: () => 'Sua doação ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.',
-  donationRecurringImpactMessage: () => 'Sua doação recorrente ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.'
+  donationTaxReceiptInfo: () => '',
+  donationImpactMessage: () => 'Sua contribuição ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.',
+  donationRecurringImpactMessage: () => 'Sua contribuição recorrente ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.'
 }

@@ -17,12 +17,7 @@ const {
 // Set this in your environment variables as STRIPE_SECRET_KEY
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 
-// Fiscal sponsor's Stripe account ID (Hylo's connected account under fiscal sponsor)
-// In production, donations are routed to this account for tax-deductible processing
-// In non-production, donations stay in the platform account
-const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
-
-// Cached donation price IDs per account (created programmatically on first use)
+// Cached platform-contribution price IDs per connected account (created on first use)
 // Key: accountId (or 'platform' for platform account), Value: priceId
 const cachedDonationPriceIds = {}
 
@@ -48,12 +43,12 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 module.exports = {
 
   /**
-   * Ensures the Hylo donation product and price exist in Stripe.
+   * Ensures the Hylo platform contribution product and $1 unit price exist in Stripe.
    * Creates them if they don't exist, otherwise retrieves the existing price ID.
    * The price ID is cached per account for subsequent calls.
    *
    * @param {String} [accountId] - Connected account ID. If provided, creates on that account.
-   * @returns {Promise<String>} The donation price ID
+   * @returns {Promise<String>} The contribution line-item price ID
    */
   async ensureDonationPriceExists (accountId = null) {
     const cacheKey = accountId || 'platform'
@@ -64,8 +59,8 @@ module.exports = {
     }
 
     try {
-      const DONATION_PRODUCT_NAME = 'Hylo Platform Donation'
-      const DONATION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
+      const CONTRIBUTION_PRODUCT_NAME = 'Hylo Platform Contribution'
+      const CONTRIBUTION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
 
       // Options for connected account API calls
       const stripeOptions = accountId ? { stripeAccount: accountId } : {}
@@ -82,12 +77,12 @@ module.exports = {
         }, stripeOptions)
 
         donationProduct = products.data.find(
-          p => p.metadata && p.metadata[DONATION_PRODUCT_METADATA_KEY] === 'true'
+          p => p.metadata && p.metadata[CONTRIBUTION_PRODUCT_METADATA_KEY] === 'true'
         )
       } else {
         // For platform account, use search
         const existingProducts = await stripe.products.search({
-          query: `metadata['${DONATION_PRODUCT_METADATA_KEY}']:'true' AND active:'true'`
+          query: `metadata['${CONTRIBUTION_PRODUCT_METADATA_KEY}']:'true' AND active:'true'`
         })
         if (existingProducts.data.length > 0) {
           donationProduct = existingProducts.data[0]
@@ -101,10 +96,10 @@ module.exports = {
       } else {
         // Create the donation product
         donationProduct = await stripe.products.create({
-          name: DONATION_PRODUCT_NAME,
-          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!',
+          name: CONTRIBUTION_PRODUCT_NAME,
+          description: 'Optional contribution to the Hylo platform. Thank you for supporting Hylo!',
           metadata: {
-            [DONATION_PRODUCT_METADATA_KEY]: 'true'
+            [CONTRIBUTION_PRODUCT_METADATA_KEY]: 'true'
           }
         }, stripeOptions)
         if (process.env.NODE_ENV === 'development') {
@@ -744,7 +739,7 @@ module.exports = {
    * the transaction. The platform takes a fee, and the rest goes
    * to the connected account.
    *
-   * Includes an optional donation to Hylo that appears on the Stripe checkout page.
+   * Includes an optional contribution to the Hylo platform on the Stripe checkout page.
    *
    * @param {Object} params - Checkout session parameters
    * @param {String} params.accountId - The Stripe connected account ID
@@ -815,13 +810,13 @@ module.exports = {
         metadata
       }
 
-      // Add optional donation to checkout session
+      // Add optional platform contribution to checkout session
       // Uses a pre-created price ID (created programmatically on the connected account if it doesn't exist)
-      // Note: Recurring donations are not yet supported - only one-time donations for now
+      // Note: Recurring platform contributions are not yet supported — only one-time optional_items for now
       try {
         const donationPriceId = await this.ensureDonationPriceExists(accountId)
 
-        // Add one-time donation option (works for both subscription and payment modes)
+        // Add one-time contribution option (works for both subscription and payment modes)
         // User can select quantity 0-100 ($0 to $100 in $1 increments)
         // Note: quantity must be >= 1 for API, but adjustable_quantity.minimum: 0
         // allows users to reduce it to 0 in the checkout UI
@@ -838,11 +833,11 @@ module.exports = {
           }
         ]
 
-        // Store flag in metadata to indicate donation option was available
-        metadata.hasDonationOption = 'true'
+        // Store flag in metadata to indicate platform contribution option was available
+        metadata.hasContributionOption = 'true'
       } catch (donationError) {
-        // If donation setup fails, continue without it - don't block the checkout
-        console.error('Failed to set up donation option, continuing without it:', donationError.message)
+        // If contribution setup fails, continue without it - don't block the checkout
+        console.error('Failed to set up platform contribution option, continuing without it:', donationError.message)
       }
 
       // Configure for payment or subscription mode
@@ -1565,20 +1560,18 @@ module.exports = {
   },
 
   /**
-   * Transfers a donation amount from a connected account to the appropriate destination
+   * Transfers the platform contribution portion from a connected-account charge to the platform Stripe account.
    *
-   * When a user adds a donation to Hylo during checkout, the donation is initially
-   * collected by the connected account. This method transfers it to:
-   * - Production: Hylo's connected account under the fiscal sponsor (for tax-deductible processing)
-   * - Non-production: Platform account (for testing)
+   * Optional Hylo platform contributions are paid on the connected account checkout; this moves that amount
+   * to the platform balance (no separate connected destination).
    *
    * @param {String} connectedAccountId - The Stripe connected account ID (group's account)
-   * @param {String} paymentIntentId - The payment intent ID from the checkout session
-   * @param {Number} donationAmount - The donation amount in cents
+   * @param {String} paymentIntentId - The payment intent ID from the checkout session or invoice
+   * @param {Number} donationAmount - The contribution amount in cents
    * @param {String} currency - The currency code (e.g., 'usd')
    * @returns {Promise<Object>} The transfer object
    */
-  async transferDonationToPlatform ({
+  async transferContributionToPlatform ({
     connectedAccountId,
     paymentIntentId,
     donationAmount,
@@ -1594,21 +1587,7 @@ module.exports = {
       }
 
       if (!donationAmount || donationAmount <= 0) {
-        throw new Error('Valid donation amount is required')
-      }
-
-      // Determine destination account based on environment
-      const isProduction = process.env.NODE_ENV === 'production'
-      const destinationAccountId = isProduction ? FISCAL_SPONSOR_ACCOUNT_ID : null
-
-      // In non-production, transfer to platform account (null destination = platform)
-      // In production, transfer to fiscal sponsor account (Hylo's connected account)
-      // In production, we require the fiscal sponsor account ID to be set
-      if (isProduction && !destinationAccountId) {
-        throw new Error(
-          'STRIPE_FISCAL_SPONSOR_ACCOUNT_ID must be set in production environment. ' +
-          'Donations must be routed to the fiscal sponsor account for tax-deductible processing.'
-        )
+        throw new Error('Valid contribution amount is required')
       }
 
       // Retrieve the payment intent to get the charge ID
@@ -1624,38 +1603,26 @@ module.exports = {
         throw new Error('No charge found for payment intent')
       }
 
-      // Build transfer parameters
       const transferParams = {
         amount: donationAmount,
         currency: currency.toLowerCase(),
         source_transaction: chargeId,
-        description: isProduction
-          ? 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored)'
-          : 'Donation to Hylo platform (test)'
+        description: process.env.NODE_ENV === 'production'
+          ? 'Hylo platform contribution'
+          : 'Hylo platform contribution (test)'
       }
 
-      // If in production and fiscal sponsor account is set, transfer to that account
-      // Otherwise, transfer to platform account (destination: null)
-      if (isProduction && destinationAccountId) {
-        transferParams.destination = destinationAccountId
-      }
-
-      // Create the transfer on the platform account
-      // The source account is determined by the source_transaction (charge ID)
-      // For connected accounts with controller settings:
-      // - If destination is null/omitted: transfers to platform account
-      // - If destination is set to a connected account ID: transfers to that connected account
-      // Note: Transfers are created on the platform account, not with stripeAccount header
+      // Omit destination so funds settle on the platform account
       const transfer = await stripe.transfers.create(transferParams)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Transferred donation of ${donationAmount} ${currency} to ${isProduction && destinationAccountId ? 'fiscal sponsor account' : 'platform account'}`)
+        console.log(`Transferred platform contribution of ${donationAmount} ${currency} to platform account`)
       }
 
       return transfer
     } catch (error) {
-      console.error('Error transferring donation:', error)
-      throw new Error(`Failed to transfer donation: ${error.message}`)
+      console.error('Error transferring platform contribution:', error)
+      throw new Error(`Failed to transfer platform contribution: ${error.message}`)
     }
   },
 

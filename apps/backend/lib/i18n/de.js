@@ -91,7 +91,7 @@ exports.de = {
     return `${reminderMessages[reminderType] || 'Frist naht'}`
   },
   theTeamAtHylo: 'Das Hylo-Team',
-  donationTaxReceiptInfo: () => 'Ein Spendenbeleg wird von unserem Fiscal Sponsor für deine Unterlagen ausgestellt.',
-  donationImpactMessage: () => 'Deine Spende unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.',
-  donationRecurringImpactMessage: () => 'Deine wiederkehrende Spende unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.'
+  donationTaxReceiptInfo: () => '',
+  donationImpactMessage: () => 'Dein Beitrag unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.',
+  donationRecurringImpactMessage: () => 'Dein wiederkehrender Beitrag unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.'
 }

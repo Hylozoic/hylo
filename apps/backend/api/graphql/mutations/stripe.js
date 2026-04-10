@@ -12,7 +12,7 @@ import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
 import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
 
-/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
+/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount, User, Queue, Frontend */
 
 /**
  * Helper function to convert a database account ID to an external Stripe account ID
@@ -93,6 +93,24 @@ module.exports = {
 
       // Save the database ID to the group
       await group.save({ stripe_account_id: stripeAccountRecord.id })
+
+      try {
+        const actor = await User.find(userId)
+        if (actor) {
+          Queue.classMethod('Email', 'sendNewStripeConnectedAccountAdminNotification', {
+            groupName: group.get('name'),
+            groupSlug: group.get('slug') || '',
+            groupUrl: Frontend.Route.group(group),
+            groupId: String(group.id),
+            stripeAccountExternalId: account.id,
+            actorName: actor.get('name'),
+            actorEmail: actor.get('email'),
+            actorProfileUrl: Frontend.Route.profile(actor)
+          })
+        }
+      } catch (notifyErr) {
+        console.error('Failed to queue new Stripe account admin notification:', notifyErr)
+      }
 
       return {
         id: groupId,
