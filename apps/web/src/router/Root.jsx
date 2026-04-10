@@ -1,9 +1,12 @@
 import React, { Suspense } from 'react'
-import Loading from 'components/Loading'
 
 const App = React.lazy(() => import('./index'))
 const HyloEditorMobile = React.lazy(() => import('routes/HyloEditorMobile'))
 const Feature = React.lazy(() => import('components/PostCard/Feature'))
+
+function RootFallback () {
+  return <div className='h-full min-h-screen w-full bg-midground' />
+}
 
 export default function Root () {
   switch (window.location.pathname) {
@@ -27,7 +30,7 @@ export default function Root () {
 
     default: {
       return (
-        <Suspense fallback={<Loading type='fullscreen' />}>
+        <Suspense fallback={<RootFallback />}>
           <App />
         </Suspense>
       )

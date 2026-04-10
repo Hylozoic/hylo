@@ -166,7 +166,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [group?.name])
 
   if (!group && !pending) return <NotFound />
-  if (pending) return <Loading />
+  if (!group && pending) return <Loading />
 
   // Wait for invitation check to complete before showing content (for email invites)
   if (invitationToken && currentUser && !invitationChecked) return <Loading />

@@ -6,6 +6,11 @@ import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
 
+// Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
+const STALE_NOTIFICATION_CLAIM_MINUTES = 30
+
+const UNSENT_NOTIFICATION_BATCH_SIZE = 200
+
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
   Chat: 'chat', // someone chats you in a chat room you subscribe to
@@ -106,7 +111,10 @@ module.exports = bookshelf.Model.extend({
         break
       }
     }
-    this.save({ sent_at: (new Date()).toISOString() })
+    await this.save({
+      sent_at: (new Date()).toISOString(),
+      processing_started_at: null
+    }, { patch: true })
     return Promise.resolve()
   },
 
@@ -1229,19 +1237,37 @@ module.exports = bookshelf.Model.extend({
     return Notification.where({ id }).fetch(options)
   },
 
-  findUnsent: function (options = {}) {
-    return Notification.query(q => {
-      q.where({ sent_at: null })
-      if (!options.includeOld) {
-        q.where('created_at', '>', bookshelf.knex.raw("now() - interval '6 hour'"))
-      }
-      q.where(function () {
-        this.where('failed_at', null)
-          .orWhere('failed_at', '<', bookshelf.knex.raw("now() - interval '1 hour'"))
-      })
-      q.limit(200)
-    })
-      .fetchAll(options)
+  /**
+   * Atomically claims up to UNSENT_NOTIFICATION_BATCH_SIZE unsent rows per worker (PostgreSQL
+   * FOR UPDATE SKIP LOCKED) so concurrent sendUnsent jobs do not duplicate sends.
+   */
+  claimUnsentIds: function ({ includeOld = false } = {}) {
+    const knex = bookshelf.knex
+    const createdClause = includeOld
+      ? 'true'
+      : "created_at > now() - interval '6 hour'"
+    const sql = `
+      WITH cte AS (
+        SELECT id FROM notifications
+        WHERE sent_at IS NULL
+        AND (${createdClause})
+        AND (failed_at IS NULL OR failed_at < now() - interval '1 hour')
+        AND (
+          processing_started_at IS NULL
+          OR processing_started_at < now() - interval '${STALE_NOTIFICATION_CLAIM_MINUTES} minutes'
+        )
+        ORDER BY id
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${UNSENT_NOTIFICATION_BATCH_SIZE}
+      )
+      UPDATE notifications AS n
+      SET processing_started_at = now(),
+          updated_at = now()
+      FROM cte
+      WHERE n.id = cte.id
+      RETURNING n.id
+    `
+    return knex.raw(sql).then(result => result.rows.map(r => Number(r.id)))
   },
 
   // Process a bounded batch of unsent notifications and return.
@@ -1250,40 +1276,43 @@ module.exports = bookshelf.Model.extend({
   sendUnsent: function () {
     // FIXME empty out this withRelated list and just load things on demand when
     // creating push notifications / emails
-    return Notification.findUnsent({
-      withRelated: [
-        'activity',
-        'activity.post',
-        'activity.post.tags',
-        'activity.post.groups',
-        'activity.post.user',
-        'activity.post.media',
-        'activity.comment',
-        'activity.comment.media',
-        'activity.comment.user',
-        'activity.comment.post',
-        'activity.comment.post.user',
-        'activity.comment.post.relatedUsers',
-        'activity.comment.post.groups',
-        'activity.group',
-        'activity.otherGroup',
-        'activity.reader',
-        'activity.actor',
-        'activity.track',
-        'activity.fundingRound'
-      ]
-    })
+    const withRelated = [
+      'activity',
+      'activity.post',
+      'activity.post.tags',
+      'activity.post.groups',
+      'activity.post.user',
+      'activity.post.media',
+      'activity.comment',
+      'activity.comment.media',
+      'activity.comment.user',
+      'activity.comment.post',
+      'activity.comment.post.user',
+      'activity.comment.post.relatedUsers',
+      'activity.comment.post.groups',
+      'activity.group',
+      'activity.otherGroup',
+      'activity.reader',
+      'activity.actor',
+      'activity.track',
+      'activity.fundingRound'
+    ]
+    return Notification.claimUnsentIds()
+      .then(ids => {
+        if (!ids.length) return null
+        return Notification.query(q => q.whereIn('id', ids)).fetchAll({ withRelated })
+      })
       .then(async ns => {
         if (!ns || ns.length === 0) return
         await Promise.each(ns.models, n =>
           n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
             rollbar.error(err, null, { notification: n.attributes })
-            return n.save({ failed_at: new Date() }, { patch: true })
+            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
           })
         )
-        // If we hit the limit (200), there may be more to process.
-        if (ns.length >= 200) {
+        // If we hit the batch limit, there may be more to process.
+        if (ns.length >= UNSENT_NOTIFICATION_BATCH_SIZE) {
           // Re-enqueue another pass shortly.
           Queue.classMethod('Notification', 'sendUnsent', {}, 1000)
         }

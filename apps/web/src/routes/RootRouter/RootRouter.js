@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
-import Loading from 'components/Loading'
+import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
 import JoinGroup from 'routes/JoinGroup'
@@ -56,9 +56,7 @@ export default function RootRouter () {
   }, [])
 
   if (loading) {
-    return (
-      <Loading type='fullscreen' />
-    )
+    return <BootstrapShell />
   }
 
   if (isAuthorized) {

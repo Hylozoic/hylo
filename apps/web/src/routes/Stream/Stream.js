@@ -51,6 +51,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 
 import styles from './Stream.module.scss'
 
@@ -97,6 +99,8 @@ export default function Stream (props) {
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
+  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
+  const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
@@ -364,8 +368,9 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !isCalendarViewMode && 'max-w-[750px]',
-          'flex flex-col flex-1 w-full mx-auto p-1 sm:p-4'
+          'flex flex-col flex-1',
+          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
         {hasPostPrompt && (
@@ -477,7 +482,7 @@ export default function Stream (props) {
                     'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
                   })}
                 >
-                  {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+                  {!pending && !topicBlockingStreams && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
                   {posts.map(post => {
                     const groupSlugs = post.groups.map(group => group.slug)
                     return (
@@ -512,7 +517,12 @@ export default function Stream (props) {
             />
           </div>
         )}
-        {(pending || topicLoading) && <Loading />}
+        {(pending || topicBlockingStreams) && !isCalendarViewMode && (
+          posts.length === 0
+            ? <StreamSkeleton wrapWithMainColumn={false} />
+            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+        )}
+        {(pending || topicBlockingStreams) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}
