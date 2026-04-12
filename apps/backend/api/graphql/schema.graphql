@@ -3761,6 +3761,8 @@ input PostInput {
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
+  markAsReadTopicName: String
   # People to add as members to a project type Post
   memberIds: [ID]
   # Link to a project management tool or service. Only used for Projects right now

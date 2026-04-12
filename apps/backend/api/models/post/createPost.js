@@ -9,7 +9,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'imageUrls', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'markAsReadTopicName'),
           { children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -80,7 +80,7 @@ export function afterCreatingPost (post, opts) {
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventCreated', { postId: post.id, eventInviteeIds: opts.eventInviteeIds, userId, params: opts.params }))
     .then(() => post.isProposal() && post.setProposalOptions({ options: opts.proposalOptions || [], userId, opts: trxOpts }))
     .then(() => Tag.updateForPost(post, opts.topicNames, userId, trx))
-    .then(() => updateTagsAndGroups(post, opts.localId, trx))
+    .then(() => updateTagsAndGroups(post, opts.localId, trx, opts.markAsReadTopicName))
     .then(() => Queue.classMethod('Group', 'doesMenuUpdate', { post: { type: post.get('type'), location_id: post.get('location_id') }, groupIds: opts.group_ids }))
     .then(() => Queue.classMethod('Post', 'createActivities', { postId: post.id }))
     .then(() => opts.fundingRoundId && post.get('type') === Post.Type.SUBMISSION && Queue.classMethod('FundingRound', 'notifyStewardsOfSubmission', { fundingRoundId: opts.fundingRoundId, postId: post.id, userId }))
@@ -92,7 +92,7 @@ export function afterCreatingPost (post, opts) {
     })
 }
 
-async function updateTagsAndGroups (post, localId, trx) {
+async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = null) {
   await post.load([
     'media', 'groups', 'linkPreview', 'tags', 'user'
   ], { transacting: trx })
@@ -124,14 +124,26 @@ async function updateTagsAndGroups (post, localId, trx) {
     q.whereNot('user_id', post.get('user_id'))
   }).query()
 
-  // Update my tag follows (chat rooms) to mark the post as read if there are no other new posts to read
-  // Fixes bug where creating the post when outside the chat room would not show you the new post in the chat room because it didnt think there were any new posts to show
-  const myTagFollowQuery = TagFollow.query(q => {
-    q.whereIn('tag_id', tags.map('id'))
+  // Find the specific tag the user is actively viewing so we can always mark it read.
+  const markAsReadTag = markAsReadTopicName ? tags.find(t => t.get('name') === markAsReadTopicName) : null
+  const markAsReadTagId = markAsReadTag ? markAsReadTag.get('id') : null
+
+  // For the topic the user is currently viewing: always update last_read_post_id.
+  const activeTopicTagFollowQuery = markAsReadTagId ? TagFollow.query(q => {
+    q.where('tag_id', markAsReadTagId)
+    q.whereIn('group_id', groups.map('id'))
+    q.where('user_id', post.get('user_id'))
+  }).query() : null
+
+  // For all other topics: only update last_read_post_id when new_post_count = 0
+  // (avoids hiding unread posts when creating from outside a chat room).
+  const otherTagIds = tags.filter(t => t.get('id') !== markAsReadTagId).map(t => t.get('id'))
+  const otherMyTagFollowQuery = otherTagIds.length > 0 ? TagFollow.query(q => {
+    q.whereIn('tag_id', otherTagIds)
     q.whereIn('group_id', groups.map('id'))
     q.where('user_id', post.get('user_id'))
     q.where('new_post_count', 0)
-  }).query()
+  }).query() : null
 
   const groupMembershipQuery = GroupMembership.query(q => {
     q.whereIn('group_id', groups.map('id'))
@@ -142,7 +154,8 @@ async function updateTagsAndGroups (post, localId, trx) {
   if (trx) {
     groupTagsQuery.transacting(trx)
     tagFollowQuery.transacting(trx)
-    myTagFollowQuery.transacting(trx)
+    if (activeTopicTagFollowQuery) activeTopicTagFollowQuery.transacting(trx)
+    if (otherMyTagFollowQuery) otherMyTagFollowQuery.transacting(trx)
     groupMembershipQuery.transacting(trx)
   }
 
@@ -150,7 +163,8 @@ async function updateTagsAndGroups (post, localId, trx) {
     notifySockets,
     groupTagsQuery.update({ updated_at: new Date() }),
     tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
-    myTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
+    activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
+    otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }

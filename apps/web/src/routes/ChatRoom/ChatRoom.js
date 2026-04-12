@@ -33,7 +33,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS, UPDATE_TOPIC_FOLLOW_PENDING } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
@@ -154,6 +154,10 @@ export default function ChatRoom (props) {
    * corrupting the list or marking the wrong room loaded.
    */
   const chatListEpochRef = useRef(0)
+
+  // Tracks the lastReadPostId we have committed locally — updated synchronously on create and on scroll updates,
+  // so closures can check it without waiting for the Redux ORM re-render cycle.
+  const lastReadPostIdRef = useRef(topicFollow?.lastReadPostId)
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
   const [latestOldPostId, setLatestOldPostId] = useState(topicFollow?.lastReadPostId)
@@ -412,6 +416,7 @@ export default function ChatRoom (props) {
 
       // Reset marker of new posts
       setLatestOldPostId(topicFollow.lastReadPostId)
+      lastReadPostIdRef.current = topicFollow.lastReadPostId
     }
   }, [topicFollow?.id, topicName, groupSlug])
 
@@ -438,7 +443,9 @@ export default function ChatRoom (props) {
         !hasMorePostsFuture &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && topicFollow?.id) {
+      if (latestPost?.id && topicFollow?.id &&
+          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
+        lastReadPostIdRef.current = latestPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
       }
     }
@@ -497,14 +504,11 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
-  // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
-  //   so we have to wait longer befoer doing it. maybe we get the new post back with an id before its really committed to the db?
   const updateLastReadPost = debounce(200, (lastPost) => {
-    // Add additional checks to ensure all required values exist
     if (topicFollow?.id && lastPost?.id &&
-        (!topicFollow?.lastReadPostId ||
-        (parseInt(lastPost.id) > parseInt(topicFollow?.lastReadPostId)))) {
+        parseInt(lastPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
       try {
+        lastReadPostIdRef.current = lastPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
       } catch (error) {
         console.error('Error updating last read post:', error)
@@ -634,7 +638,13 @@ export default function ChatRoom (props) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
       setNotificationsSetting('all')
     }
-  }, [notificationsSetting])
+    // Sync lastReadPostId locally — update the ref immediately so updateLastReadPost won't fire a redundant
+    // network call before the Redux ORM re-render cycle completes.
+    if (post.id && topicFollow?.id) {
+      lastReadPostIdRef.current = post.id
+      dispatch({ type: UPDATE_TOPIC_FOLLOW_PENDING, meta: { id: topicFollow.id, data: { lastReadPostId: post.id } } })
+    }
+  }, [notificationsSetting, topicFollow?.id])
 
   const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
@@ -736,6 +746,7 @@ export default function ChatRoom (props) {
         <PostEditor
           context='groups'
           customTopicName={customTopicName}
+          markAsReadTopicName={topicName}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}

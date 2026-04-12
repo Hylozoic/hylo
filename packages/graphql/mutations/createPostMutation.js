@@ -35,7 +35,8 @@ export default gql`
     $location: String,
     $locationId: ID,
     $isPublic: Boolean,
-    $fundingRoundId: ID
+    $fundingRoundId: ID,
+    $markAsReadTopicName: String
   ) {
     createPost(data: {
       type: $type,
@@ -59,7 +60,8 @@ export default gql`
       location: $location,
       locationId: $locationId,
       isPublic: $isPublic,
-      fundingRoundId: $fundingRoundId
+      fundingRoundId: $fundingRoundId,
+      markAsReadTopicName: $markAsReadTopicName
     }) {
       ...PostFieldsFragment
     }
