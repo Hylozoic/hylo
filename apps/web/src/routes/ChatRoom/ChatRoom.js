@@ -303,7 +303,7 @@ export default function ChatRoom (props) {
 
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
-      if (item.pending && (post.id === item.id || (post.localId && post.localId === item.localId))) {
+      if (post.id === item.id || (item.pending && post.localId && post.localId === item.localId)) {
         updateExisting = true
         return post
       } else {
