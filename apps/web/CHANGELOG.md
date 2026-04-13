@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.3] - 2026-04-12
+
+### Added
+- Add groupUpdated socket push which reloads the group when its context menu has been updated
+- Notice then a new version of Hylo has been deployed, with a button to refresh the page
+
+### Changed
+- Tweak scroll to position in chat room to make sure latest post is visible
+
+### Fixed
+- Don't jump focus to location input when opening group settings
+- Allow for selecting text in chat room posts
+- Don't do swipe to close post when dragging to select text on mobile
+- Don't open nav menu on mobile when long pressing and dragging to select text
+- Make sure we always load new posts when visiting a chat room even when it has cached data
+- Try to fix blank screen when loading hylo tab after new deploy
+- Groups appearing in public map when allow_in_public is false
+- Unecessary calls to update last read post in a chat room after creating a new post
+
 ## [6.4.2] - 2026-04-02
 
 ### Added
