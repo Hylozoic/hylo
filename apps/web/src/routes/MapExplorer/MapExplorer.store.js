@@ -163,6 +163,7 @@ const groupMembersQuery = `query (
 }`
 
 const groupsQuery = `query (
+  $allowedInPublic: Boolean,
   $boundingBox: [PointInput],
   $context: String,
   $parentSlugs: [String],
@@ -171,6 +172,7 @@ const groupsQuery = `query (
   $visibility: Int
 ) {
   groups(
+    allowedInPublic: $allowedInPublic,
     boundingBox: $boundingBox,
     context: $context,
     parentSlugs: $parentSlugs,
@@ -436,6 +438,7 @@ export function fetchGroupsForMap ({ boundingBox, context, parentSlugs, search, 
     graphql: {
       query: groupsQuery,
       variables: {
+        allowedInPublic: context === 'public',
         boundingBox: formatBoundingBox(boundingBox),
         context,
         parentSlugs,

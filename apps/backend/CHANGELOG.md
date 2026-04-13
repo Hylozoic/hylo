@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.4] - 2026-04-12
+
+### Added
+- groupUpdated socket push which reloads the group when its context menu has been updated
+
+### Fixed
+- Unnecessary calls to update last read post in a chat room after creating a new post
+
 ## [6.3.3] - 2026-04-10
 
 ### Added

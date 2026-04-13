@@ -33,7 +33,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchTopicFollow from 'store/actions/fetchTopicFollow'
 import updateTopicFollow from 'store/actions/updateTopicFollow'
-import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS } from 'store/constants'
+import { FETCH_TOPIC_FOLLOW, FETCH_POSTS, RESP_ADD_MEMBERS, UPDATE_TOPIC_FOLLOW_PENDING } from 'store/constants'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import presentPost from 'store/presenters/presentPost'
@@ -108,8 +108,7 @@ const computeChatInitialScrollIndex = (sortedPosts, postIdToStartAt, lastReadPos
 
   const postToScrollToIndex = sortedPosts.findIndex(post => post.id === postToScrollTo)
   if (postToScrollToIndex !== -1) {
-    // Scroll to one before the post to scroll to, so the post is at the top of the screen and we can see one post of context
-    return Math.max(postToScrollToIndex - 1, 0)
+    return Math.max(postToScrollToIndex, 0)
   }
 
   // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
@@ -154,6 +153,10 @@ export default function ChatRoom (props) {
    * corrupting the list or marking the wrong room loaded.
    */
   const chatListEpochRef = useRef(0)
+
+  // Tracks the lastReadPostId we have committed locally — updated synchronously on create and on scroll updates,
+  // so closures can check it without waiting for the Redux ORM re-render cycle.
+  const lastReadPostIdRef = useRef(topicFollow?.lastReadPostId)
 
   // The last post seen by the current user. Doesn't update in real time as they scroll only when room is reloaded
   const [latestOldPostId, setLatestOldPostId] = useState(topicFollow?.lastReadPostId)
@@ -301,11 +304,14 @@ export default function ChatRoom (props) {
     const post = presentPost(data, group.id)
     if (!post) return
 
+    // Confirmed posts don't need localId — clear it to prevent stale rehydrated localIds from causing future key collisions
+    const confirmedPost = { ...post, localId: undefined }
+
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
-      if (item.pending && (post.id === item.id || (post.localId && post.localId === item.localId))) {
+      if (post.id === item.id || (item.pending && post.localId && post.localId === item.localId)) {
         updateExisting = true
-        return post
+        return confirmedPost
       } else {
         return item
       }
@@ -313,7 +319,7 @@ export default function ChatRoom (props) {
 
     if (!updateExisting) {
       messageListRef.current?.data.append(
-        [post],
+        [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
             return 'smooth'
@@ -386,6 +392,10 @@ export default function ChatRoom (props) {
         // We have cached data, use it immediately without showing loading state
         setLoadedPast(true)
         setLoadedFuture(true)
+        // Still fetch future posts in the background to pick up any new ones since last visit
+        if (topicFollow.newPostCount > 0) {
+          fetchPostsFuture(0, {}, true)
+        }
       } else {
         // No cached data, fetch fresh
         setLoadedFuture(false)
@@ -412,6 +422,7 @@ export default function ChatRoom (props) {
 
       // Reset marker of new posts
       setLatestOldPostId(topicFollow.lastReadPostId)
+      lastReadPostIdRef.current = topicFollow.lastReadPostId
     }
   }, [topicFollow?.id, topicName, groupSlug])
 
@@ -438,7 +449,9 @@ export default function ChatRoom (props) {
         !hasMorePostsFuture &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && topicFollow?.id) {
+      if (latestPost?.id && topicFollow?.id &&
+          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) { // TODO: does this work, or does this line prevent it doing what it says it should here?
+        lastReadPostIdRef.current = latestPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
       }
     }
@@ -497,14 +510,11 @@ export default function ChatRoom (props) {
     [hasMorePostsPast, hasMorePostsFuture, loadingPast, loadingFuture]
   )
 
-  // TODO: don't know why we need a debounce of 900. there is a bug where we update last read right after creating post and it errors out on backend.
-  //   so we have to wait longer befoer doing it. maybe we get the new post back with an id before its really committed to the db?
   const updateLastReadPost = debounce(200, (lastPost) => {
-    // Add additional checks to ensure all required values exist
     if (topicFollow?.id && lastPost?.id &&
-        (!topicFollow?.lastReadPostId ||
-        (parseInt(lastPost.id) > parseInt(topicFollow?.lastReadPostId)))) {
+        parseInt(lastPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
       try {
+        lastReadPostIdRef.current = lastPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: lastPost.id }))
       } catch (error) {
         console.error('Error updating last read post:', error)
@@ -629,12 +639,22 @@ export default function ChatRoom (props) {
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     if (!post) return
-    messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
+    // Only match the pending item (requires item.pending) to avoid matching old rehydrated posts
+    // that may share the same localId after a page reload (lodash uniqueId resets from 0 each load).
+    // Clear localId on the confirmed post so it's never persisted to redux-persist.
+    const confirmedPost = { ...post, localId: undefined }
+    messageListRef.current?.data.map((item) => item.pending && post.localId && item.localId && post.localId === item.localId ? confirmedPost : item)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
       setNotificationsSetting('all')
     }
-  }, [notificationsSetting])
+    // Sync lastReadPostId locally — update the ref immediately so updateLastReadPost won't fire a redundant
+    // network call before the Redux ORM re-render cycle completes.
+    if (post.id && topicFollow?.id) {
+      lastReadPostIdRef.current = post.id
+      dispatch({ type: UPDATE_TOPIC_FOLLOW_PENDING, meta: { id: topicFollow.id, data: { lastReadPostId: post.id } } })
+    }
+  }, [notificationsSetting, topicFollow?.id])
 
   const handleRemovePost = useCallback((postId) => {
     messageListRef.current?.data.findAndDelete((item) => postId === item.id)
@@ -736,6 +756,7 @@ export default function ChatRoom (props) {
         <PostEditor
           context='groups'
           customTopicName={customTopicName}
+          markAsReadTopicName={topicName}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}

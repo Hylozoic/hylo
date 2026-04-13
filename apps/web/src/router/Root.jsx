@@ -8,13 +8,35 @@ function RootFallback () {
   return <div className='h-full min-h-screen w-full bg-midground' />
 }
 
+/**
+ * Catches chunk load failures (stale asset URLs after a new deploy) and reloads
+ * the page once. SessionStorage prevents an infinite reload loop.
+ */
+class ChunkErrorBoundary extends React.Component {
+  componentDidCatch (error) {
+    const isChunkError = (
+      error?.name === 'ChunkLoadError' ||
+      error?.message?.includes('Failed to fetch dynamically imported module') ||
+      error?.message?.includes('Importing a module script failed')
+    )
+    if (isChunkError && !sessionStorage.getItem('vite-reload-attempted')) {
+      sessionStorage.setItem('vite-reload-attempted', '1')
+      window.location.reload()
+    }
+  }
+
+  render () { return this.props.children }
+}
+
 export default function Root () {
   switch (window.location.pathname) {
     case '/hyloApp/editor': {
       return (
-        <Suspense fallback={null}>
-          <HyloEditorMobile />
-        </Suspense>
+        <ChunkErrorBoundary>
+          <Suspense fallback={null}>
+            <HyloEditorMobile />
+          </Suspense>
+        </ChunkErrorBoundary>
       )
     }
 
@@ -22,17 +44,21 @@ export default function Root () {
       const querystringParams = new URLSearchParams(window.location.search)
 
       return (
-        <Suspense fallback={null}>
-          <Feature url={querystringParams.get('url')} />
-        </Suspense>
+        <ChunkErrorBoundary>
+          <Suspense fallback={null}>
+            <Feature url={querystringParams.get('url')} />
+          </Suspense>
+        </ChunkErrorBoundary>
       )
     }
 
     default: {
       return (
-        <Suspense fallback={<RootFallback />}>
-          <App />
-        </Suspense>
+        <ChunkErrorBoundary>
+          <Suspense fallback={<RootFallback />}>
+            <App />
+          </Suspense>
+        </ChunkErrorBoundary>
       )
     }
   }
