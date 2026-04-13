@@ -27,7 +27,7 @@ const GeocoderAutocomplete = ({
   onInputChange = () => {},
   onSelect = () => {},
   onSuggest = () => {},
-  focusOnMount = true
+  focusOnMount = false
 }) => {
   const [state, setState] = useState({
     results: [],
