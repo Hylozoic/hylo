@@ -108,8 +108,7 @@ const computeChatInitialScrollIndex = (sortedPosts, postIdToStartAt, lastReadPos
 
   const postToScrollToIndex = sortedPosts.findIndex(post => post.id === postToScrollTo)
   if (postToScrollToIndex !== -1) {
-    // Scroll to one before the post to scroll to, so the post is at the top of the screen and we can see one post of context
-    return Math.max(postToScrollToIndex - 1, 0)
+    return Math.max(postToScrollToIndex, 0)
   }
 
   // XXX: When joining a room we set the lastReadPostId to the largest post id in the database as a hack to bring people to the most recent post when they join a chat room
