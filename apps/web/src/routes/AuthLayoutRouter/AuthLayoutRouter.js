@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -76,6 +77,8 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
+import { Toaster } from 'components/ui/sonner'
+import useNewAppVersion from 'hooks/useNewAppVersion'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -84,6 +87,8 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isLegacyWebView() || hideNavLayout
+  const newVersionAvailable = useNewAppVersion()
+  const newVersionToastShownRef = useRef(false)
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -558,6 +563,19 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
+  // Show a toast notification once when a new app version is detected
+  useEffect(() => {
+    if (!newVersionAvailable || newVersionToastShownRef.current) return
+    newVersionToastShownRef.current = true
+    toast('A new version of Hylo is available', {
+      duration: Infinity,
+      action: {
+        label: 'Refresh',
+        onClick: () => window.location.reload()
+      }
+    })
+  }, [newVersionAvailable])
+
   if (currentUserLoading) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
@@ -895,6 +913,10 @@ export default function AuthLayoutRouter (props) {
         </div>
         <CookieConsentLinker />
       </div>
+      <Toaster
+        position={isMobile.any ? 'top-center' : 'bottom-left'}
+        style={isMobile.any ? {} : { left: '80px' }}
+      />
     </IntercomProvider>
   )
 }

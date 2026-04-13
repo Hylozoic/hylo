@@ -28569,6 +28569,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"next-themes@npm:^0.4.6":
+  version: 0.4.6
+  resolution: "next-themes@npm:0.4.6"
+  peerDependencies:
+    react: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+    react-dom: ^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc
+  checksum: 10/48540e77a8f1967fa27338e91037df296f84d8979ba3003f71eed8d9a2f4f29b3cc6797d27b501547fd39cf33611a2accb432eec92ad8a457abe1a142cc5a02e
+  languageName: node
+  linkType: hard
+
 "nib@npm:~1.1.2":
   version: 1.1.2
   resolution: "nib@npm:1.1.2"
@@ -35998,6 +36008,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sonner@npm:^2.0.7":
+  version: 2.0.7
+  resolution: "sonner@npm:2.0.7"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+  checksum: 10/c80321646f7fe06f92f4c16da9d72a27aec34abbf41438f8d8e8292ba8546d6bb620c54a113928f049948db1ad29d0b2ad3e9cb29dd5802c30951b41c99f12c4
+  languageName: node
+  linkType: hard
+
 "sort-asc@npm:^0.2.0":
   version: 0.2.0
   resolution: "sort-asc@npm:0.2.0"
@@ -39617,6 +39637,7 @@ __metadata:
     mixpanel-browser: "npm:^2.45.0"
     mock-socket: "npm:^9.3.1"
     msw: "npm:^2.6.6"
+    next-themes: "npm:^0.4.6"
     object-assign: "npm:4.1.1"
     path-browserify: "npm:^1.0.1"
     postcss: "npm:^8.4.47"
@@ -39673,6 +39694,7 @@ __metadata:
     scroll-into-view-if-needed: "npm:^2.2.29"
     slick-carousel: "npm:^1.8.1"
     socket.io-client: "npm:2.3.1"
+    sonner: "npm:^2.0.7"
     streamifier: "npm:^0.1.1"
     supercluster: "npm:^7.0.0"
     tailwind-merge: "npm:^2.5.4"
