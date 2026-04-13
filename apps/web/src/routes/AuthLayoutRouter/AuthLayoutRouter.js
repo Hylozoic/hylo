@@ -245,6 +245,21 @@ export default function AuthLayoutRouter (props) {
     }
 
     let touchTarget = null
+    let touchStartedWithTextSelected = false
+
+    let persistentHasSelection = false
+    const onSelectionChange = () => {
+      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
+      if (hasSelection) {
+        persistentHasSelection = true
+      } else if (touchStartX === null) {
+        // Only clear when there is no active touch, so iOS's mid-gesture
+        // selectionchange (e.g. during handle drag) doesn't prematurely clear
+        // the flag and allow the nav swipe to activate.
+        persistentHasSelection = false
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
@@ -260,6 +275,10 @@ export default function AuthLayoutRouter (props) {
       navWidth = navEl.offsetWidth
       isDragging = false
       directionLocked = false
+
+      // Use the persistent flag so handle-drag touches are detected even when
+      // iOS has temporarily cleared window.getSelection() at touchstart.
+      touchStartedWithTextSelected = persistentHasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -292,6 +311,16 @@ export default function AuthLayoutRouter (props) {
         // Validate direction: only right swipe opens, only left swipe closes
         if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
         if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If the touch was held still long enough to suggest a long-press (300ms
+        // is below the ~500ms iOS text-selection threshold but above any fast
+        // swipe), or text was selected before this touch began (persistentHasSelection
+        // survives the period where iOS clears getSelection() during a handle drag),
+        // don't hijack the gesture — let the user select/expand text instead.
+        if (isOpenGesture) {
+          const elapsed = Date.now() - touchStartTime
+          if (elapsed >= 300 || touchStartedWithTextSelected) { touchStartX = null; return }
+        }
 
         // If opening (right swipe), check if touch is inside a horizontally
         // scrolled container — let native scroll handle scrolling back first
@@ -357,6 +386,10 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
+      // Only clear the persistent selection flag once deselection is confirmed.
+      if (!window.getSelection || !window.getSelection().toString().length) {
+        persistentHasSelection = false
+      }
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -369,6 +402,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
+      document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [withoutNav, dispatch])
 
