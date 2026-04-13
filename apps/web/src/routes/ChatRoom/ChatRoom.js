@@ -389,6 +389,10 @@ export default function ChatRoom (props) {
         // We have cached data, use it immediately without showing loading state
         setLoadedPast(true)
         setLoadedFuture(true)
+        // Still fetch future posts in the background to pick up any new ones since last visit
+        if (topicFollow.newPostCount > 0) {
+          fetchPostsFuture(0, {}, true)
+        }
       } else {
         // No cached data, fetch fresh
         setLoadedFuture(false)
@@ -443,7 +447,7 @@ export default function ChatRoom (props) {
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
       if (latestPost?.id && topicFollow?.id &&
-          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) {
+          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) { // TODO: does this work, or does this line prevent it doing what it says it should here?
         lastReadPostIdRef.current = latestPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
       }
