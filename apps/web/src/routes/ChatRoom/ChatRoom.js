@@ -304,11 +304,14 @@ export default function ChatRoom (props) {
     const post = presentPost(data, group.id)
     if (!post) return
 
+    // Confirmed posts don't need localId — clear it to prevent stale rehydrated localIds from causing future key collisions
+    const confirmedPost = { ...post, localId: undefined }
+
     let updateExisting = false
     messageListRef.current?.data.map((item) => {
       if (post.id === item.id || (item.pending && post.localId && post.localId === item.localId)) {
         updateExisting = true
-        return post
+        return confirmedPost
       } else {
         return item
       }
@@ -316,7 +319,7 @@ export default function ChatRoom (props) {
 
     if (!updateExisting) {
       messageListRef.current?.data.append(
-        [post],
+        [confirmedPost],
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
             return 'smooth'
@@ -636,7 +639,11 @@ export default function ChatRoom (props) {
   const afterCreate = useCallback(async (postData) => {
     const post = presentPost(postData, group.id)
     if (!post) return
-    messageListRef.current?.data.map((item) => post.localId && item.localId && post.localId === item.localId ? post : item)
+    // Only match the pending item (requires item.pending) to avoid matching old rehydrated posts
+    // that may share the same localId after a page reload (lodash uniqueId resets from 0 each load).
+    // Clear localId on the confirmed post so it's never persisted to redux-persist.
+    const confirmedPost = { ...post, localId: undefined }
+    messageListRef.current?.data.map((item) => item.pending && post.localId && item.localId && post.localId === item.localId ? confirmedPost : item)
     if (!notificationsSetting) {
       // If the user has not set a notification setting for this chat room, we set it to all on the backend when creating a post so update the UI to match
       setNotificationsSetting('all')
