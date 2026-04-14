@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scrolling issues in Funding Rounds
 - Display of header text of featured groups in Group Explorer
 - Hard to read text when viewing group in group explorer in light mode
+- UI of funding rounds list on mobile
 
 ## [6.4.3] - 2026-04-12
 
