@@ -156,13 +156,14 @@ module.exports = {
    * Check if an invitation is valid and return group information for redirect
    * @param token {String} invitation token from email invite
    * @param accessCode {String} access code from invite link
-   * @returns {Object} { valid, groupSlug, email, commonRole, groupRole }
+   * @returns {Object} { valid, groupId, groupSlug, email, commonRole, groupRole }
    */
   check: async (token, accessCode) => {
     if (accessCode) {
       const group = await Group.queryByAccessCode(accessCode).fetch()
       return {
         valid: !!group,
+        groupId: group ? group.get('id') : null,
         groupSlug: group ? group.get('slug') : null
       }
     }
@@ -187,6 +188,7 @@ module.exports = {
 
         return {
           valid: true,
+          groupId: invitation.get('group_id'),
           groupSlug: group
             ? group.get('slug')
             : null,

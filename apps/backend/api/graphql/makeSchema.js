@@ -336,6 +336,21 @@ export default async function makeSchema ({ req }) {
   })
 }
 
+/**
+ * Invitation links must only bypass visibility for the group that issued them.
+ * Otherwise a valid code/token for group A could fetch any other group by slug/id.
+ */
+function invitationMatchesGroupQuery (inviteCheck, slug, id) {
+  if (!inviteCheck?.valid || inviteCheck.groupId == null) return false
+  if (slug) {
+    return inviteCheck.groupSlug === slug
+  }
+  if (id != null && id !== '') {
+    return String(inviteCheck.groupId) === String(id)
+  }
+  return false
+}
+
 // Queries that non-logged in users can make
 export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
@@ -346,7 +361,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
       // If invitation credentials are provided, validate and bypass visibility filter
       if (accessCode || invitationToken) {
         const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-        if (inviteCheck?.valid) {
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
           // Fetch group without visibility restriction
           return Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
         }
@@ -381,7 +396,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       // If invitation credentials are provided, validate and bypass visibility filter
       if (accessCode || invitationToken) {
         const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-        if (inviteCheck?.valid) {
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
           // Fetch group directly without normal visibility filter
           group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
         }
