@@ -9,10 +9,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getMe from 'store/selectors/getMe'
-import { fetchFundingRoundSubmissions } from 'routes/FundingRounds/FundingRounds.store'
+import { fetchFundingRoundSubmissions, FETCH_FUNDING_ROUND_SUBMISSIONS } from 'routes/FundingRounds/FundingRounds.store'
+import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { seededShuffle } from 'util/seededRandom'
 import CreateModal from 'components/CreateModal'
+import Loading from 'components/Loading'
 import PostDialog from 'components/PostDialog'
 import SubmissionCard from './SubmissionCard'
 import RoundPhaseStatus from './RoundPhaseStatus'
@@ -43,6 +45,8 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
+
+  const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
 
   useEffect(() => {
     if (round?.id) dispatch(fetchFundingRoundSubmissions(round.id))
@@ -164,6 +168,9 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
         </button>
       )}
       <div className='flex flex-col mt-4'>
+        {isLoadingSubmissions && postsForDisplay.length === 0 && (
+          <Loading />
+        )}
         {postsForDisplay.map(post => (
           <SubmissionCard
             key={post.id}
