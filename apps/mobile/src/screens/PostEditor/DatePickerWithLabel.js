@@ -1,8 +1,12 @@
+// DEPRECATED: This component is only used by deprecated PostEditor screen.
+// Kept for reference only.
+
 /* eslint-disable react/no-unstable-nested-components */
 import { useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { DateTime } from 'luxon'
+// DEPRECATED: luxon removed
+// import { DateTime } from 'luxon'
 import DatePicker from 'react-native-date-picker'
 import Icon from 'components/Icon'
 import styles from './PostEditor.styles'
@@ -51,7 +55,8 @@ export default function DatePickerWithLabel ({
           </View>
         </View>
         {date && !open && (
-          <Text style={styleTemplate.valueText}>{DateTime.fromJSDate(date).toFormat(dateFormat)}</Text>
+          // DEPRECATED: DateTime.fromJSDate removed with luxon package
+          <Text style={styleTemplate.valueText}>{date.toLocaleString()}</Text>
         )}
       </TouchableOpacity>
       <DatePicker

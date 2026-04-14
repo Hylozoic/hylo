@@ -90,6 +90,7 @@ export function createGroup (data) {
       query: `mutation ($data: GroupInput) {
         createGroup(data: $data) {
           id
+          homeRoute
           name
           purpose
           slug

@@ -1,7 +1,12 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { cn } from 'util/index'
 import EmojiPicker from 'components/EmojiPicker'
 import EmojiPill from 'components/EmojiPill'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from 'components/ui/popover'
 import useReactionActions from 'hooks/useReactionActions'
 
 export default function EmojiRow (props) {
@@ -17,6 +22,7 @@ export default function EmojiRow (props) {
     onRemoveReaction = () => {}
   } = props
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
+  const [overflowOpen, setOverflowOpen] = useState(false)
 
   const entityType = comment ? 'comment' : 'post'
   const myReactions = useMemo(() => (comment ? comment.commentReactions?.filter(reaction => reaction.user.id === currentUser?.id) : post.postReactions?.filter(reaction => reaction.user.id === currentUser?.id)) || [], [comment, post, currentUser])
@@ -47,21 +53,62 @@ export default function EmojiRow (props) {
     return accum
   }, {}), [entityReactions, myEmojis, currentUser])
 
+  // Sort reactions by count (most popular first)
+  const sortedReactions = useMemo(() =>
+    Object.values(usersReactions).sort((a, b) => b.userList.length - a.userList.length),
+  [usersReactions])
+
+  const topReaction = sortedReactions[0]
+  const overflowReactions = sortedReactions.slice(1)
+  const overflowCount = overflowReactions.reduce((sum, r) => sum + r.userList.length, 0)
+  const hasAnySelected = overflowReactions.some(r => r.loggedInUser)
+
   return (
     <div className={cn('hover:scale-105 transition-all hover:z-10 mr-4 inline-block', className)} onClick={onClick}>
       {entityReactions && (
-        <div className='transition-all duration-250 ease-in-out flex relative items-center flex-wrap'>
+        <div className='transition-all duration-250 ease-in-out flex relative items-center flex-nowrap'>
           {currentUser && alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
-          {Object.values(usersReactions).map(reaction => (
+          {topReaction && (
             <EmojiPill
-              onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
-              key={reaction.emojiFull}
-              emojiFull={reaction.emojiFull}
-              count={reaction.userList.length}
-              selected={reaction.loggedInUser}
-              toolTip={reaction.userList.join('<br>')}
+              onClick={currentUser ? topReaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+              key={topReaction.emojiFull}
+              emojiFull={topReaction.emojiFull}
+              count={topReaction.userList.length}
+              selected={topReaction.loggedInUser}
+              toolTip={topReaction.userList.join('<br>')}
             />
-          ))}
+          )}
+          {overflowReactions.length > 0 && (
+            <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+              <PopoverTrigger asChild>
+                <div
+                  className={cn(
+                    'relative select-none mr-2 mb-2 text-foreground text-baseline bg-darkening/10 rounded-lg m-1 py-1 px-3 items-center justify-center inline-flex opacity-100 transition-all cursor-pointer hover:bg-selected/50 z-0 hover:z-50 whitespace-nowrap',
+                    { 'bg-selected text-foreground': hasAnySelected }
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className='sm:hidden'>{overflowReactions.slice(0, 2).map(r => r.emojiFull).join('')}{overflowReactions.length > 2 && '…'}</span>
+                  <span className='hidden sm:inline'>{overflowReactions.slice(0, 3).map(r => r.emojiFull).join('')}{overflowReactions.length > 3 && '…'}</span>
+                  <span className='ml-1'>{overflowCount}</span>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className='w-auto p-2' sideOffset={4}>
+                <div className='flex flex-wrap'>
+                  {overflowReactions.map(reaction => (
+                    <EmojiPill
+                      onClick={currentUser ? reaction.loggedInUser ? handleRemoveReaction : handleReaction : null}
+                      key={reaction.emojiFull}
+                      emojiFull={reaction.emojiFull}
+                      count={reaction.userList.length}
+                      selected={reaction.loggedInUser}
+                      toolTip={reaction.userList.join('<br>')}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           {currentUser && !alignLeft ? <EmojiPicker handleReaction={handleReaction} myEmojis={myEmojis} handleRemoveReaction={handleRemoveReaction} onOpenChange={onOpenChange} /> : ''}
         </div>
       )}

@@ -4,6 +4,7 @@ import emitter from 'socket.io-emitter'
 
 const validMessageTypes = [
   'commentAdded',
+  'groupUpdated',
   'messageAdded',
   'userTyping',
   'newThread',

@@ -1,8 +1,6 @@
 import decode from 'ent/decode'
 import { TextHelpers } from '@hylo/shared'
-import { en } from '../../lib/i18n/en'
-import { es } from '../../lib/i18n/es'
-const locales = { en, es }
+import { getLocaleStrings } from '../../lib/i18n/locales'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'push_notifications',
@@ -25,8 +23,9 @@ module.exports = bookshelf.Model.extend({
     }
 
     const readerId = user.id
+    const isTester = await User.isTester(user.id)
     const disabled = process.env.PUSH_NOTIFICATIONS_ENABLED !== 'true' && (
-      process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !User.isTester(user.id)
+      process.env.PUSH_NOTIFICATIONS_TESTING_ENABLED !== 'true' || !isTester
     )
 
     await this.save({ sent_at: new Date().toISOString(), disabled }, options)
@@ -51,7 +50,7 @@ module.exports = bookshelf.Model.extend({
   textForContribution: function (contribution, locale) {
     const post = contribution.relations.post
 
-    return locales[locale].textForContribution(post)
+    return getLocaleStrings(locale).textForContribution(post)
   },
 
   textForComment: function (comment, version, locale = 'en') {
@@ -59,14 +58,14 @@ module.exports = bookshelf.Model.extend({
     const { media } = comment.relations
     if (media && media.length !== 0) {
       // return `${person} sent an image` // Question: do we want to start adding more text detail here?
-      return locales[locale].textForCommentImage(person)
+      return getLocaleStrings(locale).textForCommentImage(person)
     }
     const blurb = TextHelpers.presentHTMLToText(comment.text(), { truncate: 140 })
     const postName = comment.relations.post.summary()
 
     return version === 'mention'
-      ? locales[locale].textForCommentMention({ person, blurb, postName })
-      : locales[locale].textForComment({ person, blurb, postName })
+      ? getLocaleStrings(locale).textForCommentMention({ person, blurb, postName })
+      : getLocaleStrings(locale).textForComment({ person, blurb, postName })
   },
 
   textForPost: function (post, group, firstTag, version, locale) {
@@ -76,13 +75,13 @@ module.exports = bookshelf.Model.extend({
 
     switch (version) {
       case 'chat':
-        return locales[locale].textForChatPost({ groupName, person, postName })
+        return getLocaleStrings(locale).textForChatPost({ groupName, person, postName })
       case 'mention':
-        return locales[locale].textForPostMention({ groupName, person, postName })
+        return getLocaleStrings(locale).textForPostMention({ groupName, person, postName })
       case 'voteReset':
-        return locales[locale].textForVoteReset({ person, postName, groupName })
+        return getLocaleStrings(locale).textForVoteReset({ person, postName, groupName })
       default:
-        return locales[locale].textForPost({ person, postName, groupName, firstTag })
+        return getLocaleStrings(locale).textForPost({ person, postName, groupName, firstTag })
     }
   },
 
@@ -91,69 +90,69 @@ module.exports = bookshelf.Model.extend({
     const postName = decode(post.summary())
     const groupName = group.get('name')
 
-    return locales[locale].textForAnnouncement({ groupName, person, postName })
+    return getLocaleStrings(locale).textForAnnouncement({ groupName, person, postName })
   },
 
   textForEventInvitation: function (post, actor, locale) {
     const postName = decode(post.summary())
 
-    return locales[locale].textForEventInvitation({ actor, postName })
+    return getLocaleStrings(locale).textForEventInvitation({ actor, postName })
   },
 
   textForJoinRequest: function (group, actor, locale) {
-    return locales[locale].textForJoinRequest({ actor, groupName: group.get('name') })
+    return getLocaleStrings(locale).textForJoinRequest({ actor, groupName: group.get('name') })
   },
 
   textForApprovedJoinRequest: function (group, actor, locale) {
-    return locales[locale].textForApprovedJoinRequest({ actor, groupName: group.get('name') })
+    return getLocaleStrings(locale).textForApprovedJoinRequest({ actor, groupName: group.get('name') })
   },
 
   textForGroupChildGroupInvite: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInvite({ actor, parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupChildGroupInvite({ actor, parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedParentModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedParentModerator({ actor, parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupChildGroupInviteAcceptedParentModerator({ actor, parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedParentMember: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedParentMember({ parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupChildGroupInviteAcceptedParentMember({ parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedChildModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedChildModerator({ parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupChildGroupInviteAcceptedChildModerator({ parentGroup, childGroup })
   },
 
   textForGroupChildGroupInviteAcceptedChildMember: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupChildGroupInviteAcceptedChildMember({ parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupChildGroupInviteAcceptedChildMember({ parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequest: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequest({ actor, parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupParentGroupJoinRequest({ actor, parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequestAcceptedParentModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentModerator({ parentGroup, childGroup, actor })
+    return getLocaleStrings(locale).textForGroupParentGroupJoinRequestAcceptedParentModerator({ parentGroup, childGroup, actor })
   },
 
   textForGroupParentGroupJoinRequestAcceptedParentMember: function (parentGroup, childGroup, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedParentMember({ parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupParentGroupJoinRequestAcceptedParentMember({ parentGroup, childGroup })
   },
 
   textForGroupParentGroupJoinRequestAcceptedChildModerator: function (parentGroup, childGroup, actor, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildModerator({ parentGroup, childGroup, actor })
+    return getLocaleStrings(locale).textForGroupParentGroupJoinRequestAcceptedChildModerator({ parentGroup, childGroup, actor })
   },
 
   textForGroupParentGroupJoinRequestAcceptedChildMember: function (parentGroup, childGroup, locale) {
-    return locales[locale].textForGroupParentGroupJoinRequestAcceptedChildMember({ parentGroup, childGroup })
+    return getLocaleStrings(locale).textForGroupParentGroupJoinRequestAcceptedChildMember({ parentGroup, childGroup })
   },
 
   textForGroupPeerGroupInvite: function (fromGroup, toGroup, actor, locale) {
-    return locales[locale].textForGroupPeerGroupInvite({ actor, fromGroup, toGroup })
+    return getLocaleStrings(locale).textForGroupPeerGroupInvite({ actor, fromGroup, toGroup })
   },
 
   textForGroupPeerGroupInviteAccepted: function (fromGroup, toGroup, actor, locale) {
-    return locales[locale].textForGroupPeerGroupInviteAccepted({ actor, fromGroup, toGroup })
+    return getLocaleStrings(locale).textForGroupPeerGroupInviteAccepted({ actor, fromGroup, toGroup })
   },
 
   textForDonationTo: function (contribution, locale) {
@@ -161,7 +160,7 @@ module.exports = bookshelf.Model.extend({
     const postName = decode(project.summary())
     const amount = contribution.get('amount') / 100
 
-    return locales[locale].textForDonationTo({ postName, amount })
+    return getLocaleStrings(locale).textForDonationTo({ postName, amount })
   },
 
   textForDonationFrom: function (contribution, locale) {
@@ -170,30 +169,30 @@ module.exports = bookshelf.Model.extend({
     const postName = decode(project.summary())
 
     const amount = contribution.get('amount') / 100
-    return locales[locale].textForDonationFrom({ actor, postName, amount })
+    return getLocaleStrings(locale).textForDonationFrom({ actor, postName, amount })
   },
 
   textForMemberJoinedGroup: function (group, actor, locale) {
-    return locales[locale].textForMemberJoinedGroup({ group, actor })
+    return getLocaleStrings(locale).textForMemberJoinedGroup({ group, actor })
   },
 
   textForTrackCompleted: function (track, actor, locale) {
-    return locales[locale].textForTrackCompleted({ actor, track })
+    return getLocaleStrings(locale).textForTrackCompleted({ actor, track })
   },
 
   textForTrackEnrollment: function (track, actor, locale) {
-    return locales[locale].textForTrackEnrollment({ actor, track })
+    return getLocaleStrings(locale).textForTrackEnrollment({ actor, track })
   },
 
   textForFundingRoundNewSubmission: function (fundingRound, post, actor, locale) {
-    return locales[locale].textForFundingRoundNewSubmission({ fundingRound, post, actor })
+    return getLocaleStrings(locale).textForFundingRoundNewSubmission({ fundingRound, post, actor })
   },
 
   textForFundingRoundPhaseTransition: function (fundingRound, phase, locale) {
-    return locales[locale].textForFundingRoundPhaseTransition({ fundingRound, phase })
+    return getLocaleStrings(locale).textForFundingRoundPhaseTransition({ fundingRound, phase })
   },
 
   textForFundingRoundReminder: function (fundingRound, reminderType, locale) {
-    return fundingRound.get('title') + ': ' + locales[locale].textForFundingRoundReminder({ reminderType })
+    return fundingRound.get('title') + ': ' + getLocaleStrings(locale).textForFundingRoundReminder({ reminderType })
   }
 })

@@ -4,9 +4,7 @@ import { compact, some, sum, uniq } from 'lodash/fp'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
 import RedisClient from '../../services/RedisClient'
-import { en } from '../../../lib/i18n/en'
-import { es } from '../../../lib/i18n/es'
-const locales = { en, es }
+import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
@@ -25,7 +23,7 @@ export async function notifyAboutMessage ({ commentId }) {
   return Promise.map(recipients, async user => {
     // don't notify if the user has read the thread recently and respect the
     // dm_notifications setting.
-    if (!user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Push)) return
+    if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Push))) return
 
     const lastReadAt = user.pivot.get('last_read_at')
 
@@ -70,7 +68,7 @@ export const sendDigests = async () => {
 
     const followers = await post.followers().fetch()
 
-    return Promise.map(followers.models, user => {
+    return Promise.map(followers.models, async user => {
       // select comments not written by this user and newer than user's last
       // read time.
       let lastReadAt = user.pivot.get('last_read_at')
@@ -96,7 +94,7 @@ export const sendDigests = async () => {
       }
 
       if (post.get('type') === Post.Type.THREAD) {
-        if (!user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Email)) return
+        if (!(await user.enabledNotification(Notification.TYPE.Message, Notification.MEDIUM.Email))) return
 
         const others = filtered.map(comment => comment.relations.user)
 
@@ -131,7 +129,7 @@ export const sendDigests = async () => {
           }
         })
       } else {
-        if (!user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email)) return
+        if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
 
         const commentData = filtered.map(presentComment)
         const hasMention = ({ text }) =>
@@ -160,7 +158,7 @@ export const sendDigests = async () => {
           },
           sender: {
             reply_to: Email.postReplyAddress(post.id, user.id),
-            name: firstGroup ? `${firstGroup.get('name')} (via Hylo)` : locales[locale].theTeamAtHylo
+            name: firstGroup ? `${firstGroup.get('name')} (via Hylo)` : getLocaleStrings(locale).theTeamAtHylo
           }
         })
       }

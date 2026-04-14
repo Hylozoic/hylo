@@ -1,129 +1,142 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import PropTypes from 'prop-types'
-import { isEmpty, filter, get, map } from 'lodash/fp'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { filter, get } from 'lodash/fp'
 import Icon from 'components/Icon'
-import { personUrl } from '@hylo/navigation'
+import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { others } from 'store/models/MessageThread'
+import { cn } from 'util/index'
 
-const MAX_CHARACTERS = 60
+const MEASURE_GAP = 8 // gap-2 = 0.5rem = 8px
+const OTHERS_RESERVE = 100 // reserve space for "N others ▼" pill
 
-export default class Header extends React.Component {
-  constructor (props) {
-    super(props)
+export default function Header ({ currentUser, messageThread, pending }) {
+  const [showAll, setShowAll] = useState(false)
+  const [maxVisible, setMaxVisible] = useState(null)
+  const containerRef = useRef(null)
+  const measuringRef = useRef(null)
 
-    this.state = {
-      showAll: false,
-      messageThreadId: null
-    }
-  }
-
-  toggleShowAll = () => {
-    const { showAll } = this.state
-    this.setState({
-      ...this.state,
-      showAll: !showAll
-    })
-  }
-
-  resetStateWithNewId = (messageThreadId) => {
-    this.setState({
-      showAll: false,
-      messageThreadId
-    })
-  }
-
-  componentDidUpdate (prevProps) {
-    const messageThreadId = get('id', this.props.messageThread)
-
-    if (this.state.messageThreadId !== messageThreadId) {
-      this.resetStateWithNewId(messageThreadId)
-    }
-  }
-
-  getOthers (currentUser, participants) {
+  const participants = get('participants', messageThread) || []
+  const otherParticipants = useMemo(() => {
     if (!currentUser) return participants
+    return filter(p => p.id !== currentUser.id, participants)
+  }, [participants, currentUser])
 
-    const id = get('id', currentUser)
+  const threadId = get('id', messageThread)
 
-    return currentUser && map('name', filter(f => f.id !== id, participants))
-  }
+  // Reset when thread changes
+  useEffect(() => {
+    setShowAll(false)
+    setMaxVisible(null)
+  }, [threadId])
 
-  render () {
-    const { showAll } = this.state
-    const { currentUser, messageThread, pending } = this.props
-    const participants = get('participants', messageThread) || []
-    const otherParticipants = this.getOthers(currentUser, participants)
-    const maxShown = calculateMaxShown(showAll, otherParticipants, MAX_CHARACTERS)
-    const { displayNames, andOthers } = generateDisplayNames(maxShown, participants, currentUser)
-    const showArrow = !!andOthers
+  // Measure how many name pills fit on one line
+  const measure = useCallback(() => {
+    if (showAll || !measuringRef.current || !containerRef.current) return
 
-    return (
-      <div className='flex w-full text-foreground' id='thread-header'>
+    const containerWidth = containerRef.current.offsetWidth
+    const pills = Array.from(measuringRef.current.children)
+    if (pills.length === 0) return
 
-        <div className='text/foreground flex justify-between'>
-          {!pending && (
-            <div className='text-foreground flex flex-wrap gap-2'>
-              {displayNames}
-              {andOthers && 'and' && (
-                <span className='text-foreground text-sm xs:text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>
-                  {andOthers}
-                  {showArrow && !showAll && <Icon name='ArrowDown' className='text-foreground ml-1' onClick={this.toggleShowAll} />}
+    let usedWidth = 0
+    let count = 0
+
+    for (let i = 0; i < pills.length; i++) {
+      const pillWidth = pills[i].offsetWidth
+      const widthWithPill = usedWidth + pillWidth + (count > 0 ? MEASURE_GAP : 0)
+      const isLast = i === pills.length - 1
+
+      // If this is the last pill, just check it fits
+      // Otherwise reserve space for the "X others" pill
+      const totalNeeded = isLast ? widthWithPill : widthWithPill + MEASURE_GAP + OTHERS_RESERVE
+
+      if (totalNeeded > containerWidth && count > 0) break
+
+      usedWidth = widthWithPill
+      count++
+    }
+
+    setMaxVisible(count >= pills.length ? null : Math.max(1, count))
+  }, [showAll, otherParticipants])
+
+  // Re-measure on mount, resize, and participant changes
+  useEffect(() => {
+    if (showAll) return
+    const raf = requestAnimationFrame(measure)
+    const observer = new ResizeObserver(measure)
+    if (containerRef.current) observer.observe(containerRef.current)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      observer.disconnect()
+    }
+  }, [measure, showAll])
+
+  if (pending) return null
+
+  const noOthers = otherParticipants.length === 0
+  const displayParticipants = showAll || maxVisible === null
+    ? otherParticipants
+    : otherParticipants.slice(0, maxVisible)
+  const hiddenCount = otherParticipants.length - displayParticipants.length
+
+  const toggleShowAll = () => setShowAll(prev => !prev)
+
+  return (
+    <div className='flex w-full text-foreground min-w-0 relative overflow-hidden' id='thread-header' ref={containerRef}>
+      {/* Hidden measuring container — renders all pills to get their widths */}
+      {!showAll && (
+        <div
+          ref={measuringRef}
+          className='flex gap-2 absolute top-0 left-0 invisible pointer-events-none'
+          aria-hidden='true'
+        >
+          {otherParticipants.map(p => (
+            <span key={p.id} className='font-bold whitespace-nowrap p-1.5 sm:p-2 rounded text-xs sm:text-sm'>{p.name}</span>
+          ))}
+        </div>
+      )}
+
+      <div className={cn(
+        'text-foreground flex gap-2 min-w-0 flex-1 items-center',
+        showAll ? 'flex-wrap' : 'flex-nowrap overflow-hidden')}
+      >
+        {noOthers
+          ? (
+            <ProfileCardDialog personId={currentUser.id}>
+              <span className='text-foreground font-bold inline-block p-1.5 sm:p-2 rounded bg-darkening/20 text-xs sm:text-sm whitespace-nowrap transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>
+                You
+              </span>
+            </ProfileCardDialog>
+            )
+          : (
+            <>
+              {displayParticipants.map(p => (
+                <ProfileCardDialog key={p.id} personId={p.id}>
+                  <span className='text-foreground font-bold inline-block p-1.5 sm:p-2 rounded bg-darkening/20 text-xs sm:text-sm whitespace-nowrap transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>
+                    {p.name}
+                  </span>
+                </ProfileCardDialog>
+              ))}
+              {hiddenCount > 0 && !showAll && (
+                <span
+                  className='text-foreground text-xs sm:text-sm p-1.5 sm:p-2 bg-darkening/20 rounded flex items-center whitespace-nowrap transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer flex-shrink-0'
+                  onClick={toggleShowAll}
+                >
+                  {others(hiddenCount)}
+                  <Icon name='ArrowDown' className='text-foreground ml-1' />
                 </span>
               )}
-              {showAll && <span className='text-foreground text-base p-2 bg-darkening/20 rounded flex justify-center items-center transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer' onClick={this.toggleShowAll}>Show Less <Icon name='ArrowUp' className='text-foreground ml-1' /></span>}
-            </div>
-          )}
-        </div>
+              {showAll && (
+                <span
+                  className='text-foreground text-xs sm:text-sm p-1.5 sm:p-2 bg-darkening/20 rounded flex items-center whitespace-nowrap transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground hover:cursor-pointer flex-shrink-0'
+                  onClick={toggleShowAll}
+                >
+                  Show Less
+                  <Icon name='ArrowUp' className='text-foreground ml-1' />
+                </span>
+              )}
+            </>
+            )}
       </div>
-    )
-  }
-}
-
-Header.propTypes = {
-  messageThread: PropTypes.any
-}
-
-export function calculateMaxShown (showAll, otherParticipants, maxCharacters) {
-  if (showAll) return otherParticipants.length
-  if (!otherParticipants) return 0
-  let count = 0
-  for (let i = 0; i < otherParticipants.length; i++) {
-    count += otherParticipants[i].length
-    if (count > maxCharacters) {
-      return i
-    }
-  }
-  return otherParticipants.length
-}
-
-export const getFormattedLinkToProfile = (user) => {
-  return <Link key={user.id} to={personUrl(user.id)} className='text-foreground font-bold inline-block p-2 rounded bg-darkening/20 text-sm xs:text-base transition-all hover:bg-selected/50 hover:scale-105 hover:text-foreground'>{user.name}</Link>
-}
-
-export function generateDisplayNames (maxShown, participants, currentUser) {
-  const formattedCurrentUser = getFormattedLinkToProfile({ id: currentUser.id, name: 'You' })
-  const formattedOthers = participants.reduce((result, participant) => {
-    if (participant.id !== currentUser.id) {
-      result.push(getFormattedLinkToProfile(participant))
-    }
-    return result
-  }, [])
-  const formattedDisplayNames = isEmpty(formattedOthers) ? { displayNames: formattedCurrentUser } : formatNames(formattedOthers, maxShown)
-  return formattedDisplayNames
-}
-
-export function formatNames (otherParticipants, maxShown) {
-  let andOthers = null
-  const length = otherParticipants.length
-  const truncatedNames = (maxShown && maxShown < length)
-    ? otherParticipants.slice(0, maxShown).concat([others(length - maxShown)])
-    : otherParticipants
-  if (maxShown && maxShown < length) andOthers = truncatedNames.pop()
-  const formattedTruncatedNames = truncatedNames.map((name, index) => index === truncatedNames.length - 1 ? name : [name, ''])
-  if (andOthers) {
-    return { displayNames: formattedTruncatedNames, andOthers: ` ${andOthers}` }
-  } else {
-    return { displayNames: formattedTruncatedNames }
-  }
+    </div>
+  )
 }

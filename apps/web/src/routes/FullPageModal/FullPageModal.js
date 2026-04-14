@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 
 export default function FullPageModal ({
   confirmMessage, navigate, goToOnClose,
@@ -9,7 +9,8 @@ export default function FullPageModal ({
 }) {
   const multipleTabs = Array.isArray(content)
 
-  if (isWebView()) {
+  // DEPRECATED: New mobile app no longer longer renders differently for webview but uses standard layout
+  if (isLegacyWebView()) {
     return (
       <div className='bg-background overflow-y-auto relative top-0 p-10'>
         <Routes>

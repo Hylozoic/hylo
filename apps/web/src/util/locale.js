@@ -6,6 +6,14 @@ export function localeToFlagEmoji (locale = 'en') {
       return '🇬🇧'
     case 'es':
       return '🇪🇸'
+    case 'de':
+      return '🇩🇪'
+    case 'fr':
+      return '🇫🇷'
+    case 'hi':
+      return '🇮🇳'
+    case 'pt':
+      return '🇵🇹'
     default:
       return '🇬🇧'
   }
@@ -19,6 +27,14 @@ export function localeToWord (locale = 'en') {
       return 'English'
     case 'es':
       return 'Spanish'
+    case 'de':
+      return 'German'
+    case 'fr':
+      return 'French'
+    case 'hi':
+      return 'Hindi'
+    case 'pt':
+      return 'Portuguese'
     default:
       return 'English'
   }

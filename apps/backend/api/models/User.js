@@ -106,8 +106,8 @@ module.exports = bookshelf.Model.extend(merge({
   comments: function () {
     return this.hasMany(Comment)
       .query(q => {
-        // TODO: this breaks recent activity, but it is sketchy to take out here.
-        // q.join('posts', 'posts.id', 'comments.post_id')
+        q.join('posts', 'posts.id', 'comments.post_id')
+        q.queryContext({ alreadyJoinedPosts: true })
         q.whereNotIn('posts.user_id', BlockedUser.blockedFor(this.id))
         q.where(function () {
           this.where('posts.type', '!=', Post.Type.THREAD)
@@ -174,8 +174,8 @@ module.exports = bookshelf.Model.extend(merge({
       .query({ where: { 'notifications.medium': Notification.MEDIUM.InApp } })
   },
 
-  isTester: function () {
-    return User.isTester(this.id)
+  isTester: async function () {
+    return await User.isTester(this.id)
   },
 
   joinRequests: function () {
@@ -376,6 +376,9 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   joinGroup: async function (group, { role = GroupMembership.Role.DEFAULT, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+    const groupSettings = group.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const memberships = await group.addMembers([this.id],
       {
         role,
@@ -383,7 +386,7 @@ module.exports = bookshelf.Model.extend(merge({
           // XXX: A user choosing to join a group has aleady seen/filled out the join questions (enforced on the front-end)
           joinQuestionsAnsweredAt: fromInvitation ? null : new Date(),
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           showJoinForm: true
@@ -555,7 +558,7 @@ module.exports = bookshelf.Model.extend(merge({
     })
   },
 
-  enabledNotification (type, medium) {
+  enabledNotification: async function (type, medium) {
     let setting
 
     switch (type) {
@@ -569,12 +572,13 @@ module.exports = bookshelf.Model.extend(merge({
         throw new Error(`unknown notification type: ${type}`)
     }
 
+    const isTester = await User.isTester(this.id)
     return (medium === Notification.MEDIUM.Email &&
              (setting === 'both' || setting === 'email') &&
-             (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id))) ||
+             (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || isTester)) ||
            (medium === Notification.MEDIUM.Push &&
             (setting === 'both' || setting === 'push') &&
-            (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(this.id)))
+            (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || isTester))
   },
 
   disableAllNotifications () {
@@ -788,9 +792,16 @@ module.exports = bookshelf.Model.extend(merge({
     return User.query().where({ id }).increment('new_notification_count', 1)
   },
 
-  isTester: function (id) {
+  isTester: async function (id) {
+    // Check env var list
     const testerIds = process.env.HYLO_TESTER_IDS ? process.env.HYLO_TESTER_IDS.split(',') : []
-    return testerIds.includes(id)
+    if (testerIds.includes(id)) {
+      return true
+    }
+
+    // Check database table
+    const dbTester = await EmailEnabledTester.findByUserId(id)
+    return !!dbTester
   },
 
   resetNewNotificationCount: function (id) {

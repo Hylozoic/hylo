@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
 import { get } from 'lodash/fp'
-import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart } from 'lucide-react'
-import React, { Suspense, useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { Globe, HelpCircle, PlusCircle, Bell, MessagesSquare, ChevronDown, Settings, LogOut, User, Edit, Users, Mail, Bell as BellIcon, Palette, Languages, UserX, Search, Shield, BookOpen, Download, Heart, Wrench } from 'lucide-react'
+import React, { Suspense, useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIntercom } from 'react-use-intercom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -52,12 +52,14 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
+import isWebView, { sendMessageToWebView } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
 import { pinGroup, unpinGroup, updateGroupNavOrder } from 'store/actions/pinGroup'
 import logout from 'store/actions/logout'
 import { personUrl } from '@hylo/navigation'
+import { WebViewMessageTypes } from '@hylo/shared'
 import { useTheme } from 'contexts/ThemeContext'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import updateUserSettings from 'store/actions/updateUserSettings'
@@ -90,7 +92,18 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
   }
 
   return (
-    <div ref={handleRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={handleRef}
+      style={{
+        ...style,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      {...attributes}
+      {...listeners}
+    >
       <GlobalNavItem
         badgeCount={group.newPostCount ? '-' : 0}
         img={group.avatarUrl}
@@ -116,7 +129,11 @@ function SettingsMenu ({ currentUser }) {
 
   const handleLogout = async () => {
     await dispatch(logout())
-    dispatch(replace('/login', null))
+    if (window.HyloMobileV2) {
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    } else {
+      dispatch(replace('/login', null))
+    }
   }
 
   const handleViewProfile = () => {
@@ -151,6 +168,10 @@ function SettingsMenu ({ currentUser }) {
     navigate('/my/account')
   }
 
+  const handleManagement = () => {
+    navigate('/management')
+  }
+
   const handleLanguageChange = (locale) => {
     i18n.changeLanguage(locale)
     getLocaleFromLocalStorage(locale)
@@ -162,11 +183,11 @@ function SettingsMenu ({ currentUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
-          <Settings className='w-6 h-6' />
+        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
+          <Settings className='w-7 h-7 sm:w-6 sm:h-6' />
         </span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side='right' align='start' className='min-w-[200px] bg-card'>
+      <DropdownMenuContent side='right' align='start' className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className='mr-2 h-4 w-4' />
           <span>{t('Logout')}</span>
@@ -197,7 +218,7 @@ function SettingsMenu ({ currentUser }) {
             <Palette className='mr-2 h-4 w-4' />
             <span>{t('Appearance')}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='bg-card'>
+          <DropdownMenuSubContent className='z-[200] bg-card'>
             <div className='px-2 py-1.5 text-sm font-semibold'>{t('Display Mode')}</div>
             <DropdownMenuRadioGroup value={colorScheme} onValueChange={setColorScheme}>
               <DropdownMenuRadioItem value='auto'>
@@ -226,7 +247,7 @@ function SettingsMenu ({ currentUser }) {
             <Languages className='mr-2 h-4 w-4' />
             <span>{t('Language')}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className='bg-card'>
+          <DropdownMenuSubContent className='z-[200] bg-card'>
             <DropdownMenuRadioGroup value={currentLocale} onValueChange={handleLanguageChange}>
               <DropdownMenuRadioItem value='en'>
                 🇬🇧 {t('English')}
@@ -261,6 +282,15 @@ function SettingsMenu ({ currentUser }) {
           <Shield className='mr-2 h-4 w-4' />
           <span>{t('Account Settings')}</span>
         </DropdownMenuItem>
+        {currentUser?.isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleManagement}>
+              <Wrench className='mr-2 h-4 w-4' />
+              <span>Management</span>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -273,34 +303,59 @@ export default function GlobalNav (props) {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
   const sortedGroups = useSelector(getMyGroups)
+  const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
   const appStoreLinkClass = isMobileDevice() ? 'isMobileDevice' : 'isntMobileDevice'
   const { t } = useTranslation()
-  const [visibleCount, setVisibleCount] = useState(0)
+  const [navReady, setNavReady] = useState(false)
   const [isContainerHovered, setIsContainerHovered] = useState(false)
-  const [showGradient, setShowGradient] = useState(false)
   const [menuTimeoutId, setMenuTimeoutId] = useState(null)
+  const hoverDelayTimeoutRef = useRef(null)
+  const ignoreTouchRef = useRef(false) // Ignore touch events briefly after nav opens
   const [isOverflowing, setIsOverflowing] = useState(false)
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const [hiddenBadgeCount, setHiddenBadgeCount] = useState(0)
   const navContainerRef = useRef(null)
   const groupRefsMap = useRef(new Map())
 
+  // Reveal all nav items in a single state flip after first paint.
+  // Previously, items were revealed one-by-one via setInterval (50ms each),
+  // causing N re-renders of GlobalNav for N groups. For users with many groups,
+  // this blocked the main thread for 5-10 seconds, preventing all interaction.
   useEffect(() => {
-    const totalItems = 4 + sortedGroups.length + 2 // fixed items + groups + plus & help buttons
-    let currentCount = 0
-    const interval = setInterval(() => {
-      if (currentCount >= totalItems) {
-        clearInterval(interval)
-        return
-      }
-      currentCount++
-      setVisibleCount(currentCount)
-    }, 50) // 50ms between each item
+    const raf = requestAnimationFrame(() => setNavReady(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
 
-    return () => clearInterval(interval)
-  }, [sortedGroups.length])
+  // Suppress all hover/tooltip interactions briefly each time the nav becomes visible,
+  // preventing phantom hover/tooltips from the tap that opened the nav.
+  // useLayoutEffect ensures this runs synchronously after DOM mutation but
+  // BEFORE the browser paints — so no events can slip through the gap.
+  useLayoutEffect(() => {
+    if (isNavOpen) {
+      ignoreTouchRef.current = true
+      window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: true }))
+      const timeoutId = setTimeout(() => {
+        ignoreTouchRef.current = false
+        window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: false }))
+      }, 400) // Long enough for the open animation + finger lift
+      return () => clearTimeout(timeoutId)
+    } else {
+      // Clear immediately when nav closes (or on desktop where isNavOpen is always false)
+      ignoreTouchRef.current = false
+      window.dispatchEvent(new CustomEvent('navHoverSuppress', { detail: false }))
+    }
+  }, [isNavOpen])
+
+  // Dismiss tooltips immediately when the adjacent ContextMenu scrolls
+  useEffect(() => {
+    const handleContextMenuScroll = () => {
+      clearHover()
+    }
+    window.addEventListener('contextMenuScroll', handleContextMenuScroll)
+    return () => window.removeEventListener('contextMenuScroll', handleContextMenuScroll)
+  }, [])
 
   // Add effect to handle menu timeout
   useEffect(() => {
@@ -471,28 +526,42 @@ export default function GlobalNav (props) {
   }, [groupsWithBadges])
 
   const isVisible = (index) => {
-    // Special case for index 0-3 (profile, notifications, messages, the commons) - always visible with full opacity
-    if (index === 0 || index === 1 || index === 2 || index === 3) return 'opacity-100'
-    return index < visibleCount ? '' : 'opacity-0'
+    // Fixed items (profile, notifications, messages, the commons) are always fully visible
+    if (index <= 3) return 'opacity-100'
+    // All other items revealed together after first paint (single re-render)
+    return navReady ? '' : 'opacity-0'
   }
 
-  const handleContainerMouseEnter = () => {
-    setIsContainerHovered(true)
-    setTimeout(() => {
+  const handleContainerPointerEnter = (e) => {
+    // Ignore touch-originated pointer events — prevents phantom hover/tooltip
+    // when the nav slides open and lands under the user's finger
+    if (e.pointerType === 'touch' || ignoreTouchRef.current) return
+
+    // Clear any existing timeout to avoid race conditions
+    if (hoverDelayTimeoutRef.current) {
+      clearTimeout(hoverDelayTimeoutRef.current)
+    }
+    // Delay showing hover state by 200ms on desktop to prevent accidental triggers
+    hoverDelayTimeoutRef.current = setTimeout(() => {
       // Check current hover state directly from DOM instead of using the captured state variable
       const navContainer = document.querySelector('.globalNavContainer')
-      if (navContainer && navContainer.matches(':hover') && !isMobileDevice()) {
-        setShowGradient(true)
+      if (navContainer && navContainer.matches(':hover')) {
+        setIsContainerHovered(true)
       }
     }, 200)
   }
 
   const clearHover = () => {
+    // Clear any pending hover delay timeout
+    if (hoverDelayTimeoutRef.current) {
+      clearTimeout(hoverDelayTimeoutRef.current)
+      hoverDelayTimeoutRef.current = null
+    }
     setIsContainerHovered(false)
-    setShowGradient(false)
   }
 
-  const handleContainerMouseLeave = () => {
+  const handleContainerPointerLeave = (e) => {
+    if (e.pointerType === 'touch') return
     clearHover()
   }
 
@@ -501,21 +570,72 @@ export default function GlobalNav (props) {
   }
 
   // Touch events to handle hover state on mobile
-  const [clearHoverTimeout, setClearHoverTimeout] = useState(null)
+  const clearHoverTimeoutRef = useRef(null)
+  const isScrollingRef = useRef(false)
+  const scrollEndTimeoutRef = useRef(null)
+  const touchEndedRef = useRef(false)
+
+  const startClearHoverCountdown = useCallback(() => {
+    // Only start the countdown if the touch has already ended
+    if (!touchEndedRef.current) return
+    if (clearHoverTimeoutRef.current) clearTimeout(clearHoverTimeoutRef.current)
+    clearHoverTimeoutRef.current = setTimeout(() => {
+      clearHover()
+      clearHoverTimeoutRef.current = null
+    }, 3000) // 3 seconds to give users time to read and select
+  }, [])
+
   const handleContainerTouchStart = () => {
+    // Ignore touch events briefly after nav opens to prevent accidental triggers
+    // when the nav slides in and a lingering touch event fires
+    if (ignoreTouchRef.current) return
+
+    // On touch, show immediately (no delay like desktop mouse hover)
+    touchEndedRef.current = false
     setIsContainerHovered(true)
-    setShowGradient(true)
-    if (clearHoverTimeout) {
-      clearTimeout(clearHoverTimeout)
-      setClearHoverTimeout(null)
+    if (clearHoverTimeoutRef.current) {
+      clearTimeout(clearHoverTimeoutRef.current)
+      clearHoverTimeoutRef.current = null
     }
   }
 
   const handleContainerTouchEnd = () => {
-    setClearHoverTimeout(setTimeout(() => {
-      clearHover()
-    }, 1000))
+    touchEndedRef.current = true
+    // If the container is currently momentum-scrolling, don't start the
+    // countdown yet — the scroll handler will start it once scrolling stops.
+    if (!isScrollingRef.current) {
+      startClearHoverCountdown()
+    }
   }
+
+  // Keep the menu open while the nav container is momentum-scrolling.
+  // After scrolling stops, restart the close countdown.
+  useEffect(() => {
+    const container = navContainerRef.current
+    if (!container) return
+
+    const handleNavScroll = () => {
+      isScrollingRef.current = true
+      // While scrolling, cancel any pending close timeout
+      if (clearHoverTimeoutRef.current) {
+        clearTimeout(clearHoverTimeoutRef.current)
+        clearHoverTimeoutRef.current = null
+      }
+      // Reset the "scroll ended" debounce
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+      scrollEndTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false
+        // Scrolling has stopped — now start the close countdown if touch already ended
+        startClearHoverCountdown()
+      }, 150)
+    }
+
+    container.addEventListener('scroll', handleNavScroll, { passive: true })
+    return () => {
+      container.removeEventListener('scroll', handleNavScroll)
+      if (scrollEndTimeoutRef.current) clearTimeout(scrollEndTimeoutRef.current)
+    }
+  }, [startClearHoverCountdown])
 
   const handleSupportClick = () => {
     const consent = getCookieConsent()
@@ -568,6 +688,13 @@ export default function GlobalNav (props) {
     }
   }
 
+  // Prevent default browser context menu on mobile devices
+  const handleContextMenu = (e) => {
+    if (isMobileDevice()) {
+      e.preventDefault()
+    }
+  }
+
   // Allow scroll events to pass through to GlobalNav even when a modal post dialog is open
   useEffect(() => {
     const nav = document.querySelector('.globalNavContainer')
@@ -576,7 +703,7 @@ export default function GlobalNav (props) {
 
   return (
     <div
-      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto', { 'h-screen h-[100dvh]': isMobileDevice() })}
+      className={cn('globalNavContainer flex flex-col bg-card relative h-full z-[50] items-center pb-0 pointer-events-auto user-select-none', { 'h-screen h-[100dvh]': isMobileDevice() })}
       style={{
         boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.4)'
       }}
@@ -596,8 +723,8 @@ export default function GlobalNav (props) {
           paddingLeft: scrollbarWidth > 0 ? `calc(1.5rem - ${scrollbarWidth}px + 1px)` : undefined
         }}
         onClick={handleClick}
-        onMouseLeave={handleContainerMouseLeave}
-        onMouseEnter={handleContainerMouseEnter}
+        onPointerLeave={handleContainerPointerLeave}
+        onPointerEnter={handleContainerPointerEnter}
         onTouchStart={handleContainerTouchStart}
         onTouchEnd={handleContainerTouchEnd}
       >
@@ -653,7 +780,7 @@ export default function GlobalNav (props) {
           >
             {pinnedGroups.map((group, pinnedIndex) => (
               <RightClickMenu key={group.id}>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <SortableGlobalNavItem
                     group={group}
                     index={pinnedIndex}
@@ -685,7 +812,7 @@ export default function GlobalNav (props) {
               }}
             >
               <RightClickMenu>
-                <RightClickMenuTrigger>
+                <RightClickMenuTrigger onContextMenu={handleContextMenu}>
                   <GlobalNavItem
                     badgeCount={group.newPostCount ? '-' : 0}
                     img={group.avatarUrl}
@@ -709,8 +836,8 @@ export default function GlobalNav (props) {
           'fixed z-0 bottom-0 w-[400px] h-full',
           'transition-all duration-300 ease-out transform  backdrop-blur-md translate-x-0',
           {
-            'opacity-80 translate-x-0': !showGradient,
-            'opacity-0 -translate-x-full': !showGradient
+            'opacity-80 translate-x-0': isContainerHovered,
+            'opacity-0 -translate-x-full': !isContainerHovered
           }
         )}
         style={{
@@ -767,7 +894,7 @@ export default function GlobalNav (props) {
               <li className='w-full'><span className='text-foreground cursor-pointer px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' onClick={handleSupportClick}><MessagesSquare className='h-4 w-4' />{t('Feedback & Support')}</span></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://hylozoic.gitbook.io/hylo/guides/hylo-user-guide' target='_blank' rel='noreferrer'><BookOpen className='h-4 w-4' />{t('User Guide')}</a></li>
               <li className='w-full'><a className='text-foreground cursor-pointer hover:text-foreground/100 px-2 py-1 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='http://hylo.com/terms/' target='_blank' rel='noreferrer'><Shield className='h-4 w-4' />{t('Terms & Privacy')}</a></li>
-              <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>
+              {!isWebView() && <li className='w-full'><span className={cn('text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2', styles[appStoreLinkClass])} onClick={downloadApp}><Download className='h-4 w-4' />{t('Download App')}</span></li>}
               <li className='w-full'><a className='text-foreground cursor-pointer px-2 py-1 hover:text-foreground/100 border-foreground/20 border-2 w-full rounded-lg block hover:scale-105 transition-all hover:border-foreground/50 flex items-center gap-2' href='https://opencollective.com/hylo' target='_blank' rel='noreferrer'><Heart className='h-4 w-4' />{t('Contribute to Hylo')}</a></li>
             </ul>
             {showSupportModal && (

@@ -176,6 +176,7 @@ const getMyAdminGroups = createSelector(
 function PostEditorInner ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  markAsReadTopicName = null,
   modal = true,
   post: propsPost,
   editing = false,
@@ -983,7 +984,8 @@ function PostEditorInner ({
       title,
       topicNames,
       trackId: currentTrack?.id,
-      type
+      type,
+      markAsReadTopicName
     }
 
     const saveFunc = isEditing ? updatePost : createPost

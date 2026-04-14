@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
-import Loading from 'components/Loading'
+import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
 import JoinGroup from 'routes/JoinGroup'
@@ -14,6 +14,8 @@ import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
+import { sendMessageToWebView } from 'util/webView'
+import { WebViewMessageTypes } from '@hylo/shared'
 
 if (!isTest) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -53,9 +55,7 @@ export default function RootRouter () {
   }, [])
 
   if (loading) {
-    return (
-      <Loading type='fullscreen' />
-    )
+    return <BootstrapShell />
   }
 
   if (isAuthorized) {
@@ -67,6 +67,13 @@ export default function RootRouter () {
       </Routes>
     )
   }
+  // Safety net: never show the web login page inside the new mobile WebView.
+  // If the session expires or logout happens through any path, signal native to handle it.
+  if (!isAuthorized && window.HyloMobileV2) {
+    sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    return null
+  }
+
   if (!isAuthorized) {
     return (
       <Routes>

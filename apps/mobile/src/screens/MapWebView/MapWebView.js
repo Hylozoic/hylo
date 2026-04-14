@@ -1,3 +1,11 @@
+// DEPRECATED: This screen is no longer used in the app.
+// All content (including maps) is now handled by PrimaryWebView.
+// The web app provides the map interface.
+// Note: This was the most complex WebView screen with custom navigation handling,
+// drawer disabling, and back button management - all now handled by web.
+// Kept for reference - may revisit native implementation in the future.
+// Last used: 2025-01-26
+
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'

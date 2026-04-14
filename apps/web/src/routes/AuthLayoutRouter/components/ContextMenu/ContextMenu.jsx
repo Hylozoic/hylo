@@ -29,7 +29,7 @@ import {
   addQuerystringToPath,
   personUrl
 } from '@hylo/navigation'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -49,6 +49,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
+import { sendMessageToWebView } from 'util/webView'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -207,6 +208,11 @@ export default function ContextMenu (props) {
     menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
   }, [])
 
+  // When the context menu scrolls, dismiss GlobalNav tooltips immediately
+  const handleScroll = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('contextMenuScroll'))
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -219,8 +225,9 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
+        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0 sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
+        onScroll={handleScroll}
       >
         <div className='relative min-h-full'>
           <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
@@ -354,7 +361,11 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 
   const handleLogout = async () => {
     await dispatch(logout())
-    dispatch(replace('/login', null))
+    if (window.HyloMobileV2) {
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    } else {
+      dispatch(replace('/login', null))
+    }
   }
 
   // Draggable setup
@@ -364,7 +375,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const title = translateTitle(widget.title, t)
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const allView = widget.type === 'all-views'
-  const showEdit = allView && canAdminister
+  // Hide edit menu on mobile - editing is desktop-only
+  const showEdit = allView && canAdminister && !isMobile.any
   const canDnd = isEditing && !allView && widget.type !== 'home'
 
   if (isCreating) {

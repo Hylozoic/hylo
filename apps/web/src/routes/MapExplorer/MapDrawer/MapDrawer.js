@@ -2,7 +2,7 @@ import { cn } from 'util/index'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PropTypes from 'prop-types'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import Tooltip from 'components/Tooltip'
 
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -46,7 +46,7 @@ function MapDrawer ({
   const searchText = filters.search
 
   const { hideNavLayout } = useLayoutFlags()
-  const withoutNav = isWebView() || hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
   const [search, setSearch] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [currentTab, setCurrentTab] = useState(localizedTabNames.posts)
@@ -74,7 +74,7 @@ function MapDrawer ({
   }
 
   return (
-    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[330px] w-[40%] max-w-[400px] relative z-20 bg-background', { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer' id='map-drawer'>
+    <div className={cn('h-full overflow-x-visible overflow-y-hidden min-w-[330px] w-[40%] max-w-[400px] z-20 bg-background', styles.container, { [styles.noUser]: !currentUser, [styles.withoutNav]: withoutNav })} data-testid='map-drawer' id='map-drawer'>
       <div className='relative p-4 pb-0 ml-[55px]'>
         <input
           className='bg-input rounded-lg text-foreground placeholder-foreground/40 w-full p-2 transition-all outline-none focus:outline-focus focus:outline-2 mb-0'
@@ -142,7 +142,7 @@ function MapDrawer ({
       <TabBar currentTab={currentTab} tabs={tabs} selectTab={setCurrentTab} pendingPostsDrawer={pendingPostsDrawer} />
       {currentTab === localizedTabNames.posts
         ? (
-          <div id='mapDrawerWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
+          <div id='mapDrawerWrapper' className='w-full h-[calc(100dvh-140px)] bg-midground overflow-y-scroll overflow-x-visible pb-10'>
             <div className={styles.postsHeader}>
               {![CONTEXT_MY, 'all', 'public'].includes(context) && (
                 <>
@@ -202,8 +202,8 @@ function MapDrawer ({
           )
         : currentTab === localizedTabNames.members
           ? (
-            <div className='overflow-y-scroll pb-10'>
-              <div className='w-full flex flex-col gap-2 p-2 bg-midground' id='contentList'>
+            <div id='mapDrawerMembersWrapper' className='w-full h-[calc(100vh-140px)] bg-midground overflow-y-scroll overflow-x-hidden pb-10'>
+              <div className='flex flex-col gap-2 p-2' id='contentList'>
                 {members.map(m => (
                   <Member
                     location={m.location}
