@@ -34,7 +34,7 @@ const Toaster = ({
             'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
           cancelButton:
             'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground'
-        },
+        }
       }}
       {...props}
     />

@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.4] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+### Changed
+- Load funding rounds faster
+- When loading post editor always show current group and #chatroom even before chat rooms have been loaded
+- Attempt to have better error pages when things go wrong
+
+### Fixed
+- Scrolling issues in Funding Rounds
+- Display of header text of featured groups in Group Explorer
+- Hard to read text when viewing group in group explorer in light mode
+
 ## [6.4.3] - 2026-04-12
 
 ### Added

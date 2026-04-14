@@ -1,5 +1,5 @@
 import { Settings, ChevronsRight, Download, Trash2 } from 'lucide-react'
-import React, { useCallback, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
@@ -15,7 +15,7 @@ import {
   DialogTitle
 } from 'components/ui/dialog'
 import useRouteParams from 'hooks/useRouteParams'
-import { updateFundingRound, deleteFundingRound } from 'routes/FundingRounds/FundingRounds.store'
+import { updateFundingRound, deleteFundingRound, fetchFundingRoundParticipants } from 'routes/FundingRounds/FundingRounds.store'
 import fetchFundingRoundAllocations from 'store/actions/fetchFundingRoundAllocations'
 import { cn } from 'util/index'
 import { getLocaleFromLocalStorage } from 'util/locale'
@@ -25,6 +25,10 @@ export default function ManageTab ({ round }) {
   const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (round?.id) dispatch(fetchFundingRoundParticipants(round.id))
+  }, [round?.id])
 
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
