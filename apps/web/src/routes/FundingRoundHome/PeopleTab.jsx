@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { personUrl } from '@hylo/navigation'
 import { Link } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
 import { CircleDashed } from 'lucide-react'
+import { fetchFundingRoundParticipants } from 'routes/FundingRounds/FundingRounds.store'
 import RoundPhaseStatus from './RoundPhaseStatus'
 import { getRoundPhaseMeta } from './phaseUtils'
 
@@ -32,8 +34,13 @@ function userHasRole (user, requiredRoles, groupId) {
 
 export default function PeopleTab ({ group, round, canSubmit, canVote }) {
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const routeParams = useRouteParams()
   const { users, submitterRoles, voterRoles } = round
+
+  useEffect(() => {
+    if (round?.id) dispatch(fetchFundingRoundParticipants(round.id))
+  }, [round?.id])
   const groupId = group?.id
   const { currentPhase } = getRoundPhaseMeta(round)
   const submissionCount = typeof round.numSubmissions === 'number'

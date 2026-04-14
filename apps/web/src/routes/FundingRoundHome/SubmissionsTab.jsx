@@ -1,7 +1,7 @@
 import { isEmpty } from 'lodash/fp'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
@@ -9,6 +9,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getMe from 'store/selectors/getMe'
+import { fetchFundingRoundSubmissions } from 'routes/FundingRounds/FundingRounds.store'
 import { cn } from 'util/index'
 import { seededShuffle } from 'util/seededRandom'
 import CreateModal from 'components/CreateModal'
@@ -37,10 +38,15 @@ const getPosts = ormCreateSelector(
 export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, round }) {
   const { isParticipating } = round
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
+
+  useEffect(() => {
+    if (round?.id) dispatch(fetchFundingRoundSubmissions(round.id))
+  }, [round?.id])
 
   // Determine current phase first to know if we should sort by tokens
   const { currentPhase } = getRoundPhaseMeta(round)

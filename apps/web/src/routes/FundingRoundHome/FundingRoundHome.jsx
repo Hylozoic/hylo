@@ -121,9 +121,9 @@ function FundingRoundHome () {
                 to='participants'
               >
                 {t('Participants')}
-                {fundingRound.users?.length > 0 && (
+                {fundingRound.numParticipants > 0 && (
                   <span className='ml-2 bg-darkening/20 text-xs font-bold px-2 py-0.5 rounded-full'>
-                    {fundingRound.users.length}
+                    {fundingRound.numParticipants}
                   </span>
                 )}
               </Link>
