@@ -417,8 +417,8 @@ export default function Stream (props) {
             {!group && view === 'events' && calendarMode === 'month' && (
               <GroupCalendarSubscribe
                 eventCalendarUrl={rsvpCalendarUrl}
-                buttonLabel='Subscribe to all the Hylo events you have RSVPed to'
-                modalTitle='Subscribe to all the Hylo events you have RSVPed to'
+                buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
+                modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
                 onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
               />
             )}

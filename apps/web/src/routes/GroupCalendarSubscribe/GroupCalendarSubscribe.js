@@ -88,12 +88,12 @@ export default function GroupCalendarSubscribe ({ eventCalendarUrl, buttonLabel 
         className='rounded-md mt-4 flex items-center gap-2'
       >
         <Rss size={18} />
-        {typeof buttonLabel === 'string' ? t(buttonLabel) : buttonLabel}
+        {buttonLabel}
       </Button>
       {modalVisible && (
         <ModalDialog
           closeModal={handleCloseModal}
-          modalTitle={typeof title === 'string' ? t(title) : title}
+          modalTitle={title}
           showCancelButton
           showSubmitButton={false}
         >
