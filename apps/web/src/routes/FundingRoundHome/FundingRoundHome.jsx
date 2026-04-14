@@ -142,29 +142,27 @@ function FundingRoundHome () {
             )}
           </div>)}
 
-        <div className='flex-1 overflow-y-auto min-h-0 w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
-          <div className='w-full max-w-[800px] mx-auto'>
-            <Routes>
-              <Route path='create/*' element={<CreateModal context='groups' />} />
-              <Route path=':tab/create/*' element={<CreateModal context='groups' />} />
-              <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} canVote={canVote} canSubmit={canSubmit} />} />
-              <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} canVote={canVote} canSubmit={canSubmit} />} />
-              <Route path='chat/*' element={<ChatTab fundingRound={fundingRound} />} />
-              {canManageRound && <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />}
-              {canManageRound && <Route path='manage/*' element={<ManageTab round={fundingRound} />} />}
-              <Route path='*' element={<AboutTab round={fundingRound} canVote={canVote} canSubmit={canSubmit} />} />
-            </Routes>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+        {/* Chat tab rendered outside the scroll container so ChatRoom gets a clean flex-fill height context */}
+        {currentTab === 'chat' && (
+          <ChatRoom customTopicName={`‡funding_round_${fundingRound.id}`} />
+        )}
 
-function ChatTab ({ fundingRound }) {
-  return (
-    <div className='h-[calc(100vh-120px)] overflow-hidden'>
-      <ChatRoom customTopicName={`‡funding_round_${fundingRound.id}`} />
+        {currentTab !== 'chat' && (
+          <div className='flex-1 overflow-y-auto min-h-0 w-full' style={{ scrollbarGutter: 'stable both-edges' }}>
+            <div className='w-full max-w-[800px] mx-auto'>
+              <Routes>
+                <Route path='create/*' element={<CreateModal context='groups' />} />
+                <Route path=':tab/create/*' element={<CreateModal context='groups' />} />
+                <Route path='submissions/*' element={<SubmissionsTab round={fundingRound} canManageRound={canManageRound} canVote={canVote} canSubmit={canSubmit} />} />
+                <Route path='participants/*' element={<PeopleTab round={fundingRound} group={currentGroup} canVote={canVote} canSubmit={canSubmit} />} />
+                {canManageRound && <Route path='edit/*' element={<CreateModal context='groups' editingFundingRound />} />}
+                {canManageRound && <Route path='manage/*' element={<ManageTab round={fundingRound} />} />}
+                <Route path='*' element={<AboutTab round={fundingRound} canVote={canVote} canSubmit={canSubmit} />} />
+              </Routes>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
