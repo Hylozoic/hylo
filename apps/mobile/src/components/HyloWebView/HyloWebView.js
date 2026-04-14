@@ -1,84 +1,11 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
-import { useFocusEffect, useNavigation } from '@react-navigation/native'
+import React, { useCallback, useState, useEffect } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import queryString from 'query-string'
-import { WebViewMessageTypes } from '@hylo/shared'
-import useOpenURL from 'hooks/useOpenURL'
-import { modalScreenName } from 'hooks/useIsModalScreen'
-import { getSessionCookie, clearSessionCookie } from 'util/session'
-import { match, pathToRegexp } from 'path-to-regexp'
+import { getSessionCookie, clearSessionCookie, ensureWebViewCookies } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
-import { useCurrentGroupStore } from '@hylo/hooks/useCurrentGroup'
-
-export const useNativeRouteHandler = () => {
-  const navigation = useNavigation()
-  const openURL = useOpenURL()
-
-  return ({ pathname, search }) => ({
-    '(.*)/:type(post|members)/:id': ({ routeParams }) => {
-      const { type, id } = routeParams
-
-      switch (type) {
-        case 'post': {
-          navigation.navigate('Post Details', { id })
-          break
-        }
-        case 'members': {
-          navigation.navigate('Member', { id })
-          break
-        }
-      }
-    },
-    '(.*)/post/:postId/edit': ({ routeParams }) => {
-      navigation.navigate('Edit Post', { id: routeParams.postId })
-    },
-    '(.*)/group/:groupSlug([a-zA-Z0-9-]+)': ({ routeParams }) => {
-      navigation.navigate(modalScreenName('Group Explore'), routeParams)
-    },
-    '/:groupSlug(all)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Stream', { topicName })
-    },
-    '(.*)/topics/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Stream', { topicName })
-    },
-    '(.*)/chats/:topicName': ({ routeParams: { topicName } }) => {
-      navigation.navigate('Chat Room', { topicName })
-    },
-    '(.*)': () => {
-      openURL(pathname + search)
-    }
-  })
-}
-
-const handledWebRoutesJavascriptCreator = (handledWebRoutes) => {
-  const handledWebRoutesRegExps = handledWebRoutes.map(handledWebRoute => pathToRegexp(handledWebRoute))
-  const handledWebRoutesRegExpsLiteralString = JSON.parse(JSON.stringify(handledWebRoutesRegExps.map(a => a.toString())))
-
-  return `
-    window.addHyloWebViewListener = function (history) {
-      if (history) {
-        history.listen(({ location: { pathname, search } }) => {
-          const handledWebRoutesRegExps = [${handledWebRoutesRegExpsLiteralString}]
-          const handled = handledWebRoutesRegExps.some(allowedRoutePathRegExp => {
-            return allowedRoutePathRegExp.test(pathname);
-          })
-
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: '${WebViewMessageTypes.NAVIGATION}',
-            data: { handled, pathname, search }
-          }))
-
-          history.back();
-        })
-      }
-    }
-  `
-}
 
 /* Should probably just be applied to Hylo Web stylesheet 
   as what this solves is not necessarily WebView specific, 
@@ -110,26 +37,21 @@ const baseCustomStyle = `
 `
 
 const HyloWebView = React.forwardRef(({
-  handledWebRoutes = [],
   messageHandler,
-  nativeRouteHandler: nativeRouteHandlerProp,
   path: pathProp,
   style,
   source,
   customStyle: providedCustomStyle = '',
+  enableScrolling = false,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
-  const nativeRouteHandler = nativeRouteHandlerProp || useNativeRouteHandler()
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
-  const { isAuthenticated, isAuthorized, checkAuth, logout } = useAuth()
-  const openURL = useOpenURL()
-  const [, queryCurrentUser] = useCurrentUser()
-  const { setCurrentGroupSlug } = useCurrentGroupStore()
+  const { isAuthenticated, logout } = useAuth()
 
   // Debug logging for webview URI construction
   if (__DEV__) {
@@ -153,13 +75,14 @@ const HyloWebView = React.forwardRef(({
     }
   }, [isAuthenticated])
 
-  // Only show session recovery after a delay to prevent flashing
+  // Brief debounce before triggering logout when no cookie is found,
+  // to avoid acting on transient states during focus transitions.
   useEffect(() => {
     let timer
     if (!cookie && !isLoading) {
       timer = setTimeout(() => {
         setShowSessionRecovery(true)
-      }, 2000) // Wait 2 seconds before showing recovery UI
+      }, 2000)
     } else {
       setShowSessionRecovery(false)
     }
@@ -175,9 +98,18 @@ const HyloWebView = React.forwardRef(({
       const getCookieAsync = async () => {
         try {
           const newCookie = await getSessionCookie()
+          // Populate the WebView's native cookie jar BEFORE calling setCookie().
+          // setCookie() makes `cookie` truthy which immediately renders the WebView
+          // and starts loading. If we populate the jar after, there's a race where
+          // the web app mounts and fires XHR calls before the Android CookieManager
+          // has the session cookie, causing a 401 → redirect → ONE visible restart.
+          // sharedCookiesEnabled is iOS-only so this is especially important on Android.
+          if (newCookie) {
+            await ensureWebViewCookies()
+          }
           setCookie(newCookie)
         } catch (error) {
-          // Cookie retrieval failed - will trigger session recovery UI
+          // Cookie retrieval failed - will trigger native logout after debounce
           console.error('Cookie retrieval failed', error)
         }
       }
@@ -196,105 +128,34 @@ const HyloWebView = React.forwardRef(({
     setIsLoading(false)
   }, [])
 
-
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
-    const { type, data } = parsedMessage
+    const { type } = parsedMessage
 
-    switch (type) {
-      case WebViewMessageTypes.NAVIGATION: {
-        if (nativeRouteHandler) {
-          const { handled, pathname, search } = data
-
-          if (!handled) {
-            const nativeRouteHandlers = nativeRouteHandler({ pathname, search })
-            const searchParams = queryString.parse(search)
-
-            for (const pathMatcher in nativeRouteHandlers) {
-              const matched = match(pathMatcher)(pathname)
-
-              if (matched) {
-                nativeRouteHandlers[pathMatcher]({
-                  routeParams: matched.params,
-                  pathname,
-                  search,
-                  searchParams
-                })
-                break
-              }
-            }
-          }
-        }
-        break
-      }
-      case WebViewMessageTypes.GROUP_DELETED: {
-        // Handle group deletion from webview
-        if (data?.groupSlug) {
-          console.log(`📱 Group deleted: ${data.groupSlug} (${data.groupId})`)
-          
-          // Set current group to 'my' to clear the deleted group slug
-          setCurrentGroupSlug('my')
-          
-          // Refresh current user data to update memberships
-          queryCurrentUser({ requestPolicy: 'network-only' })
-          
-          // Navigate to NoContextFallbackScreen, and the useHandleCurrentGroupSlug hook will handle the navigation
-          openURL('/groups/my/no-context-fallback')
-        }
-        break
-      }
+    if (__DEV__ && type) {
+      console.log('📱 Unhandled WebView message type:', type)
     }
 
     messageHandler && messageHandler(parsedMessage)
   }
 
 
+  // No session cookie means the native session is out of sync with the WebView.
+  // Trigger logout immediately so native handles navigation to its login screens.
+  // We never want to show a web-side recovery UI inside the mobile app.
   if (!cookie || !uri) {
     if (showSessionRecovery) {
-      // Show simple session recovery interface
-      return (
-        <View className="flex-1 bg-background p-5 justify-center">
-          <View className="bg-card p-5 rounded-lg shadow-sm border border-border">
-            <Text className="text-xl font-bold mb-4 text-center text-card-foreground">
-              🔐 Session Required
-            </Text>
-            
-            <Text className="text-base mb-5 text-center text-muted-foreground leading-6">
-              Your session has expired. Please log out and log back in to continue.
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={async () => {
-                try {
-                  // Clear the session and trigger logout
-                  await clearSessionCookie() 
-                  await logout()
-                  // The auth state change will automatically navigate to login
-                } catch (error) {
-                  // Fallback: try direct navigation to login without reset
-                  openURL('/login')
-                }
-              }}
-              className="bg-accent p-4 rounded-md items-center"
-            >
-              <Text className="text-accent-foreground font-bold text-base">
-                🔑 Log Out & Log Back In
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )
+      clearSessionCookie().then(() => logout()).catch(() => logout())
     }
     return null
   }
 
   return (
     <AutoHeightWebView
-      customScript={`
-        window.HyloWebView = true;
-        ${path && handledWebRoutesJavascriptCreator([path, ...handledWebRoutes])}
-        
-      `}
+      // Must run before page JS so window.HyloMobileV2 is visible when the web app's
+      // router initialises. Must end with `true` to avoid an Android WebView crash.
+      injectedJavaScriptBeforeContentLoaded='window.HyloWebView=true;window.HyloMobileV2=true;true;'
+      customScript=''
       customStyle={customStyle}
       geolocationEnabled
       onMessage={handleMessage}
@@ -302,28 +163,6 @@ const HyloWebView = React.forwardRef(({
       hideKeyboardAccessoryView
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
-      /*
-
-      // NOTE: The following is deprecated in favor of listening for the WebView
-      // post message type `WebViewMessageTypes.NAVIGATION` in combination with
-      // overriding HyloWeb navigation events in HyloWeb when `window.ReactNativeWebView`
-      // is true.
-
-      onShouldStartLoadWithRequest={params => {
-        const { url } = params
-
-        // Opens full URLs in external browser if not the
-        // initial URI specified on load of the WebView
-        if (url === uri) return true
-        if (url !== uri && url.slice(0, 4) === 'http') {
-          Linking.openURL(url)
-          return false
-        }
-
-        return onShouldStartLoadWithRequest(params)
-      }}
-
-      */
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
@@ -335,14 +174,22 @@ const HyloWebView = React.forwardRef(({
       ]}
       ref={webViewRef}
       scalesPageToFit={false}
-      // Needs to remain false for AutoHeight
-      scrollEnabled={false}
+      // AutoHeight requires scrollEnabled={false}
+      // Full-screen WebViews should set enableScrolling={true} for pull-to-refresh
+      scrollEnabled={enableScrolling}
       setSupportMultipleWindows={false}
       sharedCookiesEnabled
       source={{
         uri,
-        headers: { cookie }
+        headers: { cookie, 'X-Hylo-Mobile': 'v2' }
       }}
+      // DEPRECATED: Native pull-to-refresh doesn't work with AutoHeightWebView
+      // AutoHeightWebView manages its own height and scrolling happens inside the WebView
+      // (via CSS/JS), so the native layer can't detect scroll position.
+      // Pull-to-refresh is now handled on the web side via usePullToRefresh hook.
+      // pullToRefreshEnabled={enablePullToRefresh && enableScrolling}
+      // onRefresh={enablePullToRefresh && enableScrolling ? handleRefresh : undefined}
+      // refreshing={refreshing}
       style={[style, {
         // Avoids a known issue which can cause Android crashes
         // ref. https://github.com/iou90/react-native-autoheight-webview/issues/191

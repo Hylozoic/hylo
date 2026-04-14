@@ -252,6 +252,20 @@ export function customViewUrl (customViewId, rootPath, { context, groupSlug }) {
   return `${baseUrl({ context, groupSlug })}/custom/${customViewId}`
 }
 
+/**
+ * Compute the home route path (e.g. /stream, /map, /chat/general) from a context widget.
+ * Mirrors backend ContextWidget.computeHomeRoutePath for optimistic updates.
+ */
+export function homeRoutePathForWidget (widget) {
+  if (!widget) return '/stream'
+  if (widget.view) return '/' + widget.view
+  if (widget.viewChat) return '/chat/' + (widget.viewChat.name || 'general')
+  if (widget.customView) return '/custom/' + widget.customView.id
+  if (widget.viewTrack) return '/tracks/' + widget.viewTrack.id
+  if (widget.viewFundingRound) return '/funding-rounds/' + widget.viewFundingRound.id
+  return '/stream'
+}
+
 export function widgetUrl ({ widget, rootPath, groupSlug: providedSlug, context = 'group' }) {
   if (!widget) return null
 
@@ -299,7 +313,7 @@ export function setQuerystringParam (key, value, location) {
 
 export function stringifyParams (paramsObj) {
   // The weird query needed to ignore empty arrays but allow for boolean values and numbers
-  const filtered = omitBy(x => isEmpty(x) && x !== true && !isNumber(x), paramsObj)
+  const filtered = omitBy(x => isEmpty(x) && x !== true && x !== false && !isNumber(x), paramsObj)
   const params = new URLSearchParams()
   Object.entries(filtered).forEach(([key, value]) => {
     if (Array.isArray(value)) {

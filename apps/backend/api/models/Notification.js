@@ -4,9 +4,12 @@ import { refineOne } from './util/relations'
 import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
-import { en } from '../../lib/i18n/en'
-import { es } from '../../lib/i18n/es'
-const locales = { en, es }
+import { getLocaleStrings } from '../../lib/i18n/locales'
+
+// Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
+const STALE_NOTIFICATION_CLAIM_MINUTES = 30
+
+const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
 const TYPE = {
   Mention: 'mention', // you are mentioned in a post or comment
@@ -93,12 +96,12 @@ module.exports = bookshelf.Model.extend({
     const userId = this.reader().id
     switch (this.get('medium')) {
       case MEDIUM.Push:
-        if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
+        if (process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           await this.sendPush()
         }
         break
       case MEDIUM.Email:
-        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || User.isTester(userId)) {
+        if (process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true' || (await User.isTester(userId))) {
           await this.sendEmail()
         }
         break
@@ -108,7 +111,10 @@ module.exports = bookshelf.Model.extend({
         break
       }
     }
-    this.save({ sent_at: (new Date()).toISOString() })
+    await this.save({
+      sent_at: (new Date()).toISOString(),
+      processing_started_at: null
+    }, { patch: true })
     return Promise.resolve()
   },
 
@@ -252,14 +258,14 @@ module.exports = bookshelf.Model.extend({
       })
   },
 
-  sendCommentPush: function (version) {
+  sendCommentPush: async function (version) {
     const comment = this.comment()
     const post = comment.relations.post
     const group = post.relations.groups.first()
     const locale = this.locale()
     const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
-    if (!this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push)) {
+    if (!(await this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push))) {
       return Promise.resolve()
     }
     return this.reader().sendPushNotification(alertText, path)
@@ -462,7 +468,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -499,7 +504,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -534,7 +538,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendPostMentionNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -647,7 +650,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: group.get('name') + ' (via Hylo)' },
@@ -681,7 +683,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendApprovedJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: group.get('name') + ' (via Hylo)' },
@@ -712,7 +713,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupChildGroupInviteNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: actor.get('name') + ' from ' + parentGroup.get('name') },
@@ -748,7 +748,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupChildGroupInviteAcceptedNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: 'The Team at Hylo' },
@@ -786,7 +785,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupParentGroupJoinRequestNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: actor.get('name') + ' from ' + childGroup.get('name') },
@@ -822,7 +820,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendGroupParentGroupJoinRequestAcceptedNotification({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: { name: 'The Team at Hylo' },
@@ -921,7 +918,6 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     return Email.sendEventInvitationEmail({
-      version: 'Redesign 2025',
       email: reader.get('email'),
       locale,
       sender: {
@@ -986,7 +982,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendTrackCompletedEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: locales[locale].theTeamAtHylo },
+      sender: { name: getLocaleStrings(locale).theTeamAtHylo },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         completer_name: actor.get('name'),
@@ -1102,30 +1098,31 @@ module.exports = bookshelf.Model.extend({
       group_avatar_url: group.get('avatar_url')
     }
 
+    const L = getLocaleStrings(locale)
     switch (phase) {
       case 'submissions':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, canSubmit ? 'submissions' : null) + clickthroughParams
         data.button_text = canSubmit
-          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'submissions' })
-          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'submissions' })
+          ? L.fundingRoundTransitionButtonText({ phase: 'submissions' })
+          : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'submissions' })
         break
       case 'discussion':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
-        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'discussion' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'discussion' })
+        data.button_text = L.fundingRoundTransitionButtonText({ phase: 'discussion' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'discussion' })
         break
       case 'voting':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, canVote ? 'voting' : null) + clickthroughParams
         data.button_text = canVote
-          ? locales[locale].fundingRoundTransitionButtonText({ phase: 'voting' })
-          : locales[locale].fundingRoundTransitionButtonText({ phase: 'viewRound' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'voting' })
+          ? L.fundingRoundTransitionButtonText({ phase: 'voting' })
+          : L.fundingRoundTransitionButtonText({ phase: 'viewRound' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'voting' })
         break
       case 'completed':
         data.action_url = Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams
-        data.button_text = locales[locale].fundingRoundTransitionButtonText({ phase: 'completed' })
-        data.transition_text = locales[locale].fundingRoundTransitionText({ phase: 'completed' })
+        data.button_text = L.fundingRoundTransitionButtonText({ phase: 'completed' })
+        data.transition_text = L.fundingRoundTransitionText({ phase: 'completed' })
         break
     }
 
@@ -1163,6 +1160,7 @@ module.exports = bookshelf.Model.extend({
     }).toString()
 
     const phase = reminderType.startsWith('submissions') ? 'submissions' : 'voting'
+    const L = getLocaleStrings(locale)
 
     return Email.sendFundingRoundReminderEmail({
       email: reader.get('email'),
@@ -1175,8 +1173,8 @@ module.exports = bookshelf.Model.extend({
         group_name: group.get('name'),
         group_avatar_url: group.get('avatar_url'),
         action_url: Frontend.Route.fundingRound(fundingRound, group, 'submissions') + clickthroughParams,
-        button_text: locales[locale].fundingRoundTransitionButtonText({ phase }),
-        transition_text: locales[locale].textForFundingRoundReminder({ reminderType })
+        button_text: L.fundingRoundTransitionButtonText({ phase }),
+        transition_text: L.textForFundingRoundReminder({ reminderType })
       }
     })
   },
@@ -1239,19 +1237,37 @@ module.exports = bookshelf.Model.extend({
     return Notification.where({ id }).fetch(options)
   },
 
-  findUnsent: function (options = {}) {
-    return Notification.query(q => {
-      q.where({ sent_at: null })
-      if (!options.includeOld) {
-        q.where('created_at', '>', bookshelf.knex.raw("now() - interval '6 hour'"))
-      }
-      q.where(function () {
-        this.where('failed_at', null)
-          .orWhere('failed_at', '<', bookshelf.knex.raw("now() - interval '1 hour'"))
-      })
-      q.limit(200)
-    })
-      .fetchAll(options)
+  /**
+   * Atomically claims up to UNSENT_NOTIFICATION_BATCH_SIZE unsent rows per worker (PostgreSQL
+   * FOR UPDATE SKIP LOCKED) so concurrent sendUnsent jobs do not duplicate sends.
+   */
+  claimUnsentIds: function ({ includeOld = false } = {}) {
+    const knex = bookshelf.knex
+    const createdClause = includeOld
+      ? 'true'
+      : "created_at > now() - interval '6 hour'"
+    const sql = `
+      WITH cte AS (
+        SELECT id FROM notifications
+        WHERE sent_at IS NULL
+        AND (${createdClause})
+        AND (failed_at IS NULL OR failed_at < now() - interval '1 hour')
+        AND (
+          processing_started_at IS NULL
+          OR processing_started_at < now() - interval '${STALE_NOTIFICATION_CLAIM_MINUTES} minutes'
+        )
+        ORDER BY id
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${UNSENT_NOTIFICATION_BATCH_SIZE}
+      )
+      UPDATE notifications AS n
+      SET processing_started_at = now(),
+          updated_at = now()
+      FROM cte
+      WHERE n.id = cte.id
+      RETURNING n.id
+    `
+    return knex.raw(sql).then(result => result.rows.map(r => Number(r.id)))
   },
 
   // Process a bounded batch of unsent notifications and return.
@@ -1260,40 +1276,43 @@ module.exports = bookshelf.Model.extend({
   sendUnsent: function () {
     // FIXME empty out this withRelated list and just load things on demand when
     // creating push notifications / emails
-    return Notification.findUnsent({
-      withRelated: [
-        'activity',
-        'activity.post',
-        'activity.post.tags',
-        'activity.post.groups',
-        'activity.post.user',
-        'activity.post.media',
-        'activity.comment',
-        'activity.comment.media',
-        'activity.comment.user',
-        'activity.comment.post',
-        'activity.comment.post.user',
-        'activity.comment.post.relatedUsers',
-        'activity.comment.post.groups',
-        'activity.group',
-        'activity.otherGroup',
-        'activity.reader',
-        'activity.actor',
-        'activity.track',
-        'activity.fundingRound'
-      ]
-    })
+    const withRelated = [
+      'activity',
+      'activity.post',
+      'activity.post.tags',
+      'activity.post.groups',
+      'activity.post.user',
+      'activity.post.media',
+      'activity.comment',
+      'activity.comment.media',
+      'activity.comment.user',
+      'activity.comment.post',
+      'activity.comment.post.user',
+      'activity.comment.post.relatedUsers',
+      'activity.comment.post.groups',
+      'activity.group',
+      'activity.otherGroup',
+      'activity.reader',
+      'activity.actor',
+      'activity.track',
+      'activity.fundingRound'
+    ]
+    return Notification.claimUnsentIds()
+      .then(ids => {
+        if (!ids.length) return null
+        return Notification.query(q => q.whereIn('id', ids)).fetchAll({ withRelated })
+      })
       .then(async ns => {
         if (!ns || ns.length === 0) return
         await Promise.each(ns.models, n =>
           n.send().catch(err => {
             console.error('Error sending notification', err, n.attributes)
             rollbar.error(err, null, { notification: n.attributes })
-            return n.save({ failed_at: new Date() }, { patch: true })
+            return n.save({ failed_at: new Date(), processing_started_at: null }, { patch: true })
           })
         )
-        // If we hit the limit (200), there may be more to process.
-        if (ns.length >= 200) {
+        // If we hit the batch limit, there may be more to process.
+        if (ns.length >= UNSENT_NOTIFICATION_BATCH_SIZE) {
           // Re-enqueue another pass shortly.
           Queue.classMethod('Notification', 'sendUnsent', {}, 1000)
         }

@@ -1,23 +1,22 @@
 import { cloneDeep, flatten, merge, pick, values } from 'lodash'
 import { includes, filter, get } from 'lodash/fp'
-import { es } from '../../i18n/es'
-import { en } from '../../i18n/en'
+import { getLocaleStrings } from '../../i18n/locales'
 import { shouldSendData } from './util'
 import * as cheerio from 'cheerio'
-const locales = { en, es }
 
 const generateSubjectLine = (data, type, locale) => {
+  const L = getLocaleStrings(locale)
   if (data.search) {
     // Saved search
-    return locales[locale].newSavedSearchResults(data.search.get('name'))
+    return L.newSavedSearchResults(data.search.get('name'))
   }
 
   if (type === 'daily') {
-    return locales[locale].emailDigestDailySubject(data.group_name)
+    return L.emailDigestDailySubject(data.group_name)
   }
 
   if (type === 'weekly') {
-    return locales[locale].emailDigestWeeklySubject(data.group_name)
+    return L.emailDigestWeeklySubject(data.group_name)
   }
 }
 
@@ -142,8 +141,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
     email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
     tracking_pixel_url: Analytics.pixelUrl('Digest', {
       userId: user.id,
-      group: data.group_name,
-      'Email Version': opts.versionName
+      group: data.group_name
     }),
     // TODO: these not being used right now, bring them back?
     post_creation_action_url: Frontend.Route.emailPostForm(),

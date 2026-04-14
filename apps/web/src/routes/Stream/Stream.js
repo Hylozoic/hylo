@@ -17,6 +17,7 @@ import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
 import PostListRow from 'components/PostListRow'
 import PostCard from 'components/PostCard'
+import MasonryGrid from 'components/MasonryGrid/MasonryGrid'
 import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
@@ -28,11 +29,12 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import fetchCustomView from 'store/actions/fetchCustomView'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -46,7 +48,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import isWebView from 'util/webView'
+import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 
 import styles from './Stream.module.scss'
 
@@ -89,6 +92,13 @@ export default function Stream (props) {
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
 
+  const customViewLoading = useSelector(state =>
+    customViewId ? isPendingFor(FETCH_CUSTOM_VIEW, state) : false
+  )
+
+  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
+  const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
+
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
   const defaultPostType = systemView?.defaultPostType || get('settings.streamPostType', currentUser) || undefined
@@ -106,7 +116,7 @@ export default function Stream (props) {
     sortBy = 'start_time'
   }
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
-  const activePostsOnly = querystringParams.activeOnly === 'true' || (customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly
+  const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
 
@@ -133,7 +143,8 @@ export default function Stream (props) {
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
-    const numPostsToLoad = isWebView() || isMobile.any ? 10 : 20
+    // DEPRECATED: Load same number of posts for all mobile (including webview)
+    const numPostsToLoad = isMobile.any ? 10 : 20
 
     const params = {
       activePostsOnly,
@@ -187,7 +198,7 @@ export default function Stream (props) {
     return params
   }, [activePostsOnly, calendarDate, isCalendarViewMode, childPostInclusion, context, customView, groupSlug, postTypeFilter, search, sortBy, timeframe, topic?.id, topicName, view])
 
-  let name = customView?.name || systemView?.name || ''
+  let name = customView?.name || systemView?.name || 'Stream'
   let icon = customView?.icon || systemView?.iconName
   if (topicName) {
     name = '#' + topicName
@@ -228,7 +239,11 @@ export default function Stream (props) {
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
   }, [pending, hasMore, fetchPostsParam])
 
-  // TODO: fetch custom view inc ase it has been updated?
+  useEffect(() => {
+    if (customViewId) {
+      dispatch(fetchCustomView(customViewId))
+    }
+  }, [customViewId, dispatch])
 
   useEffect(() => {
     if (topicName) {
@@ -333,8 +348,9 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !isCalendarViewMode && 'max-w-[750px]',
-          'flex flex-col flex-1 w-full mx-auto p-1 sm:p-4'
+          'flex flex-col flex-1',
+          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
         {hasPostPrompt && (
@@ -355,13 +371,18 @@ export default function Stream (props) {
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
         />
         {!isCalendarViewMode && (
-          <div className={cn(styles.streamItems, {
-            [styles.streamGrid]: viewMode === 'grid',
-            [styles.bigGrid]: viewMode === 'bigGrid',
-            'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
-          })}
+          <MasonryGrid
+            enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+            gap={8}
+            className={cn(styles.streamItems, {
+              [styles.streamGrid]: viewMode === 'grid',
+              [styles.bigGrid]: viewMode === 'bigGrid',
+              'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
+            })}
           >
-            {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
+            {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
             {posts.map(post => {
               const groupSlugs = post.groups.map(group => group.slug)
               return (
@@ -378,9 +399,9 @@ export default function Stream (props) {
                 />
               )
             })}
-          </div>
+          </MasonryGrid>
         )}
-        {!pending && isCalendarViewMode && (
+        {!pending && !customViewLoading && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
@@ -403,7 +424,13 @@ export default function Stream (props) {
             )}
           </div>
         )}
-        {(pending || topicLoading) && <Loading />}
+
+        {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+          posts.length === 0
+            ? <StreamSkeleton wrapWithMainColumn={false} />
+            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+        )}
+        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

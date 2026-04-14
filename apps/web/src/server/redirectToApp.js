@@ -1,6 +1,16 @@
 import fetch from 'node-fetch'
 
 export default function (req, res, next, opts = {}) {
+  // Mobile WebView requests must never see the marketing landing page.
+  // If a WebView hits '/' without a valid session, redirect to /login so the
+  // React app loads and the RootRouter LOGOUT guard can signal native to handle auth.
+  if (req.url === '/' && req.headers['x-hylo-mobile']) {
+    if (!req.cookies[process.env.HYLO_COOKIE_NAME]) {
+      return res.redirect('/login')
+    }
+    // Cookie exists — fall through to the normal session-check below
+  }
+
   if (req.url !== '/' || !req.cookies[process.env.HYLO_COOKIE_NAME]) {
     return next()
   }

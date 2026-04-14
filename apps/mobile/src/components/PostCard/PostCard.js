@@ -1,9 +1,13 @@
+// DEPRECATED: This component is only used by deprecated screens (Stream, PostDetails).
+// Kept for reference only.
+
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { LocationHelpers } from '@hylo/shared'
-import { Check, Play, Circle } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Check, Play, Circle } from 'lucide-react-native'
 import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import PostPresenter from '@hylo/presenters/PostPresenter'
@@ -50,7 +54,7 @@ export default function PostCard ({
           </View>
         </View>
       )}
-      <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''}`}>
+      <View className={`bg-card border-b border-border ${isCurrentAction ? 'border-l-4 border-l-selected' : ''} ${post.fulfilledAt && 'opacity-60'}`}>
         {isAction && (
           <View className='flex-row items-center justify-between px-4 pt-2 mb-2'>
             {post.completedAt ? (

@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.3.4] - 2026-04-12
+
+### Added
+- groupUpdated socket push which reloads the group when its context menu has been updated
+
+### Fixed
+- Unnecessary calls to update last read post in a chat room after creating a new post
+
+## [6.3.3] - 2026-04-10
+
+### Added
+- API call to load a custom view on demand
+
+## [6.3.2] - 2026-04-02
+
+### Fixed
+- Bug viewing recent activity on a profile
+
+## [6.3.1] - 2026-03-11
+
+### Added
+- New email to group stewards when creating a group
+- Translation of all our emails in Portugese, French, German, Hindi, and Spanish
+
 ## [6.3.0] - 2026-01-27
 
 ### Added

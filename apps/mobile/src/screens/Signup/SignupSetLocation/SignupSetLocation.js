@@ -1,19 +1,23 @@
 import React, { useState } from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { AnalyticsEvents } from '@hylo/shared'
 import updateUserSettingsMutation from '@hylo/graphql/mutations/updateUserSettingsMutation'
-import { X } from 'lucide-react-native'
+// Replaced lucide-react-native X with FontAwesome5 to remove lucide dependency
+import FontAwesome5Icon from 'react-native-vector-icons/FontAwesome5'
 import { trackWithConsent } from 'services/mixpanel'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import { LocationSelector } from 'components/LocationSelectorModal/LocationSelectorModal'
 import Button from 'components/Button'
 import styles from '../SignupFlow.styles'
 import { caribbeanGreen, white, white80onCaribbeanGreen } from '@hylo/presenters/colors'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function SignupSetLocation ({ navigation }) {
+  // Lets the user pick a location during signup.
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const [locationObject, setLocationObject] = useState()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
@@ -41,7 +45,9 @@ export default function SignupSetLocation ({ navigation }) {
   }
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }]}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>{t('Add your location')}</Text>
         <Text style={styles.subTitle}>
@@ -52,7 +58,9 @@ export default function SignupSetLocation ({ navigation }) {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <Text style={{ fontWeight: 'bold', fontSize: 16, color: white }}>Selected:</Text>
           {locationObject?.fullText && (
-            <X size={20} style={{ color: white80onCaribbeanGreen }} onPress={() => setLocationObject()} />
+            <TouchableOpacity onPress={() => setLocationObject()}>
+              <FontAwesome5Icon name='times' size={20} color={white80onCaribbeanGreen} />
+            </TouchableOpacity>
           )}
         </View>
         <Text style={{ fontSize: 16, marginBottom: 18, color: white }}>

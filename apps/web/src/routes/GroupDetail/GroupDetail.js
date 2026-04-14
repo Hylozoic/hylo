@@ -42,7 +42,7 @@ import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForG
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import { isLegacyWebView, sendMessageToWebView } from 'util/webView'
 
 import {
   createJoinRequest,
@@ -81,7 +81,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   const joinGroupHandler = useCallback(async (groupId, questionAnswers) => {
     await dispatch(joinGroup(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
-    if (isWebView()) {
+    if (isLegacyWebView()) {
       sendMessageToWebView(WebViewMessageTypes.JOINED_GROUP, { groupSlug: group.slug })
     } else {
       navigate(groupUrl(group.slug))
@@ -116,7 +116,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   }, [group?.name])
 
   if (!group && !pending) return <NotFound />
-  if (pending) return <Loading />
+  if (!group && pending) return <Loading />
 
   const groupsWithPendingRequests = keyBy(joinRequests, 'group.id')
 
@@ -129,7 +129,8 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
       {!isAboutCurrentGroup && (
         <div className={cn('w-full py-8 px-2 bg-cover bg-center overflow-hidden relative shadow-xl', { 'rounded-xl': fullPage })} style={{ backgroundImage: `url(${group.bannerUrl || DEFAULT_BANNER})` }}>
-          {!fullPage && !isWebView() && (
+          {/* DEPRECATED: Now always show close button when not fullPage */}
+          {!fullPage && /* !isWebView() && */ (
             <a className={g.close} onClick={closeDetailModal}><Icon name='Ex' /></a>
           )}
           <div className='bottom-0 right-0 bg-darkening/50 absolute top-0 left-0 z-0' />

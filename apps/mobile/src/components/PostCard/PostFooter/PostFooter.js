@@ -1,9 +1,13 @@
+// DEPRECATED: This component is only used by deprecated screens (PostCard, PostDetails, etc.)
+// Kept for reference only.
+
 import React, { useRef } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
 import { get, find, filter, isEmpty, sortBy } from 'lodash/fp'
-import LinearGradient from 'react-native-linear-gradient'
+// DEPRECATED: react-native-linear-gradient removed
+// import LinearGradient from 'react-native-linear-gradient'
 import { RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import Avatar from 'components/Avatar'
 import PeopleListModal from 'components/PeopleListModal'
@@ -75,11 +79,9 @@ export default function PostFooter ({
   return (
     <>
       <View style={styles.dashedBorder} />
-      <LinearGradient style={[styles.gradient, style]} colors={postCardLinearGradientColors}>
-        {/*
-          extra view container needed to out-of-date LinearGradient component, ref:
-          https://github.com/react-native-linear-gradient/react-native-linear-gradient/issues/668#issuecomment-2448866210
-        */}
+      {/* DEPRECATED: LinearGradient removed, replaced with View */}
+      {/* <LinearGradient style={[styles.gradient, style]} colors={postCardLinearGradientColors}> */}
+      <View style={[styles.gradient, style]}>
         <View style={styles.container}>
           <PeopleListModal
             ref={peopleListRef}
@@ -103,7 +105,8 @@ export default function PostFooter ({
             <Text style={[styles.commentsText, !isEmpty(avatarUrls) && styles.commentsTextWithAvatars]}>{caption}</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
+      {/* </LinearGradient> */}
       {forDetails && (
         <View style={styles.dashedBorder} />
       )}

@@ -1,7 +1,12 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useState, useEffect, useMemo } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Animated, Platform, Dimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Check, DoorOpen } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Check, DoorOpen } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import { TextHelpers } from '@hylo/shared'

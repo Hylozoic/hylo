@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`fetchCustomView should match latest snapshot 1`] = `
+Object {
+  "graphql": Object {
+    "query": "query FetchCustomView ($id: ID) {
+        customView(id: $id) {
+          id
+          groupId
+          activePostsOnly
+          collectionId
+          defaultSort
+          defaultViewMode
+          externalLink
+          isActive
+          icon
+          name
+          order
+          postTypes
+          topics {
+            id
+            name
+          }
+          type
+        }
+      }",
+    "variables": Object {
+      "id": "42",
+    },
+  },
+  "meta": Object {
+    "extractModel": "CustomView",
+  },
+  "type": "FETCH_CUSTOM_VIEW",
+}
+`;

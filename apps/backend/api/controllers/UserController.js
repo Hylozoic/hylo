@@ -1,12 +1,9 @@
 import { filter, isEmpty, mapKeys, merge, pick, snakeCase } from 'lodash'
-import { en } from '../../lib/i18n/en'
-import { es } from '../../lib/i18n/es'
+import { getLocaleStrings } from '../../lib/i18n/locales'
 import InvitationService from '../services/InvitationService'
 import OIDCAdapter from '../services/oidc/KnexAdapter'
 import { decodeHyloJWT } from '../../lib/HyloJWT'
 import { joinRoom, leaveRoom } from '../services/Websockets'
-
-const locales = { es, en }
 
 module.exports = {
 
@@ -20,17 +17,18 @@ module.exports = {
       // User already exists
       if (group) {
         const locale = user?.getLocale()
+        const L = getLocaleStrings(locale)
         if (!(await GroupMembership.hasActiveMembership(user, group))) {
           // If user exists but is not part of the group then invite them
-          let message = locales[locale].apiInviteMessageContent(req.api_client)
-          let subject = locales[locale].apiInviteMessageSubject(group.get('name'))
+          let message = L.apiInviteMessageContent(req.api_client)
+          let subject = L.apiInviteMessageSubject(group.get('name'))
           if (req.api_client) {
             const client = await (new OIDCAdapter('Client')).find(req.api_client.id)
             if (!client) {
               return res.status(403).json({ error: 'Unauthorized' })
             }
-            subject = client.invite_subject || locales[locale].clientInviteSubjectDefault(group.get('name'))
-            message = client.invite_message || locales[locale].clientInviteMessageDefault({ userName: user.get('name'), groupName: group.get('name') })
+            subject = client.invite_subject || L.clientInviteSubjectDefault(group.get('name'))
+            message = client.invite_message || L.clientInviteMessageDefault({ userName: user.get('name'), groupName: group.get('name') })
           }
           const inviteBy = await group.stewards().fetchOne()
 
@@ -63,7 +61,6 @@ module.exports = {
             group_name: group && group.get('name'),
             group_avatar_url: group && group.get('avatar_url'),
             group_url: Frontend.Route.group(group),
-            version: 'Redesign 2025',
             verify_url: Frontend.Route.verifyEmail(email, user.generateJWT())
           }
         })

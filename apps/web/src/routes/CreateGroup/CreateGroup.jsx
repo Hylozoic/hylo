@@ -191,11 +191,11 @@ function CreateGroup () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, search: false })
+    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, mobileBackButton: true, search: false })
   }, [])
 
   return (
-    <div className='CreateGroupContainer w-full h-full flex justify-center mt-10'>
+    <div className='CreateGroupContainer w-full h-full flex justify-center mt-10 px-4'>
       <div className='CreateGroupInnerContainer flex flex-col mx-auto w-full max-w-screen-sm items-center'>
         <UploadAttachmentButton
           type='groupBanner'
@@ -365,7 +365,6 @@ function CreateGroup () {
         <div className='w-full bg-foreground/5 p-4 rounded-lg mt-4'>
           <h3 className='text-foreground text-xl font-bold mb-2'>{t('Choose your home view')}</h3>
           <p className='text-foreground/80 text-sm mb-4'>{t('home-view-choice-explainer')}</p>
-          <p className='text-foreground/60 text-xs mb-4 italic'>{t('You can change this anytime')}</p>
           <div className='flex flex-col gap-3'>
             <button
               type='button'

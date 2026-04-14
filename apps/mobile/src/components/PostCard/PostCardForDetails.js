@@ -1,3 +1,6 @@
+// DEPRECATED: This component is only used by deprecated PostDetails screen.
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
@@ -25,7 +28,8 @@ import PostHeader from 'components/PostCard/PostHeader'
 import Topics from 'components/Topics'
 import ClickableLocationText from 'components/ClickableLocationText'
 import styles from 'components/PostCard/PostCard.styles'
-import { SvgUri } from 'react-native-svg'
+// DEPRECATED: react-native-svg removed
+// import { SvgUri } from 'react-native-svg'
 import { useTranslation } from 'react-i18next'
 
 export default function PostCardForDetails ({ post, showGroups = true, groupId }) {

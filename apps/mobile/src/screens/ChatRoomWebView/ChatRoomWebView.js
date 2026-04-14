@@ -1,3 +1,9 @@
+// DEPRECATED: This screen is no longer used in the app.
+// All content (including chat) is now handled by PrimaryWebView.
+// The web app provides the chat interface.
+// Kept for reference - may revisit native implementation in the future.
+// Last used: 2025-01-26
+
 import React from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import useCurrentGroup from '@hylo/hooks/useCurrentGroup'

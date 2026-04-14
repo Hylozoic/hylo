@@ -101,14 +101,16 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
       title: t('Member Profile') + ': ' + (person ? person.name : t('Loading...')),
       icon: 'Person',
       info: '',
-      search: true
+      search: true,
+      backButton: true,
+      mobileBackButton: true
     })
   }, [person])
 
   useEffect(() => {
     if (personId) fetchPersonAction(personId)
     checkGroupsHeight()
-  }, [])
+  }, [personId])
 
   useEffect(() => {
     checkGroupsHeight()
@@ -314,10 +316,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   </button>
                 </div>))}
 
-            {events && events.length > 0 && <div className={styles.profileSubhead}>{t('Upcoming Events')}</div>}
+            {events && events.length > 0 && <div className='uppercase text-foreground/60 text-xs pt-3 mt-3 mb-3 first-of-type:mt-0 first-of-type:border-t-0'>{t('Upcoming Events')}</div>}
             {events && events.length > 0 && events.map((e, index) => <Event key={index} memberCap={3} event={e} routeParams={routeParams} />)}
 
-            {projects && projects.length > 0 && <div className={styles.profileSubhead}>{t('Projects')}</div>}
+            {projects && projects.length > 0 && <div className='uppercase text-foreground/60 text-xs pt-3 mt-3 mb-3 first-of-type:mt-0 first-of-type:border-t-0'>{t('Projects')}</div>}
             {projects && projects.length > 0 && projects.map((p, index) => <Project key={index} memberCap={3} project={p} routeParams={routeParams} />)}
           </div>
         </div>
@@ -423,10 +425,10 @@ function Project ({ memberCap, project }) {
   const { title, createdAt, creator, members } = project
   const viewPostDetails = useViewPostDetails()
   return (
-    <div className={styles.project} onClick={() => viewPostDetails(project)}>
+    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-between min-h-[60px] p-2 px-3 my-2 mx-auto hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(project)}>
       <div>
-        <div className={styles.title}>{title} </div>
-        <div className={styles.meta}>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
+        <div className='font-bold text-sm leading-[18px] text-foreground'>{title} </div>
+        <div className='text-sm leading-[18px] text-foreground/50'>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -437,14 +439,14 @@ function Event ({ memberCap, event }) {
   const { location, eventInvitations, startTime, title } = event
   const viewPostDetails = useViewPostDetails()
   return (
-    <div className={styles.event} onClick={() => viewPostDetails(event)}>
-      <div className={styles.date}>
-        <div className={styles.month}>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM')}</div>
-        <div className={styles.day}>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('dd')}</div>
+    <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-start pr-3 my-2 mx-auto hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(event)}>
+      <div className='bg-[rgba(254,72,80,0.5)] text-white rounded-l-md py-1 px-2 text-center uppercase min-w-[50px]'>
+        <div className='text-sm'>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('MMM')}</div>
+        <div className='text-[28px] leading-[23px]'>{DateTimeHelpers.toDateTime(startTime, { locale: getLocaleFromLocalStorage() }).toFormat('dd')}</div>
       </div>
-      <div className={styles.details}>
-        <div className={styles.title}>{title}</div>
-        <div className={styles.meta}><Icon name='Location' />{location}</div>
+      <div className='text-left px-3 block w-full justify-between'>
+        <div className='font-bold text-sm leading-[18px] text-foreground'>{title}</div>
+        <div className='text-foreground/50 max-w-[350px] text-ellipsis overflow-hidden whitespace-nowrap text-xs'><Icon name='Location' />{location}</div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
     </div>

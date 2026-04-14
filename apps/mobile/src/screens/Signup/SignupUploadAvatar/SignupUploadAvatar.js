@@ -13,13 +13,14 @@ import ImagePicker from 'components/ImagePicker'
 import KeyboardFriendlyView from 'components/KeyboardFriendlyView'
 import Loading from 'components/Loading'
 import styles from './SignupUploadAvatar.styles'
-import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function SignupUploadAvatar () {
+  // Lets the user upload a profile picture during signup.
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const { currentUser, fetching } = useAuth()
-  const [{ currentUser: user }] = useCurrentUser()
   const [, updateUserSettings] = useMutation(updateUserSettingsMutation)
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl)
   const [avatarImageSource, setAvatarImageSource] = useState({ uri: avatarUrl })
@@ -51,7 +52,9 @@ export default function SignupUploadAvatar () {
   }
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }]}
+    >
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
         <View style={styles.header}>
           <Text style={styles.title}>{t('Upload a Photo')}</Text>

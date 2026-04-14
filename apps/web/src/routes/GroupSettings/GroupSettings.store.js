@@ -58,6 +58,7 @@ export function fetchGroupSettings (slug) {
             allowGroupInvites
             askGroupToGroupJoinQuestions
             askJoinQuestions
+            defaultDigestFrequency
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory
@@ -254,6 +255,11 @@ export function updateGroupSettings (id, changes) {
       query: `mutation ($id: ID, $changes: GroupInput) {
         updateGroupSettings(id: $id, changes: $changes) {
           id
+          settings {
+            defaultDigestFrequency
+            locationDisplayPrecision
+            showSuggestedSkills
+          }
           agreements {
             items {
               id

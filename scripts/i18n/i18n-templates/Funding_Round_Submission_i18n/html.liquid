@@ -1,0 +1,9 @@
+{% snippet 'header_redesign' %}
+{% snippet 'macro: post_card' %}
+
+{{ post_card(post, false, 'submitted') }}
+ 
+{% set post_url = post.url %}
+<a href='{{post_url}}' class='btn btn-blue'>{% trans %}View in the Funding Round{% endtrans %}</a>
+
+{% snippet 'footer_redesign' %}

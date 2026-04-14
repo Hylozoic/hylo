@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
@@ -25,8 +25,20 @@ export default function RootNavigator () {
   // Here and `JoinGroup` should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
   const { isAuthorized, fetching } = useAuth()
+  const hasCompletedInitialAuthFetch = useRef(false)
 
-  if (fetching) return null
+  useEffect(() => {
+    if (!fetching) {
+      hasCompletedInitialAuthFetch.current = true
+    }
+  }, [fetching])
+
+  // Do not return null on every `fetching` from meCheckAuthQuery (cache-and-network).
+  // A background refetch sets fetching=true → this used to unmount the whole
+  // NavigationContainer, tear down PrimaryWebView, then remount it (fresh
+  // isWebViewLoading) — the RN spinner flash after the web skeleton.
+  // Only block the first paint until the first time auth finishes loading.
+  if (fetching && !hasCompletedInitialAuthFetch.current) return null
 
   const navigatorProps = {
     screenOptions: {

@@ -1,0 +1,10 @@
+{% snippet "header_redesign" %}
+{% snippet "macro: actor_pill" %}
+
+{% set enrollee_pill = actor_pill(enrollee_name, enrollee_avatar_url, enrollee_profile_url) %}
+
+<p>{% trans %}{{enrollee_pill}} has enrolled in the track: {% endtrans %}<strong>{% trans %}{{track_name}}{% endtrans %}</strong></p>
+
+<a class='btn btn-blue' href="{{enrollee_profile_url}}">{% trans %}Welcome Them!{% endtrans %}</a>
+
+{% snippet "footer_redesign" %}

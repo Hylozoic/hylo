@@ -35,7 +35,7 @@ i18n
       escapeValue: false // not needed for react as it escapes by default
     },
     defaultNS: false,
-    preload: ['en', 'es']
+    preload: ['en']
   })
 
 export default i18n
