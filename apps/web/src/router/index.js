@@ -1,6 +1,7 @@
 import React from 'react'
 import { HistoryRouter as Router } from 'redux-first-history/rr6'
 import { Provider } from 'react-redux'
+import { PersistGate } from 'redux-persist/integration/react'
 import { ThemeProvider } from 'contexts/ThemeContext'
 import { TooltipProvider } from 'components/ui/tooltip'
 // import { Provider as RollbarProvider, ErrorBoundary } from '@rollbar/react'
@@ -9,14 +10,8 @@ import { ViewHeaderProvider } from 'contexts/ViewHeaderContext/ViewHeaderProvide
 import { DropdownProvider } from 'contexts/DropdownContext'
 import { CookieConsentProvider } from 'contexts/CookieConsentContext'
 import CookiePreferencesPanel from 'components/CookiePreferencesPanel'
-import store, { history } from '../store'
+import store, { history, persistor } from '../store'
 import RootRouter from 'routes/RootRouter'
-import { isLegacyWebView } from 'util/webView'
-
-// Legacy mobile apps inject addHyloWebViewListener and rely on NAVIGATION messages
-if (isLegacyWebView()) {
-  window.addHyloWebViewListener(history)
-}
 
 // same configuration you would create for the Rollbar.js SDK
 // const rollbarConfig = {
@@ -42,20 +37,22 @@ export default function App () {
   return (
     <LayoutFlagsProvider>
       <Provider store={store}>
-        <ThemeProvider>
-          <TooltipProvider delayDuration={0}>
-            <CookieConsentProvider>
-              <ViewHeaderProvider>
-                <DropdownProvider>
-                  <Router history={history}>
-                    <RootRouter />
-                    <CookiePreferencesPanel />
-                  </Router>
-                </DropdownProvider>
-              </ViewHeaderProvider>
-            </CookieConsentProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeProvider>
+            <TooltipProvider delayDuration={0}>
+              <CookieConsentProvider>
+                <ViewHeaderProvider>
+                  <DropdownProvider>
+                    <Router history={history}>
+                      <RootRouter />
+                      <CookiePreferencesPanel />
+                    </Router>
+                  </DropdownProvider>
+                </ViewHeaderProvider>
+              </CookieConsentProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </PersistGate>
       </Provider>
     </LayoutFlagsProvider>
   )

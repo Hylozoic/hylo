@@ -14,6 +14,7 @@ export default function updateUserSettings (changes) {
             emailValidated
             hasRegistered
             name
+            rsvpCalendarUrl
             settings {
               alreadySeenTour
               dmNotifications

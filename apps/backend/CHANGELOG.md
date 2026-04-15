@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.0] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+## [6.3.4] - 2026-04-12
+
+### Added
+- groupUpdated socket push which reloads the group when its context menu has been updated
+
+### Fixed
+- Unnecessary calls to update last read post in a chat room after creating a new post
+
+## [6.3.3] - 2026-04-10
+
+### Added
+- API call to load a custom view on demand
+
+## [6.3.2] - 2026-04-02
+
+### Fixed
+- Bug viewing recent activity on a profile
+
 ## [6.3.1] - 2026-03-11
 
 ### Added

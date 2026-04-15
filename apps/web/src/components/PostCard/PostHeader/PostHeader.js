@@ -262,7 +262,7 @@ class PostHeader extends PureComponent {
           )}
 
         <Tooltip
-          className='bg-background z-1000'
+          className='bg-background'
           delayShow={0}
           id={`announcement-tt-${id}`}
           position='top'

@@ -281,10 +281,10 @@ describe('Notification', function () {
     })
   })
 
-  describe('#findUnsent', () => {
+  describe('#claimUnsentIds', () => {
     beforeEach(() => bookshelf.knex('notifications').del())
 
-    it('returns the unsent', () => {
+    it('claims only unsent notifications', () => {
       return Promise.join(
         new Notification({
           activity_id: activity.id,
@@ -302,9 +302,12 @@ describe('Notification', function () {
           medium: Notification.MEDIUM.InApp,
           created_at: new Date()
         }).save())
-        .then(() => Notification.findUnsent())
+        .then(() => Notification.claimUnsentIds())
+        .then(ids => {
+          expect(ids).to.have.length(2)
+          return Notification.query(q => q.whereIn('id', ids)).fetchAll()
+        })
         .then(notifications => {
-          expect(notifications.length).to.equal(2)
           expect(notifications.pluck('medium').sort()).to.deep.equal([
             Notification.MEDIUM.Push,
             Notification.MEDIUM.InApp

@@ -28,6 +28,7 @@ export default function createPost (postParams) {
     isAnonymousVote,
     isPublic,
     isStrictProposal,
+    markAsReadTopicName,
     projectManagementLink,
     proposalOptions,
     votingMethod,
@@ -64,6 +65,7 @@ export default function createPost (postParams) {
         isAnonymousVote,
         isPublic,
         isStrictProposal,
+        markAsReadTopicName,
         linkPreviewId,
         linkPreviewFeatured,
         localId: localId || uniqueId('post_'), // to match the optimistically created post and replace it with the real one

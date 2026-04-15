@@ -25,16 +25,18 @@ import useNetworkConnectivity from 'hooks/useNetworkConnectivity'
 
 const AuthRoot = createStackNavigator()
 export default function AuthRootNavigator () {
-  // TODO: URQL - network-only seems to be required only for SocialAuth,
-  // but can't yet figure out why. Explore further and hopefully reset
-  // to cache-and-network or cache-first (default). It may be fine here, but it is
-  // the only place we should do this with useCurrentUser as it would be expensive
-  // lower in the stack where it may get called in any loops and such.
   const insets = useSafeAreaInsets()
   const { i18n } = useTranslation()
   const { isConnected, isInternetReachable } = useNetworkConnectivity()
-  // network-only is intentional here — required for SocialAuth to reflect server state immediately.
-  // Safe destructuring with fallback in case the query result is transiently null/undefined.
+  // network-only is required here (not cache-and-network):
+  // After social login (Google/Apple) on a fresh install, the graphcache still holds the
+  // pre-login Me:'me' = null entity. cache-and-network would serve that stale null first,
+  // keeping currentUser=null and loading=true indefinitely. network-only skips the cache
+  // and goes directly to the server, which returns the authenticated user via the freshly-set
+  // session cookie — giving a clean null→user transition after any login.
+  // Re-fetches after initialization are safe: the `if (initialized) return` guard in the
+  // loading effect below prevents loading from flipping back to true, so the navigator tree
+  // and WebView stay mounted even when currentUser is briefly undefined during a re-fetch.
   const currentUserResult = useCurrentUser({
     requestPolicy: 'network-only',
     pause: !isConnected || !isInternetReachable
@@ -57,28 +59,23 @@ export default function AuthRootNavigator () {
   useHandleLinking()
 
   useEffect(() => {
-    setLoading(!initialized || !currentUser || currentUserFetching)
-  }, [initialized, currentUser, currentUserFetching])
+    // Loading sequence gap (do not reintroduce `currentUserFetching` here):
+    // 1) urql cache-and-network often yields cached currentUser with fetching=false →
+    //    loading=false → PrimaryWebView mounts, WebView loads, user sees web skeleton.
+    // 2) The network leg starts → currentUserFetching=true while currentUser stays cached.
+    // 3) If we used setLoading(!currentUser || currentUserFetching), loading flips TRUE
+    //    before `initialized` is set (OneSignal/Intercom effect is still async).
+    // 4) That unmounts the whole navigator → PrimaryWebView remounts with fresh
+    //    isWebViewLoading=true → RN spinner flashes on top of the web UI, then WebView
+    //    loads again.
+    // So: gate only on “do we have a user record?”, not on background refetch.
+    if (initialized) return
+    setLoading(!currentUser)
+  }, [initialized, currentUser])
 
   useEffect(() => {
     resetNotificationsCount()
   }, [])
-
-  // DEPRECATED: This is no longer used, all we need to do is log the user in and a subscription will be created. Remove after 2025-08-26
-  // const oneSignalChangeListener = ({ externalId, onesignalId }) => {
-  //   if (externalId === currentUser?.id) {
-  //     registerDevice({
-  //       playerId: onesignalId,
-  //       platform: Platform.OS + (isDev ? '_dev' : ''),
-  //       version: hyloAppVersion
-  //     })
-  //   } else {
-  //     console.warn(
-  //       'Not registering to OneSignal for push notifications:\n' +
-  //       `externalId: ${externalId} onesignalId: ${onesignalId} currentUser.id: ${currentUser?.id}`
-  //     )
-  //   }
-  // }
 
   useEffect(() => {
     (async function () {
@@ -120,9 +117,11 @@ export default function AuthRootNavigator () {
   // TODO: What do we want to happen if there is an error loading the current user?
   if (error) console.error(error)
   
-  // Check internet connectivity before attempting to load app
-  // This prevents crashes from network calls when offline
-  if (!isConnected || !isInternetReachable) {
+  // Only show NoInternetConnection during the INITIAL load (before initialized).
+  // After initialization, keep the navigator tree mounted — Android fires
+  // isInternetReachable=false events on resume that would otherwise unmount and
+  // remount PrimaryWebView, causing the 3-4 reload loop on app icon reopen.
+  if (!initialized && (!isConnected || !isInternetReachable)) {
     return (
       <NoInternetConnection 
         onRetry={() => {

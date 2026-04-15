@@ -4,10 +4,22 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.3.1] - 2026-02-07
+## [6.3.5] - 2026-03-28
+Streamline loading flow
+
+## [6.3.4] - 2026-03-28
+Fix url parsing error handling that was causing iOS crashes
+
+## [6.3.3] - 2026-03-24
+- Streamline login/auth/cookie handling
+
+## [6.3.2] - 2026-03-18
+- Fix layouts for password reset and related login screens
+
+## [6.3.1] - 2026-03-16
 - Fix loading loop on android
 
-## [6.3.0] - 2026-02-07
+## [6.3.0] - 2026-03-15
 - Themes now available in mobile
 - Proposal creation now available in mobile
 - Various bug and stability fixes

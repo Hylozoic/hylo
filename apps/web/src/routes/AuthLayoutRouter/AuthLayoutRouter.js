@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -7,7 +8,7 @@ import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
 import mixpanel from 'mixpanel-browser'
-import config, { isTest } from 'config/index'
+import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
 import ContextMenu from './components/ContextMenu'
 import CreateModal from 'components/CreateModal'
@@ -25,6 +26,7 @@ import setReturnToPath from 'store/actions/setReturnToPath'
 import fetchCommonRoles from 'store/actions/fetchCommonRoles'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import fetchPost from 'store/actions/fetchPost'
 import fetchGroupsMenuData from 'store/actions/fetchGroupsMenuData'
 import fetchThreads from 'store/actions/fetchThreads'
 import getMe from 'store/selectors/getMe'
@@ -51,6 +53,8 @@ import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
 import Loading from 'components/Loading'
+import BootstrapShell from 'components/Skeleton/BootstrapShell'
+import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
@@ -71,7 +75,10 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
+import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
+import { Toaster } from 'components/ui/sonner'
+import useNewAppVersion from 'hooks/useNewAppVersion'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -80,6 +87,8 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isLegacyWebView() || hideNavLayout
+  const newVersionAvailable = useNewAppVersion()
+  const newVersionToastShownRef = useRef(false)
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -134,7 +143,7 @@ export default function AuthLayoutRouter (props) {
   const signupInProgress = useSelector(getSignupInProgress)
 
   const [currentUserLoading, setCurrentUserLoading] = useState(true)
-  const [currentGroupLoading, setCurrentGroupLoading] = useState()
+  const [currentGroupLoading, setCurrentGroupLoading] = useState(false)
 
   // Refs for mobile nav drawer animation
   const navContainerRef = useRef(null)
@@ -241,6 +250,21 @@ export default function AuthLayoutRouter (props) {
     }
 
     let touchTarget = null
+    let touchStartedWithTextSelected = false
+
+    let persistentHasSelection = false
+    const onSelectionChange = () => {
+      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
+      if (hasSelection) {
+        persistentHasSelection = true
+      } else if (touchStartX === null) {
+        // Only clear when there is no active touch, so iOS's mid-gesture
+        // selectionchange (e.g. during handle drag) doesn't prematurely clear
+        // the flag and allow the nav swipe to activate.
+        persistentHasSelection = false
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
@@ -256,6 +280,10 @@ export default function AuthLayoutRouter (props) {
       navWidth = navEl.offsetWidth
       isDragging = false
       directionLocked = false
+
+      // Use the persistent flag so handle-drag touches are detected even when
+      // iOS has temporarily cleared window.getSelection() at touchstart.
+      touchStartedWithTextSelected = persistentHasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -288,6 +316,16 @@ export default function AuthLayoutRouter (props) {
         // Validate direction: only right swipe opens, only left swipe closes
         if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
         if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If the touch was held still long enough to suggest a long-press (300ms
+        // is below the ~500ms iOS text-selection threshold but above any fast
+        // swipe), or text was selected before this touch began (persistentHasSelection
+        // survives the period where iOS clears getSelection() during a handle drag),
+        // don't hijack the gesture — let the user select/expand text instead.
+        if (isOpenGesture) {
+          const elapsed = Date.now() - touchStartTime
+          if (elapsed >= 300 || touchStartedWithTextSelected) { touchStartX = null; return }
+        }
 
         // If opening (right swipe), check if touch is inside a horizontally
         // scrolled container — let native scroll handle scrolling back first
@@ -353,6 +391,10 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
+      // Only clear the persistent selection flag once deselection is confirmed.
+      if (!window.getSelection || !window.getSelection().toString().length) {
+        persistentHasSelection = false
+      }
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -365,6 +407,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
+      document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [withoutNav, dispatch])
 
@@ -375,12 +418,35 @@ export default function AuthLayoutRouter (props) {
     { threshold: 120, holdDuration: 400 } // Pull 120px and hold for 400ms
   )
 
+  // Baseline/regression: in Chrome DevTools open Performance (user timings: hylo-auth-bootstrap,
+  // hylo-fetch-for-group) and Network (GraphQL response sizes). Compare before/after deploy.
   useEffect(() => {
     (async function () {
-      await dispatch(fetchCommonRoles())
-      await dispatch(fetchForCurrentUser())
+      if (isDev) performance.mark('hylo-auth-bootstrap-start')
+      // Parallelise the two independent bootstrap fetches.
+      // If the initial URL contains a post ID, race fetchPost alongside them
+      // so the post data is ready (or nearly ready) by the time the auth shell renders.
+      const bootstrapFetches = [
+        dispatch(fetchCommonRoles()),
+        dispatch(fetchForCurrentUser()),
+        ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+      ]
+      await Promise.all(bootstrapFetches)
+      if (isDev) {
+        performance.mark('hylo-auth-bootstrap-end')
+        try {
+          performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
+        } catch (e) {
+          // duplicate measure names across hot reload / strict mode
+        }
+      }
       setCurrentUserLoading(false)
-      dispatch(fetchThreads())
+      const runThreads = () => dispatch(fetchThreads())
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(runThreads, { timeout: 4000 })
+      } else {
+        setTimeout(runThreads, 2500)
+      }
     })()
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
@@ -418,15 +484,41 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroup?.id, currentGroup?.location, currentGroup?.name, currentGroup?.type, memberships])
 
+  // Keep group loading in sync with the URL before paint so we never mount Stream/chat,
+  // then swap to RouteBootstrapSkeleton when fetchForGroup sets loading (reopen / SPA nav).
+  useLayoutEffect(() => {
+    if (!currentGroupSlug) {
+      setCurrentGroupLoading(false)
+      return
+    }
+    const g = getGroupForSlug(store.getState(), currentGroupSlug)
+    if (g?.slug === currentGroupSlug) {
+      setCurrentGroupLoading(false)
+    } else {
+      setCurrentGroupLoading(true)
+    }
+  }, [currentGroupSlug])
+
   useEffect(() => {
-    (async function () {
-      if (currentGroupSlug) {
-        setCurrentGroupLoading(true)
-        await dispatch(fetchForGroup(currentGroupSlug))
-        setCurrentGroupLoading(false)
+    if (!currentGroupSlug) return
+    let cancelled = false
+    const slug = currentGroupSlug
+    ;(async function () {
+      if (isDev) performance.mark('hylo-fetch-group-start')
+      await dispatch(fetchForGroup(slug))
+      if (cancelled) return
+      setCurrentGroupLoading(false)
+      if (isDev) {
+        performance.mark('hylo-fetch-group-end')
+        try {
+          performance.measure('hylo-fetch-for-group', 'hylo-fetch-group-start', 'hylo-fetch-group-end')
+        } catch (e) {}
       }
     })()
-  }, [currentGroupSlug])
+    return () => {
+      cancelled = true
+    }
+  }, [currentGroupSlug, dispatch])
 
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
@@ -435,15 +527,17 @@ export default function AuthLayoutRouter (props) {
   // Disabled for users with more than 40 memberships to avoid overwhelming the backend.
   useEffect(() => {
     if (!currentUserLoading && memberships.length > 0 && memberships.length <= 40) {
+      const currentGroupId = currentGroup?.id
       const groupIds = memberships
         .map(m => m.group?.id)
         .filter(Boolean)
+        .filter(id => id !== currentGroupId)
         .filter((id, index, self) => self.indexOf(id) === index) // unique ids
 
       if (groupIds.length === 0) return
 
       // Delay initial request to let critical page load requests complete first
-      const INITIAL_DELAY = 3000 // 3 second delay
+      const INITIAL_DELAY = 4500
       const BATCH_SIZE = 10
 
       const timeoutId = setTimeout(async () => {
@@ -461,7 +555,7 @@ export default function AuthLayoutRouter (props) {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [currentUserLoading, memberships, dispatch])
+  }, [currentUserLoading, currentGroup?.id, memberships, dispatch])
 
   // Scroll to top of center column when context, groupSlug, or view changes (from `pathMatchParams`)
   useEffect(() => {
@@ -469,10 +563,27 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
+  // Show a toast notification once when a new app version is detected
+  useEffect(() => {
+    if (!newVersionAvailable || newVersionToastShownRef.current) return
+    newVersionToastShownRef.current = true
+    toast('A new version of Hylo is available', {
+      duration: Infinity,
+      action: {
+        label: 'Refresh',
+        onClick: () => window.location.reload()
+      }
+    })
+  }, [newVersionAvailable])
+
   if (currentUserLoading) {
     return (
-      <div className={classes.container} data-testid='loading-screen'>
-        <Loading type='loading-fullscreen' />
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
+        <Helmet>
+          <title>Hylo</title>
+          <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
+        </Helmet>
+        <BootstrapShell withoutNav={withoutNav} className='flex-1 min-h-0' />
       </div>
     )
   }
@@ -520,7 +631,7 @@ export default function AuthLayoutRouter (props) {
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute}`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`, { replace: true })
     }
   }
 
@@ -615,7 +726,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='groups/:joinGroupSlug/join/:accessCode' />
+                <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
@@ -667,7 +778,7 @@ export default function AuthLayoutRouter (props) {
               <Route path='post/:postId/edit/*' element={<CreateModal context='all' editingPost />} />
             </Routes>
 
-            <div className={cn('AuthLayout_centerColumn flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
+            <div className={cn('AuthLayout_centerColumn bg-midground flex flex-col px-0 relative min-h-1 h-full flex-1 overflow-y-auto overflow-x-hidden transition-all duration-450', { 'z-[60]': withoutNav, 'sm:p-0': isMapView })} id={CENTER_COLUMN_ID}>
               <ViewHeader />
               {/* NOTE: It could be more clear to group the following switched routes by component  */}
               <Routes>
@@ -698,9 +809,12 @@ export default function AuthLayoutRouter (props) {
                 <Route
                   path='groups/:groupSlug/*'
                   element={
-                    /* When viewing a group, check membership first before rendering any group routes */
-                    currentGroupLoading
-                      ? <Loading />
+                    /* When viewing a group, check membership first before rendering any group routes.
+                       Skip the loading gate for post-detail URLs so PostDetail can render immediately
+                       (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
+                       instead of a bare spinner. */
+                    currentGroupLoading && !paramPostId
+                      ? <RouteBootstrapSkeleton />
                       : currentGroupSlug && !currentGroupMembership
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
@@ -763,7 +877,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </div>
 
-            <div className={cn('bg-gradient-to-b from-midground to-theme-background shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('DetailColumn bg-midground shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
@@ -799,6 +913,10 @@ export default function AuthLayoutRouter (props) {
         </div>
         <CookieConsentLinker />
       </div>
+      <Toaster
+        position={isMobile.any ? 'top-center' : 'bottom-left'}
+        style={isMobile.any ? {} : { left: '80px' }}
+      />
     </IntercomProvider>
   )
 }

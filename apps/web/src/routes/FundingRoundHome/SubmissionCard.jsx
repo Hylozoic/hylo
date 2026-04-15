@@ -177,32 +177,32 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
       className='SubmissionCard flex flex-row bg-card/50 rounded-lg border-2 border-card/30 shadow-xl mb-4 relative duration-400 cursor-pointer'
     >
       <div className='flex flex-col flex-1 gap-2 py-2 px-2 sm:px-3'>
-        <div className='flex flex-row gap-1 items-center'>
-          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-3')} medium />
+        <div className='flex flex-row gap-1 items-center min-w-0'>
+          <Avatar avatarUrl={creator.avatarUrl} url={creatorUrl} className={cn('mr-1 shrink-0')} medium />
           <div
-            className='flex flex-wrap justify-between flex-1 text-foreground truncate xs:truncate-none overflow-hidden xs:overflow-visible mr-2 xs:max-w-auto'
+            className='flex flex-wrap items-baseline gap-x-2 gap-y-0.5 flex-1 min-w-0 mr-1'
             onClick={openPostDetails}
           >
             <Link
               to={creatorUrl}
-              className={cn('flex whitespace-nowrap items-center text-card-foreground font-bold font-md text-base')}
+              className={cn('text-card-foreground font-bold text-base break-words min-w-0')}
               onClick={e => e.stopPropagation()}
               tabIndex={-1}
             >
               {creator.name}
             </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='text-foreground/50 text-2xs whitespace-nowrap shrink-0' onClick={openPostDetails}>
+                  {createdTimestamp}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {exactCreatedTimestamp}
+              </TooltipContent>
+            </Tooltip>
           </div>
-          {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Flag className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className='text-foreground/50 text-2xs whitespace-nowrap' onClick={openPostDetails}>
-                {createdTimestamp}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {exactCreatedTimestamp}
-            </TooltipContent>
-          </Tooltip>
+          {isFlagged && <Link to={moderationActionsGroupUrl} className='text-decoration-none shrink-0' data-tooltip-content={t('See why this post was flagged')} data-tooltip-id='post-header-flag-tt'><Flag className='top-1 mr-3 text-xl text-accent font-bold' /></Link>}
           <DropdownMenu>
             <DropdownMenuTrigger className='outline-none' onClick={e => e.stopPropagation()} tabIndex={-1}><EllipsisVertical /></DropdownMenuTrigger>
             <DropdownMenuContent sideOffset={-30} alignOffset={30} align='end'>

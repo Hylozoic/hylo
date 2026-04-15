@@ -1,14 +1,11 @@
 import { GraphQLError } from 'graphql'
-import { es } from '../../../lib/i18n/es'
-import { en } from '../../../lib/i18n/en'
+import { getLocaleStrings } from '../../../lib/i18n/locales'
 import InvitationService from '../../services/InvitationService'
-
-const locales = { es, en }
 
 export async function createInvitation (userId, groupId, data) {
   const group = await Group.find(groupId)
   const user = await User.find(userId)
-  const locale = user.getLocale()
+  const localeStrings = getLocaleStrings(user.getLocale())
   return GroupMembership.hasResponsibility(userId, group, Responsibility.constants.RESP_ADD_MEMBERS)
     .then(ok => {
       if (!ok) throw new GraphQLError("You don't have permission to create an invitation for this group")
@@ -21,8 +18,8 @@ export async function createInvitation (userId, groupId, data) {
         groupId,
         emails: data.emails,
         message: data.message,
-        moderator: data.isModerator || false,
-        subject: locales[locale].createInvitationSubject(group.get('name'))
+        isModerator: data.isModerator || false,
+        subject: localeStrings.createInvitationSubject(group.get('name'))
       })
     })
     .then(invitations => ({ invitations }))

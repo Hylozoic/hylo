@@ -119,6 +119,7 @@ const getMyAdminGroups = createSelector(
 function PostEditor ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
+  markAsReadTopicName = null,
   modal = true,
   post: propsPost,
   editing = false,
@@ -147,6 +148,9 @@ function PostEditor ({
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+
+  // Default topic to use when not in a chatroom — available immediately from the store
+  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
 
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
@@ -210,13 +214,13 @@ function PostEditor ({
     quorum: 0,
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
-    topics: topic ? [topic] : [],
+    topics: topic ? [topic] : (generalTopic ? [generalTopic] : []),
     type: postType || (modal ? 'discussion' : 'chat'),
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, postType, currentGroup, topic, context])
+  }), [inputPost?.id, postType, currentGroup, topic, generalTopic, context])
 
   const [currentPost, setCurrentPost] = useState(initialPost)
   const [invalidMessage, setInvalidMessage] = useState('')
@@ -363,6 +367,20 @@ function PostEditor ({
           }
         })
         .filter(Boolean) || []
+
+      // Fallback: chatRooms haven't loaded yet but we know the topics from context.
+      // Display topic pills directly so the "to" field isn't empty on initial render.
+      if (chatRoomOptions.length === 0 && currentPost.topics?.length > 0) {
+        return currentPost.topics
+          .filter(Boolean)
+          .map(t => ({
+            id: t.id,
+            group: g,
+            name: `${g.name} #${t.name}`,
+            topic: t,
+            avatarUrl: g.avatarUrl
+          }))
+      }
 
       return chatRoomOptions
     }).flat()
@@ -857,7 +875,8 @@ function PostEditor ({
       title,
       topicNames,
       trackId: currentTrack?.id,
-      type
+      type,
+      markAsReadTopicName
     }
 
     const saveFunc = isEditing ? updatePost : createPost

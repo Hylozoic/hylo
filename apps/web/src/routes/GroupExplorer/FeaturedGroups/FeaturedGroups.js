@@ -98,7 +98,7 @@ export default function FeaturedGroups ({ groupIds = [] }) {
                   />
                 </div>
                 <div className='text-white'>
-                  <h3 className='text-xl font-bold mb-1'>{group.name}</h3>
+                  <h3 className='text-xl font-bold mb-1 text-white'>{group.name}</h3>
                   <p className='text-sm text-white/80 mb-2'>{group.memberCount} {t('Members')}</p>
                   <p className='text-sm text-white/90 line-clamp-3 mb-4'>{group.description}</p>
                   <Button variant='outline' className='w-full text-center justify-center text-xs p-1 bg-background/40 hover:bg-background/100'>

@@ -8,14 +8,10 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { push } from 'redux-first-history'
 import { createSelector as ormCreateSelector } from 'redux-orm'
-import CopyToClipboard from 'react-copy-to-clipboard'
-import { Tooltip } from 'react-tooltip'
-import { Switch } from 'components/ui/switch'
 
 import { COMMON_VIEWS } from '@hylo/presenters/ContextWidgetPresenter'
 import Loading from 'components/Loading'
 import NoPosts from 'components/NoPosts'
-import Icon from 'components/Icon'
 import { DateTimeHelpers } from '@hylo/shared'
 import Calendar from 'components/Calendar'
 import PostDialog from 'components/PostDialog'
@@ -26,17 +22,19 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
+import GroupCalendarSubscribe from '../GroupCalendarSubscribe/GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import fetchCustomView from 'store/actions/fetchCustomView'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -50,6 +48,8 @@ import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { createPostUrl } from '@hylo/navigation'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { STREAM_MAIN_COLUMN_CLASS } from 'util/mainContentColumn'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 
 import styles from './Stream.module.scss'
 
@@ -79,10 +79,6 @@ export default function Stream (props) {
   const currentUser = useSelector(getMe)
 
   const [container, setContainer] = useState(null)
-  const [groupCalendarCopied, setGroupCalendarCopied] = useState(false)
-  const [rsvpCalendarCopied, setRsvpCalendarCopied] = useState(false)
-  const [showCalendarLinks, setShowCalendarLinks] = useState(false)
-  const [rsvpCalendarSubIsEnabled, setRsvpCalendarSubIsEnabled] = useState(currentUser?.settings?.rsvpCalendarSub)
 
   const view = props.view || routeParams.view
 
@@ -95,6 +91,13 @@ export default function Stream (props) {
   const customView = useSelector(state => getCustomView(state, customViewId))
 
   const topicLoading = useSelector(state => isPendingFor([FETCH_TOPIC, FETCH_GROUP_TOPIC], state))
+
+  const customViewLoading = useSelector(state =>
+    customViewId ? isPendingFor(FETCH_CUSTOM_VIEW, state) : false
+  )
+
+  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
+  const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'
   const defaultViewMode = systemView?.defaultViewMode || get('settings.streamViewMode', currentUser) || 'cards'
@@ -125,19 +128,19 @@ export default function Stream (props) {
 
   const postTypeFilter = useMemo(() => querystringParams.t || postTypesAvailable?.[defaultPostType] ? defaultPostType : undefined, [querystringParams, defaultPostType])
 
-  const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
-  const rsvpCalendarUrl = useMemo(() => rsvpCalendarSubIsEnabled ? currentUser?.rsvpCalendarUrl || '' : '', [currentUser, rsvpCalendarSubIsEnabled])
-
-  useEffect(() => {
-    setRsvpCalendarSubIsEnabled(!!currentUser?.settings?.rsvpCalendarSub)
-  }, [currentUser?.settings?.rsvpCalendarSub])
-
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
   // for calendar viewmode
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
   const isCalendarViewMode = viewMode === 'calendar'
+  const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
+  const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
+
+  const handleEnsureRsvpCalendarUrl = useCallback(async () => {
+    const payload = await dispatch(updateUserSettings({ settings: { rsvpCalendarSub: true } }))
+    return get('data.updateMe.rsvpCalendarUrl', payload) || null
+  }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
     // DEPRECATED: Load same number of posts for all mobile (including webview)
@@ -236,7 +239,11 @@ export default function Stream (props) {
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
   }, [pending, hasMore, fetchPostsParam])
 
-  // TODO: fetch custom view inc ase it has been updated?
+  useEffect(() => {
+    if (customViewId) {
+      dispatch(fetchCustomView(customViewId))
+    }
+  }, [customViewId, dispatch])
 
   useEffect(() => {
     if (topicName) {
@@ -287,25 +294,6 @@ export default function Stream (props) {
     dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
   }, [location])
 
-  const setTemporaryState = (setter, value) => {
-    setter(value)
-    setTimeout(() => {
-      setter(false)
-    }, 3000)
-  }
-
-  const onCopyGroupCalendar = () => setTemporaryState(setGroupCalendarCopied, true)
-  const onCopyRsvpCalendar = () => setTemporaryState(setRsvpCalendarCopied, true)
-
-  const handleToggleRSVPCalendarSub = useCallback((checked) => {
-    setRsvpCalendarSubIsEnabled(checked)
-    dispatch(updateUserSettings({
-      settings: {
-        rsvpCalendarSub: checked
-      }
-    }))
-  }, [dispatch])
-
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
   const ViewComponent = viewComponent[viewMode]
@@ -346,8 +334,6 @@ export default function Stream (props) {
     })
   }, [name, info])
 
-  const tooltipContent = t('Click to copy and paste into your calendar app subscription feature')
-
   return (
     <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>
       <Helmet>
@@ -362,8 +348,9 @@ export default function Stream (props) {
       <div
         id='stream-inner-container'
         className={cn(
-          !isCalendarViewMode && 'max-w-[750px]',
-          'flex flex-col flex-1 w-full mx-auto p-1 sm:p-4'
+          'flex flex-col flex-1',
+          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
         {hasPostPrompt && (
@@ -382,81 +369,7 @@ export default function Stream (props) {
           changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-          showCalendarLinks={showCalendarLinks} toggleCalendarLinks={() => setShowCalendarLinks(!showCalendarLinks)}
         />
-        {view === 'events' && (
-          <div className={cn(styles.calendarLinksContainer, showCalendarLinks && styles.open)}>
-            <div>
-              {eventCalendarUrl && (
-                <div className='flex flex-row gap-2 justify-end mb-2'>
-                  {!groupCalendarCopied && (
-                    <>
-                      <CopyToClipboard text={eventCalendarUrl} onCopy={onCopyGroupCalendar}>
-                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='group-cal-link-tooltip'>
-                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{t(`All ${group.name} events`)}</span>
-                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                            <Icon name='Copy' /> {t('Copy')}
-                          </div>
-                        </button>
-                      </CopyToClipboard>
-                      {!isMobile.any && (
-                        <Tooltip
-                          place='top'
-                          type='dark'
-                          id='group-cal-link-tooltip'
-                          effect='solid'
-                          delayShow={500}
-                        />
-                      )}
-                    </>
-                  )}
-                  {groupCalendarCopied && (
-                    <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
-                  )}
-                </div>
-              )}
-              {rsvpCalendarUrl && (
-                <div className='flex flex-row gap-2 justify-end mb-2'>
-                  {!rsvpCalendarCopied && (
-                    <>
-                      <CopyToClipboard text={rsvpCalendarUrl} onCopy={onCopyRsvpCalendar}>
-                        <button className='flex relative items-center group gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2 hover:border-foreground/100 transition-all hover:cursor-pointer justify-between' data-tooltip-content={tooltipContent} data-tooltip-id='rsvp-cal-link-tooltip'>
-                          <span className='text-selected truncate w-[80%] max-w-[450px]'>{t('All Hylo group events you RSVP to')}</span>
-                          <div className='flex items-center gap-2 bg-foreground/10 rounded-lg p-1 group-hover:bg-selected/50 transition-all'>
-                            <Icon name='Copy' /> {t('Copy')}
-                          </div>
-                        </button>
-                      </CopyToClipboard>
-                      {!isMobile.any && (
-                        <Tooltip
-                          place='top'
-                          type='dark'
-                          id='rsvp-cal-link-tooltip'
-                          effect='solid'
-                          delayShow={500}
-                        />
-                      )}
-                    </>
-                  )}
-                  {rsvpCalendarCopied && (
-                    <div className='text-sm text-foreground/70'>{t('Copied!')}</div>
-                  )}
-                </div>
-              )}
-              {!rsvpCalendarUrl && (
-                <div className='flex flex-row gap-2 justify-end mb-2'>
-                  <div className='flex items-center gap-2 bg-card border-2 border-foreground/20 rounded-lg p-2'>
-                    <span className='text-foreground text-sm'>{t('Enable RSVP Calendar Subscription')}</span>
-                    <Switch
-                      checked={rsvpCalendarSubIsEnabled}
-                      onCheckedChange={handleToggleRSVPCalendarSub}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
         {!isCalendarViewMode && (
           <MasonryGrid
             enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
@@ -467,7 +380,9 @@ export default function Stream (props) {
               'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
             })}
           >
-            {!pending && !topicLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
+            {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
             {posts.map(post => {
               const groupSlugs = post.groups.map(group => group.slug)
               return (
@@ -486,7 +401,7 @@ export default function Stream (props) {
             })}
           </MasonryGrid>
         )}
-        {!pending && isCalendarViewMode && (
+        {!pending && !customViewLoading && isCalendarViewMode && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
@@ -498,9 +413,24 @@ export default function Stream (props) {
               mode={calendarMode}
               setMode={setCalendarMode}
             />
+            {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
+            {!group && view === 'events' && calendarMode === 'month' && (
+              <GroupCalendarSubscribe
+                eventCalendarUrl={rsvpCalendarUrl}
+                buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
+                modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
+                onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
+              />
+            )}
           </div>
         )}
-        {(pending || topicLoading) && <Loading />}
+
+        {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+          posts.length === 0
+            ? <StreamSkeleton wrapWithMainColumn={false} />
+            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+        )}
+        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
 
         <ScrollListener
           onBottom={() => fetchPostsFrom(posts.length)}

@@ -6,6 +6,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.4] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+### Changed
+- Load funding rounds faster
+- When loading post editor always show current group and #chatroom even before chat rooms have been loaded
+- Attempt to have better error pages when things go wrong
+
+### Fixed
+- Scrolling issues in Funding Rounds
+- Display of header text of featured groups in Group Explorer
+- Hard to read text when viewing group in group explorer in light mode
+- UI of funding rounds list on mobile
+
+## [6.4.3] - 2026-04-12
+
+### Added
+- Add groupUpdated socket push which reloads the group when its context menu has been updated
+- Notice then a new version of Hylo has been deployed, with a button to refresh the page
+
+### Changed
+- Tweak scroll to position in chat room to make sure latest post is visible
+
+### Fixed
+- Don't jump focus to location input when opening group settings
+- Allow for selecting text in chat room posts
+- Don't do swipe to close post when dragging to select text on mobile
+- Don't open nav menu on mobile when long pressing and dragging to select text
+- Make sure we always load new posts when visiting a chat room even when it has cached data
+- Try to fix blank screen when loading hylo tab after new deploy
+- Groups appearing in public map when allow_in_public is false
+- Unecessary calls to update last read post in a chat room after creating a new post
+
+## [6.4.2] - 2026-04-02
+
+### Added
+- Skeleton imagery when loading app to make it look better as it loads
+- Add Playwright E2E testing and Claude Code workflow for faster and safer agent based development
+
+### Changed
+- Initial load time performance improvements
+
+### Fixed
+- Issue loading correct data when switching between chat rooms
+- Bug when creating a group and choosing chat as the home route it would redirect to /stream instead
+- Bug when joining a group it would join then immediately jump to a 404
+- Copy confirmation on wrong section in Invite Settings
+- Tooltip z-index behind images in posts
+
+## [6.4.1] - 2026-04-02
+
+### Changed
+- Performance improvements when loading Hylo
+- Loading spinner doesnt jump around so much when loading Hylo
+- Apply theme-aware styling to Upcoming Events and Projects cards on user profile
+
+### Fixed
+- Fix scrolling search results
+
 ## [6.4.0] - 2026-03-11
 
 ### Added
