@@ -300,6 +300,8 @@ export default function ChatRoom (props) {
   }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length])
 
   const handleNewPostReceived = useCallback((data) => {
+    if (!group?.id) return
+    if (!data.groups?.some(g => String(g.id) === String(group.id))) return
     if (!data.topics?.find(t => t.name === topicName)) return
     const post = presentPost(data, group.id)
     if (!post) return
@@ -329,7 +331,7 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [topicName])
+  }, [group?.id, topicName])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
@@ -352,7 +354,7 @@ export default function ChatRoom (props) {
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
-  }, [topicName])
+  }, [socket, handleNewPostReceived])
 
   useEffect(() => {
     // New chat room loaded, reset everything
