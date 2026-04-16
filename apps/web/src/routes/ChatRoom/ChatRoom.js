@@ -872,9 +872,9 @@ const StickyFooter = ({ context }) => {
         right: 50
       }}
     >
-      <div className='flex flex-col items-center gap-2'>
+      <div className='w-8 flex flex-col items-center gap-2'>
         {showLoadingPulse && (
-          <div className='pointer-events-none rounded-full border border-foreground/10 bg-background/90 shadow-sm px-2 py-[3px] animate-pulse' aria-hidden>
+          <div className='h-8 w-8 pointer-events-none rounded-full border border-foreground/10 bg-background/90 shadow-sm animate-pulse flex items-center justify-center' aria-hidden>
             <div className='flex items-center gap-1'>
               <div className='h-1.5 w-1.5 rounded-full bg-foreground/25' />
               <div className='h-1.5 w-1.5 rounded-full bg-foreground/35' />
@@ -886,13 +886,12 @@ const StickyFooter = ({ context }) => {
           <button
             className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
             onClick={() => {
+              context.messageListRef?.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
               // Ensure the newest posts are loaded before scrolling
               Promise.resolve(context.loadToLatest?.())
                 .then(() => {
                   requestAnimationFrame(() => {
-                    const items = context.messageListRef?.current?.data
-                    const lastIndex = items && items.length > 0 ? items.length - 1 : 0
-                    context.messageListRef?.current?.scrollToItem({ index: lastIndex, align: 'end', behavior: 'auto' })
+                    context.messageListRef?.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
                   })
                 })
             }}
