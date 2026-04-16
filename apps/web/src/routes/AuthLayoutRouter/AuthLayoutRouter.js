@@ -1,5 +1,6 @@
 import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { IntercomProvider } from 'react-use-intercom'
@@ -80,6 +81,8 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
+import { Toaster } from 'components/ui/sonner'
+import useNewAppVersion from 'hooks/useNewAppVersion'
 
 import classes from './AuthLayoutRouter.module.scss'
 
@@ -88,6 +91,8 @@ export default function AuthLayoutRouter (props) {
   const navigate = useNavigate()
   const { hideNavLayout } = useLayoutFlags()
   const withoutNav = isLegacyWebView() || hideNavLayout
+  const newVersionAvailable = useNewAppVersion()
+  const newVersionToastShownRef = useRef(false)
 
   // Setup `pathMatchParams` and `queryParams` (`matchPath` best only used in this section)
   const location = useLocation()
@@ -249,6 +254,21 @@ export default function AuthLayoutRouter (props) {
     }
 
     let touchTarget = null
+    let touchStartedWithTextSelected = false
+
+    let persistentHasSelection = false
+    const onSelectionChange = () => {
+      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
+      if (hasSelection) {
+        persistentHasSelection = true
+      } else if (touchStartX === null) {
+        // Only clear when there is no active touch, so iOS's mid-gesture
+        // selectionchange (e.g. during handle drag) doesn't prematurely clear
+        // the flag and allow the nav swipe to activate.
+        persistentHasSelection = false
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
@@ -264,6 +284,10 @@ export default function AuthLayoutRouter (props) {
       navWidth = navEl.offsetWidth
       isDragging = false
       directionLocked = false
+
+      // Use the persistent flag so handle-drag touches are detected even when
+      // iOS has temporarily cleared window.getSelection() at touchstart.
+      touchStartedWithTextSelected = persistentHasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -296,6 +320,16 @@ export default function AuthLayoutRouter (props) {
         // Validate direction: only right swipe opens, only left swipe closes
         if (isOpenGesture && deltaX <= 0) { touchStartX = null; return }
         if (isCloseGesture && deltaX >= 0) { touchStartX = null; return }
+
+        // If the touch was held still long enough to suggest a long-press (300ms
+        // is below the ~500ms iOS text-selection threshold but above any fast
+        // swipe), or text was selected before this touch began (persistentHasSelection
+        // survives the period where iOS clears getSelection() during a handle drag),
+        // don't hijack the gesture — let the user select/expand text instead.
+        if (isOpenGesture) {
+          const elapsed = Date.now() - touchStartTime
+          if (elapsed >= 300 || touchStartedWithTextSelected) { touchStartX = null; return }
+        }
 
         // If opening (right swipe), check if touch is inside a horizontally
         // scrolled container — let native scroll handle scrolling back first
@@ -361,6 +395,10 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
+      // Only clear the persistent selection flag once deselection is confirmed.
+      if (!window.getSelection || !window.getSelection().toString().length) {
+        persistentHasSelection = false
+      }
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -373,6 +411,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
+      document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [withoutNav, dispatch])
 
@@ -545,6 +584,19 @@ export default function AuthLayoutRouter (props) {
     if (centerColumn) centerColumn.scrollTop = 0
   }, [pathMatchParams?.context, pathMatchParams?.groupSlug, pathMatchParams?.view])
 
+  // Show a toast notification once when a new app version is detected
+  useEffect(() => {
+    if (!newVersionAvailable || newVersionToastShownRef.current) return
+    newVersionToastShownRef.current = true
+    toast('A new version of Hylo is available', {
+      duration: Infinity,
+      action: {
+        label: 'Refresh',
+        onClick: () => window.location.reload()
+      }
+    })
+  }, [newVersionAvailable])
+
   if (currentUserLoading) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
@@ -600,7 +652,7 @@ export default function AuthLayoutRouter (props) {
     if (currentGroup?.settings?.showWelcomePage) {
       navigate(`/groups/${currentGroupSlug}/welcome`, { replace: true })
     } else {
-      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute}`, { replace: true })
+      navigate(`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`, { replace: true })
     }
   }
 
@@ -695,7 +747,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='groups/:joinGroupSlug/join/:accessCode' />
+                <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
@@ -851,7 +903,7 @@ export default function AuthLayoutRouter (props) {
               </Routes>
             </div>
 
-            <div className={cn('bg-gradient-to-b from-midground to-theme-background shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
+            <div className={cn('DetailColumn bg-midground shadow-lg', classes.detail, { [classes.hidden]: !hasDetail })} id={DETAIL_COLUMN_ID}>
               <Routes>
                 {/* All context routes */}
                 <Route path={`/all/groups/${POST_DETAIL_MATCH}`} element={<PostDetail context='all' />} />
@@ -887,6 +939,10 @@ export default function AuthLayoutRouter (props) {
         </div>
         <CookieConsentLinker />
       </div>
+      <Toaster
+        position={isMobile.any ? 'top-center' : 'bottom-left'}
+        style={isMobile.any ? {} : { left: '80px' }}
+      />
     </IntercomProvider>
   )
 }

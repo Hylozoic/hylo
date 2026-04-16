@@ -240,8 +240,7 @@
   }
 
   .container {
-    -webkit-user-select: none; /* disable selection/Copy of UIWebView */
-    user-select: none;
-    -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+    -webkit-user-select: text;
+    user-select: text;
   }
 }

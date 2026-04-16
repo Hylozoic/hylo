@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import ErrorBoundary from 'components/ErrorBoundary'
 
 const App = React.lazy(() => import('./index'))
 const HyloEditorMobile = React.lazy(() => import('routes/HyloEditorMobile'))
@@ -12,9 +13,11 @@ export default function Root () {
   switch (window.location.pathname) {
     case '/hyloApp/editor': {
       return (
-        <Suspense fallback={null}>
-          <HyloEditorMobile />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <HyloEditorMobile />
+          </Suspense>
+        </ErrorBoundary>
       )
     }
 
@@ -22,17 +25,21 @@ export default function Root () {
       const querystringParams = new URLSearchParams(window.location.search)
 
       return (
-        <Suspense fallback={null}>
-          <Feature url={querystringParams.get('url')} />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <Feature url={querystringParams.get('url')} />
+          </Suspense>
+        </ErrorBoundary>
       )
     }
 
     default: {
       return (
-        <Suspense fallback={<RootFallback />}>
-          <App />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<RootFallback />}>
+            <App />
+          </Suspense>
+        </ErrorBoundary>
       )
     }
   }

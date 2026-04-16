@@ -387,6 +387,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
+    customView: (root, { id }) => fetchOne('CustomView', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
     contentAccess: (root, args) => fetchMany('ContentAccess', args),
@@ -555,7 +556,7 @@ export function makeMutations ({ fetchOne }) {
 
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
-    createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data }),
+    createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data, context }),
 
     createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
 
@@ -591,7 +592,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 
-    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId),
+    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId, context),
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
@@ -701,7 +702,7 @@ export function makeMutations ({ fetchOne }) {
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => rejectGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
-    removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId }),
+    removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId, context }),
 
     removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
@@ -722,7 +723,7 @@ export function makeMutations ({ fetchOne }) {
     removeSuggestedSkillFromGroup: (root, { groupId, id, name }, context) => removeSuggestedSkillFromGroup(context.currentUserId, groupId, id || name),
 
     reorderContextWidget: (root, { contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }, context) =>
-      reorderContextWidget({ userId: context.currentUserId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }),
+      reorderContextWidget({ userId: context.currentUserId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd, context }),
 
     reorderPostInCollection: (root, { collectionId, postId, newOrderIndex }, context) =>
       reorderPostInCollection(context.currentUserId, collectionId, postId, newOrderIndex),
@@ -738,7 +739,7 @@ export function makeMutations ({ fetchOne }) {
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
 
-    setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId }),
+    setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId, context }),
 
     subscribe: (root, { groupId, topicId, isSubscribing }, context) => subscribe(context.currentUserId, topicId, groupId, isSubscribing),
 
@@ -754,7 +755,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
-    updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data }),
+    updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data, context }),
 
     updateFundingRound: (root, { id, data }, context) => updateFundingRound(context.currentUserId, id, data),
 

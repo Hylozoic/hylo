@@ -9,6 +9,7 @@ export default function updateTopicFollow (id, data) {
         updateTopicFollow(id: $id, data: $data) {
           id
           newPostCount
+          lastReadPostId
           group {
             id
           }

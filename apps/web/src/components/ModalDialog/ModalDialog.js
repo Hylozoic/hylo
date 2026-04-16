@@ -82,6 +82,7 @@ class ModalDialog extends Component {
       }
       this.modalRef.current.addEventListener('keydown', this.handleKeydown)
     }
+    document.addEventListener('keydown', this.handleKeydown)
     document.addEventListener('mousedown', this.handleMousedown)
     // disable main window scrolling
     this.previousOverflowStyle = document.body.style.overflow
@@ -89,7 +90,10 @@ class ModalDialog extends Component {
   }
 
   componentWillUnmount () {
-    this.modalRef.current.removeEventListener('keydown', this.handleKeydown)
+    if (this.modalRef.current) {
+      this.modalRef.current.removeEventListener('keydown', this.handleKeydown)
+    }
+    document.removeEventListener('keydown', this.handleKeydown)
     document.removeEventListener('mousedown', this.handleMousedown)
     // re-enable main window scrolling
     document.body.style.overflow = this.previousOverflowStyle
@@ -100,9 +104,17 @@ class ModalDialog extends Component {
     this.props.closeModal()
   }
 
+  handleCancelClick = () => {
+    this.cancel()
+  }
+
   submit = () => {
     if (this.props.submitButtonAction) this.props.submitButtonAction()
     if (this.props.closeOnSubmit) this.props.closeModal()
+  }
+
+  handleSubmitClick = () => {
+    this.submit()
   }
 
   render () {
@@ -134,7 +146,7 @@ class ModalDialog extends Component {
     return (
       <div className='ModalDialog w-full h-full fixed top-0 left-0 flex items-center justify-center z-[1100] bg-darkening/50 pointer-events-auto' tabIndex='-1'>
         <div className='w-full max-w-[750px] bg-midground rounded-xl p-4' style={innerStyle} ref={this.modalRef} data-testid='popup-inner'>
-          <span onClick={this.cancel} className={classes.closeBtn}>
+          <span onClick={this.handleCancelClick} className={classes.closeBtn}>
             <Icon name='Ex' className={classes.icon} />
           </span>
 
@@ -158,7 +170,7 @@ class ModalDialog extends Component {
                 <Button
                   variant='primary'
                   className={classes.cancelBtn}
-                  onClick={this.cancel}
+                  onClick={this.handleCancelClick}
                 >
                   {this.props.t('Cancel')}
                 </Button>}
@@ -166,7 +178,7 @@ class ModalDialog extends Component {
                 <Button
                   variant='secondary'
                   className={cn(classes.submitBtn, this.props.submitButtonClassName)}
-                  onClick={this.submit}
+                  onClick={this.handleSubmitClick}
                   disabled={submitButtonIsDisabled()}
                 >
                   {submitButtonText}
