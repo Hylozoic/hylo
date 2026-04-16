@@ -314,6 +314,15 @@ export default function ChatRoom (props) {
     }
   }, [dispatch, fetchPostsFuture, fetchPostsFutureParams, location, postsForDisplay, postsFuture?.length, topicFollow?.lastReadPostId, topicFollow?.newPostCount])
 
+  const reconcileChatOnForeground = useCallback(() => {
+    if (!group?.id || !topicName) return
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+
+    // Catch up in case socket events were missed while the tab/app was backgrounded.
+    dispatch(fetchTopicFollow(group.id, topicName))
+    fetchPostsFuture(0, { first: INITIAL_POSTS_TO_LOAD }, true)
+  }, [dispatch, fetchPostsFuture, group?.id, topicName])
+
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
     if (!data.groups?.some(g => String(g.id) === String(group.id))) return
@@ -370,6 +379,26 @@ export default function ChatRoom (props) {
       socket.off('newPost', handleNewPostReceived)
     }
   }, [socket, handleNewPostReceived])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        reconcileChatOnForeground()
+      }
+    }
+
+    const handleWindowFocus = () => {
+      reconcileChatOnForeground()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleWindowFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleWindowFocus)
+    }
+  }, [reconcileChatOnForeground])
 
   useEffect(() => {
     // New chat room loaded, reset everything
