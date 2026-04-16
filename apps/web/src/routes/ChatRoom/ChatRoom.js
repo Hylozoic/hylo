@@ -9,7 +9,7 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -776,6 +776,7 @@ export default function ChatRoom (props) {
                   handleRemoveProposalVote,
                   handleSwapProposalVote,
                   loadToLatest,
+                  messageListRef,
                   postIdToStartAt,
                   selectedPostId,
                   topicName
@@ -858,7 +859,6 @@ const StickyHeader = ({ data, prevData, context }) => {
 
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
-  const virtuosoMethods = useVirtuosoMethods()
   const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
   const showLoadingPulse = context.loadingFuture
 
@@ -889,7 +889,11 @@ const StickyFooter = ({ context }) => {
               // Ensure the newest posts are loaded before scrolling
               Promise.resolve(context.loadToLatest?.())
                 .then(() => {
-                  virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+                  requestAnimationFrame(() => {
+                    const items = context.messageListRef?.current?.data
+                    const lastIndex = items && items.length > 0 ? items.length - 1 : 0
+                    context.messageListRef?.current?.scrollToItem({ index: lastIndex, align: 'end', behavior: 'auto' })
+                  })
                 })
             }}
             data-tooltip-content='Jump to latest post'
