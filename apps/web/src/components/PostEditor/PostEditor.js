@@ -214,7 +214,7 @@ function PostEditor ({
     quorum: 0,
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
-    topics: topic ? [topic] : (generalTopic ? [generalTopic] : []),
+    topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
     type: postType || (modal ? 'discussion' : 'chat'),
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
@@ -471,6 +471,9 @@ function PostEditor ({
     // So we only need to add #general if we're NOT in a chatroom
     if (topic?.id) return
 
+    // Action posts should never appear in chat rooms
+    if (postType === 'action') return
+
     // Find the general topic from any selected group's chatRooms
     let generalTopic = null
     for (const group of selectedGroups) {
@@ -490,7 +493,7 @@ function PostEditor ({
 
       return { ...prev, topics: [...(prev.topics || []), generalTopic] }
     })
-  }, [selectedGroups, topic?.id])
+  }, [selectedGroups, topic?.id, postType])
 
   /**
    * Resets the editor to its initial state
