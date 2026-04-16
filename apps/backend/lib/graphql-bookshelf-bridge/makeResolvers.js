@@ -36,8 +36,8 @@ export default function makeResolvers (models, fetcher) {
 export function createResolverForModel (spec, fetcher) {
   const { attributes, getters, relations, model } = spec
 
-  // Getters are merged last so explicit getters override deprecated relation *Total emitters
-  // (e.g. Post.followers adds followersTotal via hasTotal, which would otherwise mask getters).
+  // Relations in this bridge still auto-create legacy "<relation>Total" fields for non-querySet relations. These were apparently deprecated in 2017!
+  // (e.g. followers -> followersTotal). Merge getters last so explicit model getters win on name collisions.
   return Object.assign(
     transform(attributes, resolveAttribute, {}),
 

@@ -51,7 +51,7 @@ describe('CommentController', function () {
     beforeEach(() => {
       attachMultipartEmailFields(req, {
         'stripped-text': 'foo bar baz',
-        To: 'wa'
+        to: 'wa'
       })
     })
 
@@ -68,7 +68,7 @@ describe('CommentController', function () {
       Analytics.track = spy(Analytics.track)
       attachMultipartEmailFields(req, {
         'stripped-text': 'foo bar baz',
-        To: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+        to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
       })
 
       return CommentController.createFromEmail(req, res)
@@ -87,7 +87,7 @@ describe('CommentController', function () {
     it("doesn't use markdown when the comment is for a thread", () => {
       attachMultipartEmailFields(req, {
         'stripped-text': 'foo bar baz',
-        To: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+        to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
       })
       return fixtures.p1.save({type: Post.Type.THREAD}, {patch: true})
       .then(() => CommentController.createFromEmail(req, res))

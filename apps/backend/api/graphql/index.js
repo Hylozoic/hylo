@@ -38,7 +38,10 @@ export const yoga = createYoga({
   graphiql: true
 })
 
-// Backward-compatible test helpers used by legacy unit tests.
+// Test-only shim: GraphQL Yoga v3 removed handler.inject(). Unit tests (e.g. api/graphql/index.test.js)
+// still call inject({ document, serverContext: { req, res } }) and assert on executionResult. This
+// recreates that API by running graphql() with the same schema/context shape as production (yoga),
+// without going through HTTP. response is always null; tests only use executionResult.
 export const createRequestHandler = () => ({
   inject: async ({ document, serverContext }) => {
     const req = serverContext?.req || {}

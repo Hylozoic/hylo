@@ -1,4 +1,3 @@
-import '../../../test/setup'
 import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { spyify, unspyify } from '../../../test/setup/helpers'
@@ -12,17 +11,48 @@ import {
   updateTrackActionOrder
 } from './track'
 
-async function assignCoordinator (user, group) {
+async function getTrackManagerRoleId () {
+  const role = await CommonRole.where({ name: 'Coordinator' }).fetch()
+  if (!role) throw new Error('Track manager role not found in test setup')
+  return role.id
+}
+
+async function assignTrackManager (user, group) {
+  const trackManagerRoleId = await getTrackManagerRoleId()
   await user.joinGroup(group)
   await new MemberCommonRole({
     user_id: user.id,
     group_id: group.id,
-    common_role_id: CommonRole.ROLES.Coordinator
+    common_role_id: trackManagerRoleId
   }).save()
 }
 
+async function ensureTrackManagerRoleCanManageTracks () {
+  const trackManagerRoleId = await getTrackManagerRoleId()
+  let responsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch()
+  if (!responsibility) {
+    responsibility = await Responsibility.forge({
+      title: Responsibility.constants.RESP_MANAGE_TRACKS,
+      description: 'The ability to create, edit, and delete tracks.',
+      type: 'system'
+    }).save()
+  }
+  const existing = await bookshelf.knex('common_roles_responsibilities')
+    .where({
+      common_role_id: trackManagerRoleId,
+      responsibility_id: responsibility.id
+    })
+    .first()
+  if (!existing) {
+    await bookshelf.knex('common_roles_responsibilities').insert({
+      common_role_id: trackManagerRoleId,
+      responsibility_id: responsibility.id
+    })
+  }
+}
+
 describe('track mutations', () => {
-  let coordinator, member, group
+  let trackManager, member, group
 
   beforeEach(() => {
     spyify(Queue, 'classMethod', () => Promise.resolve())
@@ -33,10 +63,11 @@ describe('track mutations', () => {
   })
 
   before(async () => {
-    coordinator = await factories.user().save()
+    await ensureTrackManagerRoleCanManageTracks()
+    trackManager = await factories.user().save()
     member = await factories.user().save()
     group = await factories.group().save()
-    await assignCoordinator(coordinator, group)
+    await assignTrackManager(trackManager, group)
     await member.joinGroup(group)
   })
 
@@ -44,7 +75,7 @@ describe('track mutations', () => {
 
   describe('createTrack', () => {
     it('creates a track linked to groups', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Onboarding',
         groupIds: [group.id],
         publishedAt: Date.now().toString()
@@ -57,16 +88,16 @@ describe('track mutations', () => {
 
   describe('updateTrack and deleteTrack', () => {
     it('updates when user can manage tracks', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Original',
         groupIds: [group.id]
       })
-      const updated = await updateTrack(coordinator.id, track.id, { name: 'Renamed' })
+      const updated = await updateTrack(trackManager.id, track.id, { name: 'Renamed' })
       expect(updated.get('name')).to.equal('Renamed')
     })
 
     it('rejects update when user cannot manage tracks', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Protected',
         groupIds: [group.id]
       })
@@ -79,17 +110,17 @@ describe('track mutations', () => {
     })
 
     it('deletes when user can manage tracks', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Trash me',
         groupIds: [group.id]
       })
-      await deleteTrack(coordinator.id, track.id)
+      await deleteTrack(trackManager.id, track.id)
       const gone = await Track.find(track.id)
-      expect(gone).to.not.exist
+      expect(gone).to.equal(null)
     })
 
     it('rejects delete when user cannot manage tracks', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Keep',
         groupIds: [group.id]
       })
@@ -103,30 +134,30 @@ describe('track mutations', () => {
   })
 
   describe('duplicateTrack', () => {
-    it('duplicates for a track manager', async () => {
-      const track = await createTrack(coordinator.id, {
+    it('duplicates for a user with manage tracks responsibility', async () => {
+      const track = await createTrack(trackManager.id, {
         name: 'Template',
         groupIds: [group.id]
       })
-      const copy = await duplicateTrack(coordinator.id, track.id)
+      const copy = await duplicateTrack(trackManager.id, track.id)
       expect(copy.get('name')).to.match(/\(copy\)/)
     })
   })
 
   describe('enrollInTrack and leaveTrack', () => {
     it('enrolls when the track is published', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Open',
         groupIds: [group.id],
         publishedAt: Date.now().toString()
       })
       await enrollInTrack(member.id, track.id)
       const tu = await TrackUser.where({ track_id: track.id, user_id: member.id }).fetch()
-      expect(tu.get('enrolled_at')).to.exist
+      expect(!!tu.get('enrolled_at')).to.equal(true)
     })
 
     it('rejects enrollment when the track is not published', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Draft',
         groupIds: [group.id]
       })
@@ -139,7 +170,7 @@ describe('track mutations', () => {
     })
 
     it('clears enrollment on leaveTrack', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Leave me',
         groupIds: [group.id],
         publishedAt: Date.now().toString()
@@ -153,12 +184,12 @@ describe('track mutations', () => {
 
   describe('updateTrackActionOrder', () => {
     it('moves an action within the track order', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Actions',
         groupIds: [group.id]
       })
-      const a1 = await factories.post({ type: Post.Type.ACTION, user_id: coordinator.id }).save()
-      const a2 = await factories.post({ type: Post.Type.ACTION, user_id: coordinator.id }).save()
+      const a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
+      const a2 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       await a1.groups().attach(group)
       await a2.groups().attach(group)
       await Track.addPost(a1, track)
@@ -167,17 +198,17 @@ describe('track mutations', () => {
       const tp2 = await TrackPost.where({ track_id: track.id, post_id: a2.id }).fetch()
       const beforeOrder = tp2.get('sort_order')
       const targetOrder = Math.max(0, beforeOrder - 1)
-      await updateTrackActionOrder(coordinator.id, track.id, a2.id, targetOrder)
+      await updateTrackActionOrder(trackManager.id, track.id, a2.id, targetOrder)
       const tp2After = await TrackPost.where({ track_id: track.id, post_id: a2.id }).fetch()
       expect(tp2After.get('sort_order')).to.equal(targetOrder)
     })
 
     it('rejects when user cannot manage tracks', async () => {
-      const track = await createTrack(coordinator.id, {
+      const track = await createTrack(trackManager.id, {
         name: 'Locked order',
         groupIds: [group.id]
       })
-      const a1 = await factories.post({ type: Post.Type.ACTION, user_id: coordinator.id }).save()
+      const a1 = await factories.post({ type: Post.Type.ACTION, user_id: trackManager.id }).save()
       await a1.groups().attach(group)
       await Track.addPost(a1, track)
       try {

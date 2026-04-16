@@ -10,9 +10,9 @@ module.exports = {
     const handleParams = (params) => {
       let replyData
       try {
-        replyData = Email.decodePostReplyAddress(params.to || params.To)
+        replyData = Email.decodePostReplyAddress(params.to)
       } catch (e) {
-        return res.status(422).send('Invalid reply address: ' + (params.to || params.To))
+        return res.status(422).send('Invalid reply address: ' + params.to)
       }
 
       // Check for autoresponder patterns

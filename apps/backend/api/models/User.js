@@ -947,8 +947,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   async createRsvpCalendarSubscription ({ userId }) {
-    // Include inactive users so background jobs and tests can still resolve the row
-    const user = await User.find(userId, {}, false)
+    const user = await User.find(userId)
     if (process.env.DEBUG_RSVP_CAL_TEST) {
       console.log('[createRsvpCalendarSubscription]', {
         userId,

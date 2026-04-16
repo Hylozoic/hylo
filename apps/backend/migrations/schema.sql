@@ -2184,7 +2184,8 @@ CREATE TABLE public.notifications (
     updated_at timestamp with time zone,
     failed_at timestamp with time zone,
     medium integer,
-    user_id bigint
+    user_id bigint,
+    processing_started_at timestamp with time zone
 );
 
 

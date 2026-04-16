@@ -304,12 +304,20 @@ module.exports = bookshelf.Model.extend({
       const movedWidget = await ContextWidget.where({ id }).fetch({ transacting: trx })
       if (!movedWidget) throw new Error('Context widget not found')
 
+      if (orderInFrontOfWidgetId) {
+        const targetWidget = await ContextWidget.where({ id: orderInFrontOfWidgetId }).fetch({ transacting: trx })
+        if (targetWidget?.get('type') === 'home' && !movedWidget.get('parent_id') && movedWidget.get('type') !== 'home') {
+          throw new Error('The home widget must remain the first widget in the context menu')
+        }
+      }
+
       // Fetch all widgets for the group
       const allWidgets = await ContextWidget.findForGroup(movedWidget.get('group_id'), { transacting: trx })
         .map(widget => ({
           id: widget.get('id'),
           parentId: widget.get('parent_id'),
-          order: widget.get('order')
+          order: widget.get('order'),
+          type: widget.get('type')
         }))
 
       // Define the new widget position
@@ -419,6 +427,13 @@ module.exports = bookshelf.Model.extend({
       const addToEnd = data.add_to_end || data.addToEnd
       const orderInFrontOfWidgetId = data.order_in_front_of_widget_id || data.orderInFrontOfWidgetId
 
+      const viewPatch = {}
+      if (hasViewUpdate) {
+        Object.values(this.ViewFields).forEach(field => {
+          viewPatch[field] = data[field] !== undefined ? data[field] : null
+        })
+      }
+
       // Update the widget with the new data. If a widget is updated, we don't want to auto-add it later.
       await widget.save({
         icon: data.icon,
@@ -434,12 +449,16 @@ module.exports = bookshelf.Model.extend({
         view_post_id: data.view_post_id,
         view_track_id: data.view_track_id,
         view_user_id: data.view_user_id,
-        custom_view_id: data.custom_view_id
+        custom_view_id: data.custom_view_id,
+        ...viewPatch
       }, {
         patch: true,
         transacting: trx
       })
-      await widget.refresh()
+      if (hasViewUpdate && Object.keys(viewPatch).length > 0) {
+        await bookshelf.knex('context_widgets').where({ id: widget.id }).update(viewPatch).transacting(trx)
+      }
+      await widget.refresh({ transacting: trx })
 
       // If the update includes an order or parent_id, reorder the widget
       if (addToEnd || data.parent_id !== undefined || orderInFrontOfWidgetId !== undefined) {
@@ -451,7 +470,7 @@ module.exports = bookshelf.Model.extend({
           trx
         })
       }
-      await widget.refresh()
+      await widget.refresh({ transacting: trx })
       return widget
     }
 
