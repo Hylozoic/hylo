@@ -291,13 +291,28 @@ export default function ChatRoom (props) {
     }
 
     let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
+    let totalFetched = 0
     // Incrementally fetch remaining future pages
     while (true) {
       const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
+      totalFetched += fetched || 0
       if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
       offset += fetched
     }
-  }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length])
+
+    // Worst-case backstop: if we expected new posts but didn't fetch any, drop cached
+    // future query results and force a fresh server read from the latest post we have.
+    if (totalFetched === 0 && (topicFollow?.newPostCount || 0) > 0) {
+      const latestKnownPostId = postsForDisplay[postsForDisplay.length - 1]?.id || topicFollow?.lastReadPostId
+      dispatch(dropPostResults(fetchPostsFutureParams))
+      const refreshed = await fetchPostsFuture(0, { cursor: latestKnownPostId, first: INITIAL_POSTS_TO_LOAD }, true)
+
+      // If counts still indicate unread but refresh returns nothing, trigger full reset flow.
+      if (!refreshed) {
+        dispatch(changeQuerystringParam(location, 'postId', String(Number.MAX_SAFE_INTEGER), null, true))
+      }
+    }
+  }, [dispatch, fetchPostsFuture, fetchPostsFutureParams, location, postsForDisplay, postsFuture?.length, topicFollow?.lastReadPostId, topicFollow?.newPostCount])
 
   const handleNewPostReceived = useCallback((data) => {
     if (!group?.id) return
@@ -815,6 +830,11 @@ const StickyHeader = ({ data, prevData, context }) => {
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
+  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  const showLoadingPulse = context.loadingFuture
+
+  if (!showJumpButton && !showLoadingPulse) return null
+
   return (
     <div
       style={{
@@ -823,8 +843,17 @@ const StickyFooter = ({ context }) => {
         right: 50
       }}
     >
-      {(location.bottomOffset > 200 || context.newPostCount > 0) && (
-        <>
+      <div className='flex flex-col items-center gap-2'>
+        {showLoadingPulse && (
+          <div className='pointer-events-none rounded-full border border-foreground/10 bg-background/90 shadow-sm px-2 py-[3px] animate-pulse' aria-hidden>
+            <div className='flex items-center gap-1'>
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/25' />
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/35' />
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/25' />
+            </div>
+          </div>
+        )}
+        {showJumpButton && (
           <button
             className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
             onClick={() => {
@@ -844,12 +873,14 @@ const StickyFooter = ({ context }) => {
                 )
               : null}
           </button>
+        )}
+        {showJumpButton && (
           <Tooltip
             delay={250}
             id='jump-to-bottom-tt'
           />
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }
