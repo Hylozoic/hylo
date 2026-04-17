@@ -13,6 +13,7 @@ import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
+import logout from 'store/actions/logout'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -32,7 +33,12 @@ export default function RootRouter () {
   useEffect(() => {
     (async function () {
       setLoading(true)
-      await dispatch(checkLogin())
+      const action = await dispatch(checkLogin())
+      // If the server returns me: null the session/cookie is dead. Clear the
+      // persisted ORM (which may still have a stale Me row) so the app does not
+      // briefly appear authenticated on the next load before checkLogin resolves.
+      const me = action?.payload?.data?.me
+      if (!me) dispatch(logout())
       setLoading(false)
     }())
 
