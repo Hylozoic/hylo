@@ -48,6 +48,8 @@ describe('createFundingRound', () => {
     const data = {
       title: 'Community Grants 2024',
       groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
       description: 'A round for community projects',
       criteria: 'Must benefit the community',
       publishedAt: new Date(Date.now() - 1000).getTime().toString() // Set published_at so creator can join
@@ -60,7 +62,7 @@ describe('createFundingRound', () => {
   })
 
   it('throws error when title is missing', async () => {
-    const data = { groupId: group.id }
+    const data = { groupId: group.id, votingMethod: 'token_allocation_constant', totalTokens: 100 }
 
     try {
       await createFundingRound(moderatorUser.id, data)
@@ -71,7 +73,7 @@ describe('createFundingRound', () => {
   })
 
   it('throws error when groupId is missing', async () => {
-    const data = { title: 'Test Round' }
+    const data = { title: 'Test Round', votingMethod: 'token_allocation_constant', totalTokens: 100 }
 
     try {
       await createFundingRound(moderatorUser.id, data)
@@ -82,7 +84,7 @@ describe('createFundingRound', () => {
   })
 
   it('throws error when group does not exist', async () => {
-    const data = { title: 'Test Round', groupId: 999999 }
+    const data = { title: 'Test Round', groupId: 999999, votingMethod: 'token_allocation_constant', totalTokens: 100 }
 
     try {
       await createFundingRound(moderatorUser.id, data)
@@ -93,7 +95,7 @@ describe('createFundingRound', () => {
   })
 
   it('throws error when user does not have permission', async () => {
-    const data = { title: 'Test Round', groupId: group.id }
+    const data = { title: 'Test Round', groupId: group.id, votingMethod: 'token_allocation_constant', totalTokens: 100 }
 
     try {
       await createFundingRound(user.id, data)
@@ -109,6 +111,8 @@ describe('createFundingRound', () => {
     const data = {
       title: 'Test Round',
       groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
       publishedAt: publishedAt.toString(),
       submissionsOpenAt: submissionsOpenAt.toString()
     }
@@ -122,6 +126,8 @@ describe('createFundingRound', () => {
     const data = {
       title: 'Test Round',
       groupId: group.id,
+      votingMethod: 'token_allocation_constant',
+      totalTokens: 100,
       submitterRoles: [{ type: 'common', id: 1 }],
       voterRoles: [{ type: 'common', id: 2 }],
       publishedAt: new Date(Date.now() - 1000).getTime().toString() // Set published_at so creator can join

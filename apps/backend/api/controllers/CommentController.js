@@ -7,30 +7,7 @@ import Busboy from 'busboy'
 
 module.exports = {
   createFromEmail: function (req, res) {
-    // Now parsing with Sendgrid which uses multipart/form-data
-    if (!req.is('multipart/form-data')) {
-      return res.status(422).send({ error: 'Invalid Content-Type' })
-    }
-
-    let busboy
-    const params = {}
-
-    try {
-      // this can throw errors due to invalid Content-Type
-      busboy = new Busboy({
-        headers: req.headers,
-        limits: { files: 1, fileSize: 10 * 1048576 }
-      })
-    } catch (err) {
-      res.status(422).send({ error: err.message })
-    }
-
-    busboy.on('field', (name, value) => {
-      params[name] = value
-    })
-
-    busboy.on('error', err => res.serverError(err))
-    busboy.on('finish', () => {
+    const handleParams = (params) => {
       let replyData
       try {
         replyData = Email.decodePostReplyAddress(params.to)
@@ -83,15 +60,48 @@ module.exports = {
             }
           })
 
-          const text = Comment.cleanEmailText(user, params.text || params.html, {
+          const emailBody = params.text || params['stripped-text'] || params.html || params['stripped-html']
+          const text = Comment.cleanEmailText(user, emailBody, {
             useMarkdown: !post.isThread()
           })
           return createComment(replyData.userId, { text, post, created_from: 'email' })
             .then(() => res.ok({}), res.serverError)
         })
-    })
+    }
 
-    req.pipe(busboy)
+    // Inbound email webhooks send multipart/form-data; parse with Busboy (same path as production).
+    if (typeof req.is !== 'function' || !req.is('multipart/form-data')) {
+      res.status(422).send({ error: 'Invalid Content-Type' })
+      return Promise.resolve()
+    }
+
+    let busboy
+    const params = {}
+
+    try {
+      // this can throw errors due to invalid Content-Type
+      busboy = new Busboy({
+        headers: req.headers,
+        limits: { files: 1, fileSize: 10 * 1048576 }
+      })
+    } catch (err) {
+      res.status(422).send({ error: err.message })
+      return Promise.resolve()
+    }
+
+    return new Promise((resolve, reject) => {
+      busboy.on('field', (name, value) => {
+        params[name] = value
+      })
+      busboy.on('error', err => {
+        res.serverError(err)
+        reject(err)
+      })
+      busboy.on('finish', () => {
+        Promise.resolve(handleParams(params)).then(resolve).catch(reject)
+      })
+      req.pipe(busboy)
+    })
   },
 
   createBatchFromEmailForm: function (req, res) {

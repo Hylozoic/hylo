@@ -11,14 +11,13 @@ export async function addPostToCollection (userId, collectionId, postId) {
     throw new GraphQLError('Not a valid post')
   }
 
-  const order = await CollectionsPost.query(q => {
-    q.select(bookshelf.knex.raw('max("order") as max_order'))
-    q.where({ collection_id: collectionId })
-  })
-    .fetch()
-    .then(result => result.get('max_order'))
+  const row = await bookshelf.knex('collections_posts')
+    .where({ collection_id: collectionId })
+    .select(bookshelf.knex.raw('coalesce(max("order"), -1) as max_order'))
+    .first()
+  const nextOrder = Number(row.max_order) + 1
 
-  await new CollectionsPost({ user_id: userId, collection_id: collectionId, post_id: post.id, order: order ? order + 1 : 0 }).save()
+  await new CollectionsPost({ user_id: userId, collection_id: collectionId, post_id: post.id, order: nextOrder }).save()
 
   return { success: true }
 }

@@ -36,12 +36,10 @@ export default function makeResolvers (models, fetcher) {
 export function createResolverForModel (spec, fetcher) {
   const { attributes, getters, relations, model } = spec
 
+  // Relations in this bridge still auto-create legacy "<relation>Total" fields for non-querySet relations. These were apparently deprecated in 2017!
+  // (e.g. followers -> followersTotal). Merge getters last so explicit model getters win on name collisions.
   return Object.assign(
     transform(attributes, resolveAttribute, {}),
-
-    transform(getters, (result, fn, attr) => {
-      result[attr] = fn
-    }, {}),
 
     transform(relations, (result, attr) => {
       let graphqlName, bookshelfName, typename
@@ -126,6 +124,10 @@ export function createResolverForModel (spec, fetcher) {
             setTimeout(() => reject(new Error('timeout')), 6000)
           })
       }
+    }, {}),
+
+    transform(getters, (result, fn, attr) => {
+      result[attr] = fn
     }, {})
   )
 }
