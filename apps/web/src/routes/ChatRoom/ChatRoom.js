@@ -453,8 +453,7 @@ export default function ChatRoom (props) {
         !hasMorePostsFuture &&
         postsForDisplay.length > 0) {
       const latestPost = postsForDisplay[postsForDisplay.length - 1]
-      if (latestPost?.id && topicFollow?.id &&
-          parseInt(latestPost.id) > parseInt(lastReadPostIdRef.current || 0)) { // TODO: does this work, or does this line prevent it doing what it says it should here?
+      if (latestPost?.id && topicFollow?.id) {
         lastReadPostIdRef.current = latestPost.id
         dispatch(updateTopicFollow(topicFollow.id, { lastReadPostId: latestPost.id }))
       }
