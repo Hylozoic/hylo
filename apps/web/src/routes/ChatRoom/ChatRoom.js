@@ -213,6 +213,10 @@ export default function ChatRoom (props) {
   const postsFuture = useSelector(state => getPostsFutureSelector(state, fetchPostsFutureParams))
   const hasMorePostsFuture = useSelector(state => getPostResults(state, fetchPostsFutureParams)?.hasMore)
 
+  // True only after at least one fetch has completed for the current room's query params.
+  // hasMore is undefined until a response is stored, so this resets automatically on room switch.
+  const hasFetchedForCurrentRoom = hasMorePostsPast !== undefined || hasMorePostsFuture !== undefined
+
   const postsForDisplay = useMemo(() => {
     if (!postsPast && !postsFuture) return []
     const allPosts = [...(postsPast || []), ...(postsFuture || [])].filter(Boolean)
@@ -714,6 +718,7 @@ export default function ChatRoom (props) {
                 context={{
                   currentUser,
                   group,
+                  hasFetchedForCurrentRoom,
                   initialAnimationComplete,
                   latestOldPostId,
                   loadedFuture,
@@ -777,7 +782,7 @@ const EmptyPlaceholder = ({ context }) => {
   const { t } = useTranslation()
   return (
     <div className='mx-auto flex flex-col items-center justify-center max-w-[750px] h-full min-h-[50vh]'>
-      {!context.loadedPast || !context.loadedFuture
+      {!context.loadedPast || !context.loadedFuture || !context.hasFetchedForCurrentRoom
         ? <StreamSkeleton columnVariant='chat' />
         : context.topicName === DEFAULT_CHAT_TOPIC && context.numPosts === 0
           ? <HomeChatWelcome group={context.group} />
