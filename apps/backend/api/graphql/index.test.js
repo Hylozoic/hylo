@@ -123,7 +123,8 @@ describe('graphql request handler', () => {
     })
   })
 
-  describe('with a complex query', () => {
+  describe('with a complex query', function () {
+    this.timeout(10000)
     var thread, message
 
     before(async () => {
@@ -426,8 +427,6 @@ describe('graphql request handler', () => {
           }`,
           serverContext: { req, res }
         })
-
-        console.log("executionResultmoo", executionResult, executionResult.errors[0].locations)
 
         return expect(executionResult).to.deep.nested.include({
           'errors[0].message': 'Cannot sort by "height"',

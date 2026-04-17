@@ -42,8 +42,11 @@ describe('Comment', () => {
 
   describe('sendDigests', () => {
     let u1, u2, post, comments, log, now, group
+    let originalEmailNotificationsEnabled
 
     beforeEach(async () => {
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
       now = new Date()
       log = []
       comments = []
@@ -67,7 +70,10 @@ describe('Comment', () => {
       await (await RedisClient.create()).del(Comment.sendDigests.REDIS_TIMESTAMP_KEY)
     })
 
-    afterEach(() => setup.clearDb())
+    afterEach(async () => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      await setup.clearDb()
+    })
 
     describe('with a message thread', () => {
       beforeEach(() =>

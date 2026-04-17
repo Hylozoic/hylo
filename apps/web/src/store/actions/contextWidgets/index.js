@@ -2,7 +2,6 @@ import {
   CREATE_CONTEXT_WIDGET,
   DELETE_CONTEXT_WIDGET,
   UPDATE_CONTEXT_WIDGET,
-  REORDER_CONTEXT_WIDGET,
   REMOVE_WIDGET_FROM_MENU,
   SET_HOME_WIDGET
 } from 'store/constants'
@@ -138,27 +137,6 @@ export function updateContextWidget ({ contextWidgetId, data, groupId }) {
       contextWidgetId,
       groupId,
       data,
-      optimistic: true
-    }
-  }
-}
-
-export function reorderContextWidget ({ contextWidgetId, order }) {
-  return {
-    type: REORDER_CONTEXT_WIDGET,
-    graphql: {
-      query: `mutation ($contextWidgetId: ID, $order: Int) {
-        reorderContextWidget(contextWidgetId: $contextWidgetId, order: $order) {
-          id
-          order
-          parentId
-        }
-      }`,
-      variables: { contextWidgetId, order }
-    },
-    meta: {
-      contextWidgetId,
-      order,
       optimistic: true
     }
   }

@@ -1,11 +1,24 @@
 var root = require('root-path')
+var nock = require('nock')
 require(root('test/setup'))
 var factories = require(root('test/setup/factories'))
+
+function stubVimeoOembed () {
+  return nock('https://vimeo.com')
+    .get('/api/oembed.json')
+    .query(true)
+    .reply(200, {
+      thumbnail_url: 'https://i.vimeocdn.com/video/555280788-3f8ee9b5a9a54434acff9809c8ab998c22d26487171a868747a1ac4220a15110-d_640',
+      width: 640,
+      height: 360
+    })
+}
 
 describe('Media', () => {
   describe('.createForSubject', () => {
     var post
     beforeEach(() => {
+      stubVimeoOembed()
       post = factories.post()
       return post.save()
     })
@@ -34,6 +47,7 @@ describe('Media', () => {
   describe('.findMediaUrlsForUser', () => {
     let user, post
     beforeEach(async () => {
+      stubVimeoOembed()
       user = await new User({name: 'username', email: 'john@foo.com', active: true}).save()
       post = await factories.post({ description: '<p>hello <a class="mention" data-type="mention" data-id="334" data-label="John Doe">John Doe</a> #MOO</p>', user_id: user.id }).save()
       await Media.createForSubject({
