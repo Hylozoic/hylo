@@ -291,28 +291,13 @@ export default function ChatRoom (props) {
     }
 
     let offset = (postsFuture && postsFuture.length) ? postsFuture.length : 0
-    let totalFetched = 0
     // Incrementally fetch remaining future pages
     while (true) {
       const fetched = await fetchPostsFuture(offset, { first: INITIAL_POSTS_TO_LOAD }, true)
-      totalFetched += fetched || 0
       if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
       offset += fetched
     }
-
-    // Worst-case backstop: if we expected new posts but didn't fetch any, drop cached
-    // future query results and force a fresh server read from the latest post we have.
-    if (totalFetched === 0 && (topicFollow?.newPostCount || 0) > 0) {
-      const latestKnownPostId = postsForDisplay[postsForDisplay.length - 1]?.id || topicFollow?.lastReadPostId
-      dispatch(dropPostResults(fetchPostsFutureParams))
-      const refreshed = await fetchPostsFuture(0, { cursor: latestKnownPostId, first: INITIAL_POSTS_TO_LOAD }, true)
-
-      // If counts still indicate unread but refresh returns nothing, trigger full reset flow.
-      if (!refreshed) {
-        dispatch(changeQuerystringParam(location, 'postId', String(Number.MAX_SAFE_INTEGER), null, true))
-      }
-    }
-  }, [dispatch, fetchPostsFuture, fetchPostsFutureParams, location, postsForDisplay, postsFuture?.length, topicFollow?.lastReadPostId, topicFollow?.newPostCount])
+  }, [dispatch, fetchPostsFuture, location, postsFuture?.length, topicFollow?.newPostCount])
 
   const reconcileChatOnForeground = useCallback(() => {
     if (!group?.id || !topicName) return
