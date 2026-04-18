@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ability to subscribe to a group's calendar
 
 ### Fixed
-- Cross site scripting security hole related to javascript being embedded in DMs and then executed when the DM is viewed. Thank you to Shivam Pandit for finding and reporting this vulnerability.
+- Cross site scripting security hole related to javascript being embedded in DMs and then executed when the DM is viewed. Thank you to [Shivam Pandit](https://www.linkedin.com/in/pandit-shivam) for finding and reporting this vulnerability.
 
 ## [6.2.7] - 2026-01-13
 
