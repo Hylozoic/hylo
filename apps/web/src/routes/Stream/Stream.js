@@ -22,6 +22,7 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
+import MyDrafts from './MyDrafts'
 import GroupCalendarSubscribe from '../GroupCalendarSubscribe/GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
@@ -34,7 +35,7 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
-import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS } from 'store/constants'
+import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, FETCH_CUSTOM_VIEW, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS } from 'store/constants'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import { makeDropQueryResults } from 'store/reducers/queryResults'
@@ -80,7 +81,12 @@ export default function Stream (props) {
 
   const [container, setContainer] = useState(null)
 
-  const view = props.view || routeParams.view
+  // `/my/drafts` historically resolves without an explicit `view` param; keep
+  // this guard so the drafts template still renders when the path comes through.
+  const isMyDraftsRoute = context === CONTEXT_MY && (routeParams.view === VIEW_DRAFTS || location.pathname.includes('/my/drafts'))
+
+  const view = props.view || (isMyDraftsRoute ? VIEW_DRAFTS : routeParams.view)
+  const isDraftsView = context === CONTEXT_MY && view === VIEW_DRAFTS
 
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
@@ -143,7 +149,22 @@ export default function Stream (props) {
   }, [dispatch])
 
   const fetchPostsParam = useMemo(() => {
-    // DEPRECATED: Load same number of posts for all mobile (including webview)
+    if (isDraftsView) {
+      return {
+        activePostsOnly,
+        childPostInclusion,
+        context,
+        filter: postTypeFilter,
+        first: 0,
+        forCollection: null,
+        search,
+        slug: groupSlug,
+        sortBy,
+        topics,
+        types: postTypesAvailable
+      }
+    }
+
     const numPostsToLoad = isMobile.any ? 10 : 20
 
     const params = {
@@ -222,6 +243,10 @@ export default function Stream (props) {
         name = t('Posts')
         icon = 'Posticon'
         break
+      case VIEW_DRAFTS:
+        name = t('Drafts')
+        icon = 'FilePenLine'
+        break
       case VIEW_SAVED_POSTS:
         name = t('Saved Posts')
         icon = <Bookmark />
@@ -256,11 +281,12 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
+    if (isDraftsView) return
     if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
-  }, [fetchPostsParam])
+  }, [fetchPostsParam, isDraftsView])
 
   const changePostTypeFilter = useCallback(postType => {
     dispatch(updateUserSettings({ settings: { streamPostType: postType || '' } }))
@@ -326,13 +352,31 @@ export default function Stream (props) {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
+    if (isDraftsView) {
+      setHeaderDetails({ title: t('Drafts'), icon: 'FilePenLine', info: null, search: false })
+      return
+    }
     setHeaderDetails({
       title: name,
       icon,
       info,
       search: true
     })
-  }, [name, info])
+  }, [icon, info, isDraftsView, name, setHeaderDetails, t])
+
+  if (isDraftsView) {
+    return (
+      <div id='stream-outer-container' className='flex flex-col h-full overflow-auto'>
+        <Helmet>
+          <title>{`${t('Drafts')} | Hylo`}</title>
+          <meta name='description' content={t('Drafts')} />
+        </Helmet>
+        <div className='flex flex-col flex-1 w-full mx-auto p-1 sm:p-4 max-w-[750px]'>
+          <MyDrafts />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div id='stream-outer-container' className='flex flex-col h-full overflow-auto' ref={setContainer}>

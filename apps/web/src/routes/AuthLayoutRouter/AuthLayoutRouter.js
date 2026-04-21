@@ -72,6 +72,7 @@ import FundingRoundHome from 'routes/FundingRoundHome'
 import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
+import { VIEW_DRAFTS } from 'store/constants'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
@@ -853,6 +854,8 @@ export default function AuthLayoutRouter (props) {
                 />
                 {/* **** My Routes **** */}
                 <Route path='my/posts/*' element={<Stream context='my' view='posts' />} />
+                {/* My Drafts is a local-only stream; map it explicitly so `/my/drafts` bypasses settings. */}
+                <Route path='my/drafts/*' element={<Stream context='my' view={VIEW_DRAFTS} />} />
                 <Route path='my/interactions/*' element={<Stream context='my' view='interactions' />} />
                 <Route path='my/announcements/*' element={<Stream context='my' view='announcements' />} />
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
