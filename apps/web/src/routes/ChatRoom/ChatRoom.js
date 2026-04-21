@@ -761,6 +761,7 @@ export default function ChatRoom (props) {
           context='groups'
           customTopicName={customTopicName}
           markAsReadTopicName={topicName}
+          autoFocus={!isMobile.any}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}
