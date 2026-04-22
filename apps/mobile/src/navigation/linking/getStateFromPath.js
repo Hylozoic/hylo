@@ -89,8 +89,11 @@ export function addParamsToScreenPath (routeMatch) {
     if (!isEmpty(pathMatch.params)) routeParams.push(queryString.stringify(pathMatch.params))
     if (!isEmpty(pathMatcher)) routeParams.push(queryString.stringify({ pathMatcher }))
 
-    // Needed for JoinGroup
-    routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
+    // Needed for JoinGroup and most other routes. Skip the auth-link handler
+    // route to avoid duplicating very large JWT query strings in nav state.
+    if (pathMatcher !== '/noo/login/(jwt|token)') {
+      routeParams.push(`originalLinkingPath=${encodeURIComponent(pathname + search)}`)
+    }
 
     const routeParamsQueryString = routeParams.join('&')
     const path = `${pathname}?${routeParamsQueryString}`
