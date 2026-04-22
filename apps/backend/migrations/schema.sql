@@ -1520,7 +1520,8 @@ CREATE TABLE public.groups (
     stripe_payouts_enabled boolean DEFAULT false,
     stripe_details_submitted boolean DEFAULT false,
     paywall boolean DEFAULT false,
-    calendar_token character varying(255)
+    calendar_token character varying(255),
+    home_route character varying(255)
 );
 
 
@@ -2196,7 +2197,8 @@ CREATE TABLE public.notifications (
     updated_at timestamp with time zone,
     failed_at timestamp with time zone,
     medium integer,
-    user_id bigint
+    user_id bigint,
+    processing_started_at timestamp with time zone
 );
 
 

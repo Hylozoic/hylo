@@ -17,20 +17,19 @@ export function getEmptyState () {
   return combinedReducers({}, { type: '' })
 }
 
-// Persist ORM entities plus queryResults (feed/list ordering keys). Without
-// queryResults, re-open shows empty lists until FETCH_POSTS completes even when
-// Post rows exist in the ORM — pending + empty ids caused skeleton/spinner flashes.
-// pending, router, and UI slices stay ephemeral.
+// Persist ORM entities plus queryResults (feed/list ordering keys).
+// queryResults, pending, router, and UI slices stay ephemeral.
 // Version bump here will purge and re-hydrate all clients, running the migration code
 const migrations = {
-  2: (state) => ({ ...state, orm: undefined, queryResults: undefined }) // wipe out all data and start fresh
+  2: (state) => ({ ...state, orm: undefined, queryResults: undefined }), // wipe out all data and start fresh
+  2.1: (state) => ({ ...state, queryResults: undefined }) // stop persisting queryResults
 }
 
 const persistConfig = {
   key: 'hylo',
   storage,
-  whitelist: ['orm', 'queryResults'],
-  version: 2,
+  whitelist: ['orm'],
+  version: 2.1,
   migrate: createMigrate(migrations, { debug: false })
 }
 

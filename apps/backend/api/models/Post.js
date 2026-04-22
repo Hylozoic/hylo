@@ -319,6 +319,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
           'announcement',
           'created_at',
           'description',
+          'edited_at',
           'end_time',
           'id',
           'is_public',

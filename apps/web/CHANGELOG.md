@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.5] - 2026-04-15
+
+### Changed
+- Better loading skeletons for non post based views like the map and calendar
+
+### Fixed
+- Issue where new posts wouldn't appear on some devices
+- Track actions temporarily appearing in chat rooms
+
 ## [6.4.4] - 2026-04-14
 
 ### Added

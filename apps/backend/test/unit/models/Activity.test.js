@@ -28,6 +28,20 @@ function mockUser (memberships, settings = {}) {
 describe('Activity', function () {
   describe('.generateNotificationMedia when postNotifications = important', () => {
     const userSettings = { post_notifications: 'important' }
+    let originalEmailNotificationsEnabled
+    let originalPushNotificationsEnabled
+
+    beforeEach(() => {
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      originalPushNotificationsEnabled = process.env.PUSH_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+      process.env.PUSH_NOTIFICATIONS_ENABLED = 'true'
+    })
+
+    afterEach(() => {
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled
+      process.env.PUSH_NOTIFICATIONS_ENABLED = originalPushNotificationsEnabled
+    })
 
     it('returns an in-app notification from a mention', async () => {
       const memberships = [
@@ -81,7 +95,7 @@ describe('Activity', function () {
         }
       })
 
-      const expected = [0]
+      const expected = []
       const actual = await Activity.generateNotificationMedia(activity)
       expect(actual).to.deep.equal(expected)
     })
@@ -89,7 +103,7 @@ describe('Activity', function () {
     it('returns a push and email for an announcement post if post_notifications = important', async () => {
       const memberships = [
         {
-          settings: { sendPushNotifications: true, sendEmail: true },
+          settings: { sendPushNotifications: true, sendEmail: true, postNotifications: 'important' },
           getSetting: (key) => this.settings[key],
           relations: {
             group: { id: 1 }
