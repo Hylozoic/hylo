@@ -33,6 +33,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
 
+  // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
+  async function postActiveFollowersCount (post) {
+    const row = await bookshelf.knex('posts_users')
+      .join('users', 'users.id', 'posts_users.user_id')
+      .where({
+        'posts_users.post_id': post.get('id'),
+        'posts_users.following': true,
+        'posts_users.active': true,
+        'users.active': true
+      })
+      .count('* as count')
+      .first()
+    const n = row?.count
+    return n != null ? parseInt(String(n), 10) : 0
+  }
+
   return {
     Agreement: {
       model: Agreement,
@@ -497,7 +513,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .sum('tokens_allocated_to as total')
             .first()
           return result?.total ? parseInt(result.total) : 0
-        }
+        },
+        followersTotal: p => postActiveFollowersCount(p)
       },
       relations: [
         { comments: { querySet: true } },
@@ -1144,7 +1161,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: ['created_at', 'updated_at'],
       getters: {
         unreadCount: t => t.unreadCountForUser(userId),
-        lastReadAt: t => t.lastReadAtForUser(userId)
+        lastReadAt: t => t.lastReadAtForUser(userId),
+        participantsTotal: t => postActiveFollowersCount(t)
       },
       relations: [
         { followers: { alias: 'participants' } },

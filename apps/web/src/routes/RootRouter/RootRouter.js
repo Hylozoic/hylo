@@ -1,8 +1,9 @@
 import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes, useNavigate } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
+import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
 import AuthLayoutRouter from 'routes/AuthLayoutRouter'
@@ -21,11 +22,29 @@ if (!isTest) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
 }
 
+/**
+ * During `checkLogin`, avoid BootstrapShell (logged-in nav + feed-shaped skeleton) for URLs
+ * that render login, signup, or other non-auth layouts so the flash matches those pages.
+ */
+function isNeutralRootSessionLoadingPath (pathname) {
+  if (pathname === '/' || pathname === '/login' || pathname === '/reset-password' || pathname === '/notifications') {
+    return true
+  }
+  if (pathname.startsWith('/signup')) return true
+  if (pathname === '/public' || pathname.startsWith('/public/')) return true
+  if (pathname.startsWith('/post/')) return true
+  if (pathname.startsWith('/oauth/')) return true
+  if (pathname === '/h/use-invitation') return true
+  if (pathname.includes('/join/')) return true
+  return false
+}
+
 export default function RootRouter () {
   const dispatch = useDispatch()
   const isAuthorized = useSelector(getAuthorized)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   // This should be the only place we check for a session from the API.
   // Routes will not be available until this check is complete.
@@ -55,6 +74,9 @@ export default function RootRouter () {
   }, [])
 
   if (loading) {
+    if (isNeutralRootSessionLoadingPath(pathname)) {
+      return <Loading type='fullscreen' />
+    }
     return <BootstrapShell />
   }
 

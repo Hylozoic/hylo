@@ -224,6 +224,9 @@ function PostEditorInner ({
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
+  // Default topic to use when not in a chatroom — available immediately from the store
+  const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
+
   const linkPreview = useSelector(state => getLinkPreview(state)) // TODO: probably not working?
   const fetchLinkPreviewPending = useSelector(state => isPendingFor(FETCH_LINK_PREVIEW, state))
   const uploadAttachmentPending = useSelector(getUploadAttachmentPending)
@@ -286,13 +289,13 @@ function PostEditorInner ({
     quorum: 0,
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
-    topics: topic ? [topic] : [],
+    topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
     type: postType || (modal ? 'discussion' : 'chat'),
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, postType, currentGroup, topic, context])
+  }), [inputPost?.id, postType, currentGroup, topic, generalTopic, context])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
@@ -495,6 +498,20 @@ function PostEditorInner ({
         })
         .filter(Boolean) || []
 
+      // Fallback: chatRooms haven't loaded yet but we know the topics from context.
+      // Display topic pills directly so the "to" field isn't empty on initial render.
+      if (chatRoomOptions.length === 0 && currentPost.topics?.length > 0) {
+        return currentPost.topics
+          .filter(Boolean)
+          .map(t => ({
+            id: t.id,
+            group: g,
+            name: `${g.name} #${t.name}`,
+            topic: t,
+            avatarUrl: g.avatarUrl
+          }))
+      }
+
       return chatRoomOptions
     }).flat()
   }, [selectedGroups, currentPost.groups, currentPost.topics])
@@ -594,6 +611,9 @@ function PostEditorInner ({
     // So we only need to add #general if we're NOT in a chatroom
     if (topic?.id) return
 
+    // Action posts should never appear in chat rooms
+    if (postType === 'action') return
+
     // Find the general topic from any selected group's chatRooms
     let generalTopic = null
     for (const group of selectedGroups) {
@@ -613,7 +633,7 @@ function PostEditorInner ({
 
       return { ...prev, topics: [...(prev.topics || []), generalTopic] }
     })
-  }, [selectedGroups, topic?.id])
+  }, [selectedGroups, topic?.id, postType])
 
   /**
    * Resets the editor to its initial state

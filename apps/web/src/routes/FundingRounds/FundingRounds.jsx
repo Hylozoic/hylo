@@ -139,12 +139,12 @@ function FundingRounds () {
         const participantCount = typeof fr.numParticipants === 'number' ? fr.numParticipants : participants.length
 
         return (
-          <div key={fr.id} className='rounded-xl text-foreground p-4 flex flex-row items-start transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-lg relative hover:z-[2] hover:scale-101 duration-400'>
-            <Link to={`${location.pathname}/${fr.id}`} className='flex-1 text-foreground hover:text-foreground'>
-              <div className='flex justify-between flex-col items-start space-y-2 pb-1'>
-                <div className='flex items-center gap-3 text-xl font-semibold'>
+          <div key={fr.id} className='rounded-xl text-foreground p-4 flex flex-col sm:flex-row sm:items-start gap-3 transition-all bg-card/50 hover:bg-card/100 border-2 border-card/30 shadow-xl hover:shadow-lg relative hover:z-[2] hover:scale-101 duration-400'>
+            <Link to={`${location.pathname}/${fr.id}`} className='flex-1 min-w-0 text-foreground hover:text-foreground'>
+              <div className='flex flex-col items-start gap-1 pb-1'>
+                <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold'>
                   <span>{fr.title}</span>
-                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', phase.badgeClass)}>
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', phase.badgeClass)}>
                     {phase.label}
                   </span>
                 </div>
@@ -152,7 +152,7 @@ function FundingRounds () {
               </div>
             </Link>
 
-            <div className='flex flex-col items-end gap-3'>
+            <div className='flex flex-col items-start sm:items-end gap-3 shrink-0'>
               <Link to={`${location.pathname}/${fr.id}`} className='flex items-center gap-3 px-3 py-1 rounded-full bg-foreground/5 text-xs font-medium text-foreground'>
                 {participantPreview.length > 0 && (
                   <div className='flex -space-x-2 items-center'>

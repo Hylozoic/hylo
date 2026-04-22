@@ -54,7 +54,7 @@ describe('mutations/context_widgets', () => {
       // Check unordered widgets exist
       const unorderedWidgets = widgets.filter(w => w.get('order') === null)
 
-      expect(unorderedWidgets.length).to.equal(9) // discussions, stream, events, etc.
+      expect(unorderedWidgets.length).to.equal(14) // discussions, stream, events, tracks, funding-rounds, etc.
     })
 
     it('creates the hearth widget as a child of home', async () => {
@@ -62,31 +62,33 @@ describe('mutations/context_widgets', () => {
       const children = homeWidget.related('children')
 
       expect(children.length).to.equal(1)
-      expect(children.first().get('type')).to.equal('chat')
+      expect(children.first().get('type')).to.equal('viewChat')
       expect(children.first().get('order')).to.equal(1)
     })
   })
 
   describe('reorderContextWidget', () => {
     it('prevents reordering widgets to position 1 (home widget position)', async () => {
-      const setupWidget = await ContextWidget.where({ type: 'setup' }).fetch()
+      const setupWidget = await ContextWidget.where({ type: 'setup', group_id: group.id }).fetch()
+      const homeWidget = await ContextWidget.where({ type: 'home', group_id: group.id }).fetch()
 
       await expect(
         reorderContextWidget({
           userId: user.id,
           contextWidgetId: setupWidget.id,
-          order: 1
+          orderInFrontOfWidgetId: homeWidget.id
         })
       ).to.be.rejectedWith('The home widget must remain the first widget in the context menu')
     })
 
     it('correctly reorders widgets and updates peer orders', async () => {
       const setupWidget = await ContextWidget.where({ type: 'setup', group_id: group.id }).fetch()
+      const chatsWidget = await ContextWidget.where({ type: 'chats', group_id: group.id }).fetch()
 
       await reorderContextWidget({
         userId: user.id,
         contextWidgetId: setupWidget.id,
-        order: 2
+        orderInFrontOfWidgetId: chatsWidget.id
       })
 
       const widgets = await ContextWidget.findForGroup(group.id)
@@ -121,7 +123,7 @@ describe('mutations/context_widgets', () => {
 
       await reorderContextWidget({
         userId: user.id,
-        contextWidgetId: mapWidget.id,
+        contextWidgetId: mapWidget.id
       })
 
       await mapWidget.refresh()
@@ -166,7 +168,7 @@ describe('mutations/context_widgets', () => {
     })
 
     it('prevents non-admin users from updating widgets', async () => {
-      const widget = await ContextWidget.where({ type: 'setup' }).fetch()
+      const widget = await ContextWidget.where({ type: 'setup', group_id: group.id }).fetch()
 
       await expect(
         updateContextWidget({

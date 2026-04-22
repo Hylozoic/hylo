@@ -43,12 +43,14 @@ describe('TagFollow', () => {
       return TagFollow.subscribe(tag.id, user.id, group.id, false)
         .then(() => TagFollow.where(attrs).fetch())
         .then(tagFollow => {
-          expect(tagFollow).not.to.exist
+          expect(tagFollow).to.exist
+          expect(tagFollow.get('settings')).to.deep.equal({})
         })
         .then(() => TagFollow.subscribe(tag.id, user.id, group.id, true))
         .then(() => TagFollow.where(attrs).fetch())
         .then(tagFollow => {
           expect(tagFollow).to.exist
+          expect(tagFollow.get('settings').notifications).to.equal('all')
         })
     })
 
@@ -62,7 +64,8 @@ describe('TagFollow', () => {
       .then(() => TagFollow.subscribe(tag.id, user.id, group.id, false))
       .then(() => TagFollow.where(attrs).fetch())
       .then(tagFollow => {
-        expect(tagFollow).not.to.exist
+        expect(tagFollow).to.exist
+        expect(tagFollow.get('settings').notifications).to.equal(false)
       })
     })
   })
@@ -77,7 +80,9 @@ describe('TagFollow', () => {
       .then(() => TagFollow.findOrCreate({
         tagId: tag.id,
         userId: user.id,
-        groupId: group.id
+        groupId: group.id,
+        isSubscribing: true,
+        isChatRoom: true
       }))
       .then(() => TagFollow.where({
         tag_id: tag.id,

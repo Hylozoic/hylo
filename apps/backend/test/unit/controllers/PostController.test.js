@@ -54,8 +54,11 @@ describe('PostController', () => {
 
       return PostController.createFromEmailForm(req, res)
         .then(() => {
-          const postId = res.redirected.match(/post\/(\d+)/)[1]
-          return Post.find(postId, {withRelated: ['tags', 'groups']})
+          return Post.where({
+            user_id: fixtures.u1.id,
+            name: "I'm looking for a penguin",
+            created_from: 'email_form'
+          }).fetch({ withRelated: ['tags', 'groups'] })
         })
         .then(post => {
           expect(post.get('name')).to.equal("I'm looking for a penguin")

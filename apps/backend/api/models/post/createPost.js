@@ -159,12 +159,14 @@ async function updateTagsAndGroups (post, localId, trx, markAsReadTopicName = nu
     groupMembershipQuery.transacting(trx)
   }
 
+  const trackAsNewPost = ![Post.Type.ACTION, Post.Type.SUBMISSION].includes(post.get('type'))
+
   return Promise.all([
     notifySockets,
-    groupTagsQuery.update({ updated_at: new Date() }),
-    tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
-    activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
-    otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
+    trackAsNewPost && groupTagsQuery.update({ updated_at: new Date() }),
+    trackAsNewPost && tagFollowQuery.update({ updated_at: new Date() }).increment('new_post_count'),
+    trackAsNewPost && activeTopicTagFollowQuery && activeTopicTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
+    trackAsNewPost && otherMyTagFollowQuery && otherMyTagFollowQuery.update({ updated_at: new Date(), last_read_post_id: post.get('id') }),
     groupMembershipQuery.update({ updated_at: new Date() }).increment('new_post_count')
   ])
 }
