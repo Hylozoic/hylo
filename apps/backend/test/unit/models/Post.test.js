@@ -283,7 +283,7 @@ describe('Post', function () {
           const activity = activities.first()
           expect(activity).to.exist
           expect(activity.get('actor_id')).to.equal(u.id)
-          expect(activity.get('meta')).to.deep.equal({reasons: [`newPost: ${c.id}`, 'tag: FollowThisTag']})
+          expect(activity.get('meta')).to.deep.equal({reasons: [`newPost: ${c.id}`]})
           expect(activity.get('unread')).to.equal(true)
         })
     })

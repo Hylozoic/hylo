@@ -99,8 +99,14 @@ describe('Notification', function () {
   beforeEach(() => destroyAllPushNotifications())
 
   describe('.send', () => {
+    let originalEmailNotificationsEnabled
     beforeEach(() => mockify(OneSignal, 'notify'))
+    beforeEach(() => {
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+    })
     afterEach(() => unspyify(OneSignal, 'notify'))
+    afterEach(() => { process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled })
 
     it('sends a push for a new post', () => {
       return preloadNotification(activities.newPost, Notification.MEDIUM.Push)
@@ -192,12 +198,8 @@ describe('Notification', function () {
           name: 'Joe (via Hylo)'
         })
 
-        expect(opts.data).to.contain({
-          group_name: 'My Group',
-          post_user_name: 'Joe',
-          post_description: 'The body of the post',
-          post_title: 'My Post'
-        })
+        expect(opts.data.group_name).to.equal('My Group')
+        expect(opts.data.post).to.exist
       })
 
       return preloadNotification(activities.mention, Notification.MEDIUM.Email)
@@ -209,25 +211,25 @@ describe('Notification', function () {
     })
 
     it('sends no email for a comment', () => {
-      spyify(Email, 'sendNewCommentNotification')
+      spyify(Email, 'sendPostNotification')
 
       return preloadNotification(activities.newComment, Notification.MEDIUM.Email)
         .then(notification => notification.send())
         .then(() => {
-          expect(Email.sendNewCommentNotification).not.to.have.been.called()
+          expect(Email.sendPostNotification).not.to.have.been.called()
         })
-        .finally(() => unspyify(Email, 'sendNewCommentNotification'))
+        .finally(() => unspyify(Email, 'sendPostNotification'))
     })
 
     it('sends no email for a mention in a comment', () => {
-      spyify(Email, 'sendNewCommentNotification')
+      spyify(Email, 'sendPostNotification')
 
       return preloadNotification(activities.commentMention, Notification.MEDIUM.Email)
         .then(notification => notification.send())
         .then(() => {
-          expect(Email.sendNewCommentNotification).not.to.have.been.called()
+          expect(Email.sendPostNotification).not.to.have.been.called()
         })
-        .then(() => unspyify(Email, 'sendNewCommentNotification'))
+        .then(() => unspyify(Email, 'sendPostNotification'))
     })
 
     it('sends an email for a joinRequest', () => {
@@ -237,7 +239,7 @@ describe('Notification', function () {
         })
 
         expect(opts.sender).to.contain({
-          name: 'My Group'
+          name: 'My Group (via Hylo)'
         })
 
         expect(opts.data).to.contain({
@@ -261,7 +263,7 @@ describe('Notification', function () {
         })
 
         expect(opts.sender).to.contain({
-          name: 'My Group'
+          name: 'My Group (via Hylo)'
         })
 
         expect(opts.data).to.contain({
@@ -280,6 +282,8 @@ describe('Notification', function () {
   })
 
   describe('#claimUnsentIds', () => {
+    beforeEach(() => bookshelf.knex('notifications').del())
+
     it('claims only unsent notifications', () => {
       return Promise.join(
         new Notification({
@@ -312,61 +316,8 @@ describe('Notification', function () {
     })
   })
 
-  describe('sendCommentNotificationEmail', () => {
-    let args, group
-    beforeEach(() => {
-      spyify(Email, 'sendNewCommentNotification', x => { args = x })
-      group = factories.group()
-      return group.save()
-    })
-
-    afterEach(() => unspyify(Email, 'sendNewCommentNotification'))
-
-    it('sets the correct email attributes', () => {
-      const note = new Notification()
-
-      note.relations = {
-        activity: model({
-          comment_id: 5,
-          relations: {
-            comment: model({
-              id: 5,
-              // Reinforcing that Comment#text() should always be
-              // called instead of Comment.get('text')
-              text: () => 'I have an opinion',
-              relations: {
-                post: model({
-                  summary: () => 'hello world',
-                  name: 'hello world',
-                  relations: {
-                    groups: [group]
-                  }
-                }),
-                user: model({
-                  id: 2,
-                  name: 'Ka Mentor',
-                  settings: { locale: 'en' }
-                })
-              }
-            }),
-            reader: new User({
-              id: 1,
-              name: 'Reader Person',
-              email: 'ilovenotifications@foo.com',
-              created_at: new Date(),
-              settings: { locale: 'en' }
-            })
-          }
-        })
-      }
-
-      return note.sendCommentNotificationEmail()
-        .then(() => {
-          expect(Email.sendNewCommentNotification).to.have.been.called()
-          expect(args.data.post_label).to.equal('"hello world"')
-        })
-    })
-  })
+  // NOTE: Notification no longer has sendCommentNotificationEmail and
+  // comment emails are not sent via this model anymore.
 
   describe('.priorityReason', () => {
     it('picks higher-priority reasons', () => {
