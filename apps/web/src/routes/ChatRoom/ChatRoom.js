@@ -9,7 +9,7 @@ import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, Routes, Route, useNavigate } from 'react-router-dom'
-import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation } from '@virtuoso.dev/message-list'
+import { VirtuosoMessageList, VirtuosoMessageListLicense, useCurrentlyRenderedData, useVirtuosoLocation, useVirtuosoMethods } from '@virtuoso.dev/message-list'
 
 import { getSocket } from 'client/websockets.js'
 import { useLayoutFlags } from 'contexts/LayoutFlagsContext'
@@ -761,7 +761,6 @@ export default function ChatRoom (props) {
                   handleRemoveProposalVote,
                   handleSwapProposalVote,
                   loadToLatest,
-                  messageListRef,
                   postIdToStartAt,
                   selectedPostId,
                   topicName
@@ -844,6 +843,7 @@ const StickyHeader = ({ data, prevData, context }) => {
 
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
+  const virtuosoMethods = useVirtuosoMethods()
   const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
   const showLoadingPulse = context.loadingFuture
 
@@ -871,13 +871,10 @@ const StickyFooter = ({ context }) => {
           <button
             className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
             onClick={() => {
-              context.messageListRef?.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
               // Ensure the newest posts are loaded before scrolling
               Promise.resolve(context.loadToLatest?.())
                 .then(() => {
-                  requestAnimationFrame(() => {
-                    context.messageListRef?.current?.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
-                  })
+                  virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
                 })
             }}
             data-tooltip-content='Jump to latest post'
