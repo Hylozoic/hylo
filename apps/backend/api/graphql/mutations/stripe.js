@@ -33,6 +33,42 @@ async function getExternalAccountId (accountId) {
   return stripeAccount.get('stripe_account_external_id')
 }
 
+async function getGroupAdminLocale (group) {
+  try {
+    const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetch()
+    if (!admins?.models?.length) {
+      return 'en'
+    }
+
+    const localeCounts = {}
+    for (const adminMembership of admins.models) {
+      const admin = adminMembership.relations.user || await User.find(adminMembership.get('user_id'))
+      const locale = admin?.getLocale?.()?.toLowerCase()?.split('-')?.[0]
+      if (locale) {
+        localeCounts[locale] = (localeCounts[locale] || 0) + 1
+      }
+    }
+
+    const localeEntries = Object.entries(localeCounts)
+    if (!localeEntries.length) {
+      return 'en'
+    }
+
+    localeEntries.sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1]
+      if (a[0] === 'en') return -1
+      if (b[0] === 'en') return 1
+      return a[0].localeCompare(b[0])
+    })
+
+    return localeEntries[0][0]
+  } catch (error) {
+    console.error('Error resolving group admin locale, defaulting to English:', error)
+  }
+
+  return 'en'
+}
+
 module.exports = {
 
   /**
@@ -557,6 +593,7 @@ module.exports = {
       // If sliding scale is enabled, we should charge using a shared unit price
       // for the offering currency (1 unit * chosen quantity).
       const offeringCurrency = offering.get('currency') || 'usd'
+      const effectiveLocale = await getGroupAdminLocale(group)
       const isSlidingScaleEnabled = effectiveAdjustableQuantity?.enabled
 
       // Safety defaults:
@@ -612,7 +649,8 @@ module.exports = {
           externalAccountId,
           offeringCurrency,
           billingInterval,
-          billingIntervalCount
+          billingIntervalCount,
+          effectiveLocale
         )
       }
 
@@ -640,6 +678,7 @@ module.exports = {
         cancelUrl,
         mode: checkoutMode,
         adjustableQuantity: sanitizedAdjustableQuantity,
+        locale: effectiveLocale,
         metadata: {
           groupId,
           offeringId,

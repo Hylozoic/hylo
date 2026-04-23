@@ -91,6 +91,10 @@ exports.fr = {
     return `${reminderMessages[reminderType] || 'Échéance proche'}`
   },
   theTeamAtHylo: 'L’équipe Hylo',
+  stripeContributionProductName: () => 'Choisissez votre contribution Hylo',
+  stripeContributionProductDescription: () => 'Choisissez votre niveau de contribution pour soutenir la plateforme Hylo.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Définissez votre montant de contribution (unités ${currency})`,
+  stripeSlidingScaleUnitProductDescription: () => 'Ajustez la quantité pour choisir votre montant de contribution.',
   donationTaxReceiptInfo: () => '',
   donationImpactMessage: () => 'Votre contribution soutient la plateforme Hylo et notre mission de meilleure coordination et collaboration entre communautés dans le monde.',
   donationRecurringImpactMessage: () => 'Votre contribution récurrente soutient la plateforme Hylo et notre mission de meilleure coordination et collaboration entre communautés dans le monde.'

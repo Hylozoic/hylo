@@ -91,6 +91,10 @@ exports.hi = {
     return `${reminderMessages[reminderType] || 'समय सीमा निकट है'}`
   },
   theTeamAtHylo: 'Hylo की टीम',
+  stripeContributionProductName: () => 'अपना Hylo योगदान चुनें',
+  stripeContributionProductDescription: () => 'Hylo प्लेटफ़ॉर्म को सहयोग देने के लिए अपना योगदान स्तर चुनें।',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `अपनी योगदान राशि तय करें (${currency} इकाइयाँ)`,
+  stripeSlidingScaleUnitProductDescription: () => 'अपनी योगदान राशि चुनने के लिए मात्रा समायोजित करें।',
   donationTaxReceiptInfo: () => '',
   donationImpactMessage: () => 'आपका योगदान Hylo प्लेटफ़ॉर्म और दुनिया भर के समुदायों में बेहतर समन्वय और सहयोग सक्षम करने के हमारे मिशन का समर्थन करता है।',
   donationRecurringImpactMessage: () => 'आपका आवर्ती योगदान Hylo प्लेटफ़ॉर्म और दुनिया भर के समुदायों में बेहतर समन्वय और सहयोग सक्षम करने के हमारे मिशन का समर्थन करता है।'

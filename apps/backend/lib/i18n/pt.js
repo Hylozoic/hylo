@@ -91,6 +91,10 @@ exports.pt = {
     return `${reminderMessages[reminderType] || 'Prazo se aproximando'}`
   },
   theTeamAtHylo: 'A equipe Hylo',
+  stripeContributionProductName: () => 'Escolha sua contribuição para a Hylo',
+  stripeContributionProductDescription: () => 'Escolha o nível da sua contribuição para apoiar a plataforma Hylo.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Defina o valor da sua contribuição (unidades ${currency})`,
+  stripeSlidingScaleUnitProductDescription: () => 'Ajuste a quantidade para escolher o valor da sua contribuição.',
   donationTaxReceiptInfo: () => '',
   donationImpactMessage: () => 'Sua contribuição ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.',
   donationRecurringImpactMessage: () => 'Sua contribuição recorrente ajuda a sustentar a plataforma Hylo e nossa missão de permitir melhor coordenação e colaboração em comunidades no mundo todo.'

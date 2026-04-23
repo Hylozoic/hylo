@@ -11,6 +11,7 @@ const {
   resolvePeriodUnitAmountCentsSync,
   resolvePeriodPriceCentsForCredit
 } = require('../../lib/membershipChangeCredit')
+const { getLocaleStrings } = require('../../lib/i18n/locales')
 
 // Initialize Stripe with API version
 // TODO STRIPE: Replace with your actual Stripe secret key
@@ -24,6 +25,33 @@ const cachedDonationPriceIds = {}
 // Cached sliding-scale unit price IDs per account+currency (created programmatically on first use)
 // Key: `${accountId || 'platform'}:${currency}`, Value: priceId
 const cachedSlidingScaleUnitPriceIds = {}
+
+function normalizeLocale (locale) {
+  if (!locale || typeof locale !== 'string') {
+    return 'en'
+  }
+  return locale.toLowerCase().split('-')[0]
+}
+
+function getStripeContributionCopy ({ locale, currency }) {
+  const localeStrings = getLocaleStrings(normalizeLocale(locale))
+  const upperCurrency = (currency || 'usd').toUpperCase()
+
+  return {
+    contributionProductName: localeStrings.stripeContributionProductName
+      ? localeStrings.stripeContributionProductName()
+      : 'Choose Your Hylo Contribution',
+    contributionProductDescription: localeStrings.stripeContributionProductDescription
+      ? localeStrings.stripeContributionProductDescription()
+      : 'Choose your level of contribution to support the Hylo platform.',
+    slidingScaleUnitProductName: localeStrings.stripeSlidingScaleUnitProductName
+      ? localeStrings.stripeSlidingScaleUnitProductName({ currency: upperCurrency })
+      : `Set Your Contribution Amount (${upperCurrency} units)`,
+    slidingScaleUnitProductDescription: localeStrings.stripeSlidingScaleUnitProductDescription
+      ? localeStrings.stripeSlidingScaleUnitProductDescription()
+      : 'Adjust quantity to choose your contribution amount.'
+  }
+}
 
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
@@ -50,7 +78,7 @@ module.exports = {
    * @param {String} [accountId] - Connected account ID. If provided, creates on that account.
    * @returns {Promise<String>} The contribution line-item price ID
    */
-  async ensureDonationPriceExists (accountId = null) {
+  async ensureDonationPriceExists (accountId = null, locale = 'en') {
     const cacheKey = accountId || 'platform'
 
     // Return cached price ID if we already have it for this account
@@ -59,7 +87,10 @@ module.exports = {
     }
 
     try {
-      const CONTRIBUTION_PRODUCT_NAME = 'Hylo Platform Contribution'
+      const {
+        contributionProductName: CONTRIBUTION_PRODUCT_NAME,
+        contributionProductDescription: CONTRIBUTION_PRODUCT_DESCRIPTION
+      } = getStripeContributionCopy({ locale, currency: 'usd' })
       const CONTRIBUTION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
 
       // Options for connected account API calls
@@ -90,6 +121,16 @@ module.exports = {
       }
 
       if (donationProduct) {
+        // Keep copy in sync for existing products so Checkout label text stays user-friendly.
+        if (
+          donationProduct.name !== CONTRIBUTION_PRODUCT_NAME ||
+          donationProduct.description !== CONTRIBUTION_PRODUCT_DESCRIPTION
+        ) {
+          donationProduct = await stripe.products.update(donationProduct.id, {
+            name: CONTRIBUTION_PRODUCT_NAME,
+            description: CONTRIBUTION_PRODUCT_DESCRIPTION
+          }, stripeOptions)
+        }
         if (process.env.NODE_ENV === 'development') {
           console.log(`Found existing donation product on ${cacheKey}: ${donationProduct.id}`)
         }
@@ -97,7 +138,7 @@ module.exports = {
         // Create the donation product
         donationProduct = await stripe.products.create({
           name: CONTRIBUTION_PRODUCT_NAME,
-          description: 'Optional contribution to the Hylo platform. Thank you for supporting Hylo!',
+          description: CONTRIBUTION_PRODUCT_DESCRIPTION,
           metadata: {
             [CONTRIBUTION_PRODUCT_METADATA_KEY]: 'true'
           }
@@ -159,7 +200,7 @@ module.exports = {
    * @param {Number} billingIntervalCount - Optional recurring interval count (e.g. 3 for quarterly)
    * @returns {Promise<String>} The unit price ID
    */
-  async ensureSlidingScaleUnitPriceExists (accountId, currency = 'usd', billingInterval = null, billingIntervalCount = 1) {
+  async ensureSlidingScaleUnitPriceExists (accountId, currency = 'usd', billingInterval = null, billingIntervalCount = 1, locale = 'en') {
     const normalizedCurrency = (currency || 'usd').toLowerCase()
     const intervalKey = billingInterval ? `${billingInterval}:${billingIntervalCount || 1}` : 'one_time'
     const cacheKey = `${accountId || 'platform'}:${normalizedCurrency}:${intervalKey}`
@@ -175,6 +216,10 @@ module.exports = {
     try {
       const UNIT_PRODUCT_METADATA_KEY = 'hylo_sliding_scale_unit_product'
       const UNIT_CURRENCY_METADATA_KEY = 'hylo_sliding_scale_unit_currency'
+      const {
+        slidingScaleUnitProductName: UNIT_PRODUCT_NAME,
+        slidingScaleUnitProductDescription: UNIT_PRODUCT_DESCRIPTION
+      } = getStripeContributionCopy({ locale, currency: normalizedCurrency })
 
       const stripeOptions = { stripeAccount: accountId }
 
@@ -192,12 +237,20 @@ module.exports = {
 
       if (!unitProduct) {
         unitProduct = await stripe.products.create({
-          name: `Hylo Sliding Scale Unit (${normalizedCurrency.toUpperCase()})`,
-          description: 'Unit price used for sliding-scale offerings (quantity-based pricing).',
+          name: UNIT_PRODUCT_NAME,
+          description: UNIT_PRODUCT_DESCRIPTION,
           metadata: {
             [UNIT_PRODUCT_METADATA_KEY]: 'true',
             [UNIT_CURRENCY_METADATA_KEY]: normalizedCurrency
           }
+        }, stripeOptions)
+      } else if (
+        unitProduct.name !== UNIT_PRODUCT_NAME ||
+        unitProduct.description !== UNIT_PRODUCT_DESCRIPTION
+      ) {
+        unitProduct = await stripe.products.update(unitProduct.id, {
+          name: UNIT_PRODUCT_NAME,
+          description: UNIT_PRODUCT_DESCRIPTION
         }, stripeOptions)
       }
 
@@ -761,7 +814,8 @@ module.exports = {
     successUrl,
     cancelUrl,
     mode = 'payment',
-    metadata = {}
+    metadata = {},
+    locale = 'en'
   }) {
     try {
       // Validate required parameters
@@ -814,7 +868,7 @@ module.exports = {
       // Uses a pre-created price ID (created programmatically on the connected account if it doesn't exist)
       // Note: Recurring platform contributions are not yet supported — only one-time optional_items for now
       try {
-        const donationPriceId = await this.ensureDonationPriceExists(accountId)
+        const donationPriceId = await this.ensureDonationPriceExists(accountId, locale)
 
         // Add one-time contribution option (works for both subscription and payment modes)
         // User can select quantity 0-100 ($0 to $100 in $1 increments)

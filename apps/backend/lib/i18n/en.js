@@ -91,6 +91,10 @@ exports.en = {
     return `${reminderMessages[reminderType] || 'Deadline approaching'}`
   },
   theTeamAtHylo: 'The Team at Hylo',
+  stripeContributionProductName: () => 'Choose Your Hylo Contribution',
+  stripeContributionProductDescription: () => 'Choose your level of contribution to support the Hylo platform.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Set Your Contribution Amount (${currency} units)`,
+  stripeSlidingScaleUnitProductDescription: () => 'Adjust quantity to choose your contribution amount.',
   donationTaxReceiptInfo: () => '',
   donationImpactMessage: () => 'Your contribution helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.',
   donationRecurringImpactMessage: () => 'Your recurring contribution helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.'
