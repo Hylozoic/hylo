@@ -203,7 +203,6 @@
     "redux-logger": "^3.0.6",
     "redux-mock-store": "^1.5.4",
     "redux-orm": "^0.16.2",
-    "redux-persist": "^6.0.0",
     "redux-promise": "^0.6.0",
     "request": "^2.83.0",
     "reselect": "^3.0.1",
