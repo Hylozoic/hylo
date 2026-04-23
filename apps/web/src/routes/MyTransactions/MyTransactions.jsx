@@ -574,12 +574,12 @@ function MyTransactions () {
       )}
 
       {!loading && transactions.length === 0 && (
-        <div className='text-center py-12 bg-card rounded-lg border border-border'>
+        <div className='text-center py-12 px-5 sm:px-8 bg-card rounded-lg border border-border'>
           <CreditCard className='w-12 h-12 mx-auto mb-4 text-muted-foreground' />
           <h2 className='text-lg font-medium text-foreground mb-2'>
             {isInitialState ? t('No transactions yet') : t('No transactions found')}
           </h2>
-          <p className='text-muted-foreground'>
+          <p className='text-muted-foreground max-w-md mx-auto'>
             {isInitialState
               ? t('Your purchases and subscriptions will appear here.')
               : t('Try adjusting your filters to see more results.')}
