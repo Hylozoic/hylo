@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import reducer, { ormSessionReducer } from './AuthLayoutRouter.store'
-import { FETCH_FOR_CURRENT_USER } from 'store/constants'
+import { FETCH_FOR_CURRENT_USER, LOGOUT_PENDING } from 'store/constants'
 import { LOCATION_CHANGE } from 'redux-first-history'
 import rollbar from 'client/rollbar'
 import orm from 'store/models'
@@ -72,5 +72,10 @@ describe('ormSessionReducer', () => {
       avatarUrl: me.avatarUrl,
       name: me.name
     }))
+  })
+
+  it('LOGOUT_PENDING does not throw when Me is absent', () => {
+    const session = orm.session(orm.getEmptyState())
+    expect(() => ormSessionReducer(session, { type: LOGOUT_PENDING })).not.toThrow()
   })
 })
