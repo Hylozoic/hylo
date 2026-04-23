@@ -301,9 +301,20 @@ export default function ChatRoom (props) {
       if (!fetched || fetched < INITIAL_POSTS_TO_LOAD) break
       offset += fetched
     }
-  }, [dispatch, location, topicFollow?.newPostCount, fetchPostsFuture, postsFuture?.length])
+  }, [dispatch, fetchPostsFuture, location, postsFuture?.length, topicFollow?.newPostCount])
+
+  const reconcileChatOnForeground = useCallback(() => {
+    if (!group?.id || !topicName) return
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+
+    // Catch up in case socket events were missed while the tab/app was backgrounded.
+    dispatch(fetchTopicFollow(group.id, topicName))
+    fetchPostsFuture(0, { first: INITIAL_POSTS_TO_LOAD }, true)
+  }, [dispatch, fetchPostsFuture, group?.id, topicName])
 
   const handleNewPostReceived = useCallback((data) => {
+    if (!group?.id) return
+    if (!data.groups?.some(g => String(g.id) === String(group.id))) return
     if (!data.topics?.find(t => t.name === topicName)) return
     const post = presentPost(data, group.id)
     if (!post) return
@@ -333,7 +344,7 @@ export default function ChatRoom (props) {
           }
         })
     }
-  }, [topicName])
+  }, [group?.id, topicName])
 
   const resetInitialPostToScrollTo = useCallback(() => {
     if (loadedPast && loadedFuture) {
@@ -356,7 +367,27 @@ export default function ChatRoom (props) {
     return () => {
       socket.off('newPost', handleNewPostReceived)
     }
-  }, [topicName])
+  }, [socket, handleNewPostReceived])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        reconcileChatOnForeground()
+      }
+    }
+
+    const handleWindowFocus = () => {
+      reconcileChatOnForeground()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleWindowFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleWindowFocus)
+    }
+  }, [reconcileChatOnForeground])
 
   useEffect(() => {
     // New chat room loaded, reset everything
@@ -761,6 +792,7 @@ export default function ChatRoom (props) {
           context='groups'
           customTopicName={customTopicName}
           markAsReadTopicName={topicName}
+          autoFocus={!isMobile.any}
           modal={false}
           onSave={onCreate}
           afterSave={afterCreate}
@@ -817,6 +849,11 @@ const StickyHeader = ({ data, prevData, context }) => {
 const StickyFooter = ({ context }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
+  const showJumpButton = location.bottomOffset > 200 || context.newPostCount > 0
+  const showLoadingPulse = context.loadingFuture
+
+  if (!showJumpButton && !showLoadingPulse) return null
+
   return (
     <div
       style={{
@@ -825,8 +862,17 @@ const StickyFooter = ({ context }) => {
         right: 50
       }}
     >
-      {(location.bottomOffset > 200 || context.newPostCount > 0) && (
-        <>
+      <div className='w-8 flex flex-col items-center gap-2'>
+        {showLoadingPulse && (
+          <div className='h-8 w-8 pointer-events-none rounded-full border border-foreground/10 bg-background/90 shadow-sm animate-pulse flex items-center justify-center' aria-hidden>
+            <div className='flex items-center gap-1'>
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/25' />
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/35' />
+              <div className='h-1.5 w-1.5 rounded-full bg-foreground/25' />
+            </div>
+          </div>
+        )}
+        {showJumpButton && (
           <button
             className='relative flex items-center justify-center bg-background border-2 border-foreground/15 rounded-full w-8 h-8 text-foreground/50 hover:text-foreground'
             onClick={() => {
@@ -846,12 +892,14 @@ const StickyFooter = ({ context }) => {
                 )
               : null}
           </button>
+        )}
+        {showJumpButton && (
           <Tooltip
             delay={250}
             id='jump-to-bottom-tt'
           />
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -120,6 +120,7 @@ function PostEditor ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   markAsReadTopicName = null,
+  autoFocus = true,
   modal = true,
   post: propsPost,
   editing = false,
@@ -237,6 +238,9 @@ function PostEditor ({
   const groupOptions = useMemo(() => {
     return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
   }, [currentUser?.memberships])
+  const isChat = currentPost.type === 'chat'
+  const isAction = currentPost.type === 'action'
+  const isSubmission = currentPost.type === 'submission'
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
@@ -393,11 +397,11 @@ function PostEditor ({
   }, [currentTrack?.actionDescriptor, currentPost.completionActionSettings])
 
   useEffect(() => {
-    if (isChat) {
+    if (autoFocus && isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
       }, 500)
-    } else {
+    } else if (autoFocus) {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
     return () => {
@@ -509,15 +513,17 @@ function PostEditor ({
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
-    if (isChat) {
+    if (autoFocus && isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
       }, 500)
-    } else {
+    } else if (autoFocus) {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    } else {
+      toFieldRef?.current?.reset()
     }
-  }, [initialPost])
+  }, [initialPost, autoFocus, isChat])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -964,10 +970,6 @@ function PostEditor ({
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
-  const isChat = currentPost.type === 'chat'
-  const isAction = currentPost.type === 'action'
-  const isSubmission = currentPost.type === 'submission'
-
   /**
    * Handles the To field container click, focusing the actual ToField
    * This improves UX by making the entire container clickable
