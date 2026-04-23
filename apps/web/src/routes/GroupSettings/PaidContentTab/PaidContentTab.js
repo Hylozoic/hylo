@@ -13,7 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, Routes, Route, useLocation } from 'react-router-dom'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Clock } from 'lucide-react'
 import isMobile from 'ismobilejs'
 
 import Loading from 'components/Loading'
@@ -370,6 +370,15 @@ function PaidContentTab ({ group, currentUser }) {
           <>
             <p>{t('Use Paid Content to create offerings that members can access through payment.')}</p>
             <p>{t('To start, set up Stripe Connect to accept payments for group memberships, Tracks, and other offerings. Stripe handles all payment processing securely.')}</p>
+            <div
+              className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'
+              role='note'
+            >
+              <Clock className='w-6 h-6 sm:w-7 sm:h-7 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+              <p className='text-sm sm:text-base font-semibold text-foreground leading-snug m-0'>
+                {t('After you finish the steps on Stripe, account verification often completes within a couple of hours, but it can take longer. You can use Check Stripe Status or refresh the page while you wait.')}
+              </p>
+            </div>
           </>
         )}
         {currentTab === 'offerings' && (
