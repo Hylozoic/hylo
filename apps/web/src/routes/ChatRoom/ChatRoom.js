@@ -675,7 +675,7 @@ export default function ChatRoom (props) {
     if (!post) return
     // Only match the pending item (requires item.pending) to avoid matching old rehydrated posts
     // that may share the same localId after a page reload (lodash uniqueId resets from 0 each load).
-    // Clear localId on the confirmed post so it's never persisted to redux-persist.
+    // Clear localId on the confirmed post so it's never persisted to redux-persist (if we ever bring that back).
     const confirmedPost = { ...post, localId: undefined }
     messageListRef.current?.data.map((item) => item.pending && post.localId && item.localId && post.localId === item.localId ? confirmedPost : item)
     if (!notificationsSetting) {
