@@ -52,12 +52,7 @@ export default function RootRouter () {
   useEffect(() => {
     (async function () {
       setLoading(true)
-      const action = await dispatch(checkLogin())
-      // If the server returns me: null the session/cookie is dead. Clear the
-      // persisted ORM (which may still have a stale Me row) so the app does not
-      // briefly appear authenticated on the next load before checkLogin resolves.
-      const me = action?.payload?.data?.me
-      if (!me) dispatch(logout())
+      await dispatch(checkLogin())
       setLoading(false)
     }())
 
