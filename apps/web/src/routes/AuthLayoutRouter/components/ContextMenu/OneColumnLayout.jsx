@@ -2,7 +2,7 @@ import { cn, bgImageStyle } from 'util/index'
 import { Bell, Settings, Users, Copy, ExternalLink, GripHorizontal, Plus, Pencil, Trash, House, X, Grid3x3 } from 'lucide-react'
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   DndContext,
@@ -16,10 +16,9 @@ import ContextWidgetPresenter, {
   orderContextWidgetsForContextMenu,
   allViewsWidget,
   isHiddenInContextMenuResolver,
-  COMMON_VIEWS,
   translateTitle
 } from '@hylo/presenters/ContextWidgetPresenter'
-import { widgetUrl, groupUrl, currentUserSettingsUrl, postUrl, chatUrl, addQuerystringToPath } from '@hylo/navigation'
+import { widgetUrl, groupUrl, currentUserSettingsUrl, addQuerystringToPath } from '@hylo/navigation'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import { getContextWidgets } from 'store/selectors/contextWidgetSelectors'
 import { RESP_ADMINISTRATION } from 'store/constants'
@@ -28,95 +27,10 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import WidgetIconResolver from 'components/WidgetIconResolver'
 import { Tooltip, TooltipTrigger, TooltipContent } from 'components/ui/tooltip'
 import { Dialog, DialogContent, DialogTitle } from 'components/ui/dialog'
-import fetchPosts from 'store/actions/fetchPosts'
-import { fetchGroupMembers } from 'routes/Members/Members.store'
 import { updateContextWidget, removeWidgetFromMenu, setHomeWidget } from 'store/actions/contextWidgets'
 import getMe from 'store/selectors/getMe'
 import { mapbox as mapboxConfig } from 'config'
 import { useTheme } from 'contexts/ThemeContext'
-import PostDialog from 'components/PostDialog'
-
-function useRecentPosts ({ widget, groupSlug }) {
-  const dispatch = useDispatch()
-  const [posts, setPosts] = useState([])
-  const [totalCount, setTotalCount] = useState(0)
-
-  useEffect(() => {
-    if (!groupSlug || !widget) return
-
-    let params = null
-
-    const baseParams = {
-      context: 'groups',
-      slug: groupSlug,
-      first: 2,
-      sortBy: 'updated',
-      order: 'desc',
-      childPostInclusion: 'no'
-    }
-
-    if (widget.view === 'map') {
-      params = { ...baseParams, first: 20 }
-    } else if (widget.view === 'events') {
-      params = { ...baseParams, first: 4, types: ['event'], sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
-    } else if (widget.view && COMMON_VIEWS[widget.view]?.postTypes) {
-      params = { ...baseParams, types: COMMON_VIEWS[widget.view].postTypes }
-    } else if (widget.view === 'stream') {
-      params = { ...baseParams }
-    } else if (widget.viewChat) {
-      params = { ...baseParams, topic: widget.viewChat.id, filter: 'chat', sortBy: 'id' }
-    } else if (widget.customView && !widget.customView.externalLink) {
-      const isCalendarView = widget.customView.postTypes?.includes('event')
-      params = {
-        ...baseParams,
-        ...(widget.customView.collectionId ? { forCollection: widget.customView.collectionId } : {}),
-        ...(widget.customView.postTypes?.length ? { types: widget.customView.postTypes } : {}),
-        ...(widget.customView.topics?.length ? { topics: widget.customView.topics.map(t => t.id) } : {}),
-        ...(isCalendarView
-          ? { first: 4, sortBy: 'start_time', order: 'asc', afterTime: new Date().toISOString() }
-          : {})
-      }
-    }
-
-    if (!params) return
-
-    const isChat = !!widget.viewChat
-    dispatch(fetchPosts(params)).then(result => {
-      const items = result?.payload?.data?.group?.posts?.items || []
-      const total = result?.payload?.data?.group?.posts?.total || 0
-      setPosts(isChat ? [...items].reverse() : items)
-      setTotalCount(total)
-    }).catch(() => {})
-  }, [widget?.id, groupSlug])
-
-  return { posts, totalCount }
-}
-
-function useMembers ({ widget, groupSlug, groupId }) {
-  const dispatch = useDispatch()
-  const me = useSelector(getMe)
-  const [members, setMembers] = useState([])
-
-  useEffect(() => {
-    if (widget.type !== 'members' || !groupId) return
-
-    dispatch(fetchGroupMembers({ slug: groupSlug, groupId, first: 5, sortBy: 'last_active_at', order: 'desc' })).then(
-      response => {
-        const items = response.payload?.data?.group?.members?.items || []
-        setMembers(items.filter(m => m.id !== me?.id))
-      }
-    ).catch(() => {})
-  }, [widget.type, groupId])
-
-  return members
-}
-
-function isUserOnline (lastActiveAt) {
-  if (!lastActiveAt) return false
-  const minute = 1000 * 60
-  return new Date(parseInt(lastActiveAt)) > new Date(Date.now() - minute * 4)
-}
-
 // Drop zone between cards
 function CardDropZone ({ droppableParams, isRemoval, children }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
@@ -238,7 +152,7 @@ function AddViewCard ({ parentId, handlePositionedAdd, onShowAllViews, t, isChat
     <div
       className={cn(
         'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-foreground/20',
-        'p-4 gap-3 w-full max-w-[300px] min-h-[100px]'
+        'p-3 gap-3 w-[240px] h-[240px]'
       )}
     >
       <button
@@ -265,10 +179,6 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
   const externalLink = widget.customView?.externalLink || widget.url
   const isExternal = !!(widget.customView?.externalLink || (widget.url && widget.url.startsWith('http')))
   const [copied, setCopied] = useState(false)
-  const { posts, totalCount } = useRecentPosts({ widget, groupSlug })
-  const remainingCount = totalCount > posts.length ? totalCount - posts.length : 0
-  const members = useMembers({ widget, groupSlug, groupId })
-  const isMembers = widget.type === 'members'
   const isWelcome = widget.view === 'welcome'
   const welcomeText = isWelcome && group?.welcomePage
     ? group.welcomePage.replace(/<[^>]*>/g, '').trim()
@@ -279,19 +189,10 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
   const mapStyle = effectiveColorScheme === 'dark' ? 'dark-v11' : 'light-v11'
   const mapCenter = group?.locationObject?.center || currentUser?.locationObject?.center
 
-  // Build marker overlay from posts that have locations
-  const mapMarkers = useMemo(() => {
-    if (!isMap || !posts.length) return ''
-    const pins = posts
-      .filter(p => p.locationObject?.center?.lng && p.locationObject?.center?.lat)
-      .map(p => `pin-s+e74c3c(${p.locationObject.center.lng},${p.locationObject.center.lat})`)
-    return pins.length ? pins.join(',') + '/' : ''
-  }, [isMap, posts])
-
   const staticMapUrl = isMap && mapboxConfig.token
     ? mapCenter
-      ? `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapMarkers}${mapCenter.lng},${mapCenter.lat},4,0/280x200@2x?access_token=${mapboxConfig.token}`
-      : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapMarkers}0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
+      ? `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/${mapCenter.lng},${mapCenter.lat},4,0/280x200@2x?access_token=${mapboxConfig.token}`
+      : `https://api.mapbox.com/styles/v1/mapbox/${mapStyle}/static/0,20,1,0/280x200@2x?access_token=${mapboxConfig.token}`
     : null
 
   const canDrag = isEditing && widget.type !== 'home' && widget.type !== 'all-views'
@@ -321,7 +222,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
       onClick={handleClick}
       className={cn(
         'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50',
-        'transition-all p-4 w-full max-w-[300px] aspect-[3/4]',
+        'transition-all p-3 w-[240px] h-[240px]',
         isEditing ? 'cursor-grab' : 'cursor-pointer hover:border-foreground/30 hover:shadow-md'
       )}
     >
@@ -339,7 +240,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
 
       {/* Icon + title centered in available space */}
       <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-        <span className='text-foreground/60 flex items-center justify-center w-[40px] h-[40px] [&>svg]:!w-full [&>svg]:!h-full [&>span]:!text-[40px] [&>span]:!leading-none'>
+        <span className='text-foreground/60 flex items-center justify-center w-[32px] h-[32px] [&>svg]:!w-full [&>svg]:!h-full [&>span]:!text-[32px] [&>span]:!leading-none'>
           <WidgetIconResolver widget={widget} />
         </span>
         <h3 className='text-base font-semibold text-foreground line-clamp-2'>{title}</h3>
@@ -368,31 +269,6 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
         </div>
       )}
 
-      {!isEditing && isMembers && members.length > 0 && (
-        <div className='flex flex-col gap-1.5 mt-auto'>
-          {members.map(member => (
-            <div
-              key={member.id}
-              onClick={(e) => { e.stopPropagation(); navigate(`/groups/${groupSlug}/members/${member.id}`) }}
-              className='flex items-center gap-2 px-2 py-1.5 rounded-md bg-foreground/5 hover:bg-foreground/10 text-xs cursor-pointer transition-colors'
-            >
-              {member.avatarUrl && (
-                <div className='relative shrink-0'>
-                  <div
-                    className='w-5 h-5 rounded-full bg-cover bg-center'
-                    style={{ backgroundImage: `url(${member.avatarUrl})` }}
-                  />
-                  {isUserOnline(member.lastActiveAt) && (
-                    <span className='absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 border border-card' />
-                  )}
-                </div>
-              )}
-              <span className='truncate text-foreground/70 flex-1'>{member.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {!isEditing && isMap && staticMapUrl && (
         <div className='mt-auto -mx-2 -mb-2 rounded-b-lg overflow-hidden'>
           <img
@@ -415,38 +291,6 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
         </div>
       )}
 
-      {!isEditing && !isExternal && !isMembers && !isWelcome && posts.length > 0 && (
-        <div className='flex flex-col gap-1.5 mt-auto'>
-          {posts.map(post => {
-            const postLink = widget.viewChat
-              ? chatUrl(widget.viewChat.name, { groupSlug, context: 'group' })
-              : postUrl(post.id, { groupSlug, context: 'groups' })
-            return (
-              <div
-                key={post.id}
-                onClick={(e) => { e.stopPropagation(); navigate(postLink) }}
-                className='flex items-center gap-2 px-2 py-1.5 rounded-md bg-foreground/5 hover:bg-foreground/10 text-xs cursor-pointer transition-colors'
-              >
-                {post.creator?.avatarUrl && (
-                  <div
-                    className='w-5 h-5 rounded-full bg-cover bg-center shrink-0'
-                    style={{ backgroundImage: `url(${post.creator.avatarUrl})` }}
-                  />
-                )}
-                <span className='truncate text-foreground/70 flex-1'>{post.title || post.details?.replace(/<[^>]*>/g, '').substring(0, 40)}</span>
-              </div>
-            )
-          })}
-          {remainingCount > 0 && (
-            <button
-              onClick={handleClick}
-              className='text-xs text-foreground/40 hover:text-foreground/60 transition-colors py-1'
-            >
-              {t('{{count}} more...', { count: remainingCount })}
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -661,11 +505,6 @@ export default function OneColumnLayout ({ group }) {
 
   return (
     <div className='OneColumnLayout w-full h-full overflow-y-auto' id='one-column-layout'>
-      {/* Post dialog overlay */}
-      <Routes>
-        <Route path='post/:postId/*' element={<PostDialog container={document.getElementById('one-column-layout')} />} />
-      </Routes>
-
       {/* Group Banner - full width */}
       <div className='relative w-full'>
         <div className='relative h-[220px] overflow-hidden'>
@@ -725,7 +564,7 @@ export default function OneColumnLayout ({ group }) {
               {cardGrid}
               <DragOverlay dropAnimation={null}>
                 {activeWidget && (
-                  <div className='w-[300px] opacity-80 rotate-2'>
+                  <div className='w-[240px] opacity-80 rotate-2'>
                     <WidgetCard
                       widget={activeWidget}
                       groupSlug={groupSlug}
