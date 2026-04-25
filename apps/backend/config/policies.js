@@ -89,5 +89,12 @@ module.exports.policies = {
 
   PaymentController: {
     registerStripe: ['sessionAuth']
+  },
+
+  StripeController: {
+    webhook: true,
+    checkoutSuccess: true,
+    checkoutCancel: true,
+    health: true
   }
 }

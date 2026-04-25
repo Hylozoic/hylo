@@ -10,7 +10,8 @@ export default function SettingsControl (props) {
   let control
 
   if (renderControl) {
-    control = renderControl(props)
+    // Pass only the props that should go to the control element, excluding renderControl and helpText
+    control = renderControl({ id, value, onChange, ...otherProps })
   } else {
     switch (type) {
       case 'textarea':
@@ -73,7 +74,7 @@ export default function SettingsControl (props) {
             onChange={onChange}
             readOnly={!onChange}
             className='bg-darkening/20 rounded-lg text-foreground placeholder-foreground/40  w-full p-4 outline-none focus:outline-focus focus:outline-2'
-            type='text'
+            type={type || 'text'}
             style={inputStyle}
             value={value}
             {...otherProps}

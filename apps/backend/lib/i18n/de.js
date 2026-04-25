@@ -90,5 +90,12 @@ exports.de = {
     }
     return `${reminderMessages[reminderType] || 'Frist naht'}`
   },
-  theTeamAtHylo: 'Das Hylo-Team'
+  theTeamAtHylo: 'Das Hylo-Team',
+  stripeContributionProductName: () => 'Wähle deinen Hylo-Beitrag',
+  stripeContributionProductDescription: () => 'Wähle deine Beitragshöhe, um die Hylo-Plattform zu unterstützen.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Lege deinen Beitragsbetrag fest (${currency}-Einheiten)`,
+  stripeSlidingScaleUnitProductDescription: () => 'Passe die Menge an, um deinen Beitragsbetrag zu wählen.',
+  donationTaxReceiptInfo: () => '',
+  donationImpactMessage: () => 'Dein Beitrag unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.',
+  donationRecurringImpactMessage: () => 'Dein wiederkehrender Beitrag unterstützt die Hylo-Plattform und unsere Mission, bessere Koordination und Zusammenarbeit in Gemeinschaften weltweit zu ermöglichen.'
 }

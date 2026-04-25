@@ -48,7 +48,8 @@ export default function GroupWelcomeModal (props) {
   const [questionAnswers, setQuestionAnswers] = useState(group?.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
-  const hasFirstPage = numAgreements > 0
+  // Only show first page (agreements) if there are agreements that need to be accepted
+  const hasFirstPage = agreementsChanged
   const hasSecondPage = (group?.settings?.askJoinQuestions && questionAnswers?.length > 0 && !joinQuestionsAnsweredAt) ||
     (group?.settings?.showSuggestedSkills && group?.suggestedSkills?.length > 0)
 
@@ -72,13 +73,13 @@ export default function GroupWelcomeModal (props) {
 
       // not loading answers right now, so we know if answered before by whether joinQuestionsAnsweredAt is set
       setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
-
-      // If dont have agreements to show come straight to the join questions page
-      if (!hasFirstPage) {
-        setPage(2)
-      }
     }
-  }, [group?.joinQuestions?.length])
+
+    // If dont have agreements to show come straight to the second page
+    if (!hasFirstPage) {
+      setPage(2)
+    }
+  }, [group?.joinQuestions?.length, hasFirstPage])
 
   useEffect(() => {
     // After the member joins the group, make sure we know whether they have already answered the questions or not
@@ -162,7 +163,7 @@ export default function GroupWelcomeModal (props) {
                   <h2>{t('Our Purpose')}</h2>
                   <p>{group.purpose}</p>
                 </div>}
-              {group.agreements?.length > 0 && (
+              {agreementsChanged && (
                 <div className='mt-4 border-2 border-dashed border-foreground/20 rounded-xl p-4'>
                   <h2 className='text-center'>{t('Our Agreements')}</h2>
                   {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged

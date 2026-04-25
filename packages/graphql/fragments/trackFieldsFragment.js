@@ -3,6 +3,8 @@ import { gql } from 'urql'
 export default gql`
   fragment TrackFields on Track {
     id
+    accessControlled
+    canAccess
     bannerUrl
     actionDescriptor
     actionDescriptorPlural

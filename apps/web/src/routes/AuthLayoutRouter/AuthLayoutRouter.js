@@ -44,6 +44,8 @@ import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
+import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
+import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
@@ -62,6 +64,8 @@ import Messages from 'routes/Messages'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import MyTransactions from 'routes/MyTransactions'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
@@ -520,6 +524,23 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
+  // Redirect to stream if user is a member but doesn't have access (expired subscription)
+  useEffect(() => {
+    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
+      const currentPath = location.pathname
+      const streamPath = `/groups/${currentGroupSlug}/stream`
+      // Only redirect if not already on stream page
+      if (!currentPath.includes('/stream')) {
+        // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
+        // Close the nav so the paywall / no-access stream view is visible after redirect.
+        if (typeof window !== 'undefined' && window.innerWidth < 640) {
+          dispatch(toggleNavMenu(false))
+        }
+        navigate(streamPath, { replace: true })
+      }
+    }
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
+
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
@@ -842,6 +863,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='payment/success' element={<PaymentSuccess />} />
+                            <Route path='payment/cancel' element={<PaymentFailure />} />
+                            <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
@@ -858,11 +882,13 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />

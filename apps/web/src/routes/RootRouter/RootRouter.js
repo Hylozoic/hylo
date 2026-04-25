@@ -13,6 +13,7 @@ import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import logout from 'store/actions/logout'
 import { getAuthorized } from 'store/selectors/getAuthState'
@@ -134,6 +135,9 @@ export default function RootRouter () {
         {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
         <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
         <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
+
+        {/* Public offering details page (no auth required) */}
+        <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />
       </Routes>

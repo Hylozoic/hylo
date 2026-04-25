@@ -22,6 +22,7 @@ import PostGridItem from 'components/PostGridItem'
 import PostBigGridItem from 'components/PostBigGridItem'
 import PostLabel from 'components/PostLabel'
 import PostPrompt from './PostPrompt'
+import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import GroupCalendarSubscribe from '../GroupCalendarSubscribe/GroupCalendarSubscribe'
 import ScrollListener from 'components/ScrollListener'
 import ViewControls from 'components/StreamViewControls'
@@ -85,6 +86,9 @@ export default function Stream (props) {
   const currentUserHasMemberships = useSelector(state => !isEmpty(getMyMemberships(state)))
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const groupId = group?.id || 0
+  const hasAccess = group?.canAccess !== false
+  const showPaywallBlock =
+    Boolean(group?.paywall && !hasAccess && context !== CONTEXT_MY && context !== 'public' && groupSlug)
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
 
   const systemView = COMMON_VIEWS[view]
@@ -353,7 +357,7 @@ export default function Stream (props) {
           isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
         )}
       >
-        {hasPostPrompt && (
+        {hasPostPrompt && !showPaywallBlock && (
           <PostPrompt
             avatarUrl={currentUser.avatarUrl}
             firstName={currentUser.firstName()}
@@ -363,79 +367,92 @@ export default function Stream (props) {
             postTypesAvailable={postTypesAvailable}
           />
         )}
-        <ViewControls
-          routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={customView?.type}
-          sortBy={sortBy} viewMode={viewMode} searchValue={search}
-          changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
-          changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
-          changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
-        />
-        {!isCalendarViewMode && (
-          <MasonryGrid
-            enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
-            gap={8}
-            className={cn(styles.streamItems, {
-              [styles.streamGrid]: viewMode === 'grid',
-              [styles.bigGrid]: viewMode === 'bigGrid',
-              'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
-            })}
-          >
-
-            {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
-
-            {posts.map(post => {
-              const groupSlugs = post.groups.map(group => group.slug)
-              return (
-                <ViewComponent
-                  className={cn({ [styles.cardItem]: viewMode === 'cards' })}
-                  routeParams={routeParams}
-                  post={post}
-                  group={group}
-                  key={post.id}
-                  currentGroupId={group && group.id}
-                  currentUser={currentUser}
-                  querystringParams={querystringParams}
-                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
-                />
-              )
-            })}
-          </MasonryGrid>
+        {!showPaywallBlock && (
+          <ViewControls
+            routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={customView?.type}
+            sortBy={sortBy} viewMode={viewMode} searchValue={search}
+            changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
+            changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
+            changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
+          />
         )}
-        {!pending && !customViewLoading && isCalendarViewMode && (
-          <div className='calendarView'>
-            <Calendar
-              posts={posts}
-              group={group}
-              routeParams={routeParams}
-              querystringParams={querystringParams}
-              date={calendarDate}
-              setDate={setCalendarDate}
-              mode={calendarMode}
-              setMode={setCalendarMode}
-            />
-            {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
-            {!group && view === 'events' && calendarMode === 'month' && (
-              <GroupCalendarSubscribe
-                eventCalendarUrl={rsvpCalendarUrl}
-                buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
-                modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
-                onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
+        {showPaywallBlock
+          ? (
+            <div className='mt-4'>
+              <PaywallOfferingsSection group={group} />
+            </div>
+            )
+          : (
+            <>
+              {!isCalendarViewMode && (
+                <MasonryGrid
+                  enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
+                  gap={8}
+                  className={cn(styles.streamItems, {
+                    [styles.streamGrid]: viewMode === 'grid',
+                    [styles.bigGrid]: viewMode === 'bigGrid',
+                    'border-2 border-foreground/10 rounded-md bg-card overflow-hidden': viewMode === 'list'
+                  })}
+                >
+
+                  {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
+
+                  {posts.map(post => {
+                    const groupSlugs = post.groups.map(group => group.slug)
+                    return (
+                      <ViewComponent
+                        className={cn({ [styles.cardItem]: viewMode === 'cards' })}
+                        routeParams={routeParams}
+                        post={post}
+                        group={group}
+                        key={post.id}
+                        currentGroupId={group && group.id}
+                        currentUser={currentUser}
+                        querystringParams={querystringParams}
+                        childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                      />
+                    )
+                  })}
+                </MasonryGrid>
+              )}
+              {!pending && !customViewLoading && isCalendarViewMode && (
+
+                <div className='calendarView'>
+                  <Calendar
+                    posts={posts}
+                    group={group}
+                    routeParams={routeParams}
+                    querystringParams={querystringParams}
+                    date={calendarDate}
+                    setDate={setCalendarDate}
+                    mode={calendarMode}
+                    setMode={setCalendarMode}
+                  />
+                  {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
+                  {!group && view === 'events' && calendarMode === 'month' && (
+                    <GroupCalendarSubscribe
+                      eventCalendarUrl={rsvpCalendarUrl}
+                      buttonLabel={t('Subscribe to all the Hylo events you have RSVPed to')}
+                      modalTitle={t('Subscribe to all the Hylo events you have RSVPed to')}
+                      onEnsureCalendarUrl={handleEnsureRsvpCalendarUrl}
+                    />
+                  )}
+                </div>
+              )}
+
+              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
+                posts.length === 0
+                  ? <StreamSkeleton wrapWithMainColumn={false} />
+                  : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+              )}
+              {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
+
+              <ScrollListener
+                onBottom={() => fetchPostsFrom(posts.length)}
+                elementId='stream-outer-container'
               />
+            </>
             )}
-          </div>
-        )}
-
-        {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
-          posts.length === 0
-            ? <StreamSkeleton wrapWithMainColumn={false} />
-            : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
-        )}
-        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
-
-        <ScrollListener
-          onBottom={() => fetchPostsFrom(posts.length)}
-          elementId='stream-outer-container'
-        />
       </div>
     </div>
   )

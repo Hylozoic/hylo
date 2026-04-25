@@ -15,7 +15,7 @@ import {
 import { bgImageStyle, cn } from 'util/index'
 import { groupUrl, groupDetailUrl } from '@hylo/navigation'
 
-import { UserRoundCheck } from 'lucide-react'
+import { UserRoundCheck, DollarSign } from 'lucide-react'
 
 import Icon from 'components/Icon'
 import RoundImage from 'components/RoundImage'
@@ -70,6 +70,14 @@ export default function GroupCard ({ group }) {
                   <div><strong>{t(accessibilityString(group.accessibility))}</strong> - {t(accessibilityDescription(group.accessibility))}</div>
                 </div>
               </div>
+              {group.paywall && (
+                <div className={classes.groupPrivacy}>
+                  <DollarSign className={classes.privacyIcon} />
+                  <div className={classes.privacyTooltip}>
+                    <div><strong>{t('Paywall')}</strong> - {t('This group requires payment to join')}</div>
+                  </div>
+                </div>
+              )}
               {
                 group.memberStatus === 'member'
                   ? <div className='p-2 bg-darkening/30 rounded-lg text-white text-sm flex items-center gap-1'><UserRoundCheck className='w-4 h-4' /> <b>{t('Member')}</b></div>
