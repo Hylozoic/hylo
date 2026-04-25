@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useState } from 'react'
 import { array, bool, func, object, number, string } from 'prop-types'
 import { Link } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
@@ -42,6 +42,24 @@ const Comments = ({
 
   const { ref, width } = useResizeDetector({ handleHeight: false })
 
+  // On iOS/iPadOS, the virtual keyboard doesn't shrink the layout viewport.
+  // Track the keyboard height via visualViewport and add bottom padding so
+  // the comment form can be scrolled above the keyboard.
+  const [keyboardPadding, setKeyboardPadding] = useState(0)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const handleResize = () => {
+      const keyboardHeight = window.innerHeight - vv.height
+      setKeyboardPadding(keyboardHeight > 50 ? keyboardHeight : 0)
+    }
+
+    vv.addEventListener('resize', handleResize)
+    return () => vv.removeEventListener('resize', handleResize)
+  }, [])
+
   const scrollToReplyInput = (elem) => {
     scrollIntoView(elem, { behavior: 'smooth', scrollMode: 'if-needed' })
   }
@@ -51,7 +69,7 @@ const Comments = ({
   }
 
   return (
-    <div className={classes.comments} ref={ref}>
+    <div className={classes.comments} ref={ref} style={{ paddingBottom: keyboardPadding }}>
       <ShowMore
         commentsLength={comments.length}
         total={total}
