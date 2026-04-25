@@ -4,8 +4,11 @@ All notable changes to HyloReactNative (the Hylo mobile app) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.3.6] - 2026-03-28
+## [6.3.7] - 2026-03-28
+
+## [6.3.6] - 2026-04-22
 Fix reset-password routing
+
 
 ## [6.3.5] - 2026-03-28
 Streamline loading flow
