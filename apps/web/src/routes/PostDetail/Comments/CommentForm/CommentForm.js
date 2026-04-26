@@ -95,12 +95,13 @@ function CommentForm ({
       }
 
       // On iOS/iPadOS, the virtual keyboard doesn't shrink the layout viewport,
-      // so the comment form can end up hidden behind the keyboard. Scroll it into
-      // view after a delay to let the keyboard finish animating.
+      // so the comment form can end up hidden behind the keyboard. Scroll it to
+      // the bottom of the visual viewport (just above the keyboard) after a
+      // delay to let the keyboard finish animating.
       setTimeout(() => {
         const formEl = editor.current?.view?.dom?.closest?.('.CommentForm')
         if (formEl) {
-          formEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          formEl.scrollIntoView({ behavior: 'smooth', block: 'end' })
         }
       }, 400)
     }
