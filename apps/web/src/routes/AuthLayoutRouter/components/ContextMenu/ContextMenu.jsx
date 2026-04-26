@@ -208,6 +208,7 @@ export default function ContextMenu (props) {
   // Allow scroll events to pass through to ContextMenu even when a modal post dialog is open
   useEffect(() => {
     const menu = document.querySelector('.ContextMenu')
+    if (!menu) return
     menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
   }, [])
 
@@ -223,7 +224,7 @@ export default function ContextMenu (props) {
 
   // One-column layout on settings: only show the settings menu, not the full context menu
   if (isOneColumnLayout && location.pathname.includes('/settings')) {
-    return <GroupSettingsMenu group={group} />
+    return <GroupSettingsMenu group={group} isOneColumn />
   }
 
   return (
@@ -815,12 +816,12 @@ function SpecialTopElementRenderer ({ widget }) {
   return null
 }
 
-function GroupSettingsMenu ({ group }) {
+function GroupSettingsMenu ({ group, isOneColumn = false }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const { groupSlug } = useContextMenuContext()
+  const groupSlug = group?.slug
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
@@ -860,7 +861,7 @@ function GroupSettingsMenu ({ group }) {
 
   return (
     <div className={cn('ContextMenu-GroupSettings fixed h-full w-[260px] sm:w-[300px] bg-background bg-gradient-to-b from-background to-theme-background/20 z-[1050]', isTabNav ? 'top-11 left-0' : 'top-0 left-[66px] sm:left-[80px]')}>
-      <div className='absolute h-full overflow-y-auto top-0 right-0 left-14 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10'>
+      <div className={cn('absolute h-full overflow-y-auto top-0 right-0 flex flex-col gap-2 bg-background shadow-[-15px_0px_25px_rgba(0,0,0,0.3)] px-2 z-10', isOneColumn ? 'left-0' : 'left-14')}>
         <h3 className='text-lg font-bold flex items-center gap-2 text-foreground'>
           <ChevronLeft className='w-6 h-6 inline cursor-pointer' onClick={closeMenu} />
           {t('Group Settings')}
