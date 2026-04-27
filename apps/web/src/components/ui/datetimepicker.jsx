@@ -210,6 +210,22 @@ function genYears (yearRange = 50) {
   }))
 }
 // ---------- utils end ----------
+/**
+ * Returns the nearest dialog/modal DOM node so the popover can portal into it.
+ * When body scroll is locked, portaling to `document.body` lets the panel extend past the visible dialog; anchoring to this surface keeps collision detection aligned with what the user actually sees (Post dialog, ModalDialog inner, Radix dialog content).
+ */
+function getPopoverSurfaceFromTrigger (triggerEl) {
+  if (!triggerEl || typeof triggerEl.closest !== 'function') {
+    return undefined
+  }
+  return (
+    triggerEl.closest('#post-dialog-content') ||
+    triggerEl.closest('[data-testid="popup-inner"]') ||
+    triggerEl.closest('[role="dialog"]') ||
+    undefined
+  )
+}
+
 function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 50, ...props }) {
   const MONTHS = React.useMemo(() => {
     return genMonths(DateTimeHelpers.getLocaleAsString())
@@ -471,6 +487,8 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   const [month, setMonth] = React.useState(value ?? defaultPopupValue)
   const buttonRef = useRef(null)
   const [displayDate, setDisplayDate] = React.useState(value ?? undefined)
+  const [popoverOpen, setPopoverOpen] = React.useState(false)
+  const [popoverSurface, setPopoverSurface] = React.useState(undefined)
   onMonthChange ||= onChange
 
   // Sync internal state when value prop changes externally (e.g., when cleared)
@@ -524,8 +542,22 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     hour12: displayFormat?.hour12 ??
       `D hh:mm${!granularity || granularity === 'second' ? ':ss' : ''} a`
   }
+
+  /**
+   * Resolves portal + collision boundary to the visible dialog surface when the trigger sits inside a modal so the calendar is not positioned against the full viewport while scroll is locked on `body`.
+   */
+  const handlePopoverOpenChange = React.useCallback((nextOpen) => {
+    setPopoverOpen(nextOpen)
+    if (nextOpen && buttonRef.current) {
+      setPopoverSurface(getPopoverSurfaceFromTrigger(buttonRef.current))
+    }
+    if (!nextOpen) {
+      setPopoverSurface(undefined)
+    }
+  }, [])
+
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
       <PopoverTrigger asChild disabled={disabled}>
         <Button variant='outline' className={cn('min-h-11 sm:min-h-10 justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
@@ -536,7 +568,16 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
             : (<span>{placeholder}</span>)}
         </Button>
       </PopoverTrigger>
-      <PopoverContent side='bottom' align='start' sideOffset={6} collisionPadding={12} className='w-auto p-0 z-[60]'>
+      <PopoverContent
+        container={popoverSurface}
+        collisionBoundary={popoverSurface}
+        sticky='always'
+        side='bottom'
+        align='start'
+        sideOffset={-6}
+        collisionPadding={12}
+        className='w-auto p-0 max-h-[min(85dvh,560px)] overflow-y-auto'
+      >
         <Calendar
           mode='single' selected={displayDate} month={month} onSelect={(newDate) => {
             if (newDate) {
