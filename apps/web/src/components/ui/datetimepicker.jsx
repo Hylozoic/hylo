@@ -245,14 +245,14 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
         month_caption: 'flex justify-center pt-1 relative items-center',
         caption_label: 'text-sm font-medium',
         nav: 'space-x-1 flex items-center ',
-        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-5 top-5 justify-center', disableLeftNavigation() && 'pointer-events-none'),
-        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-5 top-5 justify-center', disableRightNavigation() && 'pointer-events-none'),
+        button_previous: cn(buttonVariants({ variant: 'outline' }), 'h-11 w-11 sm:h-7 sm:w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-5 top-5 justify-center touch-manipulation', disableLeftNavigation() && 'pointer-events-none'),
+        button_next: cn(buttonVariants({ variant: 'outline' }), 'h-11 w-11 sm:h-7 sm:w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-5 top-5 justify-center touch-manipulation', disableRightNavigation() && 'pointer-events-none'),
         month_grid: 'w-full border-collapse space-y-1',
         weekdays: cn('flex', props.showWeekNumber && 'justify-end'),
         weekday: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
         week: 'flex w-full mt-2',
-        day: 'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
-        day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md'),
+        day: 'h-11 w-11 sm:h-9 sm:w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-selected/50 [&:has([aria-selected])]:bg-selected first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 rounded-1',
+        day_button: cn(buttonVariants({ variant: 'ghost' }), 'h-11 w-11 sm:h-9 sm:w-9 p-0 font-normal aria-selected:opacity-100 rounded-l-md rounded-r-md touch-manipulation'),
         range_end: 'day-range-end',
         selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-l-md rounded-r-md',
         today: 'bg-gray-400 text-accent-foreground rounded-full',
@@ -274,7 +274,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none px-1 focus:bg-selected focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit min-h-11 sm:min-h-10 gap-1 border-none px-2 sm:px-1 focus:bg-selected focus:text-accent-foreground touch-manipulation'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +291,7 @@ function Calendar ({ className, classNames, showOutsideDays = true, yearRange = 
                   props.onMonthChange?.(newDate)
                 }}
               >
-                <SelectTrigger className='w-fit gap-1 border-none px-1 focus:bg-selected focus:text-accent-foreground'>
+                <SelectTrigger className='w-fit min-h-11 sm:min-h-10 gap-1 border-none px-2 sm:px-1 focus:bg-selected focus:text-accent-foreground touch-manipulation'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -332,9 +332,9 @@ const TimePeriodSelect = React.forwardRef(({ period, setPeriod, date, onDateChan
     }
   }
   return (
-    <div className='flex h-10 items-center'>
+    <div className='flex min-h-11 sm:h-10 items-center'>
       <Select defaultValue={period} onValueChange={(value) => handleValueChange(value)}>
-        <SelectTrigger ref={ref} className='w-[65px] focus:bg-selected focus:text-accent-foreground' onKeyDown={handleKeyDown}>
+        <SelectTrigger ref={ref} className='w-[72px] sm:w-[65px] min-h-11 sm:min-h-10 focus:bg-selected focus:text-accent-foreground touch-manipulation' onKeyDown={handleKeyDown}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -411,7 +411,7 @@ const TimePickerInput = React.forwardRef(({ className, type = 'tel', value, id, 
   }
   return (
     <Input
-      ref={ref} id={id || picker} name={name || picker} className={cn('w-[48px] text-center font-mono text-base tabular-nums caret-transparent focus:bg-selected focus:text-accent-foreground [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
+      ref={ref} id={id || picker} name={name || picker} className={cn('w-[56px] sm:w-[48px] h-11 sm:h-10 text-center font-mono text-base tabular-nums caret-transparent focus:bg-selected focus:text-accent-foreground touch-manipulation [&::-webkit-inner-spin-button]:appearance-none', className)} value={value || calculatedValue} onChange={(e) => {
         e.preventDefault()
         onChange?.(e)
       }} type={type} inputMode='decimal' onKeyDown={(e) => {
@@ -435,7 +435,7 @@ const TimePicker = React.forwardRef(({ date, onChange, hourCycle = 24, granulari
     periodRef: periodRef.current
   }), [minuteRef, hourRef, secondRef])
   return (
-    <div className='flex items-center justify-center gap-2'>
+    <div className='flex items-center justify-center gap-3 sm:gap-2'>
       <label htmlFor='datetime-picker-hour-input' className='cursor-pointer'>
         <Clock className='mr-2 h-4 w-4' />
       </label>
@@ -527,7 +527,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
   return (
     <Popover>
       <PopoverTrigger asChild disabled={disabled}>
-        <Button variant='outline' className={cn('justify-start text-left font-normal', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
+        <Button variant='outline' className={cn('min-h-11 sm:min-h-10 justify-start text-left font-normal touch-manipulation', !displayDate && 'text-muted-foreground', className)} ref={buttonRef}>
           <CalendarIcon className='mr-2 h-4 w-4' />
           {displayDate
             ? (DateTimeHelpers.toDateTime(displayDate, {

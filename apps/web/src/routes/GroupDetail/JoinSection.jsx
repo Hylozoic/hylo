@@ -1,5 +1,5 @@
 import { trim } from 'lodash'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Button from 'components/ui/button'
@@ -106,8 +106,19 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
 }
 
 function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
-  const [questionAnswers, setQuestionAnswers] = useState(group.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group.settings.askJoinQuestions || questionAnswers.length === 0)
+  const [questionAnswers, setQuestionAnswers] = useState(() =>
+    (group.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
+  )
+  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(
+    () => !group.settings?.askJoinQuestions || !(group.joinQuestions || []).length
+  )
+
+  // joinQuestions often arrive after first paint; useState only uses its initial value once
+  useEffect(() => {
+    const questions = group.joinQuestions || []
+    setQuestionAnswers(questions.map(q => ({ questionId: q.questionId, text: q.text, answer: '' })))
+    setAllQuestionsAnswered(!group.settings?.askJoinQuestions || questions.length === 0)
+  }, [group.joinQuestions?.length, group.settings?.askJoinQuestions])
 
   // Track agreement acceptance - initialize all as unchecked
   const agreements = group.agreements || []
