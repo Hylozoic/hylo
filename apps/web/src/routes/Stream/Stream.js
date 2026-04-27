@@ -100,7 +100,7 @@ export default function Stream (props) {
     customViewId ? isPendingFor(FETCH_CUSTOM_VIEW, state) : false
   )
 
-  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist).
+  // Do not block the stream on topic refetch when Topic is already in the ORM (e.g. redux-persist (if we ever bring that back)).
   const topicBlockingStreams = Boolean(topicName) && topicLoading && !topic
 
   const defaultSortBy = systemView?.defaultSortBy || get('settings.streamSortBy', currentUser) || 'created'

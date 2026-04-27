@@ -9,14 +9,23 @@ import { navigationRef } from 'navigation/linking/helpers'
 import { openURL } from 'hooks/useOpenURL'
 import LoadingScreen from 'screens/LoadingScreen'
 
+function safeDecodeURIComponent (value) {
+  if (typeof value !== 'string') return value
+  try {
+    return decodeURIComponent(value)
+  } catch (err) {
+    return value
+  }
+}
+
 export default function LoginByTokenHandler () {
   const route = useRoute()
   const dispatch = useDispatch()
   const { setReturnToOnAuthPath } = useLinkingStore()
-  const [{ isAuthorized, checkAuth }] = useAuth()
-  const returnToURLFromLink = decodeURIComponent(route?.params?.n)
-  const jwt = decodeURIComponent(route?.params?.token)
-  const loginToken = decodeURIComponent(route?.params?.t || route?.params?.loginToken)
+  const { isAuthorized, checkAuth } = useAuth()
+  const returnToURLFromLink = safeDecodeURIComponent(route?.params?.n)
+  const jwt = safeDecodeURIComponent(route?.params?.token)
+  const loginToken = safeDecodeURIComponent(route?.params?.t || route?.params?.loginToken)
   const userID = route?.params?.u || route?.params?.userId
 
   useFocusEffect(
