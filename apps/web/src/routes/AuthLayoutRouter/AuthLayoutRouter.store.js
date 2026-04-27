@@ -72,7 +72,8 @@ export function ormSessionReducer (
 ) {
   switch (type) {
     case LOGOUT_PENDING: {
-      Me.first().delete()
+      const me = Me.first()
+      if (me) me.delete()
       break
     }
     case FETCH_FOR_GROUP_PENDING: {

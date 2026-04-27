@@ -177,6 +177,7 @@ function PostEditorInner ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   markAsReadTopicName = null,
+  autoFocus = true,
   modal = true,
   post: propsPost,
   editing = false,
@@ -313,6 +314,9 @@ function PostEditorInner ({
   const groupOptions = useMemo(() => {
     return currentUser ? currentUser.memberships.toModelArray().map((m) => m.group).sort((a, b) => a.name.localeCompare(b.name)) : []
   }, [currentUser?.memberships])
+  const isChat = currentPost.type === 'chat'
+  const isAction = currentPost.type === 'action'
+  const isSubmission = currentPost.type === 'submission'
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
@@ -529,11 +533,11 @@ function PostEditorInner ({
   }, [currentPost.completionActionSettings, currentTrack?.actionDescriptor, setCurrentPost, t])
 
   useEffect(() => {
-    if (isChat) {
+    if (autoFocus && isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
       }, 500)
-    } else {
+    } else if (autoFocus) {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
     return () => {
@@ -652,15 +656,17 @@ function PostEditorInner ({
     setShowAnnouncementModal(false)
     clearDraft()
     setIsDirty(false)
-    if (isChat) {
+    if (autoFocus && isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
       }, 500)
-    } else {
+    } else if (autoFocus) {
       toFieldRef?.current?.reset()
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
+    } else {
+      toFieldRef?.current?.reset()
     }
-  }, [clearDraft, initialPost, isChat, selectedLocation, setCurrentPost])
+  }, [clearDraft, initialPost, autoFocusisChat, selectedLocation, setCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -1102,6 +1108,7 @@ function PostEditorInner ({
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
   const isSubmission = currentPost.type === 'submission'
+
   /**
    * Handles the To field container click, focusing the actual ToField
    * This improves UX by making the entire container clickable

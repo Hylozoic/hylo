@@ -16,6 +16,11 @@
                         "comment": "Exclude all other /noo/* paths"
                     },
                     {
+                        "/": "/oauth/*",
+                        "exclude": true,
+                        "comment": "Exclude the OIDC/OAuth login UI so third-party OIDC clients (e.g. castalia) can complete sign-in in the browser instead of being hijacked into the native app"
+                    },
+                    {
                         "/": "*"
                     }
                 ]
