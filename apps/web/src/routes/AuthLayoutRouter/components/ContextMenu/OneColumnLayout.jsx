@@ -31,6 +31,7 @@ import { updateContextWidget, removeWidgetFromMenu, setHomeWidget } from 'store/
 import getMe from 'store/selectors/getMe'
 import { mapbox as mapboxConfig } from 'config'
 import { useTheme } from 'contexts/ThemeContext'
+import { useViewHeader } from 'contexts/ViewHeaderContext'
 // Drop zone between cards
 function CardDropZone ({ droppableParams, isRemoval, children }) {
   const { setNodeRef, isOver } = useDroppable(droppableParams)
@@ -152,7 +153,7 @@ function AddViewCard ({ parentId, handlePositionedAdd, onShowAllViews, t, isChat
     <div
       className={cn(
         'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-foreground/20',
-        'p-3 gap-3 w-[240px] h-[240px]'
+        'p-2 gap-1.5 w-[calc(50%-6px)] aspect-square sm:p-3 sm:gap-3 sm:w-[240px] sm:h-[240px] sm:aspect-auto'
       )}
     >
       <button
@@ -222,7 +223,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
       onClick={handleClick}
       className={cn(
         'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50',
-        'transition-all p-3 w-[240px] h-[240px]',
+        'transition-all p-2 w-[calc(50%-6px)] aspect-square sm:p-3 sm:w-[240px] sm:h-[240px] sm:aspect-auto',
         isEditing ? 'cursor-grab' : 'cursor-pointer hover:border-foreground/30 hover:shadow-md'
       )}
     >
@@ -346,6 +347,13 @@ export default function OneColumnLayout ({ group }) {
 
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const isEditing = getQuerystringParam('cme', location) === 'yes' && canAdminister
+
+  // Reset the breadcrumb title — otherwise the previous view's title sticks here on
+  // the group home (e.g. clicking the group name from /stream still showed "Stream").
+  const { setHeaderDetails } = useViewHeader()
+  useEffect(() => {
+    setHeaderDetails({})
+  }, [setHeaderDetails, groupSlug])
 
   const rawContextWidgets = useSelector(state => getContextWidgets(state, group))
 
@@ -507,7 +515,7 @@ export default function OneColumnLayout ({ group }) {
     <div className='OneColumnLayout w-full h-full overflow-y-auto' id='one-column-layout'>
       {/* Group Banner - full width */}
       <div className='relative w-full'>
-        <div className='relative h-[220px] overflow-hidden'>
+        <div id='one-column-banner' className='relative h-[220px] overflow-hidden'>
           <div className='absolute inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
           <div className='absolute inset-0 bg-darkening/50' />
 
@@ -564,7 +572,7 @@ export default function OneColumnLayout ({ group }) {
               {cardGrid}
               <DragOverlay dropAnimation={null}>
                 {activeWidget && (
-                  <div className='w-[240px] opacity-80 rotate-2'>
+                  <div className='w-[calc(50%-6px)] sm:w-[240px] opacity-80 rotate-2'>
                     <WidgetCard
                       widget={activeWidget}
                       groupSlug={groupSlug}

@@ -29,12 +29,10 @@ export const getMyGroupsWithChildren = createSelector(
   orm,
   getMyMemberships,
   (_, memberships) => {
-    const myGroupIds = new Set(memberships.map(m => m.group.id))
     return memberships
       .map(m => {
         const childGroups = m.group.childGroups
           ?.toModelArray()
-          .filter(c => myGroupIds.has(c.id))
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl, slug: c.slug })) || []
         return {

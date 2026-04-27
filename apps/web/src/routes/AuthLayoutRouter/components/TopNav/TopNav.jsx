@@ -97,7 +97,14 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
           'border-b-2 border-b-selected': isActive
         }
       )}
-      style={{ flex: '1 1 0', minWidth: hasChildren && iconOnly ? 44 : 34, maxWidth: iconOnly ? (hasChildren ? 70 : 50) : 200 }}
+      style={{
+        // Named tabs are content-sized (don't grow to fill the row) but can shrink and
+        // truncate when space gets tight. Icon-only tabs keep flex-grow so they spread
+        // evenly across the available width as the only thing visible.
+        flex: iconOnly ? '1 1 0' : '0 1 auto',
+        minWidth: iconOnly ? (hasChildren ? 44 : 34) : 80,
+        maxWidth: iconOnly ? (hasChildren ? 70 : 50) : 200
+      }}
     >
       <div className='relative shrink-0'>
         {hasChildren
@@ -186,38 +193,31 @@ export default function TopNav ({ currentUser }) {
     { key: 'commons', label: t('The Commons'), url: '/public' }
   ], [currentUser, t])
 
-  // Build a set of group IDs that are children of other groups (to exclude from top level)
-  const childGroupIds = useMemo(() => {
-    const ids = new Set()
-    sortedGroups.forEach(group => {
-      (group.childGroups || []).forEach(c => ids.add(c.id))
-    })
-    return ids
-  }, [sortedGroups])
-
-  // Group tabs - only show top-level groups (not children of other groups in the list)
+  // Every group the user is a member of gets its own tab — including subgroups.
+  // Subgroups also appear in their parent's dropdown (req: don't auto-consolidate).
   const groupTabs = useMemo(() =>
-    sortedGroups
-      .filter(group => !childGroupIds.has(group.id))
-      .map(group => ({
-        key: `group-${group.id}`,
-        groupId: group.id,
-        label: group.name,
-        url: `/groups/${group.slug}`,
-        img: group.avatarUrl,
-        badgeCount: group.newPostCount ? '-' : 0,
-        childGroups: group.childGroups || []
-      })),
-  [sortedGroups, childGroupIds])
+    sortedGroups.map(group => ({
+      key: `group-${group.id}`,
+      groupId: group.id,
+      label: group.name,
+      url: `/groups/${group.slug}`,
+      img: group.avatarUrl,
+      badgeCount: group.newPostCount ? '-' : 0,
+      childGroups: group.childGroups || []
+    })),
+  [sortedGroups])
 
-  // Measure how many group tabs fit and whether to use icon-only mode
+  // Measure available space and pick a layout mode like browser tabs:
+  // 1. Named: every tab gets at least NAMED_TAB_MIN — names visible, truncated as space tightens.
+  // 2. Icon-only: not enough room for names, but every tab still fits as an icon.
+  // 3. Overflow: even icon-only tabs don't all fit; show as many as we can plus an overflow popover.
   useEffect(() => {
     const container = tabContainerRef.current
     if (!container) return
 
     const ICON_ONLY_TAB_WIDTH = 38 // avatar (26px) + padding (2 * 6px)
+    const NAMED_TAB_MIN = 80 // minimum width to keep a tab readable with a truncated name
     const OVERFLOW_BUTTON_WIDTH = 52
-    const FIXED_TAB_ICON_ONLY_WIDTH = ICON_ONLY_TAB_WIDTH // fixed tabs in icon-only are same size
 
     const measure = () => {
       const containerWidth = container.clientWidth
@@ -228,19 +228,24 @@ export default function TopNav ({ currentUser }) {
         return
       }
 
-      // Calculate with icon-only fixed tabs (since if we have many groups, everything goes icon-only)
-      const fixedTabsIconOnlyWidth = fixedTabs.length * FIXED_TAB_ICON_ONLY_WIDTH
-      const availableForGroups = containerWidth - fixedTabsIconOnlyWidth
+      const totalTabs = fixedTabs.length + groupTabs.length
 
-      // Can all groups fit as icon-only (no overflow)?
-      const iconOnlyTotal = ICON_ONLY_TAB_WIDTH * groupTabs.length
-      if (iconOnlyTotal <= availableForGroups) {
+      // Mode 1: do all tabs fit at the minimum named width?
+      if (totalTabs * NAMED_TAB_MIN <= containerWidth) {
+        setVisibleGroupCount(groupTabs.length)
+        setIconOnly(false)
+        return
+      }
+
+      // Mode 2: icon-only — fixed tabs collapse too.
+      const availableForGroups = containerWidth - fixedTabs.length * ICON_ONLY_TAB_WIDTH
+      if (groupTabs.length * ICON_ONLY_TAB_WIDTH <= availableForGroups) {
         setVisibleGroupCount(groupTabs.length)
         setIconOnly(true)
         return
       }
 
-      // Not all fit - show as many as possible with overflow button
+      // Mode 3: overflow — fit what we can, the rest go in the overflow popover.
       const availableWithOverflow = availableForGroups - OVERFLOW_BUTTON_WIDTH
       const fitCount = Math.max(0, Math.floor(availableWithOverflow / ICON_ONLY_TAB_WIDTH))
       setVisibleGroupCount(fitCount)

@@ -127,6 +127,18 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, availableThemes } = useTheme()
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
+  // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
+  const [isPhoneViewport, setIsPhoneViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  )
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = (e) => setIsPhoneViewport(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   const handleLogout = async () => {
     await dispatch(logout())
     if (window.HyloMobileV2) {
@@ -232,16 +244,20 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
-            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Navigation')}</div>
-            <DropdownMenuRadioGroup value={navMode} onValueChange={setNavMode}>
-              <DropdownMenuRadioItem value='sidebar'>
-                {t('Sidebar')}
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value='tabs'>
-                {t('Tabs')}
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
+            {!isPhoneViewport && (
+              <>
+                <div className='px-2 py-1.5 text-sm font-semibold'>{t('Navigation')}</div>
+                <DropdownMenuRadioGroup value={navMode} onValueChange={setNavMode}>
+                  <DropdownMenuRadioItem value='sidebar'>
+                    {t('Sidebar')}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value='tabs'>
+                    {t('Tabs')}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
             <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
               {availableThemes.map(theme => (

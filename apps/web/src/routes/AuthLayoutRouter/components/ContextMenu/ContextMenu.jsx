@@ -217,14 +217,21 @@ export default function ContextMenu (props) {
     window.dispatchEvent(new CustomEvent('contextMenuScroll'))
   }, [])
 
-  // One-column layout: hide the sidebar context menu entirely (dashboard renders in center column)
+  // Simple groups don't use the vertical widget context menu — their home dashboard
+  // (OneColumnLayout) replaces it. Only render the settings menu when on /settings.
   if (isOneColumnLayout && !location.pathname.includes('/settings')) {
     return null
   }
 
-  // One-column layout on settings: only show the settings menu, not the full context menu
+  // One-column layout on settings: only show the settings menu, not the full context menu.
+  // Wrap in a sized container so the (position:fixed) menu reserves flex space and the
+  // center column shifts over instead of rendering underneath it.
   if (isOneColumnLayout && location.pathname.includes('/settings')) {
-    return <GroupSettingsMenu group={group} isOneColumn />
+    return (
+      <div className='relative z-20 h-full flex-shrink-0 w-[260px] sm:w-[300px]'>
+        <GroupSettingsMenu group={group} isOneColumn />
+      </div>
+    )
   }
 
   return (
@@ -239,7 +246,17 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0 sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
+        className={cn(
+          'ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full',
+          // Simple groups render inline on phone too (no drawer), so they need a fixed
+          // phone width instead of flex-1 (which would collapse inside a w-auto parent).
+          isOneColumnLayout
+            ? 'w-[220px] sm:w-[300px]'
+            : 'flex-1 min-w-0 sm:flex-initial sm:w-[300px]',
+          { [classes.mapView]: mapView },
+          { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') },
+          className
+        )}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
         onScroll={handleScroll}
       >
@@ -840,7 +857,7 @@ function GroupSettingsMenu ({ group, isOneColumn = false }) {
   }, [confirm, previousLocation, groupSlug])
 
   const settingsMenuItems = useMemo(() => [
-    canAdminister && { title: 'Group Details', url: 'settings' },
+    canAdminister && { title: 'Group Details', url: 'settings/details' },
     canAdminister && { title: 'Agreements', url: 'settings/agreements' },
     canAdminister && { title: 'Welcome Page', url: 'settings/welcome' },
     canAdminister && { title: 'Responsibilities', url: 'settings/responsibilities' },
