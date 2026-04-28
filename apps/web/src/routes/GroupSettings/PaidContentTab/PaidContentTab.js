@@ -341,6 +341,11 @@ function PaidContentTab ({ group, currentUser }) {
 
   const { accountId, offerings, loading, error } = state
 
+  /** Matches Account tab: Stripe can accept charges and payouts (account fully live). */
+  const stripeAccountFullyActive = Boolean(
+    group?.stripeChargesEnabled && group?.stripePayoutsEnabled
+  )
+
   return (
     <div className='mb-[300px]'>
       <div className='flex gap-2 w-full justify-center items-center bg-black/10 rounded-md p-2 mb-4'>
@@ -364,28 +369,34 @@ function PaidContentTab ({ group, currentUser }) {
         </Link>
       </div>
 
-      <h2 className='text-foreground font-bold mb-2'>{t('Accept Payments for {{groupName}}', { groupName: group?.name || '' })}</h2>
+      <h2 className='text-foreground font-bold mb-2'>
+        {currentTab === 'account' && t('Accept Payments for {{groupName}}', { groupName: group?.name || '' })}
+        {currentTab === 'offerings' && t('Setup Paid Content Offerings')}
+        {currentTab === 'content-access' && t('Manage Paid Content Access')}
+      </h2>
       <div className='text-foreground/70 mb-4 space-y-2'>
         {currentTab === 'account' && (
           <>
-            <p>{t('Use Paid Content to create offerings that members can access through payment.')}</p>
-            <p>{t('To start, set up Stripe Connect to accept payments for group memberships, Tracks, and other offerings. Stripe handles all payment processing securely.')}</p>
-            <div
-              className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'
-              role='note'
-            >
-              <Clock className='w-6 h-6 sm:w-7 sm:h-7 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
-              <p className='text-sm sm:text-base font-semibold text-foreground leading-snug m-0'>
-                {t('After you finish the steps on Stripe, account verification often completes within a couple of hours, but it can take longer. You can use Check Stripe Status or refresh the page while you wait.')}
-              </p>
-            </div>
+            <p>{t('Use Paid Content to charge for membership in your group or access to a track in your group.')}</p>
+            <p>{t('To start, set up Stripe Connect to accept payments for group memberships, tracks, and other offerings. Stripe handles all payment processing securely.')}</p>
+            {!stripeAccountFullyActive && (
+              <div
+                className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'
+                role='note'
+              >
+                <Clock className='w-6 h-6 sm:w-7 sm:h-7 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                <p className='text-sm sm:text-base font-semibold text-foreground leading-snug m-0'>
+                  {t('After you finish the steps on Stripe, account verification often completes within a couple of hours, but it can take longer. You can use Check Stripe Status or refresh the page while you wait.')}
+                </p>
+              </div>
+            )}
           </>
         )}
         {currentTab === 'offerings' && (
-          <p>{t('An Offering is something your group provides in exchange for payment, like a membership, Track, or Role in the group.')}</p>
+          <p>{t('To charge for group membership or tracks, set up an offering. For example, if you want to create a paywall for your group, click Create Offering and set the payment terms you\'d like. Options include one-time or recurring fees, price tiers, and sliding scale. Once the offering is created and your Stripe account is connected, you can check the box to enable a group paywall.')}</p>
         )}
         {currentTab === 'content-access' && (
-          <p>{t('Paid Content Access shows who has access to paid content in your group and lets you manage those permissions.')}</p>
+          <p>{t('View who has access to paid content in your group and manage those permissions.')}</p>
         )}
       </div>
 

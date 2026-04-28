@@ -23,12 +23,12 @@ import { Switch } from 'components/ui/switch'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from 'components/ui/command'
 
 import { createOffering, updateOffering } from './PaidContentTab.store'
-import { fetchGroupSettings, updateGroupSettings } from '../GroupSettings.store'
+import GroupPaywallSection from './GroupPaywallSection'
 import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
-import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, offeringGrantsGroupAccess } from 'util/accessGrants'
+import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 
 function estimateStripeCardFeeUsdStyle (amount) {
@@ -149,7 +149,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const BUY_BUTTON_TEXT_MAX_LENGTH = 30
   const [creating, setCreating] = useState(false)
   const [updating, setUpdating] = useState(false)
-  const [updatingPaywall, setUpdatingPaywall] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
   const [accessFilter, setAccessFilter] = useState('all')
   const [expandedOfferingId, setExpandedOfferingId] = useState(null)
@@ -176,68 +175,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       editFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [editingOffering])
-
-  /**
-   * Validates if a group is ready to have a paywall enabled
-   *
-   * Checks:
-   * 1. Group has a Stripe account ID
-   * 2. Stripe account is verified (charges enabled, payouts enabled, details submitted)
-   * 3. At least one offering exists that grants access to the group itself
-   *
-   * @returns {boolean} True if all conditions are met, false otherwise
-   */
-  const groupPaywallValidation = useCallback(() => {
-    // Check if group has a Stripe account ID
-    if (!group?.stripeAccountId) {
-      return false
-    }
-
-    // Check if Stripe account is verified
-    if (!group?.stripeChargesEnabled || !group?.stripePayoutsEnabled || !group?.stripeDetailsSubmitted) {
-      return false
-    }
-
-    // Check if at least one offering grants access to the group
-    if (!offerings || offerings.length === 0) {
-      return false
-    }
-
-    // Scan offerings for one that includes group access and is published
-    const hasGroupAccessOffering = offerings.some(offering => {
-      // First check if offering is published
-      if (offering.publishStatus !== 'published') {
-        return false
-      }
-
-      // Check if this offering grants access to the current group
-      return offeringGrantsGroupAccess(offering, group?.id)
-    })
-
-    return hasGroupAccessOffering
-  }, [group, offerings])
-
-  const isPaywallReady = groupPaywallValidation()
-
-  const handleTogglePaywall = useCallback(async (e) => {
-    if (!group) return
-
-    const newPaywallValue = e.target.checked
-    setUpdatingPaywall(true)
-
-    try {
-      await dispatch(updateGroupSettings(group.id, { paywall: newPaywallValue }))
-      // Refresh group data to get updated paywall value
-      if (group?.slug) {
-        await dispatch(fetchGroupSettings(group.slug))
-      }
-    } catch (error) {
-      console.error('Error updating paywall:', error)
-      window.alert(t('Failed to update paywall setting: {{error}}', { error: error.message }))
-    } finally {
-      setUpdatingPaywall(false)
-    }
-  }, [dispatch, group, t])
 
   const handleCreateOffering = useCallback(async (e) => {
     e.preventDefault()
@@ -517,35 +454,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
 
   return (
     <div className='flex flex-col gap-4 mt-4 pb-4'>
-      <div className='border-2 border-foreground/20 rounded-lg p-4 mb-2'>
-        <SettingsControl
-          label={t('Group Paywall Enabled')}
-          helpText={t('When enabled, users must purchase access to join this group')}
-          renderControl={() => (
-            <div className='flex flex-col gap-2'>
-              <div className='flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  checked={group?.paywall || false}
-                  onChange={handleTogglePaywall}
-                  disabled={updatingPaywall || !group || (!group?.paywall && !isPaywallReady)}
-                  className='w-4 h-4'
-                />
-                <span className='text-sm text-foreground/70'>
-                  {group?.paywall ? t('Yes') : t('No')}
-                </span>
-              </div>
-              <div className='text-xs mt-1'>
-                {isPaywallReady && group?.paywall
-                  ? (<span className='text-accent'>{t('Paywall enabled')}</span>)
-                  : isPaywallReady
-                    ? (<span className='text-accent'>{t('This group is ready to have a paywall added')}</span>)
-                    : (<span className='text-destructive'>{t('To have a paywall to group access, the group needs to have a Stripe Connect account, have that account verified and then have at least ONE published offering that allows access to the group')}</span>)}
-              </div>
-            </div>
-          )}
-        />
-      </div>
+      <GroupPaywallSection group={group} offerings={offerings || []} />
 
       <button
         className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/100 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center'
