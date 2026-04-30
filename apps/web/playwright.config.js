@@ -20,11 +20,32 @@ export default defineConfig({
     },
     {
       name: 'chromium',
+      testIgnore: '**/unauthenticated.routes.spec.js',
       use: {
         ...devices['Desktop Chrome'],
         storageState: './e2e/.auth/session.json'
       },
       dependencies: ['setup']
+    },
+    {
+      name: 'chromium-unauth',
+      testMatch: '**/unauthenticated.routes.spec.js',
+      use: { ...devices['Desktop Chrome'] }
+    },
+    // Real mobile UA + viewport so ismobilejs / util/mobile (isMobileDevice) behave like phone web, not desktop-with-narrow-window
+    {
+      name: 'mobile-chrome',
+      testIgnore: '**/unauthenticated.routes.spec.js',
+      use: {
+        ...devices['Pixel 5'],
+        storageState: './e2e/.auth/session.json'
+      },
+      dependencies: ['setup']
+    },
+    {
+      name: 'mobile-unauth',
+      testMatch: '**/unauthenticated.routes.spec.js',
+      use: { ...devices['Pixel 5'] }
     }
   ],
   webServer: {
