@@ -6,21 +6,19 @@ import dotenv from 'dotenv'
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
 const authFile = path.resolve(import.meta.dirname, '.auth/session.json')
+const E2E_LOGIN_EMAIL = 'e2e.user@hylo.test'
+const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 
 setup('authenticate', async ({ page }) => {
-  const email = process.env.E2E_TEST_USERNAME
-  const password = process.env.E2E_TEST_PASSWORD
-
-  if (!email || !password) {
-    throw new Error('E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in apps/web/.env')
-  }
-
   // Navigate to the login page
   await page.goto('/login')
 
+  // Session check + i18n can exceed default action timeout when the stack is cold
+  await expect(page.getByLabel('email')).toBeVisible({ timeout: 60000 })
+
   // Fill in the login form
-  await page.getByLabel('email').fill(email)
-  await page.getByLabel('password').fill(password)
+  await page.getByLabel('email').fill(E2E_LOGIN_EMAIL)
+  await page.getByLabel('password').fill(E2E_LOGIN_PASSWORD)
 
   // Submit the form
   await page.getByRole('button', { name: /sign\s*in/i }).click()
