@@ -7,6 +7,7 @@ import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
 import CommonRole from './CommonRole'
 import CustomView from './CustomView'
+import Draft from './Draft'
 import EventInvitation from './EventInvitation'
 import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
 import GroupRelationshipInvite, { GroupToGroupJoinRequestQuestionAnswer } from './GroupRelationshipInvite'
@@ -46,6 +47,7 @@ orm.register(
   Comment,
   CommonRole,
   CustomView,
+  Draft,
   EventInvitation,
   FundingRound,
   Group,

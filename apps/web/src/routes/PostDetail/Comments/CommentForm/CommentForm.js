@@ -1,5 +1,5 @@
 import isMobile from 'ismobilejs'
-import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useRef, useCallback, useEffect, useState, useImperativeHandle, forwardRef } from 'react'
 import { throttle, isEmpty } from 'lodash/fp'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
@@ -17,27 +17,33 @@ import getMe from 'store/selectors/getMe'
 import { cn, inIframe } from 'util/index'
 import { STARTED_TYPING_INTERVAL } from 'util/constants'
 import { useSelector, useDispatch } from 'react-redux'
-import useDraftStorage, { hasDraftContent } from 'hooks/useDraftStorage'
+import useDraft, { hasDraftContent } from 'hooks/useDraft'
 import { isMobileDevice } from 'util/mobile'
 
 import classes from './CommentForm.module.scss'
 
-function CommentForm ({
+const CommentForm = forwardRef(function CommentForm ({
   createComment,
   className,
   placeholder,
   editorContent,
   postId
-}) {
+}, ref) {
   const { t } = useTranslation()
   const editor = useRef()
   const dispatch = useDispatch()
   const location = useLocation()
-  const { pathname, search } = location
+  const { pathname } = location
 
-  const draftStorageKey = useMemo(() => `draft:comment:${pathname}${search}:post:${postId}`, [pathname, search, postId])
-  const { loadDraft, saveDraft, clearDraft } = useDraftStorage(draftStorageKey)
-  const draftRef = useRef(editorContent || loadDraft())
+  const { loadedData, isLoaded, saveDraft, flushSaveDraft, clearDraft } = useDraft({
+    type: 'comment',
+    postId,
+    navigateTo: pathname,
+    debounceMs: 1000,
+    skip: !postId
+  })
+
+  const draftRef = useRef(editorContent || '')
 
   const [isFocused, setIsFocused] = useState(false)
   const hasUserInteracted = useRef(false)
@@ -53,12 +59,13 @@ function CommentForm ({
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
 
   useEffect(() => {
-    const draft = editorContent || loadDraft() || ''
+    if (!isLoaded) return
+    const draft = editorContent || loadedData || ''
     draftRef.current = draft
     if (editor.current) {
       editor.current.setContent(draft)
     }
-  }, [editorContent, loadDraft, postId])
+  }, [editorContent, isLoaded, loadedData, postId])
 
   const startTyping = useCallback(throttle(STARTED_TYPING_INTERVAL, () => {
     sendIsTypingAction(true)
@@ -88,9 +95,8 @@ function CommentForm ({
       saveDraft(html)
     } else {
       draftRef.current = ''
-      clearDraft()
     }
-  }, [clearDraft, saveDraft, startTyping])
+  }, [saveDraft, startTyping])
 
   const placeholderText = placeholder || t('Add a comment...')
 
@@ -137,6 +143,26 @@ function CommentForm ({
     setIsFocused(true)
   }, [])
 
+  useImperativeHandle(ref, () => ({
+    hasUnsavedContent: () => {
+      const html = editor.current?.getHTML?.() ?? draftRef.current ?? ''
+      if (hasDraftContent(html)) return true
+      if (attachments.length > 0) return true
+      return false
+    },
+    flushSaveDraft: async () => {
+      const html = editor.current?.getHTML?.() ?? draftRef.current ?? ''
+      if (!hasDraftContent(html)) return
+      await flushSaveDraft(html, { force: true })
+    },
+    discardDraft: async () => {
+      editor.current?.clearContent?.()
+      draftRef.current = ''
+      await clearDraft()
+      clearAttachmentsAction()
+    }
+  }), [attachments.length, clearAttachmentsAction, clearDraft, flushSaveDraft])
+
   const handleContainerMouseDown = useCallback(event => {
     // Don't auto-focus on mobile devices to prevent keyboard from opening
     if (isMobileDevice()) {
@@ -163,7 +189,7 @@ function CommentForm ({
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
-            contentHTML={editorContent ?? draftRef.current}
+            contentHTML={editorContent ?? (isLoaded ? loadedData : '') ?? ''}
             onAltEnter={handleSubmit}
             className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
@@ -218,7 +244,8 @@ function CommentForm ({
       </p>
     </>
   )
-}
+})
+
 function UploadButton ({
   onClick,
   loading,

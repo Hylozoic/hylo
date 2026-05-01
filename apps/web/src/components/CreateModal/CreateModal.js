@@ -2,8 +2,8 @@ import React, { useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { CSSTransition } from 'react-transition-group'
-import * as Dialog from '@radix-ui/react-dialog'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import FundingRoundEditor from 'components/FundingRoundEditor'
@@ -13,6 +13,7 @@ import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl } from '@hylo/navigation'
 import useDraftStorage from 'hooks/useDraftStorage'
 import classes from './CreateModal.module.scss'
+import { useTranslation } from 'react-i18next'
 
 const CreateModal = (props) => {
   const location = useLocation()
@@ -23,6 +24,7 @@ const CreateModal = (props) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const modalRef = useRef(null)
   const postEditorRef = useRef(null)
+  const { t } = useTranslation()
 
   const querystringParams = new URLSearchParams(location.search)
   const mapLocation = (querystringParams.has('lat') && querystringParams.has('lng'))
@@ -131,32 +133,15 @@ const CreateModal = (props) => {
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
 
-        <Dialog.Root open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <Dialog.Portal>
-            <Dialog.Overlay className='fixed inset-0 bg-black/50 z-[100] backdrop-blur-sm' />
-            <Dialog.Content className='fixed inset-0 z-[100] flex items-center justify-center p-4'>
-              <div className='bg-background text-foreground rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4'>
-                <Dialog.Title className='text-lg font-semibold'>Discard draft?</Dialog.Title>
-                <Dialog.Description className='text-sm text-foreground/70'>Closing now will discard the changes you have made to this post.</Dialog.Description>
-                <div className='flex justify-end gap-3'>
-                  <Dialog.Close asChild>
-                    <button className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors' onClick={() => setShowConfirmDialog(false)}>
-                      Continue editing
-                    </button>
-                  </Dialog.Close>
-                  <button className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors' onClick={handleSaveAndClose}>
-                    Save
-                  </button>
-                  <Dialog.Close asChild>
-                    <button className='rounded-lg px-4 py-2 text-sm text-white bg-destructive hover:bg-destructive/80 transition-colors' onClick={handleDiscardDraft}>
-                      Discard
-                    </button>
-                  </Dialog.Close>
-                </div>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        <UnsavedDraftLeaveDialog
+          open={showConfirmDialog}
+          onOpenChange={setShowConfirmDialog}
+          title={t('Save draft before closing?')}
+          description={t('You have unsaved changes to this post. Save a draft to continue later, or discard them.')}
+          onContinueEditing={() => setShowConfirmDialog(false)}
+          onDiscard={handleDiscardDraft}
+          onSaveDraft={handleSaveAndClose}
+        />
       </div>
     </CSSTransition>
   )

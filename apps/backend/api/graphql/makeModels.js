@@ -1,4 +1,4 @@
-/* global FundingRound */
+/* global FundingRound Draft */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -1536,6 +1536,35 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'id',
         'type'
+      ]
+    },
+
+    Draft: {
+      model: Draft,
+      attributes: [
+        'id',
+        'type',
+        'group_id',
+        'topic_id',
+        'post_id',
+        'message_thread_id',
+        'is_edit',
+        'navigate_to'
+      ],
+      getters: {
+        data: draft => {
+          const raw = draft.get('data')
+          return typeof raw === 'string' ? raw : JSON.stringify(raw)
+        },
+        updatedAt: draft => {
+          const v = draft.get('updated_at')
+          return v ? new Date(v).toISOString() : null
+        }
+      },
+      relations: [
+        'post',
+        { messageThread: { typename: 'MessageThread' } },
+        'group'
       ]
     },
 

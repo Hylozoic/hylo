@@ -1,4 +1,3 @@
-/* eslint-disable import/first */
 /* global DOMParser */
 import { cn } from 'util/index'
 import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
@@ -86,7 +85,8 @@ import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import styles from './PostEditor.module.scss'
-import useDraftStorage, { hasDraftContent } from 'hooks/useDraftStorage'
+import { hasDraftContent } from 'hooks/useDraftStorage'
+import useServerDraft from 'hooks/useServerDraft'
 
 const serializeTopics = (topics = []) =>
   (topics || [])
@@ -190,7 +190,7 @@ function PostEditorInner ({
 }, ref) {
   const dispatch = useDispatch()
   const urlLocation = useLocation()
-  const { pathname, search: locationSearch } = urlLocation
+  const { pathname } = urlLocation
   const routeParams = useParams()
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
@@ -204,26 +204,52 @@ function PostEditorInner ({
   const editingPostId = routeParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
-  // Scope draft storage by caller so different surfaces do not overwrite each other
-  // Ignore query params completely so drafts persist across any query parameter changes (e.g., post type)
-  const baseDraftKey = useMemo(() => {
-    if (draftId) return draftId
-    const path = pathname || ''
-    return `post:${path}`
-  }, [draftId, pathname])
-
-  const draftStorageKey = useMemo(() => {
-    const contextSuffix = editing ? `:edit:${editingPostId || 'new'}` : ':new'
-    return `${baseDraftKey}${contextSuffix}`
-  }, [baseDraftKey, editing, editingPostId])
-
-  const { loadDraftJSON, saveDraftJSON, clearDraft } = useDraftStorage(draftStorageKey)
-  const draftLoadedRef = useRef(false)
-
   const postType = getQuerystringParam('newPostType', urlLocation)
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+  // Draft storage is scoped by semantic context
+  // Inline chat composer scopes by topicId.
+  // For create modal, also scope by topicId when opened from a chat room so each room keeps an independent modal draft.
+  // Non-chat modal composers use a topic-agnostic slot.
+  const openedFromChatRoom = !!topicName
+  const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
+
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, clearDraft } = useServerDraft({
+    type: 'post',
+    postId: editing ? editingPostId : undefined,
+    groupId: currentGroup?.id,
+    topicId: draftTopicId,
+    isEdit: editing,
+    navigateTo: pathname,
+    debounceMs: 1500,
+    skip: !currentUser
+  })
+
+  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  const draftContextKey = useMemo(() => {
+    if (editing) return `edit:${editingPostId}`
+    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}`
+  }, [editing, editingPostId, currentGroup?.id, draftTopicId])
+
+  const loadDraftJSON = useCallback(() => {
+    if (!serverLoadedData) return null
+    try {
+      return typeof serverLoadedData === 'string' ? JSON.parse(serverLoadedData) : serverLoadedData
+    } catch {
+      return null
+    }
+  }, [serverLoadedData])
+
+  const saveDraftJSON = useCallback((value) => {
+    if (!value) {
+      return
+    }
+    saveServerDraft(JSON.stringify(value))
+  }, [saveServerDraft])
+
+  const draftLoadedRef = useRef(false)
+  const lastSavedChatDetailsRef = useRef('')
 
   // Default topic to use when not in a chatroom — available immediately from the store
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -346,15 +372,13 @@ function PostEditorInner ({
   and currentPost.groups (which is not consistent in data shape). https://github.com/Hylozoic/hylo/discussions/605
   */
 
-  const isChat = currentPost.type === 'chat'
-  const isAction = currentPost.type === 'action'
-
   useEffect(() => {
     draftLoadedRef.current = false
-  }, [draftStorageKey])
+    lastSavedChatDetailsRef.current = initialPost.details || ''
+  }, [draftContextKey])
 
   useEffect(() => {
-    if (draftLoadedRef.current) return
+    if (!serverDraftLoaded || draftLoadedRef.current) return
     const draft = loadDraftJSON()
     const mergedPost = mergeDraftIntoPost(initialPost, draft, groupOptions)
     setCurrentPostState(mergedPost)
@@ -362,28 +386,54 @@ function PostEditorInner ({
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
+    lastSavedChatDetailsRef.current = details
     draftLoadedRef.current = true
-  }, [draftStorageKey, groupOptions, initialPost, loadDraftJSON])
+  }, [draftContextKey, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
 
-  // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration
+  // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
+  // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
+  // server load effect cannot overwrite their changes when the response eventually arrives.
+  //
+  // When the payload matches initial values we only reset local dirty state. We do not
+  // auto-delete the draft here; deletion is reserved for explicit submit/discard flows.
   useEffect(() => {
-    if (!draftLoadedRef.current) return
-    const payload = buildPostDraftPayload(currentPost)
-    if (isEqual(payload, initialDraftPayload)) {
-      clearDraft()
-      setIsDirty(false)
-    } else {
-      saveDraftJSON({ ...payload, savedAt: Date.now() })
+    if (isChat) {
+      const details = currentPost.details || ''
+      const initialDetails = initialPost.details || ''
+
+      if (details === initialDetails) {
+        setIsDirty(false)
+        return
+      }
+
+      if (details === lastSavedChatDetailsRef.current) {
+        setIsDirty(true)
+        return
+      }
+
+      draftLoadedRef.current = true
+      lastSavedChatDetailsRef.current = details
+      saveDraftJSON(buildPostDraftPayload(currentPost))
       setIsDirty(true)
+      return
     }
-  }, [clearDraft, currentPost, initialDraftPayload, saveDraftJSON, setIsDirty])
+
+    const payload = buildPostDraftPayload(currentPost)
+    if (!isEqual(payload, initialDraftPayload)) {
+      draftLoadedRef.current = true
+      saveDraftJSON(payload)
+      setIsDirty(true)
+      return
+    }
+    setIsDirty(false)
+  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, setIsDirty])
 
   // Ensure the chat composer keeps keyboard focus when navigating between rooms
   useEffect(() => {
     if (modal || !isChat) return
     const id = setTimeout(() => editorRef.current?.focus('end'), 150)
     return () => clearTimeout(id)
-  }, [draftStorageKey, isChat, modal])
+  }, [draftContextKey, isChat, modal])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -666,7 +716,7 @@ function PostEditorInner ({
     } else {
       toFieldRef?.current?.reset()
     }
-  }, [clearDraft, initialPost, autoFocusisChat, selectedLocation, setCurrentPost])
+  }, [clearDraft, initialPost, autoFocus, isChat, selectedLocation, setCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -1019,12 +1069,19 @@ function PostEditorInner ({
     if (onSave) onSave(postToSave)
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
-    if (afterSave) afterSave(savedPost.payload.data.createPost)
     if (!savedPost.error) {
-      clearDraft()
+      if (isEditing) {
+        await clearDraft()
+      }
       setIsDirty(false)
+      if (afterSave) {
+        const returnedPost = isEditing
+          ? savedPost?.payload?.data?.updatePost
+          : savedPost?.payload?.data?.createPost
+        afterSave(returnedPost)
+      }
     }
-  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
+  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -1107,7 +1164,6 @@ function PostEditorInner ({
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
-  const isSubmission = currentPost.type === 'submission'
 
   /**
    * Handles the To field container click, focusing the actual ToField
