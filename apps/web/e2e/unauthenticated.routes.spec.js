@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
  * Unauthenticated surface (no session). Projects `chromium-unauth` and `mobile-unauth`
@@ -18,16 +19,6 @@ test.beforeEach(async ({ context, page }, testInfo) => {
     })
   }
 })
-
-/**
- * RootRouter shows fullscreen Loading until checkLogin resolves. Waiting only for
- * `loading-container` count 0 races the first paint (0 nodes before React mounts) and passes too early.
- */
-async function waitPastRootSessionLoading (page) {
-  const loader = page.locator('[data-testid="loading-container"]')
-  await loader.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
-  await expect(loader).toHaveCount(0, { timeout: 90000 })
-}
 
 /** After session gate: i18n + layout (cold isolated stack + parallel workers) */
 const uiTimeout = { timeout: 60000 }
