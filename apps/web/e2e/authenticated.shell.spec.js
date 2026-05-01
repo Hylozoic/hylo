@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
  * Batch A — authenticated shell & redirects (`AuthLayoutRouter` + top-level stubs).
@@ -7,15 +8,6 @@ import { test, expect } from '@playwright/test'
  */
 
 test.describe.configure({ timeout: 120000 })
-
-/**
- * RootRouter blocks on checkLogin behind fullscreen Loading; same race as unauth if we only wait for 0 loaders.
- */
-async function waitPastRootSessionLoading (page) {
-  const loader = page.locator('[data-testid="loading-container"]')
-  await loader.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
-  await expect(loader).toHaveCount(0, { timeout: 90000 })
-}
 
 const navTimeout = { timeout: 90000 }
 const uiTimeout = { timeout: 60000 }
