@@ -21,7 +21,7 @@ module.exports = bookshelf.Model.extend({
   }
 }, {
   /** Returns the unique draft for a given context, or null */
-  findForContext: function (userId, { type, postId, groupId, topicId, messageThreadId, isEdit }) {
+  findForContext: function (userId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }) {
     const query = Draft.where({ user_id: userId, type })
 
     if (type === 'post' && isEdit) {
@@ -33,6 +33,11 @@ module.exports = bookshelf.Model.extend({
         query.where({ topic_id: topicId })
       } else {
         query.query(qb => qb.whereNull('topic_id'))
+      }
+      if (postType) {
+        query.where({ post_type: postType })
+      } else {
+        query.query(qb => qb.whereNull('post_type'))
       }
     } else if (type === 'comment') {
       query.where({ post_id: postId })

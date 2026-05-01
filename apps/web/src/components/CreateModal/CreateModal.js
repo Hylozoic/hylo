@@ -11,7 +11,6 @@ import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl } from '@hylo/navigation'
-import useDraftStorage from 'hooks/useDraftStorage'
 import classes from './CreateModal.module.scss'
 import { useTranslation } from 'react-i18next'
 
@@ -31,13 +30,8 @@ const CreateModal = (props) => {
     ? `${querystringParams.get('lat')}, ${querystringParams.get('lng')}`
     : null
 
-  // Use a stable draft namespace so multiple modal instances do not fight over stored values
-  // Draft state is stored per-modal instance so pending posts survive navigation without leaking between flows
+  // Use a stable draft namespace so multiple modal instances do not fight over draft context
   const modalDraftId = `modal:${location.pathname}`
-  const createDraftKey = `${modalDraftId}:create`
-  const editDraftKey = props.post?.id ? `${modalDraftId}:edit:${props.post.id}` : null
-  const { clearDraft: clearCreateDraft } = useDraftStorage(createDraftKey)
-  const { clearDraft: clearEditDraft } = useDraftStorage(editDraftKey)
 
   const closeModal = () => {
     setShowConfirmDialog(false)
@@ -56,19 +50,14 @@ const CreateModal = (props) => {
     }
   }
 
-  // Discard wipes the stored draft and resets the editor before closing so the next open starts clean
+  // Discard resets the editor before closing so the next open starts clean
   const handleDiscardDraft = () => {
-    if (props.editingPost && editDraftKey) {
-      clearEditDraft()
-    } else {
-      clearCreateDraft()
-    }
     postEditorRef.current?.resetToInitial()
     setIsDirty(false)
     closeModal()
   }
 
-  // Save dismisses the modal while leaving the current draft in local storage so users can resume later
+  // Save dismisses the modal while leaving the server draft intact so users can resume later
   const handleSaveAndClose = () => {
     setShowConfirmDialog(false)
     closeModal()

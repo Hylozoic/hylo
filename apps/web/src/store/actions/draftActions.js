@@ -15,6 +15,7 @@ const draftFields = `
   topicId
   postId
   messageThreadId
+  postType
   isEdit
   navigateTo
   updatedAt
@@ -47,16 +48,16 @@ export function fetchMyDrafts () {
   }
 }
 
-export function fetchDraft ({ type, postId, groupId, topicId, messageThreadId, isEdit }) {
+export function fetchDraft ({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }) {
   return {
     type: FETCH_DRAFT,
     graphql: {
-      query: `query FetchDraft($type: String, $postId: ID, $groupId: ID, $topicId: ID, $messageThreadId: ID, $isEdit: Boolean) {
-        draft(type: $type, postId: $postId, groupId: $groupId, topicId: $topicId, messageThreadId: $messageThreadId, isEdit: $isEdit) {
+      query: `query FetchDraft($type: String, $postId: ID, $groupId: ID, $topicId: ID, $messageThreadId: ID, $postType: String, $isEdit: Boolean) {
+        draft(type: $type, postId: $postId, groupId: $groupId, topicId: $topicId, messageThreadId: $messageThreadId, postType: $postType, isEdit: $isEdit) {
           ${draftFields}
         }
       }`,
-      variables: { type, postId, groupId, topicId, messageThreadId, isEdit }
+      variables: { type, postId, groupId, topicId, messageThreadId, postType, isEdit }
     },
     meta: {
       extractModel: {
@@ -68,16 +69,16 @@ export function fetchDraft ({ type, postId, groupId, topicId, messageThreadId, i
   }
 }
 
-export function saveDraft ({ type, data, postId, groupId, topicId, messageThreadId, isEdit, navigateTo }) {
+export function saveDraft ({ type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }) {
   return {
     type: SAVE_DRAFT,
     graphql: {
-      query: `mutation SaveDraft($type: String!, $data: String!, $postId: ID, $groupId: ID, $topicId: ID, $messageThreadId: ID, $isEdit: Boolean, $navigateTo: String) {
-        saveDraft(type: $type, data: $data, postId: $postId, groupId: $groupId, topicId: $topicId, messageThreadId: $messageThreadId, isEdit: $isEdit, navigateTo: $navigateTo) {
+      query: `mutation SaveDraft($type: String!, $data: String!, $postId: ID, $groupId: ID, $topicId: ID, $messageThreadId: ID, $postType: String, $isEdit: Boolean, $navigateTo: String) {
+        saveDraft(type: $type, data: $data, postId: $postId, groupId: $groupId, topicId: $topicId, messageThreadId: $messageThreadId, postType: $postType, isEdit: $isEdit, navigateTo: $navigateTo) {
           ${draftFields}
         }
       }`,
-      variables: { type, data, postId, groupId, topicId, messageThreadId, isEdit, navigateTo }
+      variables: { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }
     },
     meta: {
       extractModel: {
@@ -111,9 +112,9 @@ export function removeDraft (id) {
   }
 }
 
-export function removeDraftByContext ({ type, postId, groupId, topicId, messageThreadId, isEdit }) {
+export function removeDraftByContext ({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }) {
   return {
     type: REMOVE_DRAFT_BY_CONTEXT,
-    meta: { type, postId, groupId, topicId, messageThreadId, isEdit }
+    meta: { type, postId, groupId, topicId, messageThreadId, postType, isEdit }
   }
 }

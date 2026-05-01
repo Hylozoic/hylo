@@ -152,7 +152,9 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (draftIsEdit) return sameId(draft.postId, context.postId)
       if (!sameId(draft.groupId, context.groupId)) return false
       if (isNil(context.topicId)) return isNil(draft.topicId)
-      return sameId(draft.topicId, context.topicId)
+      if (!sameId(draft.topicId, context.topicId)) return false
+      if (context.postType) return draft.postType === context.postType
+      return isNil(draft.postType)
     }
 
     if (context.type === 'comment') return sameId(draft.postId, context.postId)
@@ -386,6 +388,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
           type: 'post',
           groupId: createdGroupId,
           topicId: createdTopicId,
+          postType: createdType,
           isEdit: false
         }))
         .forEach(d => d.delete())

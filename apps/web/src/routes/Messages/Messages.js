@@ -175,7 +175,7 @@ const Messages = () => {
 
   // Debounce-save message text to server as user types
   useEffect(() => {
-    if (!isRealThread || !currentUser || !messageText) return
+    if (!isRealThread || !currentUser || !messageText?.trim()) return
     saveMessageDraft(JSON.stringify({ text: messageText }))
   }, [messageText, isRealThread, currentUser, saveMessageDraft])
 

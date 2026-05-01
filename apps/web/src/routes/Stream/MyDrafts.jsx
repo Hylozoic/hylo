@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { FilePenLine, MessageSquare, MessageCircle, Trash2 } from 'lucide-react'
-import { stripHtml } from 'hooks/useDraftStorage'
+import { stripHtml } from 'hooks/useDraft'
 import { cn } from 'util/index'
 import { deleteDraft, fetchMyDrafts, removeDraft } from 'store/actions/draftActions'
 import { selectDraftsForMyDraftsPage } from 'store/selectors/getDrafts'
@@ -180,6 +180,14 @@ export default function MyDrafts () {
       // Opening from My Drafts should keep you on the destination context after posting.
       // Replace any stale closePath with the non-modal destination for this URL.
       url.searchParams.delete('closePath')
+      // navigateTo is often pathname-only; PostEditor defaults newPostType to discussion without this.
+      if (draft.type === 'post' && !draft.isEdit) {
+        const payload = parseDraftData(draft.data)
+        const effectivePostType = draft.postType || payload.type
+        if (effectivePostType) {
+          url.searchParams.set('newPostType', effectivePostType)
+        }
+      }
       const nextUrl = `${url.pathname}${url.search}`
       const closePath = removeCreateEditModalFromUrl(nextUrl) || url.pathname
       url.searchParams.set('closePath', closePath)

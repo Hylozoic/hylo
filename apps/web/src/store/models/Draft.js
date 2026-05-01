@@ -20,6 +20,7 @@ Draft.fields = {
   topicId: attr(),
   postId: attr(),
   messageThreadId: attr(),
+  postType: attr(),
   isEdit: attr(),
   group: fk('Group'),
   post: fk('Post'),

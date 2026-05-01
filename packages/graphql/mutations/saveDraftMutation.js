@@ -9,6 +9,7 @@ export const saveDraftMutation = gql`
     $groupId: ID,
     $topicId: ID,
     $messageThreadId: ID,
+    $postType: String,
     $isEdit: Boolean,
     $navigateTo: String
   ) {
@@ -19,6 +20,7 @@ export const saveDraftMutation = gql`
       groupId: $groupId,
       topicId: $topicId,
       messageThreadId: $messageThreadId,
+      postType: $postType,
       isEdit: $isEdit,
       navigateTo: $navigateTo
     ) {

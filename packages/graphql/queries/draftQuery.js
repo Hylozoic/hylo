@@ -8,6 +8,7 @@ export const draftQuery = gql`
     $groupId: ID,
     $topicId: ID,
     $messageThreadId: ID,
+    $postType: String,
     $isEdit: Boolean
   ) {
     draft(
@@ -16,6 +17,7 @@ export const draftQuery = gql`
       groupId: $groupId,
       topicId: $topicId,
       messageThreadId: $messageThreadId,
+      postType: $postType,
       isEdit: $isEdit
     ) {
       ...DraftFieldsFragment

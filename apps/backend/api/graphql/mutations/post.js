@@ -23,7 +23,8 @@ export function createPost (userId, data) {
       const createdPost = await underlyingCreatePost(userId, validatedData)
       await deletePostDraftForCreate(userId, {
         groupId: validatedData.group_ids?.[0],
-        topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null
+        topicName: validatedData.type === 'chat' ? validatedData.topicNames?.[0] : null,
+        postType: validatedData.type || null
       })
       return createdPost
     })

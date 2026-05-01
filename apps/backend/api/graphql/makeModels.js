@@ -1548,6 +1548,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'topic_id',
         'post_id',
         'message_thread_id',
+        'post_type',
         'is_edit',
         'navigate_to'
       ],

@@ -21,6 +21,14 @@ import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import PublicToggle from 'components/PublicToggle'
@@ -85,8 +93,7 @@ import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
 import styles from './PostEditor.module.scss'
-import { hasDraftContent } from 'hooks/useDraftStorage'
-import useServerDraft from 'hooks/useServerDraft'
+import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
 
 const serializeTopics = (topics = []) =>
   (topics || [])
@@ -190,7 +197,8 @@ function PostEditorInner ({
 }, ref) {
   const dispatch = useDispatch()
   const urlLocation = useLocation()
-  const { pathname } = urlLocation
+  const { pathname, search } = urlLocation
+  const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
@@ -205,6 +213,7 @@ function PostEditorInner ({
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const createPostType = postType || (modal ? 'discussion' : 'chat')
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
@@ -215,13 +224,14 @@ function PostEditorInner ({
   const openedFromChatRoom = !!topicName
   const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
 
-  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, clearDraft } = useServerDraft({
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, clearDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
     topicId: draftTopicId,
+    postType: editing ? undefined : createPostType,
     isEdit: editing,
-    navigateTo: pathname,
+    navigateTo: navigateToForDraft,
     debounceMs: 1500,
     skip: !currentUser
   })
@@ -229,8 +239,8 @@ function PostEditorInner ({
   // Stable key used to detect context changes (navigating between chat rooms, etc.)
   const draftContextKey = useMemo(() => {
     if (editing) return `edit:${editingPostId}`
-    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}`
-  }, [editing, editingPostId, currentGroup?.id, draftTopicId])
+    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}:${createPostType || 'none'}`
+  }, [editing, editingPostId, currentGroup?.id, draftTopicId, createPostType])
 
   const loadDraftJSON = useCallback(() => {
     if (!serverLoadedData) return null
@@ -242,14 +252,14 @@ function PostEditorInner ({
   }, [serverLoadedData])
 
   const saveDraftJSON = useCallback((value) => {
-    if (!value) {
-      return
-    }
+    if (!value || !hasPostDraftPayloadContent(value)) return
     saveServerDraft(JSON.stringify(value))
   }, [saveServerDraft])
 
   const draftLoadedRef = useRef(false)
   const lastSavedChatDetailsRef = useRef('')
+  const inSessionDraftByTypeRef = useRef({})
+  const pendingTypeSwitchRef = useRef(null)
 
   // Default topic to use when not in a chatroom — available immediately from the store
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -317,15 +327,16 @@ function PostEditorInner ({
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
     topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: postType || (modal ? 'discussion' : 'chat'),
+    type: createPostType,
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, postType, currentGroup, topic, generalTopic, context])
+  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context])
 
   const [currentPost, setCurrentPostState] = useState(initialPost)
   const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
+  const [typeSwitchDialog, setTypeSwitchDialog] = useState(null)
   const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
@@ -361,6 +372,16 @@ function PostEditorInner ({
     }
   }, [])
 
+  const applyPostToEditor = useCallback((nextPost) => {
+    setCurrentPostState(nextPost)
+    const details = nextPost.details || ''
+    setHasDescription(hasDraftContent(details))
+    setEditorInitialContent(details)
+    editorRef.current?.setContent(details)
+    lastSavedChatDetailsRef.current = details
+    draftLoadedRef.current = true
+  }, [])
+
   /**
    * Filters the available group options to find only those groups
    * that are currently selected in the post.
@@ -379,16 +400,33 @@ function PostEditorInner ({
 
   useEffect(() => {
     if (!serverDraftLoaded || draftLoadedRef.current) return
-    const draft = loadDraftJSON()
-    const mergedPost = mergeDraftIntoPost(initialPost, draft, groupOptions)
-    setCurrentPostState(mergedPost)
-    const details = mergedPost.details || ''
-    setHasDescription(hasDraftContent(details))
-    setEditorInitialContent(details)
-    editorRef.current?.setContent(details)
-    lastSavedChatDetailsRef.current = details
-    draftLoadedRef.current = true
-  }, [draftContextKey, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
+    const activeType = createPostType
+    const serverDraft = loadDraftJSON()
+    const sessionDraft = inSessionDraftByTypeRef.current[activeType]
+    const mergedServerPost = mergeDraftIntoPost(initialPost, serverDraft, groupOptions)
+
+    const pendingTypeSwitch = pendingTypeSwitchRef.current
+    if (!editing && pendingTypeSwitch?.toType === activeType) {
+      pendingTypeSwitchRef.current = null
+      const carriedPost = mergeDraftIntoPost(initialPost, pendingTypeSwitch.carriedPayload, groupOptions)
+      const hasSavedForTarget = !!serverDraft && hasPostDraftPayloadContent(serverDraft)
+      const hasCarriedContent = hasPostDraftPayloadContent(pendingTypeSwitch.carriedPayload)
+
+      if (hasSavedForTarget && hasCarriedContent) {
+        setTypeSwitchDialog({
+          targetType: activeType,
+          carriedPost,
+          savedPost: mergedServerPost
+        })
+      }
+
+      applyPostToEditor(carriedPost)
+      return
+    }
+
+    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    applyPostToEditor(mergedPost)
+  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
 
   // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
@@ -397,6 +435,7 @@ function PostEditorInner ({
   // When the payload matches initial values we only reset local dirty state. We do not
   // auto-delete the draft here; deletion is reserved for explicit submit/discard flows.
   useEffect(() => {
+    if (typeSwitchDialog) return
     if (isChat) {
       const details = currentPost.details || ''
       const initialDetails = initialPost.details || ''
@@ -411,9 +450,15 @@ function PostEditorInner ({
         return
       }
 
+      const chatPayload = buildPostDraftPayload(currentPost)
+      if (!hasPostDraftPayloadContent(chatPayload)) {
+        setIsDirty(false)
+        return
+      }
+
       draftLoadedRef.current = true
       lastSavedChatDetailsRef.current = details
-      saveDraftJSON(buildPostDraftPayload(currentPost))
+      saveDraftJSON(chatPayload)
       setIsDirty(true)
       return
     }
@@ -421,12 +466,16 @@ function PostEditorInner ({
     const payload = buildPostDraftPayload(currentPost)
     if (!isEqual(payload, initialDraftPayload)) {
       draftLoadedRef.current = true
-      saveDraftJSON(payload)
-      setIsDirty(true)
+      if (hasPostDraftPayloadContent(payload)) {
+        saveDraftJSON(payload)
+        setIsDirty(true)
+        return
+      }
+      setIsDirty(false)
       return
     }
     setIsDirty(false)
-  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, setIsDirty])
+  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, setIsDirty, typeSwitchDialog])
 
   // Ensure the chat composer keeps keyboard focus when navigating between rooms
   useEffect(() => {
@@ -734,6 +783,19 @@ function PostEditorInner ({
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
+    if (type === currentPost.type) return
+
+    const currentPayload = buildPostDraftPayload(currentPost)
+    inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
+    pendingTypeSwitchRef.current = {
+      fromType: currentPost.type,
+      toType: type,
+      carriedPayload: {
+        ...currentPayload,
+        type
+      }
+    }
+
     if (modal) {
       // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
       navigate({
@@ -750,7 +812,25 @@ function PostEditorInner ({
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-  }, [dispatch, modal, navigate, setCurrentPost, urlLocation])
+  }, [currentPost, dispatch, modal, navigate, setCurrentPost, urlLocation])
+
+  const handleKeepCurrentTypeContent = useCallback(() => {
+    if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
+      inSessionDraftByTypeRef.current[typeSwitchDialog.targetType] = buildPostDraftPayload(typeSwitchDialog.carriedPost)
+    }
+    setTypeSwitchDialog(null)
+  }, [typeSwitchDialog])
+
+  const handleLoadSavedTypeDraft = useCallback(() => {
+    if (!typeSwitchDialog?.savedPost || !typeSwitchDialog?.targetType) {
+      setTypeSwitchDialog(null)
+      return
+    }
+
+    inSessionDraftByTypeRef.current[typeSwitchDialog.targetType] = buildPostDraftPayload(typeSwitchDialog.savedPost)
+    applyPostToEditor(typeSwitchDialog.savedPost)
+    setTypeSwitchDialog(null)
+  }, [applyPostToEditor, typeSwitchDialog])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
@@ -1712,6 +1792,32 @@ function PostEditorInner ({
         type={currentPost.type}
         valid={isValid}
       />
+      <Dialog open={!!typeSwitchDialog} onOpenChange={(open) => !open && handleKeepCurrentTypeContent()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Load saved {{type}} draft?', { type: typeSwitchDialog?.targetType ? t(typeSwitchDialog?.targetType) : t('post') })}</DialogTitle>
+            <DialogDescription>
+              {t('You already have a saved draft for this post type. Keep what you are currently writing, or replace it with the saved draft.')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors'
+              onClick={handleKeepCurrentTypeContent}
+            >
+              {t('Keep what I am writing')}
+            </button>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/80 transition-colors'
+              onClick={handleLoadSavedTypeDraft}
+            >
+              {t('Load saved draft')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

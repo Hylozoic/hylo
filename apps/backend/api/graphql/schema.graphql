@@ -174,7 +174,7 @@ type Query {
   myDrafts: [Draft]
 
   # Get a single draft by context (pass the relevant context IDs for the type)
-  draft(type: String, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, isEdit: Boolean): Draft
+  draft(type: String, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean): Draft
 
   # Get the currently logged in user
   me: Me
@@ -2764,6 +2764,7 @@ type Draft {
   isEdit: Boolean
   messageThread: MessageThread
   messageThreadId: ID
+  postType: String
   # Client-side URL to navigate to when opening this draft
   navigateTo: String
   # The post associated with this draft (for comment drafts, or post edits)
@@ -3111,7 +3112,7 @@ type Mutation {
     response: String
   ): GenericResult
   # Save (upsert) a draft for the currently logged in user
-  saveDraft(type: String!, data: String!, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, isEdit: Boolean, navigateTo: String): Draft
+  saveDraft(type: String!, data: String!, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean, navigateTo: String): Draft
   # Save a post to your saved posts list
   savePost(postId: ID): Post
   # When a new person signs up, send them an email to verify their email address so they can finish registering

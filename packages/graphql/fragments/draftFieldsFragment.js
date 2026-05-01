@@ -5,6 +5,7 @@ export default gql`
     id
     type
     data
+    postType
     navigateTo
     updatedAt
     group {

@@ -2,7 +2,55 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { deleteDraft, fetchDraft, removeDraftByContext, saveDraft as saveDraftAction } from 'store/actions/draftActions'
 import { selectDraftForContext } from 'store/selectors/getDrafts'
-import { hasDraftContent } from 'hooks/useDraftStorage'
+
+export const stripHtml = html =>
+  (html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+export const hasDraftContent = html => stripHtml(html).length > 0
+
+/** Post draft object or JSON string: true when trimmed title or HTML details has visible text */
+export function hasPostDraftPayloadContent (data) {
+  if (data == null) return false
+  let obj = data
+  if (typeof data === 'string') {
+    try {
+      obj = JSON.parse(data)
+    } catch {
+      return false
+    }
+  }
+  if (!obj || typeof obj !== 'object') return false
+  if (hasDraftContent(obj.details || '')) return true
+  if ((obj.title || '').trim().length > 0) return true
+  return false
+}
+
+/** Message draft JSON string `{ text }` from Messages composer */
+export function hasMessageDraftPayloadContent (serialised) {
+  if (serialised == null || serialised === '') return false
+  if (typeof serialised !== 'string') return false
+  try {
+    const obj = JSON.parse(serialised)
+    if (obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, 'text')) {
+      return String(obj.text ?? '').trim().length > 0
+    }
+  } catch {
+    // fall through
+  }
+  return hasDraftContent(serialised)
+}
+
+function shouldPersistDraftPayload (type, serialised) {
+  if (!serialised) return false
+  if (type === 'post') return hasPostDraftPayloadContent(serialised)
+  if (type === 'comment') return hasDraftContent(serialised)
+  if (type === 'message') return hasMessageDraftPayloadContent(serialised)
+  return false
+}
 
 /**
  * Stable key for deduping saves. Strips `savedAt` from JSON post drafts so idle
@@ -37,6 +85,7 @@ export default function useDraft ({
   groupId,
   topicId,
   messageThreadId,
+  postType,
   isEdit = false,
   navigateTo,
   debounceMs = 1000,
@@ -44,7 +93,7 @@ export default function useDraft ({
   skip = false
 }) {
   const dispatch = useDispatch()
-  const context = useMemo(() => ({ type, postId, groupId, topicId, messageThreadId, isEdit }), [type, postId, groupId, topicId, messageThreadId, isEdit])
+  const context = useMemo(() => ({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }), [type, postId, groupId, topicId, messageThreadId, postType, isEdit])
   const draft = useSelector(state => selectDraftForContext(state, context))
 
   const loadedData = draft?.data || null
@@ -57,10 +106,10 @@ export default function useDraft ({
   const activeDraftIdRef = useRef(null)
 
   // Stable context reference to avoid stale closures
-  const contextRef = useRef({ type, postId, groupId, topicId, messageThreadId, isEdit, navigateTo })
+  const contextRef = useRef({ type, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo })
   useEffect(() => {
-    contextRef.current = { type, postId, groupId, topicId, messageThreadId, isEdit, navigateTo }
-  }, [type, postId, groupId, topicId, messageThreadId, isEdit, navigateTo])
+    contextRef.current = { type, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }
+  }, [type, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo])
 
   useEffect(() => {
     lastSavedDedupeKeyRef.current = draftDedupeKey(loadedData)
@@ -82,11 +131,11 @@ export default function useDraft ({
 
     const load = async () => {
       try {
-        const result = await dispatch(fetchDraft({ type, postId, groupId, topicId, messageThreadId, isEdit }))
+        const result = await dispatch(fetchDraft({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }))
         if (cancelled) return
         const serverDraft = result?.payload?.data?.draft
         if (serverDraft == null) {
-          dispatch(removeDraftByContext({ type, postId, groupId, topicId, messageThreadId, isEdit }))
+          dispatch(removeDraftByContext({ type, postId, groupId, topicId, messageThreadId, postType, isEdit }))
         }
       } catch (err) {
         if (process.env.NODE_ENV === 'development') {
@@ -99,7 +148,7 @@ export default function useDraft ({
 
     load()
     return () => { cancelled = true }
-  }, [dispatch, type, postId, groupId, topicId, messageThreadId, isEdit, skip, navigateTo])
+  }, [dispatch, type, postId, groupId, topicId, messageThreadId, postType, isEdit, skip, navigateTo])
 
   /** Debounced save - call on every content change. */
   const saveDraft = useCallback((data) => {
@@ -116,6 +165,8 @@ export default function useDraft ({
       const payload = pendingSaveRef.current
       const dedupeKey = draftDedupeKey(payload)
       if (!payload || dedupeKey === lastSavedDedupeKeyRef.current) return
+      const ctxForPayload = contextRef.current
+      if (!shouldPersistDraftPayload(ctxForPayload.type, payload)) return
       isSavingRef.current = true
 
       try {
@@ -127,6 +178,7 @@ export default function useDraft ({
           groupId: ctx.groupId,
           topicId: ctx.topicId,
           messageThreadId: ctx.messageThreadId,
+          postType: ctx.postType,
           isEdit: ctx.isEdit,
           navigateTo: ctx.navigateTo
         }
@@ -171,6 +223,9 @@ export default function useDraft ({
     const dedupeKey = draftDedupeKey(serialised)
     if (!options.force && dedupeKey === lastSavedDedupeKeyRef.current) return
 
+    const ctxBeforeSave = contextRef.current
+    if (!shouldPersistDraftPayload(ctxBeforeSave.type, serialised)) return
+
     pendingSaveRef.current = serialised
     const ctx = contextRef.current
     isSavingRef.current = true
@@ -183,6 +238,7 @@ export default function useDraft ({
         groupId: ctx.groupId,
         topicId: ctx.topicId,
         messageThreadId: ctx.messageThreadId,
+        postType: ctx.postType,
         isEdit: ctx.isEdit,
         navigateTo: ctx.navigateTo
       }))
@@ -245,9 +301,3 @@ export default function useDraft ({
     clearDraft
   }
 }
-
-/**
- * Convenience helper: returns true if the draft HTML string contains visible content.
- * Re-exported from useDraftStorage so callers don't need an extra import.
- */
-export { hasDraftContent }

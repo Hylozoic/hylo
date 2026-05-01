@@ -4,7 +4,7 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 const sameId = (a, b) => String(a || '') === String(b || '')
 const isNil = value => value === null || value === undefined || value === ''
 
-function matchesContext (draft, { type, groupId, topicId, postId, messageThreadId, isEdit }) {
+function matchesContext (draft, { type, groupId, topicId, postId, messageThreadId, postType, isEdit }) {
   if (type && draft.type !== type) return false
 
   if (type === 'post') {
@@ -17,7 +17,9 @@ function matchesContext (draft, { type, groupId, topicId, postId, messageThreadI
 
     if (!sameId(draft.groupId, groupId)) return false
     if (isNil(topicId)) return isNil(draft.topicId)
-    return sameId(draft.topicId, topicId)
+    if (!sameId(draft.topicId, topicId)) return false
+    if (postType) return draft.postType === postType
+    return isNil(draft.postType)
   }
 
   if (type === 'comment') {

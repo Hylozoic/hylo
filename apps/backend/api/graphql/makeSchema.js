@@ -393,8 +393,8 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     myDrafts: (root, args, context) =>
       Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
 
-    draft: (root, { type, postId, groupId, topicId, messageThreadId, isEdit }, context) =>
-      Draft.findForContext(context.currentUserId, { type, postId, groupId, topicId, messageThreadId, isEdit }),
+    draft: (root, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }, context) =>
+      Draft.findForContext(context.currentUserId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }),
 
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
@@ -667,8 +667,8 @@ export function makeMutations ({ fetchOne }) {
 
     respondToEvent: (root, { id, response }, context) => respondToEvent(context.currentUserId, id, response),
 
-    saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, isEdit, navigateTo }, context) =>
-      saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, isEdit, navigateTo }),
+    saveDraft: (root, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }, context) =>
+      saveDraft(context.currentUserId, { type, data, postId, groupId, topicId, messageThreadId, postType, isEdit, navigateTo }),
 
     savePost: (root, { postId }, context) => savePost(context.currentUserId, postId),
 
