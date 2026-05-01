@@ -1,7 +1,7 @@
 import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import config, { isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
@@ -14,7 +14,6 @@ import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
-import logout from 'store/actions/logout'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -37,6 +36,13 @@ function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname.startsWith('/oauth/')) return true
   if (pathname === '/h/use-invitation') return true
   if (pathname.includes('/join/')) return true
+  // Single-segment paths that are not obvious “main app” entry slugs resolve to non-auth (e.g. → /login); avoid auth-shaped skeleton while checkLogin runs
+  const oneSeg = pathname.match(/^\/([^/]+)$/)
+  if (oneSeg) {
+    const slug = oneSeg[1]
+    const mainAppRootSlugs = new Set(['groups', 'all', 'my', 'members', 'post', 'public', 'oauth', 'h'])
+    if (!mainAppRootSlugs.has(slug)) return true
+  }
   return false
 }
 
@@ -100,6 +106,8 @@ export default function RootRouter () {
   if (!isAuthorized) {
     return (
       <Routes>
+        <Route path='/' element={<Navigate to='/login' replace />} />
+
         <Route
           path='/public/*'
           element={<PublicLayoutRouter />}
