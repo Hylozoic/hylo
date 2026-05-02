@@ -181,7 +181,7 @@ function Comment ({
       {!editing && (
         <>
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={cn('ml-[36px]', styles.text)} html={text} />
+            <HyloHTML className={cn('ml-[40px]', styles.text)} html={text} />
           </ClickCatcher>
           <EmojiRow
             className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}

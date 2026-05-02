@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Bookmark, Grid3x3, Shapes } from 'lucide-react'
+import { BadgeDollarSign, Bookmark, FilePenLine, Grid3x3, Shapes } from 'lucide-react'
 import React from 'react'
 import { ContextWidgetPresenter } from '@hylo/presenters'
 import Avatar from 'components/Avatar'
@@ -20,9 +20,11 @@ export function WidgetIconResolver ({ widget: providedWidget, style, className }
         ? <Shapes className='h-[16px] w-[16px] inline-block' />
         : widget.iconName === 'Bookmark'
           ? <Bookmark className='h-[16px] w-[16px] inline-block' />
-          : widget.iconName === 'BadgeDollarSign'
-            ? <BadgeDollarSign className='h-[16px] w-[16px] inline-block' />
-            : <Icon name={widget.iconName} style={style} className={className} />
+          : widget.iconName === 'FilePenLine'
+            ? <FilePenLine className='h-[16px] w-[16px] inline-block' />
+            : widget.iconName === 'BadgeDollarSign'
+              ? <BadgeDollarSign className='h-[16px] w-[16px] inline-block' />
+              : <Icon name={widget.iconName} style={style} className={className} />
   }
 
   return null

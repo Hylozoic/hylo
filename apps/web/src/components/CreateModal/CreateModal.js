@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Route, Routes, useNavigate, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { CSSTransition } from 'react-transition-group'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 import CreateModalChooser from './CreateModalChooser'
 import CreateGroup from 'components/CreateGroup'
 import FundingRoundEditor from 'components/FundingRoundEditor'
@@ -12,24 +12,30 @@ import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
 import { removeCreateEditModalFromUrl } from '@hylo/navigation'
 import classes from './CreateModal.module.scss'
+import { useTranslation } from 'react-i18next'
 
 const CreateModal = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const previousLocation = useSelector(getPreviousLocation) || removeCreateEditModalFromUrl(`${location.pathname}${location.search}`)
   const [returnToLocation] = useState(previousLocation)
-  const [isDirty, setIsDirty] = useState()
-  const { t } = useTranslation()
+  const [isDirty, setIsDirty] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const modalRef = useRef(null)
+  const postEditorRef = useRef(null)
+  const { t } = useTranslation()
 
   const querystringParams = new URLSearchParams(location.search)
   const mapLocation = (querystringParams.has('lat') && querystringParams.has('lng'))
     ? `${querystringParams.get('lat')}, ${querystringParams.get('lng')}`
     : null
 
+  // Use a stable draft namespace so multiple modal instances do not fight over draft context
+  const modalDraftId = `modal:${location.pathname}`
+
   const closeModal = () => {
-    // `closePath` is currently only passed in the case of arriving here
-    // from the `WelcomeModal` when we want to go back on close or cancel.
+    setShowConfirmDialog(false)
+    setIsDirty(false)
     const closePathFromParam = querystringParams.get('closePath')
     // Use replace to remove the create modal from history.
     // This prevents the back button from re-opening the modal after closing it.
@@ -37,11 +43,24 @@ const CreateModal = (props) => {
   }
 
   const confirmClose = () => {
-    const confirmed = !isDirty || window.confirm(t('Changes wont be saved. Are you sure you want to cancel?'))
-
-    if (confirmed) {
+    if (isDirty) {
+      setShowConfirmDialog(true)
+    } else {
       closeModal()
     }
+  }
+
+  // Discard resets the editor before closing so the next open starts clean
+  const handleDiscardDraft = () => {
+    postEditorRef.current?.resetToInitial()
+    setIsDirty(false)
+    closeModal()
+  }
+
+  // Save dismisses the modal while leaving the server draft intact so users can resume later
+  const handleSaveAndClose = () => {
+    setShowConfirmDialog(false)
+    closeModal()
   }
 
   return (
@@ -66,6 +85,8 @@ const CreateModal = (props) => {
                 onCancel={confirmClose}
                 setIsDirty={setIsDirty}
                 editing={props.editingPost}
+                draftId={`${modalDraftId}:edit:${props.post?.id || ''}`}
+                ref={postEditorRef}
               />
               )
             : props.editingTrack
@@ -87,6 +108,8 @@ const CreateModal = (props) => {
                           afterSave={closeModal}
                           onCancel={confirmClose}
                           setIsDirty={setIsDirty}
+                          draftId={`${modalDraftId}:create`}
+                          ref={postEditorRef}
                         />
                       )}
                     />
@@ -98,6 +121,16 @@ const CreateModal = (props) => {
                   )}
         </div>
         <div className={classes.createModalBg} onClick={confirmClose} />
+
+        <UnsavedDraftLeaveDialog
+          open={showConfirmDialog}
+          onOpenChange={setShowConfirmDialog}
+          title={t('Save draft before closing?')}
+          description={t('You have unsaved changes to this post. Save a draft to continue later, or discard them.')}
+          onContinueEditing={() => setShowConfirmDialog(false)}
+          onDiscard={handleDiscardDraft}
+          onSaveDraft={handleSaveAndClose}
+        />
       </div>
     </CSSTransition>
   )

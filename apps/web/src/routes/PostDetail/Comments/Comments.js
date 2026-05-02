@@ -21,7 +21,8 @@ const Comments = ({
   post,
   slug,
   total,
-  hasMore
+  hasMore,
+  commentFormRef
 }) => {
   const ensureSelectedCommentPresent = useCallback(() => {
     if (selectedCommentId && comments.length > 0) {
@@ -73,6 +74,7 @@ const Comments = ({
         ? (
           <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10')} style={style}>
             <CommentForm
+              ref={commentFormRef}
               currentUser={currentUser}
               createComment={createComment}
               postId={post.id}
@@ -103,7 +105,8 @@ Comments.propTypes = {
   post: object,
   slug: string,
   total: number,
-  hasMore: bool
+  hasMore: bool,
+  commentFormRef: object // ref object from parent (optional)
 }
 
 export default Comments
