@@ -83,7 +83,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch B — `/all` context | done | done | `authenticated.all-context.spec.js` |
 | Batch C — `/public` context (logged in) | done | done | `authenticated.public-context.spec.js` |
 | Batch D — group workspace | done | done | `authenticated.group-workspace.spec.js` |
-| Batch E — post detail & deep links | — | — | §4.4 |
+| Batch E — post detail & deep links | done | done | `authenticated.post-detail.spec.js` |
 | Batch F — members & profiles | — | — | §4.4 |
 | Batch G — messages | — | — | §4.4 |
 | Batch H — “My”, settings, search, themes | — | — | §4.4 |
@@ -115,7 +115,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **B** | Global context **`/all`** | `/all/stream`, `/all/map`, `/all/topics`, `/all/topics/:topicName`; `/all/projects`, `/all/proposals`, `/all/events`; `/all/members/:personId/*`; redirects `/all/members`, `/all/settings` → `/all` (redirects in Batch A) — **spec:** `e2e/authenticated.all-context.spec.js` |
 | **C** | Global context **`/public`** (logged in) | `/public/stream`, `/public/map`, `/public/groups`; `/public/topics/:topicName`; `/public/projects`, `/public/proposals`, `/public/events`; bare `/public/topics` → `/public/stream` (no topics index route); redirects `/public/members`, `/public/settings` in Batch A — **spec:** `e2e/authenticated.public-context.spec.js` |
 | **D** | Group workspace `/groups/:slug/*` | `about`, `stream`, `map`, `discussions`, `events`, `resources`, `projects`, `proposals`, `requests-and-offers`, `explore`, nested `groups`, `topics` / `topics/:topicName`, `all-views`; `tracks`, `funding-rounds`; `chat/:topicName`; `settings`, `moderation`; private group stream; unknown segment redirect; `custom` / detail IDs deferred (Batch J) — **spec:** `e2e/authenticated.group-workspace.spec.js` |
-| **E** | Post detail & dual-column | `/post/:postId/*`; group-scoped `POST_DETAIL_MATCH`; detail-column URLs under `/all/map/…`, `/all/groups/…`, `/public/map/…`, `/public/groups/…` (pick the combos you rely on) |
+| **E** | Post detail & dual-column | `/post/:postId/*`; `/groups/:slug/post/:id`; `/all/map/post/:id`, `/public/map/post/:id`, `/groups/:slug/map/post/:id` (detail column); `/members/:id/post/:id` — **spec:** `e2e/authenticated.post-detail.spec.js` |
 | **F** | Members & profiles | `/members/:personId/*`; group `members`, `members/:personId`, `members/create` |
 | **G** | Messages | `/messages`; `/messages/:messageThreadId` |
 | **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` |
@@ -180,7 +180,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -206,3 +206,4 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-01 | Batch B: `e2e/authenticated.all-context.spec.js`; `e2e/helpers/waitPastRootSessionLoading.js` shared with Batch A |
 | 2026-05-01 | Batch C: `e2e/authenticated.public-context.spec.js` (`/public/*` routes while authenticated; bare `/public/topics` redirect documented) |
 | 2026-05-01 | Batch D: `e2e/authenticated.group-workspace.spec.js` (seeded `e2e-public-group` / `e2e-private-group` routes) |
+| 2026-05-01 | Batch E: `e2e/authenticated.post-detail.spec.js` (global + group post, map dual-column, member/post) |
