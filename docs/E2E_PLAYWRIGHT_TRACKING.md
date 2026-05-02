@@ -84,7 +84,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch C — `/public` context (logged in) | done | done | `authenticated.public-context.spec.js` |
 | Batch D — group workspace | done | done | `authenticated.group-workspace.spec.js` |
 | Batch E — post detail & deep links | done | done | `authenticated.post-detail.spec.js` |
-| Batch F — members & profiles | — | — | §4.4 |
+| Batch F — members & profiles | done | done | `authenticated.members-profiles.spec.js` |
 | Batch G — messages | — | — | §4.4 |
 | Batch H — “My”, settings, search, themes | — | — | §4.4 |
 | Batch I — group settings & moderation | — | — | §4.4 |
@@ -116,7 +116,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **C** | Global context **`/public`** (logged in) | `/public/stream`, `/public/map`, `/public/groups`; `/public/topics/:topicName`; `/public/projects`, `/public/proposals`, `/public/events`; bare `/public/topics` → `/public/stream` (no topics index route); redirects `/public/members`, `/public/settings` in Batch A — **spec:** `e2e/authenticated.public-context.spec.js` |
 | **D** | Group workspace `/groups/:slug/*` | `about`, `stream`, `map`, `discussions`, `events`, `resources`, `projects`, `proposals`, `requests-and-offers`, `explore`, nested `groups`, `topics` / `topics/:topicName`, `all-views`; `tracks`, `funding-rounds`; `chat/:topicName`; `settings`, `moderation`; private group stream; unknown segment redirect; `custom` / detail IDs deferred (Batch J) — **spec:** `e2e/authenticated.group-workspace.spec.js` |
 | **E** | Post detail & dual-column | `/post/:postId/*`; `/groups/:slug/post/:id`; `/all/map/post/:id`, `/public/map/post/:id`, `/groups/:slug/map/post/:id` (detail column); `/members/:id/post/:id` — **spec:** `e2e/authenticated.post-detail.spec.js` |
-| **F** | Members & profiles | `/members/:personId/*`; group `members`, `members/:personId`, `members/create` |
+| **F** | Members & profiles | `/members/:personId/*`; `/groups/:slug/members/:personId`; `/groups/:slug/members/create`; members list in Batch D — **spec:** `e2e/authenticated.members-profiles.spec.js` |
 | **G** | Messages | `/messages`; `/messages/:messageThreadId` |
 | **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` |
 | **I** | Group settings & moderation | `/groups/:slug/settings/*` (at least one tab); `/groups/:slug/moderation/*` |
@@ -180,7 +180,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -207,3 +207,4 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-01 | Batch C: `e2e/authenticated.public-context.spec.js` (`/public/*` routes while authenticated; bare `/public/topics` redirect documented) |
 | 2026-05-01 | Batch D: `e2e/authenticated.group-workspace.spec.js` (seeded `e2e-public-group` / `e2e-private-group` routes) |
 | 2026-05-01 | Batch E: `e2e/authenticated.post-detail.spec.js` (global + group post, map dual-column, member/post) |
+| 2026-05-01 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
