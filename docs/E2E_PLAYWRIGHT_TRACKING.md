@@ -89,7 +89,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch H — “My”, settings, search, themes | done | done | `authenticated.my-account.spec.js` §4.4 |
 | Batch I — group settings & moderation | done | done | `authenticated.group-settings-moderation.spec.js` §4.4 |
 | Batch J — create/edit modal routes | done | done | `authenticated.create-edit-modals.spec.js` §4.4 |
-| Batch K — welcome wizard & management | — | — | §4.4 |
+| Batch K — welcome wizard | done | done | `authenticated.welcome-management.spec.js` §4.4 |
 | Batch L — create group & happy-path join | — | — | §4.4 |
 | Batch M — group welcome modal | — | — | §4.4 |
 
@@ -121,7 +121,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` — **spec:** `e2e/authenticated.my-account.spec.js` |
 | **I** | Group settings & moderation | `/groups/:slug/settings/*` (default tab + `privacy`); `/groups/:slug/moderation/*` — **spec:** `e2e/authenticated.group-settings-moderation.spec.js` |
 | **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) — **spec:** `e2e/authenticated.create-edit-modals.spec.js` |
-| **K** | Onboarding & admin | `/welcome/*` (`WelcomeWizardRouter`); `/management/*` (admin-only; gate on seeded fixture user) |
+| **K** | Welcome wizard | `/welcome/*` (`WelcomeWizardRouter`) — **spec:** `e2e/authenticated.welcome-management.spec.js` |
 | **L** | Create group & happy-path join | `/create-group/*`; authenticated `/groups/:slug/join/:validCode` and `/h/use-invitation?token=valid` (needs seeded invite data in E2E DB) |
 | **M** | Group welcome overlay | `GroupWelcomeModal` wraps `groups/:groupSlug/*` — smoke first visit to a seeded group (optional; UI-heavy) |
 
@@ -182,7 +182,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`, `authenticated.welcome-management.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -215,3 +215,4 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-02 | Batch H: `e2e/authenticated.my-account.spec.js` (`/my` → `/my/posts`, stream tabs, `/my/edit-profile`, `/my/notifications`, `/search`, `/themes`) |
 | 2026-05-02 | Batch I: `e2e/authenticated.group-settings-moderation.spec.js`; `seed-e2e-baseline.js` Coordinator + Administration for group settings E2E |
 | 2026-05-02 | Batch J: `e2e/authenticated.create-edit-modals.spec.js` (create chooser + post edit routes for `groups` / `all` / `public` / `my`) |
+| 2026-05-02 | Batch K: `e2e/authenticated.welcome-management.spec.js` (`/welcome/*`) |
