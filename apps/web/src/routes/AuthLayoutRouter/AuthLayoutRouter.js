@@ -800,6 +800,9 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/topics/:topicName' element={<Stream context='all' />} />
                 <Route path='public/topics/:topicName' element={<Stream context='public' />} />
                 <Route path='all/topics' element={<AllTopics />} />
+                {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
+                <Route path='public/post/:postId/edit/*' element={<Stream context='public' />} />
+                <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* **** Group Routes **** */}
