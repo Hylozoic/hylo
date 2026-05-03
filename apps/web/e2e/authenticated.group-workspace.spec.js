@@ -151,14 +151,6 @@ test.describe('Batch D: group workspace', () => {
     await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
   })
 
-  test('GET …/moderation resolves (role may limit actions)', async ({ page }) => {
-    await page.goto(groupPublic('/moderation'))
-    await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/moderation`), navTimeout)
-    await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
-    await expect(page).toHaveTitle(/E2E|Hylo/i, uiTimeout)
-  })
-
   test('GET …/stream on private seeded group loads', async ({ page }) => {
     await page.goto(groupPrivate('/stream'))
     await waitPastRootSessionLoading(page)
@@ -170,7 +162,8 @@ test.describe('Batch D: group workspace', () => {
   test('unknown child path redirects away from bogus segment (group home)', async ({ page }) => {
     await page.goto(groupPublic('/e2e-unknown-route-segment'))
     await waitPastRootSessionLoading(page)
-    await expect(page.url()).not.toContain('e2e-unknown-route-segment')
+    // Catch-all Navigate runs after paint — plain page.url() does not retry
+    await expect(page).not.toHaveURL(/e2e-unknown-route-segment/, navTimeout)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/`), navTimeout)
   })
 })

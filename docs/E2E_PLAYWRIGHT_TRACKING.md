@@ -87,8 +87,8 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch F — members & profiles | done | done | `authenticated.members-profiles.spec.js` |
 | Batch G — messages | done | done | `authenticated.messages.spec.js` |
 | Batch H — “My”, settings, search, themes | done | done | `authenticated.my-account.spec.js` §4.4 |
-| Batch I — group settings & moderation | — | — | §4.4 |
-| Batch J — create/edit modal routes | — | — | §4.4 |
+| Batch I — group settings & moderation | done | done | `authenticated.group-settings-moderation.spec.js` §4.4 |
+| Batch J — create/edit modal routes | done | done | `authenticated.create-edit-modals.spec.js` §4.4 |
 | Batch K — welcome wizard & management | — | — | §4.4 |
 | Batch L — create group & happy-path join | — | — | §4.4 |
 | Batch M — group welcome modal | — | — | §4.4 |
@@ -114,13 +114,13 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **A** | Authenticated shell & redirects | Default landing (`*` → `/all` or last group); `/notifications` → `/my/notifications`; legacy `/settings/*`; `/public/*` inside auth shell → `/public/stream` — **spec:** `e2e/authenticated.shell.spec.js` |
 | **B** | Global context **`/all`** | `/all/stream`, `/all/map`, `/all/topics`, `/all/topics/:topicName`; `/all/projects`, `/all/proposals`, `/all/events`; `/all/members/:personId/*`; redirects `/all/members`, `/all/settings` → `/all` (redirects in Batch A) — **spec:** `e2e/authenticated.all-context.spec.js` |
 | **C** | Global context **`/public`** (logged in) | `/public/stream`, `/public/map`, `/public/groups`; `/public/topics/:topicName`; `/public/projects`, `/public/proposals`, `/public/events`; bare `/public/topics` → `/public/stream` (no topics index route); redirects `/public/members`, `/public/settings` in Batch A — **spec:** `e2e/authenticated.public-context.spec.js` |
-| **D** | Group workspace `/groups/:slug/*` | `about`, `stream`, `map`, `discussions`, `events`, `resources`, `projects`, `proposals`, `requests-and-offers`, `explore`, nested `groups`, `topics` / `topics/:topicName`, `all-views`; `tracks`, `funding-rounds`; `chat/:topicName`; `settings`, `moderation`; private group stream; unknown segment redirect; `custom` / detail IDs deferred (Batch J) — **spec:** `e2e/authenticated.group-workspace.spec.js` |
+| **D** | Group workspace `/groups/:slug/*` | `about`, `stream`, `map`, `discussions`, `events`, `resources`, `projects`, `proposals`, `requests-and-offers`, `explore`, nested `groups`, `topics` / `topics/:topicName`, `all-views`; `tracks`, `funding-rounds`; `chat/:topicName`; `settings` stub; private group stream; unknown segment redirect; `custom` / detail IDs deferred (Batch J). Moderation is Batch I only (`/groups/:slug/moderation`, not `/all` / `/public` / `/my`) — **spec:** `e2e/authenticated.group-workspace.spec.js` |
 | **E** | Post detail & dual-column | `/post/:postId/*`; `/groups/:slug/post/:id`; `/all/map/post/:id`, `/public/map/post/:id`, `/groups/:slug/map/post/:id` (detail column); `/members/:id/post/:id` — **spec:** `e2e/authenticated.post-detail.spec.js` |
 | **F** | Members & profiles | `/members/:personId/*`; `/groups/:slug/members/:personId`; `/groups/:slug/members/create`; members list in Batch D — **spec:** `e2e/authenticated.members-profiles.spec.js` |
 | **G** | Messages | `/messages` (thread list; optional redirect to first thread); `/messages/new` (`messageThreadId` `new`) — **spec:** `e2e/authenticated.messages.spec.js` |
 | **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` — **spec:** `e2e/authenticated.my-account.spec.js` |
-| **I** | Group settings & moderation | `/groups/:slug/settings/*` (at least one tab); `/groups/:slug/moderation/*` |
-| **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) |
+| **I** | Group settings & moderation | `/groups/:slug/settings/*` (default tab + `privacy`); `/groups/:slug/moderation/*` — **spec:** `e2e/authenticated.group-settings-moderation.spec.js` |
+| **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) — **spec:** `e2e/authenticated.create-edit-modals.spec.js` |
 | **K** | Onboarding & admin | `/welcome/*` (`WelcomeWizardRouter`); `/management/*` (admin-only; gate on seeded fixture user) |
 | **L** | Create group & happy-path join | `/create-group/*`; authenticated `/groups/:slug/join/:validCode` and `/h/use-invitation?token=valid` (needs seeded invite data in E2E DB) |
 | **M** | Group welcome overlay | `GroupWelcomeModal` wraps `groups/:groupSlug/*` — smoke first visit to a seeded group (optional; UI-heavy) |
@@ -172,6 +172,8 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 - **`dropdb: database "hylo_e2e" is being accessed by other users`** — Usually a leftover Sails (`node app.js`), TablePlus, or a prior interrupted run. The runner now runs `pg_terminate_backend` on that DB before `dropdb`, and waits for the isolated API process to exit (then `SIGKILL` if needed) before dropping at the end. If you still see this, disconnect GUI clients or run manually (as a superuser / owner):  
   `psql "$E2E_DATABASE_URL" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'hylo_e2e' AND pid <> pg_backend_pid();"`  
   (adjust URL / name to match your env).
+- **`materialized view "search_index" has not been populated`** — Fresh DBs load `search_index` **WITH NO DATA** from `schema.sql`. The `e2e` seed runs `REFRESH MATERIALIZED VIEW search_index` after inserting baseline rows. If you skip seed or use a custom profile, refresh manually: `psql "$E2E_DATABASE_URL" -c 'REFRESH MATERIALIZED VIEW search_index'`.
+- **Deep link under `/groups/:slug/…` jumps to `…/stream`** — `AuthLayoutRouter` treats a missing membership `lastReadAt` as a first visit and navigates to the group home. Baseline seed sets `lastReadAt` on seeded memberships so E2E can open `/moderation`, `/settings`, etc. directly.
 - **`EADDRINUSE` on the API port** — Another process is bound there; set `E2E_BACKEND_PORT` or let the runner pick a free port in its scan range.
 - **Debugging DB state** — `E2E_KEEP_DB=1` skips the final `dropdb` so you can inspect data; you may still need session termination before the *next* run’s recreate step (the script does that automatically at **start** of each run).
 
@@ -180,7 +182,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -211,3 +213,5 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-02 | Batch G: `e2e/authenticated.messages.spec.js` (`/messages`, `/messages/new`) |
 | 2026-05-02 | `e2e/auth.setup.js`: wait past RootRouter loading before login field (`waitPastRootSessionLoading`) |
 | 2026-05-02 | Batch H: `e2e/authenticated.my-account.spec.js` (`/my` → `/my/posts`, stream tabs, `/my/edit-profile`, `/my/notifications`, `/search`, `/themes`) |
+| 2026-05-02 | Batch I: `e2e/authenticated.group-settings-moderation.spec.js`; `seed-e2e-baseline.js` Coordinator + Administration for group settings E2E |
+| 2026-05-02 | Batch J: `e2e/authenticated.create-edit-modals.spec.js` (create chooser + post edit routes for `groups` / `all` / `public` / `my`) |
