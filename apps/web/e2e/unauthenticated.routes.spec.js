@@ -8,6 +8,14 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  */
 test.beforeEach(async ({ context, page }, testInfo) => {
   await context.clearCookies()
+  // Cookies-only clearing leaves Redux persist / localStorage — RootRouter can stay “logged in” at /
+  await page.goto('about:blank')
+  await page.evaluate(() => {
+    try {
+      window.localStorage.clear()
+      window.sessionStorage.clear()
+    } catch (e) {}
+  })
   page.on('dialog', (dialog) => dialog.accept())
   if (process.env.E2E_FORWARD_BROWSER_LOGS === '1') {
     const label = `[${testInfo.project.name}] ${testInfo.titlePath.join(' › ')}`

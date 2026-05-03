@@ -85,7 +85,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch D — group workspace | done | done | `authenticated.group-workspace.spec.js` |
 | Batch E — post detail & deep links | done | done | `authenticated.post-detail.spec.js` |
 | Batch F — members & profiles | done | done | `authenticated.members-profiles.spec.js` |
-| Batch G — messages | — | — | §4.4 |
+| Batch G — messages | done | done | `authenticated.messages.spec.js` |
 | Batch H — “My”, settings, search, themes | — | — | §4.4 |
 | Batch I — group settings & moderation | — | — | §4.4 |
 | Batch J — create/edit modal routes | — | — | §4.4 |
@@ -117,7 +117,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **D** | Group workspace `/groups/:slug/*` | `about`, `stream`, `map`, `discussions`, `events`, `resources`, `projects`, `proposals`, `requests-and-offers`, `explore`, nested `groups`, `topics` / `topics/:topicName`, `all-views`; `tracks`, `funding-rounds`; `chat/:topicName`; `settings`, `moderation`; private group stream; unknown segment redirect; `custom` / detail IDs deferred (Batch J) — **spec:** `e2e/authenticated.group-workspace.spec.js` |
 | **E** | Post detail & dual-column | `/post/:postId/*`; `/groups/:slug/post/:id`; `/all/map/post/:id`, `/public/map/post/:id`, `/groups/:slug/map/post/:id` (detail column); `/members/:id/post/:id` — **spec:** `e2e/authenticated.post-detail.spec.js` |
 | **F** | Members & profiles | `/members/:personId/*`; `/groups/:slug/members/:personId`; `/groups/:slug/members/create`; members list in Batch D — **spec:** `e2e/authenticated.members-profiles.spec.js` |
-| **G** | Messages | `/messages`; `/messages/:messageThreadId` |
+| **G** | Messages | `/messages` (thread list; optional redirect to first thread); `/messages/new` (`messageThreadId` `new`) — **spec:** `e2e/authenticated.messages.spec.js` |
 | **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` |
 | **I** | Group settings & moderation | `/groups/:slug/settings/*` (at least one tab); `/groups/:slug/moderation/*` |
 | **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) |
@@ -180,7 +180,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -198,13 +198,15 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-04-30 | Added isolated orchestration script (`yarn test:e2e:isolated`) to provision DB + backend on dedicated port for Playwright runs |
 | 2026-04-30 | Switched all Playwright scripts to isolated orchestration by default |
 | 2026-04-30 | E2E baseline data via `apps/backend/scripts/seed-e2e-baseline.js` (pg); isolated runner defaults to `E2E_SEED_PROFILE=e2e` |
-| 2026-05-01 | Isolated web default port `3330` (`E2E_WEB_PORT`); Playwright `baseURL` / `webServer.url` follow `E2E_WEB_PORT` or `PORT` |
-| 2026-05-01 | Isolated API port auto-scan when `E2E_BACKEND_PORT` unset; RootRouter fullscreen loading for single-segment unknown paths (faster `/login` redirect UX under checkLogin) |
-| 2026-05-01 | Isolated runner: `pg_terminate_backend` before `dropdb`; graceful API shutdown + SIGKILL before final drop; troubleshooting section |
-| 2026-05-01 | §4.4: thematic batches (A–M) for authenticated route E2E; §4.2 table aligned to batches; unauthenticated §4.1 note for isolated API port |
-| 2026-05-01 | Batch A: `e2e/authenticated.shell.spec.js` (landing, /notifications, /settings/edit-profile, /public→stream, all/public members & settings stubs) |
-| 2026-05-01 | Batch B: `e2e/authenticated.all-context.spec.js`; `e2e/helpers/waitPastRootSessionLoading.js` shared with Batch A |
-| 2026-05-01 | Batch C: `e2e/authenticated.public-context.spec.js` (`/public/*` routes while authenticated; bare `/public/topics` redirect documented) |
-| 2026-05-01 | Batch D: `e2e/authenticated.group-workspace.spec.js` (seeded `e2e-public-group` / `e2e-private-group` routes) |
-| 2026-05-01 | Batch E: `e2e/authenticated.post-detail.spec.js` (global + group post, map dual-column, member/post) |
-| 2026-05-01 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
+| 2026-05-02 | Isolated web default port `3330` (`E2E_WEB_PORT`); Playwright `baseURL` / `webServer.url` follow `E2E_WEB_PORT` or `PORT` |
+| 2026-05-02 | Isolated API port auto-scan when `E2E_BACKEND_PORT` unset; RootRouter fullscreen loading for single-segment unknown paths (faster `/login` redirect UX under checkLogin) |
+| 2026-05-02 | Isolated runner: `pg_terminate_backend` before `dropdb`; graceful API shutdown + SIGKILL before final drop; troubleshooting section |
+| 2026-05-02 | §4.4: thematic batches (A–M) for authenticated route E2E; §4.2 table aligned to batches; unauthenticated §4.1 note for isolated API port |
+| 2026-05-02 | Batch A: `e2e/authenticated.shell.spec.js` (landing, /notifications, /settings/edit-profile, /public→stream, all/public members & settings stubs) |
+| 2026-05-02 | Batch B: `e2e/authenticated.all-context.spec.js`; `e2e/helpers/waitPastRootSessionLoading.js` shared with Batch A |
+| 2026-05-02 | Batch C: `e2e/authenticated.public-context.spec.js` (`/public/*` routes while authenticated; bare `/public/topics` redirect documented) |
+| 2026-05-02 | Batch D: `e2e/authenticated.group-workspace.spec.js` (seeded `e2e-public-group` / `e2e-private-group` routes) |
+| 2026-05-02 | Batch E: `e2e/authenticated.post-detail.spec.js` (global + group post, map dual-column, member/post) |
+| 2026-05-02 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
+| 2026-05-02 | Batch G: `e2e/authenticated.messages.spec.js` (`/messages`, `/messages/new`) |
+| 2026-05-02 | `e2e/auth.setup.js`: wait past RootRouter loading before login field (`waitPastRootSessionLoading`) |

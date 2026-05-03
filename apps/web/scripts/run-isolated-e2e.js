@@ -282,6 +282,8 @@ const runE2E = async () => {
     NODE_ENV: 'development',
     PROTOCOL: 'http',
     DOMAIN: `localhost:${e2eWebPort}`,
+    /** Lets decodeHyloJWT accept tokens minted when DOMAIN briefly differs (e.g. :3000 vs E2E web :3330) */
+    HYLO_JWT_EXTRA_ISSUERS: ['http://localhost:3000', `http://localhost:${e2eWebPort}`].join(','),
     COOKIE_NAME: process.env.E2E_COOKIE_NAME || `hylo-e2e-${e2eBackendPort}`,
     /** Sails cluster in development can fork workers that fight for the same port (EADDRINUSE). */
     WEB_CONCURRENCY: '1',
