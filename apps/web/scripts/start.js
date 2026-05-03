@@ -13,7 +13,7 @@ import paths from '../config/paths.js'
 import { networkInterfaces } from 'os'
 
 process.env.NODE_ENV = 'development'
-dotenv.config({ silent: true })
+dotenv.config({ silent: true, override: false })
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

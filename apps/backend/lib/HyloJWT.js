@@ -23,13 +23,20 @@ export const generateHyloJWT = (sub, data = {}) => {
 }
 
 export const decodeHyloJWT = token => {
+  const primary = `${process.env.PROTOCOL}://${process.env.DOMAIN}`
+  const extras = (process.env.HYLO_JWT_EXTRA_ISSUERS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+  const issuerList = [...new Set([primary, ...extras])]
+  const issuerOpt = issuerList.length === 1 ? issuerList[0] : issuerList
   return jwt.verify(
     token,
     getPublicKeyFromPem(process.env.OIDC_KEYS.split(',')[0]),
     {
       // XXX: does checking audience make sense here? we would have to know the resource values used in generating the JWT for API calls
       // audience: process.env.PROTOCOL + '://' + process.env.DOMAIN,
-      issuer: process.env.PROTOCOL + '://' + process.env.DOMAIN
+      issuer: issuerOpt
     }
   )
 }
