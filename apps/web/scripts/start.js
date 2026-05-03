@@ -18,7 +18,6 @@ dotenv.config({ silent: true, override: false })
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const useYarn = fs.existsSync(paths.yarnLockFile)
 const isInteractive = process.stdout.isTTY
 
 // Warn and crash if required files are missing

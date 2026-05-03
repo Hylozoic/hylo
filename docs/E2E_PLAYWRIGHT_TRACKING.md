@@ -86,7 +86,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch E — post detail & deep links | done | done | `authenticated.post-detail.spec.js` |
 | Batch F — members & profiles | done | done | `authenticated.members-profiles.spec.js` |
 | Batch G — messages | done | done | `authenticated.messages.spec.js` |
-| Batch H — “My”, settings, search, themes | — | — | §4.4 |
+| Batch H — “My”, settings, search, themes | done | done | `authenticated.my-account.spec.js` §4.4 |
 | Batch I — group settings & moderation | — | — | §4.4 |
 | Batch J — create/edit modal routes | — | — | §4.4 |
 | Batch K — welcome wizard & management | — | — | §4.4 |
@@ -118,7 +118,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **E** | Post detail & dual-column | `/post/:postId/*`; `/groups/:slug/post/:id`; `/all/map/post/:id`, `/public/map/post/:id`, `/groups/:slug/map/post/:id` (detail column); `/members/:id/post/:id` — **spec:** `e2e/authenticated.post-detail.spec.js` |
 | **F** | Members & profiles | `/members/:personId/*`; `/groups/:slug/members/:personId`; `/groups/:slug/members/create`; members list in Batch D — **spec:** `e2e/authenticated.members-profiles.spec.js` |
 | **G** | Messages | `/messages` (thread list; optional redirect to first thread); `/messages/new` (`messageThreadId` `new`) — **spec:** `e2e/authenticated.messages.spec.js` |
-| **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` |
+| **H** | “My” & account | `/my`, `/my/posts`, `/my/interactions`, `/my/announcements`, `/my/mentions`, `/my/saved-posts`, `/my/tracks`; `/my/*` → `UserSettings` (key subpaths); `/themes`; `/search/*` — **spec:** `e2e/authenticated.my-account.spec.js` |
 | **I** | Group settings & moderation | `/groups/:slug/settings/*` (at least one tab); `/groups/:slug/moderation/*` |
 | **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) |
 | **K** | Onboarding & admin | `/welcome/*` (`WelcomeWizardRouter`); `/management/*` (admin-only; gate on seeded fixture user) |
@@ -180,7 +180,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -210,3 +210,4 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-02 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
 | 2026-05-02 | Batch G: `e2e/authenticated.messages.spec.js` (`/messages`, `/messages/new`) |
 | 2026-05-02 | `e2e/auth.setup.js`: wait past RootRouter loading before login field (`waitPastRootSessionLoading`) |
+| 2026-05-02 | Batch H: `e2e/authenticated.my-account.spec.js` (`/my` → `/my/posts`, stream tabs, `/my/edit-profile`, `/my/notifications`, `/search`, `/themes`) |
