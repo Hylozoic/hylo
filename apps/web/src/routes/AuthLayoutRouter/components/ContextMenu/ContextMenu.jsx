@@ -746,8 +746,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full mb-4 bg-card/50 rounded-md p-2'>
-        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
-        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.description)} /></p>}
+        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
       </div>
     )
   }
