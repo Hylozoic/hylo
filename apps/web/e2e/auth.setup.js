@@ -17,11 +17,13 @@ setup('authenticate', async ({ page }) => {
   // RootRouter shows fullscreen Loading until checkLogin resolves; same race as unauth E2E if we only wait for the form
   await waitPastRootSessionLoading(page)
 
-  await expect(page.getByLabel('email')).toBeVisible({ timeout: 60000 })
+  // Prefer stable `#email` / `#password` (Login.js): visible <label> text is i18n (“Email”); browsers
+  // expose that as the accessible name, so getByLabel('email') can fail while aria-label is overshadowed.
+  const emailInput = page.locator('#email')
+  await expect(emailInput).toBeVisible({ timeout: 60000 })
 
-  // Fill in the login form
-  await page.getByLabel('email').fill(E2E_LOGIN_EMAIL)
-  await page.getByLabel('password').fill(E2E_LOGIN_PASSWORD)
+  await emailInput.fill(E2E_LOGIN_EMAIL)
+  await page.locator('#password').fill(E2E_LOGIN_PASSWORD)
 
   // Submit the form
   await page.getByRole('button', { name: /sign\s*in/i }).click()
