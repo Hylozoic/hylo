@@ -28,15 +28,19 @@ export const decodeHyloJWT = token => {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
-  const issuerList = [...new Set([primary, ...extras])]
-  const issuerOpt = issuerList.length === 1 ? issuerList[0] : issuerList
+  /** Local dev / isolated E2E often mix DOMAIN :3000 (web .env) vs :3330 (Vite); minted JWTs must verify against either. */
+  const devLocalIssuers =
+    process.env.NODE_ENV === 'development'
+      ? ['http://localhost:3000', 'http://localhost:3330']
+      : []
+  const issuerList = [...new Set([primary, ...extras, ...devLocalIssuers])]
   return jwt.verify(
     token,
     getPublicKeyFromPem(process.env.OIDC_KEYS.split(',')[0]),
     {
       // XXX: does checking audience make sense here? we would have to know the resource values used in generating the JWT for API calls
       // audience: process.env.PROTOCOL + '://' + process.env.DOMAIN,
-      issuer: issuerOpt
+      issuer: issuerList
     }
   )
 }

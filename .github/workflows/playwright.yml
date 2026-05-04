@@ -44,10 +44,13 @@ env:
   LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
   LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
   # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
+  # Playwright: default 4 workers in CI (see apps/web/playwright.config.js); override with E2E_PLAYWRIGHT_WORKERS.
+  E2E_PLAYWRIGHT_WORKERS: '4'
 
 jobs:
   e2e:
-    timeout-minutes: 60
+    # ~50m single-worker full suite; 4 workers + margin + install; adjust if suite grows.
+    timeout-minutes: 120
     runs-on: ubuntu-latest
 
     services:

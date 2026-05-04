@@ -27,7 +27,7 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: /sign\s*in/i }).click()
 
   // Wait for navigation away from the login page (indicates successful auth)
-  await page.waitForURL(/^(?!.*\/login)/, { timeout: 15000 })
+  await page.waitForURL(/^(?!.*\/login)/, { timeout: 60000 })
 
   console.log('Authenticated successfully')
 

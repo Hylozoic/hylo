@@ -448,9 +448,11 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
+      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
+      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const { response, executionResult } = await handler.inject({
         document: `{
-          search(term: "${post.get('name').substring(0, 4)}", type: "post") {
+          search(term: "${searchTerm}", type: "post") {
             items {
               content {
                 __typename
