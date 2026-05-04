@@ -129,7 +129,8 @@ jobs:
               echo '__OIDC__'
             } >> "$GITHUB_ENV"
           else
-            echo "OIDC_KEYS=$(openssl genrsa 2048 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
+            # OpenSSL 3 defaults to PKCS#8 PEM; rsa-pem-to-jwk (rsa-unpack) needs PKCS#1 `BEGIN RSA PRIVATE KEY`.
+            echo "OIDC_KEYS=$(openssl genrsa -traditional 2048 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E (isolated DB + API + web)
