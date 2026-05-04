@@ -125,7 +125,27 @@ async function main () {
       [coordinatorRoleId, administrationRespId]
     )
 
-    for (const gid of [publicGroupId, privateGroupId]) {
+    /** `showJoinForm` opens `GroupWelcomeModal` for Batch M Playwright (do not use this slug for “clean stream” tests). */
+    const welcomeOverlayMembershipSettings = JSON.stringify({ lastReadAt: now, showJoinForm: true })
+    const welcomeRes = await client.query(
+      `INSERT INTO groups (
+        group_data_type, active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+      ) VALUES (
+        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        2, 2, $5, $6::jsonb, 1, true
+      ) RETURNING id`,
+      [now, 'E2E Welcome Overlay', 'e2e-welcome-overlay', 'Playwright GroupWelcomeModal E2E', userId, emptyGroupSettings]
+    )
+    const welcomeGroupId = welcomeRes.rows[0].id
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [welcomeGroupId, userId, now, welcomeOverlayMembershipSettings]
+    )
+
+    for (const gid of [publicGroupId, privateGroupId, welcomeGroupId]) {
       await client.query(
         `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
          SELECT $1::bigint, $2::bigint, $3::bigint
