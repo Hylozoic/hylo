@@ -137,14 +137,18 @@ The React Native app injects globals (`ReactNativeWebView`, optionally `HyloMobi
 
 ---
 
-## 6. CI/CD (future)
+## 6. CI/CD
 
-When we add E2E to CI:
+**GitHub Actions:** `.github/workflows/playwright.yml` runs on `push` / `pull_request` to **`dev`** (and `workflow_dispatch`). It starts **Postgres** + **Redis** services, installs the monorepo + Playwright browsers, runs **`yarn build-packages`**, then **`yarn test:e2e:isolated`** from `apps/web` (same as local isolated E2E). Uploads the **HTML report** as a workflow artifact on completion (see [Playwright CI intro](https://playwright.dev/docs/ci-intro)).
 
-1. **Job order:** start database → migrate/seed → start backend (`3001`) → start web (`3000`) or rely on Playwright `webServer` only for web and add **healthcheck** for API.
-2. **Secrets:** `E2E_TEST_USERNAME`, `E2E_TEST_PASSWORD`; `E2E_SECRET` (or similar) for email/token hooks.
+**Secrets (optional):** set repo secret **`OIDC_KEYS`** so the `/notifications` JWT E2E is not skipped (same as local `apps/backend/.env`). Other backend-only secrets are usually unnecessary for the baseline seed + login user.
+
+When tightening or expanding CI:
+
+1. **Job order:** already covered by `run-isolated-e2e.js` (DB → seed → API → Playwright + Vite `webServer`).
+2. **Secrets:** email/token E2E hooks (§2) if you add those flows.
 3. **Mail:** no separate mail stack if using §2 hooks.
-4. **Scope:** run **smoke + critical path** on every PR; full matrix (desktop + mobile) as budget allows.
+4. **Scope:** run **smoke + critical path** on every PR; full matrix (desktop + mobile) as budget allows — current workflow runs the full isolated suite.
 
 ### Isolated local command (recommended while building coverage)
 
@@ -209,12 +213,13 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-02 | Batch C: `e2e/authenticated.public-context.spec.js` (`/public/*` routes while authenticated; bare `/public/topics` redirect documented) |
 | 2026-05-02 | Batch D: `e2e/authenticated.group-workspace.spec.js` (seeded `e2e-public-group` / `e2e-private-group` routes) |
 | 2026-05-02 | Batch E: `e2e/authenticated.post-detail.spec.js` (global + group post, map dual-column, member/post) |
-| 2026-05-02 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
-| 2026-05-02 | Batch G: `e2e/authenticated.messages.spec.js` (`/messages`, `/messages/new`) |
-| 2026-05-02 | `e2e/auth.setup.js`: wait past RootRouter loading before login field (`waitPastRootSessionLoading`) |
-| 2026-05-02 | Batch H: `e2e/authenticated.my-account.spec.js` (`/my` → `/my/posts`, stream tabs, `/my/edit-profile`, `/my/notifications`, `/search`, `/themes`) |
-| 2026-05-02 | Batch I: `e2e/authenticated.group-settings-moderation.spec.js`; `seed-e2e-baseline.js` Coordinator + Administration for group settings E2E |
-| 2026-05-02 | Batch J: `e2e/authenticated.create-edit-modals.spec.js` (create chooser + post edit routes for `groups` / `all` / `public` / `my`) |
-| 2026-05-02 | Batch K: `e2e/authenticated.welcome-management.spec.js` (`/welcome/*`) |
-| 2026-05-02 | Batch L: `e2e/authenticated.create-group-join.spec.js`; `seed-e2e-baseline.js` adds join-host user, `e2e-join-code-group` / `e2e-invite-token-group`, invite token row |
-| 2026-05-02 | Batch M: `e2e/authenticated.group-welcome-modal.spec.js`; `seed-e2e-baseline.js` adds `e2e-welcome-overlay` + `showJoinForm` membership |
+| 2026-05-03 | Batch F: `e2e/authenticated.members-profiles.spec.js` (global + group member profile, members/create) |
+| 2026-05-03 | Batch G: `e2e/authenticated.messages.spec.js` (`/messages`, `/messages/new`) |
+| 2026-05-03 | `e2e/auth.setup.js`: wait past RootRouter loading before login field (`waitPastRootSessionLoading`) |
+| 2026-05-03 | Batch H: `e2e/authenticated.my-account.spec.js` (`/my` → `/my/posts`, stream tabs, `/my/edit-profile`, `/my/notifications`, `/search`, `/themes`) |
+| 2026-05-03 | Batch I: `e2e/authenticated.group-settings-moderation.spec.js`; `seed-e2e-baseline.js` Coordinator + Administration for group settings E2E |
+| 2026-05-03 | Batch J: `e2e/authenticated.create-edit-modals.spec.js` (create chooser + post edit routes for `groups` / `all` / `public` / `my`) |
+| 2026-05-03 | Batch K: `e2e/authenticated.welcome-management.spec.js` (`/welcome/*`) |
+| 2026-05-04 | Batch L: `e2e/authenticated.create-group-join.spec.js`; `seed-e2e-baseline.js` adds join-host user, `e2e-join-code-group` / `e2e-invite-token-group`, invite token row |
+| 2026-05-04 | Batch M: `e2e/authenticated.group-welcome-modal.spec.js`; `seed-e2e-baseline.js` adds `e2e-welcome-overlay` + `showJoinForm` membership |
+| 2026-05-04 | GitHub Actions: `.github/workflows/playwright.yml` (Postgres + Redis, `yarn test:e2e:isolated`, Playwright HTML report artifact); §6 CI/CD |

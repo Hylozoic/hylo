@@ -82,8 +82,21 @@ jobs:
           cache: yarn
           cache-dependency-path: yarn.lock
 
+      # ubuntu-latest often resolves azure.archive.ubuntu.com first; it can hang or retry for a long time.
+      # Prefer archive.ubuntu.com + bounded apt timeouts (see community reports on GHA apt slowness).
       - name: Install PostgreSQL client (dropdb/createdb/psql for isolated E2E)
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: |
+          set -euo pipefail
+          for f in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+            if [ -f "$f" ] && grep -q azure.archive.ubuntu.com "$f" 2>/dev/null; then
+              sudo sed -i 's/azure\.archive\.ubuntu\.com/archive.ubuntu.com/g' "$f"
+            fi
+          done
+          sudo apt-get update \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=60 \
+            -o Acquire::https::Timeout=60
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client
 
       - name: Install monorepo dependencies
         run: yarn install --immutable
