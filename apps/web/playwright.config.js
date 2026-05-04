@@ -7,13 +7,21 @@ const webOrigin = `http://localhost:${webPort}`
 /** Unauth projects must never inherit a session from another worker or a reused profile */
 const noSessionStorageState = { cookies: [], origins: [] }
 
+const reporters = process.env.CI
+  ? [
+      ['html'],
+      ['github'],
+      ['junit', { outputFile: 'test-results/junit.xml' }]
+    ]
+  : 'html'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: reporters,
   use: {
     baseURL: webOrigin,
     trace: 'on-first-retry',

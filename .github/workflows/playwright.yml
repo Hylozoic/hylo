@@ -1,0 +1,119 @@
+# E2E (Playwright) — pattern from https://playwright.dev/docs/ci-intro
+# Postgres + Redis: native GitHub service containers (job on the VM, services on localhost).
+# Postgres tutorial: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers
+# Redis uses the same `services:` + `ports:` pattern as Postgres (not the Marketplace action below).
+# Alternative for Redis only: https://github.com/marketplace/actions/redis-server-in-github-actions
+# Hylo: `run-isolated-e2e.js` passes env (incl. REDIS_URL) to the backend; DB `hylo_e2e` from E2E_DATABASE_URL.
+name: Playwright E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+concurrency:
+  group: playwright-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# JUnit → PR comment step needs write on checks + PR; contents read for checkout.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: true
+  # Runner talks to the service on localhost (mapped port). Last path segment = DB name for isolated runner.
+  E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e
+  PGSSLMODE: disable
+  # Sails session store (`config/session.js`); not for production.
+  REDIS_URL: redis://localhost:6379
+  COOKIE_SECRET: github-actions-e2e-cookie-secret-32chars-min
+  JWT_SECRET: github-actions-e2e-jwt-secret-min-length-ok
+  # Optional: add `OIDC_KEYS` repo secret so notification JWT E2E is not skipped.
+
+jobs:
+  e2e:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    services:
+      # Same idea as GitHub’s PostgreSQL service example; `run-isolated-e2e` creates DB `hylo_e2e` at runtime.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Official redis image, default port; backend expects REDIS_URL=redis://localhost:6379 (see apps/backend/.env.example).
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Install PostgreSQL client (dropdb/createdb/psql for isolated E2E)
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+
+      - name: Build workspace packages (Vite resolves @hylo/* from built packages)
+        run: yarn build-packages
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: yarn exec playwright install --with-deps
+
+      - name: Run Playwright E2E (isolated DB + API + web)
+        working-directory: apps/web
+        env:
+          OIDC_KEYS: ${{ secrets.OIDC_KEYS }}
+        run: yarn test:e2e:isolated
+
+      # JUnit summary + PR comment (EnricoMi/publish-unit-test-result-action). Fork PRs: GITHUB_TOKEN is often read-only — step uses continue-on-error.
+      - name: Publish Playwright results to PR
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        with:
+          files: apps/web/test-results/junit.xml
+          check_name: Playwright E2E
+          comment_title: Playwright E2E
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
