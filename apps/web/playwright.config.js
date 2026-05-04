@@ -4,6 +4,24 @@ import { defineConfig, devices } from '@playwright/test'
 const webPort = process.env.E2E_WEB_PORT || process.env.PORT || '3000'
 const webOrigin = `http://localhost:${webPort}`
 
+/**
+ * One Sails + one Vite: too many workers can race lift; 4 is a balance for ~2–4 vCPU runners.
+ * Override: E2E_PLAYWRIGHT_WORKERS=1 (or 2) if auth.setup flaps; higher for large self-hosted runners.
+ */
+function resolvePlaywrightWorkers () {
+  const raw = process.env.E2E_PLAYWRIGHT_WORKERS
+  if (raw != null && String(raw).trim() !== '') {
+    const n = Number(raw)
+    if (Number.isFinite(n) && n >= 1) {
+      return Math.min(32, Math.floor(n))
+    }
+  }
+  if (process.env.CI === 'true' || process.env.E2E_ISOLATED === '1') {
+    return 4
+  }
+  return undefined
+}
+
 /** Unauth projects must never inherit a session from another worker or a reused profile */
 const noSessionStorageState = { cookies: [], origins: [] }
 
@@ -20,7 +38,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: resolvePlaywrightWorkers(),
   reporter: reporters,
   use: {
     baseURL: webOrigin,
@@ -47,7 +65,8 @@ export default defineConfig({
       name: 'chromium-unauth',
       testMatch: '**/unauthenticated.routes.spec.js',
       use: { ...devices['Desktop Chrome'], storageState: noSessionStorageState },
-      timeout: 120000
+      timeout: 120000,
+      dependencies: ['setup']
     },
     // Real mobile UA + viewport so ismobilejs / util/mobile (isMobileDevice) behave like phone web, not desktop-with-narrow-window
     {
@@ -63,7 +82,8 @@ export default defineConfig({
       name: 'mobile-unauth',
       testMatch: '**/unauthenticated.routes.spec.js',
       use: { ...devices['Pixel 5'], storageState: noSessionStorageState },
-      timeout: 120000
+      timeout: 120000,
+      dependencies: ['setup']
     }
   ],
   webServer: {
