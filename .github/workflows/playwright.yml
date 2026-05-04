@@ -44,9 +44,10 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      # Same idea as GitHub’s PostgreSQL service example; `run-isolated-e2e` creates DB `hylo_e2e` at runtime.
+      # Official postgres image has no PostGIS; `migrations/schema.sql` needs CREATE EXTENSION postgis.
+      # postgis/postgis is postgres + PostGIS (same service-container pattern as GitHub’s Postgres example).
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
