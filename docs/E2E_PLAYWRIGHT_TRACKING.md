@@ -91,7 +91,7 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch J — create/edit modal routes | done | done | `authenticated.create-edit-modals.spec.js` §4.4 |
 | Batch K — welcome wizard | done | done | `authenticated.welcome-management.spec.js` §4.4 |
 | Batch L — create group & happy-path join | done | done | `authenticated.create-group-join.spec.js` §4.4 |
-| Batch M — group welcome modal | — | — | §4.4 |
+| Batch M — group welcome modal | done | done | `authenticated.group-welcome-modal.spec.js` §4.4 |
 
 ### 4.3 Email-dependent flows (tie to §2)
 
@@ -123,7 +123,7 @@ Work through these in order; each batch should be a **small PR** (or a few specs
 | **J** | Create / edit (modal routes) | Sample matrix only — one URL per pattern per context (`groups` / `all` / `public` / `my`): `…/create/*`, `…/post/:postId/create/*`, `…/post/:postId/edit/*`, track create/edit, custom-view post edit, etc. (not every permutation) — **spec:** `e2e/authenticated.create-edit-modals.spec.js` |
 | **K** | Welcome wizard | `/welcome/*` (`WelcomeWizardRouter`) — **spec:** `e2e/authenticated.welcome-management.spec.js` |
 | **L** | Create group & happy-path join | `/create-group` shell; `/h/use-invitation?token=…` and `/groups/:slug/join/:accessCode` (host + join groups + `group_invites` in `seed-e2e-baseline.js`) — **spec:** `e2e/authenticated.create-group-join.spec.js` |
-| **M** | Group welcome overlay | `GroupWelcomeModal` wraps `groups/:groupSlug/*` — smoke first visit to a seeded group (optional; UI-heavy) |
+| **M** | Group welcome overlay | `GroupWelcomeModal` when membership `showJoinForm` — seeded `e2e-welcome-overlay` — **spec:** `e2e/authenticated.group-welcome-modal.spec.js` |
 
 **Source of truth for paths:** `apps/web/src/routes/AuthLayoutRouter/AuthLayoutRouter.js` (and `RootRouter.js` for logged-out vs logged-in split).
 
@@ -182,7 +182,7 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`, `authenticated.welcome-management.spec.js`, `authenticated.create-group-join.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`, `authenticated.welcome-management.spec.js`, `authenticated.create-group-join.spec.js`, `authenticated.group-welcome-modal.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
 - Auth setup: `apps/web/e2e/auth.setup.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
@@ -217,3 +217,4 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-02 | Batch J: `e2e/authenticated.create-edit-modals.spec.js` (create chooser + post edit routes for `groups` / `all` / `public` / `my`) |
 | 2026-05-02 | Batch K: `e2e/authenticated.welcome-management.spec.js` (`/welcome/*`) |
 | 2026-05-02 | Batch L: `e2e/authenticated.create-group-join.spec.js`; `seed-e2e-baseline.js` adds join-host user, `e2e-join-code-group` / `e2e-invite-token-group`, invite token row |
+| 2026-05-02 | Batch M: `e2e/authenticated.group-welcome-modal.spec.js`; `seed-e2e-baseline.js` adds `e2e-welcome-overlay` + `showJoinForm` membership |
