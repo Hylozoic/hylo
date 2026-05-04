@@ -28,6 +28,9 @@ defaults:
     shell: bash
 
 env:
+  # GitHub Actions JS runtime: opt into Node 24 for actions (checkout/setup-node/upload-artifact).
+  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CI: true
   # Runner talks to the service on localhost (mapped port). Last path segment = DB name for isolated runner.
   E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e
@@ -89,6 +92,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
+          # Match monorepo engines (^20); Actions’ embedded Node uses FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 above.
           node-version: '20'
           cache: yarn
           cache-dependency-path: yarn.lock

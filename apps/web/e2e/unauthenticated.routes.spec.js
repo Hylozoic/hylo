@@ -45,8 +45,8 @@ test.describe('root and auth shell', () => {
     await expect(page).toHaveURL(/\/login$/, routeTimeout)
     await waitPastRootSessionLoading(page)
     await expect(page.getByRole('heading', { name: /Sign in to Hylo/i })).toBeVisible(uiTimeout)
-    await expect(page.getByLabel('email')).toBeVisible(uiTimeout)
-    await expect(page.getByLabel('password')).toBeVisible(uiTimeout)
+    await expect(page.locator('#email')).toBeVisible(uiTimeout)
+    await expect(page.locator('#password')).toBeVisible(uiTimeout)
   })
 
   test('GET /signup shows welcome sign-up', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('root and auth shell', () => {
     await expect(page).toHaveURL(/\/signup\/?$/, routeTimeout)
     await waitPastRootSessionLoading(page)
     await expect(page.getByRole('heading', { name: /Welcome to Hylo/i })).toBeVisible(uiTimeout)
-    await expect(page.getByLabel('email')).toBeVisible(uiTimeout)
+    await expect(page.locator('#email')).toBeVisible(uiTimeout)
   })
 
   test('GET /reset-password shows reset form', async ({ page }) => {
