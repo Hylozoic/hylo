@@ -36,7 +36,14 @@ env:
   REDIS_URL: redis://localhost:6379
   COOKIE_SECRET: github-actions-e2e-cookie-secret-32chars-min
   JWT_SECRET: github-actions-e2e-jwt-secret-min-length-ok
-  # Optional: add `OIDC_KEYS` repo secret so notification JWT E2E is not skipped.
+  # passport.js instantiates OAuth strategies at load time — non-empty placeholders only (no real OAuth in CI).
+  ADMIN_GOOGLE_CLIENT_ID: e2e-ci-placeholder-oauth-client-id
+  ADMIN_GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
+  GOOGLE_CLIENT_ID: e2e-ci-placeholder-oauth-client-id
+  GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
+  LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
+  LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
+  # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
 
 jobs:
   e2e:
@@ -109,10 +116,24 @@ jobs:
         working-directory: apps/web
         run: yarn exec playwright install --with-deps
 
+      # config/passport.js JwtStrategy requires OIDC_KEYS; OAuth strategies need client IDs (see top-level env).
+      - name: Set OIDC_KEYS for Sails (repo secret or ephemeral RSA for this run only)
+        env:
+          OIDC_FROM_SECRET: ${{ secrets.OIDC_KEYS }}
+        run: |
+          if [ -n "$OIDC_FROM_SECRET" ]; then
+            {
+              echo 'OIDC_KEYS<<__OIDC__'
+              printf '%s' "$OIDC_FROM_SECRET"
+              echo
+              echo '__OIDC__'
+            } >> "$GITHUB_ENV"
+          else
+            echo "OIDC_KEYS=$(openssl genrsa 2048 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
+          fi
+
       - name: Run Playwright E2E (isolated DB + API + web)
         working-directory: apps/web
-        env:
-          OIDC_KEYS: ${{ secrets.OIDC_KEYS }}
         run: yarn test:e2e:isolated
 
       # JUnit summary + PR comment (EnricoMi/publish-unit-test-result-action). Fork PRs: GITHUB_TOKEN is often read-only — step uses continue-on-error.
