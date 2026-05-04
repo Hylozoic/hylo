@@ -287,7 +287,9 @@ const runE2E = async () => {
     COOKIE_NAME: process.env.E2E_COOKIE_NAME || `hylo-e2e-${e2eBackendPort}`,
     /** Sails cluster in development can fork workers that fight for the same port (EADDRINUSE). */
     WEB_CONCURRENCY: '1',
-    HEROKU_AVAILABLE_PARALLELISM: '1'
+    HEROKU_AVAILABLE_PARALLELISM: '1',
+    /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
+    DISABLE_SEGMENT: '1'
   }
 
   setupDatabase(backendEnv)
