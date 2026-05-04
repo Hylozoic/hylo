@@ -40,6 +40,15 @@ async function main () {
     )
     const userId = userRes.rows[0].id
 
+    /** Host-only membership so `e2e.user` can exercise join links (Batch L E2E). */
+    const hostRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      ['e2e.join-host@hylo.test', 'E2E Join Host', 'E2E', 'Host', now, userSettings]
+    )
+    const hostId = hostRes.rows[0].id
+
     const pubRes = await client.query(
       `INSERT INTO groups (
         group_data_type, active, created_at, updated_at, name, slug, description,
@@ -139,6 +148,58 @@ async function main () {
     await client.query(
       'INSERT INTO groups_posts (post_id, group_id) VALUES ($1, $2)',
       [publicPostId, publicGroupId]
+    )
+
+    const joinCodeGroupRes = await client.query(
+      `INSERT INTO groups (
+        group_data_type, active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
+      ) VALUES (
+        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        2, 2, $5, $6::jsonb, 1, true, $7
+      ) RETURNING id`,
+      [
+        now,
+        'E2E Join Code Group',
+        'e2e-join-code-group',
+        'Playwright E2E — join via /groups/:slug/join/:accessCode',
+        hostId,
+        emptyGroupSettings,
+        'e2ejoincode001'
+      ]
+    )
+    const joinCodeGroupId = joinCodeGroupRes.rows[0].id
+
+    const inviteTokenGroupRes = await client.query(
+      `INSERT INTO groups (
+        group_data_type, active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public
+      ) VALUES (
+        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        2, 2, $5, $6::jsonb, 1, true
+      ) RETURNING id`,
+      [
+        now,
+        'E2E Invite Token Group',
+        'e2e-invite-token-group',
+        'Playwright E2E — join via /h/use-invitation?token=…',
+        hostId,
+        emptyGroupSettings
+      ]
+    )
+    const inviteTokenGroupId = inviteTokenGroupRes.rows[0].id
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId]
+    )
+
+    await client.query(
+      `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id)
+       VALUES ($1::timestamptz, $2, $3, $4, $5)`,
+      [now, hostId, 'e2e-static-invite-token-001', E2E_USER_EMAIL.toLowerCase(), inviteTokenGroupId]
     )
 
     const passwordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
