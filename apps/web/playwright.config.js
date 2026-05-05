@@ -50,7 +50,8 @@ export default defineConfig({
       name: 'setup',
       testMatch: /auth\.setup\.js/,
       use: { ...devices['Desktop Chrome'] },
-      timeout: 120000
+      // Wall-clock must exceed goto + #email wait + submit + post-login URL (each step has its own timeout)
+      timeout: 300000
     },
     {
       name: 'chromium',
