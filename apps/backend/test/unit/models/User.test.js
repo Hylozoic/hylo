@@ -79,8 +79,8 @@ describe('User', function () {
   })
 
   it('can join groups', function () {
-    let group1 = new Group({ name: 'House', slug: 'house', group_data_type: 1 })
-    let group2 = new Group({ name: 'Yard', slug: 'yard', group_data_type: 1 })
+    let group1 = new Group({ name: 'House', slug: 'house' })
+    let group2 = new Group({ name: 'Yard', slug: 'yard' })
 
     return Promise.join(
       group1.save(),
@@ -109,7 +109,7 @@ describe('User', function () {
   })
 
   it('can become moderator', function () {
-    const street = new Group({ name: 'Street', slug: 'street', group_data_type: 1 })
+    const street = new Group({ name: 'Street', slug: 'street' })
 
     return street.save()
     .then(() => cat.joinGroup(street, { role: GroupMembership.Role.MODERATOR }))
@@ -240,7 +240,7 @@ describe('User', function () {
     let group
 
     before(function () {
-      group = new Group({name: 'foo', slug: 'foo', group_data_type: 1})
+      group = new Group({ name: 'foo', slug: 'foo' })
       return group.save()
     })
 

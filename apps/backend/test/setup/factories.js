@@ -50,7 +50,6 @@ module.exports = {
       name: faker.random.words(6),
       slug: faker.lorem.slug(),
       access_code: faker.random.alphaNumeric(6),
-      group_data_type: 1,
       settings: {}
     }, attrs))
   },
