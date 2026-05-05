@@ -411,19 +411,19 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
   return (
     <>
       <div className='bg-card p-4 rounded-md shadow-md hover:shadow-lg transition-shadow'>
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-          {/* User Info */}
-          <div className='flex items-center gap-3 flex-1'>
+        <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0'>
+          {/* User Info — min-w-0 so long unbroken names wrap inside flex layout */}
+          <div className='flex items-start gap-3 flex-1 min-w-0'>
             {user?.avatarUrl && (
               <img
                 src={user.avatarUrl}
                 alt={user.name}
-                className='w-10 h-10 rounded-full'
+                className='w-10 h-10 rounded-full shrink-0'
               />
             )}
-            <div>
-              <div className='font-medium text-foreground'>{user?.name}</div>
-              <div className='text-sm text-foreground/70'>
+            <div className='min-w-0 flex-1'>
+              <div className='font-medium text-foreground break-words [overflow-wrap:anywhere]'>{user?.name}</div>
+              <div className='text-sm text-foreground/70 break-words [overflow-wrap:anywhere]'>
                 {offering && <span>{offering.name}</span>}
                 {track && <span> • {track.name}</span>}
                 {role && <span> • {role.emoji} {role.name}</span>}
@@ -432,7 +432,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
           </div>
 
           {/* Badges and Info */}
-          <div className='flex flex-wrap items-center gap-2'>
+          <div className='flex flex-wrap items-center gap-2 shrink-0'>
             {getAccessTypeBadge(accessType)}
             {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
             <div className='text-xs text-foreground/60'>
@@ -482,7 +482,7 @@ function ContentAccessRecordItem ({ record, t, onActionComplete }) {
 
         {/* Granted By Info */}
         {grantedBy && (
-          <div className='mt-2 text-xs text-foreground/60'>
+          <div className='mt-2 text-xs text-foreground/60 break-words [overflow-wrap:anywhere]'>
             {t('Granted by')}: {grantedBy.name}
           </div>
         )}
