@@ -50,8 +50,8 @@ env:
   LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
   LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
   # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
-  # One Vite + one API: fewer workers reduces contention on shared runners (override with E2E_PLAYWRIGHT_WORKERS).
-  E2E_PLAYWRIGHT_WORKERS: '2'
+  # One Vite + one API: tune workers for runner capacity (override with E2E_PLAYWRIGHT_WORKERS).
+  E2E_PLAYWRIGHT_WORKERS: '8'
 
 jobs:
   e2e:
