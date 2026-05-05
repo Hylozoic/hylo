@@ -10,7 +10,7 @@ import FundingRoundEditor from 'components/FundingRoundEditor'
 import TrackEditor from 'components/TrackEditor'
 import Icon from 'components/Icon'
 import PostEditor from 'components/PostEditor'
-import { removeCreateEditModalFromUrl } from '@hylo/navigation'
+import { removeCreateEditModalFromUrl, stripComposeModalQueryParams } from '@hylo/navigation'
 import classes from './CreateModal.module.scss'
 import { useTranslation } from 'react-i18next'
 
@@ -39,7 +39,7 @@ const CreateModal = (props) => {
     const closePathFromParam = querystringParams.get('closePath')
     // Use replace to remove the create modal from history.
     // This prevents the back button from re-opening the modal after closing it.
-    navigate(closePathFromParam || returnToLocation, { replace: true })
+    navigate(stripComposeModalQueryParams(closePathFromParam || returnToLocation), { replace: true })
   }
 
   const confirmClose = () => {

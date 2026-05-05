@@ -1150,9 +1150,7 @@ function PostEditorInner ({
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (!savedPost.error) {
-      if (isEditing) {
-        await clearDraft()
-      }
+      await clearDraft()
       setIsDirty(false)
       if (afterSave) {
         const returnedPost = isEditing
@@ -1161,7 +1159,7 @@ function PostEditorInner ({
         afterSave(returnedPost)
       }
     }
-  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation, setIsDirty])
+  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
