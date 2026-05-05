@@ -423,24 +423,33 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     (async function () {
       if (isDev) performance.mark('hylo-auth-bootstrap-start')
-      // Parallelise the two independent bootstrap fetches.
-      // If the initial URL contains a post ID, race fetchPost alongside them
-      // so the post data is ready (or nearly ready) by the time the auth shell renders.
-      const bootstrapFetches = [
-        dispatch(fetchCommonRoles()),
-        dispatch(fetchForCurrentUser()),
-        ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
-      ]
-      await Promise.all(bootstrapFetches)
-      if (isDev) {
-        performance.mark('hylo-auth-bootstrap-end')
-        try {
-          performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
-        } catch (e) {
-          // duplicate measure names across hot reload / strict mode
+      let bootstrapOk = false
+      try {
+        // Parallelise the two independent bootstrap fetches.
+        // If the initial URL contains a post ID, race fetchPost alongside them
+        // so the post data is ready (or nearly ready) by the time the auth shell renders.
+        const bootstrapFetches = [
+          dispatch(fetchCommonRoles()),
+          dispatch(fetchForCurrentUser()),
+          ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+        ]
+        await Promise.all(bootstrapFetches)
+        bootstrapOk = true
+        if (isDev) {
+          performance.mark('hylo-auth-bootstrap-end')
+          try {
+            performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
+          } catch (e) {
+            // duplicate measure names across hot reload / strict mode
+          }
         }
+      } catch (e) {
+        const detail = e?.message || (Array.isArray(e) ? JSON.stringify(e) : String(e))
+        console.error('[Hylo auth bootstrap] failed', detail, e)
+      } finally {
+        setCurrentUserLoading(false)
       }
-      setCurrentUserLoading(false)
+      if (!bootstrapOk) return
       const runThreads = () => dispatch(fetchThreads())
       if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
         window.requestIdleCallback(runThreads, { timeout: 4000 })
