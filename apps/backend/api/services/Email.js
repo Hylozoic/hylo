@@ -1,76 +1,13 @@
 import { curry, merge } from 'lodash'
 import { format } from 'util'
 import { mapLocaleToSendWithUS } from '../../lib/util'
-import { getLocaleStrings } from '../../lib/i18n/locales'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
-// Maps Dyspatch/Sendwithus locale on the outgoing payload to `lib/i18n` keys (en, es, …).
-const SENDWITHUS_LOCALE_TO_I18N = {
-  'en-US': 'en',
-  'es-ES': 'es',
-  'de-DE': 'de',
-  'fr-FR': 'fr',
-  'hi-IN': 'hi',
-  'pt-BR': 'pt',
-  'pt-PT': 'pt'
-}
-
-function mapSendWithUsLocaleToI18nKey (locale) {
-  if (!locale || typeof locale !== 'string') return 'en'
-  if (SENDWITHUS_LOCALE_TO_I18N[locale]) return SENDWITHUS_LOCALE_TO_I18N[locale]
-  const short = locale.split('-')[0]
-  if (['en', 'es', 'fr', 'de', 'hi', 'pt'].includes(short)) return short
-  return 'en'
-}
-
-// Transactional email is sent via Sendwithus (Dyspatch). When `email_data.subject` is set,
-// templates use `{{ subject }}`; we append a localized Hylo suffix (`emailSubjectViaHyloSuffix`).
-// When inferring subject from post + group, we use `emailSubjectPostInGroup` per locale.
-
-/**
- * Appends localized “via Hylo” when the subject does not already reference Hylo (avoids
- * duplicates on translated invitation subjects like "… on Hylo").
- */
-function appendViaHyloSuffix (subject, i18nKey) {
-  if (typeof subject !== 'string' || !subject.trim()) return subject
-  const trimmed = subject.trim()
-  if (/\bhylo\b/i.test(trimmed)) return trimmed
-  const L = getLocaleStrings(i18nKey)
-  const suffix = typeof L.emailSubjectViaHyloSuffix === 'function'
-    ? L.emailSubjectViaHyloSuffix()
-    : ' via Hylo'
-  return `${trimmed}${suffix}`
-}
-
-function normalizeEmailDataSubjects (emailData, i18nKey) {
-  if (!emailData || typeof emailData !== 'object') return emailData
-  const next = { ...emailData }
-  const L = getLocaleStrings(i18nKey)
-
-  if (typeof next.subject === 'string' && next.subject.trim()) {
-    next.subject = appendViaHyloSuffix(next.subject, i18nKey)
-  } else {
-    const title = next.post && typeof next.post.title === 'string' && next.post.title.trim()
-    if (title && next.group_name) {
-      const base = typeof L.emailSubjectPostInGroup === 'function'
-        ? L.emailSubjectPostInGroup(title, next.group_name)
-        : `"${title}" in ${next.group_name}`
-      next.subject = appendViaHyloSuffix(base, i18nKey)
-    }
-  }
-
-  return next
-}
-
 const sendEmail = async opts => {
   try {
-    const payload = { ...opts }
-    if (payload.email_data && typeof payload.email_data === 'object') {
-      const i18nKey = mapSendWithUsLocaleToI18nKey(payload.locale)
-      payload.email_data = normalizeEmailDataSubjects(payload.email_data, i18nKey)
-    }
-    await api.send(payload)
+    await api.send(opts)
     return true
   } catch (err) {
     console.error('Error sending email:', err, ' email opts = ', opts)
@@ -132,7 +69,7 @@ module.exports = {
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
       sender: {
-        name: `${data.inviter_name} (via Hylo)`,
+        name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email
       }
     }),
@@ -144,7 +81,7 @@ module.exports = {
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
       sender: {
-        name: `${data.inviter_name} (via Hylo)`,
+        name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email
       }
     }),

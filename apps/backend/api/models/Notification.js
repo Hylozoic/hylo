@@ -5,6 +5,7 @@ import rollbar from '../../lib/rollbar'
 import { broadcast, userRoom } from '../services/Websockets'
 import RedisPubSub from '../services/RedisPubSub'
 import { getLocaleStrings } from '../../lib/i18n/locales'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
@@ -473,7 +474,7 @@ module.exports = bookshelf.Model.extend({
       sender: {
         address: replyTo,
         reply_to: replyTo,
-        name: `${user.get('name')} (via Hylo)`
+        name: senderNameViaHylo(user.get('name'), locale)
       },
       data: {
         announcement: true,
@@ -509,7 +510,7 @@ module.exports = bookshelf.Model.extend({
       sender: {
         address: replyTo,
         reply_to: replyTo,
-        name: `${user.get('name')} (via Hylo)`
+        name: senderNameViaHylo(user.get('name'), locale)
       },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
@@ -543,7 +544,7 @@ module.exports = bookshelf.Model.extend({
       sender: {
         address: replyTo,
         reply_to: replyTo,
-        name: `${user.get('name')} (via Hylo)`
+        name: senderNameViaHylo(user.get('name'), locale)
       },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
@@ -573,7 +574,7 @@ module.exports = bookshelf.Model.extend({
       email: reader.get('email'),
       locale,
       sender: {
-        name: `${actor.get('name')} from ${fromGroup.get('name')}`,
+        name: senderNameViaHylo(`${actor.get('name')} from ${fromGroup.get('name')}`, locale),
         address: process.env.EMAIL_SENDER
       },
       data: {
@@ -652,7 +653,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') + ' (via Hylo)' },
+      sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -685,7 +686,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendApprovedJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') + ' (via Hylo)' },
+      sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_avatar_url: group.get('avatar_url'),
@@ -715,7 +716,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendGroupChildGroupInviteNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: actor.get('name') + ' from ' + parentGroup.get('name') },
+      sender: { name: senderNameViaHylo(`${actor.get('name')} from ${parentGroup.get('name')}`, locale) },
       data: {
         child_group_avatar_url: childGroup.get('avatar_url'),
         child_group_name: childGroup.get('name'),
@@ -787,7 +788,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendGroupParentGroupJoinRequestNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: actor.get('name') + ' from ' + childGroup.get('name') },
+      sender: { name: senderNameViaHylo(`${actor.get('name')} from ${childGroup.get('name')}`, locale) },
       data: {
         child_group_avatar_url: childGroup.get('avatar_url'),
         child_group_name: childGroup.get('name'),
@@ -858,7 +859,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendDonationToEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: project.summary() },
+      sender: { name: senderNameViaHylo(project.summary(), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         project_title: project.summary(),
@@ -887,7 +888,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendDonationFromEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: project.summary() },
+      sender: { name: senderNameViaHylo(project.summary(), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         project_title: project.summary(),
@@ -923,7 +924,7 @@ module.exports = bookshelf.Model.extend({
       sender: {
         address: replyTo,
         reply_to: replyTo,
-        name: `${inviter.get('name')} (via Hylo)`
+        name: senderNameViaHylo(inviter.get('name'), locale)
       },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
@@ -953,7 +954,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendMemberJoinedGroupNotification({
       email: reader.get('email'),
       locale,
-      sender: { name: actor.get('name') },
+      sender: { name: senderNameViaHylo(actor.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         group_name: group.get('name'),
@@ -1009,7 +1010,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendTrackEnrollmentEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: actor.get('name') },
+      sender: { name: senderNameViaHylo(actor.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         enrollee_name: actor.get('name'),
@@ -1048,7 +1049,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundNewSubmissionEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') + ' (via Hylo)' },
+      sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         funding_round_title: fundingRound.get('title'),
@@ -1129,7 +1130,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundPhaseTransitionEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') + ' (via Hylo)' },
+      sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data
     })
   },
@@ -1165,7 +1166,7 @@ module.exports = bookshelf.Model.extend({
     return Email.sendFundingRoundReminderEmail({
       email: reader.get('email'),
       locale,
-      sender: { name: group.get('name') + ' (via Hylo)' },
+      sender: { name: senderNameViaHylo(group.get('name'), locale) },
       data: {
         email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, reader),
         funding_round_title: fundingRound.get('title'),
