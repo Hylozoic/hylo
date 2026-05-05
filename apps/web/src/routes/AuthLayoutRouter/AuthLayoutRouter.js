@@ -458,19 +458,20 @@ export default function AuthLayoutRouter (props) {
   }, [])
 
   useEffect(() => {
-    if (currentUser?.id) {
-      mixpanel.identify(currentUser.id)
-      mixpanel.people.set({
-        $name: currentUser.name,
-        $email: currentUser.email,
-        $location: currentUser.location
-      })
-
-      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
+    if (currentUser?.settings?.locale) {
+      getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
+    if (!config.mixpanel.token || !currentUser?.id) return
+    mixpanel.identify(currentUser.id)
+    mixpanel.people.set({
+      $name: currentUser.name,
+      $email: currentUser.email,
+      $location: currentUser.location
+    })
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
+    if (!config.mixpanel.token) return
     // Add all current group membershps to mixpanel user
     mixpanel.set_group('groupId', memberships.map(m => m.group.id))
 
