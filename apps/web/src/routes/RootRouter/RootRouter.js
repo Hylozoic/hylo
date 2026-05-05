@@ -18,7 +18,7 @@ import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
 import { WebViewMessageTypes } from '@hylo/shared'
 
-if (!isTest) {
+if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
 }
 
