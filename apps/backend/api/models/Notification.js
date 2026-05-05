@@ -261,7 +261,8 @@ module.exports = bookshelf.Model.extend({
   sendCommentPush: async function (version) {
     const comment = this.comment()
     const post = comment.relations.post
-    const group = post.relations.groups.first()
+    const reader = this.reader()
+    const group = await post.groupForFrontendRouteForUser(reader.id)
     const locale = this.locale()
     const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
     const alertText = PushNotification.textForComment(comment, version, locale)
