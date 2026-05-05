@@ -172,6 +172,28 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return !!(pu && pu.get('following'))
   },
 
+  /**
+   * Picks a group for deep-link URLs (push, email) so we do not send users to a
+   * group they are not in. If the viewer belongs to one of the post's groups,
+   * that group is used; otherwise returns null so `Frontend.Route.post` /
+   * `comment` use `/public/...` (never a random linked group the viewer cannot access).
+   */
+  async groupForFrontendRouteForUser (viewerUserId) {
+    if (!this.relations.groups) {
+      await this.load('groups')
+    }
+    const groups = this.relations.groups
+    if (!groups || groups.length === 0) {
+      return null
+    }
+    if (!viewerUserId) {
+      return null
+    }
+    const userGroupIds = await Group.pluckIdsForMember(viewerUserId)
+    const memberGroup = groups.models.find(g => userGroupIds.includes(g.id))
+    return memberGroup || null
+  },
+
   comments: function () {
     return this.hasMany(Comment, 'post_id').query({
       where: {
