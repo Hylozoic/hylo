@@ -2,7 +2,6 @@ import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
-import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
@@ -10,17 +9,21 @@ const authFile = path.resolve(import.meta.dirname, '.auth/session.json')
 const E2E_LOGIN_EMAIL = 'e2e.user@hylo.test'
 const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 
+/** RootRouter blocks on checkLogin; Login mounts `#email` only after. Loader-based waits can race CI/Vite. */
+const LOGIN_FORM_TIMEOUT_MS = 120000
+
 setup('authenticate', async ({ page }) => {
-  // Navigate to the login page
-  await page.goto('/login')
+  await page.goto('/login', { waitUntil: 'load', timeout: LOGIN_FORM_TIMEOUT_MS })
+  await expect(page).toHaveURL(/\/login/)
 
-  // RootRouter shows fullscreen Loading until checkLogin resolves; same race as unauth E2E if we only wait for the form
-  await waitPastRootSessionLoading(page)
-
-  // Prefer stable `#email` / `#password` (Login.js): visible <label> text is i18n (“Email”); browsers
-  // expose that as the accessible name, so getByLabel('email') can fail while aria-label is overshadowed.
   const emailInput = page.locator('#email')
-  await expect(emailInput).toBeVisible({ timeout: 60000 })
+
+  try {
+    await emailInput.waitFor({ state: 'visible', timeout: LOGIN_FORM_TIMEOUT_MS })
+  } catch {
+    await page.reload({ waitUntil: 'load', timeout: LOGIN_FORM_TIMEOUT_MS })
+    await emailInput.waitFor({ state: 'visible', timeout: LOGIN_FORM_TIMEOUT_MS })
+  }
 
   await emailInput.fill(E2E_LOGIN_EMAIL)
   await page.locator('#password').fill(E2E_LOGIN_PASSWORD)
