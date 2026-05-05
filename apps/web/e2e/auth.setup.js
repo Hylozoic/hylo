@@ -13,8 +13,28 @@ const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 const GOTO_TIMEOUT_MS = 60000
 const LOGIN_FORM_TIMEOUT_MS = 120000
 
+/**
+ * Forwards useful browser logs in CI (same filter as unauthenticated.routes.spec.js).
+ * @param {import('@playwright/test').Page} page
+ */
+function forwardBrowserLogsForSetup (page) {
+  if (process.env.CI !== 'true' && process.env.E2E_FORWARD_BROWSER_LOGS !== '1') return
+  page.on('console', msg => {
+    const t = msg.text()
+    if (t.includes('[Hylo') || t.includes('GraphQL') || msg.type() === 'error') {
+      process.stderr.write(`[browser][auth.setup] ${t}\n`)
+    }
+  })
+  page.on('pageerror', err => {
+    process.stderr.write(`[browser][auth.setup] pageerror: ${err.message}\n`)
+  })
+}
+
 setup('authenticate', async ({ page }) => {
-  await page.goto('/login', { waitUntil: 'load', timeout: GOTO_TIMEOUT_MS })
+  forwardBrowserLogsForSetup(page)
+
+  // `domcontentloaded` avoids rare hangs where dev/HMR keeps `load` from settling before React mounts.
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS })
   await expect(page).toHaveURL(/\/login/)
 
   const emailInput = page.locator('#email')

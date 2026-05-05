@@ -28,10 +28,13 @@ defaults:
     shell: bash
 
 env:
-  # GitHub Actions JS runtime: opt into Node 24 for actions (checkout/setup-node/upload-artifact).
+  # Legacy marketplace actions may still target Node 20; runners migrate to 24 — opt-in for consistency.
+  # Primary fix for annotations is using action majors that run on node24 (checkout v5+, setup-node v5+, upload-artifact v6+).
   # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CI: true
+  # Surface [Hylo GraphQL] / checkLogin in CI logs when auth routes flake
+  E2E_FORWARD_BROWSER_LOGS: '1'
   # Runner talks to the service on localhost (mapped port). Last path segment = DB name for isolated runner.
   E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e
   PGSSLMODE: disable
@@ -47,8 +50,8 @@ env:
   LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
   LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
   # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
-  # Playwright: default 4 workers in CI (see apps/web/playwright.config.js); override with E2E_PLAYWRIGHT_WORKERS.
-  E2E_PLAYWRIGHT_WORKERS: '4'
+  # One Vite + one API: fewer workers reduces contention on shared runners (override with E2E_PLAYWRIGHT_WORKERS).
+  E2E_PLAYWRIGHT_WORKERS: '2'
 
 jobs:
   e2e:
@@ -85,14 +88,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.1
 
       - name: Enable Corepack (Yarn 4)
         run: corepack enable
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5.0.0
         with:
-          # Match monorepo engines (^20); Actions’ embedded Node uses FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 above.
           node-version: '20'
           cache: yarn
           cache-dependency-path: yarn.lock
@@ -154,7 +156,7 @@ jobs:
           check_name: Playwright E2E
           comment_title: Playwright E2E
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6.0.0
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
