@@ -8,8 +8,8 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 
 const PopoverArrow = PopoverPrimitive.Arrow
 
-const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffset = 8, children, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+const PopoverContent = React.forwardRef(({ className, align = 'center', sideOffset = 8, container, children, ...props }, ref) => (
+  <PopoverPrimitive.Portal container={container}>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}

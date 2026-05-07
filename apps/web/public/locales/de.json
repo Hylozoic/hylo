@@ -870,6 +870,7 @@
   "New posts": "Neue Beiträge",
   "Next": "Weiter",
   "Next Action": "Nächste Aktion",
+  "Next {{actionDescriptor}}": "Nächste {{actionDescriptor}}",
   "Next: Welcome to Hylo!": "Weiter: Willkommen bei Hylo!",
   "Next: Where are you from?": "Weiter: Woher kommst du?",
   "No": "Nein",

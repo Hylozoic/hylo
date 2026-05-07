@@ -154,6 +154,18 @@ describe('Notification', function () {
           })
       })
 
+      it('uses a public post URL for comment push when the post is public and the reader is not in the linked group', () => {
+        return post.save({ is_public: true }, { patch: true })
+          .then(() => preloadNotification(activities.newComment, Notification.MEDIUM.Push))
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            const pn = pns.first()
+            expect(pn.get('path')).to.match(/\/public\/post\//)
+          })
+      })
+
       it('sends a push for a mention in a comment', () => {
         return preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
           .then(notification => notification.send())

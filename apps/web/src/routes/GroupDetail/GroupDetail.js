@@ -1,5 +1,5 @@
 import { keyBy } from 'lodash'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -142,6 +142,26 @@ function GroupDetail ({ forCurrentGroup = false }) {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
   }, [dispatch])
 
+  const agreementsSectionRef = useRef(null)
+  const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
+
+  const handleCopyAgreementsLink = useCallback(() => {
+    const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
+    navigator.clipboard.writeText(url).then(() => {
+      setAgreementsLinkCopied(true)
+      window.setTimeout(() => setAgreementsLinkCopied(false), 2500)
+    }).catch(() => {})
+  }, [group?.slug])
+
+  useEffect(() => {
+    if (location.hash !== '#agreements') return
+    if (!group?.agreements?.length) return
+    const id = window.setTimeout(() => {
+      agreementsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [location.hash, group?.agreements?.length])
+
   useEffect(() => {
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
@@ -266,6 +286,37 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
+        {group.agreements?.length > 0
+          ? (
+            <div
+              ref={agreementsSectionRef}
+              id='agreements'
+              className='border-2 border-dashed border-foreground/20 rounded-xl p-4'
+            >
+              <div className='flex flex-row flex-wrap items-center justify-between gap-2 gap-y-1 mb-2'>
+                <h2 className='m-0'>{t('Agreements')}</h2>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1.5 text-sm rounded-lg border-2 border-foreground/20 px-2 py-1 hover:border-foreground/50 transition-all hover:cursor-pointer bg-card text-foreground shrink-0'
+                  onClick={handleCopyAgreementsLink}
+                  aria-label={t('Copy Link')}
+                >
+                  <Icon name='Copy' className='text-base' />
+                  {agreementsLinkCopied ? t('Copied!') : t('Copy Link')}
+                </button>
+              </div>
+              {group.agreements.map((agreement, i) => {
+                return (
+                  <div key={i}>
+                    <strong>{parseInt(i) + 1}) {agreement.title}</strong>
+                    <ClickCatcher>
+                      <HyloHTML element='span' html={TextHelpers.markdown(agreement.description)} />
+                    </ClickCatcher>
+                  </div>
+                )
+              })}
+            </div>)
+          : ''}
         {!isAboutCurrentGroup
           ? group.paywall
             ? (

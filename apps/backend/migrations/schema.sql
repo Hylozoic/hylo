@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict SpPvEfrligr7DugzXzJjKT9wuhtRH8M7AaUOmPvZ7bVLC0EcHt80B6VgSOeJeuN
+\restrict 2taOPDihnNMv7cqG4gy7dcNwN2jcip9tW7clIBqD4deYNdeiEr9SrGdBUu1Wr3x
 
--- Dumped from database version 17.4 (Postgres.app)
--- Dumped by pg_dump version 17.6 (Homebrew)
+-- Dumped from database version 17.8 (Postgres.app)
+-- Dumped by pg_dump version 18.2 (Postgres.app)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,6 +17,13 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
 
 --
 -- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
@@ -60,6 +67,162 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
 
 
+--
+-- Name: compute_user_scopes_from_content_access(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      scope_string TEXT;
+    BEGIN
+      -- Only process active content_access records
+      IF NEW.status = 'active' THEN
+        -- Determine the scope based on what the content_access grants
+        
+        -- Track access: scope format is 'track:<track_id>'
+        IF NEW.track_id IS NOT NULL THEN
+          scope_string := 'track:' || NEW.track_id;
+          
+          INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+          VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+          ON CONFLICT (user_id, scope) 
+          DO UPDATE SET 
+            expires_at = CASE 
+              WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+              WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+              ELSE user_scopes.expires_at
+            END,
+            updated_at = NOW();
+        END IF;
+        
+        -- Role access: scope format is 'group_role:<role_id>'
+        IF NEW.role_id IS NOT NULL THEN
+          scope_string := 'group_role:' || NEW.role_id;
+          
+          INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+          VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+          ON CONFLICT (user_id, scope) 
+          DO UPDATE SET 
+            expires_at = CASE 
+              WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+              WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+              ELSE user_scopes.expires_at
+            END,
+            updated_at = NOW();
+        END IF;
+        
+        -- Group access: scope format is 'group:<group_id>'
+        IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+          scope_string := 'group:' || NEW.granted_by_group_id;
+          
+          INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+          VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+          ON CONFLICT (user_id, scope) 
+          DO UPDATE SET 
+            expires_at = CASE 
+              WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+              WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+              ELSE user_scopes.expires_at
+            END,
+            updated_at = NOW();
+        END IF;
+      ELSE
+        -- If status is not active (revoked/expired), remove the scope
+        IF NEW.track_id IS NOT NULL THEN
+          scope_string := 'track:' || NEW.track_id;
+          DELETE FROM user_scopes 
+          WHERE user_id = NEW.user_id 
+            AND scope = scope_string 
+            AND source_kind = 'grant' 
+            AND source_id = NEW.id;
+        END IF;
+        
+        IF NEW.role_id IS NOT NULL THEN
+          scope_string := 'group_role:' || NEW.role_id;
+          DELETE FROM user_scopes 
+          WHERE user_id = NEW.user_id 
+            AND scope = scope_string 
+            AND source_kind = 'grant' 
+            AND source_id = NEW.id;
+        END IF;
+        
+        IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+          scope_string := 'group:' || NEW.granted_by_group_id;
+          DELETE FROM user_scopes 
+          WHERE user_id = NEW.user_id 
+            AND scope = scope_string 
+            AND source_kind = 'grant' 
+            AND source_id = NEW.id;
+        END IF;
+      END IF;
+      
+      RETURN NEW;
+    END;
+    $$;
+
+
+--
+-- Name: compute_user_scopes_from_role(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.compute_user_scopes_from_role() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+      role_scopes JSONB;
+      scope_string TEXT;
+    BEGIN
+      -- Only process active role assignments
+      IF NEW.active = true THEN
+        -- Fetch the scopes array from the groups_roles table
+        SELECT scopes INTO role_scopes
+        FROM groups_roles
+        WHERE id = NEW.group_role_id;
+        
+        -- If the role has scopes defined, insert them into user_scopes
+        IF role_scopes IS NOT NULL THEN
+          -- Iterate over each scope in the JSONB array
+          FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
+          LOOP
+            INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+            VALUES (NEW.user_id, scope_string, NULL, 'role', NEW.id, NOW(), NOW())
+            ON CONFLICT (user_id, scope) 
+            DO UPDATE SET 
+              updated_at = NOW();
+          END LOOP;
+        END IF;
+      ELSE
+        -- If role assignment is not active, remove the scopes
+        -- We need to get the scopes from the role again to know what to delete
+        SELECT scopes INTO role_scopes
+        FROM groups_roles
+        WHERE id = NEW.group_role_id;
+        
+        IF role_scopes IS NOT NULL THEN
+          FOR scope_string IN SELECT jsonb_array_elements_text(role_scopes)
+          LOOP
+            DELETE FROM user_scopes 
+            WHERE user_id = NEW.user_id 
+              AND scope = scope_string 
+              AND source_kind = 'role' 
+              AND source_id = NEW.id;
+          END LOOP;
+        END IF;
+      END IF;
+      
+      RETURN NEW;
+    END;
+    $$;
+
+
+--
+-- Name: delete_user(integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -77,14 +240,13 @@ CREATE TABLE public.activities (
     unread boolean DEFAULT true,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    community_id bigint,
     meta jsonb DEFAULT '{}'::jsonb,
     parent_comment_id bigint,
     contribution_id bigint,
     project_contribution_id bigint,
     group_id bigint,
     other_group_id bigint,
-    track_id integer,
+    track_id bigint,
     funding_round_id bigint
 );
 
@@ -374,64 +536,11 @@ ALTER SEQUENCE public.common_roles_responsibilities_id_seq OWNED BY public.commo
 
 
 --
--- Name: community_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.community_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: communities; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.communities (
-    id bigint DEFAULT nextval('public.community_seq'::regclass) NOT NULL,
-    name character varying(255) NOT NULL,
-    avatar_url character varying(255),
-    background_url character varying(255),
-    beta_access_code character varying(255),
-    description text,
-    slug character varying(255) NOT NULL,
-    daily_digest boolean DEFAULT true,
-    membership_fee bigint,
-    plan_guid character varying(63),
-    banner_url text,
-    category character varying(64),
-    created_at timestamp without time zone,
-    created_by_id bigint,
-    banner_pos character varying(32),
-    leader_id bigint,
-    welcome_message text,
-    settings jsonb DEFAULT '{}'::jsonb,
-    default_public_content boolean DEFAULT false,
-    network_id bigint,
-    location character varying(255),
-    slack_hook_url text,
-    slack_team text,
-    slack_configure_url text,
-    active boolean DEFAULT true,
-    num_members integer DEFAULT 0,
-    hidden boolean DEFAULT false NOT NULL,
-    allow_community_invites boolean DEFAULT false,
-    location_id bigint,
-    is_public boolean DEFAULT false,
-    is_auto_joinable boolean DEFAULT false,
-    public_member_directory boolean DEFAULT false
-);
-
-
---
 -- Name: groups_tags; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.groups_tags (
     id integer NOT NULL,
-    community_id bigint,
     tag_id bigint,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -464,29 +573,22 @@ ALTER SEQUENCE public.communities_tags_id_seq OWNED BY public.groups_tags.id;
 
 
 --
--- Name: communities_users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.communities_users (
-    user_id bigint NOT NULL,
-    community_id bigint NOT NULL,
-    role smallint,
-    created_at timestamp without time zone,
-    active boolean,
-    deactivated_at timestamp with time zone,
-    deactivator_id bigint,
-    last_viewed_at timestamp with time zone,
-    id integer NOT NULL,
-    settings jsonb DEFAULT '{}'::jsonb,
-    new_post_count integer DEFAULT 0
-);
-
-
---
 -- Name: community_invite_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.community_invite_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: community_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.community_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -752,6 +854,78 @@ ALTER SEQUENCE public.devices_id_seq OWNED BY public.devices.id;
 
 
 --
+-- Name: drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.drafts (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    type character varying(20) NOT NULL,
+    data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    post_id bigint,
+    group_id bigint,
+    topic_id bigint,
+    message_thread_id bigint,
+    is_edit boolean DEFAULT false,
+    navigate_to text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    post_type character varying(20)
+);
+
+
+--
+-- Name: drafts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.drafts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: drafts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.drafts_id_seq OWNED BY public.drafts.id;
+
+
+--
+-- Name: email_enabled_testers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.email_enabled_testers (
+    id integer NOT NULL,
+    user_id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: email_enabled_testers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.email_enabled_testers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: email_enabled_testers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.email_enabled_testers_id_seq OWNED BY public.email_enabled_testers.id;
+
+
+--
 -- Name: event_invitations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -891,7 +1065,6 @@ ALTER SEQUENCE public.flagged_items_id_seq OWNED BY public.flagged_items.id;
 
 CREATE TABLE public.tag_follows (
     id integer NOT NULL,
-    community_id bigint,
     tag_id bigint,
     user_id bigint,
     created_at timestamp with time zone,
@@ -935,21 +1108,6 @@ CREATE SEQUENCE public.follower_seq
 
 
 --
--- Name: follows; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.follows (
-    id bigint DEFAULT nextval('public.follower_seq'::regclass) NOT NULL,
-    post_id bigint,
-    added_at timestamp with time zone,
-    user_id bigint,
-    added_by_id bigint,
-    role integer,
-    comment_id bigint
-);
-
-
---
 -- Name: funding_rounds; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -980,7 +1138,9 @@ CREATE TABLE public.funding_rounds (
     submitter_roles jsonb DEFAULT '[]'::jsonb,
     voter_roles jsonb DEFAULT '[]'::jsonb,
     phase character varying(255) DEFAULT 'draft'::character varying,
-    deactivated_at timestamp with time zone
+    deactivated_at timestamp with time zone,
+    hide_final_results_from_participants boolean DEFAULT false,
+    allow_self_voting boolean DEFAULT false
 );
 
 
@@ -1150,7 +1310,6 @@ ALTER SEQUENCE public.group_extensions_id_seq OWNED BY public.group_extensions.i
 
 CREATE TABLE public.group_invites (
     id bigint DEFAULT nextval('public.community_invite_seq'::regclass) NOT NULL,
-    community_id bigint,
     created_at timestamp with time zone NOT NULL,
     invited_by_id bigint NOT NULL,
     used_by_id bigint,
@@ -1231,7 +1390,6 @@ CREATE TABLE public.group_memberships (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     new_post_count integer DEFAULT 0,
-    group_data_type integer,
     project_role_id bigint,
     nav_order integer
 );
@@ -1483,13 +1641,11 @@ ALTER SEQUENCE public.group_widgets_id_seq OWNED BY public.group_widgets.id;
 
 CREATE TABLE public.groups (
     id bigint NOT NULL,
-    group_data_type integer NOT NULL,
-    group_data_id bigint,
     active boolean DEFAULT true,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
-    name character varying(255),
-    slug character varying(255),
+    name character varying(255) NOT NULL,
+    slug character varying(255) NOT NULL,
     description text,
     location character varying(255),
     location_id bigint,
@@ -1585,11 +1741,29 @@ ALTER SEQUENCE public.groups_id_seq OWNED BY public.groups.id;
 
 CREATE TABLE public.groups_posts (
     post_id bigint NOT NULL,
-    community_id bigint,
     id integer NOT NULL,
     pinned_at timestamp with time zone,
     group_id bigint NOT NULL
 );
+
+
+--
+-- Name: groups_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.groups_posts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: groups_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.groups_posts_id_seq OWNED BY public.groups_posts.id;
 
 
 --
@@ -1739,7 +1913,6 @@ ALTER SEQUENCE public.join_request_question_answers_id_seq OWNED BY public.group
 CREATE TABLE public.join_requests (
     id integer NOT NULL,
     user_id bigint,
-    community_id bigint,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     status integer,
@@ -1911,6 +2084,26 @@ CREATE SEQUENCE public.locations_id_seq
 --
 
 ALTER SEQUENCE public.locations_id_seq OWNED BY public.locations.id;
+
+
+--
+-- Name: lock_monitor; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.lock_monitor AS
+ SELECT COALESCE(((blockingl.relation)::regclass)::text, blockingl.locktype) AS locked_item,
+    (now() - blockeda.query_start) AS waiting_duration,
+    blockeda.pid AS blocked_pid,
+    blockeda.query AS blocked_query,
+    blockedl.mode AS blocked_mode,
+    blockinga.pid AS blocking_pid,
+    blockinga.query AS blocking_query,
+    blockingl.mode AS blocking_mode
+   FROM (((pg_locks blockedl
+     JOIN pg_stat_activity blockeda ON ((blockedl.pid = blockeda.pid)))
+     JOIN pg_locks blockingl ON ((((blockingl.transactionid = blockedl.transactionid) OR ((blockingl.relation = blockedl.relation) AND (blockingl.locktype = blockedl.locktype))) AND (blockedl.pid <> blockingl.pid))))
+     JOIN pg_stat_activity blockinga ON (((blockingl.pid = blockinga.pid) AND (blockinga.datid = blockeda.datid))))
+  WHERE ((NOT blockedl.granted) AND (blockinga.datname = current_database()));
 
 
 --
@@ -2099,36 +2292,6 @@ ALTER SEQUENCE public.networks_id_seq OWNED BY public.networks.id;
 
 
 --
--- Name: networks_posts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.networks_posts (
-    id integer NOT NULL,
-    network_id bigint,
-    post_id bigint
-);
-
-
---
--- Name: networks_posts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.networks_posts_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: networks_posts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.networks_posts_id_seq OWNED BY public.networks_posts.id;
-
-
---
 -- Name: networks_users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2233,9 +2396,7 @@ CREATE TABLE public.oidc_payloads (
     user_code character varying(255),
     uid character varying(255),
     expires_at timestamp with time zone,
-    consumed_at timestamp with time zone,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    consumed_at timestamp with time zone
 );
 
 
@@ -2280,25 +2441,6 @@ CREATE SEQUENCE public.platform_agreements_id_seq
 --
 
 ALTER SEQUENCE public.platform_agreements_id_seq OWNED BY public.platform_agreements.id;
-
-
---
--- Name: post_community_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.post_community_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: post_community_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.post_community_id_seq OWNED BY public.groups_posts.id;
 
 
 --
@@ -2376,7 +2518,8 @@ CREATE TABLE public.posts (
     completion_action_settings jsonb DEFAULT '{}'::jsonb,
     num_people_completed integer DEFAULT 0,
     num_commenters integer DEFAULT 0,
-    budget character varying(255)
+    budget character varying(255),
+    ical_sequence integer
 );
 
 
@@ -3534,25 +3677,6 @@ ALTER SEQUENCE public.user_verification_codes_id_seq OWNED BY public.user_verifi
 
 
 --
--- Name: users_community_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.users_community_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: users_community_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.users_community_id_seq OWNED BY public.communities_users.id;
-
-
---
 -- Name: users_groups_agreements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3741,13 +3865,6 @@ ALTER TABLE ONLY public.common_roles_responsibilities ALTER COLUMN id SET DEFAUL
 
 
 --
--- Name: communities_users id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users ALTER COLUMN id SET DEFAULT nextval('public.users_community_id_seq'::regclass);
-
-
---
 -- Name: context_widgets id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3780,6 +3897,20 @@ ALTER TABLE ONLY public.custom_views ALTER COLUMN id SET DEFAULT nextval('public
 --
 
 ALTER TABLE ONLY public.devices ALTER COLUMN id SET DEFAULT nextval('public.devices_id_seq'::regclass);
+
+
+--
+-- Name: drafts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts ALTER COLUMN id SET DEFAULT nextval('public.drafts_id_seq'::regclass);
+
+
+--
+-- Name: email_enabled_testers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_enabled_testers ALTER COLUMN id SET DEFAULT nextval('public.email_enabled_testers_id_seq'::regclass);
 
 
 --
@@ -3933,7 +4064,7 @@ ALTER TABLE ONLY public.groups_agreements ALTER COLUMN id SET DEFAULT nextval('p
 -- Name: groups_posts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.groups_posts ALTER COLUMN id SET DEFAULT nextval('public.post_community_id_seq'::regclass);
+ALTER TABLE ONLY public.groups_posts ALTER COLUMN id SET DEFAULT nextval('public.groups_posts_id_seq'::regclass);
 
 
 --
@@ -4018,13 +4149,6 @@ ALTER TABLE ONLY public.moderation_actions_platform_agreements ALTER COLUMN id S
 --
 
 ALTER TABLE ONLY public.networks ALTER COLUMN id SET DEFAULT nextval('public.networks_id_seq'::regclass);
-
-
---
--- Name: networks_posts id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_posts ALTER COLUMN id SET DEFAULT nextval('public.networks_posts_id_seq'::regclass);
 
 
 --
@@ -4399,6 +4523,30 @@ ALTER TABLE ONLY public.devices
 
 
 --
+-- Name: drafts drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_enabled_testers email_enabled_testers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_enabled_testers
+    ADD CONSTRAINT email_enabled_testers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: email_enabled_testers email_enabled_testers_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_enabled_testers
+    ADD CONSTRAINT email_enabled_testers_user_id_unique UNIQUE (user_id);
+
+
+--
 -- Name: event_invitations event_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4436,14 +4584,6 @@ ALTER TABLE ONLY public.extensions
 
 ALTER TABLE ONLY public.flagged_items
     ADD CONSTRAINT flagged_items_pkey PRIMARY KEY (id);
-
-
---
--- Name: tag_follows followed_tags_community_id_tag_id_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tag_follows
-    ADD CONSTRAINT followed_tags_community_id_tag_id_user_id_unique UNIQUE (community_id, tag_id, user_id);
 
 
 --
@@ -4591,14 +4731,6 @@ ALTER TABLE ONLY public.groups_agreements
 
 
 --
--- Name: groups groups_group_data_id_group_data_type_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups
-    ADD CONSTRAINT groups_group_data_id_group_data_type_unique UNIQUE (group_data_id, group_data_type);
-
-
---
 -- Name: groups groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4735,27 +4867,11 @@ ALTER TABLE ONLY public.moderation_actions_platform_agreements
 
 
 --
--- Name: networks_posts network_id_post_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_posts
-    ADD CONSTRAINT network_id_post_id_key UNIQUE (network_id, post_id);
-
-
---
 -- Name: networks networks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.networks
     ADD CONSTRAINT networks_pkey PRIMARY KEY (id);
-
-
---
--- Name: networks_posts networks_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_posts
-    ADD CONSTRAINT networks_posts_pkey PRIMARY KEY (id);
 
 
 --
@@ -4799,14 +4915,6 @@ ALTER TABLE ONLY public.comments
 
 
 --
--- Name: communities pk_community; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT pk_community PRIMARY KEY (id);
-
-
---
 -- Name: group_invites pk_community_invite; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4820,14 +4928,6 @@ ALTER TABLE ONLY public.group_invites
 
 ALTER TABLE ONLY public.contributions
     ADD CONSTRAINT pk_contributor PRIMARY KEY (id);
-
-
---
--- Name: follows pk_follower; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT pk_follower PRIMARY KEY (id);
 
 
 --
@@ -4892,14 +4992,6 @@ ALTER TABLE ONLY public.platform_agreements
 
 ALTER TABLE ONLY public.groups_posts
     ADD CONSTRAINT post_community_pkey PRIMARY KEY (id);
-
-
---
--- Name: groups_posts post_community_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_posts
-    ADD CONSTRAINT post_community_unique UNIQUE (post_id, community_id);
 
 
 --
@@ -5079,14 +5171,6 @@ ALTER TABLE ONLY public.tracks_users
 
 
 --
--- Name: communities unique_beta_access_code; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT unique_beta_access_code UNIQUE (beta_access_code);
-
-
---
 -- Name: comments_tags unique_comments_tags; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5095,35 +5179,11 @@ ALTER TABLE ONLY public.comments_tags
 
 
 --
--- Name: groups_tags unique_communities_tags; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_tags
-    ADD CONSTRAINT unique_communities_tags UNIQUE (community_id, tag_id);
-
-
---
 -- Name: users unique_email; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT unique_email UNIQUE (email);
-
-
---
--- Name: follows unique_follows; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT unique_follows UNIQUE (post_id, comment_id, user_id);
-
-
---
--- Name: join_requests unique_join_requests; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.join_requests
-    ADD CONSTRAINT unique_join_requests UNIQUE (user_id, community_id);
 
 
 --
@@ -5148,22 +5208,6 @@ ALTER TABLE ONLY public.posts_tags
 
 ALTER TABLE ONLY public.proposal_votes
     ADD CONSTRAINT unique_proposal_vote_per_user UNIQUE (option_id, user_id);
-
-
---
--- Name: communities uq_community_1; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT uq_community_1 UNIQUE (name);
-
-
---
--- Name: communities uq_community_2; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT uq_community_2 UNIQUE (slug);
 
 
 --
@@ -5199,14 +5243,6 @@ ALTER TABLE ONLY public.user_affiliations
 
 
 --
--- Name: communities_users user_community_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users
-    ADD CONSTRAINT user_community_unique UNIQUE (user_id, community_id);
-
-
---
 -- Name: user_connections user_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5236,14 +5272,6 @@ ALTER TABLE ONLY public.user_post_relevance
 
 ALTER TABLE ONLY public.user_verification_codes
     ADD CONSTRAINT user_verification_codes_pkey PRIMARY KEY (id);
-
-
---
--- Name: communities_users users_community_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users
-    ADD CONSTRAINT users_community_pkey PRIMARY KEY (id);
 
 
 --
@@ -5300,13 +5328,6 @@ CREATE INDEX common_roles_responsibilities_responsibility_id_index ON public.com
 
 
 --
--- Name: communities_tags_community_id_visibility_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX communities_tags_community_id_visibility_index ON public.groups_tags USING btree (community_id, visibility);
-
-
---
 -- Name: context_widgets_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5335,10 +5356,45 @@ CREATE INDEX cookie_consents_user_id_index ON public.cookie_consents USING btree
 
 
 --
--- Name: fk_community_created_by_1; Type: INDEX; Schema: public; Owner: -
+-- Name: drafts_comment_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX fk_community_created_by_1 ON public.communities USING btree (created_by_id);
+CREATE UNIQUE INDEX drafts_comment_unique ON public.drafts USING btree (user_id, post_id) WHERE ((type)::text = 'comment'::text);
+
+
+--
+-- Name: drafts_edit_post_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX drafts_edit_post_unique ON public.drafts USING btree (user_id, post_id) WHERE (((type)::text = 'post'::text) AND (is_edit = true));
+
+
+--
+-- Name: drafts_message_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX drafts_message_unique ON public.drafts USING btree (user_id, message_thread_id) WHERE ((type)::text = 'message'::text);
+
+
+--
+-- Name: drafts_new_post_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX drafts_new_post_unique ON public.drafts USING btree (user_id, group_id, COALESCE(topic_id, ('-1'::integer)::bigint), COALESCE(post_type, 'discussion'::character varying)) WHERE (((type)::text = 'post'::text) AND (is_edit = false) AND (post_id IS NULL));
+
+
+--
+-- Name: drafts_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX drafts_user_id_index ON public.drafts USING btree (user_id);
+
+
+--
+-- Name: email_enabled_testers_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX email_enabled_testers_user_id_index ON public.email_enabled_testers USING btree (user_id);
 
 
 --
@@ -5552,13 +5608,6 @@ CREATE INDEX ix_comment_user_1 ON public.comments USING btree (user_id);
 
 
 --
--- Name: ix_community_invite_community_1; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_community_invite_community_1 ON public.group_invites USING btree (community_id);
-
-
---
 -- Name: ix_community_invite_invited_by_3; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5584,27 +5633,6 @@ CREATE INDEX ix_contributor_post_1 ON public.contributions USING btree (post_id)
 --
 
 CREATE INDEX ix_contributor_user_2 ON public.contributions USING btree (user_id);
-
-
---
--- Name: ix_follower_addedby_3; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_follower_addedby_3 ON public.follows USING btree (added_by_id);
-
-
---
--- Name: ix_follower_post_1; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_follower_post_1 ON public.follows USING btree (post_id);
-
-
---
--- Name: ix_follower_user_2; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX ix_follower_user_2 ON public.follows USING btree (user_id);
 
 
 --
@@ -5664,13 +5692,6 @@ CREATE INDEX join_request_question_answers_join_request_id_index ON public.group
 
 
 --
--- Name: join_requests_community_id_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX join_requests_community_id_status_index ON public.join_requests USING btree (community_id, status);
-
-
---
 -- Name: location_center_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5696,13 +5717,6 @@ CREATE INDEX posts_proposal_outcome_index ON public.posts USING btree (proposal_
 --
 
 CREATE INDEX posts_proposal_status_index ON public.posts USING btree (proposal_status);
-
-
---
--- Name: public_communities_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX public_communities_idx ON public.communities USING btree (is_public);
 
 
 --
@@ -5999,14 +6013,6 @@ ALTER TABLE ONLY public.activities
 
 
 --
--- Name: activities activity_community_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.activities
-    ADD CONSTRAINT activity_community_id_foreign FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: activities activity_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6119,22 +6125,6 @@ ALTER TABLE ONLY public.common_roles_responsibilities
 
 
 --
--- Name: communities communities_location_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT communities_location_id_foreign FOREIGN KEY (location_id) REFERENCES public.locations(id);
-
-
---
--- Name: groups_tags communities_tags_community_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_tags
-    ADD CONSTRAINT communities_tags_community_id_foreign FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: groups_tags communities_tags_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6164,22 +6154,6 @@ ALTER TABLE ONLY public.group_invites
 
 ALTER TABLE ONLY public.group_invites
     ADD CONSTRAINT community_invites_expired_by_id_foreign FOREIGN KEY (expired_by_id) REFERENCES public.users(id);
-
-
---
--- Name: communities community_leader_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT community_leader_id_foreign FOREIGN KEY (leader_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: communities community_network_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT community_network_id_foreign FOREIGN KEY (network_id) REFERENCES public.networks(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6303,6 +6277,54 @@ ALTER TABLE ONLY public.devices
 
 
 --
+-- Name: drafts drafts_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id);
+
+
+--
+-- Name: drafts drafts_message_thread_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_message_thread_id_foreign FOREIGN KEY (message_thread_id) REFERENCES public.posts(id);
+
+
+--
+-- Name: drafts drafts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id);
+
+
+--
+-- Name: drafts drafts_topic_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_topic_id_foreign FOREIGN KEY (topic_id) REFERENCES public.tags(id);
+
+
+--
+-- Name: drafts drafts_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.drafts
+    ADD CONSTRAINT drafts_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: email_enabled_testers email_enabled_testers_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.email_enabled_testers
+    ADD CONSTRAINT email_enabled_testers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: event_invitations event_invitations_event_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6367,22 +6389,6 @@ ALTER TABLE ONLY public.comments
 
 
 --
--- Name: communities fk_community_created_by_1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities
-    ADD CONSTRAINT fk_community_created_by_1 FOREIGN KEY (created_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: group_invites fk_community_invite_community_1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.group_invites
-    ADD CONSTRAINT fk_community_invite_community_1 FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: group_invites fk_community_invite_invited_by_3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6415,30 +6421,6 @@ ALTER TABLE ONLY public.contributions
 
 
 --
--- Name: follows fk_follower_addedby_3; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT fk_follower_addedby_3 FOREIGN KEY (added_by_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: follows fk_follower_post_1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT fk_follower_post_1 FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: follows fk_follower_user_2; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT fk_follower_user_2 FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: linked_account fk_linked_account_user_4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6452,14 +6434,6 @@ ALTER TABLE ONLY public.linked_account
 
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT fk_media_post_1 FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: groups_posts fk_post_community_community_02; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_posts
-    ADD CONSTRAINT fk_post_community_community_02 FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -6527,22 +6501,6 @@ ALTER TABLE ONLY public.user_post_relevance
 
 
 --
--- Name: communities_users fk_users_community_community_02; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users
-    ADD CONSTRAINT fk_users_community_community_02 FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: communities_users fk_users_community_users_01; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users
-    ADD CONSTRAINT fk_users_community_users_01 FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: reactions fk_vote_user_13; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6559,14 +6517,6 @@ ALTER TABLE ONLY public.flagged_items
 
 
 --
--- Name: tag_follows followed_tags_community_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tag_follows
-    ADD CONSTRAINT followed_tags_community_id_foreign FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: tag_follows followed_tags_tag_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6580,14 +6530,6 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.tag_follows
     ADD CONSTRAINT followed_tags_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: follows follows_comment_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.follows
-    ADD CONSTRAINT follows_comment_id_foreign FOREIGN KEY (comment_id) REFERENCES public.comments(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7079,14 +7021,6 @@ ALTER TABLE ONLY public.group_join_questions_answers
 
 
 --
--- Name: join_requests join_requests_community_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.join_requests
-    ADD CONSTRAINT join_requests_community_id_foreign FOREIGN KEY (community_id) REFERENCES public.communities(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: join_requests join_requests_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7196,22 +7130,6 @@ ALTER TABLE ONLY public.moderation_actions
 
 ALTER TABLE ONLY public.moderation_actions
     ADD CONSTRAINT moderation_actions_reporter_id_foreign FOREIGN KEY (reporter_id) REFERENCES public.users(id);
-
-
---
--- Name: networks_posts networks_posts_network_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_posts
-    ADD CONSTRAINT networks_posts_network_id_foreign FOREIGN KEY (network_id) REFERENCES public.networks(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: networks_posts networks_posts_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.networks_posts
-    ADD CONSTRAINT networks_posts_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7535,14 +7453,6 @@ ALTER TABLE ONLY public.user_external_data
 
 
 --
--- Name: communities_users users_community_deactivator_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.communities_users
-    ADD CONSTRAINT users_community_deactivator_id_foreign FOREIGN KEY (deactivator_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
 -- Name: users_groups_agreements users_groups_agreements_agreement_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7764,5 +7674,5 @@ CREATE TRIGGER group_role_assignment_user_scopes_delete
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SpPvEfrligr7DugzXzJjKT9wuhtRH8M7AaUOmPvZ7bVLC0EcHt80B6VgSOeJeuN
+\unrestrict 2taOPDihnNMv7cqG4gy7dcNwN2jcip9tW7clIBqD4deYNdeiEr9SrGdBUu1Wr3x
 

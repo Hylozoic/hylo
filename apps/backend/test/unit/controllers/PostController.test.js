@@ -18,7 +18,7 @@ describe('PostController', () => {
       u2: new User({name: 'U2', email: 'b@b.c', active: true}).save(),
       u3: new User({name: 'U3', email: 'c@b.c'}).save(),
       p1: new Post({name: 'P1'}).save(),
-      g1: new Group({name: 'G1', slug: 'g1', group_data_type: 1}).save()
+      g1: new Group({ name: 'G1', slug: 'g1' }).save()
     }))
     .then(props => {
       fixtures = props
