@@ -217,7 +217,7 @@ function ActionsTab ({ track, container }) {
     <div className={cn({ 'pointer-events-none opacity-50': !isEnrolled })}>
       <h1>{track.actionDescriptorPlural}</h1>
       {posts.map(post => (
-        <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} />
+        <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} actionDescriptor={track.actionDescriptor} />
       ))}
     </div>
   )

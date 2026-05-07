@@ -59,6 +59,7 @@ export default function PostCard (props) {
     highlighted,
     group,
     isCurrentAction,
+    actionDescriptor,
     mapDrawer,
     post,
     onAddReaction = () => {},
@@ -319,6 +320,7 @@ export default function PostCard (props) {
               highlightProps={highlightProps}
               currentUser={currentUser}
               isCurrentAction={isCurrentAction}
+              actionDescriptor={actionDescriptor}
               isFlagged={isFlagged}
               constrained={constrained}
               hasImage={hasImage}
@@ -411,6 +413,7 @@ export default function PostCard (props) {
             highlightProps={highlightProps}
             currentUser={currentUser}
             isCurrentAction={isCurrentAction}
+            actionDescriptor={actionDescriptor}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}
@@ -480,6 +483,7 @@ export default function PostCard (props) {
 }
 
 PostCard.propTypes = {
+  actionDescriptor: PropTypes.string,
   chat: PropTypes.bool,
   childPost: PropTypes.bool,
   className: PropTypes.string,
