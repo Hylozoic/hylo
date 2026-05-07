@@ -436,11 +436,13 @@ async function markScheduledChangeEventAppliedFromSubscription (subscription, ev
 
   await syncContentAccessForAppliedSubscriptionChange(pending, event)
 
+  const payloadAfterSync = pending.get('payload') || {}
+
   await pending.save({
     status: 'applied',
     applied_at: new Date(),
     payload: {
-      ...payload,
+      ...payloadAfterSync,
       applied: true,
       appliedFromWebhookType: event.type,
       appliedFromWebhookEventId: event.id

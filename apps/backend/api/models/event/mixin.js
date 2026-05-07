@@ -120,7 +120,8 @@ export default {
   },
 
   incrementIcalSequence: async function () {
-    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+    const nextSeq = this.getIcalSequence() + 1
+    return this.save({ ical_sequence: nextSeq }, { patch: true })
   },
 
   createUserRsvpCalendarSubscriptions: async function () {

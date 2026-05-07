@@ -76,6 +76,7 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
     AS $$
     DECLARE
       scope_string TEXT;
+      scope_group_id BIGINT;
     BEGIN
       -- Only process active content_access records
       IF NEW.status = 'active' THEN
@@ -97,24 +98,50 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
             updated_at = NOW();
         END IF;
         
-        -- Role access: scope format is 'group_role:<role_id>'
-        IF NEW.role_id IS NOT NULL THEN
-          scope_string := 'group_role:' || NEW.role_id;
-          
-          INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-          VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-          ON CONFLICT (user_id, scope) 
-          DO UPDATE SET 
-            expires_at = CASE 
-              WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-              WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-              ELSE user_scopes.expires_at
-            END,
-            updated_at = NOW();
+        -- Group role access: scope format is 'group_role:<group_id>:<role_id>'
+        IF NEW.group_role_id IS NOT NULL THEN
+          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+          IF scope_group_id IS NULL THEN
+            RAISE WARNING 'Cannot create group role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
+          ELSE
+            scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
+
+            INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+            VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+            ON CONFLICT (user_id, scope)
+            DO UPDATE SET
+              expires_at = CASE
+                WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+                WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+                ELSE user_scopes.expires_at
+              END,
+              updated_at = NOW();
+          END IF;
+        END IF;
+
+        -- Common role access: scope format is 'common_role:<group_id>:<role_id>'
+        IF NEW.common_role_id IS NOT NULL THEN
+          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+          IF scope_group_id IS NULL THEN
+            RAISE WARNING 'Cannot create common role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
+          ELSE
+            scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
+
+            INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+            VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+            ON CONFLICT (user_id, scope)
+            DO UPDATE SET
+              expires_at = CASE
+                WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+                WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+                ELSE user_scopes.expires_at
+              END,
+              updated_at = NOW();
+          END IF;
         END IF;
         
         -- Group access: scope format is 'group:<group_id>'
-        IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
           scope_string := 'group:' || NEW.granted_by_group_id;
           
           INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
@@ -139,16 +166,31 @@ CREATE FUNCTION public.compute_user_scopes_from_content_access() RETURNS trigger
             AND source_id = NEW.id;
         END IF;
         
-        IF NEW.role_id IS NOT NULL THEN
-          scope_string := 'group_role:' || NEW.role_id;
-          DELETE FROM user_scopes 
-          WHERE user_id = NEW.user_id 
-            AND scope = scope_string 
-            AND source_kind = 'grant' 
-            AND source_id = NEW.id;
+        IF NEW.group_role_id IS NOT NULL THEN
+          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+          IF scope_group_id IS NOT NULL THEN
+            scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
+            DELETE FROM user_scopes 
+            WHERE user_id = NEW.user_id 
+              AND scope = scope_string 
+              AND source_kind = 'grant' 
+              AND source_id = NEW.id;
+          END IF;
+        END IF;
+
+        IF NEW.common_role_id IS NOT NULL THEN
+          scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+          IF scope_group_id IS NOT NULL THEN
+            scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
+            DELETE FROM user_scopes 
+            WHERE user_id = NEW.user_id 
+              AND scope = scope_string 
+              AND source_kind = 'grant' 
+              AND source_id = NEW.id;
+          END IF;
         END IF;
         
-        IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+        IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
           scope_string := 'group:' || NEW.granted_by_group_id;
           DELETE FROM user_scopes 
           WHERE user_id = NEW.user_id 
@@ -1324,7 +1366,9 @@ CREATE TABLE public.group_invites (
     message text,
     expired_by_id bigint,
     expired_at timestamp with time zone,
-    group_id bigint NOT NULL
+    group_id bigint NOT NULL,
+    common_role_id bigint,
+    group_role_id bigint
 );
 
 
@@ -3201,7 +3245,8 @@ CREATE TABLE public.content_access (
     group_id bigint,
     product_id bigint,
     track_id integer,
-    role_id integer,
+    common_role_id integer,
+    group_role_id integer,
     access_type character varying(50) NOT NULL,
     stripe_session_id character varying(255),
     stripe_subscription_id character varying(255),
@@ -5825,10 +5870,17 @@ CREATE INDEX content_access_track_id_index ON public.content_access USING btree 
 
 
 --
--- Name: content_access_role_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: content_access_common_role_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX content_access_role_id_index ON public.content_access USING btree (role_id);
+CREATE INDEX content_access_common_role_id_index ON public.content_access USING btree (common_role_id);
+
+
+--
+-- Name: content_access_group_role_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_access_group_role_id_index ON public.content_access USING btree (group_role_id);
 
 
 --
@@ -6613,6 +6665,22 @@ ALTER TABLE ONLY public.group_invites
 
 
 --
+-- Name: group_invites group_invites_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invites
+    ADD CONSTRAINT group_invites_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: group_invites group_invites_group_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_invites
+    ADD CONSTRAINT group_invites_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: group_join_questions_answers group_join_questions_answers_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6949,11 +7017,19 @@ ALTER TABLE ONLY public.content_access
 
 
 --
--- Name: content_access content_access_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: content_access content_access_common_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.content_access
-    ADD CONSTRAINT content_access_role_id_foreign FOREIGN KEY (role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
+    ADD CONSTRAINT content_access_common_role_id_foreign FOREIGN KEY (common_role_id) REFERENCES public.common_roles(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: content_access content_access_group_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_access
+    ADD CONSTRAINT content_access_group_role_id_foreign FOREIGN KEY (group_role_id) REFERENCES public.groups_roles(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -7515,6 +7591,7 @@ ALTER TABLE ONLY public.zapier_triggers
 CREATE OR REPLACE FUNCTION compute_user_scopes_from_content_access() RETURNS TRIGGER AS $$
 DECLARE
   scope_string TEXT;
+  scope_group_id BIGINT;
 BEGIN
   IF NEW.status = 'active' THEN
     IF NEW.track_id IS NOT NULL THEN
@@ -7530,20 +7607,43 @@ BEGIN
         END,
         updated_at = NOW();
     END IF;
-    IF NEW.role_id IS NOT NULL THEN
-      scope_string := 'group_role:' || NEW.role_id;
-      INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
-      VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
-      ON CONFLICT (user_id, scope) 
-      DO UPDATE SET 
-        expires_at = CASE 
-          WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
-          WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
-          ELSE user_scopes.expires_at
-        END,
-        updated_at = NOW();
+    IF NEW.group_role_id IS NOT NULL THEN
+      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+      IF scope_group_id IS NULL THEN
+        RAISE WARNING 'Cannot create group role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
+      ELSE
+        scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
+        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+        VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+        ON CONFLICT (user_id, scope)
+        DO UPDATE SET
+          expires_at = CASE
+            WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+            WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+            ELSE user_scopes.expires_at
+          END,
+          updated_at = NOW();
+      END IF;
     END IF;
-    IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+    IF NEW.common_role_id IS NOT NULL THEN
+      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+      IF scope_group_id IS NULL THEN
+        RAISE WARNING 'Cannot create common role scope: missing group_id and granted_by_group_id for content_access %', NEW.id;
+      ELSE
+        scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
+        INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
+        VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
+        ON CONFLICT (user_id, scope)
+        DO UPDATE SET
+          expires_at = CASE
+            WHEN user_scopes.expires_at IS NULL OR NEW.expires_at IS NULL THEN NULL
+            WHEN NEW.expires_at > user_scopes.expires_at THEN NEW.expires_at
+            ELSE user_scopes.expires_at
+          END,
+          updated_at = NOW();
+      END IF;
+    END IF;
+    IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
       scope_string := 'group:' || NEW.granted_by_group_id;
       INSERT INTO user_scopes (user_id, scope, expires_at, source_kind, source_id, created_at, updated_at)
       VALUES (NEW.user_id, scope_string, NEW.expires_at, 'grant', NEW.id, NOW(), NOW())
@@ -7565,15 +7665,29 @@ BEGIN
         AND source_kind = 'grant' 
         AND source_id = NEW.id;
     END IF;
-    IF NEW.role_id IS NOT NULL THEN
-      scope_string := 'group_role:' || NEW.role_id;
-      DELETE FROM user_scopes 
-      WHERE user_id = NEW.user_id 
-        AND scope = scope_string 
-        AND source_kind = 'grant' 
-        AND source_id = NEW.id;
+    IF NEW.group_role_id IS NOT NULL THEN
+      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+      IF scope_group_id IS NOT NULL THEN
+        scope_string := 'group_role:' || scope_group_id || ':' || NEW.group_role_id;
+        DELETE FROM user_scopes 
+        WHERE user_id = NEW.user_id 
+          AND scope = scope_string 
+          AND source_kind = 'grant' 
+          AND source_id = NEW.id;
+      END IF;
     END IF;
-    IF NEW.track_id IS NULL AND NEW.role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
+    IF NEW.common_role_id IS NOT NULL THEN
+      scope_group_id := COALESCE(NEW.group_id, NEW.granted_by_group_id);
+      IF scope_group_id IS NOT NULL THEN
+        scope_string := 'common_role:' || scope_group_id || ':' || NEW.common_role_id;
+        DELETE FROM user_scopes 
+        WHERE user_id = NEW.user_id 
+          AND scope = scope_string 
+          AND source_kind = 'grant' 
+          AND source_id = NEW.id;
+      END IF;
+    END IF;
+    IF NEW.track_id IS NULL AND NEW.group_role_id IS NULL AND NEW.common_role_id IS NULL AND NEW.granted_by_group_id IS NOT NULL THEN
       scope_string := 'group:' || NEW.granted_by_group_id;
       DELETE FROM user_scopes 
       WHERE user_id = NEW.user_id 
