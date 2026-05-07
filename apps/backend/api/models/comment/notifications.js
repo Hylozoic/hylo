@@ -65,8 +65,6 @@ export const sendDigests = async () => {
     const { comments } = post.relations
     if (comments.length === 0) return []
 
-    const firstGroup = post.relations.groups.first()
-
     const followers = await post.followers().fetch()
 
     return Promise.map(followers.models, async user => {
@@ -132,6 +130,8 @@ export const sendDigests = async () => {
       } else {
         if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
 
+        const routeGroup = await post.groupForFrontendRouteForUser(user.id)
+
         const commentData = filtered.map(presentComment)
         const hasMention = ({ text }) =>
           RichText.getUserMentions(text).includes(user.id)
@@ -139,7 +139,7 @@ export const sendDigests = async () => {
         const clickthroughParams = '?' + new URLSearchParams({
           ctt: 'comment_digest_email',
           cti: user.id,
-          ctcn: firstGroup?.get('name')
+          ctcn: routeGroup?.get('name')
         }).toString()
 
         return Email.sendCommentDigest({
@@ -151,7 +151,7 @@ export const sendDigests = async () => {
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,
-            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }) + clickthroughParams,
+            thread_url: Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }) + clickthroughParams,
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'
@@ -159,7 +159,7 @@ export const sendDigests = async () => {
           },
           sender: {
             reply_to: Email.postReplyAddress(post.id, user.id),
-            name: firstGroup ? senderNameViaHylo(firstGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
+            name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
           }
         })
       }
