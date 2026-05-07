@@ -26,11 +26,13 @@ describe('Search', function () {
 
       expectEqualQuery(search, `select posts.*, count(*) over () as total, "groups_posts"."pinned"
         from "posts"
-        inner join "follows" on "follows"."post_id" = "posts"."id"
+        inner join "posts_users" as "post_followers" on "post_followers"."post_id" = "posts"."id"
         inner join "groups_posts" on "groups_posts"."post_id" = "posts"."id"
         where "posts"."active" = true
         and "posts"."user_id" in (42, 41)
-        and "follows"."user_id" = 37
+        and "post_followers"."active" = true
+        and "post_followers"."following" = true
+        and "post_followers"."user_id" = 37
         and (posts.user_id != 37 or posts.user_id is null)
         and ((posts.created_at between '${startAsString}' and '${endAsString}')
           or (posts.updated_at between '${startAsString}' and '${endAsString}'))
@@ -110,8 +112,8 @@ describe('Search', function () {
       dog = new User({name: 'Mister Dog', email: 'iam@dog.org', active: true})
       mouse = new User({name: 'Mister Mouse', email: 'iam@mouse.org', active: true})
       catdog = new User({name: 'Cat Dog', email: 'iam@catdog.org', active: true})
-      house = new Group({name: 'House', slug: 'House', group_data_type: 1})
-      mouseGroup = new Group({name: 'MouseGroup', slug: 'MouseGroup', group_data_type: 1})
+      house = new Group({ name: 'House', slug: 'House' })
+      mouseGroup = new Group({ name: 'MouseGroup', slug: 'MouseGroup' })
 
       return setup.clearDb()
       .then(() => cat.save())

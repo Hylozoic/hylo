@@ -1130,14 +1130,13 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'group_data_type', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'name', 'purpose', 'settings', 'slug',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
         accessibility: Group.Accessibility.RESTRICTED,
         avatar_url: DEFAULT_AVATAR,
         banner_url: DEFAULT_BANNER,
-        group_data_type: 1,
         visibility: Group.Visibility.PROTECTED
       }
     )
