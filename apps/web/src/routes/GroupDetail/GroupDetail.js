@@ -1,5 +1,5 @@
 import { keyBy } from 'lodash'
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -92,6 +92,26 @@ function GroupDetail ({ forCurrentGroup = false }) {
     dispatch(createJoinRequest(groupId, questionAnswers.map(q => ({ questionId: q.questionId, answer: q.answer }))))
   }, [dispatch])
 
+  const agreementsSectionRef = useRef(null)
+  const [agreementsLinkCopied, setAgreementsLinkCopied] = useState(false)
+
+  const handleCopyAgreementsLink = useCallback(() => {
+    const url = `${window.location.origin}${groupUrl(group.slug, 'about')}#agreements`
+    navigator.clipboard.writeText(url).then(() => {
+      setAgreementsLinkCopied(true)
+      window.setTimeout(() => setAgreementsLinkCopied(false), 2500)
+    }).catch(() => {})
+  }, [group?.slug])
+
+  useEffect(() => {
+    if (location.hash !== '#agreements') return
+    if (!group?.agreements?.length) return
+    const id = window.setTimeout(() => {
+      agreementsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [location.hash, group?.agreements?.length])
+
   useEffect(() => {
     dispatch(fetchJoinRequests())
     dispatch(fetchForCurrentUser())
@@ -169,11 +189,11 @@ function GroupDetail ({ forCurrentGroup = false }) {
         {isAboutCurrentGroup || group.type === GROUP_TYPES.farm
           ? (
             <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-              <h3>{group.stewardDescriptorPlural || t('Stewards')}</h3>
+              <h3 className='text-xl font-bold py-2'>{group.stewardDescriptorPlural || t('Stewards')}</h3>
               <div className={g.stewards}>
                 {stewards.map(p => (
                   <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium className='mx-1' />
+                    <Avatar avatarUrl={p.avatarUrl} medium className='shrink-0' />
                     <span>{p.name}</span>
                   </Link>
                 ))}
@@ -182,7 +202,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
             )
           : ''}
         <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'>
-          <h3>{t('Privacy settings')}</h3>
+          <h3 className='text-xl font-bold py-2'>{t('Privacy settings')}</h3>
           <div className='flex flex-row gap-2 items-center'>
             <Icon name={visibilityIcon(group.visibility)} className={g.settingIcon} />
             <p>{t(visibilityString(group.visibility))} - {t(visibilityDescription(group.visibility))}</p>
@@ -194,8 +214,23 @@ function GroupDetail ({ forCurrentGroup = false }) {
         </div>
         {group.agreements?.length > 0
           ? (
-            <div className='border-2 border-dashed border-foreground/20 rounded-xl p-4'>
-              <h2>{t('Agreements')}</h2>
+            <div
+              ref={agreementsSectionRef}
+              id='agreements'
+              className='border-2 border-dashed border-foreground/20 rounded-xl p-4'
+            >
+              <div className='flex flex-row flex-wrap items-center justify-between gap-2 gap-y-1 mb-2'>
+                <h2 className='m-0 text-xl font-bold py-2'>{t('Agreements')}</h2>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1.5 text-sm rounded-lg border-2 border-foreground/20 px-2 py-1 hover:border-foreground/50 transition-all hover:cursor-pointer bg-card text-foreground shrink-0'
+                  onClick={handleCopyAgreementsLink}
+                  aria-label={t('Copy Link')}
+                >
+                  <Icon name='Copy' className='text-base' />
+                  {agreementsLinkCopied ? t('Copied!') : t('Copy Link')}
+                </button>
+              </div>
               {group.agreements.map((agreement, i) => {
                 return (
                   <div key={i}>
@@ -264,14 +299,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
 const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t }) => {
   return (
     <>
-      {isAboutCurrentGroup && group.aboutVideoUri && (
+      {group.aboutVideoUri && (
         <GroupAboutVideoEmbed uri={group.aboutVideoUri} className={g.groupAboutVideo} />
       )}
       {isAboutCurrentGroup && (!group.purpose && !group.description) && responsibilityTitles.includes(RESP_ADMINISTRATION)
         ? (
           <div className={g.noDescription}>
             <div>
-              <h4>{t('Your group doesn\'t have a purpose or description')}</h4>
+              <h4 className='text-xl font-bold py-2'>{t('Your group doesn\'t have a purpose or description')}</h4>
               <p>{t('Add a purpose, description, location, and more in your group settings')}</p>
               <Link to={groupUrl(group.slug, 'settings')}>{t('Add a group description')}</Link>
             </div>
@@ -283,7 +318,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.purpose
                 ? (
                   <>
-                    <h3>{t('Purpose')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Purpose')}</h3>
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} />
                     </ClickCatcher>
@@ -293,7 +328,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.description
                 ? (
                   <>
-                    <h3>{t('Description')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Description')}</h3>
                     <ClickCatcher>
                       <HyloHTML element='span' html={TextHelpers.markdown(group.description)} />
                     </ClickCatcher>
@@ -303,7 +338,7 @@ const defaultGroupBody = ({ group, isAboutCurrentGroup, responsibilityTitles, t 
               {group.websiteUrl
                 ? (
                   <>
-                    <h3>{t('Website')}</h3>
+                    <h3 className='text-xl font-bold py-2'>{t('Website')}</h3>
                     <a href={TextHelpers.sanitizeURL(group.websiteUrl)} target='_blank' rel='noopener noreferrer'>{group.websiteUrl}</a>
                   </>
                   )

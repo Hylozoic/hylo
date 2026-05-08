@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.6] - 2026-05-07
+
+### Added
+- Button on about page to copy a link to jump to the Agreements section of the about page
+
+### Changed
+- Improve styling of the about page
+- About Widget only displays a group's purpose, not its full description in the group menu.
+
+### Fixed
+- Use custom Action label everywhere in a track
+- Make calender picker easier to use on mobile
+- Avoid PostEditor autofocus on mobile web
+- iPad issues with keyboard covering comment input
+- Join questions were not always required when joining a group
+- Role badge not saving correctly in group settings
+
 ## [6.4.5] - 2026-04-15
 
 ### Changed

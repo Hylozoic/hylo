@@ -15,7 +15,7 @@ export function myGroupIdsSqlFragment (userId) {
 
 describe('Group', function () {
   it('can be created', function () {
-    const group = new Group({ slug: 'foo', name: 'foo', access_code: 'foo!', group_data_type: 1 })
+    const group = new Group({ slug: 'foo', name: 'foo', access_code: 'foo!' })
     return group.save().then(function () {
       expect(group.id).to.exist
     })
@@ -133,13 +133,12 @@ describe('Group', function () {
     let group, u1, u2, gm1
 
     beforeEach(async function () {
-      group = await Group.forge({ group_data_type: 0 }).save()
+      group = await factories.group().save()
       u1 = await factories.user().save()
       u2 = await factories.user().save()
       gm1 = await group.memberships().create({
         user_id: u1.id,
-        settings: { here: true },
-        group_data_type: 0
+        settings: { here: true }
       })
     })
 

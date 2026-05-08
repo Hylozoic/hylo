@@ -816,6 +816,7 @@
   "New posts": "New posts",
   "Next": "Next",
   "Next Action": "Next Action",
+  "Next {{actionDescriptor}}": "Next {{actionDescriptor}}",
   "Next: Welcome to Hylo!": "Next: Welcome to Hylo!",
   "Next: Where are you from?": "Next: Where are you from?",
   "No": "No",

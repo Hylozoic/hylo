@@ -218,14 +218,14 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(PostUser, 'user_id')
   },
 
-  projects: function () {
-    // TODO: fix
-    return this.hasMany(Post).query(q => q.leftJoin('groups', 'groups.group_data_id', 'posts.id')
-      .leftJoin('group_memberships', 'group_memberships.group_id', 'groups.id')
-      .whereNotNull('group_memberships.project_role_id')
-      .andWhere('group_memberships.user_id', this.id)
-      .andWhere('group_memberships.active', true)
-    )
+  projects () {
+    return this.belongsToMany(Post).through(PostUser).query(q => {
+      q.where({
+        'posts_users.active': true,
+        'posts.type': Post.Type.PROJECT
+      })
+      q.whereNotNull('posts_users.project_role_id')
+    })
   },
 
   pushNotifications: function () {
@@ -327,7 +327,6 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM devices WHERE user_id = ${this.id};
     DELETE FROM group_invites WHERE used_by_id = ${this.id};
     DELETE FROM group_memberships WHERE user_id = ${this.id};
-    DELETE FROM communities_users WHERE user_id = ${this.id};
     DELETE FROM linked_account WHERE user_id = ${this.id};
     DELETE FROM group_join_questions_answers WHERE user_id = ${this.id};
     DELETE FROM join_requests WHERE user_id = ${this.id};
