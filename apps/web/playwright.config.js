@@ -1,14 +1,47 @@
 import { defineConfig, devices } from '@playwright/test'
 
+/** Isolated runner sets `E2E_WEB_PORT`; plain `yarn playwright test` defaults to 3000 */
+const webPort = process.env.E2E_WEB_PORT || process.env.PORT || '3000'
+const webOrigin = `http://localhost:${webPort}`
+
+/**
+ * One Sails + one Vite: too many workers can race lift; 4 is a balance for ~2–4 vCPU runners.
+ * Override: E2E_PLAYWRIGHT_WORKERS=1 (or 2) if auth.setup flaps; higher for large self-hosted runners.
+ */
+function resolvePlaywrightWorkers () {
+  const raw = process.env.E2E_PLAYWRIGHT_WORKERS
+  if (raw != null && String(raw).trim() !== '') {
+    const n = Number(raw)
+    if (Number.isFinite(n) && n >= 1) {
+      return Math.min(32, Math.floor(n))
+    }
+  }
+  if (process.env.CI === 'true' || process.env.E2E_ISOLATED === '1') {
+    return 4
+  }
+  return undefined
+}
+
+/** Unauth projects must never inherit a session from another worker or a reused profile */
+const noSessionStorageState = { cookies: [], origins: [] }
+
+const reporters = process.env.CI
+  ? [
+      ['html'],
+      ['github'],
+      ['junit', { outputFile: 'test-results/junit.xml' }]
+    ]
+  : 'html'
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  workers: resolvePlaywrightWorkers(),
+  reporter: reporters,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: webOrigin,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
@@ -16,21 +49,56 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /auth\.setup\.js/,
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
+      // Wall-clock must exceed goto + #email wait + submit + post-login URL (each step has its own timeout)
+      timeout: 300000
     },
     {
       name: 'chromium',
+      testIgnore: '**/unauthenticated.routes.spec.js',
       use: {
         ...devices['Desktop Chrome'],
         storageState: './e2e/.auth/session.json'
       },
       dependencies: ['setup']
+    },
+    {
+      name: 'chromium-unauth',
+      testMatch: '**/unauthenticated.routes.spec.js',
+      use: { ...devices['Desktop Chrome'], storageState: noSessionStorageState },
+      timeout: 120000,
+      dependencies: ['setup']
+    },
+    // Real mobile UA + viewport so ismobilejs / util/mobile (isMobileDevice) behave like phone web, not desktop-with-narrow-window
+    {
+      name: 'mobile-chrome',
+      testIgnore: '**/unauthenticated.routes.spec.js',
+      use: {
+        ...devices['Pixel 5'],
+        storageState: './e2e/.auth/session.json'
+      },
+      dependencies: ['setup']
+    },
+    {
+      name: 'mobile-unauth',
+      testMatch: '**/unauthenticated.routes.spec.js',
+      use: { ...devices['Pixel 5'], storageState: noSessionStorageState },
+      timeout: 120000,
+      dependencies: ['setup']
     }
   ],
   webServer: {
     command: 'yarn dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000
+    url: webOrigin,
+    // A dev server already on this port was started with its own VITE_API_HOST; reusing it breaks
+    // isolated E2E (proxy would still point at :3001 while the test API runs on E2E_BACKEND_PORT).
+    reuseExistingServer:
+      !process.env.CI && process.env.E2E_ISOLATED !== '1',
+    timeout: 120000,
+    env: {
+      ...process.env,
+      VITE_API_HOST: process.env.VITE_API_HOST || 'http://localhost:3001',
+      PORT: webPort
+    }
   }
 })

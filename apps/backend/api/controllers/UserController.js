@@ -79,8 +79,13 @@ module.exports = {
   getNotificationSettings: async function (req, res) {
     const { token } = req.allParams()
 
-    // Look for the user id in the JWT token and make sure the token is the right kind
-    const decodedToken = decodeHyloJWT(token)
+    let decodedToken
+    try {
+      decodedToken = decodeHyloJWT(token)
+    } catch {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
     const user = await User.find(decodedToken.sub)
     if (!user || decodedToken.action !== 'notification_settings') {
       return res.status(403).json({ error: 'Unauthorized' })
@@ -109,8 +114,13 @@ module.exports = {
     const { token } = req.allParams()
     const { unsubscribeAll, allGroupNotifications } = req.body
 
-    // Look for the user id in the JWT token and make sure the token is the right kind
-    const decodedToken = decodeHyloJWT(token)
+    let decodedToken
+    try {
+      decodedToken = decodeHyloJWT(token)
+    } catch {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
     const user = await User.find(decodedToken.sub)
 
     if (!user || decodedToken.action !== 'notification_settings') {

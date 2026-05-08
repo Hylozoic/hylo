@@ -17,11 +17,12 @@ export default function PublicLayoutRouter (props) {
       <div className='flex-1 flex flex-col bg-midground'>
         <PublicPageHeader />
         <Routes>
+          <Route index element={<Navigate to='groups' replace />} />
           <Route path='map/*' element={<MapExplorerLayoutRouter />} />
           <Route path='groups/*' element={<GroupExplorerLayoutRouter />} />
 
           {/* Redirect all other routes to /login */}
-          <Route element={<Navigate to='/login' state={{ from: location }} replace />} />
+          <Route path='*' element={<Navigate to='/login' state={{ from: location }} replace />} />
         </Routes>
       </div>
     </Div100vh>
