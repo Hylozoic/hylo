@@ -15,8 +15,7 @@
   },
   "main": "app.js",
   "engines": {
-    "node": "^20",
-    "yarn": "^4.9.2"
+    "node": "^20"
   },
   "packageManager": "yarn@4.9.2",
   "scripts": {
