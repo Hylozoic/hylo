@@ -1,6 +1,7 @@
 import { combineReducers } from 'redux'
 
 import orm from './ormReducer'
+import authSession from './authSession'
 import returnToPath from 'store/reducers/returnToPath'
 import pending from './pending'
 import locationHistory from './locationHistory'
@@ -34,6 +35,7 @@ import UserGroupsTab from 'routes/UserSettings/UserGroupsTab/UserGroupsTab.store
 
 export const createCombinedReducers = routerReducer => combineReducers({
   // Global store
+  authSession,
   orm,
   router: routerReducer,
   returnToPath,
