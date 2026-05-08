@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { formatError } from 'routes/NonAuthLayoutRouter/util'
 import TextInput from 'components/TextInput'
 import Button from 'components/ui/button'
+import GoogleButton from 'components/GoogleButton'
+import loginWithService from 'store/actions/loginWithService'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { login } from './Login.store'
 
@@ -42,11 +44,16 @@ export default function Login (props) {
     }
   }
 
-  // TODO: let people log in with Google to login with Hylo? 🤪
-  // loginAndRedirect = (service) => {
-  //   this.props.loginWithService(service)
-  //     .then(({ error }) => error || this.props.redirectOnSignIn('/'))
-  // }
+  const handleLoginWithService = async (service) => {
+    try {
+      const result = await dispatch(loginWithService(service))
+      if (result?.error) return setError(result.error)
+      // Session is now established via the service; complete the OAuth flow
+      await submit()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   const handleSetEmail = (e) => {
     setEmail(e.target.value)
@@ -100,9 +107,14 @@ export default function Login (props) {
           </Button>
         </div>
 
-        {/* <div className={classes.authButtons}>
-          <GoogleButton onClick={() => this.loginAndRedirect('google')} />
-        </div> */}
+        <div className='px-4 pb-4'>
+          <div className='flex items-center my-3'>
+            <div className='flex-1 border-t border-border' />
+            <span className='px-3 text-sm text-muted-foreground'>{t('or')}</span>
+            <div className='flex-1 border-t border-border' />
+          </div>
+          <GoogleButton onClick={() => handleLoginWithService('google')} />
+        </div>
       </div>
       )
 }
