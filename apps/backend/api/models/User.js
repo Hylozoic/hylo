@@ -268,6 +268,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   intercomHash: function () {
+    if (!process.env.INTERCOM_KEY) return null
     return crypto.createHmac('sha256', process.env.INTERCOM_KEY)
       .update(this.id)
       .digest('hex')

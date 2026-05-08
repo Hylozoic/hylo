@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.1] - 2026-05-07
+
+### Changed
+- Added (via Hylo) to the Sender of all email notifications that were missing it
+
+### Fixed
+- Don't include actions and submissions in new post counts for topics/chat rooms
+
 ## [6.4.0] - 2026-04-14
 
 ### Added

@@ -188,7 +188,13 @@
   position: absolute;
   top: 12px;
   right: 16px;
+  z-index: 1;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 2rem);
 }
 
 .action {
@@ -199,12 +205,13 @@
   font-style: normal;
   font-weight: 700;
   border-radius: 5px;
-  margin: 6px;
+  margin: 0;
   display: flex;
   align-items: center;
   height: 32px;
   gap: 4px;
   padding: 4px;
+  flex-shrink: 0;
 
   &:hover {
     cursor: pointer;
