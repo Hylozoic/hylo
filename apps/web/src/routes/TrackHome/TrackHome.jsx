@@ -74,7 +74,7 @@ function TrackHome () {
   }, [currentTrack, currentTab])
 
   const handlePublishTrack = useCallback((publishedAt) => {
-    if (confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
+    if (window.confirm(publishedAt ? t('Are you sure you want to publish this track?') : t('Are you sure you want to unpublish this track?'))) {
       dispatch(updateTrack({ trackId: currentTrack.id, publishedAt }))
     }
   }, [currentTrack?.id])
@@ -247,7 +247,7 @@ function ActionsTab ({ track, container }) {
         </div>
       )}
       {posts.map(post => (
-        <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} />
+        <PostCard key={post.id} post={post} isCurrentAction={track.currentAction?.id === post.id} actionDescriptor={track.actionDescriptor} />
       ))}
     </div>
   )

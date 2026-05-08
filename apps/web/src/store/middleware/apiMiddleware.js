@@ -1,4 +1,5 @@
 import fetch from 'isomorphic-fetch'
+import { debugCheckLogin } from 'config/index'
 
 export default function apiMiddleware (req) {
   return store => next => action => {
@@ -49,5 +50,26 @@ export function fetchJSON (path, params, options = {}) {
       throw error
     })
   }
-  return fetch(fetchURL, fetchOptions).then(processResults)
+  const logGraphql =
+    debugCheckLogin &&
+    path === '/noo/graphql' &&
+    typeof performance !== 'undefined'
+  const t0 = logGraphql ? performance.now() : 0
+  return fetch(fetchURL, fetchOptions)
+    .then(resp => {
+      if (logGraphql) {
+        console.info(
+          '[Hylo GraphQL]',
+          `${Math.round(performance.now() - t0)}ms to headers`,
+          resp.status,
+          fetchURL
+        )
+      }
+      return processResults(resp).then(data => {
+        if (logGraphql) {
+          console.info('[Hylo GraphQL]', `${Math.round(performance.now() - t0)}ms total (incl. JSON)`)
+        }
+        return data
+      })
+    })
 }

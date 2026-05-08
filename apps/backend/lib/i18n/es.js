@@ -11,6 +11,7 @@ exports.es = {
   Group: () => 'Grupo',
   emailDigestDailySubject: (name) => `Tu resumen diario de ${name}`,
   emailDigestWeeklySubject: (name) => `Tu resumen semanal de ${name}`,
+  emailSenderViaHyloSuffix: () => ' (vía Hylo)',
   groupCreatedNotifySubject: (name) => `Nuevo Grupo de Hylo Creado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {
