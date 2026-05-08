@@ -183,3 +183,27 @@ test.describe('unknown path', () => {
     await expect(page).toHaveURL(/\/login$/, routeTimeout)
   })
 })
+
+test.describe('email password login (cold storage)', () => {
+  test('seeded user can sign in and reach auth shell', async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' })
+    await waitPastRootSessionLoading(page)
+    await expect(page.locator('#email')).toBeVisible(uiTimeout)
+    await page.locator('#email').fill('e2e.user@hylo.test')
+    await page.locator('#password').fill('e2e-password-123')
+    await page.getByRole('button', { name: /sign\s*in/i }).click()
+    await expect(page.locator('#center-column-container')).toBeVisible({ timeout: 120000 })
+  })
+
+  test('wrong password keeps user on login with error', async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' })
+    await expect(page.locator('#email')).toBeVisible(uiTimeout)
+    await page.locator('#email').fill('e2e.user@hylo.test')
+    await page.locator('#password').fill('definitely-wrong-password-e2e')
+    await page.getByRole('button', { name: /sign\s*in/i }).click()
+    await expect(
+      page.getByText(/sorry.*email and password combination|didn.*work/i)
+    ).toBeVisible({ timeout: 20000 })
+    await expect(page).toHaveURL(/\/login/, routeTimeout)
+  })
+})

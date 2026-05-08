@@ -70,7 +70,8 @@ export default function RootRouter () {
           const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
           console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
         }
-        if (!me) dispatch(logout())
+        // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
+        if (me === null) dispatch(logout())
       } catch (err) {
         if (debugCheckLogin) {
           const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)

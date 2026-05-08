@@ -5,8 +5,8 @@ const webPort = process.env.E2E_WEB_PORT || process.env.PORT || '3000'
 const webOrigin = `http://localhost:${webPort}`
 
 /**
- * One Sails + one Vite: too many workers can race lift; 4 is a balance for ~2–4 vCPU runners.
- * Override: E2E_PLAYWRIGHT_WORKERS=1 (or 2) if auth.setup flaps; higher for large self-hosted runners.
+ * CI / isolated stack: 4 workers — one Sails + one Vite; higher counts can race lift (EADDRINUSE).
+ * Plain local `yarn test:e2e`: 8 workers (override with E2E_PLAYWRIGHT_WORKERS).
  */
 function resolvePlaywrightWorkers () {
   const raw = process.env.E2E_PLAYWRIGHT_WORKERS
@@ -19,7 +19,7 @@ function resolvePlaywrightWorkers () {
   if (process.env.CI === 'true' || process.env.E2E_ISOLATED === '1') {
     return 4
   }
-  return undefined
+  return 8
 }
 
 /** Unauth projects must never inherit a session from another worker or a reused profile */
@@ -51,11 +51,22 @@ export default defineConfig({
       testMatch: /auth\.setup\.js/,
       use: { ...devices['Desktop Chrome'] },
       // Wall-clock must exceed goto + #email wait + submit + post-login URL (each step has its own timeout)
-      timeout: 300000
+      timeout: 300000,
+      retries: 2
+    },
+    {
+      name: 'setup-session-mutate',
+      testMatch: /auth\.session-mutate\.setup\.js/,
+      // Must run after `setup`: parallel setups hit Vite during cold dep-prebundle and can cancel the
+      // dev build (lazy routes fail; #email never mounts). One warm navigation first avoids that race.
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'] },
+      timeout: 300000,
+      retries: 2
     },
     {
       name: 'chromium',
-      testIgnore: '**/unauthenticated.routes.spec.js',
+      testIgnore: ['**/unauthenticated.routes.spec.js', '**/authenticated.auth-session.spec.js'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: './e2e/.auth/session.json'
@@ -72,12 +83,32 @@ export default defineConfig({
     // Real mobile UA + viewport so ismobilejs / util/mobile (isMobileDevice) behave like phone web, not desktop-with-narrow-window
     {
       name: 'mobile-chrome',
-      testIgnore: '**/unauthenticated.routes.spec.js',
+      testIgnore: ['**/unauthenticated.routes.spec.js', '**/authenticated.auth-session.spec.js'],
       use: {
         ...devices['Pixel 5'],
         storageState: './e2e/.auth/session.json'
       },
       dependencies: ['setup']
+    },
+    {
+      name: 'chromium-session-mutate',
+      testMatch: '**/authenticated.auth-session.spec.js',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: './e2e/.auth/session-mutate-user.json'
+      },
+      dependencies: ['setup', 'setup-session-mutate'],
+      timeout: 120000
+    },
+    {
+      name: 'mobile-session-mutate',
+      testMatch: '**/authenticated.auth-session.spec.js',
+      use: {
+        ...devices['Pixel 5'],
+        storageState: './e2e/.auth/session-mutate-user.json'
+      },
+      dependencies: ['setup', 'setup-session-mutate'],
+      timeout: 120000
     },
     {
       name: 'mobile-unauth',
@@ -94,7 +125,8 @@ export default defineConfig({
     // isolated E2E (proxy would still point at :3001 while the test API runs on E2E_BACKEND_PORT).
     reuseExistingServer:
       !process.env.CI && process.env.E2E_ISOLATED !== '1',
-    timeout: 120000,
+    // First Vite cold compile can exceed 120s on slow CI / busy laptops.
+    timeout: 180000,
     env: {
       ...process.env,
       VITE_API_HOST: process.env.VITE_API_HOST || 'http://localhost:3001',

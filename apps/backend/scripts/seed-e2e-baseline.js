@@ -7,6 +7,8 @@ const bcrypt = require('bcrypt')
 
 const E2E_USER_EMAIL = 'e2e.user@hylo.test'
 const E2E_USER_PASSWORD = 'e2e-password-123'
+/** Logout / re-login Playwright only — keeps primary `e2e.user` session valid for parallel tests. */
+const E2E_SESSION_MUTATE_EMAIL = 'e2e.session-mutate@hylo.test'
 
 async function main () {
   const connectionString = process.env.DATABASE_URL
@@ -51,10 +53,10 @@ async function main () {
 
     const pubRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 1, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [now, 'E2E Public Group', 'e2e-public-group', 'Deterministic public group for Playwright E2E', userId, emptyGroupSettings]
@@ -63,10 +65,10 @@ async function main () {
 
     const privRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         0, 1, $5, $6::jsonb, 1, false
       ) RETURNING id`,
       [now, 'E2E Private Group', 'e2e-private-group', 'Deterministic private group for Playwright E2E', userId, emptyGroupSettings]
@@ -129,10 +131,10 @@ async function main () {
     const welcomeOverlayMembershipSettings = JSON.stringify({ lastReadAt: now, showJoinForm: true })
     const welcomeRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [now, 'E2E Welcome Overlay', 'e2e-welcome-overlay', 'Playwright GroupWelcomeModal E2E', userId, emptyGroupSettings]
@@ -157,6 +159,37 @@ async function main () {
       )
     }
 
+    const mutateUserRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [E2E_SESSION_MUTATE_EMAIL.toLowerCase(), 'E2E Session Mutate', 'E2E', 'Mutate', now, userSettings]
+    )
+    const sessionMutateUserId = mutateUserRes.rows[0].id
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [publicGroupId, sessionMutateUserId, now, membershipSettings]
+    )
+
+    await client.query(
+      `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
+       SELECT $1::bigint, $2::bigint, $3::bigint
+       WHERE NOT EXISTS (
+         SELECT 1 FROM group_memberships_common_roles gmcr
+         WHERE gmcr.user_id = $1 AND gmcr.group_id = $2 AND gmcr.common_role_id = $3
+       )`,
+      [sessionMutateUserId, publicGroupId, coordinatorRoleId]
+    )
+
+    const mutatePasswordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
+    await client.query(
+      `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
+       VALUES ($1, $2, 'password')`,
+      [sessionMutateUserId, mutatePasswordHash]
+    )
+
     const postRes = await client.query(
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
        VALUES ($1, $2, 'discussion', $3::timestamptz, $3::timestamptz, $4, true, 0, true)
@@ -172,10 +205,10 @@ async function main () {
 
     const joinCodeGroupRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true, $7
       ) RETURNING id`,
       [
@@ -192,10 +225,10 @@ async function main () {
 
     const inviteTokenGroupRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [
