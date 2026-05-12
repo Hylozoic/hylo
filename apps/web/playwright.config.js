@@ -50,8 +50,8 @@ export default defineConfig({
       name: 'setup',
       testMatch: /auth\.setup\.js/,
       use: { ...devices['Desktop Chrome'] },
-      // Wall-clock must exceed goto + #email wait + submit + post-login URL (each step has its own timeout)
-      timeout: 300000,
+      // Worst-case single `gotoLoginAndWaitForEmail` is capped (~8m hard ceiling with env defaults); keep headroom over 600s project timeout.
+      timeout: 720000,
       retries: 2
     },
     {
@@ -61,12 +61,24 @@ export default defineConfig({
       // dev build (lazy routes fail; #email never mounts). One warm navigation first avoids that race.
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'] },
-      timeout: 300000,
+      timeout: 720000,
+      retries: 2
+    },
+    {
+      name: 'setup-track-viewer',
+      testMatch: /auth\.track-viewer\.setup\.js/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'] },
+      timeout: 720000,
       retries: 2
     },
     {
       name: 'chromium',
-      testIgnore: ['**/unauthenticated.routes.spec.js', '**/authenticated.auth-session.spec.js'],
+      testIgnore: [
+        '**/unauthenticated.routes.spec.js',
+        '**/authenticated.auth-session.spec.js',
+        '**/authenticated.track-paywall.spec.js'
+      ],
       use: {
         ...devices['Desktop Chrome'],
         storageState: './e2e/.auth/session.json'
@@ -82,8 +94,22 @@ export default defineConfig({
     },
     // Real mobile UA + viewport so ismobilejs / util/mobile (isMobileDevice) behave like phone web, not desktop-with-narrow-window
     {
+      name: 'chromium-track-paywall',
+      testMatch: '**/authenticated.track-paywall.spec.js',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: './e2e/.auth/track-viewer-session.json'
+      },
+      dependencies: ['setup-track-viewer'],
+      timeout: 120000
+    },
+    {
       name: 'mobile-chrome',
-      testIgnore: ['**/unauthenticated.routes.spec.js', '**/authenticated.auth-session.spec.js'],
+      testIgnore: [
+        '**/unauthenticated.routes.spec.js',
+        '**/authenticated.auth-session.spec.js',
+        '**/authenticated.track-paywall.spec.js'
+      ],
       use: {
         ...devices['Pixel 5'],
         storageState: './e2e/.auth/session.json'
@@ -116,6 +142,16 @@ export default defineConfig({
       use: { ...devices['Pixel 5'], storageState: noSessionStorageState },
       timeout: 120000,
       dependencies: ['setup']
+    },
+    {
+      name: 'mobile-track-paywall',
+      testMatch: '**/authenticated.track-paywall.spec.js',
+      use: {
+        ...devices['Pixel 5'],
+        storageState: './e2e/.auth/track-viewer-session.json'
+      },
+      dependencies: ['setup-track-viewer'],
+      timeout: 120000
     }
   ],
   webServer: {

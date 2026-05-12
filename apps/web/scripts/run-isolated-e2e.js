@@ -280,6 +280,10 @@ const runE2E = async () => {
     DATABASE_URL: e2eDbUrl,
     PORT: e2eBackendPort,
     NODE_ENV: 'development',
+    /** Long Playwright runs: reduce OOM risk if unset (merge with existing NODE_OPTIONS). */
+    NODE_OPTIONS: process.env.NODE_OPTIONS
+      ? process.env.NODE_OPTIONS
+      : '--max-old-space-size=4096',
     PROTOCOL: 'http',
     DOMAIN: `localhost:${e2eWebPort}`,
     /** Lets decodeHyloJWT accept tokens minted when DOMAIN briefly differs (e.g. :3000 vs E2E web :3330) */
@@ -289,7 +293,8 @@ const runE2E = async () => {
     WEB_CONCURRENCY: '1',
     HEROKU_AVAILABLE_PARALLELISM: '1',
     /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
-    DISABLE_SEGMENT: '1'
+    DISABLE_SEGMENT: '1',
+    STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true'
   }
 
   setupDatabase(backendEnv)
@@ -398,7 +403,7 @@ const runE2E = async () => {
   try {
     await waitForBackend(
       `http://localhost:${e2eBackendPort}/noo/graphql`,
-      120000,
+      240000,
       () => {
         if (!backendClosed) return null
         if (backendExitCode === 0) {

@@ -268,7 +268,11 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
   }, [offering?.priceInCents, offering?.accessGrants, offering?.currency, t])
 
   return (
-    <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'>
+    <div
+      className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'
+      data-testid='paywall-offering-card'
+      data-offering-id={offering.id}
+    >
       <div className='flex items-start justify-between mb-2'>
         <div className='flex-1'>
           <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>

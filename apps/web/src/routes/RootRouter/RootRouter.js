@@ -158,10 +158,9 @@ export default function RootRouter () {
 
         {/* XXX: sending join page directly to JoinGroup, before all other group pages go to the public group detail */}
         <Route path='/groups/:groupSlug/join/:accessCode/*' element={<JoinGroup />} />
-        <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
-
-        {/* Public offering details page (no auth required) */}
+        {/* Must be before `/groups/:groupSlug/*` → PublicGroupDetail so offering URLs resolve here */}
         <Route path='/groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
+        <Route path='/groups/:groupSlug/*' element={<PublicGroupDetail />} />
 
         <Route path='*' element={<NonAuthLayoutRouter />} />
       </Routes>

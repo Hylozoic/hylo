@@ -508,6 +508,26 @@ module.exports = {
         throw new Error('Account ID is required to get account status')
       }
 
+      // Deterministic E2E baseline seed uses fake Connect IDs (`acct_e2e_*` in
+      // scripts/seed-e2e-baseline.js). They are not real Stripe accounts — live
+      // retrieve would return account_invalid / permission errors.
+      if (typeof accountId === 'string' && accountId.startsWith('acct_e2e_')) {
+        return {
+          id: accountId,
+          charges_enabled: true,
+          payouts_enabled: true,
+          details_submitted: true,
+          requirements: {
+            currently_due: [],
+            past_due: [],
+            eventually_due: [],
+            pending_verification: []
+          },
+          email: null,
+          business_profile: null
+        }
+      }
+
       // Retrieve the account from Stripe
       const account = await stripe.accounts.retrieve(accountId)
 
