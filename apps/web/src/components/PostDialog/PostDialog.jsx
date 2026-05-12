@@ -1,25 +1,49 @@
 import React, { useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
+import useRouteParams from 'hooks/useRouteParams'
+import getPost from 'store/selectors/getPost'
+import getMe from 'store/selectors/getMe'
+import presentPost from 'store/presenters/presentPost'
+import { getPostDetailCloseDestination } from 'util/postDetailCloseNavigation'
 
 const PostDialog = ({
   container
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const routeParams = useRouteParams()
+  const postId = routeParams.postId
+  const postModel = useSelector(state => getPost(state, postId))
+  const me = useSelector(getMe)
+  const presentedPost = useMemo(
+    () => (postModel ? presentPost(postModel) : null),
+    [postModel]
+  )
 
   const portalContainer = useMemo(() => container || document.getElementById('center-column-container'))
 
   const handleOpenChange = useCallback((open) => {
     if (!open) {
-      // remove post/:postId from the url
-      navigate(removePostFromUrl(`${location.pathname}${location.search}`))
+      const dest = postModel && presentedPost
+        ? getPostDetailCloseDestination({
+          pathname: location.pathname,
+          search: location.search,
+          post: presentedPost,
+          me
+        })
+        : {
+            pathname: removePostFromUrl(location.pathname) || '/',
+            search: location.search
+          }
+      navigate(dest)
     }
-  }, [navigate, location])
+  }, [navigate, location.pathname, location.search, postModel, presentedPost, me])
 
   const handleInteractOutside = useCallback((e) => {
     if (e.target.className.includes('fsp') || e.target.children[0].className.includes('fsp')) {

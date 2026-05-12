@@ -43,6 +43,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
 import { removePostFromUrl } from '@hylo/navigation'
+import { getPostDetailCloseDestination } from 'util/postDetailCloseNavigation'
 import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
@@ -147,12 +148,19 @@ function PostDetail () {
   const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
   const onClose = useCallback(() => {
-    const closeLocation = {
-      ...location,
-      pathname: removePostFromUrl(location.pathname) || '/'
-    }
-    navigate(closeLocation)
-  }, [location])
+    const dest = post
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post,
+        me: currentUser
+      })
+      : {
+          pathname: removePostFromUrl(location.pathname) || '/',
+          search: location.search
+        }
+    navigate(dest)
+  }, [location.pathname, location.search, post, currentUser, navigate])
 
   // Pull-to-close: drag down to dismiss when scrolled to top,
   // or drag up to dismiss when scrolled to bottom

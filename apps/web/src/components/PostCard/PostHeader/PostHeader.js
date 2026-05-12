@@ -203,7 +203,7 @@ class PostHeader extends PureComponent {
               {dropdownItems.length > 0 &&
                 <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
-                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
+                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                   <Icon name='Ex' className='align-middle' />
                 </a>}
             </div>
