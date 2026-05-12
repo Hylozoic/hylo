@@ -294,7 +294,13 @@ const runE2E = async () => {
     HEROKU_AVAILABLE_PARALLELISM: '1',
     /** Skip Segment (api/services/Analytics.js); isolated API has no SEGMENT_KEY. */
     DISABLE_SEGMENT: '1',
-    STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true'
+    STRIPE_WEBHOOK_BYPASS_SIGNATURE: 'true',
+    /**
+     * StripeService loads Stripe at require time; CI has no repo secret by default.
+     * Same placeholders as `apps/backend/test/setup/index.js` — E2E does not call live Stripe.
+     */
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes',
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
   }
 
   setupDatabase(backendEnv)
