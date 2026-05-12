@@ -19,7 +19,7 @@ describe('UserController', function () {
         send: console.error
       })
       User.create = spy(User.create)
-      await new Group({access_code: 'foo', name: 'foo', slug: 'foo', group_data_type: 1 }).save()
+      await new Group({ access_code: 'foo', name: 'foo', slug: 'foo' }).save()
     })
 
     it('works with a username and password', async () => {

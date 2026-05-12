@@ -65,6 +65,51 @@ before(function (done) {
 
 afterEach(() => nock.cleanAll())
 
+// Split SQL statements on semicolons while ignoring semicolons inside
+// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$).
+function splitSqlStatements (sql) {
+  const statements = []
+  let current = ''
+  let i = 0
+  let dollarTag = null
+
+  while (i < sql.length) {
+    const ch = sql[i]
+
+    if (!dollarTag && ch === '$') {
+      const m = sql.slice(i).match(/^\$[A-Za-z_][A-Za-z0-9_]*\$/) || (sql.slice(i, i + 2) === '$$' ? ['$$'] : null)
+      if (m) {
+        dollarTag = m[0]
+        current += dollarTag
+        i += dollarTag.length
+        continue
+      }
+    }
+
+    if (dollarTag && sql.startsWith(dollarTag, i)) {
+      current += dollarTag
+      i += dollarTag.length
+      dollarTag = null
+      continue
+    }
+
+    if (!dollarTag && ch === ';') {
+      const stmt = current.trim()
+      if (stmt) statements.push(stmt)
+      current = ''
+      i += 1
+      continue
+    }
+
+    current += ch
+    i += 1
+  }
+
+  const last = current.trim()
+  if (last) statements.push(last)
+  return statements
+}
+
 TestSetup.prototype.createSchema = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.transaction(trx => {
@@ -72,13 +117,10 @@ TestSetup.prototype.createSchema = function () {
       .then(() => bookshelf.knex.raw('create schema public').transacting(trx))
       .then(() => {
         const script = fs.readFileSync(root('migrations/schema.sql')).toString()
-        return script.split(/\n/)
+        const cleaned = script.split(/\n/)
           .filter(line => !line.startsWith('--') && !line.startsWith('\\'))
-          .join(' ')
-          .replace(/\s+/g, ' ')
-          .split(/;\s?/)
-          .map(line => line.trim())
-          .filter(line => line !== '')
+          .join('\n')
+        return splitSqlStatements(cleaned)
       })
       .then(commands => {
         return Promise.map(commands, command => {

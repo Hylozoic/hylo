@@ -400,7 +400,10 @@ function MapExplorer (props) {
 
   const onMapClick = useCallback((info, e) => {
     if (info.objects) {
-      if (viewport.zoom >= 20 && hideDrawer) {
+      // On mobile, at high zoom levels (18-20), toggle drawer when clicking cluster
+      if (isMobileDevice() && viewport.zoom >= 18 && viewport.zoom <= 20) {
+        toggleDrawer()
+      } else if (viewport.zoom >= 20 && hideDrawer) {
         setHideDrawer(false)
         setTimeout(() => {
           mapRef.current.resize()

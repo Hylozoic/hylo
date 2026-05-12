@@ -41,7 +41,7 @@ function Members (props) {
   const members = useSelector(state => getMembers(state, { slug, search, sortBy }))
   const hasMore = useSelector(state => getHasMoreMembers(state, { slug, search, sortBy }))
   const pending = useSelector(state => state.pending[FETCH_MEMBERS])
-  const myResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { groupId: group.id }))
+  const myResponsibilities = useSelector(state => getResponsibilitiesForGroup(state, { groupId: group?.id }))
   const myResponsibilityTitles = useMemo(() => myResponsibilities.map(r => r.title), [myResponsibilities])
   const canSeeJoinAnswers = useMemo(() =>
     myResponsibilityTitles.includes(RESP_ADMINISTRATION) || myResponsibilityTitles.includes(RESP_ADD_MEMBERS),
@@ -55,12 +55,15 @@ function Members (props) {
   const changeSort = useCallback(sort =>
     dispatch(changeQuerystringParam(location, 's', sort, 'name')), [location])
   const removeMemberAction = useCallback((id) => {
+    if (!group?.id) return
     // We pass slug and group.id because slug is needed to optimistically update the query results, which are based on slug
     // TODO: ideally switch removeMember to also use slug so we dont need to pass in group.id too
     dispatch(removeMember(id, group.id, slug))
-  }, [group.id, slug])
-  const fetchMembersAction = useCallback((offset = 0) =>
-    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search })), [dispatch, slug, group.id, sortBy, search])
+  }, [dispatch, group?.id, slug])
+  const fetchMembersAction = useCallback((offset = 0) => {
+    if (!group?.id) return
+    dispatch(fetchMembers({ slug, groupId: group.id, sortBy, offset, search }))
+  }, [dispatch, slug, group?.id, sortBy, search])
 
   useEffect(() => {
     if (isEmpty(members) && hasMore !== false) fetchMembersAction()
@@ -90,6 +93,10 @@ function Members (props) {
   const debouncedSearch = debounce(300, changeSearch)
 
   const sortKeys = sortKeysFactory(context) // You might need to adjust this based on your needs
+
+  if (!group?.id) {
+    return null
+  }
 
   return (
     <div className='h-auto max-w-[750px] mx-auto' id='members-page'>

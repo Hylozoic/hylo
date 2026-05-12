@@ -10,6 +10,7 @@ exports.hi = {
   Group: () => 'समूह',
   emailDigestDailySubject: (name) => `आपका ${name} दैनिक सारांश`,
   emailDigestWeeklySubject: (name) => `आपका ${name} साप्ताहिक सारांश`,
+  emailSenderViaHyloSuffix: () => ' (Hylo के माध्यम से)',
   groupCreatedNotifySubject: (name) => `नया Hylo समूह बनाया गया: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {

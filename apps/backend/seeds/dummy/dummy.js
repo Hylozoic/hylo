@@ -249,10 +249,12 @@ function createThreads (knex) {
 
 function seedMessages (knex) {
   console.info('  --> messages')
-  return knex('follows')
-    .join('posts', 'posts.id', 'follows.post_id')
-    .select('follows.post_id as post', 'follows.user_id as user')
+  return knex('posts_users')
+    .join('posts', 'posts.id', 'posts_users.post_id')
+    .select('posts_users.post_id as post', 'posts_users.user_id as user')
     .where('posts.type', 'thread')
+    .where('posts_users.active', true)
+    .where('posts_users.following', true)
     .then(follows => {
       const created = faker.date.past()
       return Promise.all(
@@ -301,10 +303,13 @@ function fakeThread (groupId, knex) {
       })
       .returning(['id', 'user_id']))
     .then(([post]) =>
-      knex('follows').insert({
+      knex('posts_users').insert({
         post_id: post.id,
         user_id: post.user_id,
-        added_at: faker.date.past()
+        following: true,
+        active: true,
+        created_at: faker.date.past(),
+        updated_at: faker.date.past()
       })
         .returning('user_id')
     )
@@ -313,7 +318,6 @@ function fakeThread (groupId, knex) {
 function fakeGroupData (name, slug, created_by_id, type) {
   return {
     name,
-    group_data_type: 1,
     avatar_url: `https://api.dicebear.com/9.x/glass/svg?seed=${faker.random.word()}`,
     access_code: faker.datatype.uuid(),
     description: faker.lorem.paragraph(),

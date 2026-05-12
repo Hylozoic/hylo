@@ -10,6 +10,7 @@ exports.de = {
   Group: () => 'Gruppe',
   emailDigestDailySubject: (name) => `Dein täglicher Überblick für ${name}`,
   emailDigestWeeklySubject: (name) => `Dein wöchentlicher Überblick für ${name}`,
+  emailSenderViaHyloSuffix: () => ' (über Hylo)',
   groupCreatedNotifySubject: (name) => `Neue Hylo-Gruppe erstellt: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {

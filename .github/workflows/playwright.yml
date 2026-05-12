@@ -1,0 +1,164 @@
+# E2E (Playwright) — pattern from https://playwright.dev/docs/ci-intro
+# Postgres + Redis: native GitHub service containers (job on the VM, services on localhost).
+# Postgres tutorial: https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers
+# Redis uses the same `services:` + `ports:` pattern as Postgres (not the Marketplace action below).
+# Alternative for Redis only: https://github.com/marketplace/actions/redis-server-in-github-actions
+# Hylo: `run-isolated-e2e.js` passes env (incl. REDIS_URL) to the backend; DB `hylo_e2e` from E2E_DATABASE_URL.
+name: Playwright E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+concurrency:
+  group: playwright-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# JUnit → PR comment step needs write on checks + PR; contents read for checkout.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Legacy marketplace actions may still target Node 20; runners migrate to 24 — opt-in for consistency.
+  # Primary fix for annotations is using action majors that run on node24 (checkout v5+, setup-node v5+, upload-artifact v6+).
+  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CI: true
+  # Surface [Hylo GraphQL] / checkLogin in CI logs when auth routes flake
+  E2E_FORWARD_BROWSER_LOGS: '1'
+  # Runner talks to the service on localhost (mapped port). Last path segment = DB name for isolated runner.
+  E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hylo_e2e
+  PGSSLMODE: disable
+  # Sails session store (`config/session.js`); not for production.
+  REDIS_URL: redis://localhost:6379
+  COOKIE_SECRET: github-actions-e2e-cookie-secret-32chars-min
+  JWT_SECRET: github-actions-e2e-jwt-secret-min-length-ok
+  # passport.js instantiates OAuth strategies at load time — non-empty placeholders only (no real OAuth in CI).
+  ADMIN_GOOGLE_CLIENT_ID: e2e-ci-placeholder-oauth-client-id
+  ADMIN_GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
+  GOOGLE_CLIENT_ID: e2e-ci-placeholder-oauth-client-id
+  GOOGLE_CLIENT_SECRET: e2e-ci-placeholder-oauth-client-secret
+  LINKEDIN_API_KEY: e2e-ci-placeholder-linkedin-key
+  LINKEDIN_API_SECRET: e2e-ci-placeholder-linkedin-secret
+  # OIDC_KEYS: set in a step below from secrets.OIDC_KEYS or an ephemeral RSA key (passport JWT strategy).
+  # One Vite + one API: tune workers for runner capacity (override with E2E_PLAYWRIGHT_WORKERS).
+  E2E_PLAYWRIGHT_WORKERS: '8'
+
+jobs:
+  e2e:
+    # ~50m single-worker full suite; 4 workers + margin + install; adjust if suite grows.
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+
+    services:
+      # Official postgres image has no PostGIS; `migrations/schema.sql` needs CREATE EXTENSION postgis.
+      # postgis/postgis is postgres + PostGIS (same service-container pattern as GitHub’s Postgres example).
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Official redis image, default port; backend expects REDIS_URL=redis://localhost:6379 (see apps/backend/.env.example).
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v5.0.1
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - uses: actions/setup-node@v5.0.0
+        with:
+          node-version: '20'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      # ubuntu-latest often resolves azure.archive.ubuntu.com first; it can hang or retry for a long time.
+      # Prefer archive.ubuntu.com + bounded apt timeouts (see community reports on GHA apt slowness).
+      - name: Install PostgreSQL client (dropdb/createdb/psql for isolated E2E)
+        run: |
+          set -euo pipefail
+          for f in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list; do
+            if [ -f "$f" ] && grep -q azure.archive.ubuntu.com "$f" 2>/dev/null; then
+              sudo sed -i 's/azure\.archive\.ubuntu\.com/archive.ubuntu.com/g' "$f"
+            fi
+          done
+          sudo apt-get update \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=60 \
+            -o Acquire::https::Timeout=60
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Install monorepo dependencies
+        run: yarn install --immutable
+
+      - name: Build workspace packages (Vite resolves @hylo/* from built packages)
+        run: yarn build-packages
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: yarn exec playwright install --with-deps
+
+      # config/passport.js JwtStrategy requires OIDC_KEYS; OAuth strategies need client IDs (see top-level env).
+      - name: Set OIDC_KEYS for Sails (repo secret or ephemeral RSA for this run only)
+        env:
+          OIDC_FROM_SECRET: ${{ secrets.OIDC_KEYS }}
+        run: |
+          if [ -n "$OIDC_FROM_SECRET" ]; then
+            {
+              echo 'OIDC_KEYS<<__OIDC__'
+              printf '%s' "$OIDC_FROM_SECRET"
+              echo
+              echo '__OIDC__'
+            } >> "$GITHUB_ENV"
+          else
+            # OpenSSL 3 defaults to PKCS#8 PEM; rsa-pem-to-jwk (rsa-unpack) needs PKCS#1 `BEGIN RSA PRIVATE KEY`.
+            echo "OIDC_KEYS=$(openssl genrsa -traditional 2048 2>/dev/null | base64 -w0)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run Playwright E2E (isolated DB + API + web)
+        working-directory: apps/web
+        run: yarn test:e2e:isolated
+
+      # JUnit summary + PR comment (EnricoMi/publish-unit-test-result-action). Fork PRs: GITHUB_TOKEN is often read-only — step uses continue-on-error.
+      - name: Publish Playwright results to PR
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        with:
+          files: apps/web/test-results/junit.xml
+          check_name: Playwright E2E
+          comment_title: Playwright E2E
+
+      - uses: actions/upload-artifact@v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14

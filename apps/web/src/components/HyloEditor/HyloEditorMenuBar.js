@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, SquareCode, Strikethrough,
-  List, ListOrdered, Link, Unlink,
+  List, ListOrdered, Link,
   IndentIncrease, Code, ImagePlus,
   Undo2, Redo2, RemoveFormatting,
   Heading1, Heading2, Heading3, Video
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import Button from 'components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from 'components/ui/popover'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { cn } from 'util/index'
+import { normalizeUserLinkHref } from 'util/url'
 
 // export function addIframe (editor) {
 //   const url = window.prompt('URL of video or content to embed')
@@ -80,6 +82,8 @@ function setVideo (editor) {
 
 export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
+  const [linkPopoverMode, setLinkPopoverMode] = useState('add')
+  const { t } = useTranslation()
 
   if (!editor) return null
 
@@ -132,32 +136,38 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
       />
 
       <div className='relative inline-block hidden xs:block'>
-        {editor.isActive('link')
-          ? (
+        <Popover
+          onOpenChange={(v) => {
+            setLinkModalOpen(v)
+            if (v) {
+              setLinkPopoverMode(editor.isActive('link') ? 'edit' : 'add')
+            }
+          }}
+          open={linkModalOpen}
+        >
+          <PopoverTrigger asChild>
             <button
-              className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
-              title='Remove link'
-              onClick={() => editor.chain().focus().unsetLink().run()}
               tabIndex='-1'
+              type='button'
+              onMouseDown={(e) => e.preventDefault()}
+              title={editor.isActive('link') ? t('Edit link') : t('Add a link')}
+              className={cn(
+                'text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer',
+                { 'bg-foreground/10': editor.isActive('link') }
+              )}
             >
-              <Unlink size={14} />
-            </button>)
-          : (
-            <Popover onOpenChange={(v) => setLinkModalOpen(v)} open={linkModalOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  tabIndex='-1'
-                  title='Add a link'
-                  onClick={() => setLinkModalOpen(!linkModalOpen)}
-                  className='text-md rounded p-2 transition-all duration-250 ease-in-out hover:bg-foreground/10 cursor-pointer'
-                >
-                  <Link size={14} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
-                <AddLinkBox editor={editor} setLinkModalOpen={setLinkModalOpen} isOpen={linkModalOpen} />
-              </PopoverContent>
-            </Popover>)}
+              <Link size={14} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side='right' align='start' className='!p-0 !w-[340px]'>
+            <AddLinkBox
+              editor={editor}
+              setLinkModalOpen={setLinkModalOpen}
+              isOpen={linkModalOpen}
+              isEditingLink={linkPopoverMode === 'edit'}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {extendedMenu && (
@@ -250,53 +260,124 @@ function HyloEditorMenuBarButton ({ active, Icon, onClick, hideOnMobile = false 
   )
 }
 
-export const AddLinkBox = ({ editor, setLinkModalOpen, isOpen }) => {
-  const [linkInput, setLinkInput] = useState('')
-  const linkFieldRef = useRef()
+export const AddLinkBox = ({ editor, setLinkModalOpen, isOpen, isEditingLink = false }) => {
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkText, setLinkText] = useState('')
+  const urlFieldRef = useRef()
+  const { t } = useTranslation()
 
   useEffect(() => {
-    if (isOpen && linkFieldRef.current) {
-      linkFieldRef.current.focus()
+    if (!isOpen) {
+      setLinkUrl('')
+      setLinkText('')
+      return
     }
-  }, [isOpen])
 
-  const handleLinkChange = (e) => {
-    setLinkInput(e.target.value)
-  }
+    if (isEditingLink && editor.isActive('link')) {
+      editor.chain().extendMarkRange('link').run()
+    }
 
-  const setLink = (input) => {
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange('link')
-      .setLink({ href: input })
-      .run()
-  }
+    const { from, to } = editor.state.selection
+    const href = editor.getAttributes('link').href || ''
+    const text = editor.state.doc.textBetween(from, to, ' ')
+    setLinkUrl(href)
+    setLinkText(text)
 
-  const handleSubmit = (e, link) => {
-    e.preventDefault()
-    setLink(linkInput)
+    if (urlFieldRef.current) {
+      urlFieldRef.current.focus()
+    }
+  }, [isOpen, isEditingLink, editor])
+
+  const closeModal = () => {
     setLinkModalOpen(false)
-    setLinkInput('')
   }
+
+  /**
+   * Applies URL and optional display text to the current selection, or removes the link if URL is empty while editing.
+   */
+  const applyLink = (e) => {
+    e.preventDefault()
+    const trimmedUrl = linkUrl.trim()
+    const normalizedHref = trimmedUrl ? normalizeUserLinkHref(trimmedUrl) : ''
+    const displayText = (linkText.trim() || normalizedHref || '').trim()
+
+    if (!normalizedHref) {
+      if (isEditingLink && editor.isActive('link')) {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run()
+        closeModal()
+      }
+      return
+    }
+
+    let chain = editor.chain().focus()
+    if (editor.isActive('link')) {
+      chain = chain.extendMarkRange('link')
+    }
+    chain
+      .deleteSelection()
+      .insertContent({
+        type: 'text',
+        text: displayText || normalizedHref,
+        marks: [{ type: 'link', attrs: { href: normalizedHref } }]
+      })
+      .run()
+
+    closeModal()
+  }
+
+  const handleRemoveLink = () => {
+    if (editor.isActive('link')) {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    }
+    closeModal()
+  }
+
+  const primaryIsRemove = isEditingLink && !linkUrl.trim()
+  const primaryDisabled = !isEditingLink && !linkUrl.trim()
 
   return (
-    <div className={cn('bg-popover rounded-md p-4 shadow-md')}>
-      <div className='modal'>
-        <button onClick={() => setLinkModalOpen(false)} className='absolute top-2 right-2'>
-          x
-        </button>
-        <form
-          onSubmit={(e) => handleSubmit(e)}
-          className='flex flex-col gap-1 items-center'
-        >
-          <label className='text-popover-foreground'>Add link</label>
-          <input className='w-full bg-input p-2' onChange={(e) => handleLinkChange(e)} ref={linkFieldRef} />
-          <Button onClick={() => handleSubmit}>
-            Add
+    <div className={cn('bg-popover rounded-md p-4 shadow-md relative')}>
+      <button type='button' onClick={closeModal} className='absolute top-2 right-2 text-popover-foreground'>
+        ×
+      </button>
+      <form onSubmit={applyLink} className='flex flex-col gap-3 pt-1'>
+        <span className='text-sm font-medium text-popover-foreground'>
+          {isEditingLink ? t('Edit link') : t('Add link')}
+        </span>
+        <label className='flex flex-col gap-1 w-full text-xs text-popover-foreground'>
+          {t('Link text')}
+          <input
+            type='text'
+            value={linkText}
+            onChange={(e) => setLinkText(e.target.value)}
+            className='w-full bg-input p-2 rounded-md border border-border text-sm'
+          />
+        </label>
+        <label className='flex flex-col gap-1 w-full text-xs text-popover-foreground'>
+          {t('URL')}
+          <input
+            type='text'
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            ref={urlFieldRef}
+            className='w-full bg-input p-2 rounded-md border border-border text-sm'
+          />
+        </label>
+        <div className='flex flex-wrap gap-2 justify-end w-full'>
+          <Button type='button' variant='ghost' size='sm' onClick={closeModal}>
+            {t('Cancel')}
           </Button>
-        </form>
-      </div>
+          {primaryIsRemove
+            ? (
+              <Button type='button' variant='destructive' size='sm' onClick={handleRemoveLink}>
+                {t('Remove link')}
+              </Button>)
+            : (
+              <Button type='submit' size='sm' disabled={primaryDisabled}>
+                {isEditingLink ? t('Save') : t('Add')}
+              </Button>)}
+        </div>
+      </form>
     </div>
   )
 }

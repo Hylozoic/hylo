@@ -437,7 +437,6 @@ function sampleDB (entity, where, knex, limit = 1) {
 function fakeGroupData (name, slug, created_by_id, type) {
   return {
     name,
-    group_data_type: 1,
     avatar_url: `https://avatars.dicebear.com/api/bottts/${faker.random.word()}.svg`,
     access_code: faker.datatype.uuid(),
     description: faker.lorem.paragraph(),

@@ -32,7 +32,8 @@ export default function PostCard ({
   showGroups = true,
   childPost,
   showTopic: goToTopic,
-  isCurrentAction = false
+  isCurrentAction = false,
+  actionDescriptor
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -65,7 +66,7 @@ export default function PostCard ({
             ) : isCurrentAction ? (
               <View className='flex-row items-center gap-2 border-2 border-accent rounded-md px-2 py-1'>
                 <Play className='w-4 h-4 text-accent' />
-                <Text className='text-accent'>{t('Next Action')}</Text>
+                <Text className='text-accent'>{t('Next {{actionDescriptor}}', { actionDescriptor: actionDescriptor || 'Action' })}</Text>
               </View>
             ) : (
               <View className='flex-row items-center gap-2 border-2 border-foreground/20 rounded-md px-2 py-1'>

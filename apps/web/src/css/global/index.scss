@@ -127,6 +127,8 @@
 
     a {
       cursor: pointer;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     ul, ol {

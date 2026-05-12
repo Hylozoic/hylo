@@ -336,14 +336,11 @@ export async function invitePeerRelationship (userId, fromGroupId, toGroupId, de
       description
     }, opts)
 
-    await publishAsync({
-      type: 'groupRelationshipUpdate',
-      data: {
-        action: 'peer_relationship_created',
-        parentGroup: fromGroup,
-        childGroup: toGroup,
-        relationship
-      }
+    publishAsync(publishGroupRelationshipUpdate, opts, {
+      parentGroupId: fromGroup.id,
+      childGroupId: toGroup.id,
+      action: 'peer_relationship_created',
+      relationship
     })
 
     return { success: true, groupRelationship: relationship }
@@ -432,15 +429,11 @@ export async function deletePeerRelationship (userId, relationshipId, opts = {})
   // Delete the peer relationship
   await relationship.save({ active: false }, opts)
 
-  // Publish relationship update
-  await publishAsync({
-    type: 'groupRelationshipUpdate',
-    data: {
-      action: 'peer_relationship_removed',
-      parentGroup: { id: parentGroupId },
-      childGroup: { id: childGroupId },
-      relationship
-    }
+  publishAsync(publishGroupRelationshipUpdate, opts, {
+    parentGroupId,
+    childGroupId,
+    action: 'peer_relationship_removed',
+    relationship
   })
 
   return { success: true }

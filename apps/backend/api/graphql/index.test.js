@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-expressions */
+import { randomUUID } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { createRequestHandler, makeMutations, makeAuthenticatedQueries } from './index'
 import '../../test/setup'
@@ -447,9 +448,11 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
+      // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
+      const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const { response, executionResult } = await handler.inject({
         document: `{
-          search(term: "${post.get('name').substring(0, 4)}") {
+          search(term: "${searchTerm}", type: "post") {
             items {
               content {
                 __typename
@@ -484,8 +487,9 @@ describe('graphql request handler', () => {
     var skill1, skill2
 
     before(() => {
-      skill1 = factories.skill()
-      skill2 = factories.skill()
+      const suffix = randomUUID()
+      skill1 = factories.skill({ name: `graphql-remove-skill-a-${suffix}` })
+      skill2 = factories.skill({ name: `graphql-remove-skill-b-${suffix}` })
       return Promise.join(skill1.save(), skill2.save())
     })
 

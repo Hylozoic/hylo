@@ -8,6 +8,7 @@ import {
   getRecipients,
   shouldSendData
 } from './util'
+import { senderNameViaHylo } from '../../email/senderNameViaHylo'
 
 const DIGEST_TEMPLATE_ID = 'tem_t7rmGfJKvqXrvmrVWJjjWkg4'
 const SAVED_SEARCH_TEMPLATE_ID = 'tem_yfgPbhVHbRHYpy6Dc3hgKjcX'
@@ -58,7 +59,7 @@ export const sendToUser = (user, type, data, opts = {}) => {
         ? false
         : Email.sendSimpleEmail(user.get('email'), templateId, data, {
           sender: {
-            name: senderName,
+            name: senderNameViaHylo(senderName, locale),
             reply_to: 'DoNotReply@hylo.com'
           }
         }, locale)

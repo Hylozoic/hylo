@@ -158,7 +158,7 @@ module.exports = {
                     // TODO: then this function is getting called twice, that ok?
                     return Post.updateFromNewComment({
                       postId: post.id,
-                      commentId: comment.id
+                      commentId: newComment.id
                     })
                   })
               })

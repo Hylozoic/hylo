@@ -126,32 +126,33 @@
   }
 }
 
-.aboutCurrentGroup {
-  padding: 5px 0;
+// Stewards list: top-level so `g.stewards` / `g.steward` match (was wrongly nested under
+// `.aboutCurrentGroup`, which is not applied on GroupDetail — only `.isAboutCurrentGroup` is).
+.stewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
 
-  .stewards {
-    margin-bottom: 10px;
+  .steward {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    border-radius: 40px;
+    padding: 2px 12px 2px 4px;
+    border: 1px solid rgba(140, 151, 166, .5);
+    transition: all .25s ease;
 
-    a.steward {
-      display: inline-flex;
-      justify-content: left;
-      align-items: center;
-      height: 40px;
-      border-radius: 40px;
-      padding: 0 15px 0 0;
-      border: 1px solid rgba(140, 151, 166, .5);
-      transition: all .25s ease;
-      margin: 0 5px 5px 0;
+    span {
+      color: rgba(49, 73, 101, 1.00);
+      line-height: 1.2;
+    }
 
-      span {
-        color: rgba(49, 73, 101, 1.00);
-      }
-
-      &:hover {
-        border: 1px solid rgba(140, 151, 166, 1);
-        text-decoration: none;
-        box-shadow: 0px 4px 15px rgba(128, 140, 155, 0.17);
-      }
+    &:hover {
+      border: 1px solid rgba(140, 151, 166, 1);
+      text-decoration: none;
+      box-shadow: 0px 4px 15px rgba(128, 140, 155, 0.17);
     }
   }
 }

@@ -6,12 +6,12 @@ const prefix = Frontend.Route.prefix
 
 describe('RichText', function () {
   describe('processHTML', () => {
-    it('Ensures that long link text is concatenated', () => {
+    it('leaves long link text intact', () => {
       const processResult = RichText.processHTML(
         '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890">https://hylo.com/0123456789001234567890012345678900123456789001234567890</a>',
       )
       expect(processResult).to.equal(
-        '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890" class="hylo-link">https://hylo.com/0123456789001234567890012345678…</a>'
+        '<a href="https://hylo.com/0123456789001234567890012345678900123456789001234567890" class="hylo-link">https://hylo.com/0123456789001234567890012345678900123456789001234567890</a>'
       )
     })
 

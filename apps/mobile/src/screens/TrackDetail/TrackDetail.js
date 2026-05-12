@@ -92,6 +92,7 @@ const ActionsTab = ({ trackDetail, posts = [], groupSlug }) => {
           <PostCard
             post={post}
             isCurrentAction={trackDetail.currentAction?.id === post.id}
+            actionDescriptor={trackDetail.actionDescriptor}
             onPress={() => handlePostPress(post)}
           />
         </TouchableOpacity>

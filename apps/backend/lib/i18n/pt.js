@@ -10,6 +10,7 @@ exports.pt = {
   Group: () => 'Grupo',
   emailDigestDailySubject: (name) => `Seu resumo diário de ${name}`,
   emailDigestWeeklySubject: (name) => `Seu resumo semanal de ${name}`,
+  emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `Novo grupo Hylo criado: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {

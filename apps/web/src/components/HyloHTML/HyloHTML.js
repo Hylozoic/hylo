@@ -1,4 +1,5 @@
 import React from 'react'
+import { normalizeUserLinkHref } from 'util/url'
 
 /**
  * Transform embedded video tags to iframe embeds for proper video playback
@@ -25,13 +26,35 @@ function transformVideoTags (html) {
   })
 }
 
+/**
+ * Rewrites anchor hrefs saved without a scheme (e.g. google.com) so they open as external URLs, not relative to Hylo.
+ */
+function normalizeAnchorsInHtml (html) {
+  if (!html || typeof html !== 'string') return html
+  if (typeof document === 'undefined') return html
+
+  try {
+    const wrap = document.createElement('div')
+    wrap.innerHTML = html
+    wrap.querySelectorAll('a[href]').forEach((a) => {
+      const href = a.getAttribute('href')
+      if (!href) return
+      const next = normalizeUserLinkHref(href)
+      if (next && next !== href) a.setAttribute('href', next)
+    })
+    return wrap.innerHTML
+  } catch {
+    return html
+  }
+}
+
 export default function HyloHTML ({
   html,
   element = 'div',
   className,
   ...props
 }) {
-  const transformedHtml = transformVideoTags(html)
+  const transformedHtml = normalizeAnchorsInHtml(transformVideoTags(html))
 
   return (
     React.createElement(

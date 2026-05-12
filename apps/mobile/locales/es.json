@@ -238,6 +238,7 @@
   "New messages": "Nuevos mensajes",
   "Newest": "El más nuevo",
   "Next Action": "Acción actual",
+  "Next {{actionDescriptor}}": "Siguiente {{actionDescriptor}}",
   "No": "No",
   "No active conversations": "Sin conversaciones activas",
   "No Internet Connection": "Sin conexión a Internet",

@@ -8,6 +8,11 @@ export const isTest = environment === 'test'
 export const isDev = environment === 'development'
 export const isProduction = environment === 'production'
 
+/** Set VITE_DEBUG_CHECK_LOGIN=1 (Vite dev / Playwright webServer env) to log session probe timing */
+export const debugCheckLogin =
+  import.meta.env.VITE_DEBUG_CHECK_LOGIN === '1' ||
+  import.meta.env.VITE_DEBUG_CHECK_LOGIN === 'true'
+
 const isServer = typeof window === 'undefined'
 
 // FIXME: The following is from hylo-redux used for SSR only

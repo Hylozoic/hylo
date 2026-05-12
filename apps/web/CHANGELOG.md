@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.6] - 2026-05-07
+
+### Added
+- Button on about page to copy a link to jump to the Agreements section of the about page
+- More sophisticated Link editing to post editor. Remove link becomes Edit Link. You can edit the text and link URL separately now.
+
+### Changed
+- Improve styling of the about page
+- About Widget only displays a group's purpose, not its full description in the group menu.
+- Change how we wrap text in posts so we now display full links instead of shortening them
+
+### Fixed
+- Use custom Action label everywhere in a track
+- Make calender picker easier to use on mobile
+- Avoid PostEditor autofocus on mobile web
+- iPad issues with keyboard covering comment input
+- Join questions were not always required when joining a group
+- Role badge not saving correctly in group settings
+- Make sure links like google.com (without https://) used in posts open correctly. They were opening up as internal Hylo posts
+
 ## [6.4.5] - 2026-04-15
 
 ### Changed

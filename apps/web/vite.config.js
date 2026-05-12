@@ -10,8 +10,8 @@ import dotenv from 'dotenv'
 // import fs from 'fs'
 import path from 'path'
 
-// Load environment variables from .env file
-dotenv.config({ path: '.env' })
+// Load environment variables from .env file (do not override vars set by the parent, e.g. isolated E2E)
+dotenv.config({ path: '.env', override: false })
 
 const proxyTarget = process.env.VITE_API_HOST || 'http://localhost:3001'
 

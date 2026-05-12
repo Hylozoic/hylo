@@ -25,13 +25,14 @@ export default function forPosts (opts) {
       qb.whereNotIn('posts.user_id', opts.excludeUsers)
     }
 
-    // TODO: hmm, follows not being used anymore is this broken?
     if (opts.type === Post.Type.THREAD || opts.follower) {
-      qb.join('follows', 'follows.post_id', '=', 'posts.id')
+      qb.join('posts_users as post_followers', 'post_followers.post_id', '=', 'posts.id')
+      qb.where('post_followers.active', true)
+      qb.where('post_followers.following', true)
       if (opts.type === Post.Type.THREAD) {
-        qb.where('follows.user_id', opts.follower)
+        qb.where('post_followers.user_id', opts.follower)
       } else if (opts.follower) {
-        qb.where('follows.user_id', opts.follower)
+        qb.where('post_followers.user_id', opts.follower)
         qb.whereRaw('(posts.user_id != ? or posts.user_id is null)', opts.follower)
       }
     }
@@ -41,10 +42,15 @@ export default function forPosts (opts) {
     }
 
     if (opts.type === 'project' && opts.filter === 'mine') {
-      qb.leftJoin('follows', 'posts.id', 'follows.post_id')
+      qb.joinRaw(
+        'left join posts_users as project_posts_users on posts.id = project_posts_users.post_id ' +
+        'and project_posts_users.user_id = ? and project_posts_users.active = true ' +
+        'and (project_posts_users.following = true or project_posts_users.project_role_id is not null)',
+        [opts.currentUserId]
+      )
       qb.where(function () {
         this.where('posts.user_id', opts.currentUserId)
-          .orWhere('follows.user_id', opts.currentUserId)
+          .orWhereNotNull('project_posts_users.id')
       })
     }
 

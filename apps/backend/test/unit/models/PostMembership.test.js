@@ -5,7 +5,7 @@ describe('PostMembership', function () {
 
   describe('.find', function () {
     before(function () {
-      group = new Group({slug: 'foo', name: 'Foo', group_data_type: 1})
+      group = new Group({ slug: 'foo', name: 'Foo' })
       post = new Post({name: 'Sup', description: 'details'})
       return setup.clearDb()
       .then(() => Promise.join(group.save(), post.save()))

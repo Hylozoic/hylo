@@ -1,6 +1,7 @@
 import { curry, merge } from 'lodash'
 import { format } from 'util'
 import { mapLocaleToSendWithUS } from '../../lib/util'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const api = require('sendwithus')(process.env.SENDWITHUS_KEY)
 
@@ -68,7 +69,7 @@ module.exports = {
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
       sender: {
-        name: `${data.inviter_name} (via Hylo)`,
+        name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email
       }
     }),
@@ -80,7 +81,7 @@ module.exports = {
       data,
       locale: mapLocaleToSendWithUS(data.locale) || 'en-US',
       sender: {
-        name: `${data.inviter_name} (via Hylo)`,
+        name: senderNameViaHylo(data.inviter_name, data.locale),
         reply_to: data.inviter_email
       }
     }),

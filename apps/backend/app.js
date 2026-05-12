@@ -18,7 +18,8 @@
  * `node app.js --silent --port=80 --prod`
  */
 
-require('dotenv').config()
+// Do not overwrite vars already set by the parent process (e.g. isolated E2E sets DOMAIN to match web port)
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env'), override: false })
 require('@babel/register')
 
 if (process.env.ROLLBAR_SERVER_TOKEN && process.env.NODE_ENV !== 'test') {

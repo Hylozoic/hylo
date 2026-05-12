@@ -34,7 +34,6 @@ const generateMergeQueries = function (userId, duplicateUserId, knex) {
     ['activities', 'actor_id'],
     ['comments', 'user_id'],
     ['comments', 'deactivated_by_id'],
-    ['follows', 'added_by_id'],
     ['thanks', 'user_id'],
     ['group_invites', 'invited_by_id'],
     ['group_invites', 'used_by_id'],
@@ -51,7 +50,6 @@ const generateMergeQueries = function (userId, duplicateUserId, knex) {
     // table name, user id column, column with unique value
     ['group_memberships', 'user_id', 'group_id'],
     ['contributions', 'user_id', 'post_id'],
-    ['follows', 'user_id', 'post_id'],
     ['linked_account', 'user_id', 'provider_user_id'],
     ['tag_follows', 'user_id', 'tag_id'],
     ['groups_tags', 'user_id', 'tag_id'],
@@ -77,11 +75,10 @@ const generateRemoveQueries = function (userId, knex) {
   ;[
     ['comments', 'deactivated_by_id'],
     ['groups', 'created_by_id'],
-    ['follows', 'added_by_id'],
     ['groups_tags', 'user_id']
   ].forEach(args => {
-    var table = args[0]
-    var userCol = args[1]
+    const table = args[0]
+    const userCol = args[1]
     push(`update ${table} set ${userCol} = null where ${userCol} = ?`, userId)
   })
 
@@ -99,7 +96,6 @@ const generateRemoveQueries = function (userId, knex) {
     ['comments', 'user_id'],
     ['contributions', 'user_id'],
     ['devices', 'user_id'],
-    ['follows', 'user_id'],
     ['group_invites', 'invited_by_id'],
     ['group_invites', 'used_by_id'],
     ['group_memberships', 'user_id'],

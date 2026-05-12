@@ -22,6 +22,7 @@ import {
   fetchStewardSuggestions,
   clearStewardSuggestions
 } from './RolesSettingsTab.store'
+import { fetchGroupSettings } from '../GroupSettings.store'
 import getPerson from 'store/selectors/getPerson'
 import SettingsSection from '../SettingsSection'
 import EmojiPicker from 'components/EmojiPicker'
@@ -50,7 +51,7 @@ const validateRole = ({ name, emoji }) => {
   return true
 }
 
-function RolesSettingsTab ({ group, commonRoles }) {
+function RolesSettingsTab ({ group, commonRoles, slug }) {
   const dispatch = useDispatch()
   const suggestions = useSelector(state => state.RoleSettings.map(personId => getPerson(state, { personId })))
   const { t } = useTranslation()
@@ -92,9 +93,9 @@ function RolesSettingsTab ({ group, commonRoles }) {
     const role = roles[i]
     if (window.confirm(`${t('Are you sure you want to ')}${role.active ? t('deactivate') : t('reactivate')} ${t('this role/badge?')}`)) {
       dispatch(updateGroupRole({ active: !role.active, groupId: group?.id, groupRoleId: role.id })).then((response) => {
-        const updatedRoles = [...roles]
-        updatedRoles[i] = { ...response.payload.data.updateGroupRole }
-        setRoles(updatedRoles)
+        const saved = response.payload.data.updateGroupRole
+        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     }
   }
@@ -114,9 +115,9 @@ function RolesSettingsTab ({ group, commonRoles }) {
     const role = { ...roles[i] }
     if (validateRole(role)) {
       dispatch(addGroupRole({ ...role, groupId: group?.id })).then((response) => {
-        const updatedRoles = roles
-        updatedRoles[i] = { ...response.payload.data.addGroupRole }
-        setRoles(updatedRoles)
+        const saved = response.payload.data.addGroupRole
+        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
       window.alert(t('A role must have a valid emoji and name to be saved'))
@@ -134,9 +135,9 @@ function RolesSettingsTab ({ group, commonRoles }) {
     const role = { ...roles[i] }
     if (validateRole(role)) {
       dispatch(updateGroupRole({ ...role, groupId: group?.id, groupRoleId: role.id })).then((response) => {
-        const updatedRoles = roles
-        updatedRoles[i] = { ...response.payload.data.updateGroupRole }
-        setRoles(updatedRoles)
+        const saved = response.payload.data.updateGroupRole
+        setRoles(prev => prev.map((r, idx) => idx === i ? { ...saved } : r))
+        if (slug || group?.slug) dispatch(fetchGroupSettings(slug || group.slug))
       })
     } else {
       window.alert(t('A role must have a valid emoji and name to be updated'))
@@ -225,13 +226,21 @@ function RoleRow ({
   const isDraftRole = active === ''
   const inactiveStyle = (!active && !isDraftRole && !isCommonRole) ? styles.inactive : ''
   return (
-    <div className={cn('bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
+    <div className={cn('relative bg-foreground/5 rounded-lg my-4 pb-2', inactiveStyle)}>
       {!isCommonRole &&
         <div className={styles.actionContainer}>
-          {isDraftRole && (<span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>)}
-          {!isDraftRole && changed && (<span className={styles.action} onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>)}
-          {!isDraftRole && changed && (<span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>)}
-          {!isDraftRole && !changed && (<span className={styles.action} onClick={onToggleActivation}><Icon name={active ? 'CircleEx' : 'CircleArrow'} /> {active ? t('Deactivate') : t('Reactivate')}</span>)}
+          {isDraftRole && (
+            <span onClick={onDelete} className={styles.action}><Icon name='Trash' /> {t('Delete')}</span>
+          )}
+          {!isDraftRole && changed && (
+            <>
+              <span className={styles.action} onClick={onUpdate}><Icon name='Unlock' /> {t('Save')}</span>
+              <span className={styles.action} onClick={onReset}><Icon name='Back' /> {t('Revert')}</span>
+            </>
+          )}
+          {!isDraftRole && !changed && (
+            <span className={styles.action} onClick={onToggleActivation}><Icon name={active ? 'CircleEx' : 'CircleArrow'} /> {active ? t('Deactivate') : t('Reactivate')}</span>
+          )}
         </div>}
       <div className='flex flex-col relative w-full p-2'>
         <EmojiPicker forReactions={false} emoji={emoji} handleReaction={onChange('emoji')} className='absolute top-[2.7rem] left-[1rem] w-[40px] h-[40px] bg-foreground/5 rounded flex items-center justify-center cursor-pointer hover:bg-foreground/10 hover:shadow-xl border-2 border-foreground/50 hover:border-foreground/50 transition-all' />

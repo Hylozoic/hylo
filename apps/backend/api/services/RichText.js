@@ -5,8 +5,6 @@ import { JSDOM } from 'jsdom'
 import { TextHelpers } from '@hylo/shared'
 import { mentionPath, topicPath, HYLO_URL_REGEX } from '@hylo/navigation'
 
-export const MAX_LINK_LENGTH = 48
-
 export function getDOM (contentHTML) {
   return new JSDOM(contentHTML).window.document
 }
@@ -17,10 +15,9 @@ Handles raw HTML from database:
 
 1) Linkifies the HTML (this is necessary for legacy content),
    adding class 'hylo-link' to any internal links
-2) Ensures that long link text is concatenated to `MAX_LINK_LENGTH`
-3) Removes `target` attribute from all all links
-4) Normalizes legacy HTML content to be consistent with current HTML format
-5) Sanitizes final output (* sanitization should only occur from the backend and on output)
+2) Removes `target` attribute from all all links
+3) Normalizes legacy HTML content to be consistent with current HTML format
+4) Sanitizes final output (* sanitization should only occur from the backend and on output)
 
 Note: `Post#details()` and `Comment#text()` both run this by default, and it should always
       be ran against those fields.
@@ -40,17 +37,12 @@ export function processHTML (
   const dom = getDOM(autolinkedHTML)
 
   forEach(el => {
-    // Remove all `target` attributes for anchors  Concatenate long link text appending "…"
+    // Remove all `target` attributes for anchors
     el.removeAttribute('target')
 
     // Add `hylo-link` to internal links
     if ((el.getAttribute('href') && el.getAttribute('href').match(HYLO_URL_REGEX))) {
       el.className = 'hylo-link'
-    }
-
-    // This currently has to be reversed by the TipTap by referencing the href on edit
-    if (el.textContent.length > MAX_LINK_LENGTH) {
-      el.innerHTML = `${el.textContent.slice(0, MAX_LINK_LENGTH)}…`
     }
 
     // Normalize legacy Mentions
