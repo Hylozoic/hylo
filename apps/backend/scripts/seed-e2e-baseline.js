@@ -474,11 +474,33 @@ async function main () {
     )
     const inviteTokenGroupId = inviteTokenGroupRes.rows[0].id
 
+    /** Hidden + restricted + join code — Batch Q E2E (`Group.Visibility.HIDDEN` = 0, `RESTRICTED` = 1). */
+    const hiddenJoinGroupRes = await client.query(
+      `INSERT INTO groups (
+        active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
+      ) VALUES (
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        0, 1, $5, $6::jsonb, 1, false, $7
+      ) RETURNING id`,
+      [
+        now,
+        'E2E Hidden Join Group',
+        'e2e-hidden-join-group',
+        'Playwright E2E — hidden group; about/join only with valid accessCode',
+        hostId,
+        emptyGroupSettings,
+        'e2ehjco001'
+      ]
+    )
+    const hiddenJoinGroupId = hiddenJoinGroupRes.rows[0].id
+
     await client.query(
       `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
        VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId]
+              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($6, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId, hiddenJoinGroupId]
     )
 
     await client.query(

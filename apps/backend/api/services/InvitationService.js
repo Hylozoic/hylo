@@ -160,7 +160,8 @@ module.exports = {
    */
   check: async (token, accessCode) => {
     if (accessCode) {
-      const group = await Group.queryByAccessCode(accessCode).fetch()
+      // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
+      const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
       return {
         valid: !!group,
         groupId: group ? group.get('id') : null,

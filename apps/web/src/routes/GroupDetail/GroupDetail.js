@@ -169,7 +169,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   useEffect(() => {
     fetchGroup()
-  }, [group?.id])
+  }, [fetchGroup])
 
   const closeDetailModal = () => {
     const newUrl = removeGroupFromUrl(window.location.pathname)

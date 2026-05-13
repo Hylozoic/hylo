@@ -341,9 +341,9 @@ export default async function makeSchema ({ req }) {
  * Otherwise a valid code/token for group A could fetch any other group by slug/id.
  */
 function invitationMatchesGroupQuery (inviteCheck, slug, id) {
-  if (!inviteCheck?.valid || inviteCheck.groupId == null) return false
+  if (!inviteCheck?.valid) return false
   if (slug) {
-    return inviteCheck.groupSlug === slug
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
   }
   if (id != null && id !== '') {
     return String(inviteCheck.groupId) === String(id)

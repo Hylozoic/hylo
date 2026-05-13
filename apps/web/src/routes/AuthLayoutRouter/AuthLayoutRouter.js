@@ -35,6 +35,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
@@ -650,8 +651,12 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  // Looking at a group that doesn't exist or current user doesn't have access to it
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  // Looking at a group that doesn't exist or current user doesn't have access to it.
+  // Skip this when the URL carries invite/join credentials: FetchForGroup has no accessCode,
+  // so hidden groups look missing until GroupDetail runs GroupDetailsQuery with those params.
+  const groupInviteBypass =
+    !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
     return <NotFound />
   }
 
