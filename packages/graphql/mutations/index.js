@@ -1,3 +1,5 @@
 export { completePostMutation } from './completePostMutation'
+export { deleteDraftMutation } from './deleteDraftMutation'
+export { saveDraftMutation } from './saveDraftMutation'
 export { savePostMutation } from './savePostMutation'
 export { unsavePostMutation } from './unsavePostMutation'

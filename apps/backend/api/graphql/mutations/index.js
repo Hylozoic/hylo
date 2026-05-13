@@ -8,6 +8,10 @@ export {
   deleteAffiliation
 } from './affiliation'
 export {
+  saveDraft,
+  deleteDraft
+} from './draft'
+export {
   createCollection,
   addPostToCollection,
   reorderPostInCollection,
