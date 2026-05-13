@@ -43,6 +43,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { cn } from 'util/index'
 import { removePostFromUrl } from '@hylo/navigation'
+import { getPostDetailCloseDestination } from 'util/postDetailCloseNavigation'
 import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
@@ -83,6 +84,20 @@ function PostDetail () {
   const activityHeader = useRef(null)
   const { t } = useTranslation()
 
+  const postDetailCloseDestination = useMemo(() => {
+    return post
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post,
+        me: currentUser
+      })
+      : {
+          pathname: removePostFromUrl(location.pathname) || '/',
+          search: location.search
+        }
+  }, [post, location.pathname, location.search, currentUser])
+
   useEffect(() => {
     onPostIdChange()
   }, [postId])
@@ -94,10 +109,12 @@ function PostDetail () {
         title: t('Post'),
         icon: '',
         info: '',
-        search: false
+        search: false,
+        mobileBackButton: true,
+        backTo: postDetailCloseDestination
       })
     }
-  }, [])
+  }, [view, t, setHeaderDetails, postDetailCloseDestination])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
@@ -147,12 +164,8 @@ function PostDetail () {
   const togglePeopleDialog = useCallback(() => setState(prevState => ({ ...prevState, showPeopleDialog: !prevState.showPeopleDialog })), [])
 
   const onClose = useCallback(() => {
-    const closeLocation = {
-      ...location,
-      pathname: removePostFromUrl(location.pathname) || '/'
-    }
-    navigate(closeLocation)
-  }, [location])
+    navigate(postDetailCloseDestination)
+  }, [navigate, postDetailCloseDestination])
 
   // Pull-to-close: drag down to dismiss when scrolled to top,
   // or drag up to dismiss when scrolled to bottom
