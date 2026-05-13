@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { dismissCookiePreferencesIfOpen } from './helpers/sessionAuth.js'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
@@ -18,9 +19,10 @@ const E2E_USER_ID = '1'
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 
 async function expectProfileShell (page, urlPattern) {
+  await dismissCookiePreferencesIfOpen(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
   await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
-  await expect(page.getByText(/E2E User/i).first()).toBeVisible(uiTimeout)
+  await expect(page.getByRole('heading', { level: 1, name: /E2E User/i })).toBeVisible(uiTimeout)
   await expect(page).toHaveTitle(/E2E User|Hylo/i, uiTimeout)
 }
 
@@ -48,6 +50,7 @@ test.describe('Batch F: members & profiles', () => {
       navTimeout
     )
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#members-page')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E Public Group|Hylo/i, uiTimeout)
   })
 })

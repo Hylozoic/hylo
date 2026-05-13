@@ -169,7 +169,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
 
   useEffect(() => {
     fetchGroup()
-  }, [group?.id])
+  }, [fetchGroup])
 
   const closeDetailModal = () => {
     const newUrl = removeGroupFromUrl(window.location.pathname)
@@ -286,7 +286,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <p>{t(accessibilityString(group.accessibility))} - {t(accessibilityDescription(group.accessibility))}</p>
           </div>
         </div>
-
         {group.agreements?.length > 0
           ? (
             <div
@@ -318,7 +317,6 @@ function GroupDetail ({ forCurrentGroup = false }) {
               })}
             </div>)
           : ''}
-
         {!isAboutCurrentGroup
           ? group.paywall
             ? (

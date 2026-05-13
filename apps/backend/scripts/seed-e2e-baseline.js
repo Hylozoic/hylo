@@ -7,6 +7,11 @@ const bcrypt = require('bcrypt')
 
 const E2E_USER_EMAIL = 'e2e.user@hylo.test'
 const E2E_USER_PASSWORD = 'e2e-password-123'
+/** Logout / re-login Playwright only — keeps primary `e2e.user` session valid for parallel tests. */
+const E2E_SESSION_MUTATE_EMAIL = 'e2e.session-mutate@hylo.test'
+const E2E_STRIPE_ACCOUNT_EXTERNAL_ID = 'acct_e2e_public_group_001'
+/** Member of `e2e-public-group` without Coordinator — sees track paywall (Batch P3 E2E). */
+const E2E_TRACK_VIEWER_EMAIL = 'e2e.track-viewer@hylo.test'
 
 async function main () {
   const connectionString = process.env.DATABASE_URL
@@ -25,9 +30,28 @@ async function main () {
     ssl: useSsl ? { rejectUnauthorized: false } : false
   })
   await client.connect()
-  const now = new Date().toISOString()
+  const seedInstantMs = Date.now()
+  const now = new Date(seedInstantMs).toISOString()
   const userSettings = JSON.stringify({ locale: 'en' })
   const emptyGroupSettings = JSON.stringify({})
+
+  /**
+   * Membership.settings.lastReadAt → GraphQL Membership.lastViewedAt; clients order by desc for “last group”.
+   * Keep `e2e.user` public + private strictly newer than paywall / welcome so `GET /` is deterministic for Batch A.
+   *
+   * `GroupWelcomeModal` shows when `showJoinForm || agreementsChanged || !joinQuestionsAnsweredAt` — so every
+   * “normal” membership must set `joinQuestionsAnsweredAt` (and clear `showJoinForm`) or the modal blocks most E2E.
+   * Batch M uses `e2e-welcome-overlay` only, with `showJoinForm: true` there.
+   */
+  const membershipSettingsWelcomeCleared = (lastReadAtMs) =>
+    JSON.stringify({
+      lastReadAt: new Date(lastReadAtMs).toISOString(),
+      showJoinForm: false,
+      joinQuestionsAnsweredAt: now,
+      agreementsAcceptedAt: now
+    })
+  const membershipSettings = membershipSettingsWelcomeCleared(seedInstantMs - 86400000)
+  const membershipSettingsPrimaryLastViewed = membershipSettingsWelcomeCleared(seedInstantMs + 86400000)
 
   try {
     await client.query('BEGIN')
@@ -51,10 +75,10 @@ async function main () {
 
     const pubRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 1, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [now, 'E2E Public Group', 'e2e-public-group', 'Deterministic public group for Playwright E2E', userId, emptyGroupSettings]
@@ -63,10 +87,10 @@ async function main () {
 
     const privRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         0, 1, $5, $6::jsonb, 1, false
       ) RETURNING id`,
       [now, 'E2E Private Group', 'e2e-private-group', 'Deterministic private group for Playwright E2E', userId, emptyGroupSettings]
@@ -74,12 +98,218 @@ async function main () {
     const privateGroupId = privRes.rows[0].id
 
     // Maps to Membership.lastViewedAt; without it AuthLayoutRouter replaces deep links with …/stream
-    const membershipSettings = JSON.stringify({ lastReadAt: now })
     await client.query(
       `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
        VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-      [publicGroupId, userId, now, membershipSettings, privateGroupId]
+              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $6::jsonb)`,
+      [publicGroupId, userId, now, membershipSettingsPrimaryLastViewed, privateGroupId, membershipSettingsPrimaryLastViewed]
+    )
+
+    const stripeAccountRes = await client.query(
+      `INSERT INTO stripe_accounts (stripe_account_external_id)
+       VALUES ($1)
+       RETURNING id`,
+      [E2E_STRIPE_ACCOUNT_EXTERNAL_ID]
+    )
+    const stripeAccountId = stripeAccountRes.rows[0].id
+
+    await client.query(
+      `UPDATE groups
+       SET stripe_account_id = $1,
+           stripe_charges_enabled = true,
+           stripe_payouts_enabled = true,
+           stripe_details_submitted = true
+       WHERE id = $2`,
+      [stripeAccountId, publicGroupId]
+    )
+
+    /** Public paywall group — Batch P2/P5/P6; `e2e.user` is a plain member (no Coordinator) for stream paywall */
+    const paywallRes = await client.query(
+      `INSERT INTO groups (
+        active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, paywall
+      ) VALUES (
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        2, 1, $5, $6::jsonb, 1, true, true
+      ) RETURNING id`,
+      [
+        now,
+        'E2E Paywall Group',
+        'e2e-paywall-group',
+        'Deterministic paywall group for Playwright Batch P2',
+        userId,
+        emptyGroupSettings
+      ]
+    )
+    const paywallGroupId = paywallRes.rows[0].id
+
+    await client.query(
+      `UPDATE groups
+       SET stripe_account_id = $1,
+           stripe_charges_enabled = true,
+           stripe_payouts_enabled = true,
+           stripe_details_submitted = true
+       WHERE id = $2`,
+      [stripeAccountId, paywallGroupId]
+    )
+
+    await client.query(
+      `INSERT INTO stripe_products (
+        group_id,
+        stripe_product_id,
+        stripe_price_id,
+        name,
+        description,
+        price_in_cents,
+        currency,
+        access_grants,
+        renewal_policy,
+        duration,
+        publish_status,
+        created_at,
+        updated_at
+      ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'usd',
+        $7::jsonb,
+        'automatic',
+        'month',
+        'published',
+        $8::timestamptz,
+        $8::timestamptz
+      )`,
+      [
+        paywallGroupId,
+        'prod_e2e_paywall_stream_001',
+        'price_e2e_paywall_stream_001',
+        'E2E Paywall Stream Monthly',
+        'Deterministic paywall offering for public discovery E2E',
+        1500,
+        JSON.stringify({ groupIds: [paywallGroupId] }),
+        now
+      ]
+    )
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [paywallGroupId, userId, now, membershipSettings]
+    )
+
+    await client.query(
+      `INSERT INTO stripe_products (
+        group_id,
+        stripe_product_id,
+        stripe_price_id,
+        name,
+        description,
+        price_in_cents,
+        currency,
+        access_grants,
+        renewal_policy,
+        duration,
+        publish_status,
+        created_at,
+        updated_at
+      ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'usd',
+        $7::jsonb,
+        'automatic',
+        'month',
+        'published',
+        $8::timestamptz,
+        $8::timestamptz
+      )`,
+      [
+        publicGroupId,
+        'prod_e2e_public_group_001',
+        'price_e2e_public_group_001',
+        'E2E Membership Monthly',
+        'Deterministic monthly membership offering for Paid Content E2E',
+        1200,
+        JSON.stringify({ groupIds: [publicGroupId] }),
+        now
+      ]
+    )
+
+    /** Access-controlled published track + offering granting track scope (Batch P3). Coordinators bypass paywall; use `e2e.track-viewer@hylo.test`. */
+    const paidTrackRes = await client.query(
+      `INSERT INTO tracks (
+        name, description, published_at, access_controlled,
+        action_descriptor, action_descriptor_plural,
+        created_at, updated_at, settings
+      ) VALUES (
+        'E2E Paid Track',
+        '<p>Deterministic paid track for Batch P3 E2E</p>',
+        $1::timestamptz,
+        true,
+        'Action',
+        'Actions',
+        $1::timestamptz,
+        $1::timestamptz,
+        '{}'::jsonb
+      ) RETURNING id`,
+      [now]
+    )
+    const paidTrackId = paidTrackRes.rows[0].id
+
+    await client.query(
+      `INSERT INTO groups_tracks (track_id, group_id, created_at, updated_at)
+       VALUES ($1, $2, $3::timestamptz, $3::timestamptz)`,
+      [paidTrackId, publicGroupId, now]
+    )
+
+    await client.query(
+      `INSERT INTO stripe_products (
+        group_id,
+        stripe_product_id,
+        stripe_price_id,
+        name,
+        description,
+        price_in_cents,
+        currency,
+        access_grants,
+        renewal_policy,
+        duration,
+        publish_status,
+        created_at,
+        updated_at
+      ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'usd',
+        $7::jsonb,
+        'automatic',
+        'month',
+        'published',
+        $8::timestamptz,
+        $8::timestamptz
+      )`,
+      [
+        publicGroupId,
+        'prod_e2e_track_access_001',
+        'price_e2e_track_access_001',
+        'E2E Track Access Monthly',
+        'Offering that grants access to the Batch P3 seeded track',
+        900,
+        JSON.stringify({ trackIds: [paidTrackId] }),
+        now
+      ]
     )
 
     /**
@@ -125,14 +355,17 @@ async function main () {
       [coordinatorRoleId, administrationRespId]
     )
 
-    /** `showJoinForm` opens `GroupWelcomeModal` for Batch M Playwright (do not use this slug for “clean stream” tests). */
-    const welcomeOverlayMembershipSettings = JSON.stringify({ lastReadAt: now, showJoinForm: true })
+    /** Only this slug uses `showJoinForm: true` for Batch M Playwright; all other seeded memberships clear the welcome gate. */
+    const welcomeOverlayMembershipSettings = JSON.stringify({
+      lastReadAt: new Date(seedInstantMs - 43200000).toISOString(),
+      showJoinForm: true
+    })
     const welcomeRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [now, 'E2E Welcome Overlay', 'e2e-welcome-overlay', 'Playwright GroupWelcomeModal E2E', userId, emptyGroupSettings]
@@ -157,6 +390,38 @@ async function main () {
       )
     }
 
+    const mutateUserRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [E2E_SESSION_MUTATE_EMAIL.toLowerCase(), 'E2E Session Mutate', 'E2E', 'Mutate', now, userSettings]
+    )
+    const sessionMutateUserId = mutateUserRes.rows[0].id
+    const sessionMutateMembershipSettings = membershipSettingsWelcomeCleared(seedInstantMs + 7200000)
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [publicGroupId, sessionMutateUserId, now, sessionMutateMembershipSettings]
+    )
+
+    await client.query(
+      `INSERT INTO group_memberships_common_roles (user_id, group_id, common_role_id)
+       SELECT $1::bigint, $2::bigint, $3::bigint
+       WHERE NOT EXISTS (
+         SELECT 1 FROM group_memberships_common_roles gmcr
+         WHERE gmcr.user_id = $1 AND gmcr.group_id = $2 AND gmcr.common_role_id = $3
+       )`,
+      [sessionMutateUserId, publicGroupId, coordinatorRoleId]
+    )
+
+    const mutatePasswordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
+    await client.query(
+      `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
+       VALUES ($1, $2, 'password')`,
+      [sessionMutateUserId, mutatePasswordHash]
+    )
+
     const postRes = await client.query(
       `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
        VALUES ($1, $2, 'discussion', $3::timestamptz, $3::timestamptz, $4, true, 0, true)
@@ -172,10 +437,10 @@ async function main () {
 
     const joinCodeGroupRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true, $7
       ) RETURNING id`,
       [
@@ -192,10 +457,10 @@ async function main () {
 
     const inviteTokenGroupRes = await client.query(
       `INSERT INTO groups (
-        group_data_type, active, created_at, updated_at, name, slug, description,
+        active, created_at, updated_at, name, slug, description,
         visibility, accessibility, created_by_id, settings, num_members, allow_in_public
       ) VALUES (
-        1, true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
         2, 2, $5, $6::jsonb, 1, true
       ) RETURNING id`,
       [
@@ -209,11 +474,33 @@ async function main () {
     )
     const inviteTokenGroupId = inviteTokenGroupRes.rows[0].id
 
+    /** Hidden + restricted + join code — Batch Q E2E (`Group.Visibility.HIDDEN` = 0, `RESTRICTED` = 1). */
+    const hiddenJoinGroupRes = await client.query(
+      `INSERT INTO groups (
+        active, created_at, updated_at, name, slug, description,
+        visibility, accessibility, created_by_id, settings, num_members, allow_in_public, access_code
+      ) VALUES (
+        true, $1::timestamptz, $1::timestamptz, $2, $3, $4,
+        0, 1, $5, $6::jsonb, 1, false, $7
+      ) RETURNING id`,
+      [
+        now,
+        'E2E Hidden Join Group',
+        'e2e-hidden-join-group',
+        'Playwright E2E — hidden group; about/join only with valid accessCode',
+        hostId,
+        emptyGroupSettings,
+        'e2ehjco001'
+      ]
+    )
+    const hiddenJoinGroupId = hiddenJoinGroupRes.rows[0].id
+
     await client.query(
       `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
        VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
-              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
-      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId]
+              ($5, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb),
+              ($6, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [joinCodeGroupId, hostId, now, membershipSettings, inviteTokenGroupId, hiddenJoinGroupId]
     )
 
     await client.query(
@@ -227,6 +514,33 @@ async function main () {
       `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
        VALUES ($1, $2, 'password')`,
       [userId, passwordHash]
+    )
+
+    const trackViewerRes = await client.query(
+      `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
+       VALUES ($1, $2, $3, $4, true, true, $5::timestamptz, $5::timestamptz, $6::jsonb)
+       RETURNING id`,
+      [
+        E2E_TRACK_VIEWER_EMAIL.toLowerCase(),
+        'E2E Track Viewer',
+        'E2E',
+        'Viewer',
+        now,
+        userSettings
+      ]
+    )
+    const trackViewerId = trackViewerRes.rows[0].id
+
+    await client.query(
+      `INSERT INTO group_memberships (group_id, user_id, active, role, created_at, updated_at, settings)
+       VALUES ($1, $2, true, 1, $3::timestamptz, $3::timestamptz, $4::jsonb)`,
+      [publicGroupId, trackViewerId, now, membershipSettings]
+    )
+
+    await client.query(
+      `INSERT INTO linked_account (user_id, provider_user_id, provider_key)
+       VALUES ($1, $2, 'password')`,
+      [trackViewerId, passwordHash]
     )
 
     await client.query('COMMIT')

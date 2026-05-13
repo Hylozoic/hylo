@@ -2,36 +2,9 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-const mock = require('mock-require')
-
 /* global ContentAccess, StripeProduct, SubscriptionChangeEvent */
 
 let currentWebhookEvent = null
-
-const stripeMockFactory = function () {
-  return {
-    webhooks: {
-      constructEvent: () => currentWebhookEvent
-    },
-    subscriptions: {
-      retrieve: async () => ({})
-    },
-    invoices: {
-      retrieve: async () => ({})
-    },
-    paymentIntents: {
-      retrieve: async () => ({})
-    },
-    checkout: {
-      sessions: {
-        list: async () => ({ data: [] })
-      }
-    },
-    products: {
-      retrieve: async () => ({})
-    }
-  }
-}
 
 describe('StripeController.webhook', () => {
   let StripeController
@@ -39,8 +12,11 @@ describe('StripeController.webhook', () => {
   let res
 
   before(() => {
-    mock('stripe', stripeMockFactory)
-    StripeController = mock.reRequire(root('api/controllers/StripeController'))
+    StripeController = require(root('api/controllers/StripeController'))
+  })
+
+  after(() => {
+    delete global.__stripeWebhookConstructEvent
   })
 
   beforeEach(async () => {
@@ -51,6 +27,7 @@ describe('StripeController.webhook', () => {
     req.headers['stripe-signature'] = 'sig_test'
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
     currentWebhookEvent = null
+    global.__stripeWebhookConstructEvent = () => currentWebhookEvent
   })
 
   it('skips webhook when connect account is unknown', async () => {

@@ -12,37 +12,52 @@ const path = require('path')
 const Promise = require('bluebird')
 const root = require('root-path')
 
-// Mock Stripe before any modules are loaded
-const mockStripe = function (apiKey) {
-  return {
-    accounts: {
-      create: async () => ({}),
-      retrieve: async () => ({}),
-      update: async () => ({})
-    },
-    accountLinks: {
-      create: async () => ({})
-    },
-    products: {
-      create: async () => ({}),
-      update: async () => ({}),
-      list: async () => ({})
-    },
-    prices: {
+// Mock Stripe before any modules are loaded (must support `new Stripe(key, opts)` — see stripe-node v17)
+function TestStripeClient () {
+  if (!(this instanceof TestStripeClient)) {
+    return new TestStripeClient()
+  }
+  this.accounts = {
+    create: async () => ({}),
+    retrieve: async () => ({}),
+    update: async () => ({})
+  }
+  this.accountLinks = {
+    create: async () => ({})
+  }
+  this.products = {
+    create: async () => ({}),
+    update: async () => ({}),
+    list: async () => ({})
+  }
+  this.prices = {
+    create: async () => ({}),
+    retrieve: async () => ({})
+  }
+  this.checkout = {
+    sessions: {
       create: async () => ({}),
       retrieve: async () => ({})
-    },
-    checkout: {
-      sessions: {
-        create: async () => ({}),
-        retrieve: async () => ({})
-      }
+    }
+  }
+  this.subscriptions = {
+    retrieve: async () => ({})
+  }
+  this.invoices = {
+    retrieve: async () => ({})
+  }
+  this.paymentIntents = {
+    retrieve: async () => ({})
+  }
+  this.webhooks = {
+    constructEvent: () => {
+      throw new Error('stripe.webhooks.constructEvent is not stubbed for this test')
     }
   }
 }
 
 // Set up mock-require to intercept all Stripe imports
-mock('stripe', mockStripe)
+mock('stripe', TestStripeClient)
 
 const TestSetup = function () {
   this.tables = []
@@ -50,6 +65,11 @@ const TestSetup = function () {
 }
 
 const setup = new TestSetup()
+
+setup.restoreDefaultStripeMock = () => {
+  mock.stop('stripe')
+  mock('stripe', TestStripeClient)
+}
 
 before(function (done) {
   this.timeout(50000)
@@ -153,7 +173,6 @@ TestSetup.prototype.createSchema = function () {
       .then(() => bookshelf.knex.raw('create schema public').transacting(trx))
       .then(() => {
         const script = fs.readFileSync(root('migrations/schema.sql')).toString()
-
         const cleaned = script.split(/\n/)
           .filter(line => !line.startsWith('--') && !line.startsWith('\\'))
           .join('\n')

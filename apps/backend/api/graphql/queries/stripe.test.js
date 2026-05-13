@@ -241,15 +241,15 @@ describe('Stripe Queries', () => {
       })
     })
 
-    it('returns only published offerings with group access', async () => {
+    it('returns published offerings with group or track access', async () => {
       const result = await publicStripeOfferings(null, {
         groupId: testGroup.id
       })
 
       expect(result.success).to.be.true
-      expect(result.offerings).to.have.length(1)
-      expect(result.offerings[0].get('name')).to.equal('Published Offering')
-      expect(result.offerings[0].get('publish_status')).to.equal('published')
+      const names = result.offerings.map(o => o.get('name')).sort()
+      expect(names).to.deep.equal(['No Group Access Offering', 'Published Offering'])
+      expect(result.offerings.every(o => o.get('publish_status') === 'published')).to.be.true
     })
 
     it('works without authentication', async () => {

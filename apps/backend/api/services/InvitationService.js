@@ -160,7 +160,8 @@ module.exports = {
    */
   check: async (token, accessCode) => {
     if (accessCode) {
-      const group = await Group.queryByAccessCode(accessCode).fetch()
+      // Invalid / unknown codes must return { valid: false } — plain .fetch() rejects when no row (Bookshelf).
+      const group = await Group.queryByAccessCode(accessCode).fetch({ require: false })
       return {
         valid: !!group,
         groupId: group ? group.get('id') : null,
@@ -168,22 +169,24 @@ module.exports = {
       }
     }
     if (token) {
-      const invitation = await Invitation.query()
-        .where({ token, used_by_id: null, expired_by_id: null })
-        .first()
+      const invitation = await Invitation.where({
+        token,
+        used_by_id: null,
+        expired_by_id: null
+      }).fetch()
       if (invitation) {
-        const group = await Group.find(invitation.group_id)
+        const group = await Group.find(invitation.get('group_id'))
 
         // Load the common role if one is assigned to this invitation
         let commonRole = null
-        if (invitation.common_role_id) {
-          commonRole = await CommonRole.where({ id: invitation.common_role_id }).fetch()
+        if (invitation.get('common_role_id')) {
+          commonRole = await CommonRole.where({ id: invitation.get('common_role_id') }).fetch()
         }
 
         // Load the group-specific role if one is assigned to this invitation
         let groupRole = null
-        if (invitation.group_role_id) {
-          groupRole = await GroupRole.where({ id: invitation.group_role_id }).fetch()
+        if (invitation.get('group_role_id')) {
+          groupRole = await GroupRole.where({ id: invitation.get('group_role_id') }).fetch()
         }
 
         return {
@@ -192,7 +195,7 @@ module.exports = {
           groupSlug: group
             ? group.get('slug')
             : null,
-          email: invitation.email,
+          email: invitation.get('email'),
           commonRole: commonRole
             ? {
                 id: commonRole.id,

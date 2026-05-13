@@ -73,7 +73,11 @@ test.describe('Batch H: User settings under /my/*', () => {
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(/\/my\/edit-profile/, navTimeout)
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
-    await expect(page.getByLabel(/Name/i).first()).toBeVisible(uiTimeout)
+    await expect(page.getByRole('heading', { name: /Edit Your Profile/i })).toBeVisible(uiTimeout)
+    await expect(page.locator('#center-column [data-testid="loading-indicator"]')).toHaveCount(0, {
+      timeout: 90000
+    })
+    await expect(page.locator('#nameField')).toBeVisible(uiTimeout)
   })
 
   test('GET /my/notifications loads notification settings tab', async ({ page }) => {

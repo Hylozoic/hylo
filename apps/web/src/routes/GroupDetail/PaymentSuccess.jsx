@@ -5,8 +5,12 @@ import { useDispatch, useSelector } from 'react-redux'
 import Button from 'components/ui/button'
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { groupUrl } from '@hylo/navigation'
+import { isDev } from 'config/index'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import fetchForGroup from 'store/actions/fetchForGroup'
+
+/** Dev / Playwright: allow slow bootstraps before auto-redirect; production keeps a short delay. */
+const PAYMENT_SUCCESS_REDIRECT_MS = isDev ? 30000 : 5000
 
 /**
  * PaymentSuccess Component
@@ -33,14 +37,14 @@ export default function PaymentSuccess () {
     }
   }, [dispatch, groupSlug, group])
 
-  // Auto-redirect to group home after 5 seconds
+  // Auto-redirect to group home after a short delay (longer in dev so E2E can assert the shell)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (groupSlug) {
         setRedirecting(true)
         navigate(groupUrl(groupSlug))
       }
-    }, 5000)
+    }, PAYMENT_SUCCESS_REDIRECT_MS)
 
     return () => clearTimeout(timer)
   }, [navigate, groupSlug])

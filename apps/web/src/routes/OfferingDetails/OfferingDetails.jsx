@@ -344,6 +344,7 @@ export default function OfferingDetails () {
             {/* Buy Now Button */}
             <div className='border-t border-foreground/10 pt-6 mt-6'>
               <Button
+                data-testid='offering-purchase-button'
                 variant='primary'
                 size='lg'
                 className='w-full flex items-center justify-center gap-2'

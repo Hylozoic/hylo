@@ -1,7 +1,8 @@
-import { test as setup } from '@playwright/test'
+import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 import dotenv from 'dotenv'
+import { gotoLoginAndWaitForEmail } from './helpers/waitForLoginEmailVisible.js'
 
 dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') })
 
@@ -9,11 +10,8 @@ const authFile = path.resolve(import.meta.dirname, '.auth/session.json')
 const E2E_LOGIN_EMAIL = 'e2e.user@hylo.test'
 const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 
-/** RootRouter blocks on checkLogin; Login mounts `#email` only after. */
-const GOTO_TIMEOUT_MS = 60000
-const LOGIN_FORM_TIMEOUT_MS = 120000
-const AUTH_LOADING_VISIBLE_MS = 30000
-const AUTH_LOADING_HIDDEN_MS = 120000
+/** AuthLayoutRouter bootstrap (`fetchForCurrentUser` + roles); shell mounts `#center-column-container` after this. */
+const AUTH_BOOTSTRAP_MS = 120000
 
 const shouldDiag = () => process.env.CI === 'true' || process.env.E2E_FORWARD_BROWSER_LOGS === '1'
 
@@ -102,23 +100,18 @@ setup('authenticate', async ({ page }) => {
   attachGraphqlDiagnostics(page)
   forwardBrowserLogsForSetup(page)
 
-  // `domcontentloaded` avoids rare hangs where dev/HMR keeps `load` from settling before React mounts.
-  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS })
-  await expect(page).toHaveURL(/\/login/)
-
-  const emailInput = page.locator('#email')
-  await expect(emailInput).toBeVisible({ timeout: LOGIN_FORM_TIMEOUT_MS })
+  const emailInput = await gotoLoginAndWaitForEmail(page)
 
   await emailInput.fill(E2E_LOGIN_EMAIL)
-  await page.locator('#password').fill(E2E_LOGIN_PASSWORD)
+  await page.getByLabel('password', { exact: true }).fill(E2E_LOGIN_PASSWORD)
 
   await page.getByRole('button', { name: /sign\s*in/i }).click()
 
   // After password login the URL often stays `/login` while RootRouter swaps to AuthLayoutRouter (`path='*'`).
-  // Wait for the auth-shell loading gate, then its completion (bootstrap includes fetchForCurrentUser).
-  const loadingGate = page.getByTestId('loading-screen')
-  await expect(loadingGate).toBeVisible({ timeout: AUTH_LOADING_VISIBLE_MS })
-  await expect(loadingGate).toBeHidden({ timeout: AUTH_LOADING_HIDDEN_MS })
+  // Bootstrap shows `data-testid='loading-screen'` only while `fetchForCurrentUser` runs; on fast CI that
+  // can unmount before Playwright observes it, so wait for the main shell instead.
+  const authShell = page.locator('#center-column-container')
+  await expect(authShell).toBeVisible({ timeout: AUTH_BOOTSTRAP_MS })
 
   console.log('Authenticated successfully')
 

@@ -35,6 +35,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
@@ -540,8 +541,9 @@ export default function AuthLayoutRouter (props) {
     if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
       const currentPath = location.pathname
       const streamPath = `/groups/${currentGroupSlug}/stream`
-      // Only redirect if not already on stream page
-      if (!currentPath.includes('/stream')) {
+      const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
+      // Only redirect if not already on stream page; keep offering URLs so members can buy access
+      if (!currentPath.includes('/stream') && !onOfferingPurchasePath) {
         // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
         // Close the nav so the paywall / no-access stream view is visible after redirect.
         if (typeof window !== 'undefined' && window.innerWidth < 640) {
@@ -650,8 +652,12 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  // Looking at a group that doesn't exist or current user doesn't have access to it
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  // Looking at a group that doesn't exist or current user doesn't have access to it.
+  // Skip this when the URL carries invite/join credentials: FetchForGroup has no accessCode,
+  // so hidden groups look missing until GroupDetail runs GroupDetailsQuery with those params.
+  const groupInviteBypass =
+    !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
     return <NotFound />
   }
 
@@ -837,6 +843,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
@@ -904,7 +912,6 @@ export default function AuthLayoutRouter (props) {
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
-                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId' element={<Messages />} />
                 <Route path='messages' element={<Loading />} />
