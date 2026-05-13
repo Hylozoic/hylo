@@ -6,6 +6,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Seeded post: `scripts/seed-e2e-baseline.js` → first post in empty DB is typically id `1`, title “E2E Public Post”, group `e2e-public-group`.
  *
  * Dual-column map routes rely on `AuthLayoutRouter` `hasDetail` (paths containing `map/` + `/post/…`).
+ *
+ * Post close navigation: `seed-e2e-baseline.js` also inserts posts `2`–`4` and user `e2e.nogroups@hylo.test` (same password as primary E2E user).
  */
 
 test.describe.configure({ timeout: 180000 })
@@ -18,8 +20,43 @@ const E2E_POST_ID = '1'
 const E2E_USER_ID = '1'
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 
+/** Deterministic ids when DB is seeded with `apps/backend/scripts/seed-e2e-baseline.js` only. */
+const E2E_POST_MULTI_PUBLIC = '2'
+const E2E_POST_ONE_MEMBER_MULTI = '3'
+const E2E_POST_MULTI_MEMBER = '4'
+const E2E_NOGROUPS_EMAIL = 'e2e.nogroups@hylo.test'
+const E2E_LOGIN_PASSWORD = 'e2e-password-123'
+
+/** Must match `playwright.config.js` — manual `browser.newContext()` does not inherit `use.baseURL`. */
+function e2eBaseUrl () {
+  const webPort = process.env.E2E_WEB_PORT || process.env.PORT || '3000'
+  return `http://localhost:${webPort}`
+}
+
 async function expectSeededPostVisible (page) {
   await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
+}
+
+/**
+ * New context with no cookies; `baseURL` is required or relative `goto` resolves against `about:blank`.
+ */
+async function newLoggedOutContext (browser) {
+  const context = await browser.newContext({
+    baseURL: e2eBaseUrl(),
+    storageState: { cookies: [], origins: [] }
+  })
+  const page = await context.newPage()
+  return { context, page }
+}
+
+async function loginOnPage (page, email) {
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 60000 })
+  await expect(page).toHaveURL(/\/login/, navTimeout)
+  await expect(page.getByRole('heading', { name: /sign in to hylo/i })).toBeVisible(uiTimeout)
+  await page.locator('#email').fill(email)
+  await page.locator('#password').fill(E2E_LOGIN_PASSWORD)
+  await page.getByRole('button', { name: /sign\s*in/i }).click()
+  await expect(page.locator('#center-column-container')).toBeVisible(navTimeout)
 }
 
 test.describe('Batch E: post detail & dual-column', () => {
@@ -75,5 +112,54 @@ test.describe('Batch E: post detail & dual-column', () => {
       navTimeout
     )
     await expectSeededPostVisible(page)
+  })
+})
+
+/**
+ * Post detail close (X): `getPostDetailCloseDestination` + `PostDetail` / `PostDialog`.
+ *
+ * Scenarios (seeded data):
+ * 1. Single group + member → `/groups/e2e-public-group/stream` (post `1`, primary `e2e.user@hylo.test`).
+ * 2. Many groups + member of none + public → `/public/stream` (post `2`, `e2e.nogroups@hylo.test`).
+ * 3. Many groups + member of exactly one post group → that group’s stream (post `3`, primary user).
+ * 4. Many groups + member of several post groups → `/my/groups` (post `4`, primary user).
+ */
+test.describe('post detail close navigation', () => {
+  test('single group + member: /post/:id close → group stream', async ({ page }) => {
+    await page.goto(`/post/${E2E_POST_ID}`)
+    await waitPastRootSessionLoading(page)
+    await expectSeededPostVisible(page)
+    await page.getByTestId('post-detail-close').click()
+    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
+  })
+
+  test('many groups + no memberships + public: close → /public/stream', async ({ browser }) => {
+    const { context, page } = await newLoggedOutContext(browser)
+    try {
+      await loginOnPage(page, E2E_NOGROUPS_EMAIL)
+      await page.goto(`/post/${E2E_POST_MULTI_PUBLIC}`)
+      await waitPastRootSessionLoading(page)
+      await expect(page.getByText(/E2E Multi Public Post/i).first()).toBeVisible(uiTimeout)
+      await page.getByTestId('post-detail-close').click()
+      await expect(page).toHaveURL(/\/public\/stream/, navTimeout)
+    } finally {
+      await context.close()
+    }
+  })
+
+  test('many groups + member of one post group: close → that group stream', async ({ page }) => {
+    await page.goto(`/post/${E2E_POST_ONE_MEMBER_MULTI}`)
+    await waitPastRootSessionLoading(page)
+    await expect(page.getByText(/E2E One-Member Multi Post/i).first()).toBeVisible(uiTimeout)
+    await page.getByTestId('post-detail-close').click()
+    await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
+  })
+
+  test('many groups + member of multiple post groups: close → /my/groups', async ({ page }) => {
+    await page.goto(`/post/${E2E_POST_MULTI_MEMBER}`)
+    await waitPastRootSessionLoading(page)
+    await expect(page.getByText(/E2E Multi Member Post/i).first()).toBeVisible(uiTimeout)
+    await page.getByTestId('post-detail-close').click()
+    await expect(page).toHaveURL(/\/my\/groups/, navTimeout)
   })
 })
