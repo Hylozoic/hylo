@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react'
 import { View, StatusBar } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebViewMessageTypes } from '@hylo/shared'
+import { version as hyloAppVersion } from '../../../package.json'
 import { isIOS } from 'util/platform'
 import HyloWebView from 'components/HyloWebView'
 import Loading from 'components/Loading'
@@ -214,6 +215,7 @@ export default function PrimaryWebView() {
       <HyloWebView
         ref={webViewRef}
         path={webViewPath}
+        mobileAppVersion={hyloAppVersion}
         messageHandler={messageHandler}
         onLoadEnd={handleLoadEnd}
         onError={handleError}

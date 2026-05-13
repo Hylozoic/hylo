@@ -20,3 +20,15 @@ export default function isWebView () {
 export function isLegacyWebView () {
   return isWebView() && !window.HyloMobileV2
 }
+
+/**
+ * Native app version string injected by Hylo mobile before the web app loads
+ * (`window.HyloMobileAppVersion`). Empty string when not in the v2 WebView or
+ * when the host did not pass a version.
+ */
+export function getMobileAppVersion () {
+  if (typeof window === 'undefined') return ''
+  const v = window.HyloMobileAppVersion
+  if (v == null || v === '') return ''
+  return String(v)
+}
