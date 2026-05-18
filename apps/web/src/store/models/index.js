@@ -6,6 +6,7 @@ import Attachment from './Attachment'
 import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
 import CommonRole from './CommonRole'
+import ContentAccess from './ContentAccess'
 import CustomView from './CustomView'
 import EventInvitation from './EventInvitation'
 import Group, { ChatRoom, GroupRelationship, GroupSteward, GroupJoinQuestion, GroupPrerequisite, GroupToGroupJoinQuestion } from './Group'
@@ -45,6 +46,7 @@ orm.register(
   CollectionPost,
   Comment,
   CommonRole,
+  ContentAccess,
   CustomView,
   EventInvitation,
   FundingRound,

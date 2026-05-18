@@ -20,13 +20,54 @@ chai.use(require('chai-datetime'))
 global.spy = chai.spy
 global.expect = chai.expect
 
-// Create a global Stripe mock that can be used by test modules
+// Create a global Stripe mock that can be used by test modules (`new Stripe(key)` yields this singleton).
+// Webhook tests stub `global.__stripeWebhookConstructEvent` (see StripeController.test.js).
 const mockStripeClient = {
   charges: {
     create: () => Promise.resolve({})
   },
   customers: {
     create: () => Promise.resolve({})
+  },
+  accounts: {
+    create: async () => ({}),
+    retrieve: async () => ({}),
+    update: async () => ({})
+  },
+  accountLinks: {
+    create: async () => ({})
+  },
+  products: {
+    create: async () => ({}),
+    update: async () => ({}),
+    list: async () => ({})
+  },
+  prices: {
+    create: async () => ({}),
+    retrieve: async () => ({})
+  },
+  checkout: {
+    sessions: {
+      create: async () => ({}),
+      retrieve: async () => ({})
+    }
+  },
+  subscriptions: {
+    retrieve: async () => ({})
+  },
+  invoices: {
+    retrieve: async () => ({})
+  },
+  paymentIntents: {
+    retrieve: async () => ({})
+  },
+  webhooks: {
+    constructEvent: (payload, signature, secret) => {
+      if (typeof global.__stripeWebhookConstructEvent === 'function') {
+        return global.__stripeWebhookConstructEvent(payload, signature, secret)
+      }
+      throw new Error('stripe.webhooks.constructEvent is not stubbed for this test')
+    }
   }
 }
 
