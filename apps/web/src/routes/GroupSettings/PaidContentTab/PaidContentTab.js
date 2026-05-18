@@ -369,6 +369,15 @@ function PaidContentTab ({ group, currentUser }) {
         </Link>
       </div>
 
+      <div className='mb-3'>
+        <span className='inline-block px-2 py-0.5 text-xs font-semibold uppercase tracking-wide rounded-full border border-amber-500/60 bg-amber-500/20 text-amber-700 dark:text-amber-400'>
+          {t('BETA')}
+        </span>
+        <p className='mt-2 text-sm italic text-foreground/70'>
+          {t('We are testing paid content functionality during this beta phase. Features may change and you may encounter issues as we refine the experience.')}
+        </p>
+      </div>
+
       <h2 className='text-foreground font-bold mb-2'>
         {currentTab === 'account' && t('Accept Payments for {{groupName}}', { groupName: group?.name || '' })}
         {currentTab === 'offerings' && t('Setup Paid Content Offerings')}
