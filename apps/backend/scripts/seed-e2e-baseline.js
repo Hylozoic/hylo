@@ -13,6 +13,96 @@ const E2E_STRIPE_ACCOUNT_EXTERNAL_ID = 'acct_e2e_public_group_001'
 /** Member of `e2e-public-group` without Coordinator — sees track paywall (Batch P3 E2E). */
 const E2E_TRACK_VIEWER_EMAIL = 'e2e.track-viewer@hylo.test'
 
+const E2E_GROUP_SLUGS = [
+  'e2e-public-group',
+  'e2e-private-group',
+  'e2e-paywall-group',
+  'e2e-welcome-overlay',
+  'e2e-join-code-group',
+  'e2e-invite-token-group',
+  'e2e-hidden-join-group'
+]
+
+const E2E_USER_EMAILS = [
+  E2E_USER_EMAIL,
+  E2E_SESSION_MUTATE_EMAIL,
+  E2E_TRACK_VIEWER_EMAIL,
+  'e2e.join-host@hylo.test'
+].map((email) => email.toLowerCase())
+
+const E2E_INVITE_TOKEN = 'e2e-static-invite-token-001'
+
+/**
+ * Removes rows from a previous full or partial seed so the script is safe to re-run.
+ */
+async function clearPreviousE2eBaseline (client) {
+  await client.query(
+    `DELETE FROM group_invites
+     WHERE token = $1
+        OR group_id IN (SELECT id FROM groups WHERE slug = ANY($2::text[]))`,
+    [E2E_INVITE_TOKEN, E2E_GROUP_SLUGS]
+  )
+
+  await client.query(
+    `DELETE FROM stripe_products
+     WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))
+        OR stripe_product_id LIKE 'prod_e2e_%'`,
+    [E2E_GROUP_SLUGS]
+  )
+
+  await client.query(
+    `DELETE FROM groups_tracks
+     WHERE track_id IN (SELECT id FROM tracks WHERE name = 'E2E Paid Track')
+        OR group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))`,
+    [E2E_GROUP_SLUGS]
+  )
+
+  await client.query(`DELETE FROM tracks WHERE name = 'E2E Paid Track'`)
+
+  await client.query(
+    `DELETE FROM groups_posts
+     WHERE post_id IN (SELECT id FROM posts WHERE name = 'E2E Public Post')
+        OR group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))`,
+    [E2E_GROUP_SLUGS]
+  )
+
+  await client.query(`DELETE FROM posts WHERE name = 'E2E Public Post'`)
+
+  await client.query(
+    `DELETE FROM group_memberships_common_roles
+     WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))
+        OR user_id IN (SELECT id FROM users WHERE lower(email) = ANY($2::text[]))`,
+    [E2E_GROUP_SLUGS, E2E_USER_EMAILS]
+  )
+
+  await client.query(
+    `DELETE FROM group_memberships
+     WHERE group_id IN (SELECT id FROM groups WHERE slug = ANY($1::text[]))
+        OR user_id IN (SELECT id FROM users WHERE lower(email) = ANY($2::text[]))`,
+    [E2E_GROUP_SLUGS, E2E_USER_EMAILS]
+  )
+
+  await client.query(
+    `UPDATE groups SET stripe_account_id = NULL WHERE slug = ANY($1::text[])`,
+    [E2E_GROUP_SLUGS]
+  )
+
+  await client.query(`DELETE FROM groups WHERE slug = ANY($1::text[])`, [E2E_GROUP_SLUGS])
+
+  await client.query(
+    `DELETE FROM linked_account
+     WHERE user_id IN (SELECT id FROM users WHERE lower(email) = ANY($1::text[]))`,
+    [E2E_USER_EMAILS]
+  )
+
+  await client.query(`DELETE FROM users WHERE lower(email) = ANY($1::text[])`, [E2E_USER_EMAILS])
+
+  await client.query(
+    `DELETE FROM stripe_accounts WHERE stripe_account_external_id = $1`,
+    [E2E_STRIPE_ACCOUNT_EXTERNAL_ID]
+  )
+}
+
 async function main () {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {
@@ -55,6 +145,8 @@ async function main () {
 
   try {
     await client.query('BEGIN')
+
+    await clearPreviousE2eBaseline(client)
 
     const userRes = await client.query(
       `INSERT INTO users (email, name, first_name, last_name, active, email_validated, created_at, updated_at, settings)
@@ -506,7 +598,7 @@ async function main () {
     await client.query(
       `INSERT INTO group_invites (created_at, invited_by_id, token, email, group_id)
        VALUES ($1::timestamptz, $2, $3, $4, $5)`,
-      [now, hostId, 'e2e-static-invite-token-001', E2E_USER_EMAIL.toLowerCase(), inviteTokenGroupId]
+      [now, hostId, E2E_INVITE_TOKEN, E2E_USER_EMAIL.toLowerCase(), inviteTokenGroupId]
     )
 
     const passwordHash = await bcrypt.hash(E2E_USER_PASSWORD, 10)
