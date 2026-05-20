@@ -22,7 +22,7 @@ import MessageForm from './MessageForm'
 import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import { isMobileDevice } from 'util/mobile'
+import { isMobileDevice, isPhoneDevice } from 'util/mobile'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import MessagesMobile from './MessagesMobile'
 
@@ -224,8 +224,8 @@ const Messages = () => {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    // Don't set header details on mobile - MessagesMobile handles its own header
-    if (!isMobileDevice()) {
+    // Don't set header details on phones - MessagesMobile handles its own header
+    if (!isPhoneDevice()) {
       setHeaderDetails({
         title: header,
         icon: messageThreadId ? undefined : 'Messages',
@@ -234,8 +234,8 @@ const Messages = () => {
     }
   }, [forNewThread, messageThreadId, peopleSelectorOpen, participants, contacts, messagesPending])
 
-  // Render mobile version if on mobile device; this has been done to create a more sensible user AND developer experience for the rendering of DMs
-  if (isMobileDevice()) {
+  // Render mobile version on phones only; tablets use the desktop side-by-side layout
+  if (isPhoneDevice()) {
     return (
       <MessagesMobile
         messageThreadId={messageThreadId}
