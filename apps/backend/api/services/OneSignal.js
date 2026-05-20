@@ -30,8 +30,14 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' // IN LOCAL DEV: YOU CAN PUT ANY PRODUCTION LINK HERE, SET THE CORRECT ENV VARIABLES AND IT WILL GENERATE A REAL PUSH NOTIF IF THE USER EXISTS IN PROD AND THE LOCAL DB
-  if (path) notification.app_url = 'hyloapp:/' + path
+  // Use DOMAIN env var so the URL carries the correct host per environment
+  // (www.hylo.com in production, staging.hylo.com in staging). This avoids the
+  // single-slash pitfall: 'hyloapp:/' + '/path' = 'hyloapp://path', which causes
+  // WHATWG URL parsers to treat the first path segment as the hostname.
+  // IN LOCAL DEV: hardcode any production link to test, e.g.:
+  // if (path) notification.app_url = 'hyloapp://www.hylo.com/groups/heart-orchard/stream/post/78041'
+  const pushHost = process.env.DOMAIN || 'www.hylo.com'
+  if (path) notification.app_url = `hyloapp://${pushHost}${path}`
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'

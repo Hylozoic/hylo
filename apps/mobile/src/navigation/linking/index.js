@@ -93,10 +93,18 @@ export const initialRouteNamesConfig = {
 
 export const DEFAULT_APP_HOST = 'https://www.hylo.com'
 
+// Hyloapp custom-scheme prefixes include explicit hosts so WHATWG URL parsers
+// can extract the correct pathname (e.g. 'hyloapp://www.hylo.com/groups/...' → host='www.hylo.com',
+// pathname='/groups/...'). React Navigation's prefix stripping is string-based, so listing
+// the full host prefix ensures it strips correctly and leaves a leading-slash path.
+// 'hyloapp://' is kept as a legacy fallback for any old notification URLs still in flight.
 export const prefixes = [
   DEFAULT_APP_HOST,
   'https://staging.hylo.com',
-  'hyloapp://'
+  'hyloapp://www.hylo.com',
+  'hyloapp://staging.hylo.com',
+  'hyloapp://hylo.com',
+  'hyloapp://',
 ]
 
 // flag-shared

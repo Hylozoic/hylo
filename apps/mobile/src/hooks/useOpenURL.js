@@ -34,8 +34,14 @@ export async function openURL (
 
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
 
+  // WHATWG URL returns origin='null' for non-http/https schemes, so origin-based matching
+  // never works for hyloapp:// URLs. Instead we check the protocol + a known Hylo host so
+  // the URL was built by the backend (using DOMAIN env var) and the pathname is trustworthy.
+  const knownHyloappHosts = ['www.hylo.com', 'hylo.com', 'staging.hylo.com']
+  const isHyloappURL = linkingURL.protocol === 'hyloapp:' && knownHyloappHosts.includes(linkingURL.host)
+
   if (
-    prefixes.includes(linkingURL.origin) &&
+    (prefixes.includes(linkingURL.origin) || isHyloappURL) &&
     !staticPages.includes(linkingURL.pathname)
   ) {
     const linkingPath = linkingURL.pathname + linkingURL.search
