@@ -166,6 +166,37 @@ describe('Notification', function () {
           })
       })
 
+      it('includes commentId as a query param in the comment push path', () => {
+        return preloadNotification(activities.newComment, Notification.MEDIUM.Push)
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            expect(pns.first().get('path')).to.contain(`commentId=${comment.id}`)
+          })
+      })
+
+      it('uses activity.group_id for the comment push path when set', () => {
+        const activityWithGroup = {
+          comment_id: comment.id,
+          meta: { reasons: ['newComment'] },
+          reader_id: reader.id,
+          actor_id: actor.id,
+          group_id: group.id
+        }
+        return group.members().attach(reader)
+          .then(() => preloadNotification(activityWithGroup, Notification.MEDIUM.Push))
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            const path = pns.first().get('path')
+            expect(path).to.contain('/groups/my-group/')
+            expect(path).to.contain(`commentId=${comment.id}`)
+          })
+          .finally(() => group.members().detach(reader))
+      })
+
       it('sends a push for a mention in a comment', () => {
         return preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
           .then(notification => notification.send())

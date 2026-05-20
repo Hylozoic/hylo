@@ -13,9 +13,10 @@ export default function useOpenInitialURL (loading, wait = 0) {
         setInitialURL(null)
         openURL(initialURL).catch(err => Sentry.captureException(err, { extra: { initialURL } }))
       }, wait)
-    } else {
-      setInitialURL(null)
     }
+    // Do NOT clear initialURL when loading=true. If the click handler or getInitialURL
+    // stored a URL before auth completed, we want it to persist until loading is false
+    // and this effect re-fires to actually open it.
   }
 
   useEffect(() => {
