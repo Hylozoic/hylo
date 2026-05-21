@@ -48,6 +48,8 @@ const CommentForm = forwardRef(function CommentForm ({
   const [isFocused, setIsFocused] = useState(false)
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
+  /** True after the editor has had visible text this visit — delete server draft when cleared. */
+  const commentComposerHadContentRef = useRef(false)
 
   const currentUser = useSelector(getMe)
   const attachments = useSelector(
@@ -57,6 +59,10 @@ const CommentForm = forwardRef(function CommentForm ({
   const sendIsTypingAction = useCallback((isTyping) => sendIsTyping(postId, isTyping), [postId])
   const addAttachmentAction = useCallback(attachment => dispatch(addAttachment('comment', 'new', attachment)), [dispatch])
   const clearAttachmentsAction = useCallback(() => dispatch(clearAttachments('comment')), [dispatch])
+
+  useEffect(() => {
+    commentComposerHadContentRef.current = false
+  }, [postId])
 
   useEffect(() => {
     if (!isLoaded) return
@@ -83,20 +89,28 @@ const CommentForm = forwardRef(function CommentForm ({
     createComment({ text: contentHTML, attachments })
     clearAttachmentsAction()
     draftRef.current = ''
+    commentComposerHadContentRef.current = false
     clearDraft()
 
     return true
   }, [attachments, clearAttachmentsAction, clearDraft, createComment, sendIsTypingAction, startTyping])
 
-  const handleEditorUpdate = useCallback((html) => {
+  const handleEditorUpdate = useCallback(async (html) => {
     startTyping()
     if (hasDraftContent(html)) {
+      commentComposerHadContentRef.current = true
       draftRef.current = html
       saveDraft(html)
-    } else {
-      draftRef.current = ''
+      return
     }
-  }, [saveDraft, startTyping])
+    draftRef.current = ''
+    // Empty HTML: cancel any pending debounced save (useDraft) then remove server draft if user had content
+    saveDraft(html)
+    if (commentComposerHadContentRef.current) {
+      commentComposerHadContentRef.current = false
+      await clearDraft({ deleteOnServer: true })
+    }
+  }, [saveDraft, clearDraft, startTyping])
 
   const placeholderText = placeholder || t('Add a comment...')
 
@@ -158,6 +172,7 @@ const CommentForm = forwardRef(function CommentForm ({
     discardDraft: async () => {
       editor.current?.clearContent?.()
       draftRef.current = ''
+      commentComposerHadContentRef.current = false
       await clearDraft()
       clearAttachmentsAction()
     }

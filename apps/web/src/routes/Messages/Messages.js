@@ -95,6 +95,10 @@ const Messages = () => {
   const [participants, setParticipants] = useState([])
   const [headerHeight, setHeaderHeight] = useState(0)
   const formRef = useRef(null)
+  /** Avoid re-applying server draft whenever draft ORM updates (e.g. after saves). */
+  const messageDraftRestoreDoneRef = useRef(false)
+  /** Composer had non-empty text this visit (typed or restored) — used to delete server draft when cleared. */
+  const messageComposerHadTrimmedContentRef = useRef(false)
 
   const isRealThread = messageThreadId && messageThreadId !== NEW_THREAD_ID
   const { loadedData: messageDraftData, isLoaded: messageDraftLoaded, saveDraft: saveMessageDraft, clearDraft: clearMessageDraft } = useDraft({
@@ -159,9 +163,16 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
-  // Load server draft into Redux message text when the draft becomes available
   useEffect(() => {
-    if (!messageDraftLoaded || !messageDraftData) return
+    messageDraftRestoreDoneRef.current = false
+    messageComposerHadTrimmedContentRef.current = false
+  }, [messageThreadId])
+
+  // Load server draft into Redux message text once per thread when the draft loads
+  useEffect(() => {
+    if (!messageDraftLoaded || messageDraftRestoreDoneRef.current) return
+    messageDraftRestoreDoneRef.current = true
+    if (!messageDraftData) return
     // Only restore if there's no current text (don't overwrite what user is typing)
     if (!messageText) {
       try {
@@ -173,11 +184,24 @@ const Messages = () => {
     }
   }, [messageDraftLoaded, messageDraftData])
 
-  // Debounce-save message text to server as user types
+  // Debounce-save message text to server as user types; empty string cancels stale saves via useDraft
   useEffect(() => {
-    if (!isRealThread || !currentUser || !messageText?.trim()) return
-    saveMessageDraft(JSON.stringify({ text: messageText }))
+    if (!isRealThread || !currentUser) return
+    saveMessageDraft(JSON.stringify({ text: messageText || '' }))
   }, [messageText, isRealThread, currentUser, saveMessageDraft])
+
+  // When the user clears the composer after it had content, remove the server draft so
+  // navigating away and back does not reload old text.
+  useEffect(() => {
+    if (!isRealThread || !currentUser) return
+    if (messageText?.trim()) {
+      messageComposerHadTrimmedContentRef.current = true
+      return
+    }
+    if (!messageComposerHadTrimmedContentRef.current) return
+    messageComposerHadTrimmedContentRef.current = false
+    clearMessageDraft({ deleteOnServer: true })
+  }, [messageText, isRealThread, currentUser, clearMessageDraft])
 
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
@@ -186,7 +210,7 @@ const Messages = () => {
     } else {
       await sendForExisting()
     }
-    clearMessageDraft({ deleteOnServer: false })
+    clearMessageDraft({ deleteOnServer: true })
     setParticipants([])
     return false
   }
