@@ -1,24 +1,51 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
+import useRouteParams from 'hooks/useRouteParams'
+import getPost from 'store/selectors/getPost'
+import getMe from 'store/selectors/getMe'
+import presentPost from 'store/presenters/presentPost'
+import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
 
 const PostDialog = ({
   container
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const routeParams = useRouteParams()
+  const postId = routeParams.postId
+  const postModel = useSelector(state => getPost(state, postId))
+  const me = useSelector(getMe)
+  const presentedPost = useMemo(
+    () => (postModel ? presentPost(postModel) : null),
+    [postModel]
+  )
+
   const postDetailRef = useRef(null)
   const [dialogOpen, setDialogOpen] = useState(true)
 
-  const portalContainer = useMemo(() => container || document.getElementById('center-column-container'))
+  const portalContainer = useMemo(() => container || document.getElementById('center-column-container'), [container])
 
   const dismiss = useCallback(() => {
-    navigate(removePostFromUrl(`${location.pathname}${location.search}`))
-  }, [navigate, location])
+    const useSmartPostClose = shouldUseSmartPostClose(routeParams.view)
+    const dest = useSmartPostClose && postModel && presentedPost
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post: presentedPost,
+        me
+      })
+      : {
+          pathname: removePostFromUrl(location.pathname) || '/',
+          search: location.search
+        }
+    navigate(dest)
+  }, [navigate, location.pathname, location.search, postModel, presentedPost, me, routeParams.view])
 
   const handleOpenChange = useCallback((open) => {
     if (open) {

@@ -3,6 +3,10 @@ import { Linking } from 'react-native'
 import { getActionFromState, CommonActions, useNavigation, StackActions } from '@react-navigation/native'
 import * as Sentry from '@sentry/react-native'
 import { prefixes, DEFAULT_APP_HOST, staticPages } from 'navigation/linking'
+import {
+  hyloUrlForExternalBrowser,
+  shouldOpenHyloOidcInExternalBrowser
+} from 'navigation/linking/oidcExternalBrowserGate'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import { URL } from 'react-native-url-polyfill'
 import { navigationRef } from 'navigation/linking/helpers'
@@ -33,6 +37,14 @@ export async function openURL (
   }
 
   const linkingURL = new URL(providedPathOrURL, DEFAULT_APP_HOST)
+
+  if (shouldOpenHyloOidcInExternalBrowser(providedPathOrURL)) {
+    const href = hyloUrlForExternalBrowser(providedPathOrURL)
+    if (await Linking.canOpenURL(href)) {
+      return Linking.openURL(href)
+    }
+    return null
+  }
 
   if (
     prefixes.includes(linkingURL.origin) &&

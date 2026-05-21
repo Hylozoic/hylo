@@ -1,8 +1,8 @@
 import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import config, { isProduction, isTest } from 'config/index'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -19,7 +19,7 @@ import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
 import { WebViewMessageTypes } from '@hylo/shared'
 
-if (!isTest) {
+if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
 }
 
@@ -37,6 +37,13 @@ function isNeutralRootSessionLoadingPath (pathname) {
   if (pathname.startsWith('/oauth/')) return true
   if (pathname === '/h/use-invitation') return true
   if (pathname.includes('/join/')) return true
+  // Single-segment paths that are not obvious “main app” entry slugs resolve to non-auth (e.g. → /login); avoid auth-shaped skeleton while checkLogin runs
+  const oneSeg = pathname.match(/^\/([^/]+)$/)
+  if (oneSeg) {
+    const slug = oneSeg[1]
+    const mainAppRootSlugs = new Set(['groups', 'all', 'my', 'members', 'post', 'public', 'oauth', 'h'])
+    if (!mainAppRootSlugs.has(slug)) return true
+  }
   return false
 }
 
@@ -52,13 +59,28 @@ export default function RootRouter () {
   useEffect(() => {
     (async function () {
       setLoading(true)
-      const action = await dispatch(checkLogin())
-      // If the server returns me: null the session/cookie is dead. Clear the
-      // persisted ORM (which may still have a stale Me row) so the app does not
-      // briefly appear authenticated on the next load before checkLogin resolves.
-      const me = action?.payload?.data?.me
-      if (!me) dispatch(logout())
-      setLoading(false)
+      const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      try {
+        const action = await dispatch(checkLogin())
+        // If the server returns me: null the session/cookie is dead. Clear the
+        // persisted ORM (which may still have a stale Me row) so the app does not
+        // briefly appear authenticated on the next load before checkLogin resolves.
+        const me = action?.payload?.data?.me
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
+        }
+        // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
+        if (me === null) dispatch(logout())
+      } catch (err) {
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, { pathname })
+        }
+        dispatch(logout())
+      } finally {
+        setLoading(false)
+      }
     }())
 
     // For navigation to work from notifactions in the electron app
@@ -105,6 +127,8 @@ export default function RootRouter () {
   if (!isAuthorized) {
     return (
       <Routes>
+        <Route path='/' element={<Navigate to='/login' replace />} />
+
         <Route
           path='/public/*'
           element={<PublicLayoutRouter />}

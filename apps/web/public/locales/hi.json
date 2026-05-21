@@ -823,6 +823,7 @@
   "New posts": "नए पोस्ट",
   "Next": "अगला",
   "Next Action": "अगला कार्य",
+  "Next {{actionDescriptor}}": "अगला {{actionDescriptor}}",
   "Next: Welcome to Hylo!": "अगला: Hylo में आपका स्वागत है!",
   "Next: Where are you from?": "अगला: आप कहाँ से हैं?",
   "No": "नहीं",

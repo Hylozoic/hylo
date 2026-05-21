@@ -424,24 +424,33 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     (async function () {
       if (isDev) performance.mark('hylo-auth-bootstrap-start')
-      // Parallelise the two independent bootstrap fetches.
-      // If the initial URL contains a post ID, race fetchPost alongside them
-      // so the post data is ready (or nearly ready) by the time the auth shell renders.
-      const bootstrapFetches = [
-        dispatch(fetchCommonRoles()),
-        dispatch(fetchForCurrentUser()),
-        ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
-      ]
-      await Promise.all(bootstrapFetches)
-      if (isDev) {
-        performance.mark('hylo-auth-bootstrap-end')
-        try {
-          performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
-        } catch (e) {
-          // duplicate measure names across hot reload / strict mode
+      let bootstrapOk = false
+      try {
+        // Parallelise the two independent bootstrap fetches.
+        // If the initial URL contains a post ID, race fetchPost alongside them
+        // so the post data is ready (or nearly ready) by the time the auth shell renders.
+        const bootstrapFetches = [
+          dispatch(fetchCommonRoles()),
+          dispatch(fetchForCurrentUser()),
+          ...(paramPostId ? [dispatch(fetchPost(paramPostId, false))] : [])
+        ]
+        await Promise.all(bootstrapFetches)
+        bootstrapOk = true
+        if (isDev) {
+          performance.mark('hylo-auth-bootstrap-end')
+          try {
+            performance.measure('hylo-auth-bootstrap', 'hylo-auth-bootstrap-start', 'hylo-auth-bootstrap-end')
+          } catch (e) {
+            // duplicate measure names across hot reload / strict mode
+          }
         }
+      } catch (e) {
+        const detail = e?.message || (Array.isArray(e) ? JSON.stringify(e) : String(e))
+        console.error('[Hylo auth bootstrap] failed', detail, e)
+      } finally {
+        setCurrentUserLoading(false)
       }
-      setCurrentUserLoading(false)
+      if (!bootstrapOk) return
       const runThreads = () => dispatch(fetchThreads())
       if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
         window.requestIdleCallback(runThreads, { timeout: 4000 })
@@ -459,19 +468,20 @@ export default function AuthLayoutRouter (props) {
   }, [])
 
   useEffect(() => {
-    if (currentUser?.id) {
-      mixpanel.identify(currentUser.id)
-      mixpanel.people.set({
-        $name: currentUser.name,
-        $email: currentUser.email,
-        $location: currentUser.location
-      })
-
-      if (currentUser?.settings?.locale) getLocaleFromLocalStorage(currentUser?.settings?.locale)
+    if (currentUser?.settings?.locale) {
+      getLocaleFromLocalStorage(currentUser?.settings?.locale)
     }
+    if (!config.mixpanel.token || !currentUser?.id) return
+    mixpanel.identify(currentUser.id)
+    mixpanel.people.set({
+      $name: currentUser.name,
+      $email: currentUser.email,
+      $location: currentUser.location
+    })
   }, [currentUser?.email, currentUser?.id, currentUser?.location, currentUser?.name, currentUser?.settings?.locale])
 
   useEffect(() => {
+    if (!config.mixpanel.token) return
     // Add all current group membershps to mixpanel user
     mixpanel.set_group('groupId', memberships.map(m => m.group.id))
 
@@ -801,6 +811,9 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/topics/:topicName' element={<Stream context='all' />} />
                 <Route path='public/topics/:topicName' element={<Stream context='public' />} />
                 <Route path='all/topics' element={<AllTopics />} />
+                {/* Must be before `public/*` — otherwise `/public/post/:id/edit` matches `public/*` and redirects away */}
+                <Route path='public/post/:postId/edit/*' element={<Stream context='public' />} />
+                <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
                 {/* **** Group Routes **** */}

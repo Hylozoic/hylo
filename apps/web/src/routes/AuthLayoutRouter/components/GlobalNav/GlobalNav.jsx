@@ -52,7 +52,7 @@ import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
 import getMyGroups from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
-import isWebView, { sendMessageToWebView } from 'util/webView'
+import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
 import { useCookieConsent } from 'contexts/CookieConsentContext'
 import ModalDialog from 'components/ModalDialog'
@@ -172,6 +172,10 @@ function SettingsMenu ({ currentUser }) {
     navigate('/management')
   }
 
+  const mobileAppVersionLabel = typeof window !== 'undefined' && window.HyloMobileV2
+    ? getMobileAppVersion()
+    : ''
+
   const handleLanguageChange = (locale) => {
     i18n.changeLanguage(locale)
     getLocaleFromLocalStorage(locale)
@@ -183,14 +187,22 @@ function SettingsMenu ({ currentUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <span className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}>
+        <span
+          data-testid='global-nav-settings-trigger'
+          className={cn('bg-primary relative transition-all ease-in-out duration-250 flex flex-col items-center justify-center w-14 h-10 sm:h-8 rounded-lg drop-shadow-md scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl border-2 border-foreground/0 hover:border-foreground/50 cursor-pointer')}
+        >
           <Settings className='w-7 h-7 sm:w-6 sm:h-6' />
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent side='right' align='start' className='z-[200] min-w-[260px] sm:min-w-[200px] bg-card [&_[role=menuitem]]:py-3 [&_[role=menuitem]]:text-base sm:[&_[role=menuitem]]:py-1.5 sm:[&_[role=menuitem]]:text-sm'>
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className='mr-2 h-4 w-4' />
-          <span>{t('Logout')}</span>
+        <DropdownMenuItem data-testid='global-nav-logout' onClick={handleLogout} className='flex flex-row items-center justify-between gap-2'>
+          <span className='flex flex-row items-center min-w-0'>
+            <LogOut className='mr-2 h-4 w-4 shrink-0' />
+            <span>{t('Logout')}</span>
+          </span>
+          {mobileAppVersionLabel
+            ? <span className='text-xs text-muted-foreground shrink-0 tabular-nums'>v{mobileAppVersionLabel}</span>
+            : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleViewProfile}>

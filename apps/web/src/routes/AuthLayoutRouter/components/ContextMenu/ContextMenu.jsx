@@ -49,7 +49,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
-import { sendMessageToWebView } from 'util/webView'
+import { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -403,13 +403,21 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   }
 
   if (widget.type === 'logout') {
+    const mobileAppVersionLabel = typeof window !== 'undefined' && window.HyloMobileV2
+      ? getMobileAppVersion()
+      : ''
     return (
       <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
-        <span className='flex justify-between items-center content-center'>
-          <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
-            <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
-          </MenuLink>
+        <span className='flex justify-between items-center content-center gap-2 w-full'>
+          <span className='flex items-center min-w-0 flex-1 mb-[.5rem]'>
+            <WidgetIconResolver widget={widget} />
+            <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground w-full min-w-0 flex-1 transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
+              <LogOut className='h-[20px] mr-2 shrink-0' /> <span className='truncate'>{title}</span>
+            </MenuLink>
+          </span>
+          {mobileAppVersionLabel
+            ? <span className='text-sm text-foreground/60 shrink-0 mb-[.5rem] self-center tabular-nums'>v{mobileAppVersionLabel}</span>
+            : null}
         </span>
       </div>
     )
@@ -746,8 +754,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full mb-4 bg-card/50 rounded-md p-2'>
-        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
-        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.description)} /></p>}
+        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
       </div>
     )
   }

@@ -1,6 +1,11 @@
+import { Linking } from 'react-native'
 import { modalScreenName } from 'hooks/useIsModalScreen'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import getInitialURL from 'navigation/linking/getInitialURL'
+import {
+  hyloUrlForExternalBrowser,
+  shouldOpenHyloOidcInExternalBrowser
+} from 'navigation/linking/oidcExternalBrowserGate'
 import { isDev, isTest } from 'config'
 import { openURL } from 'hooks/useOpenURL'
 
@@ -125,5 +130,19 @@ export const staticPages = [
 export default {
   prefixes,
   getStateFromPath,
-  getInitialURL
+  getInitialURL,
+  subscribe (listener) {
+    const onReceiveURL = ({ url }) => {
+      if (shouldOpenHyloOidcInExternalBrowser(url)) {
+        const href = hyloUrlForExternalBrowser(url)
+        Linking.canOpenURL(href).then(can => {
+          if (can) Linking.openURL(href)
+        })
+        return
+      }
+      listener(url)
+    }
+    const sub = Linking.addEventListener('url', onReceiveURL)
+    return () => sub.remove()
+  }
 }

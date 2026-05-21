@@ -53,6 +53,7 @@ class PostHeader extends PureComponent {
       canEdit,
       expanded,
       isCurrentAction,
+      actionDescriptor,
       isFlagged,
       group,
       close,
@@ -89,7 +90,7 @@ class PostHeader extends PureComponent {
     } = post
 
     if (type === 'action') {
-      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} actionDescriptor={actionDescriptor} />
     }
 
     if (!creator) return null
@@ -202,7 +203,7 @@ class PostHeader extends PureComponent {
               {dropdownItems.length > 0 &&
                 <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
-                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
+                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                   <Icon name='Ex' className='align-middle' />
                 </a>}
             </div>
@@ -292,8 +293,9 @@ export function TopicsLine ({ topics, slug, newLine }) {
   )
 }
 
-function ActionHeader ({ post, isCurrentAction }) {
+function ActionHeader ({ post, isCurrentAction, actionDescriptor }) {
   const { t } = useTranslation()
+  const actionTerm = actionDescriptor || 'Action'
 
   return (
     <div className='flex p-2 mb-2 items-center'>
@@ -301,7 +303,7 @@ function ActionHeader ({ post, isCurrentAction }) {
         {post.completedAt
           ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
           : isCurrentAction
-            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next {{actionDescriptor}}', { actionDescriptor: actionTerm })}</span>
             : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
       </div>
 
