@@ -235,7 +235,7 @@ export default class MessageSection extends Component {
     const isInitialLoad = pending && messages.length === 0
 
     return (
-      <div id='message-list' className='w-full overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
+      <div id='message-list' className='w-full min-w-0 overflow-y-auto relative flex-1 min-h-0 pb-4 px-3' onScroll={this.handleScroll} data-testid='message-section'>
         {isInitialLoad && <Loading />}
         {!isInitialLoad && (
           <>
@@ -244,7 +244,7 @@ export default class MessageSection extends Component {
                 <Loading />
               </div>
             )}
-            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end w-full'>
+            <div className='max-w-[750px] mx-auto pt-[20px] mt-auto flex flex-col justify-end w-full min-w-0'>
               <ClickCatcher>
                 {createMessageList(messages, lastSeenAtTimes[get('id', messageThread)])}
               </ClickCatcher>

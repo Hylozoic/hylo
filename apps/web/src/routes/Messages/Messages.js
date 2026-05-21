@@ -305,14 +305,14 @@ const Messages = () => {
 
   return (
     <div
-      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full', { [classes.messagesOpen]: messageThreadId })}
+      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full min-w-0', { [classes.messagesOpen]: messageThreadId })}
       style={{ top: headerHeight > 0 ? `${headerHeight}px` : 0 }}
     >
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div className='flex flex-col h-full w-full px-3'>
+        <div className='flex flex-col h-full w-full min-w-0 px-3'>
           <MessageSection
             socket={socket}
             currentUser={currentUser}
