@@ -258,6 +258,10 @@ function PostEditorInner ({
 
   const draftLoadedRef = useRef(false)
   const lastSavedChatDetailsRef = useRef('')
+  /** True after chat body had visible draft content this room — delete server draft when cleared. */
+  const chatComposerHadContentRef = useRef(false)
+  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
 
@@ -396,6 +400,8 @@ function PostEditorInner ({
   useEffect(() => {
     draftLoadedRef.current = false
     lastSavedChatDetailsRef.current = initialPost.details || ''
+    chatComposerHadContentRef.current = false
+    postComposerHadBodyDraftRef.current = false
   }, [draftContextKey])
 
   useEffect(() => {
@@ -432,13 +438,28 @@ function PostEditorInner ({
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
   // server load effect cannot overwrite their changes when the response eventually arrives.
   //
-  // When the payload matches initial values we only reset local dirty state. We do not
-  // auto-delete the draft here; deletion is reserved for explicit submit/discard flows.
+  // When the payload matches initial values we only reset local dirty state.
+  // When title and description are both empty, cancel pending saves and delete the server draft
+  // if the user had draft body content this session (see chat branch above for chat-only rules).
   useEffect(() => {
     if (typeSwitchDialog) return
     if (isChat) {
       const details = currentPost.details || ''
       const initialDetails = initialPost.details || ''
+      const chatPayload = buildPostDraftPayload(currentPost)
+
+      // Empty body: cancel pending debounced save (useDraft) and drop server draft if user had typed this visit.
+      // Must run before `details === initialDetails` — both are often '' after the user deletes everything.
+      if (!hasPostDraftPayloadContent(chatPayload)) {
+        saveServerDraft(JSON.stringify(chatPayload))
+        setIsDirty(false)
+        lastSavedChatDetailsRef.current = details
+        if (chatComposerHadContentRef.current) {
+          chatComposerHadContentRef.current = false
+          clearDraft({ deleteOnServer: true }).catch(() => {})
+        }
+        return
+      }
 
       if (details === initialDetails) {
         setIsDirty(false)
@@ -446,16 +467,14 @@ function PostEditorInner ({
       }
 
       if (details === lastSavedChatDetailsRef.current) {
+        if (hasPostDraftPayloadContent(chatPayload)) {
+          chatComposerHadContentRef.current = true
+        }
         setIsDirty(true)
         return
       }
 
-      const chatPayload = buildPostDraftPayload(currentPost)
-      if (!hasPostDraftPayloadContent(chatPayload)) {
-        setIsDirty(false)
-        return
-      }
-
+      chatComposerHadContentRef.current = true
       draftLoadedRef.current = true
       lastSavedChatDetailsRef.current = details
       saveDraftJSON(chatPayload)
@@ -464,18 +483,30 @@ function PostEditorInner ({
     }
 
     const payload = buildPostDraftPayload(currentPost)
+
+    if (!hasPostDraftPayloadContent(payload)) {
+      saveServerDraft(JSON.stringify(payload))
+      setIsDirty(false)
+      if (postComposerHadBodyDraftRef.current) {
+        postComposerHadBodyDraftRef.current = false
+        clearDraft({ deleteOnServer: true }).catch(() => {})
+      }
+      if (!isEqual(payload, initialDraftPayload)) {
+        draftLoadedRef.current = true
+      }
+      return
+    }
+
+    postComposerHadBodyDraftRef.current = true
+
     if (!isEqual(payload, initialDraftPayload)) {
       draftLoadedRef.current = true
-      if (hasPostDraftPayloadContent(payload)) {
-        saveDraftJSON(payload)
-        setIsDirty(true)
-        return
-      }
-      setIsDirty(false)
+      saveDraftJSON(payload)
+      setIsDirty(true)
       return
     }
     setIsDirty(false)
-  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, setIsDirty, typeSwitchDialog])
+  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
 
   // Ensure the chat composer keeps keyboard focus when navigating between rooms
   useEffect(() => {
@@ -754,6 +785,8 @@ function PostEditorInner ({
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
     clearDraft()
+    chatComposerHadContentRef.current = false
+    postComposerHadBodyDraftRef.current = false
     setIsDirty(false)
     if (autoFocus && isChat) {
       setTimeout(() => {

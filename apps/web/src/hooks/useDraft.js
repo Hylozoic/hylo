@@ -156,9 +156,22 @@ export default function useDraft ({
 
     // Serialise if needed
     const serialised = typeof data === 'string' ? data : JSON.stringify(data)
-    pendingSaveRef.current = serialised
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+
+    // Empty / non-persistable payload: drop any pending debounced save so a
+    // previous timer cannot fire after the user clears the composer (e.g.
+    // message draft after deleting to one character then clearing).
+    const ctx = contextRef.current
+    if (!shouldPersistDraftPayload(ctx.type, serialised)) {
+      pendingSaveRef.current = null
+      return
+    }
+
+    pendingSaveRef.current = serialised
 
     saveTimerRef.current = setTimeout(async () => {
       if (isSavingRef.current) return // skip overlapping saves
@@ -264,8 +277,15 @@ export default function useDraft ({
    * Some submit mutations already delete their own drafts on the backend.
    */
   const clearDraft = useCallback(async ({ deleteOnServer = true } = {}) => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
     pendingSaveRef.current = null
+
+    // Read id before removeDraftByContext so deleteOnServer still works when ORM drops the model
+    const idToDelete = deleteOnServer ? (draft?.id || activeDraftIdRef.current) : null
+
     dispatch(removeDraftByContext(contextRef.current))
 
     if (!deleteOnServer) {
@@ -275,12 +295,15 @@ export default function useDraft ({
       return
     }
 
-    const id = draft?.id || activeDraftIdRef.current
-
-    if (!id) return
+    if (!idToDelete) {
+      activeDraftIdRef.current = null
+      lastSavedDedupeKeyRef.current = null
+      window.dispatchEvent(new Event('hylo:drafts-changed'))
+      return
+    }
 
     try {
-      await dispatch(deleteDraft(id))
+      await dispatch(deleteDraft(idToDelete))
       activeDraftIdRef.current = null
       lastSavedDedupeKeyRef.current = null
       window.dispatchEvent(new Event('hylo:drafts-changed'))

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correctly load data when directly loading the Custom Views setting tab.
 - Wrapping of long links in post location field on post cards.
 - Display of DMs on iPad
+- Direct Messages with long strings overflowing the screen and causing horizontal scrollbars
+- Always scroll down to bottom of messages list when focusing on messages box on mobile
 
 ## [6.4.6] - 2026-05-07
 
