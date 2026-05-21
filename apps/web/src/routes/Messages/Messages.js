@@ -296,9 +296,6 @@ const Messages = () => {
         updateMessageTextAction={updateMessageTextAction}
         addParticipant={addParticipant}
         removeParticipant={removeParticipant}
-        createMessageAction={createMessageAction}
-        findOrCreateThreadAction={findOrCreateThreadAction}
-        goToThreadAction={goToThreadAction}
       />
     )
   }

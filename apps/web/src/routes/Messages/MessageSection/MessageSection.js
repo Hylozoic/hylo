@@ -51,7 +51,7 @@ export default class MessageSection extends Component {
     this.setupScrollHandler()
     // Check if we're already at bottom after initial render
     setTimeout(() => {
-      this.scrollToBottom()
+      this.handleScrollToBottom()
       const container = document.querySelector('#message-list')
       if (container && this.atBottom(container)) {
         this.markAsRead()
@@ -118,14 +118,14 @@ export default class MessageSection extends Component {
       const messageList = document.querySelector('#message-list')
       const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = snapshot
       if (messageList) {
-        requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
           const deltaHeight = messageList.scrollHeight - prevScrollHeight
           messageList.scrollTop = prevScrollTop + deltaHeight
         })
       }
     }
 
-    if (this.shouldScroll) setTimeout(() => this.scrollToBottom(), 200)
+    if (this.shouldScroll) setTimeout(() => this.handleScrollToBottom(), 200)
 
     // Skip if loading
     if (pending) return
@@ -202,7 +202,7 @@ export default class MessageSection extends Component {
     this.detectScrollExtremes(event.target)
   }
 
-  scrollToBottom = () => {
+  handleScrollToBottom = () => {
     const messageList = document.querySelector('#message-list')
     if (messageList) {
       // Set scrollTop to scrollHeight to scroll to the bottom
@@ -252,7 +252,7 @@ export default class MessageSection extends Component {
             {showNewMessageButton && (
               <div className='sticky bottom-20 w-full flex justify-center' style={{ position: '-webkit-sticky' }}>
                 <button
-                  onClick={this.scrollToBottom}
+                  onClick={this.handleScrollToBottom}
                   className='bg-primary text-white px-4 py-2 rounded-full shadow-lg hover:bg-primary/90 transition-all z-50'
                 >
                   New Messages
