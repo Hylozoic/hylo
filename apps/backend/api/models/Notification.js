@@ -17,6 +17,21 @@ function routeToPath (routeURL) {
   return parsed.pathname + parsed.search
 }
 
+// Returns the best group to use for a push notification deep link.
+// Prefers the activity's group_id, but only if the reader is actually a member of it.
+// Falls back to groupForFrontendRouteForUser, which checks post groups against the reader's
+// memberships and returns null for public posts (producing a /public/post/... URL).
+async function groupForPushRoute (post, activity, userId) {
+  const activityGroupId = activity.get('group_id')
+  if (activityGroupId) {
+    const userGroupIds = await Group.pluckIdsForMember(userId)
+    if (userGroupIds.includes(activityGroupId)) {
+      return Group.find(activityGroupId)
+    }
+  }
+  return post.groupForFrontendRouteForUser(userId)
+}
+
 const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
 const TYPE = {
@@ -253,24 +268,15 @@ module.exports = bookshelf.Model.extend({
   sendPostPush: async function (version) {
     const post = this.post()
     const activity = this.relations.activity
+    const reader = this.reader()
     const locale = this.locale()
     const tags = post.relations.tags
     const firstTag = tags && tags.first()?.get('name')
 
-    // Prefer the activity's group_id (the exact context where the notification was generated)
-    // over the first group in the post's groups collection, which may differ for multi-group posts.
-    const activityGroupId = activity.get('group_id')
-    let group = activityGroupId ? await Group.find(activityGroupId) : null
-
-    if (!group) {
-      const groupIds = Activity.groupIds(activity)
-      if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-      group = await Group.find(groupIds[0])
-    }
-
+    const group = await groupForPushRoute(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.post(post, group))
     const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
-    return this.reader().sendPushNotification(alertText, path)
+    return reader.sendPushNotification(alertText, path)
   },
 
   sendCommentPush: async function (version) {
@@ -284,14 +290,7 @@ module.exports = bookshelf.Model.extend({
       return Promise.resolve()
     }
 
-    // Prefer the activity's group_id (the exact context where the comment notification was generated).
-    // Fall back to the first group the reader is a member of, or null for public posts.
-    const activityGroupId = activity.get('group_id')
-    let group = activityGroupId ? await Group.find(activityGroupId) : null
-    if (!group) {
-      group = await post.groupForFrontendRouteForUser(reader.id)
-    }
-
+    const group = await groupForPushRoute(post, activity, reader.id)
     const path = routeToPath(Frontend.Route.comment({ comment, group, post }))
     const alertText = PushNotification.textForComment(comment, version, locale)
     return reader.sendPushNotification(alertText, path)
