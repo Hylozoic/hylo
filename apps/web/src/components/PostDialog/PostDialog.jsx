@@ -10,7 +10,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import getPost from 'store/selectors/getPost'
 import getMe from 'store/selectors/getMe'
 import presentPost from 'store/presenters/presentPost'
-import { getPostDetailCloseDestination } from 'util/postDetailCloseNavigation'
+import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
 
 const PostDialog = ({
   container
@@ -30,7 +30,8 @@ const PostDialog = ({
 
   const handleOpenChange = useCallback((open) => {
     if (!open) {
-      const dest = postModel && presentedPost
+      const useSmartPostClose = shouldUseSmartPostClose(routeParams.view)
+      const dest = useSmartPostClose && postModel && presentedPost
         ? getPostDetailCloseDestination({
           pathname: location.pathname,
           search: location.search,
@@ -43,7 +44,7 @@ const PostDialog = ({
           }
       navigate(dest)
     }
-  }, [navigate, location.pathname, location.search, postModel, presentedPost, me])
+  }, [navigate, location.pathname, location.search, postModel, presentedPost, me, routeParams.view])
 
   const handleInteractOutside = useCallback((e) => {
     if (e.target.className.includes('fsp') || e.target.children[0].className.includes('fsp')) {

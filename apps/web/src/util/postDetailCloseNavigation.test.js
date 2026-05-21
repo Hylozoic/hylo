@@ -1,4 +1,9 @@
-import { getPostDetailCloseDestination, memberGroupIdsFromMe } from './postDetailCloseNavigation'
+jest.mock('util/mobile', () => ({
+  isPhoneDevice: jest.fn(() => false)
+}))
+
+import { isPhoneDevice } from 'util/mobile'
+import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {
@@ -88,5 +93,24 @@ describe('getPostDetailCloseDestination', () => {
       pathname: '/',
       search: '?x=1'
     })
+  })
+})
+
+describe('shouldUseSmartPostClose', () => {
+  beforeEach(() => {
+    isPhoneDevice.mockReturnValue(false)
+  })
+
+  it('is true for isolated /post/:id view on desktop', () => {
+    expect(shouldUseSmartPostClose('post')).toBe(true)
+  })
+
+  it('is true for in-context view on phone', () => {
+    isPhoneDevice.mockReturnValue(true)
+    expect(shouldUseSmartPostClose('stream')).toBe(true)
+  })
+
+  it('is false for in-context view on desktop', () => {
+    expect(shouldUseSmartPostClose('stream')).toBe(false)
   })
 })
