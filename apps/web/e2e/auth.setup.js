@@ -12,8 +12,8 @@ const E2E_LOGIN_PASSWORD = 'e2e-password-123'
 /** RootRouter blocks on checkLogin; Login mounts `#email` only after. */
 const GOTO_TIMEOUT_MS = 60000
 const LOGIN_FORM_TIMEOUT_MS = 120000
-const AUTH_LOADING_VISIBLE_MS = 30000
-const AUTH_LOADING_HIDDEN_MS = 120000
+/** AuthLayoutRouter bootstrap (`fetchForCurrentUser` + roles); shell mounts `#center-column-container` after this. */
+const AUTH_BOOTSTRAP_MS = 120000
 
 const shouldDiag = () => process.env.CI === 'true' || process.env.E2E_FORWARD_BROWSER_LOGS === '1'
 
@@ -115,10 +115,10 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: /sign\s*in/i }).click()
 
   // After password login the URL often stays `/login` while RootRouter swaps to AuthLayoutRouter (`path='*'`).
-  // Wait for the auth-shell loading gate, then its completion (bootstrap includes fetchForCurrentUser).
-  const loadingGate = page.getByTestId('loading-screen')
-  await expect(loadingGate).toBeVisible({ timeout: AUTH_LOADING_VISIBLE_MS })
-  await expect(loadingGate).toBeHidden({ timeout: AUTH_LOADING_HIDDEN_MS })
+  // Bootstrap shows `data-testid='loading-screen'` only while `fetchForCurrentUser` runs; on fast CI that
+  // can unmount before Playwright observes it, so wait for the main shell instead.
+  const authShell = page.locator('#center-column-container')
+  await expect(authShell).toBeVisible({ timeout: AUTH_BOOTSTRAP_MS })
 
   console.log('Authenticated successfully')
 

@@ -146,7 +146,7 @@ function Comment ({
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
-                <div key={item.label} className={styles.commentAction} onClick={item.onClick}>
+                <div key={item.label} className={styles.commentAction} onClick={() => item.onClick()}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon, { 'data-testid': item.label })
                     : <Icon name={item.icon} dataTestId={item.label} />}
@@ -181,7 +181,7 @@ function Comment ({
       {!editing && (
         <>
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={cn('ml-[36px]', styles.text)} html={text} />
+            <HyloHTML className={cn('ml-[40px]', styles.text)} html={text} />
           </ClickCatcher>
           <EmojiRow
             className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}

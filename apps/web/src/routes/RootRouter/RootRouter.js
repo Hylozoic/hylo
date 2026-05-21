@@ -2,7 +2,7 @@ import mixpanel from 'mixpanel-browser'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import config, { isProduction, isTest } from 'config/index'
+import config, { debugCheckLogin, isProduction, isTest } from 'config/index'
 import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import NavigateWithParams from 'components/NavigateWithParams'
@@ -58,8 +58,30 @@ export default function RootRouter () {
   useEffect(() => {
     (async function () {
       setLoading(true)
-      await dispatch(checkLogin())
-      setLoading(false)
+      const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      try {
+        const action = await dispatch(checkLogin())
+        // If the server returns me: null the session/cookie is dead. Clear the
+        // persisted ORM (which may still have a stale Me row) so the app does not
+        // briefly appear authenticated on the next load before checkLogin resolves.
+        const me = action?.payload?.data?.me
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
+        }
+        // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
+        // XXXX: This breaks logging in production only. Why???
+        // if (me === null) dispatch(logout())
+      } catch (err) {
+        if (debugCheckLogin) {
+          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+          console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, { pathname })
+        }
+        // XXXX: This breaks logging in production only. Why???
+        // dispatch(logout())
+      } finally {
+        setLoading(false)
+      }
     }())
 
     // For navigation to work from notifactions in the electron app

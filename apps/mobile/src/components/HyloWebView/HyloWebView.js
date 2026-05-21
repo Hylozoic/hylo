@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
@@ -43,6 +43,7 @@ const HyloWebView = React.forwardRef(({
   source,
   customStyle: providedCustomStyle = '',
   enableScrolling = false,
+  mobileAppVersion,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
@@ -67,6 +68,14 @@ const HyloWebView = React.forwardRef(({
   }
 
   const customStyle = `${baseCustomStyle}${providedCustomStyle}`
+
+  const injectedJavaScriptBeforeContentLoaded = useMemo(() => {
+    const trimmed = mobileAppVersion != null ? String(mobileAppVersion).trim() : ''
+    const versionLine = trimmed !== ''
+      ? `window.HyloMobileAppVersion=${JSON.stringify(trimmed)};`
+      : ''
+    return `${versionLine}window.HyloWebView=true;window.HyloMobileV2=true;true;`
+  }, [mobileAppVersion])
 
   // Monitor auth state changes and reset recovery state when auth is restored
   useEffect(() => {
@@ -154,7 +163,7 @@ const HyloWebView = React.forwardRef(({
     <AutoHeightWebView
       // Must run before page JS so window.HyloMobileV2 is visible when the web app's
       // router initialises. Must end with `true` to avoid an Android WebView crash.
-      injectedJavaScriptBeforeContentLoaded='window.HyloWebView=true;window.HyloMobileV2=true;true;'
+      injectedJavaScriptBeforeContentLoaded={injectedJavaScriptBeforeContentLoaded}
       customScript=''
       customStyle={customStyle}
       geolocationEnabled

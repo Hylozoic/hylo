@@ -343,6 +343,26 @@ export function removeCreateEditModalFromUrl (url) {
     })
 }
 
+/**
+ * Drops compose-modal-only query params so the underlying route (e.g. chat room)
+ * does not keep `newPostType` / draft resume params after the modal closes.
+ * @param {string} url Path with optional search and hash (relative to origin is OK)
+ * @returns {string}
+ */
+export function stripComposeModalQueryParams (url) {
+  if (!url || typeof url !== 'string') return url
+  try {
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    const u = new URL(url, base)
+    u.searchParams.delete('newPostType')
+    u.searchParams.delete('sourceDraftId')
+    u.searchParams.delete('closePath')
+    return `${u.pathname}${u.search}${u.hash}`
+  } catch {
+    return url
+  }
+}
+
 export function removePostFromUrl (url) {
   const matchForReplaceRegex = `/post/${POST_ID_MATCH}(/.*)?`
   return url.replace(new RegExp(matchForReplaceRegex), '')

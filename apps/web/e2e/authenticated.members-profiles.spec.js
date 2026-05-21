@@ -48,6 +48,7 @@ test.describe('Batch F: members & profiles', () => {
       navTimeout
     )
     await expect(page.locator('#center-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#members-page')).toBeVisible(uiTimeout)
     await expect(page).toHaveTitle(/E2E Public Group|Hylo/i, uiTimeout)
   })
 })

@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.7] - 2026-05-20
+
+### Added
+- Drafts! When creating or editing a post, chat, comment or direct message, we auto save drafts as you go and reload them when you come back to that same page/field. If you try to leave a post while editing it you will be asked if you want to save your draft or discard it. All saved drafts can be found in the new My Home -> My Drafts page.
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+- Refine what hylo links open in the android app
+- If the mobile app receives OIDC urls, redirect them to the browser
+
+### Fixed
+- Correctly load data when directly loading the Custom Views setting tab.
+- Wrapping of long links in post location field on post cards.
+- Display of DMs on iPad
+
 ## [6.4.6] - 2026-05-07
 
 ### Added

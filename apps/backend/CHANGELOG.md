@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.2] - 2026-05-20
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+
 ## [6.4.1] - 2026-05-07
 
 ### Changed

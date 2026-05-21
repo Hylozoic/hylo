@@ -1,14 +1,13 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.4.6",
+  "version": "6.4.7",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
   "engines": {
-    "node": "^20",
-    "yarn": "^4.9.2"
+    "node": "^20"
   },
   "packageManager": "yarn@4.9.2",
   "browserslist": [
