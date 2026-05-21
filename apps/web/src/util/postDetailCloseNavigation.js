@@ -1,4 +1,16 @@
 import { removePostFromUrl, groupUrl } from '@hylo/navigation'
+import { isPhoneDevice } from 'util/mobile'
+
+/**
+ * Smart close (group stream, public, my groups, etc.) vs stripping /post/:id from the URL.
+ * Isolated /post/:postId always; in-context routes (e.g. group stream overlay) on phones only.
+ *
+ * @param {string} [view] Route view from useRouteParams (e.g. 'post', 'stream')
+ * @returns {boolean}
+ */
+export function shouldUseSmartPostClose (view) {
+  return view === 'post' || isPhoneDevice()
+}
 
 /**
  * Returns group ids the current user belongs to (from Me.memberships).
