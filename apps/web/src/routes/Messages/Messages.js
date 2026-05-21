@@ -15,6 +15,7 @@ import fetchRecentContacts from 'store/actions/fetchRecentContacts'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import useDraft from 'hooks/useDraft'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -95,6 +96,15 @@ const Messages = () => {
   const [headerHeight, setHeaderHeight] = useState(0)
   const formRef = useRef(null)
 
+  const isRealThread = messageThreadId && messageThreadId !== NEW_THREAD_ID
+  const { loadedData: messageDraftData, isLoaded: messageDraftLoaded, saveDraft: saveMessageDraft, clearDraft: clearMessageDraft } = useDraft({
+    type: 'message',
+    messageThreadId: isRealThread ? messageThreadId : undefined,
+    navigateTo: `/messages/${messageThreadId}`,
+    debounceMs: 800,
+    skip: !isRealThread || !currentUser
+  })
+
   // Measure ViewHeader height to position Messages below it
   useEffect(() => {
     const measureHeader = () => {
@@ -149,6 +159,26 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
+  // Load server draft into Redux message text when the draft becomes available
+  useEffect(() => {
+    if (!messageDraftLoaded || !messageDraftData) return
+    // Only restore if there's no current text (don't overwrite what user is typing)
+    if (!messageText) {
+      try {
+        const parsed = JSON.parse(messageDraftData)
+        updateMessageTextAction(parsed?.text || messageDraftData)
+      } catch {
+        updateMessageTextAction(messageDraftData)
+      }
+    }
+  }, [messageDraftLoaded, messageDraftData])
+
+  // Debounce-save message text to server as user types
+  useEffect(() => {
+    if (!isRealThread || !currentUser || !messageText?.trim()) return
+    saveMessageDraft(JSON.stringify({ text: messageText }))
+  }, [messageText, isRealThread, currentUser, saveMessageDraft])
+
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
     if (forNewThread) {
@@ -156,6 +186,7 @@ const Messages = () => {
     } else {
       await sendForExisting()
     }
+    clearMessageDraft({ deleteOnServer: false })
     setParticipants([])
     return false
   }

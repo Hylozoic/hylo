@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -26,25 +26,40 @@ const PostDialog = ({
     [postModel]
   )
 
-  const portalContainer = useMemo(() => container || document.getElementById('center-column-container'))
+  const postDetailRef = useRef(null)
+  const [dialogOpen, setDialogOpen] = useState(true)
+
+  const portalContainer = useMemo(() => container || document.getElementById('center-column-container'), [container])
+
+  const dismiss = useCallback(() => {
+    const useSmartPostClose = shouldUseSmartPostClose(routeParams.view)
+    const dest = useSmartPostClose && postModel && presentedPost
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post: presentedPost,
+        me
+      })
+      : {
+          pathname: removePostFromUrl(location.pathname) || '/',
+          search: location.search
+        }
+    navigate(dest)
+  }, [navigate, location.pathname, location.search, postModel, presentedPost, me, routeParams.view])
 
   const handleOpenChange = useCallback((open) => {
-    if (!open) {
-      const useSmartPostClose = shouldUseSmartPostClose(routeParams.view)
-      const dest = useSmartPostClose && postModel && presentedPost
-        ? getPostDetailCloseDestination({
-          pathname: location.pathname,
-          search: location.search,
-          post: presentedPost,
-          me
-        })
-        : {
-            pathname: removePostFromUrl(location.pathname) || '/',
-            search: location.search
-          }
-      navigate(dest)
+    if (open) {
+      setDialogOpen(true)
+      return
     }
-  }, [navigate, location.pathname, location.search, postModel, presentedPost, me, routeParams.view])
+    const blocked = postDetailRef.current?.blockEmbeddedDismiss?.()
+    if (blocked) {
+      setDialogOpen(true)
+      return
+    }
+    setDialogOpen(false)
+    dismiss()
+  }, [dismiss])
 
   const handleInteractOutside = useCallback((e) => {
     if (e.target.className.includes('fsp') || e.target.children[0].className.includes('fsp')) {
@@ -65,7 +80,7 @@ const PostDialog = ({
   }, [])
 
   return (
-    <Dialog.Root defaultOpen onOpenChange={handleOpenChange}>
+    <Dialog.Root open={dialogOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal container={portalContainer}>
         <Dialog.Overlay
           className='PostDialog-Overlay bg-darkening/50 dark:bg-darkening/90 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-200'
@@ -77,7 +92,7 @@ const PostDialog = ({
           >
             <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
             <Dialog.Description className='sr-only'>Post Dialog</Dialog.Description>
-            <PostDetail />
+            <PostDetail ref={postDetailRef} inPostDialog onDismissEmbeddedDialog={dismiss} />
           </Dialog.Content>
         </Dialog.Overlay>
       </Dialog.Portal>
