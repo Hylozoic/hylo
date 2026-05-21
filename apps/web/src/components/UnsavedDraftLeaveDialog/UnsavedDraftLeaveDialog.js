@@ -25,18 +25,18 @@ export default function UnsavedDraftLeaveDialog ({
           <div className='bg-background text-foreground rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4'>
             <Dialog.Title className='text-lg font-semibold'>{title}</Dialog.Title>
             <Dialog.Description className='text-sm text-foreground/70'>{description}</Dialog.Description>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex flex-row flex-nowrap items-center justify-between gap-2 sm:gap-3'>
               <button
                 type='button'
-                className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors text-left sm:text-center order-3 sm:order-1'
+                className='rounded-lg min-w-0 flex-1 px-2 py-2 sm:px-4 text-xs sm:text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors text-center leading-snug whitespace-normal'
                 onClick={onContinueEditing}
               >
                 {continueEditingLabel}
               </button>
-              <div className='flex flex-row justify-end gap-3 order-1 sm:order-2'>
+              <div className='flex flex-row shrink-0 gap-2 sm:gap-3'>
                 <button
                   type='button'
-                  className='rounded-lg px-4 py-2 text-sm text-white bg-destructive hover:bg-destructive/80 transition-colors'
+                  className='rounded-lg shrink-0 whitespace-nowrap px-2 py-2 sm:px-4 text-xs sm:text-sm text-white bg-destructive hover:bg-destructive/80 transition-colors'
                   onClick={onDiscard}
                 >
                   {discardLabel}
@@ -44,7 +44,7 @@ export default function UnsavedDraftLeaveDialog ({
                 <button
                   type='button'
                   autoFocus
-                  className='rounded-lg px-4 py-2 text-sm font-medium text-foreground bg-selected hover:bg-selected/90 transition-colors'
+                  className='rounded-lg shrink-0 whitespace-nowrap px-2 py-2 sm:px-4 text-xs sm:text-sm font-medium text-foreground bg-selected hover:bg-selected/90 transition-colors'
                   onClick={onSaveDraft}
                 >
                   {saveDraftLabel}
