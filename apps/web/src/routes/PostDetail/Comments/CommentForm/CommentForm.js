@@ -45,6 +45,14 @@ const CommentForm = forwardRef(function CommentForm ({
 
   const draftRef = useRef(editorContent || '')
 
+  /**
+   * HyloEditor resets the whole document whenever `contentHTML` changes. `loadedData` updates
+   * after each debounced save (often with normalized HTML), which was wiping trailing spaces /
+   * the last few characters while the user kept typing. Cache the first resolved HTML per post
+   * and only use that for the prop — not live `loadedData` after saves.
+   */
+  const commentEditorInitialHtmlRef = useRef({ postId: null, html: null })
+
   const [isFocused, setIsFocused] = useState(false)
   const hasUserInteracted = useRef(false)
   const mountTime = useRef(Date.now())
@@ -64,14 +72,26 @@ const CommentForm = forwardRef(function CommentForm ({
     commentComposerHadContentRef.current = false
   }, [postId])
 
+  const hyloContentHTML = (() => {
+    if (editorContent) return editorContent
+    if (!isLoaded) return ''
+    if (commentEditorInitialHtmlRef.current.postId !== postId) {
+      commentEditorInitialHtmlRef.current = { postId, html: null }
+    }
+    if (commentEditorInitialHtmlRef.current.html === null) {
+      commentEditorInitialHtmlRef.current.html = loadedData || ''
+    }
+    return commentEditorInitialHtmlRef.current.html
+  })()
+
   useEffect(() => {
     if (!isLoaded) return
-    const draft = editorContent || loadedData || ''
+    const draft = editorContent ?? commentEditorInitialHtmlRef.current.html ?? ''
     draftRef.current = draft
     if (editor.current) {
       editor.current.setContent(draft)
     }
-  }, [editorContent, isLoaded, loadedData, postId])
+  }, [editorContent, isLoaded, postId])
 
   const startTyping = useCallback(throttle(STARTED_TYPING_INTERVAL, () => {
     sendIsTypingAction(true)
@@ -204,7 +224,7 @@ const CommentForm = forwardRef(function CommentForm ({
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
-            contentHTML={editorContent ?? (isLoaded ? loadedData : '') ?? ''}
+            contentHTML={hyloContentHTML}
             onAltEnter={handleSubmit}
             className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
