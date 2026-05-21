@@ -57,13 +57,92 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
-      <!-- Intent filter for HTTPS URLs -->
+      <!--
+        Scoped App Links: each <data> line is OR'd. Omit /oauth/* and /noo/oauth/* so third-party
+        OIDC and Hylo-as-provider flows stay in the browser. Omit /.well-known/* (OIDC discovery).
+        Omit /noo/oidc/* (interaction API — browser). Only /noo/login* is listed under /noo (magic
+        links + OAuth GET hops); other /noo/* routes are API/session plumbing, not link targets.
+        When adding first-party URL families, add path rules for both hosts below.
+        Short first segments use android:path (exact) plus pathPrefix "/segment/" to avoid stealing
+        unrelated paths (e.g. /post vs /postal). Omit marketing/static paths (same idea as
+        navigation/linking staticPages — /about, /help, /terms, …) so those URLs stay in the browser.
+      -->
       <intent-filter android:autoVerify="true">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="https" android:host="www.hylo.com" />
-        <data android:scheme="https" android:host="staging.hylo.com" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/all" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/all" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/all/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/all/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/create-group" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/create-group" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/create-group/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/create-group/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/groups" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/groups" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/groups/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/groups/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/h/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/h/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/login" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/login" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/login/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/login/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/management" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/management" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/management/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/management/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/members" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/members" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/members/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/members/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/messages" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/messages" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/messages/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/messages/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/my" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/my" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/my/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/my/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/notifications" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/notifications" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/notifications/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/notifications/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/noo/login" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/noo/login" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/noo/login/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/noo/login/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/post" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/post" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/post/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/post/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/public" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/public" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/public/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/public/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/reset-password" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/reset-password" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/reset-password/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/reset-password/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/search" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/search" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/search/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/search/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/settings" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/settings" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/settings/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/settings/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/signup" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/signup" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/signup/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/signup/" />
+        <data android:scheme="https" android:host="www.hylo.com" android:path="/welcome" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:path="/welcome" />
+        <data android:scheme="https" android:host="www.hylo.com" android:pathPrefix="/welcome/" />
+        <data android:scheme="https" android:host="staging.hylo.com" android:pathPrefix="/welcome/" />
       </intent-filter>
       <!-- Intent filter for custom scheme -->
       <intent-filter>
