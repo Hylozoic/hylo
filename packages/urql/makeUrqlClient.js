@@ -6,7 +6,7 @@ import { devtoolsExchange } from '@urql/devtools'
 // TODO: URQL - Switch to this from isomorphic-fetch on Web as well
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
-import { setSessionCookie } from 'util/session'
+import { getSessionCookie, setSessionCookie } from 'util/session'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -14,6 +14,39 @@ import updates from './updates'
 import directives from './directives'
 
 export const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
+
+/**
+ * Attaches the persisted session cookie to outgoing fetches when the caller did not
+ * already set a Cookie header. React Native usually persists Set-Cookie in the system
+ * cookie store, but that is not reliable across iOS versions and cold starts; the app
+ * already mirrors the session into AsyncStorage for the WebView — use that same source
+ * here so URQL (login, meCheckAuth, logout) stays in sync with HyloWebView.
+ */
+async function fetchWithPersistedSessionCookie (input, init) {
+  const cookie = await getSessionCookie()
+  const initOptions = init || {}
+  const isStringOrUrl = typeof input === 'string' || (typeof URL !== 'undefined' && input instanceof URL)
+
+  if (isStringOrUrl) {
+    const headers = new Headers(initOptions.headers || {})
+    if (cookie && !headers.has('Cookie')) {
+      headers.set('Cookie', cookie)
+    }
+    return fetch(input, {
+      credentials: 'include',
+      ...initOptions,
+      headers
+    })
+  }
+
+  if (cookie && input && typeof input === 'object' && input.headers && !input.headers.get('Cookie')) {
+    const headers = new Headers(input.headers)
+    headers.set('Cookie', cookie)
+    return fetch(new Request(input, { headers, credentials: 'include' }))
+  }
+
+  return fetch(input, { credentials: 'include', ...initOptions })
+}
 
 export async function fetchGraphqlSchema (endpoint) {
   const response = await fetch(endpoint, {
@@ -54,9 +87,9 @@ export default async function makeUrqlClient ({
       cache,
       fetchExchange,
       providedSubscriptionExchange
-    ].filter(Boolean), // Filter out undefined/null exchanges (e.g., when subscriptionExchange is not provided)
-    fetch: async (...args) => {
-      const response = await fetch(...args)
+    ].filter(Boolean), // Filter out undefined/null exchanges (e.g., when subscriptionExchange is undefined)
+    fetch: async (input, init) => {
+      const response = await fetchWithPersistedSessionCookie(input, init)
 
       if (response.headers.get('set-cookie')) {
         if (process.env.NODE_ENV === 'development') {
