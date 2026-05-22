@@ -15,6 +15,7 @@ import fetchRecentContacts from 'store/actions/fetchRecentContacts'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
+import useDraft from 'hooks/useDraft'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -94,6 +95,19 @@ const Messages = () => {
   const [participants, setParticipants] = useState([])
   const [headerHeight, setHeaderHeight] = useState(0)
   const formRef = useRef(null)
+  /** Avoid re-applying server draft whenever draft ORM updates (e.g. after saves). */
+  const messageDraftRestoreDoneRef = useRef(false)
+  /** Composer had non-empty text this visit (typed or restored) — used to delete server draft when cleared. */
+  const messageComposerHadTrimmedContentRef = useRef(false)
+
+  const isRealThread = messageThreadId && messageThreadId !== NEW_THREAD_ID
+  const { loadedData: messageDraftData, isLoaded: messageDraftLoaded, saveDraft: saveMessageDraft, clearDraft: clearMessageDraft } = useDraft({
+    type: 'message',
+    messageThreadId: isRealThread ? messageThreadId : undefined,
+    navigateTo: `/messages/${messageThreadId}`,
+    debounceMs: 800,
+    skip: !isRealThread || !currentUser
+  })
 
   // Measure ViewHeader height to position Messages below it
   useEffect(() => {
@@ -149,6 +163,46 @@ const Messages = () => {
     focusForm()
   }, [messageThreadId])
 
+  useEffect(() => {
+    messageDraftRestoreDoneRef.current = false
+    messageComposerHadTrimmedContentRef.current = false
+  }, [messageThreadId])
+
+  // Load server draft into Redux message text once per thread when the draft loads
+  useEffect(() => {
+    if (!messageDraftLoaded || messageDraftRestoreDoneRef.current) return
+    messageDraftRestoreDoneRef.current = true
+    if (!messageDraftData) return
+    // Only restore if there's no current text (don't overwrite what user is typing)
+    if (!messageText) {
+      try {
+        const parsed = JSON.parse(messageDraftData)
+        updateMessageTextAction(parsed?.text || messageDraftData)
+      } catch {
+        updateMessageTextAction(messageDraftData)
+      }
+    }
+  }, [messageDraftLoaded, messageDraftData])
+
+  // Debounce-save message text to server as user types; empty string cancels stale saves via useDraft
+  useEffect(() => {
+    if (!isRealThread || !currentUser) return
+    saveMessageDraft(JSON.stringify({ text: messageText || '' }))
+  }, [messageText, isRealThread, currentUser, saveMessageDraft])
+
+  // When the user clears the composer after it had content, remove the server draft so
+  // navigating away and back does not reload old text.
+  useEffect(() => {
+    if (!isRealThread || !currentUser) return
+    if (messageText?.trim()) {
+      messageComposerHadTrimmedContentRef.current = true
+      return
+    }
+    if (!messageComposerHadTrimmedContentRef.current) return
+    messageComposerHadTrimmedContentRef.current = false
+    clearMessageDraft({ deleteOnServer: true })
+  }, [messageText, isRealThread, currentUser, clearMessageDraft])
+
   const sendMessage = async () => {
     if (!messageText || messageCreatePending) return false
     if (forNewThread) {
@@ -156,6 +210,7 @@ const Messages = () => {
     } else {
       await sendForExisting()
     }
+    clearMessageDraft({ deleteOnServer: true })
     setParticipants([])
     return false
   }
@@ -265,23 +320,20 @@ const Messages = () => {
         updateMessageTextAction={updateMessageTextAction}
         addParticipant={addParticipant}
         removeParticipant={removeParticipant}
-        createMessageAction={createMessageAction}
-        findOrCreateThreadAction={findOrCreateThreadAction}
-        goToThreadAction={goToThreadAction}
       />
     )
   }
 
   return (
     <div
-      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full', { [classes.messagesOpen]: messageThreadId })}
+      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full min-w-0', { [classes.messagesOpen]: messageThreadId })}
       style={{ top: headerHeight > 0 ? `${headerHeight}px` : 0 }}
     >
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>
       {messageThreadId && (
-        <div className='flex flex-col h-full w-full px-3'>
+        <div className='flex flex-col h-full w-full min-w-0 px-3'>
           <MessageSection
             socket={socket}
             currentUser={currentUser}

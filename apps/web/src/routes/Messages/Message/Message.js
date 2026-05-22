@@ -19,7 +19,7 @@ export default function Message ({ message, isHeader }) {
     : TextHelpers.markdown(message.text)
 
   return (
-    <div className={cn('text-foreground w-full flex pr-3', { 'pt-2': isHeader })} data-message-id={message.id}>
+    <div className={cn('text-foreground w-full min-w-0 flex pr-3', { 'pt-2': isHeader })} data-message-id={message.id}>
       <div className={classes.avatar}>
         {isHeader && (
           <ProfileCardDialog personId={person.id}>
@@ -36,9 +36,9 @@ export default function Message ({ message, isHeader }) {
             <span className='text-xs text-foreground/50 whitespace-nowrap flex-shrink-0'>{pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}</span>
           </div>
         )}
-        <div className='text-foreground'>
+        <div className='text-foreground break-words'>
           <ClickCatcher>
-            <HyloHTML element='span' html={text} />
+            <HyloHTML element='div' className='break-words max-w-full' html={text} />
           </ClickCatcher>
         </div>
       </div>

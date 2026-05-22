@@ -85,23 +85,12 @@ function CustomViewsTab ({ group }) {
   }, [group.id])
 
   useEffect(() => {
-    if (fetchPending && !fetchCollectionPostsPending) {
-      setState(defaultEditState(group))
-    }
-
-    if (fetchCollectionPostsPending && !fetchCollectionPostsPending) {
-      // Update collections posts
-      const updatedCustomViews = [...state.customViews]
-      state.customViews.forEach((cv, i) => {
-        if (cv.type === 'collection') {
-          const collection = { ...cv.collection }
-          collection.posts = group.customViews[i]?.collection?.posts
-          updatedCustomViews[i].collection = collection
-        }
-      })
-      setState({ ...state, customViews: updatedCustomViews })
-    }
-  }, [group])
+    if (fetchPending || fetchCollectionPostsPending) return
+    setState(prev => {
+      if (prev.changed) return prev
+      return defaultEditState(group)
+    })
+  }, [group, fetchPending, fetchCollectionPostsPending])
 
   const errorString = useMemo(() => {
     let errorString = ''

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react'
+import React, { useCallback, useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
@@ -49,12 +49,14 @@ import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 import ActionCompletionSection from './ActionCompletionSection'
 
 import classes from './PostDetail.module.scss'
+import UnsavedDraftLeaveDialog from 'components/UnsavedDraftLeaveDialog/UnsavedDraftLeaveDialog'
 
 // the height of the header plus the padding-top
 const STICKY_HEADER_SCROLL_OFFSET = 60
 const MAX_DETAILS_LENGTH = 144
 
-function PostDetail () {
+const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
+  const { inPostDialog = false, onDismissEmbeddedDialog } = props
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
@@ -80,6 +82,8 @@ function PostDetail () {
     activityScrollOffset: 0,
     showPeopleDialog: false
   })
+  const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
+  const commentFormRef = useRef(null)
 
   const activityHeader = useRef(null)
   const { t } = useTranslation()
@@ -176,6 +180,37 @@ function PostDetail () {
     navigate(postDetailCloseDestination)
   }, [useSmartPostClose, navigate, postDetailCloseDestination, location.pathname, location.search])
 
+  const attemptClose = useCallback(() => {
+    if (inPostDialog && commentFormRef.current?.hasUnsavedContent?.()) {
+      setShowCommentLeaveDraftDialog(true)
+      return
+    }
+    onClose()
+  }, [inPostDialog, onClose])
+
+  const handleCommentSaveDraftAndLeave = useCallback(async () => {
+    await commentFormRef.current?.flushSaveDraft?.()
+    setShowCommentLeaveDraftDialog(false)
+    onDismissEmbeddedDialog?.()
+  }, [onDismissEmbeddedDialog])
+
+  const handleCommentDiscardAndLeave = useCallback(async () => {
+    await commentFormRef.current?.discardDraft?.()
+    setShowCommentLeaveDraftDialog(false)
+    onDismissEmbeddedDialog?.()
+  }, [onDismissEmbeddedDialog])
+
+  useImperativeHandle(forwardedRef, () => ({
+    blockEmbeddedDismiss: () => {
+      if (!inPostDialog) return false
+      if (commentFormRef.current?.hasUnsavedContent?.()) {
+        setShowCommentLeaveDraftDialog(true)
+        return true
+      }
+      return false
+    }
+  }), [inPostDialog])
+
   // Pull-to-close: drag down to dismiss when scrolled to top,
   // or drag up to dismiss when scrolled to bottom
   const pullTouchRef = useRef(null)
@@ -186,8 +221,8 @@ function PostDetail () {
   const isDraggingUp = useRef(false)
   const touchStartedWithTextSelected = useRef(false)
   const touchStartTime = useRef(null)
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  const onCloseRef = useRef(attemptClose)
+  onCloseRef.current = attemptClose
   const PULL_THRESHOLD = 100
 
   useEffect(() => {
@@ -470,7 +505,7 @@ function PostDetail () {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={onClose}
+          close={attemptClose}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -488,7 +523,7 @@ function PostDetail () {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={onClose}
+              close={attemptClose}
               isFlagged={isFlagged}
             />
           </div>
@@ -591,6 +626,7 @@ function PostDetail () {
         slug={groupSlug}
         selectedCommentId={commentId}
         scrollToBottom={scrollToBottom}
+        commentFormRef={commentFormRef}
       />
       {showPeopleDialog && (
         <PostPeopleDialog
@@ -602,15 +638,26 @@ function PostDetail () {
         />
       )}
       <SocketSubscriber type='post' id={post.id} />
+      <UnsavedDraftLeaveDialog
+        open={showCommentLeaveDraftDialog}
+        onOpenChange={setShowCommentLeaveDraftDialog}
+        title={t('Save draft before closing?')}
+        description={t('You have unsaved text in your comment. Save it as a draft to continue later, or discard it.')}
+        onContinueEditing={() => setShowCommentLeaveDraftDialog(false)}
+        onDiscard={handleCommentDiscardAndLeave}
+        onSaveDraft={handleCommentSaveDraftAndLeave}
+      />
     </div>
   )
-}
+})
 
 PostDetail.propTypes = {
   currentUser: PropTypes.object,
   fetchPost: PropTypes.func,
   post: PropTypes.object,
-  routeParams: PropTypes.object
+  routeParams: PropTypes.object,
+  inPostDialog: PropTypes.bool,
+  onDismissEmbeddedDialog: PropTypes.func
 }
 
 export function JoinProjectSection ({ currentUser, members, leaving, joinProject, leaveProject, togglePeopleDialog }) {

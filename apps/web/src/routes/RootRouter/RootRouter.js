@@ -14,7 +14,6 @@ import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
-import logout from 'store/actions/logout'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
 import { WebViewMessageTypes } from '@hylo/shared'
@@ -71,13 +70,15 @@ export default function RootRouter () {
           console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
         }
         // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
-        if (me === null) dispatch(logout())
+        // XXXX: This breaks logging in production only. Why???
+        // if (me === null) dispatch(logout())
       } catch (err) {
         if (debugCheckLogin) {
           const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
           console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, { pathname })
         }
-        dispatch(logout())
+        // XXXX: This breaks logging in production only. Why???
+        // dispatch(logout())
       } finally {
         setLoading(false)
       }
