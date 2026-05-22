@@ -594,7 +594,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='day'>{t('1 Day (Testing)')}</option>
                   <option value='month'>{t('Monthly (recurring)')}</option>
                   <option value='season'>{t('Every 3 months (recurring)')}</option>
                   <option value='annual'>{t('Annual (recurring)')}</option>
@@ -686,7 +685,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
                   <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='day'>{t('1 Day (Testing)')}</option>
                   <option value='month'>{t('Monthly (recurring)')}</option>
                   <option value='season'>{t('Every 3 months (recurring)')}</option>
                   <option value='annual'>{t('Annual (recurring)')}</option>
