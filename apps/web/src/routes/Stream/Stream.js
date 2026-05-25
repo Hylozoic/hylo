@@ -476,10 +476,12 @@ export default function Stream (props) {
         )}
         {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
 
-        <ScrollListener
-          onBottom={() => fetchPostsFrom(posts.length)}
-          elementId='stream-outer-container'
-        />
+        {!isCalendarViewMode && (
+          <ScrollListener
+            onBottom={() => fetchPostsFrom(posts.length)}
+            elementId='stream-outer-container'
+          />
+        )}
       </div>
     </div>
   )
