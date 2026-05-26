@@ -25,7 +25,11 @@ module.exports = {
         'url', 'twitter_name', 'facebook_url', 'linkedin_url'
       ])
       const membership = await GroupMembership.forPair(u.id, groupId).fetch()
-      userData.last_active_at = membership.getSetting('lastReadAt') ? DateTime.fromISO(membership.getSetting('lastReadAt'))?.toFormat('yyyy-MM-dd HH:mm:ss Z') : ''
+      const joinedAtRaw = membership?.get('created_at')
+      userData.joined_at = joinedAtRaw
+        ? DateTime.fromJSDate(joinedAtRaw instanceof Date ? joinedAtRaw : new Date(joinedAtRaw)).toFormat('yyyy-MM-dd HH:mm:ss Z')
+        : ''
+      userData.last_active_at = membership?.getSetting('lastReadAt') ? DateTime.fromISO(membership.getSetting('lastReadAt'))?.toFormat('yyyy-MM-dd HH:mm:ss Z') : ''
 
       const locationObject = await u.locationObject().fetch()
       userData.location = renderLocation(locationObject)
@@ -62,7 +66,7 @@ module.exports = {
 
     // send data as CSV response
     output(results, [
-      'id', 'name', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
+      'id', 'name', 'joined_at', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
       { key: 'url', header: 'personal_url' },
       'twitter_name', 'facebook_url', 'linkedin_url',
       'skills', 'skills_to_learn',

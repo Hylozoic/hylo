@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Member CSV export includes a `joined_at` column (membership `created_at` in the exported group).
+
 ## [6.4.2] - 2026-05-20
 
 ### Changed
