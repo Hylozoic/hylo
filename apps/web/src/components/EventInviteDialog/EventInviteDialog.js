@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useInView } from 'react-cool-inview'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { debounce } from 'lodash/fp'
 import * as Dialog from '@radix-ui/react-dialog'
 import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import Button from 'components/Button'
@@ -9,6 +11,9 @@ import Loading from 'components/Loading'
 import TextInput from 'components/TextInput'
 import { bgImageStyle, cn } from 'util/index'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
+import fetchPeople from 'store/actions/fetchPeople'
+import { FETCH_PEOPLE } from 'store/constants'
+import { invitePeopleToEvent, peopleSelector } from './EventInviteDialog.store'
 
 import styles from './EventInviteDialog.module.scss'
 
@@ -16,15 +21,21 @@ const pageSize = 30
 
 const EventInviteDialog = ({
   eventTitle,
-  fetchPeople,
   forGroups,
   eventInvitations,
-  people,
   eventId,
-  onClose,
-  invitePeopleToEvent,
-  pending
+  onClose
 }) => {
+  const dispatch = useDispatch()
+  const people = useSelector(state => peopleSelector(state, { forGroups }))
+  const pending = useSelector(state => state.pending[FETCH_PEOPLE])
+
+  const fetchPeopleDebounced = useMemo(
+    () => debounce(300, (args) => dispatch(fetchPeople(args))),
+    [dispatch]
+  )
+
+  const invitePeopleToEventBound = (eid, ids) => dispatch(invitePeopleToEvent(eid, ids))
   const [invitedIds, setInvitedIds] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [pageFetched, setPageFetched] = useState(0)
@@ -39,7 +50,7 @@ const EventInviteDialog = ({
   useEffect(() => {
     const fetch = () => {
       const forGroupIds = forGroups.map(c => c.id).filter(c => c !== 'public')
-      fetchPeople({ autocomplete: searchTerm, groupIds: forGroupIds, first: pageSize, offset: 0 })
+      fetchPeopleDebounced({ autocomplete: searchTerm, groupIds: forGroupIds, first: pageSize, offset: 0 })
       setPageFetched(pageSize)
     }
     fetch()
@@ -49,7 +60,7 @@ const EventInviteDialog = ({
     onEnter: () => {
       const fetch = () => {
         const forGroupIds = forGroups.map(c => c.id).filter(c => c !== 'public')
-        fetchPeople({ autocomplete: searchTerm, groupIds: forGroupIds, first: pageSize, offset: pageFetched })
+        fetchPeopleDebounced({ autocomplete: searchTerm, groupIds: forGroupIds, first: pageSize, offset: pageFetched })
         setPageFetched(pageFetched + pageSize)
       }
       fetch()
@@ -64,7 +75,7 @@ const EventInviteDialog = ({
   }
 
   const submit = () => {
-    invitePeopleToEvent(eventId, invitedIds)
+    invitePeopleToEventBound(eventId, invitedIds)
     onClose()
   }
 
