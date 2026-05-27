@@ -164,9 +164,11 @@ export default function ContextMenu (props) {
     }
   }, [newWidgetId])
 
+  // Opens add-view flow; when addToEnd is true, do not pass widget.id (placeholders like bottom-of-list-* are not DB ids)
   const handlePositionedAdd = ({ widget, addToEnd, parentId }) => {
     isAddingChildWidget = true
-    navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId: widget?.id || null }))
+    const orderInFrontOfWidgetId = addToEnd ? null : widget?.id || null
+    navigate(addQuerystringToPath(location.pathname, { addview: 'yes', cme: 'yes', parentId: widget?.parentId || parentId, orderInFrontOfWidgetId }))
   }
 
   const handleDragStart = ({ active }) => {

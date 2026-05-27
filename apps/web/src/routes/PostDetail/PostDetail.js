@@ -44,6 +44,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { cn } from 'util/index'
 import { removePostFromUrl } from '@hylo/navigation'
 import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
+import { getPostTypeIcon } from 'store/models/Post'
 import { DETAIL_COLUMN_ID, CENTER_COLUMN_ID, position } from 'util/scrolling'
 
 import ActionCompletionSection from './ActionCompletionSection'
@@ -108,19 +109,19 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
-  const useSmartPostClose = shouldUseSmartPostClose(view)
+  const useSmartPostClose = shouldUseSmartPostClose(view) && !inPostDialog
   useEffect(() => {
-    if (isIsolatedPostView) {
-      setHeaderDetails({
-        title: t('Post'),
-        icon: '',
-        info: '',
-        search: false,
-        mobileBackButton: true,
-        backTo: postDetailCloseDestination
-      })
-    }
-  }, [isIsolatedPostView, t, setHeaderDetails, postDetailCloseDestination])
+    if (!isIsolatedPostView) return
+    const postType = post?.type || 'post'
+    setHeaderDetails({
+      title: t(postType),
+      icon: getPostTypeIcon(postType),
+      info: '',
+      search: false,
+      mobileBackButton: true,
+      backTo: postDetailCloseDestination
+    })
+  }, [isIsolatedPostView, post?.type, t, setHeaderDetails, postDetailCloseDestination])
 
   const handleSetComponentPositions = useCallback(() => {
     const container = document.getElementById(DETAIL_COLUMN_ID)
@@ -505,7 +506,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
           className={classes.header}
           post={post}
           routeParams={routeParams}
-          close={attemptClose}
+          close={inPostDialog ? attemptClose : undefined}
           expanded
           isFlagged={isFlagged}
           hasImage={hasImage}
@@ -523,7 +524,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
               currentUser={currentUser}
               post={post}
               routeParams={routeParams}
-              close={attemptClose}
+              close={inPostDialog ? attemptClose : undefined}
               isFlagged={isFlagged}
             />
           </div>
