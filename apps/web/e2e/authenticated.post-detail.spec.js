@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, devices } from '@playwright/test'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 
 /**
@@ -39,10 +39,11 @@ async function expectSeededPostVisible (page) {
 /**
  * New context with no cookies; `baseURL` is required or relative `goto` resolves against `about:blank`.
  */
-async function newLoggedOutContext (browser) {
+async function newLoggedOutContext (browser, contextOptions = {}) {
   const context = await browser.newContext({
     baseURL: e2eBaseUrl(),
-    storageState: { cookies: [], origins: [] }
+    storageState: { cookies: [], origins: [] },
+    ...contextOptions
   })
   const page = await context.newPage()
   return { context, page }
@@ -115,7 +116,7 @@ test.describe('Batch E: post detail & dual-column', () => {
 })
 
 /**
- * Post detail close (X): `getPostDetailCloseDestination` + `PostDetail` / `PostDialog`.
+ * Isolated `/post/:id` close: `getPostDetailCloseDestination` via ViewHeader back (no in-card X).
  *
  * Scenarios (seeded data):
  * 1. Single group + member → `/groups/e2e-public-group/stream` (post `1`, primary `e2e.user@hylo.test`).
@@ -124,22 +125,33 @@ test.describe('Batch E: post detail & dual-column', () => {
  * 4. Many groups + member of several post groups → `/my/groups` (post `4`, primary user).
  */
 test.describe('post detail close navigation', () => {
+  const mobileViewport = devices['Pixel 5'].viewport
+
+  async function prepareMobilePage (page) {
+    await page.setViewportSize(mobileViewport)
+  }
+
+  async function closeIsolatedPostDetail (page) {
+    await page.locator('header').getByRole('button').first().click()
+  }
+
   test('single group + member: /post/:id close → group stream', async ({ page }) => {
+    await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ID}`)
     await waitPastRootSessionLoading(page)
     await expectSeededPostVisible(page)
-    await page.getByTestId('post-detail-close').click()
+    await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
   })
 
   test('many groups + no memberships + public: close → /public/stream', async ({ browser }) => {
-    const { context, page } = await newLoggedOutContext(browser)
+    const { context, page } = await newLoggedOutContext(browser, devices['Pixel 5'])
     try {
       await loginOnPage(page, E2E_NOGROUPS_EMAIL)
       await page.goto(`/post/${E2E_POST_MULTI_PUBLIC}`)
       await waitPastRootSessionLoading(page)
       await expect(page.getByText(/E2E Multi Public Post/i).first()).toBeVisible(uiTimeout)
-      await page.getByTestId('post-detail-close').click()
+      await closeIsolatedPostDetail(page)
       await expect(page).toHaveURL(/\/public\/stream/, navTimeout)
     } finally {
       await context.close()
@@ -147,18 +159,20 @@ test.describe('post detail close navigation', () => {
   })
 
   test('many groups + member of one post group: close → that group stream', async ({ page }) => {
+    await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ONE_MEMBER_MULTI}`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByText(/E2E One-Member Multi Post/i).first()).toBeVisible(uiTimeout)
-    await page.getByTestId('post-detail-close').click()
+    await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
   })
 
   test('many groups + member of multiple post groups: close → /my/groups', async ({ page }) => {
+    await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_MULTI_MEMBER}`)
     await waitPastRootSessionLoading(page)
     await expect(page.getByText(/E2E Multi Member Post/i).first()).toBeVisible(uiTimeout)
-    await page.getByTestId('post-detail-close').click()
+    await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(/\/my\/groups/, navTimeout)
   })
 })
