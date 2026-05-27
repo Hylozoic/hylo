@@ -261,10 +261,15 @@ export const orderContextWidgetsForContextMenu = (contextWidgets) => {
     }
   })
 
-  // Step 5: Sort parentWidgets and each childWidgets array by order
-  parentWidgets.sort((a, b) => a.order - b.order)
+  // Step 5: Sort parentWidgets and each childWidgets array by order (stable id tie-break for duplicate order)
+  const sortByOrderThenId = (a, b) => {
+    const byOrder = (a.order ?? 0) - (b.order ?? 0)
+    if (byOrder !== 0) return byOrder
+    return Number(a.id) - Number(b.id)
+  }
+  parentWidgets.sort(sortByOrderThenId)
   parentWidgets.forEach(parent => {
-    parent.childWidgets.sort((a, b) => a.order - b.order)
+    parent.childWidgets.sort(sortByOrderThenId)
   })
 
   // Return the sorted parentWidgets with nested childWidgets
