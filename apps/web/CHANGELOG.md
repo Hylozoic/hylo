@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.8] - 2026-05-27
+
+### Added
+- Add group join date to the member export CSV
+
+### Changed
+- Show post type and icon in view header when viewing standalone post route
+- Remove X to close button when viewing a standalone Post Detail route
+
+### Fixed
+- Mobile: Issue where closing a post open from a chat room would take you to the stream
+- Adding a custom view directly to the bottom of the Context Menu
+- Toggling of Make Public toggle
+- Child post label being on top of post card three dot menu
+
 ## [6.4.7] - 2026-05-20
 
 ### Added
