@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Saving custom views no longer shuffles the group context menu when multiple menu rows share the same `order` value; custom view settings list stays sorted by id and no longer rewrites `order` on save.
+
 ## [6.4.8] - 2026-05-27
 
 ### Added
