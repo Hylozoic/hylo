@@ -138,6 +138,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.whereNotNull('order')
           }
           q.orderBy('order', 'asc')
+          q.orderBy('id', 'asc')
         })
       }
     },
@@ -649,7 +650,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
         { contextWidgets: { querySet: true } },
-        { customViews: { querySet: true } },
+        {
+          customViews: {
+            querySet: true,
+            filter: relation => relation.query(q => {
+              q.orderBy('id', 'asc')
+            })
+          }
+        },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
         { groupRoles: { querySet: true } },
