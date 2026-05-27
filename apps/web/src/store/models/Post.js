@@ -34,6 +34,22 @@ export const POST_COMPLETION_ACTIONS = [
   'uploadFile'
 ]
 
+/** Icon name for `components/Icon` from a post `type` string. */
+export function getPostTypeIcon (type) {
+  const typeIconMap = {
+    chat: 'Messages',
+    offer: 'Offer',
+    request: 'HandRaised',
+    resource: 'Resource',
+    project: 'Project',
+    proposal: 'Proposal',
+    event: 'Calendar',
+    post: 'Post',
+    discussion: 'Chat'
+  }
+  return typeIconMap[type] || 'Post'
+}
+
 export class PostFollower extends Model {}
 PostFollower.modelName = 'PostFollower'
 PostFollower.fields = {
