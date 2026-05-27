@@ -6,11 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.3] - 2026-05-27
+
 ### Added
-- Member CSV export includes a `joined_at` column (membership `created_at` in the exported group).
+- Member CSV export includes a `joined_at` column which has the date time of when the member joined the group.
 
 ### Fixed
-- Deterministic ordering for `contextWidgets` (`order`, then `id`); `customViews` lists and `updateGroupSettings` merge match rows by id instead of array position.
+- Weird reordering of custom views when editing
 
 ## [6.4.2] - 2026-05-20
 
