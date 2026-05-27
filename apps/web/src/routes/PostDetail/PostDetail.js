@@ -108,7 +108,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
-  const useSmartPostClose = shouldUseSmartPostClose(view)
+  const useSmartPostClose = shouldUseSmartPostClose(view) && !inPostDialog
   useEffect(() => {
     if (isIsolatedPostView) {
       setHeaderDetails({
