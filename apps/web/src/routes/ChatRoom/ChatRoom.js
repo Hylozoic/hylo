@@ -179,6 +179,7 @@ export default function ChatRoom (props) {
 
   const fetchPostsPastParams = useMemo(() => ({
     childPostInclusion: 'no',
+    includePostGroups: false,
     context,
     cursor: postIdToStartAt ? parseInt(postIdToStartAt) + 1 : parseInt(topicFollow?.lastReadPostId) + 1,
     filter: 'chat',
@@ -192,6 +193,7 @@ export default function ChatRoom (props) {
 
   const fetchPostsFutureParams = useMemo(() => ({
     childPostInclusion: 'no',
+    includePostGroups: false,
     context,
     cursor: postIdToStartAt || topicFollow?.lastReadPostId,
     filter: 'chat',

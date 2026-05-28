@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.9] - 2026-05-27
+
+### Fixed
+- Don't show child post label incorrectly on all Stream posts
+- Mobile: Notification URLs should always go to the right place
+
 ## [6.4.8] - 2026-05-27
 
 ### Added
