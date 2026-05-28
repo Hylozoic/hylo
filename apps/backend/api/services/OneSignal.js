@@ -30,12 +30,12 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // Use HTTPS universal links so all app versions handle the URL correctly without custom-scheme
-  // parsing. HTTPS is intercepted by iOS/Android as a universal link when associated domains are
-  // configured, and falls back gracefully to the web app in a browser if the app isn't installed.
-  // IN LOCAL DEV: set path manually, e.g.: notification.app_url = 'https://www.hylo.com/groups/heart-orchard/post/78041'
-  const pushHost = process.env.DOMAIN || 'www.hylo.com'
-  if (path) notification.app_url = `https://${pushHost}${path}`
+  // Use the hyloapp:// custom scheme so iOS/Android always open the app directly.
+  // HTTPS universal links are NOT triggered by programmatic UIApplication.openURL() calls
+  // (which is how OneSignal opens notification taps) — iOS just opens Safari instead.
+  // Custom schemes bypass this and always route to the registered app.
+  // IN LOCAL DEV: set manually, e.g.: notification.app_url = 'hyloapp://groups/heart-orchard/post/78041'
+  if (path) notification.app_url = 'hyloapp:/' + path
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'
