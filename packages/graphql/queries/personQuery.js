@@ -10,6 +10,7 @@ export default gql`
       bio
       contactPhone
       contactEmail
+      email
       twitterName
       linkedinUrl
       facebookUrl

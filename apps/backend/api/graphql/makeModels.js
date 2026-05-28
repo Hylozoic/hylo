@@ -328,7 +328,20 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         completedAt: p => p.pivot && p.pivot.get('completed_at'), // When loading through a track this is when they completed the track
         enrolledAt: p => p.pivot && p.pivot.get('enrolled_at'), // When loading through a track this is when they were enrolled in the track
-        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null)
+        messageThreadId: p => p.getMessageThreadWith(userId).then(post => post ? post.id : null),
+        // Only visible to stewards of groups with collectMemberEmails enabled that also have this person as a member
+        email: async (p) => {
+          if (!userId) return null
+          const row = await bookshelf.knex('groups_users as gu1')
+            .join('groups_users as gu2', 'gu1.group_id', 'gu2.group_id')
+            .join('groups', 'groups.id', 'gu1.group_id')
+            .where('gu1.user_id', userId)
+            .where('gu1.role', 1) // moderator role
+            .where('gu2.user_id', p.id)
+            .whereRaw("(groups.settings->>'collectMemberEmails')::boolean = true")
+            .first()
+          return row ? p.get('email') : null
+        }
       },
       relations: [
         'memberships',

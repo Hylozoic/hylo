@@ -10,6 +10,7 @@ export const groupWelcomeQuery = `
         allowGroupInvites
         askGroupToGroupJoinQuestions
         askJoinQuestions
+        collectMemberEmails
         hideExtensionData
         locationDisplayPrecision
         publicMemberDirectory

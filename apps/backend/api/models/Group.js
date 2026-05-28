@@ -792,8 +792,16 @@ module.exports = bookshelf.Model.extend(merge({
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
 
+    const prevSettings = this.get('settings') || {}
+
     if (attributes.settings) {
-      saneAttrs.settings = merge({}, this.get('settings'), attributes.settings)
+      saneAttrs.settings = merge({}, prevSettings, attributes.settings)
+
+      // When collectMemberEmails is turned on, bump agreementsLastUpdatedAt so existing
+      // members are prompted to acknowledge the email sharing policy
+      if (attributes.settings.collectMemberEmails && !prevSettings.collectMemberEmails) {
+        saneAttrs.settings.agreements_last_updated_at = (new Date()).toISOString()
+      }
     }
 
     // If location_id is explicitly set to something empty then set it to null
@@ -949,6 +957,18 @@ module.exports = bookshelf.Model.extend(merge({
         // Hide or show it based on the setting
         await welcomeWidget.save({ visibility: changes.settings.show_welcome_page ? 'all' : 'none' }, { transacting })
       }
+
+      // When collectMemberEmails is toggled on, exempt the steward making the change
+      // from the re-agreement prompt (they set it, they already know about it)
+      if (changes.settings?.collectMemberEmails && !prevSettings.collectMemberEmails) {
+        const updatedByUserMembership = await GroupMembership.forPair(updatedByUserId, this.id).fetch({ transacting })
+        if (updatedByUserMembership) {
+          await updatedByUserMembership.save(
+            { settings: { ...updatedByUserMembership.get('settings'), agreementsAcceptedAt: (new Date()).toISOString() } },
+            { transacting }
+          )
+        }
+      }
       await this.save({}, { transacting })
     })
     // If a new location is being passed in but not a new location_id then we geocode on the server
@@ -1034,6 +1054,7 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     if (zapierTriggers && zapierTriggers.length > 0) {
+      const includeEmail = group?.get('settings')?.collectMemberEmails
       for (const trigger of zapierTriggers) {
         await fetch(trigger.get('target_url'), {
           method: 'post',
@@ -1043,6 +1064,7 @@ module.exports = bookshelf.Model.extend(merge({
             bio: m.get('bio'),
             contactEmail: m.get('contact_email'),
             contactPhone: m.get('contact_phone'),
+            ...(includeEmail ? { email: m.get('email') } : {}),
             facebookUrl: m.get('facebook_url'),
             linkedinUrl: m.get('linkedin_url'),
             location: m.get('location'),
