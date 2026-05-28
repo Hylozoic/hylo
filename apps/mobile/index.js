@@ -152,12 +152,15 @@ export default function App () {
       OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
 
       // Handle notification taps (background and cold-start).
-      // Store the launch URL in the linking store so useOpenInitialURL processes it
-      // after auth is confirmed, giving us one reliable navigation path regardless of
-      // whether the OS Linking event fires first or the click handler fires first.
-      // The URL is the same in both cases, so any double-dispatch is idempotent.
+      // Prefer additionalData.path (a bare path like /groups/slug/post/123?commentId=456)
+      // over launchURL because additionalData bypasses iOS's openURL call — the OS never
+      // gets a chance to open Safari. launchURL is kept as a fallback for any notifications
+      // sent by older backend versions that don't include additionalData.
+      // Either way the URL is stored in the linking store and processed by useOpenInitialURL
+      // after auth is confirmed, giving us one reliable navigation path.
       const notificationClickHandler = (event) => {
-        const url = event.notification.launchURL
+        const path = event.notification.additionalData?.path
+        const url = path ? `https://www.hylo.com${path}` : event.notification.launchURL
         Sentry.addBreadcrumb({ category: 'notification', message: 'Notification tapped', data: { url } })
         console.log('📱 OneSignal notification tapped:', url)
         if (url) {

@@ -30,12 +30,17 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // Use the hyloapp:// custom scheme so iOS/Android always open the app directly.
-  // HTTPS universal links are NOT triggered by programmatic UIApplication.openURL() calls
-  // (which is how OneSignal opens notification taps) — iOS just opens Safari instead.
-  // Custom schemes bypass this and always route to the registered app.
-  // IN LOCAL DEV: set manually, e.g.: notification.app_url = 'hyloapp://groups/heart-orchard/post/78041'
-  if (path) notification.app_url = 'hyloapp:/' + path
+
+  if (path) {
+    // Send path in additionalData so the mobile click listener can navigate in-app
+    // without iOS calling openURL (which opens Safari before bouncing back to the app).
+    // app_url with hyloapp:// is kept alongside as a fallback for older app versions
+    // that don't yet have the additionalData click handler — they open the app via
+    // the custom scheme as before. Once old versions are no longer in circulation,
+    // app_url can be removed.
+    notification.data = { path }
+    notification.app_url = 'hyloapp:/' + path
+  }
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'
