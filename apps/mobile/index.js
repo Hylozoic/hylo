@@ -12,6 +12,7 @@ import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
 // import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
+import useLinkingStore from 'navigation/linking/store'
 import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
 // DEPRECATED: Subscription exchange no longer needed - web app handles all real-time updates
@@ -150,11 +151,27 @@ export default function App () {
       }
       OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
 
+      // Handle notification taps (background and cold-start).
+      // Store the launch URL in the linking store so useOpenInitialURL processes it
+      // after auth is confirmed, giving us one reliable navigation path regardless of
+      // whether the OS Linking event fires first or the click handler fires first.
+      // The URL is the same in both cases, so any double-dispatch is idempotent.
+      const notificationClickHandler = (event) => {
+        const url = event.notification.launchURL
+        Sentry.addBreadcrumb({ category: 'notification', message: 'Notification tapped', data: { url } })
+        console.log('📱 OneSignal notification tapped:', url)
+        if (url) {
+          useLinkingStore.getState().setInitialURL(url)
+        }
+      }
+      OneSignal.Notifications.addEventListener('click', notificationClickHandler)
+
       const appStateHandler = AppState.addEventListener('change', handleAppStateChange)
 
       return () => {
         appStateHandler && appStateHandler.remove()
         OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
+        OneSignal.Notifications.removeEventListener('click', notificationClickHandler)
       }
     }
   }, [urqlClient])

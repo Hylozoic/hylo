@@ -30,8 +30,12 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' // IN LOCAL DEV: YOU CAN PUT ANY PRODUCTION LINK HERE, SET THE CORRECT ENV VARIABLES AND IT WILL GENERATE A REAL PUSH NOTIF IF THE USER EXISTS IN PROD AND THE LOCAL DB
-  if (path) notification.app_url = 'hyloapp:/' + path
+  // Use HTTPS universal links so all app versions handle the URL correctly without custom-scheme
+  // parsing. HTTPS is intercepted by iOS/Android as a universal link when associated domains are
+  // configured, and falls back gracefully to the web app in a browser if the app isn't installed.
+  // IN LOCAL DEV: set path manually, e.g.: notification.app_url = 'https://www.hylo.com/groups/heart-orchard/post/78041'
+  const pushHost = process.env.DOMAIN || 'www.hylo.com'
+  if (path) notification.app_url = `https://${pushHost}${path}`
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'
