@@ -70,6 +70,13 @@ const getCustomView = ormCreateSelector(
 
 const dropPostResults = makeDropQueryResults(FETCH_POSTS)
 
+function isChildGroupPost ({ context, groupSlug, post }) {
+  if ([CONTEXT_MY, 'all', 'public'].includes(context)) return false
+  const groupSlugs = post.groups?.map(group => group.slug) || []
+  if (groupSlugs.length === 0) return false
+  return !groupSlugs.includes(groupSlug)
+}
+
 export default function Stream (props) {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -427,9 +434,7 @@ export default function Stream (props) {
 
             {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
 
-            {posts.map(post => {
-              const groupSlugs = post.groups.map(group => group.slug)
-              return (
+            {posts.map(post => (
                 <ViewComponent
                   className={cn({ [styles.cardItem]: viewMode === 'cards' })}
                   routeParams={routeParams}
@@ -439,10 +444,9 @@ export default function Stream (props) {
                   currentGroupId={group && group.id}
                   currentUser={currentUser}
                   querystringParams={querystringParams}
-                  childPost={![CONTEXT_MY, 'all', 'public'].includes(context) && !groupSlugs.includes(groupSlug)}
+                  childPost={isChildGroupPost({ context, groupSlug, post })}
                 />
-              )
-            })}
+              ))}
           </MasonryGrid>
         )}
         {!pending && !customViewLoading && isCalendarViewMode && (

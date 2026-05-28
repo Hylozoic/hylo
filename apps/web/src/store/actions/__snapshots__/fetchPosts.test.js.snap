@@ -16,6 +16,7 @@ Object {
   $isFulfilled: Boolean,
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $slug: String,
   $sortBy: String,
@@ -27,15 +28,9 @@ Object {
     id
     slug
     name
-    locationObject {
-      center {
-        lat
-        lng
-      }
-    }
     avatarUrl
     bannerUrl
-
+    
 posts: viewPosts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -49,6 +44,7 @@ posts: viewPosts(
   isFulfilled: $isFulfilled,
   offset: $offset,
   order: $order,
+  savedBy: $savedBy,
   sortBy: $sortBy,
   search: $search,
   topic: $topic,
@@ -58,63 +54,75 @@ posts: viewPosts(
   hasMore
   total
   items {
-
+    
   id
   announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  createdAt
   clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  timezone
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
   donationsLink
   editedAt
-  projectManagementLink
+  endTime
+  flaggedGroups
+  fulfilledAt
+  isAnonymousVote
+  isPublic
+  linkPreviewFeatured
+  location
   myEventResponse
+  peopleReactedTotal
+  projectManagementLink
+  proposalOutcome
+  proposalStatus
+  quorum
+  savedAt
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  votingMethod
+  attachments {
+    type
+    url
+    position
+    id
+  }
   commenters(first: 3) {
     id
     name
     avatarUrl
   }
-  commentersTotal
-  commentsTotal
+  creator {
+    id
+    name
+    avatarUrl
+  }
+  
+  groups {
+    id
+    name
+    slug
+  }
 
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
   linkPreview {
     description
     id
@@ -122,32 +130,18 @@ posts: viewPosts(
     title
     url
   }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
     }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
   }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
   proposalOptions {
     total
     hasMore
@@ -178,49 +172,6 @@ posts: viewPosts(
       name
     }
   }
-  groups {
-    id
-    name
-    slug
-  }
-  attachments {
-    type
-    url
-    position
-    id
-  }
-  topics {
-    id
-    name
-  }
-  members {
-    total
-    hasMore
-    items {
-      id
-      name
-      avatarUrl
-      bio
-      tagline
-      location
-    }
-  }
-  eventInvitations {
-    total
-    hasMore
-    items {
-      id
-      response
-      person {
-        id
-        name
-        avatarUrl
-        bio
-        tagline
-        location
-      }
-    }
-  }
 
   }
 }
@@ -243,6 +194,7 @@ posts: viewPosts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "savedBy": undefined,
       "search": "gardening",
       "slug": undefined,
       "sortBy": undefined,
@@ -284,13 +236,14 @@ Object {
   $mentionsOf: [ID],
   $offset: Int,
   $order: String,
+  $savedBy: [ID],
   $search: String,
   $sortBy: String,
   $topic: ID,
   $topics: [ID],
   $types: [String]
 ) {
-
+  
 posts(
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -311,6 +264,7 @@ posts(
   context: $context,
   order: $order,
   sortBy: $sortBy,
+  savedBy: $savedBy,
   search: $search,
   topic: $topic,
   topics: $topics,
@@ -319,63 +273,75 @@ posts(
   hasMore
   total
   items {
-
+    
   id
   announcement
-  title
-  details
-  type
-  creator {
-    id
-    name
-    avatarUrl
-    groupRoles {
-      items {
-        id
-        name
-        emoji
-        active
-        groupId
-        responsibilities {
-          items {
-            id
-            title
-            description
-          }
-        }
-      }
-    }
-    membershipCommonRoles {
-      items {
-        id
-        commonRoleId
-        groupId
-        userId
-      }
-    }
-  }
-  createdAt
   clickthrough
-  updatedAt
-  flaggedGroups
-  isAnonymousVote
-  isPublic
-  fulfilledAt
-  startTime
-  endTime
-  timezone
+  commentersTotal
+  commentsTotal
+  createdAt
+  details
   donationsLink
   editedAt
-  projectManagementLink
+  endTime
+  flaggedGroups
+  fulfilledAt
+  isAnonymousVote
+  isPublic
+  linkPreviewFeatured
+  location
   myEventResponse
+  peopleReactedTotal
+  projectManagementLink
+  proposalOutcome
+  proposalStatus
+  quorum
+  savedAt
+  startTime
+  timezone
+  title
+  type
+  updatedAt
+  votingMethod
+  attachments {
+    type
+    url
+    position
+    id
+  }
   commenters(first: 3) {
     id
     name
     avatarUrl
   }
-  commentersTotal
-  commentsTotal
+  creator {
+    id
+    name
+    avatarUrl
+  }
+  
+  groups {
+    id
+    name
+    slug
+  }
 
+  eventInvitations {
+    total
+    hasMore
+    items {
+      id
+      response
+      person {
+        id
+        name
+        avatarUrl
+        bio
+        tagline
+        location
+      }
+    }
+  }
   linkPreview {
     description
     id
@@ -383,32 +349,18 @@ posts(
     title
     url
   }
-  linkPreviewFeatured
-  location
-  locationObject {
-    id
-    addressNumber
-    addressStreet
-    bbox {
-      lat
-      lng
+  members {
+    total
+    hasMore
+    items {
+      id
+      name
+      avatarUrl
+      bio
+      tagline
+      location
     }
-    center {
-      lat
-      lng
-    }
-    city
-    country
-    fullText
-    locality
-    neighborhood
-    region
   }
-  peopleReactedTotal
-  proposalStatus
-  proposalOutcome
-  votingMethod
-  quorum
   proposalOptions {
     total
     hasMore
@@ -439,49 +391,6 @@ posts(
       name
     }
   }
-  groups {
-    id
-    name
-    slug
-  }
-  attachments {
-    type
-    url
-    position
-    id
-  }
-  topics {
-    id
-    name
-  }
-  members {
-    total
-    hasMore
-    items {
-      id
-      name
-      avatarUrl
-      bio
-      tagline
-      location
-    }
-  }
-  eventInvitations {
-    total
-    hasMore
-    items {
-      id
-      response
-      person {
-        id
-        name
-        avatarUrl
-        bio
-        tagline
-        location
-      }
-    }
-  }
 
   }
 }
@@ -503,6 +412,7 @@ posts(
       "mentionsOf": undefined,
       "offset": 20,
       "order": undefined,
+      "savedBy": undefined,
       "search": "graphic design",
       "slug": undefined,
       "sortBy": undefined,
