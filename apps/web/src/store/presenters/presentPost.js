@@ -24,9 +24,11 @@ export default function presentPost (post, groupId) {
       completionResponses: (rawPost ? post.completionResponses?.items || [] : post.completionResponses?.toModelArray() || []),
       editedTimestamp: post.editedAt ? `Edited ${editedAtHumanDate}` : null,
       eventInvitations: (rawPost ? post.eventInvitations?.items || [] : post.eventInvitations.toModelArray()).map(eventInvitation => {
+        const person = rawPost ? eventInvitation.person : eventInvitation.person.ref
         return {
+          eventInvitationId: eventInvitation.id,
           response: eventInvitation.response,
-          ...(rawPost ? eventInvitation.person : eventInvitation.person.ref)
+          ...person
         }
       }),
       exactCreatedTimestamp: DateTimeHelpers.toDateTime(post.createdAt, { locale: getLocaleFromLocalStorage() }).toFormat('D t ZZZZ'),

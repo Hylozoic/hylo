@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useInView } from 'react-cool-inview'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
-import { debounce } from 'lodash/fp'
+import { debounce, uniqBy } from 'lodash/fp'
 import * as Dialog from '@radix-ui/react-dialog'
 import { humanResponse } from '@hylo/presenters/EventInvitationPresenter'
 import Button from 'components/Button'
@@ -67,16 +67,21 @@ const EventInviteDialog = ({
     }
   })
 
+  const invitedPersonIds = useMemo(
+    () => uniqBy('id', eventInvitations).map(ei => ei.id),
+    [eventInvitations]
+  )
+
   const getFilteredInviteSuggestions = () => {
-    return people.filter(person => {
-      return !eventInvitations.map(ei => ei.id).includes(person.id) &&
+    return uniqBy('id', people).filter(person => {
+      return !invitedPersonIds.includes(person.id) &&
       person.name.toLowerCase().includes(searchTerm.toLowerCase())
     })
   }
 
   const submit = () => {
     invitePeopleToEventBound(eventId, invitedIds)
-    onClose()
+    setInvitedIds([])
   }
 
   const filteredInviteSuggestions = getFilteredInviteSuggestions()
@@ -114,11 +119,11 @@ const EventInviteDialog = ({
 
               <div className='font-bold pb-2 mt-6'>{t('Already Invited')}</div>
               <div className={styles.alreadyInvited}>
-                {eventInvitations.map(eventInvitation =>
+                {uniqBy('id', eventInvitations).map(eventInvitation =>
                   <InviteeRow
                     person={eventInvitation}
                     showResponse
-                    key={eventInvitation.id}
+                    key={eventInvitation.eventInvitationId || eventInvitation.id}
                   />)}
               </div>
               <Button
