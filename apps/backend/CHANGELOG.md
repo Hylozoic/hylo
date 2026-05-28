@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.4] - 2026-05-27
+
+### Fixed
+- Mobile: Notification URLs should always go to the right place
+
 ## [6.4.3] - 2026-05-27
 
 ### Added
