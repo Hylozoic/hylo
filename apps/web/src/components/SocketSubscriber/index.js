@@ -1,4 +1,1 @@
-import connector from './SocketSubscriber.connector'
-import component from './SocketSubscriber'
-
-export default connector(component)
+export { default } from './SocketSubscriber'

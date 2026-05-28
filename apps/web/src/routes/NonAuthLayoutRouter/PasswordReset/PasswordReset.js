@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch } from 'react-redux'
 import { Helmet } from 'react-helmet'
 import validator from 'validator'
 import Button from 'components/ui/button'
 import TextInput from 'components/TextInput'
 import { cn } from 'util/index'
+import sendPasswordReset from 'store/actions/sendPasswordReset'
 
-function PasswordReset ({ className, sendPasswordReset }) {
+function PasswordReset ({ className }) {
+  const dispatch = useDispatch()
   const [email, setEmail] = useState('')
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState(false)
@@ -20,7 +23,7 @@ function PasswordReset ({ className, sendPasswordReset }) {
   }, [])
 
   const submit = () => {
-    sendPasswordReset(email)
+    dispatch(sendPasswordReset(email))
       .then(({ error }) => {
         if (error) {
           setError(true)
