@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { View } from 'react-native'
+import { View, ActivityIndicator } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
 import { navigationRef } from 'navigation/linking/helpers'
@@ -33,12 +33,27 @@ export default function RootNavigator () {
     }
   }, [fetching])
 
+  // Failsafe: if meCheckAuthQuery never settles, NavigationContainer never mounts and
+  // RNBootSplash.hide (onReady) never runs — user stays on the native splash forever.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      RNBootSplash.hide({ fade: true })
+    }, 12000)
+    return () => clearTimeout(id)
+  }, [])
+
   // Do not return null on every `fetching` from meCheckAuthQuery (cache-and-network).
   // A background refetch sets fetching=true → this used to unmount the whole
   // NavigationContainer, tear down PrimaryWebView, then remount it (fresh
   // isWebViewLoading) — the RN spinner flash after the web skeleton.
   // Only block the first paint until the first time auth finishes loading.
-  if (fetching && !hasCompletedInitialAuthFetch.current) return null
+  if (fetching && !hasCompletedInitialAuthFetch.current) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: white }}>
+        <ActivityIndicator size='large' />
+      </View>
+    )
+  }
 
   const navigatorProps = {
     screenOptions: {

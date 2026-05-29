@@ -15,6 +15,14 @@ import directives from './directives'
 
 export const GRAPHQL_ENDPOINT_URL = `${apiHost}/noo/graphql`
 
+function assertApiHost (host) {
+  if (!host || typeof host !== 'string' || !/^https?:\/\//.test(host)) {
+    throw new Error(
+      `Invalid API host "${String(host)}". Set API_HOST in the mobile app env (react-native-config) for this build.`
+    )
+  }
+}
+
 export async function fetchGraphqlSchema (endpoint) {
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -33,6 +41,7 @@ export default async function makeUrqlClient ({
   schemaAwareness = false, // Off for now, creates lots of unexpected gaps in the app
   storage: providedStorageAdapter // this is platform dependent, so we need to pass it in
 } = {}) {
+  assertApiHost(apiHost)
   const schema = schemaAwareness && await fetchGraphqlSchema(GRAPHQL_ENDPOINT_URL)
   if (schema && process.env.NODE_ENV === 'development') {
     console.log('URQL Schema Awareness turned on')
@@ -80,15 +89,28 @@ export default async function makeUrqlClient ({
   return client
 }
 
+/**
+ * Creates the URQL client once on mount. Returns { client, initError } so the app can
+ * render a loading UI instead of returning null (which leaves the native boot splash up
+ * forever and never mounts AuthProvider — zero GraphQL requests).
+ */
 export function useMakeUrqlClient (options = {}) {
-  const [urqlClient, setUrqlClient] = useState()
+  const [client, setClient] = useState()
+  const [initError, setInitError] = useState()
 
   useEffect(() => {
-    (async () => {
-      const client = await makeUrqlClient(options)
-      setUrqlClient(client)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const next = await makeUrqlClient(options)
+        if (!cancelled) setClient(next)
+      } catch (err) {
+        console.error('makeUrqlClient failed', err)
+        if (!cancelled) setInitError(err)
+      }
     })()
+    return () => { cancelled = true }
   }, [])
 
-  return urqlClient
+  return { client, initError }
 }

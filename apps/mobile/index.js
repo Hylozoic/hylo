@@ -6,7 +6,7 @@ import { Provider as UrqlProvider } from 'urql'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { makeAsyncStorage } from '@urql/storage-rn'
 import { Provider } from 'react-redux'
-import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
+import { AppRegistry, Platform, AppState, UIManager, View, Text, ActivityIndicator } from 'react-native'
 // DEPRECATED: react-native-background-timer removed - old workaround no longer needed
 // See: https://github.com/facebook/react-native/issues/12981 (from 2017)
 // import Timer from 'react-native-background-timer'
@@ -28,6 +28,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller'
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
+import RNBootSplash from 'react-native-bootsplash'
 // DEPRECATED: Toast only used by deprecated screens
 // import { ToastProvider } from 'components/Toast'
 import './i18n'
@@ -132,7 +133,7 @@ export default function App () {
   // - Auth-related hooks (useLogout, useAuth)
   //
   // DEPRECATED: subscriptionExchange removed - web app handles all real-time updates
-  const urqlClient = useMakeUrqlClient({
+  const { client: urqlClient, initError: urqlInitError } = useMakeUrqlClient({
     // subscriptionExchange: mobileSubscriptionExchange, // No longer needed
     storage
   })
@@ -179,6 +180,22 @@ export default function App () {
     }
   }, [urqlClient])
 
+  // Returning null while URQL initialized used to leave the native splash up forever and
+  // never mount AuthProvider — zero GraphQL requests (no hits on api-staging / staging).
+  useEffect(() => {
+    if (urqlInitError) {
+      RNBootSplash.hide({ fade: true })
+    }
+  }, [urqlInitError])
+
+  useEffect(() => {
+    if (urqlClient || urqlInitError) return
+    const id = setTimeout(() => {
+      RNBootSplash.hide({ fade: true })
+    }, 0)
+    return () => clearTimeout(id)
+  }, [urqlClient, urqlInitError])
+
   const handleAppStateChange = nextAppState => {
     if (appState.match(/inactive|background/) && nextAppState === 'active') {
       OneSignal.Notifications.clearAll()
@@ -186,7 +203,33 @@ export default function App () {
     setAppState(nextAppState)
   }
 
-  if (!urqlClient) return null
+  if (urqlInitError) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' }}>
+          <Text style={{ marginBottom: 12, fontSize: 16, fontWeight: '600' }}>
+            Could not start the app (GraphQL client failed).
+          </Text>
+          <Text selectable style={{ fontSize: 14, color: '#444' }}>
+            {urqlInitError?.message || String(urqlInitError)}
+          </Text>
+          <Text selectable style={{ marginTop: 16, fontSize: 12, color: '#666' }}>
+            API_HOST from env: {String(Config.API_HOST)}
+          </Text>
+        </View>
+      </SafeAreaProvider>
+    )
+  }
+
+  if (!urqlClient) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+          <ActivityIndicator size='large' />
+        </View>
+      </SafeAreaProvider>
+    )
+  }
 
   return (
     <SafeAreaProvider>
