@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react'
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
@@ -6,8 +6,8 @@ import { clearSessionCookie, prepareWebViewCookies, getSessionCookie } from 'uti
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
-/* Should probably just be applied to Hylo Web stylesheet 
-  as what this solves is not necessarily WebView specific, 
+/* Should probably just be applied to Hylo Web stylesheet
+  as what this solves is not necessarily WebView specific,
   but putting here for now to limit possible untested impact
   on Hylo Web generally */
 const baseCustomStyle = `
@@ -43,12 +43,17 @@ const HyloWebView = React.forwardRef(({
   customStyle: providedCustomStyle = '',
   enableScrolling = false,
   mobileAppVersion,
+  onLoadEnd: onLoadEndFromParent,
+  onLoadStart: onLoadStartFromParent,
+  onError: onErrorFromParent,
+  onHttpError: onHttpErrorFromParent,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [cookieJarReady, setCookieJarReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
+  const notifiedParentNoWebLoadRef = useRef(false)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
@@ -95,7 +100,7 @@ const HyloWebView = React.forwardRef(({
     } else {
       setShowSessionRecovery(false)
     }
-    
+
     return () => {
       if (timer) clearTimeout(timer)
     }
@@ -132,16 +137,36 @@ const HyloWebView = React.forwardRef(({
     return () => { cancelled = true }
   }, [])
 
-
-
-  // WebView event handlers
-  const handleLoadStart = useCallback(() => {
+  // WebView event handlers — merge with parent handlers. forwardedProps must NOT override
+  // these: it used to spread after onLoadEnd, so PrimaryWebView's onLoadEnd replaced ours
+  // and setIsLoading(false) never ran; when this component returns null (no WebView yet),
+  // parent onLoadEnd never fires and PrimaryWebView's loading overlay never clears.
+  const handleLoadStart = useCallback((event) => {
     setIsLoading(true)
-  }, [])
+    onLoadStartFromParent?.(event)
+  }, [onLoadStartFromParent])
 
   const handleLoadEnd = useCallback((event) => {
     setIsLoading(false)
-  }, [])
+    onLoadEndFromParent?.(event)
+  }, [onLoadEndFromParent])
+
+  const handleError = useCallback((event) => {
+    onErrorFromParent?.(event)
+  }, [onErrorFromParent])
+
+  const handleHttpError = useCallback((event) => {
+    onHttpErrorFromParent?.(event)
+  }, [onHttpErrorFromParent])
+
+  // No WebView instance means no real loadEnd; tell parent so overlays (e.g. PrimaryWebView) clear.
+  useEffect(() => {
+    if (!cookieJarReady || cookie) return
+    if (notifiedParentNoWebLoadRef.current) return
+    notifiedParentNoWebLoadRef.current = true
+    setIsLoading(false)
+    onLoadEndFromParent?.({ nativeEvent: { syntheticNoWebView: true } })
+  }, [cookieJarReady, cookie, onLoadEndFromParent])
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -153,7 +178,6 @@ const HyloWebView = React.forwardRef(({
 
     messageHandler && messageHandler(parsedMessage)
   }
-
 
   // Wait until the cookie jar is synced (and a URI exists) before loading page JS.
   if (!cookieJarReady || !uri) {
@@ -182,6 +206,8 @@ const HyloWebView = React.forwardRef(({
       hideKeyboardAccessoryView
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
+      onError={handleError}
+      onHttpError={handleHttpError}
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
