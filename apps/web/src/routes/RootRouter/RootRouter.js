@@ -100,6 +100,28 @@ export default function RootRouter () {
     }
   }, [])
 
+  // Mobile WebView: if the first checkLogin missed the cookie jar, retry briefly without ever
+  // signalling native LOGOUT from RootRouter (that path was removed on purpose).
+  useEffect(() => {
+    if (!window.HyloMobileV2 || loading || isAuthorized) return
+
+    let cancelled = false
+    let n = 0
+    const max = 5
+    const tick = async () => {
+      if (cancelled || n >= max) return
+      n++
+      await dispatch(checkLogin())
+    }
+    const id = setInterval(() => { tick() }, 600)
+    tick()
+
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [loading, isAuthorized, dispatch])
+
   if (loading) {
     if (isNeutralRootSessionLoadingPath(pathname)) {
       return <Loading type='fullscreen' />
@@ -116,13 +138,12 @@ export default function RootRouter () {
       </Routes>
     )
   }
-  // Inside the new mobile WebView the native shell owns auth and the login UI, so never show
-  // the web login page here. Critically, do NOT infer logout from !isAuthorized: on cold start
-  // checkLogin can briefly return me:null before the session cookie is synced into the WebView
-  // jar, and signalling native to log out would destroy a valid session. The native app drives
-  // its own auth check, and explicit user logout is sent directly from the nav menu.
+  // Inside the new mobile WebView the native shell owns auth — do not infer native logout from
+  // !isAuthorized (that destroyed valid sessions when checkLogin raced the cookie jar). Never
+  // return null here: that leaves a permanent blank WebView if checkLogin is still me:null.
+  // Show a spinner until a later checkLogin succeeds or the user uses native logout from the menu.
   if (!isAuthorized && window.HyloMobileV2) {
-    return null
+    return <Loading type='fullscreen' />
   }
 
   if (!isAuthorized) {

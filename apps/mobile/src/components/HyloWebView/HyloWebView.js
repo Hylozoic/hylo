@@ -1,9 +1,8 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { clearSessionCookie, prepareWebViewCookies } from 'util/session'
+import { clearSessionCookie, prepareWebViewCookies, getSessionCookie } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
@@ -102,33 +101,36 @@ const HyloWebView = React.forwardRef(({
     }
   }, [cookie, isLoading])
 
-  // Sync + verify the session cookie into the WebView cookie jar BEFORE loading page JS.
-  // The web app's checkLogin uses credentials: 'same-origin' and reads the WebView jar;
-  // if it runs against an empty jar it gets me:null and tells native to log out, which
-  // destroys a valid session. prepareWebViewCookies blocks the load until the jar is
-  // confirmed in sync, so checkLogin always sees the session on cold start.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false
-      const prepareCookies = async () => {
-        try {
-          setCookieJarReady(false)
-          const { cookieStr } = await prepareWebViewCookies()
-          if (cancelled) return
-          setCookie(cookieStr)
-          setCookieJarReady(true)
-        } catch (error) {
-          console.error('Cookie retrieval failed', error)
-          if (cancelled) return
-          setCookie(null)
-          setCookieJarReady(true)
-        }
-      }
-      prepareCookies()
+  // Sync the WebView cookie jar before loading page JS (see prepareWebViewCookies). Use a
+  // mount effect (not useFocusEffect) so a blur/cleanup cannot strand cookieJarReady=false.
+  // Race CookieManager with a timeout so a stuck native bridge cannot block the app forever.
+  useEffect(() => {
+    let cancelled = false
+    const COOKIE_PREP_TIMEOUT_MS = 5000
 
-      return () => { cancelled = true }
-    }, [])
-  )
+    const run = async () => {
+      setCookieJarReady(false)
+      try {
+        const result = await Promise.race([
+          prepareWebViewCookies(),
+          new Promise((_resolve, reject) => {
+            setTimeout(() => reject(new Error('prepareWebViewCookies timeout')), COOKIE_PREP_TIMEOUT_MS)
+          })
+        ])
+        if (cancelled) return
+        setCookie(result.cookieStr ?? null)
+        setCookieJarReady(true)
+      } catch (err) {
+        console.warn('HyloWebView cookie prep failed or timed out:', err?.message || err)
+        if (cancelled) return
+        const fallback = await getSessionCookie()
+        setCookie(fallback)
+        setCookieJarReady(true)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [])
 
 
 
