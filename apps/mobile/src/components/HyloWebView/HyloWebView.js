@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { getSessionCookie, clearSessionCookie, ensureWebViewCookies } from 'util/session'
+import { clearSessionCookie, prepareWebViewCookies } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
@@ -47,6 +47,7 @@ const HyloWebView = React.forwardRef(({
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
+  const [cookieJarReady, setCookieJarReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
@@ -101,28 +102,31 @@ const HyloWebView = React.forwardRef(({
     }
   }, [cookie, isLoading])
 
-  // Clear error state when component re-focuses
+  // Sync + verify the session cookie into the WebView cookie jar BEFORE loading page JS.
+  // The web app's checkLogin uses credentials: 'same-origin' and reads the WebView jar;
+  // if it runs against an empty jar it gets me:null and tells native to log out, which
+  // destroys a valid session. prepareWebViewCookies blocks the load until the jar is
+  // confirmed in sync, so checkLogin always sees the session on cold start.
   useFocusEffect(
     useCallback(() => {
-      const getCookieAsync = async () => {
+      let cancelled = false
+      const prepareCookies = async () => {
         try {
-          const newCookie = await getSessionCookie()
-          // Populate the WebView's native cookie jar BEFORE calling setCookie().
-          // setCookie() makes `cookie` truthy which immediately renders the WebView
-          // and starts loading. If we populate the jar after, there's a race where
-          // the web app mounts and fires XHR calls before the Android CookieManager
-          // has the session cookie, causing a 401 → redirect → ONE visible restart.
-          // sharedCookiesEnabled is iOS-only so this is especially important on Android.
-          if (newCookie) {
-            await ensureWebViewCookies()
-          }
-          setCookie(newCookie)
+          setCookieJarReady(false)
+          const { cookieStr } = await prepareWebViewCookies()
+          if (cancelled) return
+          setCookie(cookieStr)
+          setCookieJarReady(true)
         } catch (error) {
-          // Cookie retrieval failed - will trigger native logout after debounce
           console.error('Cookie retrieval failed', error)
+          if (cancelled) return
+          setCookie(null)
+          setCookieJarReady(true)
         }
       }
-      getCookieAsync()
+      prepareCookies()
+
+      return () => { cancelled = true }
     }, [])
   )
 
@@ -149,10 +153,14 @@ const HyloWebView = React.forwardRef(({
   }
 
 
-  // No session cookie means the native session is out of sync with the WebView.
-  // Trigger logout immediately so native handles navigation to its login screens.
-  // We never want to show a web-side recovery UI inside the mobile app.
-  if (!cookie || !uri) {
+  // Wait until the cookie jar is synced (and a URI exists) before loading page JS.
+  if (!cookieJarReady || !uri) {
+    return null
+  }
+
+  // No session cookie at all means the native session is gone. Trigger logout so native
+  // handles navigation to its login screens. We never show a web-side recovery UI in-app.
+  if (!cookie) {
     if (showSessionRecovery) {
       clearSessionCookie().then(() => logout()).catch(() => logout())
     }

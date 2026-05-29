@@ -63,6 +63,54 @@ export async function ensureWebViewCookies () {
 }
 
 /**
+ * Returns true when every session cookie we expect from AsyncStorage is present in the
+ * WebView's native cookie jar for HYLO_WEB_BASE_URL (read back via CookieManager).
+ */
+export async function areWebViewCookiesSynced () {
+  const cookieStr = await getSessionCookie()
+  if (!cookieStr) return true
+
+  const url = Config.HYLO_WEB_BASE_URL
+  if (!url) return false
+
+  const expected = omitBy(parseCookies(cookieStr), invalidPair)
+  const expectedNames = Object.keys(expected)
+  if (expectedNames.length === 0) return true
+
+  const jar = await CookieManager.get(url, USE_WEBKIT).catch(() => null)
+  if (!jar) return false
+
+  return expectedNames.every(name => {
+    const entry = jar[name]
+    return entry != null && entry.value != null && entry.value !== ''
+  })
+}
+
+/**
+ * Syncs the AsyncStorage session cookie into the WebView jar and verifies it is readable
+ * before the WebView loads page JS. This is the core fix for cold-start session loss:
+ * the web app's checkLogin (credentials: 'same-origin') reads the WebView jar, so if the
+ * jar is empty it gets me:null and tells native to log out, destroying a valid session.
+ *
+ * Returns { cookieStr } — null cookieStr means there is no native session at all.
+ */
+export async function prepareWebViewCookies ({ maxAttempts = 8, delayMs = 50 } = {}) {
+  const cookieStr = await getSessionCookie()
+  if (!cookieStr) return { cookieStr: null }
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await ensureWebViewCookies()
+    if (await areWebViewCookiesSynced()) return { cookieStr }
+    if (attempt < maxAttempts - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+  }
+
+  console.warn('WebView cookie jar did not match AsyncStorage after retries; loading anyway')
+  return { cookieStr }
+}
+
+/**
  * Writes each key-value pair from a parsed cookie object into the WebView's native
  * cookie store for HYLO_WEB_BASE_URL. Called after every setSessionCookie to keep
  * the AsyncStorage cookie and the WebView's jar in sync.
