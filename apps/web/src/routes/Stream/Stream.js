@@ -435,18 +435,18 @@ export default function Stream (props) {
             {!pending && !topicBlockingStreams && !customViewLoading && posts.length === 0 ? <NoPosts message={noPostsMessage} /> : ''}
 
             {posts.map(post => (
-                <ViewComponent
-                  className={cn({ [styles.cardItem]: viewMode === 'cards' })}
-                  routeParams={routeParams}
-                  post={post}
-                  group={group}
-                  key={post.id}
-                  currentGroupId={group && group.id}
-                  currentUser={currentUser}
-                  querystringParams={querystringParams}
-                  childPost={isChildGroupPost({ context, groupSlug, post })}
-                />
-              ))}
+              <ViewComponent
+                className={cn({ [styles.cardItem]: viewMode === 'cards' })}
+                routeParams={routeParams}
+                post={post}
+                group={group}
+                key={post.id}
+                currentGroupId={group && group.id}
+                currentUser={currentUser}
+                querystringParams={querystringParams}
+                childPost={isChildGroupPost({ context, groupSlug, post })}
+              />
+            ))}
           </MasonryGrid>
         )}
         {!pending && !customViewLoading && isCalendarViewMode && (
