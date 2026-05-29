@@ -180,20 +180,15 @@ export default function App () {
     }
   }, [urqlClient])
 
-  // Returning null while URQL initialized used to leave the native splash up forever and
-  // never mount AuthProvider — zero GraphQL requests (no hits on api-staging / staging).
+  // Hide the native boot splash as soon as we have something to show.
+  // The previous approach (setTimeout(hide, 0)) had a race condition: makeUrqlClient
+  // resolves as a microtask (no real async work), which beats setTimeout macrotasks.
+  // React's re-render then cancels the timer via the effect cleanup, so the splash
+  // never hid. This effect fires once urqlClient or urqlInitError is set — whichever
+  // happens first — and unconditionally hides the splash at that point.
   useEffect(() => {
-    if (urqlInitError) {
-      RNBootSplash.hide({ fade: true })
-    }
-  }, [urqlInitError])
-
-  useEffect(() => {
-    if (urqlClient || urqlInitError) return
-    const id = setTimeout(() => {
-      RNBootSplash.hide({ fade: true })
-    }, 0)
-    return () => clearTimeout(id)
+    if (!urqlClient && !urqlInitError) return
+    RNBootSplash.hide({ fade: true })
   }, [urqlClient, urqlInitError])
 
   const handleAppStateChange = nextAppState => {
