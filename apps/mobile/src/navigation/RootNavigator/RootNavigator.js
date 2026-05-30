@@ -3,7 +3,6 @@ import { View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
 import { navigationRef } from 'navigation/linking/helpers'
-import { OneSignal } from 'react-native-onesignal'
 import RNBootSplash from 'react-native-bootsplash'
 import customLinking, {
   AUTH_ROOT_SCREEN_NAME,
@@ -11,7 +10,6 @@ import customLinking, {
 } from 'navigation/linking'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import { isProduction } from 'config'
-import { openURL } from 'hooks/useOpenURL'
 import ModalHeader from 'navigation/headers/ModalHeader'
 import JoinGroup from 'screens/JoinGroup'
 import LoginByTokenHandler from 'screens/LoginByTokenHandler'

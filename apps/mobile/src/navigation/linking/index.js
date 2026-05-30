@@ -58,7 +58,7 @@ export const routingConfig = {
   '/:context(groups)/:groupSlug/join/:accessCode':                        'JoinGroup',
   '/h/use-invitation':                                                    'JoinGroup',
 
-  
+
   // ========================================
   // WEBVIEW CATCH-ALL
   // All other authenticated routes go to PrimaryWebView
@@ -66,11 +66,11 @@ export const routingConfig = {
   // ========================================
   ':path(.*)':                                                            `${AUTH_ROOT_SCREEN_NAME}/Main`,
 
-  /* 
+  /*
     DEPRECATED ROUTES - Commented out but kept for reference
     All these routes now flow through PrimaryWebView (Main screen)
     The web app handles the actual routing and rendering
-    
+
     Previously had 160+ routes mapping to specific native screens like:
     - `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Stream`
     - `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Home Tab/Post Details`
@@ -79,10 +79,10 @@ export const routingConfig = {
     - `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Messages Tab/Thread`
     - `${AUTH_ROOT_SCREEN_NAME}/Drawer/Tabs/Search Tab`
     - etc...
-    
-    All those nested navigators (Drawer → Tabs → Home Tab → Screen) 
+
+    All those nested navigators (Drawer → Tabs → Home Tab → Screen)
     are now replaced by a single PrimaryWebView that loads the web app.
-    
+
     See git history for full list of deprecated routes.
     Last used: 2025-01-26
   */

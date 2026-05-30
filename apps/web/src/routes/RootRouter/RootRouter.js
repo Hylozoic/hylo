@@ -13,8 +13,10 @@ import OAuthLayoutRouter from 'routes/OAuth/OAuthLayoutRouter'
 import PublicLayoutRouter from 'routes/PublicLayoutRouter'
 import PublicGroupDetail from 'routes/PublicLayoutRouter/PublicGroupDetail'
 import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
+import { WebViewMessageTypes } from '@hylo/shared'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
+import { sendMessageToWebView } from 'util/webView'
 
 if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -63,17 +65,24 @@ export default function RootRouter () {
 
       try {
         let action
+        let lastMe
         for (let attempt = 0; attempt < mobileProbeTries; attempt++) {
           action = await dispatch(checkLogin())
-          const me = action?.payload?.data?.me
+          lastMe = action?.payload?.data?.me
           if (debugCheckLogin) {
             const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
-            console.info('[Hylo checkLogin]', `${ms}ms`, { attempt, hasMe: !!me, pathname })
+            console.info('[Hylo checkLogin]', `${ms}ms`, { attempt, hasMe: !!lastMe, pathname })
           }
-          if (me) break
+          if (lastMe) break
           if (attempt < mobileProbeTries - 1 && isMobileWeb) {
             await new Promise(resolve => setTimeout(resolve, mobileProbeDelayMs))
           }
+        }
+        // Native can hold a cookie whose Redis session never got userId (anon session), while
+        // the native shell still shows the main app. After probes, ask native to clear and
+        // show login — same path as user-chosen logout.
+        if (isMobileWeb && !lastMe) {
+          sendMessageToWebView(WebViewMessageTypes.LOGOUT, { reason: 'stale_web_session' })
         }
       } catch (err) {
         if (debugCheckLogin) {
@@ -122,10 +131,9 @@ export default function RootRouter () {
     )
   }
   // Inside the new mobile WebView the native shell owns auth and the login UI, so never show
-  // the web login page here. Critically, do NOT infer logout from !isAuthorized: on cold start
-  // checkLogin can briefly return me:null before the session cookie is synced into the WebView
-  // jar, and signalling native to log out would destroy a valid session. The native app drives
-  // its own auth check, and explicit user logout is sent directly from the nav menu.
+  // the web login page here. Do not infer logout from !isAuthorized on the first paint alone
+  // (cold start cookie race). After CheckLogin retries, if still no me we send LOGOUT from
+  // the effect above so native can clear a broken AsyncStorage session.
   if (!isAuthorized && window.HyloMobileV2) {
     return null
   }

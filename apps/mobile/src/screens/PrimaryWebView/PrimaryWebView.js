@@ -80,7 +80,11 @@ export default function PrimaryWebView() {
     switch (type) {
       case WebViewMessageTypes.LOGOUT:
         // Web app triggers logout, native handles the actual logout
-        console.log('📱 Logout triggered from WebView')
+        if (data?.reason) {
+          console.log('📱 Logout triggered from WebView:', data.reason)
+        } else {
+          console.log('📱 Logout triggered from WebView')
+        }
         logout()
         break
 
