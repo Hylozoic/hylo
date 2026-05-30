@@ -6,7 +6,7 @@ import { devtoolsExchange } from '@urql/devtools'
 // TODO: URQL - Switch to this from isomorphic-fetch on Web as well
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
-import { setSessionCookie } from 'util/session'
+import { setSessionCookie, getSessionCookie } from 'util/session'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -55,8 +55,30 @@ export default async function makeUrqlClient ({
       fetchExchange,
       providedSubscriptionExchange
     ].filter(Boolean), // Filter out undefined/null exchanges (e.g., when subscriptionExchange is not provided)
-    fetch: async (...args) => {
-      const response = await fetch(...args)
+    fetch: async (input, init = {}) => {
+      // Mobile: persist session in AsyncStorage, but cross-fetch does not attach it to API
+      // requests. Without this, the first MeCheckAuthQuery hits the API with no cookie;
+      // Sails issues a new anonymous Set-Cookie, setSessionCookie merges it, and the
+      // stored login session id is replaced — next cold open looks "logged out".
+      let cookieStr
+      try {
+        cookieStr = await getSessionCookie()
+      } catch {
+        cookieStr = undefined
+      }
+      const nextInit = { ...init }
+      if (cookieStr) {
+        const headers = new Headers(init.headers || undefined)
+        if (!headers.has('Cookie')) {
+          headers.set('Cookie', cookieStr)
+        }
+        nextInit.headers = headers
+      }
+      if (nextInit.credentials === undefined) {
+        nextInit.credentials = 'include'
+      }
+
+      const response = await fetch(input, nextInit)
 
       if (response.headers.get('set-cookie')) {
         if (process.env.NODE_ENV === 'development') {
