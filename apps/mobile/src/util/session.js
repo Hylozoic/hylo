@@ -147,6 +147,21 @@ function invalidPair (v, k) {
     ['HttpOnly', 'Expires', 'Max-Age', 'Domain', 'Path', 'Version'].includes(k)
 }
 
+/**
+ * Cookie header for native GraphQL fetch. AsyncStorage holds serializeCookie()
+ * output (URL-encoded pairs); Sails expects decoded name=value; ... in the header.
+ */
+export async function getSessionCookieHeaderForFetch () {
+  const stored = await getSessionCookie()
+  if (!stored) return null
+  const parsed = omitBy(parseCookies(stored), invalidPair)
+  return reduce(parsed, (m, v, k) => {
+    if (isUndefined(k) || isUndefined(v)) return m
+    const segment = k + '=' + v
+    return m ? m + '; ' + segment : segment
+  }, null)
+}
+
 // Clear all AsyncStorage keys except the session cookie
 export async function clearAllExceptSessionCookie () {
   try {
@@ -158,3 +173,4 @@ export async function clearAllExceptSessionCookie () {
     console.warn('Failed to clear cache before restart:', error)
   }
 }
+

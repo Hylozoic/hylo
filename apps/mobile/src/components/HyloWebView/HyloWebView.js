@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { clearSessionCookie, prepareWebViewCookies, getSessionCookie } from 'util/session'
+import { clearSessionCookie, prepareWebViewCookies, getSessionCookie, getSessionCookieHeaderForFetch } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
@@ -122,12 +122,13 @@ const HyloWebView = React.forwardRef(({
           })
         ])
         if (cancelled) return
-        setCookie(cookieStr ?? null)
+        const header = (await getSessionCookieHeaderForFetch()) ?? cookieStr ?? null
+        setCookie(header)
         setCookieJarReady(true)
       } catch (err) {
         console.warn('HyloWebView cookie prep failed:', err?.message || err)
         if (cancelled) return
-        const fallback = await getSessionCookie()
+        const fallback = (await getSessionCookieHeaderForFetch()) ?? await getSessionCookie()
         setCookie(fallback)
         setCookieJarReady(true)
       }

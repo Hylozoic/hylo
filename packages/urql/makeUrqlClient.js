@@ -6,7 +6,7 @@ import { devtoolsExchange } from '@urql/devtools'
 // TODO: URQL - Switch to this from isomorphic-fetch on Web as well
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
-import { setSessionCookie, getSessionCookie } from 'util/session'
+import { setSessionCookie, getSessionCookieHeaderForFetch } from 'util/session'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -60,17 +60,17 @@ export default async function makeUrqlClient ({
       // requests. Without this, the first MeCheckAuthQuery hits the API with no cookie;
       // Sails issues a new anonymous Set-Cookie, setSessionCookie merges it, and the
       // stored login session id is replaced — next cold open looks "logged out".
-      let cookieStr
+      let cookieHeader
       try {
-        cookieStr = await getSessionCookie()
+        cookieHeader = await getSessionCookieHeaderForFetch()
       } catch {
-        cookieStr = undefined
+        cookieHeader = undefined
       }
       const nextInit = { ...init }
-      if (cookieStr) {
+      if (cookieHeader) {
         const headers = new Headers(init.headers || undefined)
         if (!headers.has('Cookie')) {
-          headers.set('Cookie', cookieStr)
+          headers.set('Cookie', cookieHeader)
         }
         nextInit.headers = headers
       }
