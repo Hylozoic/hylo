@@ -74,9 +74,9 @@ export default async function makeUrqlClient ({
         }
         nextInit.headers = headers
       }
-      if (nextInit.credentials === undefined) {
-        nextInit.credentials = 'include'
-      }
+      // Omit credentials so the native HTTP stack does not merge its own Cookie jar with
+      // ours (that produced "name=encoded,name=decoded" and broke Sails session parsing).
+      nextInit.credentials = 'omit'
 
       const response = await fetch(input, nextInit)
 

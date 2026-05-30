@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 import Config from 'react-native-config'
 import CookieManager from '@react-native-cookies/cookies'
-import { isNull, isUndefined, omitBy, reduce } from 'lodash'
+import { isNull, isUndefined, omitBy, reduce, mapValues } from 'lodash'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -18,7 +18,10 @@ export async function setSessionCookie (resp) {
   const newCookies = parseCookies(header)
   const str = await getSessionCookie()
   const oldCookies = parseCookies(str)
-  const merged = omitBy({ ...oldCookies, ...newCookies }, invalidPair)
+  const mergedRaw = omitBy({ ...oldCookies, ...newCookies }, invalidPair)
+  const merged = mapValues(mergedRaw, (v, k) =>
+    typeof v === 'string' ? stripMergedDuplicateCookieAssignment(k, v) : v
+  )
   const cookie = serializeCookie(merged)
   await AsyncStorage.setItem(COOKIE_KEY, cookie)
 
@@ -148,6 +151,18 @@ function invalidPair (v, k) {
 }
 
 /**
+ * AsyncStorage merge bugs or RN fetch merging can produce "name=enc,name=dec" inside one
+ * value. Sails then sees an invalid Cookie header. Keep the last "name=" segment (decoded).
+ */
+function stripMergedDuplicateCookieAssignment (name, value) {
+  if (typeof value !== 'string' || !value.includes(',')) return value
+  const suffix = `,${name}=`
+  const idx = value.lastIndexOf(suffix)
+  if (idx === -1) return value
+  return value.slice(idx + suffix.length)
+}
+
+/**
  * Cookie header for native GraphQL fetch. AsyncStorage holds serializeCookie()
  * output (URL-encoded pairs); Sails expects decoded name=value; ... in the header.
  */
@@ -157,7 +172,8 @@ export async function getSessionCookieHeaderForFetch () {
   const parsed = omitBy(parseCookies(stored), invalidPair)
   return reduce(parsed, (m, v, k) => {
     if (isUndefined(k) || isUndefined(v)) return m
-    const segment = k + '=' + v
+    const clean = stripMergedDuplicateCookieAssignment(k, v)
+    const segment = k + '=' + clean
     return m ? m + '; ' + segment : segment
   }, null)
 }
@@ -173,4 +189,3 @@ export async function clearAllExceptSessionCookie () {
     console.warn('Failed to clear cache before restart:', error)
   }
 }
-
