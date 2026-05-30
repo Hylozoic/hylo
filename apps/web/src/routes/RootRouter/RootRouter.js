@@ -57,19 +57,24 @@ export default function RootRouter () {
     (async function () {
       setLoading(true)
       const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
+      const isMobileWeb = typeof window !== 'undefined' && window.HyloMobileV2
+      const mobileProbeTries = isMobileWeb ? 6 : 1
+      const mobileProbeDelayMs = 120
+
       try {
-        const action = await dispatch(checkLogin())
-        // If the server returns me: null the session/cookie is dead. Clear the
-        // persisted ORM (which may still have a stale Me row) so the app does not
-        // briefly appear authenticated on the next load before checkLogin resolves.
-        const me = action?.payload?.data?.me
-        if (debugCheckLogin) {
-          const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
-          console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
+        let action
+        for (let attempt = 0; attempt < mobileProbeTries; attempt++) {
+          action = await dispatch(checkLogin())
+          const me = action?.payload?.data?.me
+          if (debugCheckLogin) {
+            const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+            console.info('[Hylo checkLogin]', `${ms}ms`, { attempt, hasMe: !!me, pathname })
+          }
+          if (me) break
+          if (attempt < mobileProbeTries - 1 && isMobileWeb) {
+            await new Promise(resolve => setTimeout(resolve, mobileProbeDelayMs))
+          }
         }
-        // Explicit `me: null` only — `undefined` has cleared valid sessions when the payload shape was wrong.
-        // XXXX: This breaks logging in production only. Why???
-        // if (me === null) dispatch(logout())
       } catch (err) {
         if (debugCheckLogin) {
           const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)

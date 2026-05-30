@@ -63,50 +63,19 @@ export async function ensureWebViewCookies () {
 }
 
 /**
- * Returns true when every session cookie we expect from AsyncStorage is present in the
- * WebView's native cookie jar for HYLO_WEB_BASE_URL (read back via CookieManager).
- */
-export async function areWebViewCookiesSynced () {
-  const cookieStr = await getSessionCookie()
-  if (!cookieStr) return true
-
-  const url = Config.HYLO_WEB_BASE_URL
-  if (!url) return false
-
-  const expected = omitBy(parseCookies(cookieStr), invalidPair)
-  const expectedNames = Object.keys(expected)
-  if (expectedNames.length === 0) return true
-
-  const jar = await CookieManager.get(url, USE_WEBKIT).catch(() => null)
-  if (!jar) return false
-
-  return expectedNames.every(name => {
-    const entry = jar[name]
-    return entry != null && entry.value != null && entry.value !== ''
-  })
-}
-
-/**
- * Syncs the AsyncStorage session cookie into the WebView jar and verifies it is readable
- * before the WebView loads page JS. This is the core fix for cold-start session loss:
- * the web app's checkLogin (credentials: 'same-origin') reads the WebView jar, so if the
- * jar is empty it gets me:null and tells native to log out, destroying a valid session.
+ * Syncs AsyncStorage session cookies into the WebView jar before page JS runs.
+ * Does not use CookieManager.get to verify: iOS filtering can disagree with what
+ * WKWebView actually sends on fetch. A short delay lets setCookie completions settle.
  *
  * Returns { cookieStr } — null cookieStr means there is no native session at all.
  */
-export async function prepareWebViewCookies ({ maxAttempts = 8, delayMs = 50 } = {}) {
+export async function prepareWebViewCookies () {
   const cookieStr = await getSessionCookie()
   if (!cookieStr) return { cookieStr: null }
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await ensureWebViewCookies()
-    if (await areWebViewCookiesSynced()) return { cookieStr }
-    if (attempt < maxAttempts - 1) {
-      await new Promise(resolve => setTimeout(resolve, delayMs))
-    }
-  }
+  await ensureWebViewCookies()
+  await new Promise(resolve => setTimeout(resolve, 100))
 
-  console.warn('WebView cookie jar did not match AsyncStorage after retries; loading anyway')
   return { cookieStr }
 }
 
@@ -119,11 +88,18 @@ async function syncCookiesToWebView (cookieObj) {
   const url = Config.HYLO_WEB_BASE_URL
   if (!url || !cookieObj) return
 
-  await Promise.all(
-    Object.entries(cookieObj).map(([name, value]) =>
-      CookieManager.set(url, { name, value, path: '/' }, USE_WEBKIT)
-    )
-  )
+  const secure = url.startsWith('https:')
+  const baseProps = { path: '/', ...(secure ? { secure: true } : {}) }
+
+  // One failing CookieManager.set (e.g. Heroku affinity shape vs host) must not skip
+  // the session cookie — Promise.all would reject the whole sync.
+  for (const [name, value] of Object.entries(cookieObj)) {
+    try {
+      await CookieManager.set(url, { name, value, ...baseProps }, USE_WEBKIT)
+    } catch (err) {
+      console.warn(`Failed to set WebView cookie ${name}:`, err?.message || err)
+    }
+  }
 }
 
 // this is a bag of hacks that probably only works with our current backend.

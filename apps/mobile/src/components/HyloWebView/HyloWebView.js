@@ -1,14 +1,13 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { clearSessionCookie, prepareWebViewCookies } from 'util/session'
+import { clearSessionCookie, prepareWebViewCookies, getSessionCookie } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
 
-/* Should probably just be applied to Hylo Web stylesheet 
-  as what this solves is not necessarily WebView specific, 
+/* Should probably just be applied to Hylo Web stylesheet
+  as what this solves is not necessarily WebView specific,
   but putting here for now to limit possible untested impact
   on Hylo Web generally */
 const baseCustomStyle = `
@@ -44,12 +43,17 @@ const HyloWebView = React.forwardRef(({
   customStyle: providedCustomStyle = '',
   enableScrolling = false,
   mobileAppVersion,
+  onLoadEnd: onLoadEndFromParent,
+  onLoadStart: onLoadStartFromParent,
+  onError: onErrorFromParent,
+  onHttpError: onHttpErrorFromParent,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
   const [cookieJarReady, setCookieJarReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showSessionRecovery, setShowSessionRecovery] = useState(false)
+  const notifiedParentNoWebLoadRef = useRef(false)
   const { postId, path: routePath, originalLinkingPath } = useRouteParams()
   const path = pathProp || routePath || originalLinkingPath || ''
   const uri = (source?.uri || `${Config.HYLO_WEB_BASE_URL}${path}`) + (postId ? `?postId=${postId}` : '')
@@ -96,50 +100,68 @@ const HyloWebView = React.forwardRef(({
     } else {
       setShowSessionRecovery(false)
     }
-    
+
     return () => {
       if (timer) clearTimeout(timer)
     }
   }, [cookie, isLoading])
 
-  // Sync + verify the session cookie into the WebView cookie jar BEFORE loading page JS.
-  // The web app's checkLogin uses credentials: 'same-origin' and reads the WebView jar;
-  // if it runs against an empty jar it gets me:null and tells native to log out, which
-  // destroys a valid session. prepareWebViewCookies blocks the load until the jar is
-  // confirmed in sync, so checkLogin always sees the session on cold start.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false
-      const prepareCookies = async () => {
-        try {
-          setCookieJarReady(false)
-          const { cookieStr } = await prepareWebViewCookies()
-          if (cancelled) return
-          setCookie(cookieStr)
-          setCookieJarReady(true)
-        } catch (error) {
-          console.error('Cookie retrieval failed', error)
-          if (cancelled) return
-          setCookie(null)
-          setCookieJarReady(true)
-        }
+  // Sync WebView cookie jar before first navigation. useEffect (not useFocusEffect)
+  // so blur cleanup cannot strand cookieJarReady=false on cold start.
+  useEffect(() => {
+    let cancelled = false
+    const PREP_MS = 8000
+
+    const run = async () => {
+      setCookieJarReady(false)
+      try {
+        const { cookieStr } = await Promise.race([
+          prepareWebViewCookies(),
+          new Promise((_resolve, reject) => {
+            setTimeout(() => reject(new Error('prepareWebViewCookies timeout')), PREP_MS)
+          })
+        ])
+        if (cancelled) return
+        setCookie(cookieStr ?? null)
+        setCookieJarReady(true)
+      } catch (err) {
+        console.warn('HyloWebView cookie prep failed:', err?.message || err)
+        if (cancelled) return
+        const fallback = await getSessionCookie()
+        setCookie(fallback)
+        setCookieJarReady(true)
       }
-      prepareCookies()
-
-      return () => { cancelled = true }
-    }, [])
-  )
-
-
-
-  // WebView event handlers
-  const handleLoadStart = useCallback(() => {
-    setIsLoading(true)
+    }
+    run()
+    return () => { cancelled = true }
   }, [])
+
+  const handleLoadStart = useCallback((event) => {
+    setIsLoading(true)
+    onLoadStartFromParent?.(event)
+  }, [onLoadStartFromParent])
 
   const handleLoadEnd = useCallback((event) => {
     setIsLoading(false)
-  }, [])
+    onLoadEndFromParent?.(event)
+  }, [onLoadEndFromParent])
+
+  const handleError = useCallback((event) => {
+    onErrorFromParent?.(event)
+  }, [onErrorFromParent])
+
+  const handleHttpError = useCallback((event) => {
+    onHttpErrorFromParent?.(event)
+  }, [onHttpErrorFromParent])
+
+  // No WebView → no onLoadEnd; clear PrimaryWebView overlay when prep finishes with no session.
+  useEffect(() => {
+    if (!cookieJarReady || cookie) return
+    if (notifiedParentNoWebLoadRef.current) return
+    notifiedParentNoWebLoadRef.current = true
+    setIsLoading(false)
+    onLoadEndFromParent?.({ nativeEvent: { syntheticNoWebView: true } })
+  }, [cookieJarReady, cookie, onLoadEndFromParent])
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -151,7 +173,6 @@ const HyloWebView = React.forwardRef(({
 
     messageHandler && messageHandler(parsedMessage)
   }
-
 
   // Wait until the cookie jar is synced (and a URI exists) before loading page JS.
   if (!cookieJarReady || !uri) {
@@ -180,6 +201,8 @@ const HyloWebView = React.forwardRef(({
       hideKeyboardAccessoryView
       onLoadStart={handleLoadStart}
       onLoadEnd={handleLoadEnd}
+      onError={handleError}
+      onHttpError={handleHttpError}
       originWhitelist={[
         'https://www.hylo*',
         'https://staging.hylo*',
