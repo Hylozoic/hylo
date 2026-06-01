@@ -799,7 +799,7 @@ function SpecialTopElementRenderer ({ widget }) {
             title: t('Add Description'),
             url: settingsUrl
           })}
-          {!group.locationObject && listItemComponent({
+          {!group.locationObject && !group.location && listItemComponent({
             title: t('Add Location'),
             url: settingsUrl
           })}
