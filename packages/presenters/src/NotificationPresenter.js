@@ -234,16 +234,17 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     // this line can be removed.
     get('0.slug', post?.groups?.toRefArray())
 
+  const homeRoute = get('homeRoute', group)
   const otherGroupSlug = get('slug', otherGroup)
   post = presentPost(post)
 
   switch (action) {
     case ACTION_ANNOUNCEMENT:
-      return primaryPostUrl(post, { groupSlug })
+      return primaryPostUrl(post, { groupSlug, homeRoute })
     case ACTION_APPROVED_JOIN_REQUEST:
       return groupUrl(groupSlug)
     case ACTION_EVENT_INVITATION:
-      return primaryPostUrl(post, { groupSlug })
+      return primaryPostUrl(post, { groupSlug, homeRoute })
     case ACTION_GROUP_CHILD_GROUP_INVITE:
       return groupUrl(groupSlug, 'settings/relationships')
     case ACTION_GROUP_CHILD_GROUP_INVITE_ACCEPTED:
@@ -260,16 +261,16 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
       return groupUrl(groupSlug, 'settings/requests')
     case ACTION_NEW_COMMENT:
     case ACTION_COMMENT_MENTION:
-      return primaryPostUrl(post, { commentId: comment.id, groupSlug })
+      return primaryPostUrl(post, { commentId: comment.id, groupSlug, homeRoute })
     case ACTION_CHAT:
     case ACTION_NEW_POST:
     case ACTION_MENTION: {
-      return primaryPostUrl(post, { groupSlug })
+      return primaryPostUrl(post, { groupSlug, homeRoute })
     }
     case ACTION_MEMBER_JOINED_GROUP:
       return personUrl(actor.id, groupSlug)
     case ACTION_TAG: {
-      return primaryPostUrl(post, { groupSlug })
+      return primaryPostUrl(post, { groupSlug, homeRoute })
     }
     case ACTION_TRACK_COMPLETED:
     case ACTION_TRACK_ENROLLMENT:

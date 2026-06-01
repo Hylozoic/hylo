@@ -183,19 +183,27 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   let result = baseUrl(opts)
   const postId = get('id', post) || post
   if (post.type === 'chat') {
-    // If topicName passed in we are opening the post from a specific chat room, otherwise if a chat then always open its first topic chat room
+    // Chat posts always open in their specific chat room
     const topicName = post.topics[0].name
     if (opts.commentId) {
-      // When there is a commentId we pass the postId in the route params so that the post is opened when the room is loaded
+      // commentId in route params causes the post to open when the room loads
       result = `${result}/chat/${topicName}/post/${postId}?commentId=${opts.commentId}`
     } else {
-      // When there is no commentId, we pass the postId in the querystring so that the post is highlighted but not opened when the room is loaded
+      // postId as querystring highlights the message without forcing it open
       result = `${result}/chat/${topicName}?postId=${postId}`
     }
   } else {
-    result = `${result}/post/${postId}`
-    if (opts.commentId) {
-      result = `${result}?commentId=${opts.commentId}`
+    // Non-chat posts open within the group's home view so there is context.
+    // homeRoute is a path like '/stream', '/map', or '/chat/general'.
+    // If the home is a chat view the post is surfaced via ?postId so the UI
+    // can show it inline; otherwise it is appended as a /post/:id segment.
+    const homeRoute = opts.homeRoute || '/stream'
+    if (homeRoute.startsWith('/chat/')) {
+      result = `${result}${homeRoute}?postId=${postId}`
+      if (opts.commentId) result = `${result}&commentId=${opts.commentId}`
+    } else {
+      result = `${result}${homeRoute}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     }
   }
   return addQuerystringToPath(result, querystringParams)
