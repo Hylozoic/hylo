@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.10] - 2026-06-01
+
+### Changed
+- In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.
+
+### Fixed
+- Tracking whether group location is set in the Group Setup widget in the group menu
+- Make sure post notifications show the post over the correct home view
+- Using a join link when already a member takes you to correct home view
+
 ## [6.4.9] - 2026-05-27
 
 ### Fixed

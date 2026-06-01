@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.5] - 2026-06-01
+
+### Fixed
+- Make sure post notifications show the post over the correct home view
+
 ## [6.4.4] - 2026-05-27
 
 ### Fixed
