@@ -186,10 +186,17 @@ module.exports = {
 
         const isGroupObject = group && typeof group.get === 'function'
         const homeRoute = isGroupObject ? (group.get('home_route') || '/stream') : '/stream'
-        if (homeRoute.startsWith('/chat/')) {
-          return url(`/groups/${groupSlug}${homeRoute}?postId=${post.id}&${extraParams}`)
+        if (homeRoute.startsWith('/chat/') && firstTopic) {
+          // Non-chat post shown in a chat home: open as a modal above the chat
+          // using /post/:id so you can see the full post and comments.
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
         }
-        return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+        if (!homeRoute.startsWith('/chat/')) {
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+        }
+        // Chat home but post has no topics (e.g. Zapier-created): fall back to
+        // standalone post URL so the UI can still open it.
+        return url(`/groups/${groupSlug}/post/${getModelId(post)}?${extraParams}`)
       }
       return url(`${groupUrl}/post/${getModelId(post)}?${extraParams}`)
     },
