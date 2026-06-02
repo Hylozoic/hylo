@@ -195,12 +195,22 @@ export function primaryPostUrl (post, opts = {}, querystringParams = {}) {
   } else {
     // Non-chat posts open within the group's home view so there is context.
     // homeRoute is a path like '/stream', '/map', or '/chat/general'.
-    // If the home is a chat view the post is surfaced via ?postId so the UI
-    // can show it inline; otherwise it is appended as a /post/:id segment.
+    // Non-chat posts always use the /post/:id path format (modal overlay) even
+    // when the home is a chat view, so you can see the full post and comments
+    // (?postId= is reserved for chat-type posts only).
+    // If the home is a chat view but the post has no topics (e.g. Zapier-
+    // created posts), fall back to the standalone /post/:id URL so the UI
+    // can still open the post even though it isn't in any chat room.
     const homeRoute = opts.homeRoute || '/stream'
-    if (homeRoute.startsWith('/chat/')) {
-      result = `${result}${homeRoute}?postId=${postId}`
-      if (opts.commentId) result = `${result}&commentId=${opts.commentId}`
+    const firstTopic = post.topics?.[0]?.name
+    if (homeRoute.startsWith('/chat/') && firstTopic) {
+      // Non-chat post shown in a chat home: open as a modal above the chat
+      result = `${result}${homeRoute}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
+    } else if (homeRoute.startsWith('/chat/')) {
+      // Chat home but no topics: fall back to standalone post URL
+      result = `${result}/post/${postId}`
+      if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
     } else {
       result = `${result}${homeRoute}/post/${postId}`
       if (opts.commentId) result = `${result}?commentId=${opts.commentId}`
