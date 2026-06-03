@@ -120,6 +120,7 @@ export default gql`
         settings {
           showSuggestedSkills
           showWelcomePage
+          layout
         }
         slug
         childGroups {

@@ -51,6 +51,7 @@ query FetchGroupsMenuData (
       settings {
         allowGroupInvites
         showWelcomePage
+        layout
       }
       customViews {
         items {
