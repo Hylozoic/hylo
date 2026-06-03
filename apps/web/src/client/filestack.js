@@ -1,7 +1,8 @@
 import { filestackKey, isTest } from 'config/index'
 import * as Filestack from 'filestack-js'
 
-const filestack = Filestack.init(isTest ? 'dummykey' : filestackKey)
+// Dev / CI often omit VITE_FILESTACK_API_KEY; Filestack.init(undefined) throws and breaks the whole tree (e.g. Playwright /login).
+const filestack = Filestack.init(isTest || !filestackKey ? 'dummykey' : filestackKey)
 
 const FILESTACK_FROM_SOURCES = {
   csv: [

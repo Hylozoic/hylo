@@ -3,10 +3,9 @@ import { URL } from 'url'
 import { compact, some, sum, uniq } from 'lodash/fp'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { mapLocaleToSendWithUS } from '../../../lib/util'
+import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
 import RedisClient from '../../services/RedisClient'
-import { en } from '../../../lib/i18n/en'
-import { es } from '../../../lib/i18n/es'
-const locales = { en, es }
+import { getLocaleStrings } from '../../../lib/i18n/locales'
 const MAX_PUSH_NOTIFICATION_LENGTH = 140
 
 export async function notifyAboutMessage ({ commentId }) {
@@ -65,8 +64,6 @@ export const sendDigests = async () => {
   const numSends = await Promise.all(posts.map(async post => {
     const { comments } = post.relations
     if (comments.length === 0) return []
-
-    const firstGroup = post.relations.groups.first()
 
     const followers = await post.followers().fetch()
 
@@ -133,6 +130,8 @@ export const sendDigests = async () => {
       } else {
         if (!(await user.enabledNotification(Notification.TYPE.Comment, Notification.MEDIUM.Email))) return
 
+        const routeGroup = await post.groupForFrontendRouteForUser(user.id)
+
         const commentData = filtered.map(presentComment)
         const hasMention = ({ text }) =>
           RichText.getUserMentions(text).includes(user.id)
@@ -140,7 +139,7 @@ export const sendDigests = async () => {
         const clickthroughParams = '?' + new URLSearchParams({
           ctt: 'comment_digest_email',
           cti: user.id,
-          ctcn: firstGroup?.get('name')
+          ctcn: routeGroup?.get('name')
         }).toString()
 
         return Email.sendCommentDigest({
@@ -152,7 +151,7 @@ export const sendDigests = async () => {
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
             post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,
-            thread_url: Frontend.Route.comment({ comment: filtered[0], group: firstGroup, post }) + clickthroughParams,
+            thread_url: Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }) + clickthroughParams,
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'
@@ -160,7 +159,7 @@ export const sendDigests = async () => {
           },
           sender: {
             reply_to: Email.postReplyAddress(post.id, user.id),
-            name: firstGroup ? `${firstGroup.get('name')} (via Hylo)` : locales[locale].theTeamAtHylo
+            name: routeGroup ? senderNameViaHylo(routeGroup.get('name'), locale) : getLocaleStrings(locale).theTeamAtHylo
           }
         })
       }

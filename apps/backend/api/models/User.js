@@ -13,7 +13,6 @@ import { generateHyloJWT } from '../../lib/HyloJWT'
 import MemberCommonRole from './MemberCommonRole'
 import ical from 'ical-generator'
 import Frontend from '../services/Frontend'
-import { writeStringToS3, deleteFromS3 } from '../../lib/uploader/storage'
 const { DateTime } = require('luxon')
 
 module.exports = bookshelf.Model.extend(merge({
@@ -107,6 +106,7 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Comment)
       .query(q => {
         q.join('posts', 'posts.id', 'comments.post_id')
+        q.queryContext({ alreadyJoinedPosts: true })
         q.whereNotIn('posts.user_id', BlockedUser.blockedFor(this.id))
         q.where(function () {
           this.where('posts.type', '!=', Post.Type.THREAD)
@@ -218,14 +218,14 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(PostUser, 'user_id')
   },
 
-  projects: function () {
-    // TODO: fix
-    return this.hasMany(Post).query(q => q.leftJoin('groups', 'groups.group_data_id', 'posts.id')
-      .leftJoin('group_memberships', 'group_memberships.group_id', 'groups.id')
-      .whereNotNull('group_memberships.project_role_id')
-      .andWhere('group_memberships.user_id', this.id)
-      .andWhere('group_memberships.active', true)
-    )
+  projects () {
+    return this.belongsToMany(Post).through(PostUser).query(q => {
+      q.where({
+        'posts_users.active': true,
+        'posts.type': Post.Type.PROJECT
+      })
+      q.whereNotNull('posts_users.project_role_id')
+    })
   },
 
   pushNotifications: function () {
@@ -268,6 +268,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   intercomHash: function () {
+    if (!process.env.INTERCOM_KEY) return null
     return crypto.createHmac('sha256', process.env.INTERCOM_KEY)
       .update(this.id)
       .digest('hex')
@@ -327,7 +328,6 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM devices WHERE user_id = ${this.id};
     DELETE FROM group_invites WHERE used_by_id = ${this.id};
     DELETE FROM group_memberships WHERE user_id = ${this.id};
-    DELETE FROM communities_users WHERE user_id = ${this.id};
     DELETE FROM linked_account WHERE user_id = ${this.id};
     DELETE FROM group_join_questions_answers WHERE user_id = ${this.id};
     DELETE FROM join_requests WHERE user_id = ${this.id};
@@ -571,6 +571,14 @@ module.exports = bookshelf.Model.extend(merge({
         throw new Error(`unknown notification type: ${type}`)
     }
 
+    if (medium === Notification.MEDIUM.Email && process.env.EMAIL_NOTIFICATIONS_ENABLED === 'true') {
+      return setting === 'both' || setting === 'email'
+    }
+
+    if (medium === Notification.MEDIUM.Push && process.env.PUSH_NOTIFICATIONS_ENABLED === 'true') {
+      return setting === 'both' || setting === 'push'
+    }
+
     const isTester = await User.isTester(this.id)
     return (medium === Notification.MEDIUM.Email &&
              (setting === 'both' || setting === 'email') &&
@@ -794,12 +802,21 @@ module.exports = bookshelf.Model.extend(merge({
   isTester: async function (id) {
     // Check env var list
     const testerIds = process.env.HYLO_TESTER_IDS ? process.env.HYLO_TESTER_IDS.split(',') : []
-    if (testerIds.includes(id)) {
+    if (testerIds.includes(String(id))) {
       return true
     }
 
     // Check database table
-    const dbTester = await EmailEnabledTester.findByUserId(id)
+    if (!EmailEnabledTester?.findByUserId) {
+      return false
+    }
+
+    const dbTester = await EmailEnabledTester.findByUserId(id).catch(err => {
+      if (err.message && err.message.includes('relation "email_enabled_testers" does not exist')) {
+        return null
+      }
+      throw err
+    })
     return !!dbTester
   },
 
@@ -931,6 +948,14 @@ module.exports = bookshelf.Model.extend(merge({
 
   async createRsvpCalendarSubscription ({ userId }) {
     const user = await User.find(userId)
+    if (process.env.DEBUG_RSVP_CAL_TEST) {
+      console.log('[createRsvpCalendarSubscription]', {
+        userId,
+        foundUser: !!user,
+        calendarToken: user ? !!user.get('calendar_token') : null,
+        rsvpCalendarSub: user ? user.get('settings')?.rsvp_calendar_sub : null
+      })
+    }
     if (!user) return
 
     // Ensure user enabled RSVP calendar subscription at least once upon a time
@@ -939,7 +964,7 @@ module.exports = bookshelf.Model.extend(merge({
     // Fetch all EventInvitations for this user with YES or INTERESTED responses
     // but returnempty collection if RSVP calendar subscription is disabled
     const fromDate = Post.eventCalSubDateLimit().toISO()
-    const eventInvitations = user.get('settings').rsvp_calendar_sub ?
+    const eventInvitations = user.get('settings')?.rsvp_calendar_sub ?
       await EventInvitation
         .query(q => {
           q.join('posts', 'event_invitations.event_id', 'posts.id')
@@ -976,8 +1001,8 @@ module.exports = bookshelf.Model.extend(merge({
       cal.createEvent(calEventData).uid(calEventData.uid)
     }
 
-    // Write the combined calendar file to S3
-    await writeStringToS3(
+    // Write the combined calendar file to S3 (inline require so tests can patch exports.writeStringToS3)
+    await require('../../lib/uploader/storage').writeStringToS3(
       cal.toString(),
       user.getRsvpCalendarPath(), {
       ContentType: 'text/calendar'

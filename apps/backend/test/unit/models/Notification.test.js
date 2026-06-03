@@ -49,6 +49,7 @@ describe('Notification', function () {
       .then(() => group.posts().attach(post))
       .then(() => factories.user({ email: 'readersemail@hylo.com' }).save())
       .then(u => { reader = u })
+      .then(() => group.members().attach(reader))
       .then(() => new Activity({
         post_id: post.id
       }).save())
@@ -99,8 +100,14 @@ describe('Notification', function () {
   beforeEach(() => destroyAllPushNotifications())
 
   describe('.send', () => {
+    let originalEmailNotificationsEnabled
     beforeEach(() => mockify(OneSignal, 'notify'))
+    beforeEach(() => {
+      originalEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
+    })
     afterEach(() => unspyify(OneSignal, 'notify'))
+    afterEach(() => { process.env.EMAIL_NOTIFICATIONS_ENABLED = originalEmailNotificationsEnabled })
 
     it('sends a push for a new post', () => {
       return preloadNotification(activities.newPost, Notification.MEDIUM.Push)
@@ -148,6 +155,49 @@ describe('Notification', function () {
           })
       })
 
+      it('uses a public post URL for comment push when the post is public and the reader is not in the linked group', () => {
+        return group.members().detach(reader)
+          .then(() => post.save({ is_public: true }, { patch: true }))
+          .then(() => preloadNotification(activities.newComment, Notification.MEDIUM.Push))
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            const pn = pns.first()
+            expect(pn.get('path')).to.match(/\/public\/post\//)
+          })
+          .finally(() => group.members().attach(reader))
+      })
+
+      it('includes commentId as a query param in the comment push path', () => {
+        return preloadNotification(activities.newComment, Notification.MEDIUM.Push)
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            expect(pns.first().get('path')).to.contain(`commentId=${comment.id}`)
+          })
+      })
+
+      it('uses activity.group_id for the comment push path when set', () => {
+        const activityWithGroup = {
+          comment_id: comment.id,
+          meta: { reasons: ['newComment'] },
+          reader_id: reader.id,
+          actor_id: actor.id,
+          group_id: group.id
+        }
+        return preloadNotification(activityWithGroup, Notification.MEDIUM.Push)
+          .then(notification => notification.send())
+          .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
+          .then(pns => {
+            expect(pns.length).to.equal(1)
+            const path = pns.first().get('path')
+            expect(path).to.contain('/groups/my-group/')
+            expect(path).to.contain(`commentId=${comment.id}`)
+          })
+      })
+
       it('sends a push for a mention in a comment', () => {
         return preloadNotification(activities.commentMention, Notification.MEDIUM.Push)
           .then(notification => notification.send())
@@ -192,12 +242,8 @@ describe('Notification', function () {
           name: 'Joe (via Hylo)'
         })
 
-        expect(opts.data).to.contain({
-          group_name: 'My Group',
-          post_user_name: 'Joe',
-          post_description: 'The body of the post',
-          post_title: 'My Post'
-        })
+        expect(opts.data.group_name).to.equal('My Group')
+        expect(opts.data.post).to.exist
       })
 
       return preloadNotification(activities.mention, Notification.MEDIUM.Email)
@@ -209,25 +255,25 @@ describe('Notification', function () {
     })
 
     it('sends no email for a comment', () => {
-      spyify(Email, 'sendNewCommentNotification')
+      spyify(Email, 'sendPostNotification')
 
       return preloadNotification(activities.newComment, Notification.MEDIUM.Email)
         .then(notification => notification.send())
         .then(() => {
-          expect(Email.sendNewCommentNotification).not.to.have.been.called()
+          expect(Email.sendPostNotification).not.to.have.been.called()
         })
-        .finally(() => unspyify(Email, 'sendNewCommentNotification'))
+        .finally(() => unspyify(Email, 'sendPostNotification'))
     })
 
     it('sends no email for a mention in a comment', () => {
-      spyify(Email, 'sendNewCommentNotification')
+      spyify(Email, 'sendPostNotification')
 
       return preloadNotification(activities.commentMention, Notification.MEDIUM.Email)
         .then(notification => notification.send())
         .then(() => {
-          expect(Email.sendNewCommentNotification).not.to.have.been.called()
+          expect(Email.sendPostNotification).not.to.have.been.called()
         })
-        .then(() => unspyify(Email, 'sendNewCommentNotification'))
+        .then(() => unspyify(Email, 'sendPostNotification'))
     })
 
     it('sends an email for a joinRequest', () => {
@@ -237,7 +283,7 @@ describe('Notification', function () {
         })
 
         expect(opts.sender).to.contain({
-          name: 'My Group'
+          name: 'My Group (via Hylo)'
         })
 
         expect(opts.data).to.contain({
@@ -261,7 +307,7 @@ describe('Notification', function () {
         })
 
         expect(opts.sender).to.contain({
-          name: 'My Group'
+          name: 'My Group (via Hylo)'
         })
 
         expect(opts.data).to.contain({
@@ -279,8 +325,10 @@ describe('Notification', function () {
     })
   })
 
-  describe('#findUnsent', () => {
-    it('returns the unsent', () => {
+  describe('#claimUnsentIds', () => {
+    beforeEach(() => bookshelf.knex('notifications').del())
+
+    it('claims only unsent notifications', () => {
       return Promise.join(
         new Notification({
           activity_id: activity.id,
@@ -298,9 +346,12 @@ describe('Notification', function () {
           medium: Notification.MEDIUM.InApp,
           created_at: new Date()
         }).save())
-        .then(() => Notification.findUnsent())
+        .then(() => Notification.claimUnsentIds())
+        .then(ids => {
+          expect(ids).to.have.length(2)
+          return Notification.query(q => q.whereIn('id', ids)).fetchAll()
+        })
         .then(notifications => {
-          expect(notifications.length).to.equal(2)
           expect(notifications.pluck('medium').sort()).to.deep.equal([
             Notification.MEDIUM.Push,
             Notification.MEDIUM.InApp
@@ -309,61 +360,8 @@ describe('Notification', function () {
     })
   })
 
-  describe('sendCommentNotificationEmail', () => {
-    let args, group
-    beforeEach(() => {
-      spyify(Email, 'sendNewCommentNotification', x => { args = x })
-      group = factories.group()
-      return group.save()
-    })
-
-    afterEach(() => unspyify(Email, 'sendNewCommentNotification'))
-
-    it('sets the correct email attributes', () => {
-      const note = new Notification()
-
-      note.relations = {
-        activity: model({
-          comment_id: 5,
-          relations: {
-            comment: model({
-              id: 5,
-              // Reinforcing that Comment#text() should always be
-              // called instead of Comment.get('text')
-              text: () => 'I have an opinion',
-              relations: {
-                post: model({
-                  summary: () => 'hello world',
-                  name: 'hello world',
-                  relations: {
-                    groups: [group]
-                  }
-                }),
-                user: model({
-                  id: 2,
-                  name: 'Ka Mentor',
-                  settings: { locale: 'en' }
-                })
-              }
-            }),
-            reader: new User({
-              id: 1,
-              name: 'Reader Person',
-              email: 'ilovenotifications@foo.com',
-              created_at: new Date(),
-              settings: { locale: 'en' }
-            })
-          }
-        })
-      }
-
-      return note.sendCommentNotificationEmail()
-        .then(() => {
-          expect(Email.sendNewCommentNotification).to.have.been.called()
-          expect(args.data.post_label).to.equal('"hello world"')
-        })
-    })
-  })
+  // NOTE: Notification no longer has sendCommentNotificationEmail and
+  // comment emails are not sent via this model anymore.
 
   describe('.priorityReason', () => {
     it('picks higher-priority reasons', () => {

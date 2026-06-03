@@ -30,8 +30,17 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // if (path) notification.app_url = 'hyloapp://groups/heart-orchard/stream/post/78041' // IN LOCAL DEV: YOU CAN PUT ANY PRODUCTION LINK HERE, SET THE CORRECT ENV VARIABLES AND IT WILL GENERATE A REAL PUSH NOTIF IF THE USER EXISTS IN PROD AND THE LOCAL DB
-  if (path) notification.app_url = 'hyloapp:/' + path
+
+  if (path) {
+    // Send path in additionalData so the mobile click listener can navigate in-app
+    // without iOS calling openURL (which opens Safari before bouncing back to the app).
+    // app_url with hyloapp:// is kept alongside as a fallback for older app versions
+    // that don't yet have the additionalData click handler — they open the app via
+    // the custom scheme as before. Once old versions are no longer in circulation,
+    // app_url can be removed.
+    notification.data = { path }
+    notification.app_url = 'hyloapp:/' + path
+  }
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'

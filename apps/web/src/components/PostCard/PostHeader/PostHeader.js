@@ -14,7 +14,7 @@ import FlagGroupContent from 'components/FlagGroupContent'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
-import { PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
+import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { cn } from 'util/index'
 import { personUrl, topicUrl } from '@hylo/navigation'
 
@@ -30,21 +30,6 @@ class PostHeader extends PureComponent {
   flagPostFunc = () =>
     this.props.canFlag ? () => { this.setState({ flaggingVisible: true }) } : undefined
 
-  getTypeIcon = (type) => {
-    const typeIconMap = {
-      chat: 'Messages',
-      offer: 'Offer',
-      request: 'HandRaised',
-      resource: 'Resource',
-      project: 'Project',
-      proposal: 'Proposal',
-      event: 'Calendar',
-      post: 'Post',
-      discussion: 'Chat'
-    }
-    return typeIconMap[type] || 'Post' // Default Post icon if type not found
-  }
-
   render () {
     const {
       chat,
@@ -53,6 +38,7 @@ class PostHeader extends PureComponent {
       canEdit,
       expanded,
       isCurrentAction,
+      actionDescriptor,
       isFlagged,
       group,
       close,
@@ -89,7 +75,7 @@ class PostHeader extends PureComponent {
     } = post
 
     if (type === 'action') {
-      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} actionDescriptor={actionDescriptor} />
     }
 
     if (!creator) return null
@@ -176,7 +162,7 @@ class PostHeader extends PureComponent {
               <div className='flex items-center ml-2'>
                 {type !== 'submission' && (
                   <div className='flex items-center gap-1 border-2 border-foreground/20 rounded text-xs capitalize px-1 text-foreground/70 py1 mr-4'>
-                    <Icon name={this.getTypeIcon(type)} className='text-sm' />
+                    <Icon name={getPostTypeIcon(type)} className='text-sm' />
                     {t(type)}
                   </div>)}
                 <span className='text-foreground/50 text-2xs whitespace-nowrap' data-tooltip-id={`dateTip-${id}`} data-tooltip-content={exactCreatedTimestamp}>
@@ -202,7 +188,7 @@ class PostHeader extends PureComponent {
               {dropdownItems.length > 0 &&
                 <Dropdown id='post-header-more-dropdown' toggleChildren={<Icon name='More' dataTestId='post-header-more-icon' className='cursor-pointer border-2 border-foreground/30 rounded-md p-2' />} items={dropdownItems} alignRight />}
               {close &&
-                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} onClick={close}>
+                <a className={cn('inline-block cursor-pointer relative px-3 text-xl')} data-testid='post-detail-close' onClick={close}>
                   <Icon name='Ex' className='align-middle' />
                 </a>}
             </div>
@@ -262,7 +248,7 @@ class PostHeader extends PureComponent {
           )}
 
         <Tooltip
-          className='bg-background z-1000'
+          className='bg-background'
           delayShow={0}
           id={`announcement-tt-${id}`}
           position='top'
@@ -292,8 +278,9 @@ export function TopicsLine ({ topics, slug, newLine }) {
   )
 }
 
-function ActionHeader ({ post, isCurrentAction }) {
+function ActionHeader ({ post, isCurrentAction, actionDescriptor }) {
   const { t } = useTranslation()
+  const actionTerm = actionDescriptor || 'Action'
 
   return (
     <div className='flex p-2 mb-2 items-center'>
@@ -301,7 +288,7 @@ function ActionHeader ({ post, isCurrentAction }) {
         {post.completedAt
           ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
           : isCurrentAction
-            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next {{actionDescriptor}}', { actionDescriptor: actionTerm })}</span>
             : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
       </div>
 

@@ -89,7 +89,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
       }, { transacting: trx })
 
       const groups = await this.groups().fetch({ transacting: trx })
-      await newTrack.groups().attach(groups.map(group => ({ group_id: group.id, created_at: new Date() })), { transacting: trx })
+      await newTrack.groups().attach(groups.map(group => group.id), { transacting: trx })
 
       // Duplicate all the actions in the track
       const trackActions = await this.posts().fetch({ transacting: trx })
@@ -159,7 +159,13 @@ module.exports = bookshelf.Model.extend(Object.assign({
         await trackUser.save({ enrolled_at: new Date() }, { transacting: trx })
 
         const group = await track.groups().fetchOne({ transacting: trx })
+        if (!group) {
+          return trackUser
+        }
         const manageTracksResponsibility = await Responsibility.where({ title: Responsibility.constants.RESP_MANAGE_TRACKS }).fetch({ transacting: trx })
+        if (!manageTracksResponsibility) {
+          return trackUser
+        }
         const stewards = await group.membersWithResponsibilities([manageTracksResponsibility.id]).fetch({ transacting: trx })
         const stewardsIds = stewards.pluck('id')
         const activities = stewardsIds.map(stewardId => ({

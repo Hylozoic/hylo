@@ -13,7 +13,7 @@ import { getChildGroups, getParentGroups, getPeerGroups } from 'store/selectors/
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import { mapNodesAndLinks } from 'util/networkMap'
 import GroupCard from 'components/GroupCard'
-import { fetchRelatedGroups } from './Groups.store'
+import fetchGroupRelationships from 'store/actions/fetchGroupRelationships'
 
 import classes from './Groups.module.scss'
 
@@ -23,7 +23,7 @@ function Groups () {
   const routeParams = useRouteParams()
 
   useEffect(() => {
-    dispatch(fetchRelatedGroups(routeParams.groupSlug))
+    dispatch(fetchGroupRelationships(routeParams.groupSlug))
   }, [routeParams.groupSlug])
 
   const group = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))

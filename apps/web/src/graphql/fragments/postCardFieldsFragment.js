@@ -1,5 +1,14 @@
 // TODO: do we need postMembership? depends on how pinning works. not in chat room probably
-const postCardFieldsFragment = `
+const postGroupsFields = `
+  groups {
+    id
+    name
+    slug
+  }
+`
+
+export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
+  return `
   id
   announcement
   clickthrough
@@ -45,6 +54,7 @@ const postCardFieldsFragment = `
     name
     avatarUrl
   }
+  ${includeGroups ? postGroupsFields : ''}
   eventInvitations {
     total
     hasMore
@@ -60,11 +70,6 @@ const postCardFieldsFragment = `
         location
       }
     }
-  }
-  groups {
-    id
-    name
-    slug
   }
   linkPreview {
     description
@@ -115,10 +120,5 @@ const postCardFieldsFragment = `
       name
     }
   }
-  topics {
-    id
-    name
-  }
 `
-
-export default postCardFieldsFragment
+}

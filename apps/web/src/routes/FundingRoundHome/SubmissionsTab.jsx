@@ -1,7 +1,7 @@
 import { isEmpty } from 'lodash/fp'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { Route, Routes, useNavigate } from 'react-router-dom'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createPostUrl } from '@hylo/navigation'
@@ -9,9 +9,12 @@ import useRouteParams from 'hooks/useRouteParams'
 import orm from 'store/models'
 import presentPost from 'store/presenters/presentPost'
 import getMe from 'store/selectors/getMe'
+import { fetchFundingRoundSubmissions, FETCH_FUNDING_ROUND_SUBMISSIONS } from 'routes/FundingRounds/FundingRounds.store'
+import isPendingFor from 'store/selectors/isPendingFor'
 import { cn } from 'util/index'
 import { seededShuffle } from 'util/seededRandom'
 import CreateModal from 'components/CreateModal'
+import Loading from 'components/Loading'
 import PostDialog from 'components/PostDialog'
 import SubmissionCard from './SubmissionCard'
 import RoundPhaseStatus from './RoundPhaseStatus'
@@ -37,10 +40,17 @@ const getPosts = ormCreateSelector(
 export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, round }) {
   const { isParticipating } = round
   const { t } = useTranslation()
+  const dispatch = useDispatch()
   const currentUser = useSelector(getMe)
   const routeParams = useRouteParams()
   const navigate = useNavigate()
   const [localVoteAmounts, setLocalVoteAmounts] = React.useState({})
+
+  const isLoadingSubmissions = useSelector(state => isPendingFor(FETCH_FUNDING_ROUND_SUBMISSIONS, state))
+
+  useEffect(() => {
+    if (round?.id) dispatch(fetchFundingRoundSubmissions(round.id))
+  }, [round?.id])
 
   // Determine current phase first to know if we should sort by tokens
   const { currentPhase } = getRoundPhaseMeta(round)
@@ -158,6 +168,9 @@ export default function SubmissionsTab ({ canManageRound, canSubmit, canVote, ro
         </button>
       )}
       <div className='flex flex-col mt-4'>
+        {isLoadingSubmissions && postsForDisplay.length === 0 && (
+          <Loading />
+        )}
         {postsForDisplay.map(post => (
           <SubmissionCard
             key={post.id}

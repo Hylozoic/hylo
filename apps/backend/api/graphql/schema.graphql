@@ -30,6 +30,9 @@ type Query {
 
   collection(id: ID): Collection
 
+  # A Group CustomView by ID (stream, collection, or external link)
+  customView(id: ID): CustomView
+
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
@@ -166,6 +169,12 @@ type Query {
     slug: String
 
   ): ModerationActionQuerySet
+
+  # Get all drafts for the currently logged in user
+  myDrafts: [Draft]
+
+  # Get a single draft by context (pass the relevant context IDs for the type)
+  draft(type: String, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean): Draft
 
   # Get the currently logged in user
   me: Me
@@ -2747,6 +2756,28 @@ type UserSettings {
   streamPostType: String
 }
 
+type Draft {
+  id: ID
+  # JSON-encoded payload matching the surface's draft shape
+  data: String
+  # The group associated with this draft (for post/chat drafts)
+  group: Group
+  groupId: ID
+  isEdit: Boolean
+  messageThread: MessageThread
+  messageThreadId: ID
+  postType: String
+  # Client-side URL to navigate to when opening this draft
+  navigateTo: String
+  # The post associated with this draft (for comment drafts, or post edits)
+  post: Post
+  postId: ID
+  topicId: ID
+  # The draft type: 'post', 'comment', or 'message'
+  type: String
+  updatedAt: String
+}
+
 # Email-enabled tester account (for staging/testing environments)
 type EmailEnabledTester {
   id: ID!
@@ -2914,6 +2945,8 @@ type Mutation {
   deleteAffiliation(id: ID): ID
   # Delete a comment
   deleteComment(id: ID): GenericResult
+  # Delete a draft by ID
+  deleteDraft(id: ID!): GenericResult
   # Delete a context widget (can only delete user added ones)
   deleteContextWidget(contextWidgetId: ID): GenericResult
   # Delete a funding round
@@ -3080,6 +3113,8 @@ type Mutation {
     # 'yes', 'maybe' or 'no'
     response: String
   ): GenericResult
+  # Save (upsert) a draft for the currently logged in user
+  saveDraft(type: String!, data: String!, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean, navigateTo: String): Draft
   # Save a post to your saved posts list
   savePost(postId: ID): Post
   # When a new person signs up, send them an email to verify their email address so they can finish registering
@@ -3762,6 +3797,8 @@ input PostInput {
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
+  markAsReadTopicName: String
   # People to add as members to a project type Post
   memberIds: [ID]
   # Link to a project management tool or service. Only used for Projects right now

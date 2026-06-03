@@ -10,6 +10,8 @@ export const DELETE_FUNDING_ROUND_PENDING = `${MODULE_NAME}/DELETE_FUNDING_ROUND
 export const DO_PHASE_TRANSITION = `${MODULE_NAME}/DO_PHASE_TRANSITION`
 export const DO_PHASE_TRANSITION_PENDING = `${MODULE_NAME}/DO_PHASE_TRANSITION_PENDING`
 export const FETCH_FUNDING_ROUND = `${MODULE_NAME}/FETCH_FUNDING_ROUND`
+export const FETCH_FUNDING_ROUND_SUBMISSIONS = `${MODULE_NAME}/FETCH_FUNDING_ROUND_SUBMISSIONS`
+export const FETCH_FUNDING_ROUND_PARTICIPANTS = `${MODULE_NAME}/FETCH_FUNDING_ROUND_PARTICIPANTS`
 export const JOIN_FUNDING_ROUND = `${MODULE_NAME}/JOIN_FUNDING_ROUND`
 export const JOIN_FUNDING_ROUND_PENDING = `${MODULE_NAME}/JOIN_FUNDING_ROUND_PENDING`
 export const LEAVE_FUNDING_ROUND = `${MODULE_NAME}/LEAVE_FUNDING_ROUND`
@@ -146,11 +148,6 @@ export function fetchFundingRound (id) {
           requireBudget
           submissionDescriptor
           submissionDescriptorPlural
-          submissions {
-            items {
-              ${PostFieldsFragment}
-            }
-          }
           submitterRoles {
             ... on CommonRole {
               id
@@ -171,6 +168,68 @@ export function fetchFundingRound (id) {
           totalTokens,
           totalTokensAllocated,
           updatedAt,
+          voterRoles {
+            ... on CommonRole {
+              id
+              emoji
+              name
+            }
+            ... on GroupRole {
+              id
+              emoji
+              name
+            }
+          }
+          votingMethod,
+          votingClosesAt,
+          votingOpensAt
+        }
+      }`,
+      variables: { id }
+    },
+    meta: { extractModel: 'FundingRound' }
+  }
+}
+
+export function fetchFundingRoundSubmissions (id) {
+  return {
+    type: FETCH_FUNDING_ROUND_SUBMISSIONS,
+    graphql: {
+      query: `query ($id: ID) {
+        fundingRound (id: $id) {
+          id
+          submissions {
+            items {
+              ${PostFieldsFragment}
+            }
+          }
+          allocations {
+            tokensAllocated
+            submission {
+              id
+              title
+            }
+            user {
+              id
+              name
+              avatarUrl
+            }
+          }
+        }
+      }`,
+      variables: { id }
+    },
+    meta: { extractModel: 'FundingRound' }
+  }
+}
+
+export function fetchFundingRoundParticipants (id) {
+  return {
+    type: FETCH_FUNDING_ROUND_PARTICIPANTS,
+    graphql: {
+      query: `query ($id: ID) {
+        fundingRound (id: $id) {
+          id
           users {
             items {
               id
@@ -195,33 +254,6 @@ export function fetchFundingRound (id) {
               }
             }
           }
-          allocations {
-            tokensAllocated
-            submission {
-              id
-              title
-            }
-            user {
-              id
-              name
-              avatarUrl
-            }
-          }
-          voterRoles {
-            ... on CommonRole {
-              id
-              emoji
-              name
-            }
-            ... on GroupRole {
-              id
-              emoji
-              name
-            }
-          }
-          votingMethod,
-          votingClosesAt,
-          votingOpensAt
         }
       }`,
       variables: { id }

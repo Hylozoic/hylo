@@ -12,6 +12,7 @@ import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
 // import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
+import useLinkingStore from 'navigation/linking/store'
 import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
 // DEPRECATED: Subscription exchange no longer needed - web app handles all real-time updates
@@ -150,11 +151,30 @@ export default function App () {
       }
       OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
 
+      // Handle notification taps (background and cold-start).
+      // Prefer additionalData.path (a bare path like /groups/slug/post/123?commentId=456)
+      // over launchURL because additionalData bypasses iOS's openURL call — the OS never
+      // gets a chance to open Safari. launchURL is kept as a fallback for any notifications
+      // sent by older backend versions that don't include additionalData.
+      // Either way the URL is stored in the linking store and processed by useOpenInitialURL
+      // after auth is confirmed, giving us one reliable navigation path.
+      const notificationClickHandler = (event) => {
+        const path = event.notification.additionalData?.path
+        const url = path ? `https://www.hylo.com${path}` : event.notification.launchURL
+        Sentry.addBreadcrumb({ category: 'notification', message: 'Notification tapped', data: { url } })
+        console.log('📱 OneSignal notification tapped:', url)
+        if (url) {
+          useLinkingStore.getState().setInitialURL(url)
+        }
+      }
+      OneSignal.Notifications.addEventListener('click', notificationClickHandler)
+
       const appStateHandler = AppState.addEventListener('change', handleAppStateChange)
 
       return () => {
         appStateHandler && appStateHandler.remove()
         OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundWillDisplayHandler)
+        OneSignal.Notifications.removeEventListener('click', notificationClickHandler)
       }
     }
   }, [urqlClient])

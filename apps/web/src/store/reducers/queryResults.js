@@ -192,8 +192,10 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
     queriesToMatch.push({ context: 'public' })
   }
 
+  const groupSlugs = groups.map(g => g.slug)
+
   // Group streams
-  return reduce((memo, group) => {
+  const updatedState = reduce((memo, group) => {
     // Chat posts only appear in the chat rooms, nowhere else
     if (type !== 'chat') {
       queriesToMatch.push(
@@ -271,6 +273,22 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
       return prependIdForCreate(innerMemo, FETCH_POSTS, params, id)
     }, memo, queriesToMatch)
   }, state, groups)
+
+  // Generically handle queries that filter by a `types` array (e.g. requests-and-offers, projects, resources views).
+  // The existing queriesToMatch logic only covers `filter` (single type); this covers multi-type views.
+  return mapValues(updatedState, (results, key) => {
+    if (!results?.ids || results.ids.includes(id) || type === 'chat') return results
+    const keyObject = JSON.parse(key)
+    const typesArray = keyObject.params?.types
+    if (!typesArray || !typesArray.includes(type)) return results
+    if (!groupSlugs.includes(keyObject.params?.slug)) return results
+    return {
+      ...results,
+      ids: [id].concat(results.ids),
+      total: (results.total || results.total === 0) && results.total + 1,
+      hasMore: results.hasMore
+    }
+  })
 }
 
 export function matchNewTopicIntoQueryResults (state, { id, isDefault, groupTopics }) {

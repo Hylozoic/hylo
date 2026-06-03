@@ -6,6 +6,151 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.10] - 2026-06-01
+
+### Changed
+- In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.
+
+### Fixed
+- Tracking whether group location is set in the Group Setup widget in the group menu
+- Make sure post notifications show the post over the correct home view
+- Non-chat posts being opened in a group with a chat home view now use /post/:id as a path segment (opens the full post modal overlaid above the chat) rather than ?postId= (which was going to the the inline-chat-message highlight pattern reserved for chat-type posts), so you can see the full post and comments.
+- If a non-chat post has no topics on it (which can happen if it was created by Zapier for example) and the home view is a chat room, open the post on its own at the fall through url of /group/:slug/post/:postId, because if we try to open it in the chat based home then the post isn't there and can't be viewed.
+- Using a join link when already a member takes you to correct home view
+- Make sure new posts created in requests and offers view appear immediately
+- Fix issue where after creating a post the saved draft was not removed
+
+## [6.4.9] - 2026-05-27
+
+### Fixed
+- Don't show child post label incorrectly on all Stream posts
+- Mobile: Notification URLs should always go to the right place
+
+## [6.4.8] - 2026-05-27
+
+### Added
+- Add group join date to the member export CSV
+
+### Changed
+- Show post type and icon in view header when viewing standalone post route
+- Remove X to close button when viewing a standalone Post Detail route
+
+### Fixed
+- Mobile: Issue where closing a post open from a chat room would take you to the stream
+- Adding a custom view directly to the bottom of the Context Menu
+- Toggling of Make Public toggle
+- Child post label being on top of post card three dot menu
+- Weird reordering of custom views when editing
+- Avoid infinity scroll query trigger for calendar view
+
+## [6.4.7] - 2026-05-20
+
+### Added
+- Drafts! When creating or editing a post, chat, comment or direct message, we auto save drafts as you go and reload them when you come back to that same page/field. If you try to leave a post while editing it you will be asked if you want to save your draft or discard it. All saved drafts can be found in the new My Home -> My Drafts page.
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+- Refine what hylo links open in the android app
+- If the mobile app receives OIDC urls, redirect them to the browser
+
+### Fixed
+- Correctly load data when directly loading the Custom Views setting tab.
+- Wrapping of long links in post location field on post cards.
+- Display of DMs on iPad
+- Direct Messages with long strings overflowing the screen and causing horizontal scrollbars
+- Always scroll down to bottom of messages list when focusing on messages box on mobile
+
+## [6.4.6] - 2026-05-07
+
+### Added
+- Button on about page to copy a link to jump to the Agreements section of the about page
+- More sophisticated Link editing to post editor. Remove link becomes Edit Link. You can edit the text and link URL separately now.
+
+### Changed
+- Improve styling of the about page
+- About Widget only displays a group's purpose, not its full description in the group menu.
+- Change how we wrap text in posts so we now display full links instead of shortening them
+
+### Fixed
+- Use custom Action label everywhere in a track
+- Make calender picker easier to use on mobile
+- Avoid PostEditor autofocus on mobile web
+- iPad issues with keyboard covering comment input
+- Join questions were not always required when joining a group
+- Role badge not saving correctly in group settings
+- Make sure links like google.com (without https://) used in posts open correctly. They were opening up as internal Hylo posts
+
+## [6.4.5] - 2026-04-15
+
+### Changed
+- Better loading skeletons for non post based views like the map and calendar
+
+### Fixed
+- Issue where new posts wouldn't appear on some devices
+- Track actions temporarily appearing in chat rooms
+
+## [6.4.4] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+### Changed
+- Load funding rounds faster
+- When loading post editor always show current group and #chatroom even before chat rooms have been loaded
+- Attempt to have better error pages when things go wrong
+
+### Fixed
+- Scrolling issues in Funding Rounds
+- Display of header text of featured groups in Group Explorer
+- Hard to read text when viewing group in group explorer in light mode
+- UI of funding rounds list on mobile
+
+## [6.4.3] - 2026-04-12
+
+### Added
+- Add groupUpdated socket push which reloads the group when its context menu has been updated
+- Notice then a new version of Hylo has been deployed, with a button to refresh the page
+
+### Changed
+- Tweak scroll to position in chat room to make sure latest post is visible
+
+### Fixed
+- Don't jump focus to location input when opening group settings
+- Allow for selecting text in chat room posts
+- Don't do swipe to close post when dragging to select text on mobile
+- Don't open nav menu on mobile when long pressing and dragging to select text
+- Make sure we always load new posts when visiting a chat room even when it has cached data
+- Try to fix blank screen when loading hylo tab after new deploy
+- Groups appearing in public map when allow_in_public is false
+- Unecessary calls to update last read post in a chat room after creating a new post
+
+## [6.4.2] - 2026-04-02
+
+### Added
+- Skeleton imagery when loading app to make it look better as it loads
+- Add Playwright E2E testing and Claude Code workflow for faster and safer agent based development
+
+### Changed
+- Initial load time performance improvements
+
+### Fixed
+- Issue loading correct data when switching between chat rooms
+- Bug when creating a group and choosing chat as the home route it would redirect to /stream instead
+- Bug when joining a group it would join then immediately jump to a 404
+- Copy confirmation on wrong section in Invite Settings
+- Tooltip z-index behind images in posts
+
+## [6.4.1] - 2026-04-02
+
+### Changed
+- Performance improvements when loading Hylo
+- Loading spinner doesnt jump around so much when loading Hylo
+- Apply theme-aware styling to Upcoming Events and Projects cards on user profile
+
+### Fixed
+- Fix scrolling search results
+
 ## [6.4.0] - 2026-03-11
 
 ### Added

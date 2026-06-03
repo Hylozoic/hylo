@@ -19,6 +19,22 @@ export function isMobileDevice () {
   return (
     isMobile.apple.phone ||
     isMobile.apple.ipod ||
+    isMobile.apple.tablet ||
+    isMobile.android.phone ||
+    isMobile.android.tablet ||
+    isMobile.seven_inch ||
+    // iPadOS 13+ sends a desktop user agent, so ismobilejs can't detect it.
+    // Fall back to checking for a touch-capable Mac (i.e. an iPad).
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
+// Phones only — excludes tablets and iPadOS desktop UA (see isMobileDevice).
+// Use for layouts that need a side-by-side nav + content column (e.g. DMs).
+export function isPhoneDevice () {
+  return (
+    isMobile.apple.phone ||
+    isMobile.apple.ipod ||
     isMobile.android.phone ||
     isMobile.seven_inch
   )

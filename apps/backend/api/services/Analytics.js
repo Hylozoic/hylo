@@ -2,7 +2,11 @@ const sails = require('sails')
 import { v4 as uuidv4 } from 'uuid'
 var instance
 
-if (process.env.NODE_ENV === 'test') {
+/** No-op Segment when unit tests, isolated E2E, or explicit opt-out (analytics-node asserts on missing write key). */
+const segmentDisabled =
+  process.env.NODE_ENV === 'test' || process.env.DISABLE_SEGMENT === '1'
+
+if (segmentDisabled) {
   instance = {
     track: function (opts) {
       sails.log.verbose('Analytics.track: ' + JSON.stringify(opts))

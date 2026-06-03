@@ -1,0 +1,19 @@
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position:  800px 0; }
+}
+
+/* Base shimmer block — use this class on any div; apply sizing via Tailwind className */
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted))            0%,
+    hsl(var(--muted))            33%,
+    hsl(var(--muted-foreground) / 0.18) 50%,
+    hsl(var(--muted))            67%,
+    hsl(var(--muted))            100%
+  );
+  background-size: 1600px 100%;
+  animation: shimmer 1.7s ease-in-out infinite;
+}

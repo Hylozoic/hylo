@@ -44,6 +44,9 @@ function Comment ({
   const routeParams = useParams()
   const commentRef = React.useRef()
   const editor = React.useRef()
+  // Prevent re-scrolling to the same comment when the component re-renders (e.g. due to a
+  // comments refetch or parent state change) while selectedCommentId hasn't actually changed.
+  const hasScrolledToComment = React.useRef(false)
   const [edited, setEdited] = React.useState(false)
   const [editing, setEditing] = React.useState(false)
   const [showActions, setShowActions] = React.useState(false)
@@ -57,7 +60,8 @@ function Comment ({
   const canModerate = currentUser && responsibilities && responsibilities.includes(RESP_MANAGE_CONTENT)
 
   React.useEffect(() => {
-    if (selectedCommentId === comment.id) {
+    if (selectedCommentId === comment.id && !hasScrolledToComment.current) {
+      hasScrolledToComment.current = true
       setTimeout(handleScrollToComment, 500)
     }
   }, [selectedCommentId, comment.id])
@@ -181,7 +185,7 @@ function Comment ({
       {!editing && (
         <>
           <ClickCatcher groupSlug={slug}>
-            <HyloHTML className={cn('ml-[36px]', styles.text)} html={text} />
+            <HyloHTML className={cn('ml-[40px]', styles.text)} html={text} />
           </ClickCatcher>
           <EmojiRow
             className={cn(styles.emojis, { [styles.noEmojis]: !comment.commentReactions || comment.commentReactions.length === 0 })}

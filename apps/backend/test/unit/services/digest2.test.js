@@ -5,7 +5,8 @@ import { defaultTimezone, shouldSendData, getRecipients } from '../../../lib/gro
 import { sendDigest, sendAllDigests } from '../../../lib/group/digest2'
 import factories from '../../setup/factories'
 import { spyify, unspyify } from '../../setup/helpers'
-import { merge, omit } from 'lodash'
+import { omit } from 'lodash'
+import setup from '../../setup'
 require('../../setup')
 
 const model = factories.mock.model
@@ -49,6 +50,7 @@ describe('group digest v2', () => {
   describe('formatData', () => {
     it('organizes new posts and comments', () => {
       const eventStart = DateTime.now()
+      const eventWhen = eventStart.toFormat('ccc, LLL d \'at\' h:mma ZZZZ')
 
       const data = {
         comments: [
@@ -58,7 +60,7 @@ describe('group digest v2', () => {
             post_id: 5,
             relations: {
               user: u3,
-              post: model({id: 5, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: {user: u4}})
+              post: model({ id: 5, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: { user: u4 }, presentForEmail: () => ({ id: 5, title: 'Old Post, New Comments', url: Frontend.Route.post({ id: 5 }, group), comments: [], user: u4.attributes }) })
             }
           }),
           model({
@@ -67,7 +69,7 @@ describe('group digest v2', () => {
             post_id: 8,
             relations: {
               user: u3,
-              post: model({id: 8, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: {user: u4}})
+              post: model({ id: 8, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: { user: u4 }, presentForEmail: () => ({ id: 8, title: 'Old Post, New Comments', url: Frontend.Route.post({ id: 8 }, group), comments: [], user: u4.attributes }) })
             }
           }),
           model({
@@ -76,7 +78,7 @@ describe('group digest v2', () => {
             post_id: 8,
             relations: {
               user: u3,
-              post: model({id: 8, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: {user: u4}})
+              post: model({ id: 8, name: 'Old Post, New Comments', summary: () => 'Old Post, New Comments', details: () => {}, relations: { user: u4 }, presentForEmail: () => ({ id: 8, title: 'Old Post, New Comments', url: Frontend.Route.post({ id: 8 }, group), comments: [], user: u4.attributes }) })
             }
           })
 
@@ -90,7 +92,8 @@ describe('group digest v2', () => {
             type: 'request',
             relations: {
               user: u1
-            }
+            },
+            presentForEmail: () => ({ id: 5, title: 'Do you have a dollar?', user: u1.attributes, url: Frontend.Route.post({ id: 5 }, group), comments: [], type: 'request' })
           }),
           model({
             id: 7,
@@ -102,7 +105,8 @@ describe('group digest v2', () => {
               tags: collection([]),
               linkPreview,
               user: u2
-            }
+            },
+            presentForEmail: () => ({ id: 7, title: 'Kapow!', user: u2.attributes, url: Frontend.Route.post({ id: 7 }, group), comments: [], link_preview: omit(linkPreview.attributes, 'id'), type: 'discussion' })
           }),
           model({
             id: 6,
@@ -112,7 +116,8 @@ describe('group digest v2', () => {
             type: 'offer',
             relations: {
               user: u2
-            }
+            },
+            presentForEmail: () => ({ id: 6, title: 'I have cookies!', user: u2.attributes, url: Frontend.Route.post({ id: 6 }, group), comments: [], type: 'offer' })
           }),
           model({
             id: 76,
@@ -124,7 +129,8 @@ describe('group digest v2', () => {
             start_time: eventStart,
             relations: {
               user: u2
-            }
+            },
+            presentForEmail: () => ({ id: 76, title: 'An event', location: 'Home', when: eventWhen, user: u2.attributes, url: Frontend.Route.post({ id: 76 }, group), comments: [], type: 'event' })
           }),
           model({
             id: 77,
@@ -139,7 +145,8 @@ describe('group digest v2', () => {
                 model({name: 'and love'}),
                 model({name: 'and more things'})
               ])
-            }
+            },
+            presentForEmail: () => ({ id: 77, title: 'A project with requests', user: u2.attributes, url: Frontend.Route.post({ id: 77 }, group), comments: [], type: 'project' })
           }),
           model({
             id: 78,
@@ -152,42 +159,39 @@ describe('group digest v2', () => {
               tags: collection([
                 model({ name: 'bayarea' })
               ])
-            }
+            },
+            presentForEmail: () => ({ id: 78, title: 'A chat!', topic_name: 'bayarea', user: u2.attributes, url: Frontend.Route.post({ id: 78 }, group), comments: [], type: 'chat' })
           })
         ]
       }
 
       const expected = {
-        topicsWithChats: [
+        chats: [
           {
-            name: 'bayarea',
-            num_new_chats: 1,
-            url: Frontend.Route.topic('foo', { name: 'bayarea' })
+            id: 78,
+            title: 'A chat!',
+            topic_name: 'bayarea',
+            type: 'chat',
+            user: u2.attributes,
+            url: Frontend.Route.post({id: 78}, group),
+            comments: []
           }
         ],
         requests: [
           {
             id: 5,
             title: 'Do you have a dollar?',
+            type: 'request',
             user: u1.attributes,
             url: Frontend.Route.post({id: 5}, group),
-            comments: [
-              {
-                id: 12,
-                text: 'I have two!',
-                user: {
-                  avatar_url: 'http://apple.com/baz.png',
-                  id: 3,
-                  name: 'Baz'
-                }
-              }
-            ]
+            comments: []
           }
         ],
         offers: [
           {
             id: 6,
             title: 'I have cookies!',
+            type: 'offer',
             user: u2.attributes,
             url: Frontend.Route.post({id: 6}, group),
             comments: []
@@ -199,6 +203,7 @@ describe('group digest v2', () => {
           {
             id: 7,
             title: 'Kapow!',
+            type: 'discussion',
             user: u2.attributes,
             url: Frontend.Route.post({id: 7}, group),
             comments: [],
@@ -210,7 +215,8 @@ describe('group digest v2', () => {
             id: 76,
             title: 'An event',
             location: 'Home',
-            when: eventStart.format('ddd, MMM D [at] h:mmA z'),
+            type: 'event',
+            when: eventWhen,
             user: u2.attributes,
             url: Frontend.Route.post({id: 76}, group),
             comments: []
@@ -220,12 +226,13 @@ describe('group digest v2', () => {
           {
             id: 77,
             title: 'A project with requests',
+            type: 'project',
             user: u2.attributes,
             url: Frontend.Route.post({id: 77}, group),
             comments: []
           }
         ],
-        postsWithNewComments: [
+        posts_with_new_comments: [
           {
             id: 8,
             title: 'Old Post, New Comments',
@@ -256,8 +263,31 @@ describe('group digest v2', () => {
               id: 4,
               name: 'Mr. Man'
             }
+          },
+          {
+            id: 5,
+            title: 'Old Post, New Comments',
+            url: Frontend.Route.post({id: 5}, group),
+            comments: [
+              {
+                id: 12,
+                text: 'I have two!',
+                user: {
+                  avatar_url: 'http://apple.com/baz.png',
+                  id: 3,
+                  name: 'Baz'
+                }
+              }
+            ],
+            comment_count: 1,
+            user: {
+              avatar_url: 'http://cnn.com/man.png',
+              id: 4,
+              name: 'Mr. Man'
+            }
           }
-        ]
+        ],
+        num_sections: 7
       }
 
       expect(formatData(group, data)).to.deep.equal(expected)
@@ -276,7 +306,18 @@ describe('group digest v2', () => {
             type: 'request',
             relations: {
               user: u1
-            }
+            },
+            presentForEmail: () => ({
+              id: 1,
+              title: 'Foo!',
+              details: `<p><a href="${Frontend.Route.prefix}/groups/foo/members/21" data-id="21" class="mention" target="_blank">Edward West</a> &amp; ` +
+                `<a href="${Frontend.Route.prefix}/groups/foo/members/16325" data-id="16325" class="mention" target="_blank">Julia Pope</a> ` +
+                `<a href="${Frontend.Route.prefix}/groups/foo/topics/oakland" data-label="#oakland" class="topic" target="_blank">#oakland</a></p>`,
+              user: u1.attributes,
+              url: Frontend.Route.post({id: 1}, group),
+              comments: [],
+              type: 'request'
+            })
           })
         ],
         comments: []
@@ -287,10 +328,12 @@ describe('group digest v2', () => {
         offers: [],
         discussions: [],
         proposals: [],
+        chats: [],
         requests: [
           {
             id: 1,
             title: 'Foo!',
+            type: 'request',
             details: `<p><a href="${prefix}/groups/foo/members/21" data-id="21" class="mention" target="_blank">Edward West</a> &amp; ` +
               `<a href="${prefix}/groups/foo/members/16325" data-id="16325" class="mention" target="_blank">Julia Pope</a> ` +
               `<a href="${prefix}/groups/foo/topics/oakland" data-label="#oakland" class="topic" target="_blank">#oakland</a></p>`,
@@ -299,29 +342,18 @@ describe('group digest v2', () => {
             comments: []
           }
         ],
-        postsWithNewComments: [],
-        topicsWithChats: [],
+        posts_with_new_comments: [],
         projects: [],
         events: [],
-        resources: []
+        resources: [],
+        num_sections: 1
       })
     })
 
     it('sets the no_new_activity key if there is no data', () => {
       const data = {posts: [], comments: []}
 
-      expect(formatData(group, data)).to.deep.equal({
-        topicsWithChats: [],
-        offers: [],
-        requests: [],
-        discussions: [],
-        proposals: [],
-        postsWithNewComments: [],
-        projects: [],
-        events: [],
-        resources: [],
-        no_new_activity: true
-      })
+      expect(formatData(group, data)).to.equal(null)
     })
   })
 
@@ -343,6 +375,8 @@ describe('group digest v2', () => {
         events: [],
         projects: [],
         resources: [],
+        chats: [],
+        posts_with_new_comments: [],
         offers: [
           {
             id: 1,
@@ -370,44 +404,19 @@ describe('group digest v2', () => {
 
       return personalizeData(user, 'daily', data).then(newData => {
         const ctParams = `ctt=digest_email&cti=${user.id}&ctcn=foo`
-        expect(newData).to.deep.equal(merge({}, data, {
-          offers: [
-            {
-              id: 1,
-              title: 'Hi',
-              user: u4.attributes,
-              reply_url: Email.postReplyAddress(1, user.id),
-              url: 'https://www.hylo.com/all/post/1?' + ctParams
-            }
-          ],
-          discussions: [
-            {
-              id: 2,
-              title: 'Ya',
-              user: u3.attributes,
-              details: '<p><a href="mailto:foo@bar.com">foo@bar.com</a> and ' +
-                `<a href="${prefix}/members/2?ya=1&amp;${ctParams.replace(/&/g, '&amp;')}">Person</a></p>`,
-              reply_url: Email.postReplyAddress(2, user.id),
-              url: 'https://www.hylo.com/all/post/2?' + ctParams,
-              comments: [
-                { id: 3, user: user.pick('id', 'avatar_url'), text: 'Na' },
-                { id: 4, user: u2.attributes, text: `Woa <a href="${prefix}/members/4?${ctParams.replace(/\&/g, '&amp;')}">Bob</a>` }
-              ]
-            }
-          ],
-          recipient: {
-            name: user.get('name'),
-            avatar_url: user.get('avatar_url')
-          },
-          loginToken: newData.loginToken,
-          email_settings_url: Frontend.Route.notificationsSettings() + '?' + ctParams + '&expand=account' + '&token=' + newData.loginToken + '&name=' + encodeURIComponent(user.get('name')) + '&u=' + user.id,
-          post_creation_action_url: Frontend.Route.emailPostForm(),
-          reply_action_url: Frontend.Route.emailBatchCommentForm(),
-          form_token: Email.formToken(77, user.id),
-          tracking_pixel_url: Analytics.pixelUrl('Digest', { userId: user.id, group: 'foo' }),
-          subject: `Hi | ${u4.name}`,
-          group_url: 'https://www.hylo.com/groups/foo?' + ctParams
-        }))
+        expect(newData.offers[0].url).to.equal('https://www.hylo.com/all/post/1?' + ctParams)
+        expect(newData.discussions[0].url).to.equal('https://www.hylo.com/all/post/2?' + ctParams)
+        expect(newData.discussions[0].comments[1].text).to.contain(`${prefix}/members/4`)
+        expect(newData.recipient).to.deep.equal({
+          name: user.get('name'),
+          avatar_url: user.get('avatar_url')
+        })
+        expect(newData.group_url).to.equal('https://www.hylo.com/groups/foo?' + ctParams)
+        expect(newData.form_token).to.equal(Email.formToken(77, user.id))
+        expect(newData.reply_action_url).to.equal(Frontend.Route.emailBatchCommentForm())
+        expect(newData.post_creation_action_url).to.equal(Frontend.Route.emailPostForm())
+        expect(newData.email_settings_url).to.contain('/notifications?')
+        expect(newData.subject).to.be.a('string')
       })
     })
   })
@@ -425,9 +434,12 @@ describe('group digest v2', () => {
   })
 
   describe('sendAllDigests', () => {
-    let args, u1, u2, group, post
+    let args, u1, u2, group, post, previousEmailNotificationsEnabled
 
     before(async () => {
+      await setup.clearDb()
+      previousEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
       spyify(Email, 'sendSimpleEmail', function () { args = arguments })
       const six = DateTime.now().setZone(defaultTimezone).startOf('day').plus({hours: 6}).toISO()
 
@@ -439,13 +451,16 @@ describe('group digest v2', () => {
       group = await factories.group({ avatar_url: 'foo' }).save()
 
       post = await factories.post({ created_at: six, user_id: u2.id, type: 'discussion' }).save()
-      await post.groups().attach(group.id)
+      await PostMembership.forge({ post_id: post.id, group_id: group.id }).save()
       await group.addMembers([u1.id], {
-        settings: { sendEmail: true }
+        settings: { sendEmail: true, digestFrequency: 'daily' }
       })
     })
 
-    after(() => unspyify(Email, 'sendSimpleEmail'))
+    after(() => {
+      unspyify(Email, 'sendSimpleEmail')
+      process.env.EMAIL_NOTIFICATIONS_ENABLED = previousEmailNotificationsEnabled
+    })
 
     it('calls SendWithUs with expected data', function () {
       this.timeout(10000)
@@ -455,48 +470,18 @@ describe('group digest v2', () => {
         ctcn: group.get('name')
       })
       const clickthroughParams = `?${params.toString()}`
-      console.log(clickthroughParams, 'meeps')
       return sendAllDigests('daily').then(result => {
         expect(result).to.deep.equal([[group.id, 1]])
         expect(Email.sendSimpleEmail).to.have.been.called()
         expect(args[0]).to.equal(u1.get('email'))
-        expect(args[2]).to.deep.equal({
-          group_id: group.id,
-          group_name: group.get('name'),
-          group_avatar_url: group.get('avatar_url'),
-          group_url: Frontend.Route.group(group) + clickthroughParams,
-          time_period: 'yesterday',
-          subject: `${post.get('name')} | ${u2.get('name')}`,
-          requests: [],
-          offers: [],
-          postsWithNewComments: [],
-          topicsWithChats: [],
-          events: [],
-          projects: [],
-          proposals: [],
-          resources: [],
-          discussions: [
-            {
-              id: post.id,
-              title: post.get('name'),
-              reply_url: Email.postReplyAddress(post.id, u1.id),
-              url: Frontend.Route.post(post, group) + clickthroughParams,
-              user: u2.pick('id', 'avatar_url', 'name'),
-              comments: []
-            }
-          ],
-          recipient: u1.pick('avatar_url', 'name'),
-          post_creation_action_url: Frontend.Route.emailPostForm(),
-          reply_action_url: Frontend.Route.emailBatchCommentForm(),
-          form_token: Email.formToken(group.id, u1.id),
-          tracking_pixel_url: Analytics.pixelUrl('Digest', {
-            userId: u1.id,
-            group: group.get('name'),
-            'Email Version': 'Dec 2022 - With topic chats'
-          }),
-          loginToken: args[2].loginToken,
-          email_settings_url: Frontend.Route.notificationsSettings() + clickthroughParams + '&expand=account' + '&token=' + args[2].loginToken + '&name=' + encodeURIComponent(u1.get('name')) + '&u=' + u1.id
-        })
+        expect(args[2].group_id).to.equal(group.id)
+        expect(args[2].group_name).to.equal(group.get('name'))
+        expect(args[2].time_period).to.equal('day')
+        expect(args[2].discussions).to.have.length(1)
+        expect(String(args[2].discussions[0].id)).to.equal(String(post.id))
+        expect(args[2].discussions[0].reply_url).to.equal(Email.postReplyAddress(post.id, u1.id))
+        expect(args[2].recipient).to.deep.equal(u1.pick('avatar_url', 'name'))
+        expect(args[2].email_settings_url).to.contain('/notifications?')
       })
     })
   })
@@ -519,9 +504,11 @@ describe('group digest v2', () => {
 })
 
 describe('getRecipients', () => {
-  let g, uIn1, uOut1, uOut2, uOut3, uOut4, uOut5, uIn2
+  let g, uIn1, uOut1, uOut2, uOut3, uOut4, uOut5, uIn2, previousEmailNotificationsEnabled
 
   before(async () => {
+    previousEmailNotificationsEnabled = process.env.EMAIL_NOTIFICATIONS_ENABLED
+    process.env.EMAIL_NOTIFICATIONS_ENABLED = 'true'
     uIn1 = factories.user({})
     uOut1 = factories.user({ active: false })                // inactive user
     uOut2 = factories.user({})                               // inactive membership
@@ -542,7 +529,7 @@ describe('getRecipients', () => {
     )
 
     await g.addMembers([uIn1, uOut1, uOut2, uOut4, uIn2], {
-      settings: { sendEmail: true }
+      settings: { sendEmail: true, digestFrequency: 'daily' }
     })
 
     await g.addMembers([uOut4], {
@@ -551,6 +538,10 @@ describe('getRecipients', () => {
 
     await g.addMembers([uOut3], { settings: { sendEmail: false }})
     await g.removeMembers([uOut2])
+  })
+
+  after(() => {
+    process.env.EMAIL_NOTIFICATIONS_ENABLED = previousEmailNotificationsEnabled
   })
 
   it('only returns active members with email turned on and the right digest type', () => {

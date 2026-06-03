@@ -4,7 +4,7 @@ import postCardFieldsFragment from '@graphql/fragments/postCardFieldsFragment'
 // which shows all the aggregate posts from current group and any
 // child groups the current user is also a member of. We alias as posts so
 // redux-orm sets up the relationship between group and posts correctly
-const groupViewPostsQueryFragment = (includeChildGroupPosts = true) => `
+const groupViewPostsQueryFragment = (includeChildGroupPosts = true, { includeGroups = true } = {}) => `
 ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   activePostsOnly: $activePostsOnly,
   afterTime: $afterTime,
@@ -28,7 +28,7 @@ ${includeChildGroupPosts ? 'posts: viewPosts(' : 'posts('}
   hasMore
   total
   items {
-    ${postCardFieldsFragment}
+    ${postCardFieldsFragment({ includeGroups })}
   }
 }`
 

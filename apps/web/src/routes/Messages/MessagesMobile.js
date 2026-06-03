@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Helmet } from 'react-helmet'
 import { useDispatch } from 'react-redux'
 import { ChevronLeft } from 'lucide-react'
-import { get } from 'lodash/fp'
-import { TextHelpers } from '@hylo/shared'
 import PeopleSelector from './PeopleSelector'
 import Header from './Header'
 import MessageSection from './MessageSection'
@@ -42,34 +40,33 @@ const MessagesMobile = ({
   setContactsSearchAction,
   updateMessageTextAction,
   addParticipant,
-  removeParticipant,
-  createMessageAction,
-  findOrCreateThreadAction,
-  goToThreadAction
+  removeParticipant
 }) => {
   const dispatch = useDispatch()
   const peopleSelectorInputRef = useRef(null)
   const [viewportHeight, setViewportHeight] = useState(0)
   const [viewportOffset, setViewportOffset] = useState(0)
 
-  // Recreate sendMessage logic for mobile with proper actions
-  const sendMessageMobile = async () => {
-    if (!messageText || messageCreatePending) return false
-    if (forNewThread) {
-      const participantIds = participants.map(p => p.id)
-      if (participantIds.length === 0) return false
-      const createThreadResponse = await findOrCreateThreadAction(participantIds)
-      const newMessageThreadId = get('payload.data.findOrCreateThread.id', createThreadResponse) ||
-        get('data.findOrCreateThread.id', createThreadResponse)
-      await createMessageAction(newMessageThreadId, TextHelpers.markdown(messageText), true)
-      setParticipants([])
-      goToThreadAction(newMessageThreadId)
-    } else {
-      await createMessageAction(messageThreadId, TextHelpers.markdown(messageText))
-      focusForm()
+  /** Scrolls #message-list to the bottom; repeated passes catch layout after keyboard / flex resize (esp. iOS Safari). */
+  const scheduleScrollMessageListToBottom = useCallback(() => {
+    const scroll = () => {
+      const messageList = document.querySelector('#message-list')
+      if (!messageList) return
+      messageList.scrollTop = messageList.scrollHeight
     }
-    return false
-  }
+    scroll()
+    window.requestAnimationFrame(scroll)
+    window.requestAnimationFrame(() => window.requestAnimationFrame(scroll))
+    setTimeout(scroll, 50)
+    setTimeout(scroll, 200)
+  }, [])
+
+  // When the on-screen keyboard opens or closes, the message list's client height
+  // changes but scrollTop is not adjusted — pin to the last message again.
+  useEffect(() => {
+    if (!messageThreadId || messageThreadId === 'new') return
+    scheduleScrollMessageListToBottom()
+  }, [messageThreadId, viewportHeight, viewportOffset, scheduleScrollMessageListToBottom])
 
   // Track viewport height and offset for keyboard handling.
   // When the user taps the input (vs programmatic focus with preventScroll: true),
@@ -215,8 +212,11 @@ const MessagesMobile = ({
             <div className='flex-shrink-0 px-3 pb-3 bg-background border-t border-border' style={{ pointerEvents: 'auto' }}>
               <MessageForm
                 disabled={forNewThread && participants.length === 0}
-                onSubmit={sendMessageMobile}
-                onFocus={() => setPeopleSelectorOpen(false)}
+                onSubmit={sendMessage}
+                onFocus={() => {
+                  setPeopleSelectorOpen(false)
+                  scheduleScrollMessageListToBottom()
+                }}
                 currentUser={currentUser}
                 ref={formRef}
                 updateMessageText={updateMessageTextAction}

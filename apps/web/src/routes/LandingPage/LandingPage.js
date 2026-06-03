@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import Loading from 'components/Loading'
+import { StreamSkeleton } from 'components/PostCard/PostCardSkeleton'
 import Widget from 'components/Widget'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
@@ -53,7 +53,7 @@ const LandingPage = () => {
     })
   }, [])
 
-  if (!group || widgets.length === 0) return <Loading />
+  if (!group || widgets.length === 0) return <StreamSkeleton />
 
   return (
     <div>

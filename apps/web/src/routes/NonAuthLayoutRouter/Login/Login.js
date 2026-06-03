@@ -83,7 +83,15 @@ export default function Login (props) {
 
           // Required for Me data to be available to cause switch to auth'd
           // layout (i.e. AuthLayoutRouter)
-          dispatch(checkLogin())
+          const action = await dispatch(checkLogin())
+          // The popup reported success but the server session was not established
+          // (e.g. cookie blocked by the browser, sameSite issue, popup closed
+          // before the Set-Cookie response completed). Surface an actionable error
+          // rather than silently redirecting back to the login page.
+          const me = action?.payload?.data?.me
+          if (!me) {
+            setError(t('Sign-in with {{service}} completed but your session could not be established. Please try again or use email/password.', { service }))
+          }
         } catch (error) {
           setError(error.message)
         }

@@ -9,7 +9,9 @@ function SwitchStyled ({
   backgroundColor = '#ff44ff',
   name
 }) {
-  const handleToggle = () => {
+  /** Toggle switch; stops propagation so parent row `onClick` handlers do not run twice. */
+  const handleToggle = (e) => {
+    e.stopPropagation()
     onChange(checked, name)
   }
   return (

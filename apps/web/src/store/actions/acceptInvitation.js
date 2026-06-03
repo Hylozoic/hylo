@@ -17,6 +17,7 @@ export default function acceptInvitation (inviteCodes = {}) {
               group {
                 id
                 accessibility
+                homeRoute
                 name
                 purpose
                 settings {

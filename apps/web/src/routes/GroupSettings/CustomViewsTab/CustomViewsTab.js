@@ -35,6 +35,18 @@ import { sanitizeURL } from 'util/url'
 import styles from './CustomViewsTab.module.scss'
 
 const POST_TYPE_OPTIONS = Object.keys(POST_TYPES).filter(type => type !== 'chat' && type !== 'action')
+
+function customViewIdForSort (cv) {
+  if (cv.id == null) return Number.MAX_SAFE_INTEGER
+  const n = Number(cv.id)
+  return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER
+}
+
+/** Settings list order: id asc only (menu order lives on context_widgets). */
+function sortCustomViewsById (views) {
+  return [...(views || [])].sort((a, b) => customViewIdForSort(a) - customViewIdForSort(b))
+}
+
 const emptyCustomView = {
   activePostsOnly: false,
   collectionId: null,
@@ -59,9 +71,8 @@ function CustomViewsTab ({ group }) {
   function defaultEditState (group) {
     if (!group) return { customViews: [], changed: false }
 
-    const { customViews } = group
     return {
-      customViews: customViews || [],
+      customViews: sortCustomViewsById(group.customViews),
       changed: false,
       postTypesModalOpen: false
     }
@@ -85,23 +96,12 @@ function CustomViewsTab ({ group }) {
   }, [group.id])
 
   useEffect(() => {
-    if (fetchPending && !fetchCollectionPostsPending) {
-      setState(defaultEditState(group))
-    }
-
-    if (fetchCollectionPostsPending && !fetchCollectionPostsPending) {
-      // Update collections posts
-      const updatedCustomViews = [...state.customViews]
-      state.customViews.forEach((cv, i) => {
-        if (cv.type === 'collection') {
-          const collection = { ...cv.collection }
-          collection.posts = group.customViews[i]?.collection?.posts
-          updatedCustomViews[i].collection = collection
-        }
-      })
-      setState({ ...state, customViews: updatedCustomViews })
-    }
-  }, [group])
+    if (fetchPending || fetchCollectionPostsPending) return
+    setState(prev => {
+      if (prev.changed) return prev
+      return defaultEditState(group)
+    })
+  }, [group, fetchPending, fetchCollectionPostsPending])
 
   const errorString = useMemo(() => {
     let errorString = ''
@@ -125,30 +125,43 @@ function CustomViewsTab ({ group }) {
   }, [state.customViews])
 
   const save = async () => {
-    setState({ ...state, changed: false })
-    const customViews = [...state.customViews].map(cv => {
-      cv.topics = cv.topics.map(t => ({ name: t.name, id: t.id }))
-      if (cv.externalLink) cv.externalLink = sanitizeURL(cv.externalLink)
-      return omit('collection', cv)
+    const views = sortCustomViewsById(state.customViews)
+    setState({ ...state, changed: false, customViews: views })
+    const customViewsPayload = views.map(cv => {
+      const next = {
+        ...omit('collection', cv),
+        order: 1,
+        topics: (cv.topics || []).map(t => ({ name: t.name, id: t.id }))
+      }
+      if (next.externalLink) next.externalLink = sanitizeURL(next.externalLink)
+      return next
     })
-    updateGroupSettingsAction({ customViews })
+    updateGroupSettingsAction({ customViews: customViewsPayload })
   }
 
   const addCustomView = () => {
-    setState({ ...state, changed: true, customViews: [...state.customViews].concat({ ...emptyCustomView }) })
+    setState({
+      ...state,
+      changed: true,
+      customViews: sortCustomViewsById([...state.customViews, { ...emptyCustomView }])
+    })
   }
 
   const deleteCustomView = (i) => () => {
     if (window.confirm(t('Are you sure you want to delete this custom view?'))) {
-      const newViews = [...state.customViews]
-      newViews.splice(i, 1)
-      setState({ ...state, changed: true, customViews: newViews })
+      const target = sortCustomViewsById(state.customViews)[i]
+      setState({
+        ...state,
+        changed: true,
+        customViews: state.customViews.filter(cv => cv !== target)
+      })
     }
   }
 
   const updateCustomView = (i) => (key) => async (v) => {
     let value = typeof (v.target) !== 'undefined' ? v.target.value : v
-    const cv = { ...state.customViews[i] }
+    const views = sortCustomViewsById(state.customViews)
+    const cv = { ...views[i] }
 
     if (key === 'topics') {
       value = value.map(t => ({ name: t.name, id: parseInt(t.id) }))
@@ -170,9 +183,9 @@ function CustomViewsTab ({ group }) {
     }
 
     cv[key] = value
-    const customViews = [...state.customViews]
+    const customViews = [...views]
     customViews[i] = cv
-    setState({ ...state, changed: true, customViews })
+    setState({ ...state, changed: true, customViews: sortCustomViewsById(customViews) })
   }
 
   const { setHeaderDetails } = useViewHeader()
@@ -200,7 +213,7 @@ function CustomViewsTab ({ group }) {
           <CustomViewRow
             addPostToCollection={addPostToCollectionAction}
             group={group}
-            key={i}
+            key={cv.id ?? `new-${i}`}
             index={i}
             {...cv}
             onChange={updateCustomView(i)}

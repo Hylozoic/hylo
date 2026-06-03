@@ -144,6 +144,28 @@ module.exports = {
       return url(`/members/${getModelId(user)}`)
     },
 
+    /**
+     * Generates the frontend URL for viewing a post in context.
+     *
+     * Routing rules:
+     * 1. Funding-round submissions get their own dedicated URL.
+     * 2. Chat-type posts (direct messages in a chat room) link to that chat
+     *    room using the post's first topic tag, with postId as a query param
+     *    so the UI can open the message inline.
+     * 3. All other posts use the group's configured home view (home_route):
+     *    - If the home is a chat view (e.g. /chat/general), the post is
+     *      surfaced there via the same ?postId= query param pattern.
+     *    - Otherwise (e.g. /stream, /map) the post URL is appended as a path
+     *      segment so the UI renders the post detail modal at that route.
+     *    - Note: In theory it would be better to see if a post was created in a
+     *      chat room and post there if so, but it adds complexity and will change
+     *      soon with Spaces.
+     * 4. Posts with no group fall back to the public or all-groups feed.
+     *
+     * Note: `group` may be a Bookshelf model (has .get()) or a plain slug
+     * string. When only a slug is available home_route is unknown so we
+     * default to /stream.
+     */
     post: function (post, group, extraParams = '', fundingRound = null) {
       const groupSlug = getSlug(group)
       let groupUrl = '/all'
@@ -151,15 +173,30 @@ module.exports = {
       if (!group) {
         groupUrl = '/public'
       } else if (!isEmpty(groupSlug)) {
-        const tags = post.relations?.tags
-        const firstTopic = tags && tags.first()?.get('name')
         if (fundingRound) {
           return url(`/groups/${groupSlug}/funding-rounds/${getModelId(fundingRound)}/submissions/post/${getModelId(post)}?${extraParams}`)
-        } else if (firstTopic && (post.get('type') === Post.Type.CHAT || group.hasChatFor(tags.first()))) {
-          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
-        } else {
-          groupUrl = `/groups/${groupSlug}` + (firstTopic ? `/topics/${firstTopic}` : '')
         }
+
+        const tags = post.relations?.tags
+        const firstTopic = tags && tags.first()?.get('name')
+
+        if (post.get && post.get('type') === Post.Type.CHAT && firstTopic) {
+          return url(`/groups/${groupSlug}/chat/${firstTopic}?postId=${post.id}&${extraParams}`)
+        }
+
+        const isGroupObject = group && typeof group.get === 'function'
+        const homeRoute = isGroupObject ? (group.get('home_route') || '/stream') : '/stream'
+        if (homeRoute.startsWith('/chat/') && firstTopic) {
+          // Non-chat post shown in a chat home: open as a modal above the chat
+          // using /post/:id so you can see the full post and comments.
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+        }
+        if (!homeRoute.startsWith('/chat/')) {
+          return url(`/groups/${groupSlug}${homeRoute}/post/${getModelId(post)}?${extraParams}`)
+        }
+        // Chat home but post has no topics (e.g. Zapier-created): fall back to
+        // standalone post URL so the UI can still open it.
+        return url(`/groups/${groupSlug}/post/${getModelId(post)}?${extraParams}`)
       }
       return url(`${groupUrl}/post/${getModelId(post)}?${extraParams}`)
     },

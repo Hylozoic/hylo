@@ -19,10 +19,7 @@ import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
-import { es } from '../../lib/i18n/es'
-import { en } from '../../lib/i18n/en'
-
-const locales = { es, en }
+import { getLocaleStrings } from '../../lib/i18n/locales'
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
@@ -894,41 +891,47 @@ module.exports = bookshelf.Model.extend(merge({
       }
 
       if (changes.custom_views) {
-        const currentViews = await this.customViews().fetch({ transacting })
-        let currentView = currentViews.shift()
-        // TODO: more validation?
         const newViews = changes.custom_views.filter(cv => trim(cv.name) !== '')
-        let newView = newViews.shift()
-        // Update current views, add new ones, delete old ones and try to be efficient about it
-        while (currentView || newView) {
-          if (newView) {
-            const topics = newView && newView.topics
-            delete newView.topics
-            delete newView.id
-            if (currentView) {
-              await currentView.save(newView, { transacting })
+        const existingViews = (await this.customViews().fetch({ transacting })).models
+        const existingById = {}
+        for (const view of existingViews) {
+          existingById[view.id] = view
+        }
+        const keptIds = new Set()
 
-              // If this custom view has a collection then update the name of the collection to match the custom view's name
-              const collection = await currentView.collection().fetch()
-              if (collection && collection.get('name') !== currentView.get('name')) {
-                await collection.save({ name: currentView.get('name') })
-              }
-            } else {
-              currentView = await CustomView.forge({ ...newView, group_id: this.id }).save({}, { transacting })
-                .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+        for (const incoming of newViews) {
+          const topics = incoming.topics
+          const incomingData = { ...incoming }
+          delete incomingData.topics
+          const incomingId = incomingData.id
+          delete incomingData.id
+          if (incomingData.order == null) incomingData.order = 1
+
+          let currentView
+          const existingView = incomingId && (existingById[incomingId] || existingById[parseInt(incomingId, 10)])
+          if (existingView) {
+            currentView = existingView
+            await currentView.save(incomingData, { transacting })
+            keptIds.add(currentView.id)
+
+            const collection = await currentView.collection().fetch()
+            if (collection && collection.get('name') !== currentView.get('name')) {
+              await collection.save({ name: currentView.get('name') })
             }
-
-            await currentView.updateTopics(topics, transacting)
-          } else if (currentView) {
-            // Delete associated context widgets
-            await ContextWidget.where({ group_id: this.id, custom_view_id: currentView.id }).destroy({ transacting })
-
-            await currentView.destroy({ transacting })
           } else {
-            break
+            currentView = await CustomView.forge({ ...incomingData, group_id: this.id }).save({}, { transacting })
+              .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+            keptIds.add(currentView.id)
           }
-          currentView = currentViews.shift()
-          newView = newViews.shift()
+
+          await currentView.updateTopics(topics, transacting)
+        }
+
+        for (const view of existingViews) {
+          if (!keptIds.has(view.id)) {
+            await ContextWidget.where({ group_id: this.id, custom_view_id: view.id }).destroy({ transacting })
+            await view.destroy({ transacting })
+          }
         }
       }
 
@@ -1133,14 +1136,13 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'group_data_type', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'name', 'purpose', 'settings', 'slug',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
         accessibility: Group.Accessibility.RESTRICTED,
         avatar_url: DEFAULT_AVATAR,
         banner_url: DEFAULT_BANNER,
-        group_data_type: 1,
         visibility: Group.Visibility.PROTECTED
       }
     )
@@ -1486,17 +1488,17 @@ module.exports = bookshelf.Model.extend(merge({
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
-        const locale = creator.getLocale()
+        const L = getLocaleStrings(creator.getLocale())
         return Email.sendRawEmail({
           email: recipient,
           data: {
-            subject: locales[locale].groupCreatedNotifySubject(g.get('name')),
-            body: `${locales[locale].Group()}
-              ${locales[locale].Name()}: ${g.get('name')}
+            subject: L.groupCreatedNotifySubject(g.get('name')),
+            body: `${L.Group()}
+              ${L.Name()}: ${g.get('name')}
               URL: ${Frontend.Route.group(g)}
-              ${locales[locale].CreatorEmail()}: ${creator.get('email')}
-              ${locales[locale].CreatorName()}: ${creator.get('name')}
-              ${locales[locale].CreatorURL()}: ${Frontend.Route.profile(creator)}
+              ${L.CreatorEmail()}: ${creator.get('email')}
+              ${L.CreatorName()}: ${creator.get('name')}
+              ${L.CreatorURL()}: ${Frontend.Route.profile(creator)}
             `.replace(/^\s+/gm, '').replace(/\n/g, '<br/>\n')
           },
           extraOptions: {

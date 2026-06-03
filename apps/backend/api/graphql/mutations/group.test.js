@@ -220,8 +220,8 @@ describe('mutations/group', () => {
 
     before(async () => {
       // Clean up any existing relationships that might be left over from previous test runs
-      await GroupRelationship.where('id', '>', 0).destroy()
-      await GroupRelationshipInvite.where('id', '>', 0).destroy()
+      await bookshelf.knex('group_relationships').where('id', '>', 0).del()
+      await bookshelf.knex('group_relationship_invites').where('id', '>', 0).del()
 
       adminUser = await factories.user().save()
       memberUser = await factories.user().save()
@@ -235,6 +235,11 @@ describe('mutations/group', () => {
 
       // Make memberUser a regular member of fromGroup only
       await memberUser.joinGroup(fromGroup, { role: GroupMembership.Role.DEFAULT })
+    })
+
+    beforeEach(async () => {
+      await bookshelf.knex('group_relationships').where('id', '>', 0).del()
+      await bookshelf.knex('group_relationship_invites').where('id', '>', 0).del()
     })
 
     describe('invitePeerRelationship', () => {
@@ -325,7 +330,10 @@ describe('mutations/group', () => {
         const result = await invitePeerRelationship(adminUser.id, fromGroup.id, otherGroup.id)
 
         expect(result.success).to.be.false
-        expect(result.groupRelationshipInvite.id).to.equal(existingInvite.id)
+        expect(result.groupRelationshipInvite).to.exist
+        expect(result.groupRelationshipInvite.get('from_group_id')).to.equal(existingInvite.get('from_group_id'))
+        expect(result.groupRelationshipInvite.get('to_group_id')).to.equal(existingInvite.get('to_group_id'))
+        expect(result.groupRelationshipInvite.get('status')).to.equal(GroupRelationshipInvite.STATUS.Pending)
 
         // Clean up
         await existingInvite.destroy()

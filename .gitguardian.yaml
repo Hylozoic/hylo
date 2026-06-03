@@ -1,0 +1,7 @@
+# Ephemeral CI only: .github/workflows/playwright.yml uses Docker/GitHub tutorial-style
+# Postgres/Redis URLs and placeholder Sails secrets for localhost service containers — not production.
+# https://docs.gitguardian.com/scan-guardian/configure-your-scan/guardian-software/gitguardian-yaml
+version: 2
+
+paths-ignore:
+  - '.github/workflows/playwright.yml'

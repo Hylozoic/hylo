@@ -48,5 +48,6 @@ export default function presentPost (post, groupId) {
     return finalPost
   } catch (e) {
     console.log('error', e)
+    return null
   }
 }

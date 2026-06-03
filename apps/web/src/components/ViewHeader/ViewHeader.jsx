@@ -13,7 +13,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { bgImageStyle, cn } from 'util/index'
-import { isMobileDevice } from 'util/mobile'
+import { isPhoneDevice } from 'util/mobile'
 
 const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
   const dispatch = useDispatch()
@@ -179,8 +179,8 @@ const ViewHeader = ({ oneColumnGroup, oneColumnGroupSlug }) => {
     }
   }
 
-  // Hide ViewHeader on mobile for messages - MessagesMobile handles its own header
-  if (isMobileDevice() && location.pathname.startsWith('/messages')) {
+  // Hide ViewHeader on phones for messages - MessagesMobile handles its own header
+  if (isPhoneDevice() && location.pathname.startsWith('/messages')) {
     return null
   }
 
