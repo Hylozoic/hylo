@@ -5,7 +5,6 @@ import { useLocation, useNavigate, Navigate, useParams } from 'react-router-dom'
 import { every, isEmpty } from 'lodash/fp'
 import { baseUrl, groupUrl } from '@hylo/navigation'
 import setReturnToPath from 'store/actions/setReturnToPath'
-import { DEFAULT_CHAT_TOPIC } from 'store/models/Group'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { getSignupComplete } from 'store/selectors/getAuthState'
 import acceptInvitation from 'store/actions/acceptInvitation'
@@ -43,7 +42,9 @@ export default function JoinGroup (props) {
           const groupSlug = newMembership?.group?.slug
 
           if (groupSlug) {
-            setRedirectTo(groupUrl(groupSlug, redirectToView || `chat/${DEFAULT_CHAT_TOPIC}`))
+            const homeRoute = newMembership?.group?.homeRoute
+            const view = redirectToView || (homeRoute ? homeRoute.replace(/^\//, '') : 'stream')
+            setRedirectTo(groupUrl(groupSlug, view))
           } else {
             throw new Error(t('Join group was unsuccessful'))
           }
