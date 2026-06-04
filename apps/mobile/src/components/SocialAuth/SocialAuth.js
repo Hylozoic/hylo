@@ -4,6 +4,7 @@ import { Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import { isIOS } from 'util/platform'
+import { saveTokens } from 'util/tokenStore'
 import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
@@ -40,6 +41,12 @@ export default function SocialAuth ({
           throw new Error(errorMessage)
         }
       } else {
+        // Persist the OIDC token pair returned by the token-auth header so native
+        // GraphQL and the WebView handoff use the same Bearer/Keychain credential
+        // as email/password login.
+        if (response?.payload?.access_token) {
+          await saveTokens(response.payload)
+        }
         await handleOnComplete()
       }
     } catch (e) {

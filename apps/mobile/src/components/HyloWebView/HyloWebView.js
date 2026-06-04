@@ -3,9 +3,10 @@ import { useFocusEffect } from '@react-navigation/native'
 import Config from 'react-native-config'
 import useRouteParams from 'hooks/useRouteParams'
 import AutoHeightWebView from 'react-native-autoheight-webview'
-import { getSessionCookie, clearSessionCookie, ensureWebViewCookies } from 'util/session'
+import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
+import Loading from 'components/Loading'
 
 /* Should probably just be applied to Hylo Web stylesheet 
   as what this solves is not necessarily WebView specific, 
@@ -106,7 +107,10 @@ const HyloWebView = React.forwardRef(({
     useCallback(() => {
       const getCookieAsync = async () => {
         try {
-          const newCookie = await getSessionCookie()
+          // Token-auth path: derive a fresh session cookie from the native access
+          // token so the WebView loads authenticated. Falls back to any existing
+          // cookie (the cookie-based signup flow) when there's no token.
+          const newCookie = await sessionCookieFromToken() || await getSessionCookie()
           // Populate the WebView's native cookie jar BEFORE calling setCookie().
           // setCookie() makes `cookie` truthy which immediately renders the WebView
           // and starts loading. If we populate the jar after, there's a race where
@@ -148,6 +152,18 @@ const HyloWebView = React.forwardRef(({
     messageHandler && messageHandler(parsedMessage)
   }
 
+
+  // While the session cookie is still being resolved (initial mount + the
+  // token→cookie bridge network call) show a loader rather than a blank screen.
+  // `cookie === undefined` means "not resolved yet"; `null` means "resolved, none".
+  if (cookie === undefined && uri) {
+    return (
+      <Loading
+        size='large'
+        style={[{ flex: 1, alignItems: 'center', justifyContent: 'center' }, style]}
+      />
+    )
+  }
 
   // No session cookie means the native session is out of sync with the WebView.
   // Trigger logout immediately so native handles navigation to its login screens.

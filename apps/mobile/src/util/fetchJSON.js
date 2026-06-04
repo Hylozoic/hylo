@@ -1,4 +1,5 @@
 import { setSessionCookie } from 'util/session'
+import { getTokens } from 'util/tokenStore'
 import apiHost from 'util/apiHost'
 
 export default async function fetchJSON (path, params, options = {}) {
@@ -12,6 +13,13 @@ export default async function fetchJSON (path, params, options = {}) {
     },
     body: JSON.stringify(params),
     withCredentials: true
+  }
+
+  // Attach the Bearer token (mobile token-auth path) when present; falls back to
+  // the session cookie otherwise.
+  const tokens = await getTokens()
+  if (tokens?.access_token) {
+    requestParams.headers.Authorization = `Bearer ${tokens.access_token}`
   }
 
   if (options.headers) {
