@@ -115,7 +115,13 @@ const finishOAuth = function (strategy, req, res, next) {
       if (err || !profile) return respond(err || 'no user')
       if (!profile.email) return respond('no email')
 
-      return (UserSession.isLoggedIn(req)
+      // Mobile token-auth is always a fresh LOGIN, so resolve the account from the
+      // verified social profile (upsertUser). Only treat it as "attach this social
+      // account to the user I'm already logged in as" (upsertLinkedAccount) for the
+      // web popup flow. Otherwise a stale/lingering session cookie would cause the
+      // social login to be linked onto — and resolved as — the wrong account.
+      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
+      return (UserSession.isLoggedIn(req) && !isTokenAuth
         ? upsertLinkedAccount
         : upsertUser)(req, provider, profile)
       .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
@@ -296,6 +302,13 @@ module.exports = {
     // NOTE: this was `req.session.authenticated` but that doesn't seem to
     // populate in the case (or in time) for a POST request? This works.
     if (req.session.userId) {
+      // Mobile token-auth clients opt in via header and get a token pair back
+      // (e.g. the password-reset magic link), so the native app ends up on the
+      // same Keychain-token path as the other login methods. Web is unaffected.
+      if (req.get('X-Hylo-Token-Auth') === '1') {
+        const user = await User.find(req.session.userId, {}, false)
+        return res.ok(await mintTokensForUser(user))
+      }
       return shouldRedirect
         ? res.redirect(nextUrl)
         : res.ok({ success: true })
