@@ -1,3 +1,10 @@
+// DEPRECATED: This subscription exchange is no longer used.
+// All real-time updates are now handled by the web app in the WebView.
+// The only screen that used subscriptions (PostDetails) is deprecated.
+// Kept for reference - may revisit if native screens are restored.
+// Last used: 2025-01-28
+
+/*
 import { subscriptionExchange } from 'urql'
 import EventSource from 'react-native-sse'
 import { URL } from 'react-native-url-polyfill'
@@ -183,3 +190,8 @@ export default subscriptionExchange({
     }
   }
 })
+*/
+
+// Export a no-op subscription exchange since the urql client still expects one
+// This prevents any subscription attempts from erroring
+export default null

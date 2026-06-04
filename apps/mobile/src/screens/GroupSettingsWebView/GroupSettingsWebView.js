@@ -1,3 +1,9 @@
+// DEPRECATED: This screen is no longer used in the app.
+// All content (including group settings) is now handled by PrimaryWebView.
+// The web app provides the settings interface.
+// Kept for reference - may revisit native implementation in the future.
+// Last used: 2025-01-26
+
 import React, { useCallback } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'

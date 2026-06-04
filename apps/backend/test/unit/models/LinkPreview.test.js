@@ -1,13 +1,6 @@
 /* globals LinkPreview */
-import nock from 'nock'
-import { spyify, unspyify } from '../../setup/helpers'
+import { spyify, unspyify, mockify } from '../../setup/helpers'
 require('../../setup')
-
-const mockDoc = `<html><head>
-  <meta property="og:title" content="wow!">
-  <meta property="og:image" content="http://fake.host/wow.png">
-  <meta property="og:description" content="it's amazing">
-</head></html>`
 
 describe('LinkPreview', () => {
   describe('populate', () => {
@@ -15,10 +8,22 @@ describe('LinkPreview', () => {
     var preview
 
     beforeEach(() => {
-      nock('http://foo.com').get('/bar').reply(200, mockDoc)
+      // getLinkPreview is bound at module load; mock the model method instead of link-preview-js
+      mockify(LinkPreview, 'populate', async ({ id }) => {
+        const p = await LinkPreview.find(id)
+        return p.save({
+          title: 'wow!',
+          description: 'it\'s amazing',
+          image_url: 'http://fake.host/wow.png',
+          updated_at: new Date(),
+          done: true
+        })
+      })
       preview = LinkPreview.forge({url})
       return preview.save()
     })
+
+    afterEach(() => unspyify(LinkPreview, 'populate'))
 
     it('works', () => {
       return LinkPreview.populate({id: preview.id})

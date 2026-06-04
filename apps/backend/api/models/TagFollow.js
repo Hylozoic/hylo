@@ -2,6 +2,7 @@
 import HasSettings from './mixins/HasSettings'
 import RedisClient from '../services/RedisClient'
 import { mapLocaleToSendWithUS } from '../../lib/util'
+import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 
 const CHAT_ROOM_DIGEST_REDIS_TIMESTAMP_KEY = 'ChatRoom.digests.lastSentAt'
 
@@ -151,7 +152,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
 
     for (const tagFollow of tagFollowsWithNewPosts) {
       // TODO: check global notification setting once we have it if (!tagFollow.relations.user.enabledNotification(Notification.MEDIUM.Email)) return
-      if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !User.isTester(tagFollow.get('user_id'))) continue
+      if (process.env.EMAIL_NOTIFICATIONS_ENABLED !== 'true' && !(await User.isTester(tagFollow.get('user_id')))) continue
       const groupMembership = await tagFollow.groupMembership().fetch()
       if (!groupMembership || !groupMembership.get('active') || !groupMembership.getSetting('sendEmail')) continue
 
@@ -210,7 +211,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
         email: tagFollow.relations.user.get('email'),
         locale,
         sender: {
-          name: tagFollow.relations.group.get('name') + ' (via Hylo)',
+          name: senderNameViaHylo(tagFollow.relations.group.get('name'), locale),
           reply_to: 'DoNotReply@hylo.com'
         },
         data: {

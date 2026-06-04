@@ -58,6 +58,7 @@ export function fetchGroupSettings (slug) {
             allowGroupInvites
             askGroupToGroupJoinQuestions
             askJoinQuestions
+            defaultDigestFrequency
             hideExtensionData
             locationDisplayPrecision
             publicMemberDirectory
@@ -265,6 +266,11 @@ export function updateGroupSettings (id, changes) {
           stripePayoutsEnabled
           stripeDetailsSubmitted
           paywall
+          settings {
+            defaultDigestFrequency
+            locationDisplayPrecision
+            showSuggestedSkills
+          }
           agreements {
             items {
               id

@@ -53,6 +53,7 @@ class PostHeader extends PureComponent {
       canEdit,
       expanded,
       isCurrentAction,
+      actionDescriptor,
       isFlagged,
       group,
       close,
@@ -89,7 +90,7 @@ class PostHeader extends PureComponent {
     } = post
 
     if (type === 'action') {
-      return <ActionHeader post={post} isCurrentAction={isCurrentAction} />
+      return <ActionHeader post={post} isCurrentAction={isCurrentAction} actionDescriptor={actionDescriptor} />
     }
 
     if (!creator) return null
@@ -262,7 +263,7 @@ class PostHeader extends PureComponent {
           )}
 
         <Tooltip
-          className='bg-background z-1000'
+          className='bg-background'
           delayShow={0}
           id={`announcement-tt-${id}`}
           position='top'
@@ -292,8 +293,9 @@ export function TopicsLine ({ topics, slug, newLine }) {
   )
 }
 
-function ActionHeader ({ post, isCurrentAction }) {
+function ActionHeader ({ post, isCurrentAction, actionDescriptor }) {
   const { t } = useTranslation()
+  const actionTerm = actionDescriptor || 'Action'
 
   return (
     <div className='flex p-2 mb-2 items-center'>
@@ -301,7 +303,7 @@ function ActionHeader ({ post, isCurrentAction }) {
         {post.completedAt
           ? <span className='border-2 border-secondary rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Check className='w-4 h-4 inline' /> {t('Completed')}</span>
           : isCurrentAction
-            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next Action')}</span>
+            ? <span className='border-2 border-accent rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><Play className='w-4 h-4 inline' /> {t('Next {{actionDescriptor}}', { actionDescriptor: actionTerm })}</span>
             : <span className='border-2 border-foreground/20 text-foreground/70 rounded-md px-2 py-1 inline-flex flex-row items-center gap-2 flex-1 text-sm'><CircleDashed className='w-4 h-4 inline' /> {t('Not Completed')}</span>}
       </div>
 

@@ -22,6 +22,10 @@ import {
   filterAndSortUsers
 } from '../services/Search/util'
 const { createGroupRoleScope } = require('../../lib/scopes')
+const {
+  mergeAccessGrantsForPresentation,
+  getBuyButtonTextFromOffering
+} = require('../../lib/stripeOfferingMetadata')
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -34,6 +38,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
 
   // XXX: for now give super API users more access, in the future track which groups each client can access
   const apiFilter = makeFilterToggle(!apiClient || !apiClient.super)
+
+  // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
+  async function postActiveFollowersCount (post) {
+    const row = await bookshelf.knex('posts_users')
+      .join('users', 'users.id', 'posts_users.user_id')
+      .where({
+        'posts_users.post_id': post.get('id'),
+        'posts_users.following': true,
+        'posts_users.active': true,
+        'users.active': true
+      })
+      .count('* as count')
+      .first()
+    const n = row?.count
+    return n != null ? parseInt(String(n), 10) : 0
+  }
 
   return {
     Agreement: {
@@ -193,7 +213,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         blockedUsers: u => u.blockedUsers().fetch(),
         hasStripeAccount: u => u.hasStripeAccount(),
-        isAdmin: () => isAdmin || false,
+        isAdmin: u => isAdmin || false,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -501,7 +521,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             .sum('tokens_allocated_to as total')
             .first()
           return result?.total ? parseInt(result.total) : 0
-        }
+        },
+        followersTotal: p => postActiveFollowersCount(p)
       },
       relations: [
         { comments: { querySet: true } },
@@ -616,6 +637,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'created_at',
         'description',
+        'home_route',
         'homeWidget',
         'location',
         'geo_shape',
@@ -1180,7 +1202,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: ['created_at', 'updated_at'],
       getters: {
         unreadCount: t => t.unreadCountForUser(userId),
-        lastReadAt: t => t.lastReadAtForUser(userId)
+        lastReadAt: t => t.lastReadAtForUser(userId),
+        participantsTotal: t => postActiveFollowersCount(t)
       },
       relations: [
         { followers: { alias: 'participants' } },
@@ -1346,8 +1369,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         canAccess: t => t ? t.canAccess(userId) : false,
         isEnrolled: t => t && userId && t.isEnrolled(userId),
         didComplete: t => t && userId && t.didComplete(userId),
-        userSettings: t => t && userId ? t.userSettings(userId) : null,
-
+        userSettings: t => t && userId ? t.userSettings(userId) : null
       },
       fetchMany: ({ autocomplete, first = 20, offset = 0, order, published, sortBy }) =>
         searchQuerySet('tracks', {
@@ -1598,6 +1620,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'currency',
         'track_id',
         'access_grants',
+        'metadata',
         'renewal_policy',
         'duration',
         'publish_status'
@@ -1611,9 +1634,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripePriceId: sp => sp.get('stripe_price_id'),
         priceInCents: sp => sp.get('price_in_cents'),
         trackId: sp => sp.get('track_id'),
-        accessGrants: sp => sp.get('access_grants'),
+        accessGrants: sp => mergeAccessGrantsForPresentation(sp),
         renewalPolicy: sp => sp.get('renewal_policy'),
         publishStatus: sp => sp.get('publish_status'),
+        buyButtonText: (sp) => getBuyButtonTextFromOffering(sp),
         tracks: async (sp) => {
           if (!sp) return []
           const accessGrants = sp.get('access_grants')
@@ -1642,7 +1666,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
           // Fetch tracks
           const tracks = await Track.where('id', 'in', trackIds).fetchAll()
           return tracks.models || []
-        },
+        }
       }
     },
 
@@ -1778,6 +1802,24 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const metadata = ca.get('metadata') || {}
           return metadata.subscription_cancel_reason || null
         }
+      }
+    },
+
+    EmailEnabledTester: {
+      model: EmailEnabledTester,
+      attributes: [
+        'id',
+        'user_id',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        { user: { alias: 'user' } }
+      ],
+      getters: {
+        userId: e => e.get('user_id'),
+        createdAt: e => e.get('created_at'),
+        updatedAt: e => e.get('updated_at')
       }
     }
   }

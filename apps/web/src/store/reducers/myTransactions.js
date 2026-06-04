@@ -6,7 +6,10 @@
  */
 
 import { get } from 'lodash/fp'
-import { FETCH_MY_TRANSACTIONS } from 'store/actions/fetchMyTransactions'
+import {
+  FETCH_MY_TRANSACTIONS,
+  APPLY_OPTIMISTIC_MEMBERSHIP_CHANGE
+} from 'store/actions/fetchMyTransactions'
 
 const initialState = {
   items: [],
@@ -17,7 +20,7 @@ const initialState = {
 }
 
 export default function myTransactionsReducer (state = initialState, action) {
-  const { type, payload, error, meta } = action
+  const { type, payload, error } = action
 
   // Handle pending state (dispatched by pendingMiddleware)
   if (type === `${FETCH_MY_TRANSACTIONS}_PENDING`) {
@@ -49,6 +52,46 @@ export default function myTransactionsReducer (state = initialState, action) {
         error: null
       }
     }
+  }
+
+  if (type === APPLY_OPTIMISTIC_MEMBERSHIP_CHANGE) {
+    const {
+      groupId,
+      fromOfferingId,
+      toOffering,
+      amountPaid,
+      currency
+    } = payload || {}
+    if (!groupId || !fromOfferingId || !toOffering) {
+      return state
+    }
+    const items = state.items.map(item => {
+      const groupMatches =
+        item.group?.id != null && String(item.group.id) === groupId
+      const fromMatches =
+        item.offering?.id != null &&
+        String(item.offering.id) === fromOfferingId
+      const isSubscription = item.paymentType === 'subscription'
+      if (!groupMatches || !fromMatches || !isSubscription) {
+        return item
+      }
+      const nextCurrency = currency || item.currency
+      return {
+        ...item,
+        offeringName: toOffering.name ?? item.offeringName,
+        offering: {
+          ...(item.offering || {}),
+          id: toOffering.id,
+          name: toOffering.name,
+          duration: toOffering.duration ?? item.offering?.duration,
+          priceInCents:
+            toOffering.priceInCents ?? item.offering?.priceInCents
+        },
+        ...(amountPaid != null ? { amountPaid } : {}),
+        ...(currency ? { currency: nextCurrency } : {})
+      }
+    })
+    return { ...state, items }
   }
 
   return state

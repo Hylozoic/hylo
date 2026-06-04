@@ -1,14 +1,13 @@
 {
   "name": "web",
   "description": "Hylo Frontend",
-  "version": "6.3.2",
+  "version": "6.4.6",
   "private": true,
   "license": "Apache-2.0",
   "author": "Hylo <hello@hylo.com>",
   "type": "module",
   "engines": {
-    "node": "^20",
-    "yarn": "^4.9.2"
+    "node": "^20"
   },
   "packageManager": "yarn@4.9.2",
   "browserslist": [
@@ -21,10 +20,16 @@
     "start": "node --preserve-symlinks scripts/start.js",
     "build": "node scripts/build.js",
     "test": "TZ=UTC node scripts/test.js",
+    "test:e2e": "node scripts/run-isolated-e2e.js --grep-invert \"capture screenshot\"",
+    "test:e2e:headed": "node scripts/run-isolated-e2e.js --headed --grep-invert \"capture screenshot\"",
+    "test:e2e:mobile": "node scripts/run-isolated-e2e.js --project=mobile-chrome --grep-invert \"capture screenshot\"",
+    "test:e2e:unauth": "node scripts/run-isolated-e2e.js --project=chromium-unauth --project=mobile-unauth --grep-invert \"capture screenshot\"",
+    "test:e2e:isolated": "node scripts/run-isolated-e2e.js --grep-invert \"capture screenshot\"",
+    "screenshot": "node scripts/run-isolated-e2e.js screenshot",
     "lint": "yarn exec standard",
     "lint:fix": "yarn exec standard --fix",
     "serve": "node src/server/index.js",
-    "prepare": "husky install",
+    "prepare": "cd $(git rev-parse --show-toplevel) && node apps/web/node_modules/husky/lib/bin.js install apps/web/.husky",
     "heroku-postbuild": "yarn install && yarn build",
     "preview": "vite preview"
   },
@@ -38,10 +43,13 @@
       "afterEach",
       "beforeAll",
       "beforeEach",
+      "cancelAnimationFrame",
       "describe",
       "expect",
       "it",
       "jest",
+      "requestAnimationFrame",
+      "ResizeObserver",
       "test"
     ]
   },
@@ -158,6 +166,7 @@
     "mapbox-gl": "^3.7.0",
     "mime": "^2.0.3",
     "mixpanel-browser": "^2.45.0",
+    "next-themes": "^0.4.6",
     "object-assign": "4.1.1",
     "promise": "7.1.1",
     "prop-types": "^15.6.0",
@@ -206,6 +215,7 @@
     "scroll-into-view-if-needed": "^2.2.29",
     "slick-carousel": "^1.8.1",
     "socket.io-client": "2.3.1",
+    "sonner": "^2.0.7",
     "streamifier": "^0.1.1",
     "supercluster": "^7.0.0",
     "timezone-mock": "^0.0.7",
@@ -234,6 +244,7 @@
     "@eslint/js": "^9.14.0",
     "@faker-js/faker": "^6.0.0-alpha.5",
     "@mswjs/socket.io-binding": "^0.1.1",
+    "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

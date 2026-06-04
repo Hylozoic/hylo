@@ -20,7 +20,7 @@ const SCOPE_TYPES = {
 /**
  * Creates a scope string from type and entity ID
  *
- * @param {string} type - One of: 'group', 'track', 'group_role'
+ * @param {string} type - One of: 'group', 'track' (use createGroupRoleScope / createCommonRoleScope for roles)
  * @param {string|number} entityId - The ID of the entity
  * @returns {string} The formatted scope string
  * @throws {Error} If type is invalid or entityId is missing
@@ -28,6 +28,10 @@ const SCOPE_TYPES = {
 function createScope (type, entityId) {
   if (!Object.values(SCOPE_TYPES).includes(type)) {
     throw new Error(`Invalid scope type: ${type}. Must be one of: ${Object.values(SCOPE_TYPES).join(', ')}`)
+  }
+
+  if (type === SCOPE_TYPES.GROUP_ROLE || type === SCOPE_TYPES.COMMON_ROLE) {
+    throw new Error('Use createGroupRoleScope or createCommonRoleScope for role scopes')
   }
 
   if (!entityId) {

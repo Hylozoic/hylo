@@ -7,20 +7,51 @@
  */
 
 const Stripe = require('stripe')
+const {
+  resolvePeriodUnitAmountCentsSync,
+  resolvePeriodPriceCentsForCredit
+} = require('../../lib/membershipChangeCredit')
+const { getLocaleStrings } = require('../../lib/i18n/locales')
 
 // Initialize Stripe with API version
 // TODO STRIPE: Replace with your actual Stripe secret key
 // Set this in your environment variables as STRIPE_SECRET_KEY
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 
-// Fiscal sponsor's Stripe account ID (Hylo's connected account under fiscal sponsor)
-// In production, donations are routed to this account for tax-deductible processing
-// In non-production, donations stay in the platform account
-const FISCAL_SPONSOR_ACCOUNT_ID = process.env.STRIPE_FISCAL_SPONSOR_ACCOUNT_ID
-
-// Cached donation price IDs per account (created programmatically on first use)
+// Cached platform-contribution price IDs per connected account (created on first use)
 // Key: accountId (or 'platform' for platform account), Value: priceId
 const cachedDonationPriceIds = {}
+
+// Cached sliding-scale unit price IDs per account+currency (created programmatically on first use)
+// Key: `${accountId || 'platform'}:${currency}`, Value: priceId
+const cachedSlidingScaleUnitPriceIds = {}
+
+function normalizeLocale (locale) {
+  if (!locale || typeof locale !== 'string') {
+    return 'en'
+  }
+  return locale.toLowerCase().split('-')[0]
+}
+
+function getStripeContributionCopy ({ locale, currency }) {
+  const localeStrings = getLocaleStrings(normalizeLocale(locale))
+  const upperCurrency = (currency || 'usd').toUpperCase()
+
+  return {
+    contributionProductName: localeStrings.stripeContributionProductName
+      ? localeStrings.stripeContributionProductName()
+      : 'Choose Your Hylo Contribution',
+    contributionProductDescription: localeStrings.stripeContributionProductDescription
+      ? localeStrings.stripeContributionProductDescription()
+      : 'Choose your level of contribution to support the Hylo platform.',
+    slidingScaleUnitProductName: localeStrings.stripeSlidingScaleUnitProductName
+      ? localeStrings.stripeSlidingScaleUnitProductName({ currency: upperCurrency })
+      : `Set Your Contribution Amount (${upperCurrency} units)`,
+    slidingScaleUnitProductDescription: localeStrings.stripeSlidingScaleUnitProductDescription
+      ? localeStrings.stripeSlidingScaleUnitProductDescription()
+      : 'Adjust quantity to choose your contribution amount.'
+  }
+}
 
 // Validate that Stripe secret key is configured
 if (!STRIPE_SECRET_KEY) {
@@ -40,14 +71,14 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 module.exports = {
 
   /**
-   * Ensures the Hylo donation product and price exist in Stripe.
+   * Ensures the Hylo platform contribution product and $1 unit price exist in Stripe.
    * Creates them if they don't exist, otherwise retrieves the existing price ID.
    * The price ID is cached per account for subsequent calls.
    *
    * @param {String} [accountId] - Connected account ID. If provided, creates on that account.
-   * @returns {Promise<String>} The donation price ID
+   * @returns {Promise<String>} The contribution line-item price ID
    */
-  async ensureDonationPriceExists (accountId = null) {
+  async ensureDonationPriceExists (accountId = null, locale = 'en') {
     const cacheKey = accountId || 'platform'
 
     // Return cached price ID if we already have it for this account
@@ -56,8 +87,11 @@ module.exports = {
     }
 
     try {
-      const DONATION_PRODUCT_NAME = 'Hylo Platform Donation'
-      const DONATION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
+      const {
+        contributionProductName: CONTRIBUTION_PRODUCT_NAME,
+        contributionProductDescription: CONTRIBUTION_PRODUCT_DESCRIPTION
+      } = getStripeContributionCopy({ locale, currency: 'usd' })
+      const CONTRIBUTION_PRODUCT_METADATA_KEY = 'hylo_donation_product'
 
       // Options for connected account API calls
       const stripeOptions = accountId ? { stripeAccount: accountId } : {}
@@ -74,12 +108,12 @@ module.exports = {
         }, stripeOptions)
 
         donationProduct = products.data.find(
-          p => p.metadata && p.metadata[DONATION_PRODUCT_METADATA_KEY] === 'true'
+          p => p.metadata && p.metadata[CONTRIBUTION_PRODUCT_METADATA_KEY] === 'true'
         )
       } else {
         // For platform account, use search
         const existingProducts = await stripe.products.search({
-          query: `metadata['${DONATION_PRODUCT_METADATA_KEY}']:'true' AND active:'true'`
+          query: `metadata['${CONTRIBUTION_PRODUCT_METADATA_KEY}']:'true' AND active:'true'`
         })
         if (existingProducts.data.length > 0) {
           donationProduct = existingProducts.data[0]
@@ -87,16 +121,26 @@ module.exports = {
       }
 
       if (donationProduct) {
+        // Keep copy in sync for existing products so Checkout label text stays user-friendly.
+        if (
+          donationProduct.name !== CONTRIBUTION_PRODUCT_NAME ||
+          donationProduct.description !== CONTRIBUTION_PRODUCT_DESCRIPTION
+        ) {
+          donationProduct = await stripe.products.update(donationProduct.id, {
+            name: CONTRIBUTION_PRODUCT_NAME,
+            description: CONTRIBUTION_PRODUCT_DESCRIPTION
+          }, stripeOptions)
+        }
         if (process.env.NODE_ENV === 'development') {
           console.log(`Found existing donation product on ${cacheKey}: ${donationProduct.id}`)
         }
       } else {
         // Create the donation product
         donationProduct = await stripe.products.create({
-          name: DONATION_PRODUCT_NAME,
-          description: 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored). Thank you for supporting the Hylo platform!',
+          name: CONTRIBUTION_PRODUCT_NAME,
+          description: CONTRIBUTION_PRODUCT_DESCRIPTION,
           metadata: {
-            [DONATION_PRODUCT_METADATA_KEY]: 'true'
+            [CONTRIBUTION_PRODUCT_METADATA_KEY]: 'true'
           }
         }, stripeOptions)
         if (process.env.NODE_ENV === 'development') {
@@ -141,6 +185,122 @@ module.exports = {
     } catch (error) {
       console.error('Error ensuring donation price exists:', error)
       throw new Error(`Failed to ensure donation price exists: ${error.message}`)
+    }
+  },
+
+  /**
+   * Ensures a sliding-scale \"unit\" product+price exist in Stripe for a currency.
+   *
+   * This is intended to support pay-what-you-want / sliding-scale offerings by using
+   * quantity on a single unit price (e.g. 1 unit = $1.00 USD).
+   *
+   * @param {String} accountId - Connected account ID (required)
+   * @param {String} currency - Currency code (e.g. 'usd', 'eur')
+   * @param {String|null} billingInterval - Optional recurring interval ('day', 'week', 'month', 'year')
+   * @param {Number} billingIntervalCount - Optional recurring interval count (e.g. 3 for quarterly)
+   * @returns {Promise<String>} The unit price ID
+   */
+  async ensureSlidingScaleUnitPriceExists (accountId, currency = 'usd', billingInterval = null, billingIntervalCount = 1, locale = 'en') {
+    const normalizedCurrency = (currency || 'usd').toLowerCase()
+    const intervalKey = billingInterval ? `${billingInterval}:${billingIntervalCount || 1}` : 'one_time'
+    const cacheKey = `${accountId || 'platform'}:${normalizedCurrency}:${intervalKey}`
+
+    if (cachedSlidingScaleUnitPriceIds[cacheKey]) {
+      return cachedSlidingScaleUnitPriceIds[cacheKey]
+    }
+
+    if (!accountId) {
+      throw new Error('Account ID is required to ensure sliding scale unit price exists')
+    }
+
+    try {
+      const UNIT_PRODUCT_METADATA_KEY = 'hylo_sliding_scale_unit_product'
+      const UNIT_CURRENCY_METADATA_KEY = 'hylo_sliding_scale_unit_currency'
+      const {
+        slidingScaleUnitProductName: UNIT_PRODUCT_NAME,
+        slidingScaleUnitProductDescription: UNIT_PRODUCT_DESCRIPTION
+      } = getStripeContributionCopy({ locale, currency: normalizedCurrency })
+
+      const stripeOptions = { stripeAccount: accountId }
+
+      // products.search is not available on connected accounts, so list + filter
+      const products = await stripe.products.list({
+        active: true,
+        limit: 100
+      }, stripeOptions)
+
+      let unitProduct = products.data.find(
+        p => p.metadata &&
+          p.metadata[UNIT_PRODUCT_METADATA_KEY] === 'true' &&
+          p.metadata[UNIT_CURRENCY_METADATA_KEY] === normalizedCurrency
+      )
+
+      if (!unitProduct) {
+        unitProduct = await stripe.products.create({
+          name: UNIT_PRODUCT_NAME,
+          description: UNIT_PRODUCT_DESCRIPTION,
+          metadata: {
+            [UNIT_PRODUCT_METADATA_KEY]: 'true',
+            [UNIT_CURRENCY_METADATA_KEY]: normalizedCurrency
+          }
+        }, stripeOptions)
+      } else if (
+        unitProduct.name !== UNIT_PRODUCT_NAME ||
+        unitProduct.description !== UNIT_PRODUCT_DESCRIPTION
+      ) {
+        unitProduct = await stripe.products.update(unitProduct.id, {
+          name: UNIT_PRODUCT_NAME,
+          description: UNIT_PRODUCT_DESCRIPTION
+        }, stripeOptions)
+      }
+
+      const existingPrices = await stripe.prices.list({
+        product: unitProduct.id,
+        active: true,
+        limit: 10
+      }, stripeOptions)
+
+      let unitPrice = null
+      if (billingInterval) {
+        const expectedCount = billingIntervalCount || 1
+        unitPrice = existingPrices.data.find(p => {
+          if (p.unit_amount !== 100) return false
+          if (p.currency !== normalizedCurrency) return false
+          if (!p.recurring) return false
+          if (p.recurring.interval !== billingInterval) return false
+          return (p.recurring.interval_count || 1) === expectedCount
+        })
+      } else {
+        unitPrice = existingPrices.data.find(
+          p => p.unit_amount === 100 && p.currency === normalizedCurrency && !p.recurring
+        )
+      }
+
+      if (!unitPrice) {
+        const priceData = {
+          product: unitProduct.id,
+          unit_amount: 100,
+          currency: normalizedCurrency,
+          metadata: {
+            hylo_sliding_scale_unit_price: 'true'
+          }
+        }
+
+        if (billingInterval) {
+          priceData.recurring = {
+            interval: billingInterval,
+            interval_count: billingIntervalCount || 1
+          }
+        }
+
+        unitPrice = await stripe.prices.create(priceData, stripeOptions)
+      }
+
+      cachedSlidingScaleUnitPriceIds[cacheKey] = unitPrice.id
+      return cachedSlidingScaleUnitPriceIds[cacheKey]
+    } catch (error) {
+      console.error('Error ensuring sliding scale unit price exists:', error)
+      throw new Error(`Failed to ensure sliding scale unit price exists: ${error.message}`)
     }
   },
 
@@ -346,6 +506,26 @@ module.exports = {
       // Validate required parameter
       if (!accountId) {
         throw new Error('Account ID is required to get account status')
+      }
+
+      // Deterministic E2E baseline seed uses fake Connect IDs (`acct_e2e_*` in
+      // scripts/seed-e2e-baseline.js). They are not real Stripe accounts — live
+      // retrieve would return account_invalid / permission errors.
+      if (typeof accountId === 'string' && accountId.startsWith('acct_e2e_')) {
+        return {
+          id: accountId,
+          charges_enabled: true,
+          payouts_enabled: true,
+          details_submitted: true,
+          requirements: {
+            currently_due: [],
+            past_due: [],
+            eventually_due: [],
+            pending_verification: []
+          },
+          email: null,
+          business_profile: null
+        }
       }
 
       // Retrieve the account from Stripe
@@ -632,7 +812,7 @@ module.exports = {
    * the transaction. The platform takes a fee, and the rest goes
    * to the connected account.
    *
-   * Includes an optional donation to Hylo that appears on the Stripe checkout page.
+   * Includes an optional contribution to the Hylo platform on the Stripe checkout page.
    *
    * @param {Object} params - Checkout session parameters
    * @param {String} params.accountId - The Stripe connected account ID
@@ -649,11 +829,13 @@ module.exports = {
     accountId,
     priceId,
     quantity = 1,
+    adjustableQuantity = null,
     applicationFeeAmount,
     successUrl,
     cancelUrl,
     mode = 'payment',
-    metadata = {}
+    metadata = {},
+    locale = 'en'
   }) {
     try {
       // Validate required parameters
@@ -665,7 +847,7 @@ module.exports = {
         throw new Error('Price ID is required')
       }
 
-      if (!applicationFeeAmount || applicationFeeAmount < 0) {
+      if (applicationFeeAmount === undefined || applicationFeeAmount === null || applicationFeeAmount < 0) {
         throw new Error('Valid application fee amount is required')
       }
 
@@ -673,30 +855,42 @@ module.exports = {
         throw new Error('Both success and cancel URLs are required')
       }
 
-      // Get currency and recurring info from the price to match donation configuration
-      const priceObject = await this.getPrice(accountId, priceId)
-      const currency = priceObject.currency || 'usd'
-      const isRecurring = mode === 'subscription' && priceObject.recurring
+      // Retrieve price to validate it exists on the connected account
+      await this.getPrice(accountId, priceId)
 
       // Build session configuration based on mode
+      const lineItem = {
+        price: priceId,
+        quantity
+      }
+
+      if (adjustableQuantity && adjustableQuantity.enabled) {
+        // Provide safety defaults so sliding-scale can omit min/max.
+        const safeMinimum = adjustableQuantity.minimum ?? 1
+        const safeMaximum = adjustableQuantity.maximum ?? 999999
+
+        lineItem.adjustable_quantity = {
+          enabled: true,
+          minimum: safeMinimum,
+          maximum: safeMaximum
+        }
+      }
+
       const sessionConfig = {
-        line_items: [{
-          price: priceId,
-          quantity
-        }],
+        line_items: [lineItem],
         mode,
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata
       }
 
-      // Add optional donation to checkout session
+      // Add optional platform contribution to checkout session
       // Uses a pre-created price ID (created programmatically on the connected account if it doesn't exist)
-      // Note: Recurring donations are not yet supported - only one-time donations for now
+      // Note: Recurring platform contributions are not yet supported — only one-time optional_items for now
       try {
-        const donationPriceId = await this.ensureDonationPriceExists(accountId)
+        const donationPriceId = await this.ensureDonationPriceExists(accountId, locale)
 
-        // Add one-time donation option (works for both subscription and payment modes)
+        // Add one-time contribution option (works for both subscription and payment modes)
         // User can select quantity 0-100 ($0 to $100 in $1 increments)
         // Note: quantity must be >= 1 for API, but adjustable_quantity.minimum: 0
         // allows users to reduce it to 0 in the checkout UI
@@ -707,17 +901,17 @@ module.exports = {
             quantity: 5, // This displays as an add-on
             adjustable_quantity: {
               enabled: true,
-              minimum: 0, 
+              minimum: 0,
               maximum: 100
             }
           }
         ]
 
-        // Store flag in metadata to indicate donation option was available
-        metadata.hasDonationOption = 'true'
+        // Store flag in metadata to indicate platform contribution option was available
+        metadata.hasContributionOption = 'true'
       } catch (donationError) {
-        // If donation setup fails, continue without it - don't block the checkout
-        console.error('Failed to set up donation option, continuing without it:', donationError.message)
+        // If contribution setup fails, continue without it - don't block the checkout
+        console.error('Failed to set up platform contribution option, continuing without it:', donationError.message)
       }
 
       // Configure for payment or subscription mode
@@ -904,7 +1098,7 @@ module.exports = {
 
       // Retrieve the subscription with expanded items to get price info
       const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['items.data.price']
+        expand: ['items.data.price', 'items.data.plan']
       }, {
         stripeAccount: accountId
       })
@@ -914,6 +1108,361 @@ module.exports = {
       console.error('Error retrieving subscription:', error)
       throw new Error(`Failed to retrieve subscription: ${error.message}`)
     }
+  },
+
+  /**
+   * Updates the first subscription line item to a new price (membership plan change).
+   *
+   * @param {object} params
+   * @param {string} params.accountId - Connected account id (acct_...)
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId - Stripe price id
+   * @param {number|null} [params.quantity] - optional quantity for sliding-scale targets
+   * @param {string} [params.prorationBehavior] - create_prorations | none
+   * @param {'now'|undefined} [params.billingCycleAnchor] - pass `now` to reset billing cycle to current time
+   * @param {object} [params.metadata] - Merged onto existing subscription metadata
+   * @returns {Promise<object>} Updated Stripe subscription
+   */
+  async updateSubscriptionPrimaryItemPrice ({
+    accountId,
+    subscriptionId,
+    newPriceId,
+    quantity = null,
+    prorationBehavior = 'create_prorations',
+    billingCycleAnchor,
+    metadata = {}
+  }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+    const updatePayload = {
+      items: [{
+        id: item.id,
+        price: newPriceId,
+        ...(quantity != null ? { quantity } : {})
+      }],
+      proration_behavior: prorationBehavior,
+      metadata: mergedMeta
+    }
+    if (billingCycleAnchor === 'now') {
+      updatePayload.billing_cycle_anchor = 'now'
+    }
+    return stripe.subscriptions.update(subscriptionId, updatePayload, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Adds customer credit (reduces amount owed) on a Connect account.
+   * Stripe expects a negative balance transaction amount for credit.
+   *
+   * @param {object} params
+   * @param {string} params.accountId - Connected account id (acct_...)
+   * @param {string} params.customerId - cus_...
+   * @param {number} params.amountCents - Positive credit value in smallest currency unit
+   * @param {string} params.currency - lowercase ISO currency
+   * @param {string} [params.description]
+   * @returns {Promise<object>} Balance transaction
+   */
+  /**
+   * Full recurring amount for the primary subscription line (per Stripe billing period), in cents.
+   * Uses expanded item price/plan when present; otherwise loads Price from Stripe (Connect) by id;
+   * finally Hylo product list price.
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {object} params.subscription
+   * @param {object} params.fromProduct Bookshelf StripeProduct
+   * @returns {Promise<number>}
+   */
+  async resolvePrimaryItemPeriodPriceCents ({ accountId, subscription, fromProduct }) {
+    const item = subscription?.items?.data?.[0]
+    const qty = item?.quantity != null ? item.quantity : 1
+    const unitSync = resolvePeriodUnitAmountCentsSync(subscription, fromProduct)
+    if (unitSync != null) {
+      return Math.round(unitSync * qty)
+    }
+
+    const price = item?.price
+    const priceId = typeof price === 'string' ? price : price?.id
+    if (priceId && accountId) {
+      try {
+        const p = await stripe.prices.retrieve(priceId, { stripeAccount: accountId })
+        if (p.unit_amount != null) {
+          return Math.round(p.unit_amount * qty)
+        }
+      } catch (err) {
+        console.error('resolvePrimaryItemPeriodPriceCents:', err.message)
+      }
+    }
+
+    return resolvePeriodPriceCentsForCredit(subscription, fromProduct)
+  },
+
+  async createCustomerBalanceCredit ({ accountId, customerId, amountCents, currency, description }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!customerId) throw new Error('Customer ID is required')
+    if (amountCents == null || amountCents < 1) {
+      throw new Error('Credit amount must be at least 1 cent')
+    }
+    const cur = (currency || 'usd').toLowerCase()
+    return stripe.customers.createBalanceTransaction(customerId, {
+      amount: -amountCents,
+      currency: cur,
+      description: description || 'Account credit'
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Updates quantity on the first subscription line item (e.g. sliding-scale units).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {number} params.quantity
+   * @param {string} [params.prorationBehavior] - default none (no mid-cycle proration for quantity-only rules)
+   * @param {object} [params.metadata]
+   * @returns {Promise<object>} Updated Stripe subscription
+   */
+  async updateSubscriptionPrimaryItemQuantity ({ accountId, subscriptionId, quantity, prorationBehavior = 'none', metadata = {} }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (quantity == null || quantity < 1) throw new Error('Quantity must be at least 1')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+    return stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: item.id, quantity }],
+      proration_behavior: prorationBehavior,
+      metadata: mergedMeta
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Previews invoice for replacing the first subscription line item price (Stripe invoices.createPreview).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {string} [params.prorationBehavior]
+   * @returns {Promise<object>} Upcoming invoice preview
+   */
+  async previewSubscriptionPrimaryItemPriceChange ({ accountId, subscriptionId, newPriceId, prorationBehavior = 'create_prorations' }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const customer = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id
+    if (!customer) {
+      throw new Error('Subscription customer not found')
+    }
+
+    return stripe.invoices.createPreview({
+      customer,
+      subscription: subscriptionId,
+      subscription_details: {
+        proration_behavior: prorationBehavior,
+        items: [{
+          id: item.id,
+          price: newPriceId
+        }]
+      },
+      expand: ['lines.data']
+    }, {
+      stripeAccount: accountId
+    })
+  },
+
+  /**
+   * Preview invoice for immediate membership upgrade: new price, billing cycle reset,
+   * no Stripe proration, optional Hylo prepaid credit as a negative invoice item.
+   * If Stripe rejects negative invoice items (e.g. automatic tax), retries without
+   * invoice_items and returns manualCreditCents for the caller to merge into totals.
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {number} params.creditCents - Hylo unused prepaid credit (0 allowed)
+   * @param {string} params.currency - lowercase ISO
+   * @param {string} [params.creditDescription]
+   * @returns {Promise<{ invoice: object, manualCreditCents: number|null }>}
+   */
+  async previewMembershipImmediateUpgradeWithHyloCredit ({
+    accountId,
+    subscriptionId,
+    newPriceId,
+    creditCents,
+    currency,
+    creditDescription
+  }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const customer = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer?.id
+    if (!customer) {
+      throw new Error('Subscription customer not found')
+    }
+
+    const cur = (currency || subscription.currency || 'usd').toLowerCase()
+    const baseParams = {
+      customer,
+      subscription: subscriptionId,
+      subscription_details: {
+        proration_behavior: 'none',
+        billing_cycle_anchor: 'now',
+        items: [{
+          id: item.id,
+          price: newPriceId
+        }]
+      },
+      expand: ['lines.data']
+    }
+
+    const credit = Math.max(0, Math.round(creditCents || 0))
+    const desc = creditDescription || 'Unused prepaid time (prior membership offering)'
+
+    if (credit > 0) {
+      try {
+        const invoice = await stripe.invoices.createPreview({
+          ...baseParams,
+          invoice_items: [{
+            amount: -credit,
+            currency: cur,
+            description: desc
+          }]
+        }, {
+          stripeAccount: accountId
+        })
+        return { invoice, manualCreditCents: null }
+      } catch (_err) {
+        // Negative invoice lines can fail (e.g. automatic tax). Fall back: preview subscription only;
+        // caller merges manual credit into lines / amount_due.
+      }
+    }
+
+    const invoice = await stripe.invoices.createPreview(baseParams, {
+      stripeAccount: accountId
+    })
+    return {
+      invoice,
+      manualCreditCents: credit > 0 ? credit : null
+    }
+  },
+
+  /**
+   * Schedules a primary item price change at period end using a subscription schedule.
+   * Stripe does not allow custom phases or metadata on the same request as from_subscription;
+   * create does not accept phases[n].start_date — use create then update (Stripe docs).
+   *
+   * @param {object} params
+   * @param {string} params.accountId
+   * @param {string} params.subscriptionId
+   * @param {string} params.newPriceId
+   * @param {number|null} [params.quantity] - optional quantity for target phase
+   * @param {object} [params.metadata]
+   * @returns {Promise<object>} Stripe subscription schedule after update
+   */
+  async scheduleSubscriptionPrimaryItemPriceAtPeriodEnd ({ accountId, subscriptionId, newPriceId, quantity = null, metadata = {} }) {
+    if (!accountId) throw new Error('Account ID is required')
+    if (!subscriptionId) throw new Error('Subscription ID is required')
+    if (!newPriceId) throw new Error('New price ID is required')
+
+    const subscription = await this.getSubscription(accountId, subscriptionId)
+    const item = subscription.items?.data?.[0]
+    if (!item?.id || !item?.price?.id) {
+      throw new Error('Subscription has no line items')
+    }
+
+    const mergedMeta = { ...(subscription.metadata || {}), ...metadata }
+
+    const created = await stripe.subscriptionSchedules.create({
+      from_subscription: subscriptionId
+    }, {
+      stripeAccount: accountId
+    })
+
+    const phase0 = created.phases?.[0]
+    // Stripe-node may expose snake_case or camelCase; after from_subscription, bounds also live on phase 0.
+    const periodEnd =
+      subscription.current_period_end ??
+      subscription.currentPeriodEnd ??
+      phase0?.end_date ??
+      phase0?.endDate
+    const firstPhaseStart =
+      phase0?.start_date ??
+      phase0?.startDate ??
+      subscription.current_period_start ??
+      subscription.currentPeriodStart
+
+    if (periodEnd == null || firstPhaseStart == null) {
+      throw new Error('Could not determine billing period start or end for subscription schedule')
+    }
+
+    const updatedSchedule = await stripe.subscriptionSchedules.update(
+      created.id,
+      {
+        phases: [
+          {
+            start_date: firstPhaseStart,
+            end_date: periodEnd,
+            items: [{ price: item.price.id, quantity: item.quantity || 1 }]
+          },
+          {
+            items: [{ price: newPriceId, quantity: quantity != null ? quantity : (item.quantity || 1) }]
+          }
+        ],
+        metadata: mergedMeta,
+        proration_behavior: 'none'
+      },
+      {
+        stripeAccount: accountId
+      }
+    )
+
+    // Webhooks receive the Subscription object; correlation id must live on subscription metadata.
+    await stripe.subscriptions.update(
+      subscriptionId,
+      { metadata: mergedMeta },
+      { stripeAccount: accountId }
+    )
+
+    return updatedSchedule
   },
 
   /**
@@ -1022,10 +1571,12 @@ module.exports = {
             : null
           result.customerId = subscription.customer
 
-          // Get amount from the subscription items
-          if (subscription.items?.data?.[0]?.price) {
-            result.amountPaid = subscription.items.data[0].price.unit_amount
-            result.currency = subscription.items.data[0].price.currency
+          // Amount per billing period (unit × quantity), not unit-only — matches Hylo list price semantics
+          const item0 = subscription.items?.data?.[0]
+          if (item0?.price && item0.price.unit_amount != null) {
+            const qty = item0.quantity != null ? item0.quantity : 1
+            result.amountPaid = Math.round(item0.price.unit_amount * qty)
+            result.currency = item0.price.currency
           }
 
           // Get receipt URL from latest invoice
@@ -1083,20 +1634,18 @@ module.exports = {
   },
 
   /**
-   * Transfers a donation amount from a connected account to the appropriate destination
+   * Transfers the platform contribution portion from a connected-account charge to the platform Stripe account.
    *
-   * When a user adds a donation to Hylo during checkout, the donation is initially
-   * collected by the connected account. This method transfers it to:
-   * - Production: Hylo's connected account under the fiscal sponsor (for tax-deductible processing)
-   * - Non-production: Platform account (for testing)
+   * Optional Hylo platform contributions are paid on the connected account checkout; this moves that amount
+   * to the platform balance (no separate connected destination).
    *
    * @param {String} connectedAccountId - The Stripe connected account ID (group's account)
-   * @param {String} paymentIntentId - The payment intent ID from the checkout session
-   * @param {Number} donationAmount - The donation amount in cents
+   * @param {String} paymentIntentId - The payment intent ID from the checkout session or invoice
+   * @param {Number} donationAmount - The contribution amount in cents
    * @param {String} currency - The currency code (e.g., 'usd')
    * @returns {Promise<Object>} The transfer object
    */
-  async transferDonationToPlatform ({
+  async transferContributionToPlatform ({
     connectedAccountId,
     paymentIntentId,
     donationAmount,
@@ -1112,21 +1661,7 @@ module.exports = {
       }
 
       if (!donationAmount || donationAmount <= 0) {
-        throw new Error('Valid donation amount is required')
-      }
-
-      // Determine destination account based on environment
-      const isProduction = process.env.NODE_ENV === 'production'
-      const destinationAccountId = isProduction ? FISCAL_SPONSOR_ACCOUNT_ID : null
-
-      // In non-production, transfer to platform account (null destination = platform)
-      // In production, transfer to fiscal sponsor account (Hylo's connected account)
-      // In production, we require the fiscal sponsor account ID to be set
-      if (isProduction && !destinationAccountId) {
-        throw new Error(
-          'STRIPE_FISCAL_SPONSOR_ACCOUNT_ID must be set in production environment. ' +
-          'Donations must be routed to the fiscal sponsor account for tax-deductible processing.'
-        )
+        throw new Error('Valid contribution amount is required')
       }
 
       // Retrieve the payment intent to get the charge ID
@@ -1142,38 +1677,26 @@ module.exports = {
         throw new Error('No charge found for payment intent')
       }
 
-      // Build transfer parameters
       const transferParams = {
         amount: donationAmount,
         currency: currency.toLowerCase(),
         source_transaction: chargeId,
-        description: isProduction
-          ? 'Tax-deductible donation to Hylo (501(c)(3) fiscally sponsored)'
-          : 'Donation to Hylo platform (test)'
+        description: process.env.NODE_ENV === 'production'
+          ? 'Hylo platform contribution'
+          : 'Hylo platform contribution (test)'
       }
 
-      // If in production and fiscal sponsor account is set, transfer to that account
-      // Otherwise, transfer to platform account (destination: null)
-      if (isProduction && destinationAccountId) {
-        transferParams.destination = destinationAccountId
-      }
-
-      // Create the transfer on the platform account
-      // The source account is determined by the source_transaction (charge ID)
-      // For connected accounts with controller settings:
-      // - If destination is null/omitted: transfers to platform account
-      // - If destination is set to a connected account ID: transfers to that connected account
-      // Note: Transfers are created on the platform account, not with stripeAccount header
+      // Omit destination so funds settle on the platform account
       const transfer = await stripe.transfers.create(transferParams)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Transferred donation of ${donationAmount} ${currency} to ${isProduction && destinationAccountId ? 'fiscal sponsor account' : 'platform account'}`)
+        console.log(`Transferred platform contribution of ${donationAmount} ${currency} to platform account`)
       }
 
       return transfer
     } catch (error) {
-      console.error('Error transferring donation:', error)
-      throw new Error(`Failed to transfer donation: ${error.message}`)
+      console.error('Error transferring platform contribution:', error)
+      throw new Error(`Failed to transfer platform contribution: ${error.message}`)
     }
   },
 
@@ -1251,7 +1774,7 @@ module.exports = {
         throw new Error('Either chargeId, paymentIntentId, or subscriptionId is required')
       }
 
-      let refundParams = {}
+      const refundParams = {}
 
       // If we have a subscription ID, find a refundable payment
       if (subscriptionId && !chargeId && !paymentIntentId) {

@@ -75,7 +75,7 @@ export default function GroupSearch ({ viewFilter, changeView }) {
 
   return (
     <>
-      <div className='sticky -top-2 z-[40] flex flex-col gap-2 font-size-16 py-4 px-2 bg-gradient-to-b from-midground to-transparent'>
+      <div className='sticky top-10 z-[15] flex flex-col gap-2 font-size-16 py-4 px-2 bg-gradient-to-b from-midground to-transparent'>
         <div className='flex justify-between items-center'>
           <GroupViewFilter viewFilter={viewFilter} changeView={changeView} />
           <div className='flex gap-2'>

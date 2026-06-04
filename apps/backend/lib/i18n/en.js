@@ -10,6 +10,7 @@ exports.en = {
   Group: () => 'Group',
   emailDigestDailySubject: (name) => `Your ${name} Daily Digest`,
   emailDigestWeeklySubject: (name) => `Your ${name} Weekly Digest`,
+  emailSenderViaHyloSuffix: () => ' (via Hylo)',
   groupCreatedNotifySubject: (name) => `New Hylo Group Created: ${name}`,
   fundingRoundTransitionButtonText: ({ phase }) => {
     const buttonTextMessages = {
@@ -91,7 +92,11 @@ exports.en = {
     return `${reminderMessages[reminderType] || 'Deadline approaching'}`
   },
   theTeamAtHylo: 'The Team at Hylo',
-  donationTaxReceiptInfo: () => 'A tax receipt will be issued by our fiscal sponsor for your records.',
-  donationImpactMessage: () => 'Your donation helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.',
-  donationRecurringImpactMessage: () => 'Your recurring donation helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.'
+  stripeContributionProductName: () => 'Choose Your Hylo Contribution',
+  stripeContributionProductDescription: () => 'Choose your level of contribution to support the Hylo platform.',
+  stripeSlidingScaleUnitProductName: ({ currency }) => `Set Your Contribution Amount (${currency} units)`,
+  stripeSlidingScaleUnitProductDescription: () => 'Adjust quantity to choose your contribution amount.',
+  donationTaxReceiptInfo: () => '',
+  donationImpactMessage: () => 'Your contribution helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.',
+  donationRecurringImpactMessage: () => 'Your recurring contribution helps support the Hylo platform and our mission to enable better coordination and collaboration in communities worldwide.'
 }

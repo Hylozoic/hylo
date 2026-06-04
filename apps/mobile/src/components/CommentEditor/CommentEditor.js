@@ -1,10 +1,14 @@
+// DEPRECATED: This component is only used by deprecated screens (PostDetails).
+// Kept for reference only.
+
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, StyleSheet, View } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { isEmpty } from 'lodash/fp'
 import { isIOS } from 'util/platform'
-import { SendHorizonal } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { SendHorizonal } from 'lucide-react-native'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
 import createCommentMutation from '@hylo/graphql/mutations/createCommentMutation'
 import completePostMutation from '@hylo/graphql/mutations/completePostMutation'

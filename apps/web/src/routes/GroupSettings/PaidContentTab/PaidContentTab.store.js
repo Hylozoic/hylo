@@ -203,6 +203,7 @@ export function fetchOfferings (groupId, accountId) {
             accessGrants
             publishStatus
             duration
+            buyButtonText
             tracks {
               id
               name

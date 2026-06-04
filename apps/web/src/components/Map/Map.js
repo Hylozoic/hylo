@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import MapGL, { NavigationControl, useControl } from 'react-map-gl'
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import { mapbox } from 'config/index'
+import { useTheme } from 'contexts/ThemeContext'
 import NativeTerritoriesLayer from './NativeTerritoriesLayers'
 
 function DeckGLOverlay (props) {
@@ -15,7 +16,7 @@ const Map = forwardRef(({
   afterViewportUpdate = () => {},
   baseLayerStyle = 'satellite-streets-v12',
   darkLayerStyle = 'dark-v11',
-  isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
+  isDarkMode: isDarkModeProp,
   children = {},
   hyloLayers,
   isAddingItemToMap,
@@ -34,6 +35,9 @@ const Map = forwardRef(({
     pitch: 0
   }
 }, forwardedRef) => {
+  const { effectiveColorScheme } = useTheme()
+  const isDarkMode = isDarkModeProp !== undefined ? isDarkModeProp : effectiveColorScheme === 'dark'
+
   const [isOverHyloFeature, setIsOverHyloFeature] = useState(false)
 
   const ref = useRef(null)

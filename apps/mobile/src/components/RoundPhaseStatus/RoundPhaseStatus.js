@@ -1,6 +1,10 @@
+// DEPRECATED: This component is only used by deprecated screens (FundingRounds).
+// Kept for reference only.
+
 import React from 'react'
 import { View, Text } from 'react-native'
-import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { CheckCircle2, FileCheck2, Lock, MessageSquare, Vote, ShieldAlert } from 'lucide-react-native'
 import { useTranslation } from 'react-i18next'
 import { DateTimeHelpers } from '@hylo/shared'
 

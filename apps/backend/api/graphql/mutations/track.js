@@ -10,7 +10,7 @@ export async function createTrack (userId, data) {
       attrs.published_at = new Date(Number(data.publishedAt)) // XXX: because convertGraphqlData messes up dates
     }
     const track = await Track.create(attrs, { transacting })
-    await track.groups().attach(data.groupIds.map(id => ({ group_id: id, created_at: new Date() })), { transacting })
+    await track.groups().attach(data.groupIds, { transacting })
     Queue.classMethod('Group', 'doesMenuUpdate', { groupIds: data.groupIds, track })
     return track
   })
@@ -22,11 +22,16 @@ export async function deleteTrack (userId, id) {
     throw new GraphQLError('Track not found')
   }
 
-  if (!canEdit(track, userId)) {
+  if (!(await canEdit(track, userId))) {
     throw new GraphQLError('You do not have permission to delete this track')
   }
 
-  await track.destroy()
+  await bookshelf.transaction(async transacting => {
+    await track.groups().detach(null, { transacting })
+    await track.posts().detach(null, { transacting })
+    await track.users().detach(null, { transacting })
+    await track.destroy({ transacting })
+  })
   return true
 }
 
@@ -36,7 +41,7 @@ export async function duplicateTrack (userId, trackId) {
     throw new GraphQLError('Track not found')
   }
 
-  if (!canEdit(track, userId)) {
+  if (!(await canEdit(track, userId))) {
     throw new GraphQLError('You do not have permission to duplicate this track')
   }
 
@@ -73,7 +78,7 @@ export async function updateTrack (userId, id, data) {
     throw new GraphQLError('Track not found')
   }
 
-  if (!canEdit(track, userId)) {
+  if (!(await canEdit(track, userId))) {
     throw new GraphQLError('You do not have permission to edit this track')
   }
 
@@ -96,7 +101,7 @@ export async function updateTrackActionOrder (userId, trackId, postId, newOrderI
     throw new GraphQLError('Track post not found')
   }
 
-  if (!canEdit(track, userId)) {
+  if (!(await canEdit(track, userId))) {
     throw new GraphQLError('You do not have permission to edit this track')
   }
 
@@ -129,11 +134,12 @@ export async function updateTrackActionOrder (userId, trackId, postId, newOrderI
 
 // Utility function to check if user can edit the track
 async function canEdit (track, userId) {
-  const groupIds = await track.groups().pluck('id')
+  const groups = await track.groups().fetch()
+  const groupIds = groups.pluck('id')
   let canEdit = false
   for (const groupId of groupIds) {
-    const canManage = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_MANAGE_TRACKS)
-    if (canManage) {
+    const canManageTracks = await GroupMembership.hasResponsibility(userId, groupId, Responsibility.constants.RESP_MANAGE_TRACKS)
+    if (canManageTracks) {
       canEdit = true
       break
     }

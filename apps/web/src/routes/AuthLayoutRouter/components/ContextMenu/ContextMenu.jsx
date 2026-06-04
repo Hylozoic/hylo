@@ -29,7 +29,7 @@ import {
   addQuerystringToPath,
   personUrl
 } from '@hylo/navigation'
-import { TextHelpers } from '@hylo/shared'
+import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
 import HyloHTML from 'components/HyloHTML'
@@ -49,6 +49,7 @@ import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION, RESP_MANAGE_TRACKS } from 'store/constants'
 import { bgImageStyle, cn } from 'util/index'
+import { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 
 import { useContextMenuContext } from './ContextMenuContext'
 import ContextMenuProvider from './ContextMenuProvider'
@@ -209,6 +210,11 @@ export default function ContextMenu (props) {
     menu.addEventListener('wheel', (e) => { e.stopPropagation() }, { passive: false })
   }, [])
 
+  // When the context menu scrolls, dismiss GlobalNav tooltips immediately
+  const handleScroll = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('contextMenuScroll'))
+  }, [])
+
   return (
     <ContextMenuProvider
       contextWidgets={orderedWidgets}
@@ -221,8 +227,9 @@ export default function ContextMenu (props) {
       handlePositionedAdd={handlePositionedAdd}
     >
       <div
-        className={cn('ContextMenu bg-background relative z-20 !overflow-y-auto isolate pointer-events-auto h-full w-[250px] sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any }, className)}
+        className={cn('ContextMenu bg-background relative z-20 isolate pointer-events-auto h-full flex-1 min-w-0 sm:flex-initial sm:w-[300px]', { [classes.mapView]: mapView }, { [classes.showGroupMenu]: isNavOpen, 'h-screen h-dvh': isMobile.any, '!overflow-y-auto': !location.pathname.includes('/settings'), 'overflow-y-hidden': location.pathname.includes('/settings') }, className)}
         style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
+        onScroll={handleScroll}
       >
         <div className='relative min-h-full'>
           <div className='absolute inset-0 bg-gradient-to-b from-context-menu-background to-theme-background/10 dark:to-theme-background/40 z-0 pointer-events-none' />
@@ -369,7 +376,11 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
 
   const handleLogout = async () => {
     await dispatch(logout())
-    dispatch(replace('/login', null))
+    if (window.HyloMobileV2) {
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    } else {
+      dispatch(replace('/login', null))
+    }
   }
 
   // Draggable setup
@@ -379,7 +390,8 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   const title = translateTitle(widget.title, t)
   const url = widgetUrl({ widget, rootPath, groupSlug })
   const allView = widget.type === 'all-views'
-  const showEdit = allView && canAdminister
+  // Hide edit menu on mobile - editing is desktop-only
+  const showEdit = allView && canAdminister && !isMobile.any
   const canDnd = isEditing && !allView && widget.type !== 'home'
 
   if (isCreating) {
@@ -406,13 +418,21 @@ function ContextMenuItem ({ widget, isOverlay = false }) {
   }
 
   if (widget.type === 'logout') {
+    const mobileAppVersionLabel = typeof window !== 'undefined' && window.HyloMobileV2
+      ? getMobileAppVersion()
+      : ''
     return (
       <div key={widget.id} className='ContextMenu ContextWidgetMenuItemLogout mt-6'>
-        <span className='flex justify-between items-center content-center'>
-          <WidgetIconResolver widget={widget} />
-          <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground mb-[.5rem] w-full transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
-            <LogOut className='h-[20px] mr-2' /> <span>{title}</span>
-          </MenuLink>
+        <span className='flex justify-between items-center content-center gap-2 w-full'>
+          <span className='flex items-center min-w-0 flex-1 mb-[.5rem]'>
+            <WidgetIconResolver widget={widget} />
+            <MenuLink onClick={handleLogout} className='text-sm text-foreground border-2 border-transparent hover:border-foreground/50 hover:text-foreground rounded-md p-2 bg-card text-foreground w-full min-w-0 flex-1 transition-all scale-100 hover:scale-102 opacity-85 hover:opacity-100 flex'>
+              <LogOut className='h-[20px] mr-2 shrink-0' /> <span className='truncate'>{title}</span>
+            </MenuLink>
+          </span>
+          {mobileAppVersionLabel
+            ? <span className='text-sm text-foreground/60 shrink-0 mb-[.5rem] self-center tabular-nums'>v{mobileAppVersionLabel}</span>
+            : null}
         </span>
       </div>
     )
@@ -749,8 +769,7 @@ function SpecialTopElementRenderer ({ widget }) {
   if (widget.type === 'about') {
     return (
       <div className='w-full mb-4 bg-card/50 rounded-md p-2'>
-        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0 mb-2'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
-        {group.description && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.description)} /></p>}
+        {group.purpose && <p className='px-3 text-xs text-foreground/50 hover:text-foreground/100 transition-all w-[255px] text-ellipsis overflow-hidden m-0'><HyloHTML element='span' html={TextHelpers.markdown(group.purpose)} /></p>}
       </div>
     )
   }

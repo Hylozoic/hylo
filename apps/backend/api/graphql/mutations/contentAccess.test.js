@@ -177,8 +177,7 @@ describe('Content Access Mutations', () => {
         reason: 'Access no longer needed'
       })
 
-      expect(result.success).to.be.true
-      expect(result.message).to.equal('Access revoked successfully')
+      expect(result.get('status')).to.equal('revoked')
 
       // Verify the access record was revoked
       await accessRecord.refresh()

@@ -1,8 +1,9 @@
 import { BadgeInfo, Bell, Settings, Users } from 'lucide-react'
-import React, { useState, useEffect, useLayoutEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import { DEFAULT_BANNER, DEFAULT_AVATAR } from 'store/models/Group'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
@@ -14,6 +15,7 @@ export default function GroupMenuHeader ({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const avatarUrl = group.avatarUrl || DEFAULT_AVATAR
   const bannerUrl = group.bannerUrl || DEFAULT_BANNER
   const [textColor, setTextColor] = useState('background')
@@ -21,6 +23,12 @@ export default function GroupMenuHeader ({
   const groupNameRef = React.useRef(null)
   const [showMembers, setShowMembers] = useState(true)
   const [forceUpdate, setForceUpdate] = useState(0)
+
+  // Helper to navigate and close the menu
+  const navigateAndClose = useCallback((path) => {
+    dispatch(toggleNavMenu(false))
+    navigate(path)
+  }, [dispatch, navigate])
 
   useEffect(() => {
     // Detect the color of the banner and set the text color accordingly
@@ -78,13 +86,13 @@ export default function GroupMenuHeader ({
       <div className='absolute z-10 inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.5 }} />
       <div className='absolute top-0 left-0 w-full h-full bg-darkening z-0 opacity-80' />
       <div className='absolute top-2 left-2 z-20'>
-        <button onClick={() => { navigate(currentUserSettingsUrl('notifications?group=' + group.id)) }}>
+        <button onClick={() => navigateAndClose(currentUserSettingsUrl('notifications?group=' + group.id))}>
           <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
         </button>
       </div>
       {canAdminister && (
         <div className='absolute top-2 right-2 z-20'>
-          <button onClick={() => { navigate(groupUrl(group.slug, 'settings', {})) }}>
+          <button onClick={() => navigateAndClose(groupUrl(group.slug, 'settings', {}))}>
             <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
           </button>
         </div>
@@ -119,11 +127,11 @@ export default function GroupMenuHeader ({
           {showMembers && (
             <span className='text-xs align-middle text-white'>
               <Users className='w-4 h-4 inline mr-1 align-bottom' />
-              <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})}>{t('{{count}} Members', { count: group.memberCount })}</Link>
+              <Link className='text-white underline' to={groupUrl(group.slug, 'members', {})} onClick={() => dispatch(toggleNavMenu(false))}>{t('{{count}} Members', { count: group.memberCount })}</Link>
             </span>
           )}
         </div>
-        <BadgeInfo className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigate(groupUrl(group.slug, 'about', {}))} />
+        <BadgeInfo className={`text-${textColor} cursor-pointer w-[20px] h-[20px] text-white hover:scale-110 transition-all`} onClick={() => navigateAndClose(groupUrl(group.slug, 'about', {}))} />
       </div>
     </div>
   )

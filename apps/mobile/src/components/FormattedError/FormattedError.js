@@ -3,9 +3,33 @@ import { View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { uniq, merge } from 'lodash/fp'
 import LinkButton from 'components/LinkButton'
-import Triangle from 'react-native-triangle'
+// REMOVED: react-native-triangle - replaced with CSS-based triangle
+// import Triangle from 'react-native-triangle'
 import { amaranth, white } from '@hylo/presenters/colors'
 import errorMessages from 'util/errorMessages'
+
+/**
+ * CSS-based triangle component to replace react-native-triangle dependency
+ * Uses border styling technique to create triangular shapes
+ */
+function TriangleUp ({ width = 10, height = 5, color = amaranth }) {
+  return (
+    <View
+      style={{
+        width: 0,
+        height: 0,
+        backgroundColor: 'transparent',
+        borderStyle: 'solid',
+        borderLeftWidth: width / 2,
+        borderRightWidth: width / 2,
+        borderBottomWidth: height,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: color
+      }}
+    />
+  )
+}
 
 export const defaultStyles = {
   errorWrapper: {
@@ -79,11 +103,10 @@ export function Error ({ children, styles }) {
   return (
     <View style={styles.errorWrapper}>
       {!styles.hideErrorTriangle && (
-        <Triangle
-          styles={styles?.errorTriangle}
-          width={10} height={5}
+        <TriangleUp
+          width={10}
+          height={5}
           color={styles.errorTriangle?.backgroundColor}
-          direction='up'
         />
       )}
       <View style={styles.error}>

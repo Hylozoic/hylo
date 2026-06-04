@@ -70,7 +70,7 @@ describe('topic mutations', () => {
       expect(tag).not.to.equal(undefined)
     })
 
-    it('removes the user from the topic if isSubscribing falsy', async () => {
+    it('keeps the user follow when isSubscribing is falsy', async () => {
       await new TagFollow({
         group_id: c1.id,
         tag_id: t.id,
@@ -79,7 +79,7 @@ describe('topic mutations', () => {
       await mutations.subscribe(u1.id, t.id, c1.id, false)
       u1 = await User.where({ id: u1.id }).fetch({ withRelated: ['followedTags'] })
       const hasFollow = u1.relations.followedTags.find({ id: t.id })
-      expect(hasFollow).to.equal(undefined)
+      expect(hasFollow).to.exist
     })
   })
 })

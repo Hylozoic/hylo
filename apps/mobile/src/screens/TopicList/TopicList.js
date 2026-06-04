@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 import { FlashList } from '@shopify/flash-list'

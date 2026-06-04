@@ -19,6 +19,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     allowGroupInvites
     askGroupToGroupJoinQuestions
     askJoinQuestions
+    defaultDigestFrequency
     hideExtensionData
     locationDisplayPrecision
     publicMemberDirectory
@@ -161,6 +162,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
           allowGroupInvites
           askGroupToGroupJoinQuestions
           askJoinQuestions
+          defaultDigestFrequency
           hideExtensionData
           locationDisplayPrecision
           publicMemberDirectory

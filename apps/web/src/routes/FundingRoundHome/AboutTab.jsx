@@ -51,7 +51,7 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
   }, [round?.id])
 
   return (
-    <div className='flex flex-col gap-3 pb-[100px]'>
+    <div className='flex flex-col gap-3'>
       {round.isParticipating && (
         <RoundPhaseStatus
           round={round}
@@ -69,7 +69,7 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
       {round.description && (
         <HyloHTML html={round.description} />
       )}
-      {(round.criteria && !!(new DOMParser().parseFromString(round.criteria, 'text/html').body.textContent?.trim())) && (
+      {(round.criteria && !!(new window.DOMParser().parseFromString(round.criteria, 'text/html').body.textContent?.trim())) && (
         <div>
           <h2 className='text-lg font-semibold'>{t('Submission Criteria')}</h2>
           <HyloHTML html={round.criteria} />
@@ -94,7 +94,7 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
         </div>
       </div>
 
-      <div className='absolute bottom-0 left-0 right-0 flex flex-row gap-2 mx-auto w-full max-w-[800px] px-4 py-2 items-center bg-input rounded-t-md z-10 shadow-lg border-1 border-foreground/20'>
+      <div className='sticky bottom-0 flex flex-row gap-2 w-full px-4 py-2 items-center bg-input rounded-t-md z-10 shadow-lg border-1 border-foreground/20 mt-4'>
         {!round.publishedAt
           ? (
             <>

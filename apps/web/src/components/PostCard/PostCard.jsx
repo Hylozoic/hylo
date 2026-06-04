@@ -1,5 +1,5 @@
 import { filter, get, isFunction } from 'lodash/fp'
-import { BookmarkCheck, Bookmark, Flag, Link2, Megaphone, MessageCircle, Trash2 } from 'lucide-react'
+import { BookmarkCheck, Bookmark, Flag, Megaphone, MessageCircle, Trash2, Pencil } from 'lucide-react'
 import PropTypes from 'prop-types'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,8 +21,9 @@ import removePostAction from 'store/actions/removePost'
 import { savePost, unsavePost } from 'components/PostCard/PostHeader/PostHeader.store'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import { createSelector } from 'reselect'
 import { RESP_MANAGE_CONTENT } from 'store/constants'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { groupUrl, personUrl, editPostUrl } from '@hylo/navigation'
 import EventBody from './EventBody'
 import PostBody from './PostBody'
 import PostFooter from './PostFooter'
@@ -31,6 +32,19 @@ import PostGroups from './PostGroups'
 import { cn } from 'util/index'
 
 import classes from './PostCard.module.scss'
+
+const EMPTY_RESPONSIBILITY_TITLES = []
+
+/** Returns a memoized selector that returns stable array of responsibility titles for (group, currentUser). */
+function makeGetCurrentUserResponsibilities (group, currentUser) {
+  return createSelector(
+    [state => {
+      const responsibilities = group ? getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id }) : []
+      return responsibilities.map(r => r.title).join('\0')
+    }],
+    titlesStr => titlesStr ? titlesStr.split('\0') : EMPTY_RESPONSIBILITY_TITLES
+  )
+}
 
 export { PostHeader, PostFooter, PostBody, PostGroups, EventBody }
 
@@ -45,6 +59,7 @@ export default function PostCard (props) {
     highlighted,
     group,
     isCurrentAction,
+    actionDescriptor,
     mapDrawer,
     post,
     onAddReaction = () => {},
@@ -68,9 +83,11 @@ export default function PostCard (props) {
   const [flaggingVisible, setFlaggingVisible] = useState(false)
 
   const currentUser = useSelector(getMe)
-  const currentUserResponsibilities = useSelector(state =>
-    group ? getResponsibilitiesForGroup(state, { person: currentUser, groupId: group.id }) : []
-  ).map(r => r.title)
+  const getCurrentUserResponsibilities = useMemo(
+    () => makeGetCurrentUserResponsibilities(group, currentUser),
+    [group?.id, currentUser?.id]
+  )
+  const currentUserResponsibilities = useSelector(getCurrentUserResponsibilities)
 
   const viewPostDetails = useViewPostDetails()
   const { reactOnEntity, removeReactOnEntity } = useReactionActions()
@@ -136,7 +153,7 @@ export default function PostCard (props) {
   // Chat mode action items
   const chatActionItems = useMemo(() => filter(item => isFunction(item.onClick), [
     { icon: <MessageCircle className='w-4 h-4 text-foreground' />, label: 'Reply', onClick: () => viewPostDetails(post), tooltip: t('Reply to Post') },
-    { icon: <Link2 className='w-4 h-4 text-foreground' />, label: 'Copy Link', onClick: copyLink, tooltip: t('Copy Link') },
+    { icon: <Pencil className='w-4 h-4 text-foreground' />, label: 'Edit', onClick: (isCreator) ? () => navigate(editPostUrl(post.id, routeParams)) : null, tooltip: 'Edit post' },
     { icon: post.savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: post.savedAt ? t('Unsave Post') : t('Save Post'), onClick: handleSavePost, tooltip: post.savedAt ? t('Unsave Post') : t('Save Post') },
     { icon: <Flag className='w-4 h-4 text-foreground' />, label: 'Flag', onClick: !isCreator ? () => setFlaggingVisible(true) : null, tooltip: t('Flag Post') },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Delete', onClick: isCreator ? deletePostWithConfirm : null, red: true, tooltip: t('Delete Post') },
@@ -246,21 +263,24 @@ export default function PostCard (props) {
             { 'opacity-100 scale-102': isHovered }
           )}
         >
-          {chatActionItems.map(item => (
-            <button
-              key={item.label}
-              onClick={item.onClick}
-              className={cn(
-                'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
-                item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
-              )}
-              data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
-              data-tooltip-id='postcard-action-tt'
-            >
-              {item.icon}
-              {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
-            </button>
-          ))}
+          {chatActionItems.map(item => {
+            const handleClick = item.onClick
+            return (
+              <button
+                key={item.label}
+                onClick={handleClick}
+                className={cn(
+                  'h-6 flex justify-center items-center rounded-lg bg-card hover:scale-110 transition-all border-2 border-transparent hover:border-foreground/50 shadow-lg hover:cursor-pointer',
+                  item.label === 'Reply' ? 'gap-1 px-2' : 'w-6'
+                )}
+                data-tooltip-content={item.label !== 'Reply' ? item.tooltip : undefined}
+                data-tooltip-id='postcard-action-tt'
+              >
+                {item.icon}
+                {item.label === 'Reply' && <span className='text-xs text-foreground'>{t('Reply')}</span>}
+              </button>
+            )
+          })}
           <Tooltip delay={50} id='postcard-action-tt' />
           <EmojiPicker
             className='w-6 h-6 flex justify-center items-center rounded-lg bg-card border-2 border-transparent hover:border-foreground/50 transition-all shadow-lg hover:cursor-pointer'
@@ -303,6 +323,7 @@ export default function PostCard (props) {
               highlightProps={highlightProps}
               currentUser={currentUser}
               isCurrentAction={isCurrentAction}
+              actionDescriptor={actionDescriptor}
               isFlagged={isFlagged}
               constrained={constrained}
               hasImage={hasImage}
@@ -395,6 +416,7 @@ export default function PostCard (props) {
             highlightProps={highlightProps}
             currentUser={currentUser}
             isCurrentAction={isCurrentAction}
+            actionDescriptor={actionDescriptor}
             isFlagged={isFlagged}
             constrained={constrained}
             hasImage={hasImage}
@@ -464,6 +486,7 @@ export default function PostCard (props) {
 }
 
 PostCard.propTypes = {
+  actionDescriptor: PropTypes.string,
   chat: PropTypes.bool,
   childPost: PropTypes.bool,
   className: PropTypes.string,

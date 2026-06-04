@@ -15,6 +15,7 @@ const query = `
         accessGrants
         publishStatus
         duration
+        buyButtonText
         tracks {
           id
           name
@@ -43,4 +44,3 @@ export default function fetchPublicStripeOfferings ({ groupId }) {
     }
   }
 }
-

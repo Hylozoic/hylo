@@ -12,6 +12,7 @@ import {
   receiveNotification,
   receivePost
 } from './SocketListener.store'
+import fetchForGroup from 'store/actions/fetchForGroup'
 import {
   addUserTyping,
   clearUserTyping
@@ -32,6 +33,9 @@ const SocketListener = (props) => {
 
   const handlers = useMemo(() => ({
     commentAdded: data => dispatch(receiveComment(data)),
+    groupUpdated: () => {
+      if (group?.slug) dispatch(fetchForGroup(group.slug))
+    },
     messageAdded: (data) => {
       const message = convertToMessage(data)
       dispatch(receiveMessage(message, {
@@ -44,7 +48,7 @@ const SocketListener = (props) => {
     userTyping: ({ userId, userName, isTyping }) => {
       isTyping ? dispatch(addUserTyping(userId, userName)) : dispatch(clearUserTyping(userId))
     }
-  }), [group?.id])
+  }), [group?.id, group?.slug])
 
   useEffect(() => {
     const socket = getSocket()

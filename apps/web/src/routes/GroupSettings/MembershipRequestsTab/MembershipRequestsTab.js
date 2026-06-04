@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { Check, X, Users, CircleOff } from 'lucide-react'
-import isWebView from 'util/webView'
 import { groupUrl, personUrl } from '@hylo/navigation'
 import Avatar from 'components/Avatar'
 import Button from 'components/ui/button'
@@ -65,19 +64,20 @@ export default function MembershipRequestsTab ({
         />}
       {!joinRequests.length &&
         <NoRequests group={group} handleViewMembers={handleViewMembers} />}
-      {!isWebView() && (
-        <div className='flex flex-col sm:flex-row items-center gap-4'>
-          <p className='text-foreground/70 text-center sm:text-left'>{t('Responses from members who have already joined are available on their member profile')}</p>
-          <Button
-            variant='outline'
-            onClick={handleViewMembers}
-            className='flex items-center gap-2'
-          >
-            <Users className='w-4 h-4' />
-            {t('View Members')}
-          </Button>
-        </div>
-      )}
+      {/* DEPRECATED: Now always show this message */}
+      {/* {!isWebView() && ( */}
+      <div className='flex flex-col sm:flex-row items-center gap-4'>
+        <p className='text-foreground/70 text-center sm:text-left'>{t('Responses from members who have already joined are available on their member profile')}</p>
+        <Button
+          variant='outline'
+          onClick={handleViewMembers}
+          className='flex items-center gap-2'
+        >
+          <Users className='w-4 h-4' />
+          {t('View Members')}
+        </Button>
+      </div>
+      {/* )} */}
     </div>
   )
 }

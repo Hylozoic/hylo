@@ -1,8 +1,44 @@
 import React from 'react'
 import { Text, View } from 'react-native'
-import Triangle from 'react-native-triangle'
+// REMOVED: react-native-triangle - replaced with CSS-based triangle
+// import Triangle from 'react-native-triangle'
 import { amaranth, white } from '@hylo/presenters/colors'
 import { get } from 'lodash/fp'
+
+/**
+ * CSS-based triangle component to replace react-native-triangle dependency
+ * Uses border styling technique to create triangular shapes
+ */
+function CSSTriangle ({ width = 10, height = 5, color = amaranth, direction = 'up', style }) {
+  const triangleStyle = {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid'
+  }
+
+  if (direction === 'up') {
+    Object.assign(triangleStyle, {
+      borderLeftWidth: width / 2,
+      borderRightWidth: width / 2,
+      borderBottomWidth: height,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderBottomColor: color
+    })
+  } else if (direction === 'down') {
+    Object.assign(triangleStyle, {
+      borderLeftWidth: width / 2,
+      borderRightWidth: width / 2,
+      borderTopWidth: height,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderTopColor: color
+    })
+  }
+
+  return <View style={[triangleStyle, style]} />
+}
 
 export default function ErrorBubble ({
   text,
@@ -28,7 +64,7 @@ export default function ErrorBubble ({
 
 export function ErrorPointer ({ style, direction, color }) {
   return (
-    <Triangle
+    <CSSTriangle
       width={10}
       height={5}
       style={style}

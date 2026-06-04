@@ -1,7 +1,11 @@
+// DEPRECATED: This component is only used by deprecated screens.
+// Kept for reference only.
+
 import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { isEmpty } from 'lodash/fp'
-import { decode } from 'html-entities'
+// DEPRECATED: html-entities removed
+// import { decode } from 'html-entities'
 import { DateTimeHelpers, TextHelpers } from '@hylo/shared'
 import { humanResponse, RESPONSES } from '@hylo/presenters/EventInvitationPresenter'
 import HyloHTML from 'components/HyloHTML'
@@ -87,7 +91,8 @@ export function EventRSVP ({ myEventResponse, respondToEvent }) {
 }
 
 export function PostTitle ({ title, style }) {
-  return <Text style={[styles.title, style]}>{decode(title)}</Text>
+  // DEPRECATED: decode() removed with html-entities package
+  return <Text style={[styles.title, style]}>{title}</Text>
 }
 
 const styles = StyleSheet.create({

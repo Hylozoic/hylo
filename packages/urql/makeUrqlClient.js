@@ -54,7 +54,7 @@ export default async function makeUrqlClient ({
       cache,
       fetchExchange,
       providedSubscriptionExchange
-    ],
+    ].filter(Boolean), // Filter out undefined/null exchanges (e.g., when subscriptionExchange is not provided)
     fetch: async (...args) => {
       const response = await fetch(...args)
 

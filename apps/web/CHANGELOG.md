@@ -6,6 +6,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.6] - 2026-05-07
+
+### Added
+- Button on about page to copy a link to jump to the Agreements section of the about page
+- More sophisticated Link editing to post editor. Remove link becomes Edit Link. You can edit the text and link URL separately now.
+
+### Changed
+- Improve styling of the about page
+- About Widget only displays a group's purpose, not its full description in the group menu.
+- Change how we wrap text in posts so we now display full links instead of shortening them
+
+### Fixed
+- Use custom Action label everywhere in a track
+- Make calender picker easier to use on mobile
+- Avoid PostEditor autofocus on mobile web
+- iPad issues with keyboard covering comment input
+- Join questions were not always required when joining a group
+- Role badge not saving correctly in group settings
+- Make sure links like google.com (without https://) used in posts open correctly. They were opening up as internal Hylo posts
+
+## [6.4.5] - 2026-04-15
+
+### Changed
+- Better loading skeletons for non post based views like the map and calendar
+
+### Fixed
+- Issue where new posts wouldn't appear on some devices
+- Track actions temporarily appearing in chat rooms
+
+## [6.4.4] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+### Changed
+- Load funding rounds faster
+- When loading post editor always show current group and #chatroom even before chat rooms have been loaded
+- Attempt to have better error pages when things go wrong
+
+### Fixed
+- Scrolling issues in Funding Rounds
+- Display of header text of featured groups in Group Explorer
+- Hard to read text when viewing group in group explorer in light mode
+- UI of funding rounds list on mobile
+
+## [6.4.3] - 2026-04-12
+
+### Added
+- Add groupUpdated socket push which reloads the group when its context menu has been updated
+- Notice then a new version of Hylo has been deployed, with a button to refresh the page
+
+### Changed
+- Tweak scroll to position in chat room to make sure latest post is visible
+
+### Fixed
+- Don't jump focus to location input when opening group settings
+- Allow for selecting text in chat room posts
+- Don't do swipe to close post when dragging to select text on mobile
+- Don't open nav menu on mobile when long pressing and dragging to select text
+- Make sure we always load new posts when visiting a chat room even when it has cached data
+- Try to fix blank screen when loading hylo tab after new deploy
+- Groups appearing in public map when allow_in_public is false
+- Unecessary calls to update last read post in a chat room after creating a new post
+
+## [6.4.2] - 2026-04-02
+
+### Added
+- Skeleton imagery when loading app to make it look better as it loads
+- Add Playwright E2E testing and Claude Code workflow for faster and safer agent based development
+
+### Changed
+- Initial load time performance improvements
+
+### Fixed
+- Issue loading correct data when switching between chat rooms
+- Bug when creating a group and choosing chat as the home route it would redirect to /stream instead
+- Bug when joining a group it would join then immediately jump to a 404
+- Copy confirmation on wrong section in Invite Settings
+- Tooltip z-index behind images in posts
+
+## [6.4.1] - 2026-04-02
+
+### Changed
+- Performance improvements when loading Hylo
+- Loading spinner doesnt jump around so much when loading Hylo
+- Apply theme-aware styling to Upcoming Events and Projects cards on user profile
+
+### Fixed
+- Fix scrolling search results
+
+## [6.4.0] - 2026-03-11
+
+### Added
+- Many improvements to the UI/UX of Hylo in a mobile web browser. This supports our brand new upcoming Hylo mobile app that is fully wrapping the Hylo web app and this has all the features of the web app.
+- On mobile you can dismiss a post by pulling it down
+- On mobile you can open the nav drawer by swiping in from the left and close it by swiping in from the right
+
+### Changed
+- Change copy link action button to edit when hovering over post card in a chat room
+
+### Fixed
+- Scrolling of the member list in the map drawer
+
+## [6.3.3] - 2026-02-25
+
+### Change
+- Change copy link action button to edit post when hovering over full post card in a chat room
+
+### Fixed
+- Issue loading the posts the first time a group is loaded when the home view is set to Stream
+- Adding topic filters to custom views
+- Show correct roles in user profile memberships list
+- Loading of recent activity on user profiles
+- Various issues related to scrolling up and loading old DMs in a thread
+- Warning when loading comments
+
 ## [6.3.2] - 2026-01-27
 
 ### Added

@@ -27,7 +27,7 @@ function sortLocaleDeep (value) {
       return lowerA.localeCompare(lowerB)
     }
     // If case-insensitive equal, uppercase comes before lowercase
-    return a.localeCompare(b, undefined, { sensitivity: 'case' })
+    return b.localeCompare(a, undefined, { sensitivity: 'case' })
   })) {
     sorted[key] = sortLocaleDeep(value[key])
   }

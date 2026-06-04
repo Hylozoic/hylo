@@ -14,6 +14,7 @@ const query = `
       accessGrants
       publishStatus
       duration
+      buyButtonText
       tracks {
         id
         name

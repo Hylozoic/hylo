@@ -16,6 +16,7 @@ import FormattedError from 'components/FormattedError'
 import controlStyles from 'components/SettingControl/SettingControl.styles'
 import styles from './SignupEmailValidation.styles'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const CODE_LENGTH = 6
 
@@ -32,6 +33,8 @@ export const verifyEmailMutation = gql`
 `
 
 export default function SignupEmailValidation () {
+  // Verifies the email address via a 6 digit code.
+  const insets = useSafeAreaInsets()
   const { t } = useTranslation()
   const navigation = useNavigation()
   const { email, token } = useRouteParams()
@@ -108,7 +111,9 @@ export default function SignupEmailValidation () {
   // )}
 
   return (
-    <KeyboardFriendlyView style={styles.container}>
+    <KeyboardFriendlyView
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right, paddingLeft: insets.left }]}
+    >
       <ScrollView keyboardDismissMode='on-drag' keyboardShouldPersistTaps='handled'>
         <View style={styles.header}>
           <Text style={styles.title}>

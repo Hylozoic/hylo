@@ -18,7 +18,7 @@ describe('PostController', () => {
       u2: new User({name: 'U2', email: 'b@b.c', active: true}).save(),
       u3: new User({name: 'U3', email: 'c@b.c'}).save(),
       p1: new Post({name: 'P1'}).save(),
-      g1: new Group({name: 'G1', slug: 'g1', group_data_type: 1}).save()
+      g1: new Group({ name: 'G1', slug: 'g1' }).save()
     }))
     .then(props => {
       fixtures = props
@@ -54,8 +54,11 @@ describe('PostController', () => {
 
       return PostController.createFromEmailForm(req, res)
         .then(() => {
-          const postId = res.redirected.match(/post\/(\d+)/)[1]
-          return Post.find(postId, {withRelated: ['tags', 'groups']})
+          return Post.where({
+            user_id: fixtures.u1.id,
+            name: "I'm looking for a penguin",
+            created_from: 'email_form'
+          }).fetch({ withRelated: ['tags', 'groups'] })
         })
         .then(post => {
           expect(post.get('name')).to.equal("I'm looking for a penguin")

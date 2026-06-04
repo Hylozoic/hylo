@@ -1,3 +1,10 @@
+// DEPRECATED: This navigator is no longer used.
+// All navigation is now handled by the web app displayed in PrimaryWebView.
+// Messages/threads navigation and all nested screens have been replaced.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import React from 'react'
 import { TouchableOpacity } from 'react-native'
 import { createStackNavigator } from '@react-navigation/stack'
@@ -89,4 +96,10 @@ export default function MessagesNavigator () {
       />
     </Messages.Navigator>
   )
+}
+*/
+
+// No-op export - navigator is deprecated
+export default function MessagesNavigator () {
+  return null
 }

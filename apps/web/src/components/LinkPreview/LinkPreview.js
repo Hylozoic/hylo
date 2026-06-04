@@ -2,8 +2,16 @@ import React from 'react'
 import { Link } from 'lucide-react'
 import { cn, bgImageStyle } from 'util/index'
 
+/** Renders a link preview card; invalid or missing URLs are not rendered to avoid URL parse crashes (e.g. on mobile Safari). */
 export default function LinkPreview ({ className, title, url, imageUrl, description }) {
-  const domain = url && new URL(url).hostname.replace('www.', '')
+  if (!url) return null
+  let domain = ''
+  try {
+    const parsed = new URL(url)
+    domain = parsed.hostname.replace('www.', '')
+  } catch {
+    return null
+  }
 
   return (
     <a className={cn(className)} href={url} target='_blank' rel='noreferrer' aria-label={title}>

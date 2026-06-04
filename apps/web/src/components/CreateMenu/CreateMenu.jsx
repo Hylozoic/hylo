@@ -1,38 +1,35 @@
 import { BadgeDollarSign, Shapes } from 'lucide-react'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import Icon from 'components/Icon'
-import { useSelector } from 'react-redux'
 import useRouteParams from 'hooks/useRouteParams'
 import { POST_TYPES } from 'store/models/Post'
 import { RESP_MANAGE_TRACKS, RESP_MANAGE_ROUNDS } from 'store/constants'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
+import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { createTrackUrl } from '@hylo/navigation'
-import isWebView from 'util/webView'
 
 const postTypes = Object.keys(POST_TYPES).filter(t => !['action', 'chat', 'submission'].includes(t))
 
 export default function CreateMenu ({ coordinates, mapView }) {
   const routeParams = useRouteParams()
   const location = useLocation()
+  const dispatch = useDispatch()
   const querystringParams = new URLSearchParams(location.search)
   const { t } = useTranslation()
+
+  // Close the nav menu when a link is clicked
+  const handleLinkClick = useCallback(() => {
+    dispatch(toggleNavMenu(false))
+  }, [dispatch])
 
   // Check whether currentUser has responsibility of administration for the current group
   const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
   const hasRoundsResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_ROUNDS }))
-
-  // These need to be invoked here so that they get picked up by the translation extractor
-  t('request')
-  t('discussion')
-  t('offer')
-  t('resource')
-  t('project')
-  t('proposal')
-  t('event')
 
   return (
     <div>
@@ -50,7 +47,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
           const iconName = postType === 'request' ? 'Heart' : postTypeUppercase
 
           return (
-            <Link to={createPostForPostTypePath} key={postType} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+            <Link to={createPostForPostTypePath} key={postType} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
               <div className='flex items-center rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
                 <Icon name={iconName} className='mr-2' />
                 <span className='text-base'>{t(postType)}</span>
@@ -60,7 +57,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
           )
         })}
         {!mapView && hasTracksResponsibility && (
-          <Link to={createTrackUrl(routeParams)} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+          <Link to={createTrackUrl(routeParams)} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
             <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
               <Shapes className='mr-2' />
               <span className='text-base'>{t('Track')}</span>
@@ -69,7 +66,7 @@ export default function CreateMenu ({ coordinates, mapView }) {
           </Link>
         )}
         {!mapView && hasRoundsResponsibility && (
-          <Link to={`${location.pathname}/create/funding-round`} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+          <Link to={`${location.pathname}/create/funding-round`} onClick={handleLinkClick} className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
             <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
               <BadgeDollarSign className='mr-2' />
               <span className='text-base'>{t('Funding Round')}</span>
@@ -77,16 +74,13 @@ export default function CreateMenu ({ coordinates, mapView }) {
             </div>
           </Link>
         )}
-        {/* Creating a Group by location is not currently supported in HyloApp */}
-        {!isWebView() && (
-          <Link to='/create-group' key='group' className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
-            <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
-              <Icon name='Groups' className='mr-2' />
-              <span className='text-base'>{t('Group')}</span>
-              <CreateButton />
-            </div>
-          </Link>
-        )}
+        <Link to='/create-group' key='group' className='text-foreground transition-all hover:scale-105 hover:text-foreground group'>
+          <div className='flex text-base items-center p-0 rounded-lg border-2 border-foreground/20 hover:border-foreground/50 transition-all p-1 px-2'>
+            <Icon name='Groups' className='mr-2' />
+            <span className='text-base'>{t('Group')}</span>
+            <CreateButton />
+          </div>
+        </Link>
       </div>
     </div>
   )

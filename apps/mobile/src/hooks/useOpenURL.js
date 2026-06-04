@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Linking } from 'react-native'
 import { getActionFromState, CommonActions, useNavigation, StackActions } from '@react-navigation/native'
+import * as Sentry from '@sentry/react-native'
 import { prefixes, DEFAULT_APP_HOST, staticPages } from 'navigation/linking'
 import getStateFromPath from 'navigation/linking/getStateFromPath'
 import { URL } from 'react-native-url-polyfill'
@@ -58,6 +59,11 @@ export async function openURL (
       DEBUG && console.dir(stateForPath)
 
       let actionForPath = getActionFromState(stateForPath)
+
+      if (!actionForPath) {
+        Sentry.captureMessage(`openURL: getActionFromState returned undefined for path: ${linkingPath}`, 'warning')
+        return null
+      }
 
       if (options?.reset) {
         actionForPath = CommonActions.reset({ routes: [actionForPath.payload] })

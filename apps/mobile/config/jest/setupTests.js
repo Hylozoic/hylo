@@ -65,7 +65,8 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 
 jest.mock('react-native-safe-area-context', () => mockSafeAreaContext)
 
-jest.mock('react-native-background-timer', () => {})
+// DEPRECATED: react-native-background-timer removed from project
+// jest.mock('react-native-background-timer', () => {})
 
 jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),

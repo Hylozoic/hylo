@@ -29,7 +29,7 @@ export default function GroupExplorer ({
   }, [setHeaderDetails])
 
   return (
-    <div className='w-full max-w-screen-md mx-auto pt-8 pb-8 min-h-screen'>
+    <div className='w-full max-w-screen-md mx-auto pt-8 pb-8 flex-1'>
       <Helmet>
         <title>{t('Group Explorer')} | Hylo</title>
         <meta name='description' content='Find the others on Hylo' />

@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useCallback, useState, useEffect } from 'react'
 import { useMutation, useQuery } from 'urql'
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'

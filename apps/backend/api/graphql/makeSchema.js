@@ -49,6 +49,8 @@ import {
   deactivateUser,
   deleteUser,
   declineJoinRequest,
+  addEmailEnabledTester,
+  removeEmailEnabledTester,
   deleteAffiliation,
   deleteComment,
   deleteContextWidget,
@@ -155,6 +157,7 @@ import {
   updateStripeOffering,
   createStripeCheckoutSession,
   checkStripeStatus,
+  membershipChangeCommit,
   verifyEmail
 } from './mutations'
 import {
@@ -165,7 +168,10 @@ import {
   offeringSubscriptionStats,
   offeringSubscribers,
   checkContentAccess,
-  myTransactions
+  myTransactions,
+  membershipChangeEligibleOfferings,
+  membershipChangePreview,
+  membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
 import InvitationService from '../services/InvitationService'
@@ -330,6 +336,21 @@ export default async function makeSchema ({ req }) {
   })
 }
 
+/**
+ * Invitation links must only bypass visibility for the group that issued them.
+ * Otherwise a valid code/token for group A could fetch any other group by slug/id.
+ */
+function invitationMatchesGroupQuery (inviteCheck, slug, id) {
+  if (!inviteCheck?.valid) return false
+  if (slug) {
+    return !!(inviteCheck.groupSlug && inviteCheck.groupSlug === slug)
+  }
+  if (id != null && id !== '') {
+    return String(inviteCheck.groupId) === String(id)
+  }
+  return false
+}
+
 // Queries that non-logged in users can make
 export function makePublicQueries ({ fetchOne, fetchMany }) {
   return {
@@ -340,7 +361,7 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
       // If invitation credentials are provided, validate and bypass visibility filter
       if (accessCode || invitationToken) {
         const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-        if (inviteCheck?.valid) {
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
           // Fetch group without visibility restriction
           return Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
         }
@@ -366,6 +387,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       InvitationService.check(invitationToken, accessCode),
     collection: (root, { id }) => fetchOne('Collection', id),
     comment: (root, { id }) => fetchOne('Comment', id),
+    customView: (root, { id }) => fetchOne('CustomView', id),
     commonRoles: (root, args) => CommonRole.fetchAll(args),
     connections: (root, args) => fetchMany('PersonConnection', args),
     contentAccess: (root, args) => fetchMany('ContentAccess', args),
@@ -375,7 +397,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       // If invitation credentials are provided, validate and bypass visibility filter
       if (accessCode || invitationToken) {
         const inviteCheck = await InvitationService.check(invitationToken, accessCode)
-        if (inviteCheck?.valid) {
+        if (invitationMatchesGroupQuery(inviteCheck, slug, id)) {
           // Fetch group directly without normal visibility filter
           group = await Group.where(slug ? { slug } : { id }).where({ active: true }).fetch()
         }
@@ -409,6 +431,12 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     joinRequests: (root, args) => fetchMany('JoinRequest', args),
     me: (root, args, context) => fetchOne('Me', context.currentUserId),
     myTransactions: (root, args, context) => myTransactions(context.currentUserId, args),
+    membershipChangeEligibleOfferings: (root, { groupId }, context) =>
+      membershipChangeEligibleOfferings(context.currentUserId, { groupId }),
+    membershipChangePreview: (root, args, context) =>
+      membershipChangePreview(context.currentUserId, args),
+    membershipChangeInvoicePreview: (root, args, context) =>
+      membershipChangeInvoicePreview(context.currentUserId, args),
     messageThread: (root, { id }) => fetchOne('MessageThread', id),
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
@@ -445,7 +473,14 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     topic: (root, { id, name }) => fetchOne('Topic', name || id, name ? 'name' : 'id'),
     topicFollow: (root, { groupId, topicName }, context) => TagFollow.findOrCreate({ groupId, topicName, userId: context.currentUserId }),
     topics: (root, args) => fetchMany('Topic', args),
-    track: (root, { id }) => fetchOne('Track', id)
+    track: (root, { id }) => fetchOne('Track', id),
+    emailEnabledTesters: async (root, args, context) => {
+      if (!(await Admin.isTestAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      const testers = await EmailEnabledTester.findAll()
+      return testers.toModelArray ? testers.toModelArray() : testers
+    }
   }
 }
 
@@ -457,7 +492,7 @@ export function makePublicMutations ({ fetchOne }) {
     sendPasswordReset,
     register: register(fetchOne),
     verifyEmail: verifyEmail(fetchOne),
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata })
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }
 }
 
@@ -521,7 +556,7 @@ export function makeMutations ({ fetchOne }) {
 
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
-    createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data }),
+    createContextWidget: (root, { groupId, data }, context) => createContextWidget({ userId: context.currentUserId, groupId, data, context }),
 
     createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
 
@@ -557,7 +592,7 @@ export function makeMutations ({ fetchOne }) {
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 
-    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId),
+    deleteContextWidget: (root, { contextWidgetId }, context) => deleteContextWidget(context.currentUserId, contextWidgetId, context),
 
     deleteFundingRound: (root, { id }, context) => deleteFundingRound(context.currentUserId, id),
 
@@ -654,17 +689,20 @@ export function makeMutations ({ fetchOne }) {
 
     createStripeOffering: (root, { input }, context) => createStripeOffering(context.currentUserId, input),
 
-    updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, contentAccess, renewalPolicy, duration, publishStatus }),
+    updateStripeOffering: (root, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }, context) => updateStripeOffering(context.currentUserId, { offeringId, name, description, priceInCents, currency, accessGrants, renewalPolicy, duration, publishStatus }),
 
-    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, successUrl, cancelUrl, metadata }),
+    createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }, context) => createStripeCheckoutSession(context.currentUserId, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }),
 
     checkStripeStatus: (root, { groupId }, context) => checkStripeStatus(context.currentUserId, { groupId }),
+
+    membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
+      membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
     reinviteAll: (root, { groupId }, context) => reinviteAll(context.currentUserId, groupId),
 
     rejectGroupRelationshipInvite: (root, { groupRelationshipInviteId }, context) => rejectGroupRelationshipInvite(context.currentUserId, groupRelationshipInviteId),
 
-    removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId }),
+    removeWidgetFromMenu: (root, { contextWidgetId, groupId }, context) => removeWidgetFromMenu({ userId: context.currentUserId, contextWidgetId, groupId, context }),
 
     removeMember: (root, { personId, groupId }, context) => removeMember(context.currentUserId, personId, groupId, context),
 
@@ -685,7 +723,7 @@ export function makeMutations ({ fetchOne }) {
     removeSuggestedSkillFromGroup: (root, { groupId, id, name }, context) => removeSuggestedSkillFromGroup(context.currentUserId, groupId, id || name),
 
     reorderContextWidget: (root, { contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }, context) =>
-      reorderContextWidget({ userId: context.currentUserId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd }),
+      reorderContextWidget({ userId: context.currentUserId, contextWidgetId, parentId, orderInFrontOfWidgetId, addToEnd, context }),
 
     reorderPostInCollection: (root, { collectionId, postId, newOrderIndex }, context) =>
       reorderPostInCollection(context.currentUserId, collectionId, postId, newOrderIndex),
@@ -701,7 +739,7 @@ export function makeMutations ({ fetchOne }) {
 
     setProposalOptions: (root, { postId, options }, context) => setProposalOptions({ userId: context.currentUserId, postId, options }),
 
-    setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId }),
+    setHomeWidget: (root, { contextWidgetId, groupId }, context) => setHomeWidget({ userId: context.currentUserId, contextWidgetId, groupId, context }),
 
     subscribe: (root, { groupId, topicId, isSubscribing }, context) => subscribe(context.currentUserId, topicId, groupId, isSubscribing),
 
@@ -717,7 +755,7 @@ export function makeMutations ({ fetchOne }) {
 
     updateAllMemberships: (root, args, context) => updateAllMemberships(context.currentUserId, args),
 
-    updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data }),
+    updateContextWidget: (root, { contextWidgetId, data }, context) => updateContextWidget({ userId: context.currentUserId, contextWidgetId, data, context }),
 
     updateFundingRound: (root, { id, data }, context) => updateFundingRound(context.currentUserId, id, data),
 
@@ -757,7 +795,11 @@ export function makeMutations ({ fetchOne }) {
 
     updateWidget: (root, { id, changes }, context) => updateWidget(id, changes),
 
-    useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode)
+    useInvitation: (root, { invitationToken, accessCode }, context) => useInvitation(context.currentUserId, invitationToken, accessCode),
+
+    addEmailEnabledTester: (root, { userId }, context) => addEmailEnabledTester(context.currentUserId, userId),
+
+    removeEmailEnabledTester: (root, { userId }, context) => removeEmailEnabledTester(context.currentUserId, userId)
   }
 }
 

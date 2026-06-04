@@ -41,7 +41,7 @@ function Tracks () {
   }, [])
 
   return (
-    <div className='p-4 max-w-[750px] mx-auto flex flex-col gap-2'>
+    <div className='p-4 w-full max-w-[750px] mx-auto flex flex-col gap-2'>
       {canManageTracks && (
         <div className='text-foreground text-center'>
           <Link to={createTrackUrl(routeParams)} className='flex justify-center items-center gap-1 text-foreground border-2 border-foreground/20 hover:border-foreground/50 rounded-lg py-1 px-2 transition-all hover:scale-105 hover:text-foreground group mb-4 mt-2'>

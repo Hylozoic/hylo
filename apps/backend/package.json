@@ -5,7 +5,7 @@
   "author": "Hylo <hello@hylo.com>",
   "license": "Apache-2.0",
   "private": true,
-  "version": "6.3.0",
+  "version": "6.4.1",
   "nyc": {
     "sourceMap": false,
     "instrument": false,
@@ -15,8 +15,7 @@
   },
   "main": "app.js",
   "engines": {
-    "node": "^20",
-    "yarn": "^4.9.2"
+    "node": "^20"
   },
   "packageManager": "yarn@4.9.2",
   "scripts": {
@@ -185,6 +184,7 @@
       "CommonRole",
       "ContentAccess",
       "ContextWidget",
+      "EmailEnabledTester",
       "CookieConsent",
       "CustomView",
       "CustomViewTopic",
@@ -247,6 +247,7 @@
       "Skill",
       "StripeService",
       "StripeProduct",
+      "SubscriptionChangeEvent",
       "Tag",
       "TagFollow",
       "Thank",
@@ -260,6 +261,7 @@
       "UserExternalData",
       "UserGroupAgreement",
       "UserExternalData",
+      "UserScope",
       "UserSession",
       "UserVerificationCode",
       "Validation",

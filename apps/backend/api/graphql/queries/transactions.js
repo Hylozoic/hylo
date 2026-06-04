@@ -7,7 +7,55 @@
 import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
 
-/* global ContentAccess, StripeAccount */
+/* global ContentAccess, StripeAccount, SubscriptionChangeEvent */
+
+const PENDING_TX_SUBSCRIPTION_CHANGE_MODES = [
+  'scheduled_period_end',
+  'lifetime_no_proration'
+]
+
+/**
+ * Loads latest pending subscription_change_events per Stripe subscription id for myTransactions.
+ *
+ * @param {string|number} userId
+ * @param {Array<{ _stripeSubscriptionId?: string|null }>} items
+ */
+async function attachPendingMembershipSubscriptionChanges (userId, items) {
+  const uid = parseInt(userId, 10)
+  if (isNaN(uid) || !items?.length) return
+
+  const subIds = [...new Set(items.map(i => i._stripeSubscriptionId).filter(Boolean))]
+  if (!subIds.length) return
+
+  const events = await SubscriptionChangeEvent.query(qb => {
+    qb.where({ user_id: uid, status: 'pending' })
+    qb.whereIn('stripe_subscription_id', subIds)
+    qb.whereIn('mode', PENDING_TX_SUBSCRIPTION_CHANGE_MODES)
+  }).fetchAll({ withRelated: ['toProduct'] })
+
+  const latestBySubId = new Map()
+  for (const evt of events.models) {
+    const sid = evt.get('stripe_subscription_id')
+    if (!sid) continue
+    const prev = latestBySubId.get(sid)
+    const created = new Date(evt.get('created_at'))
+    if (prev && new Date(prev.get('created_at')) > created) continue
+    latestBySubId.set(sid, evt)
+  }
+
+  for (const item of items) {
+    const sid = item._stripeSubscriptionId
+    if (!sid) continue
+    const evt = latestBySubId.get(sid)
+    if (!evt) continue
+    const toProduct = evt.related('toProduct')
+    item.pendingMembershipSubscriptionChange = {
+      mode: evt.get('mode'),
+      effectiveAt: evt.get('pending_effective_at') || null,
+      toOffering: toProduct && toProduct.id ? toProduct : null
+    }
+  }
+}
 
 // Frontend URL for billing portal return
 const FRONTEND_URL = process.env.PROTOCOL + '://' + process.env.DOMAIN
@@ -268,6 +316,8 @@ export async function myTransactions (userId, { first = 20, offset = 0, status, 
     })
 
     const baseItems = (await Promise.all(baseItemPromises)).filter(Boolean) // Remove null entries from accessType filtering
+
+    await attachPendingMembershipSubscriptionChanges(userId, baseItems)
 
     // Enrich items with Stripe data in parallel
     const items = await Promise.all(baseItems.map(enrichWithStripeData))

@@ -1,9 +1,13 @@
+// DEPRECATED: This component is only used by deprecated screens (Stream, PostDetails).
+// Kept for reference only.
+
 import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { useMutation } from 'urql'
 import { useTranslation } from 'react-i18next'
 import { LocationHelpers } from '@hylo/shared'
-import { Check, Play, Circle } from 'lucide-react-native'
+// DEPRECATED: lucide-react-native removed
+// import { Check, Play, Circle } from 'lucide-react-native'
 import recordClickthroughMutation from '@hylo/graphql/mutations/recordClickthroughMutation'
 import useCurrentUser from '@hylo/hooks/useCurrentUser'
 import PostPresenter from '@hylo/presenters/PostPresenter'
@@ -28,7 +32,8 @@ export default function PostCard ({
   showGroups = true,
   childPost,
   showTopic: goToTopic,
-  isCurrentAction = false
+  isCurrentAction = false,
+  actionDescriptor
 }) {
   const { t } = useTranslation()
   const navigation = useNavigation()
@@ -61,7 +66,7 @@ export default function PostCard ({
             ) : isCurrentAction ? (
               <View className='flex-row items-center gap-2 border-2 border-accent rounded-md px-2 py-1'>
                 <Play className='w-4 h-4 text-accent' />
-                <Text className='text-accent'>{t('Next Action')}</Text>
+                <Text className='text-accent'>{t('Next {{actionDescriptor}}', { actionDescriptor: actionDescriptor || 'Action' })}</Text>
               </View>
             ) : (
               <View className='flex-row items-center gap-2 border-2 border-foreground/20 rounded-md px-2 py-1'>

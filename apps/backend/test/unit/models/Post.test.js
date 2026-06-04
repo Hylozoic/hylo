@@ -143,6 +143,49 @@ describe('Post', function () {
     })
   })
 
+  describe('#groupForFrontendRouteForUser', () => {
+    let post, userInGroup, userOutside, memberGroup, otherGroup
+
+    beforeEach(() => {
+      const uniq = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      post = new Post({ name: 'routed', active: true, is_public: true })
+      userInGroup = factories.user({ name: 'Inside' })
+      userOutside = factories.user({ name: 'Outside' })
+      memberGroup = factories.group({ active: true, slug: `gfr-m-${uniq}` })
+      otherGroup = factories.group({ active: true, slug: `gfr-o-${uniq}` })
+      return Promise.join(post.save(), userInGroup.save(), userOutside.save(), memberGroup.save(), otherGroup.save())
+        .then(() => userInGroup.joinGroup(memberGroup))
+        .then(() => post.groups().attach(memberGroup.id))
+    })
+
+    it('returns a group the viewer is in when the post is linked to that group', async () => {
+      await post.load('groups')
+      const picked = await post.groupForFrontendRouteForUser(userInGroup.id)
+      expect(picked.id).to.equal(memberGroup.id)
+    })
+
+    it('returns null for a public post when the viewer is not in any linked group', async () => {
+      await post.load('groups')
+      const picked = await post.groupForFrontendRouteForUser(userOutside.id)
+      expect(picked).to.equal(null)
+    })
+
+    it('returns null when the post is not public and the viewer has no shared membership', async () => {
+      await post.save({ is_public: false }, { patch: true })
+      await post.load('groups')
+      const picked = await post.groupForFrontendRouteForUser(userOutside.id)
+      expect(picked).to.equal(null)
+    })
+
+    it('returns the first overlapping group when the post spans multiple groups', async () => {
+      await post.groups().attach(otherGroup.id)
+      await userInGroup.joinGroup(otherGroup)
+      await post.load('groups')
+      const picked = await post.groupForFrontendRouteForUser(userInGroup.id)
+      expect([memberGroup.id, otherGroup.id]).to.include(picked.id)
+    })
+  })
+
   describe('.createdInTimeRange', () => {
     var post
 
@@ -283,7 +326,7 @@ describe('Post', function () {
           const activity = activities.first()
           expect(activity).to.exist
           expect(activity.get('actor_id')).to.equal(u.id)
-          expect(activity.get('meta')).to.deep.equal({reasons: [`newPost: ${c.id}`, 'tag: FollowThisTag']})
+          expect(activity.get('meta')).to.deep.equal({reasons: [`newPost: ${c.id}`]})
           expect(activity.get('unread')).to.equal(true)
         })
     })

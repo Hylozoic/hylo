@@ -66,7 +66,7 @@ const MessagesDropdown = ({
     body = <NoItems message={t("You don't have any messages yet")} />
   } else {
     body = (
-      <div className='overflow-y-auto overflow-x-hidden h-[calc(100vh-100px)]'>
+      <div className='overflow-y-auto overflow-x-hidden h-[calc(100dvh-100px)]'>
         {threads.map(thread =>
           <MessagesDropdownItem
             thread={thread}

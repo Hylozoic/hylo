@@ -1,6 +1,7 @@
 import { uniq, difference } from 'lodash/fp'
 import { TextHelpers, DateTimeHelpers } from '@hylo/shared'
 import ical, { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
+import { senderNameViaHylo } from '../../../lib/email/senderNameViaHylo'
 
 export default {
   isEvent () {
@@ -119,7 +120,8 @@ export default {
   },
 
   incrementIcalSequence: async function () {
-    this.save({ ical_sequence: this.getIcalSequence() + 1 })
+    const nextSeq = this.getIcalSequence() + 1
+    return this.save({ ical_sequence: nextSeq }, { patch: true })
   },
 
   createUserRsvpCalendarSubscriptions: async function () {
@@ -150,7 +152,7 @@ export default {
     const newDate = newStart && newEnd ? DateTimeHelpers.formatDatePair({ start: newStart, end: newEnd, timezone: this.get('timezone') }) : null
     const newLocation = eventChanges.location
 
-    Queue.classMethod('Email', emailTemplate, {
+    const rsvpEmailPayload = {
       email: user.get('email'),
       version: 'default',
       data: {
@@ -171,7 +173,11 @@ export default {
           data: Buffer.from(calInvite.toString(), 'utf8').toString('base64')
         }
       ]
-    }).then(() => {
+    }
+    if (groupName) {
+      rsvpEmailPayload.sender = { name: senderNameViaHylo(groupName.get('name'), user.getLocale()) }
+    }
+    Queue.classMethod('Email', emailTemplate, rsvpEmailPayload).then(() => {
       eventInvitation.incrementIcalSequence()
     })
   },

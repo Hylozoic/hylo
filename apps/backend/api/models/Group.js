@@ -19,11 +19,8 @@ import { groupFilter } from '../graphql/filters'
 import { inviteGroupToGroup } from '../graphql/mutations/group'
 import { findOrCreateLocation } from '../graphql/mutations/location'
 import { whereId } from './group/queryUtils'
-import { es } from '../../lib/i18n/es'
-import { en } from '../../lib/i18n/en'
+import { getLocaleStrings } from '../../lib/i18n/locales'
 const { createGroupScope } = require('../../lib/scopes')
-
-const locales = { es, en }
 
 export const GROUP_MEMBERSHIP_ATTR_UPDATE_WHITELIST = [
   'role',
@@ -531,6 +528,9 @@ module.exports = bookshelf.Model.extend(merge({
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
+    const groupSettings = this.get('settings') || {}
+    const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
+
     const updatedAttribs = Object.assign(
       {},
       {
@@ -538,7 +538,7 @@ module.exports = bookshelf.Model.extend(merge({
         role: GroupMembership.Role.DEFAULT,
         settings: {
           postNotifications: 'all',
-          digestFrequency: 'daily',
+          digestFrequency: defaultDigestFrequency,
           sendEmail: true,
           sendPushNotifications: true,
           lastReadAt: attrs.lastReadAt || null
@@ -1177,14 +1177,13 @@ module.exports = bookshelf.Model.extend(merge({
     const attrs = defaults(
       pick(mapValues(data, (v, k) => trimAttrs.includes(k) ? trim(v) : v),
         'about_video_uri', 'accessibility', 'access_code', 'avatar_url', 'banner_url', 'description',
-        'location_id', 'location', 'group_data_type', 'name', 'purpose', 'settings', 'slug',
+        'location_id', 'location', 'name', 'purpose', 'settings', 'slug',
         'steward_descriptor', 'steward_descriptor_plural', 'type', 'type_descriptor', 'type_descriptor_plural', 'visibility'
       ),
       {
         accessibility: Group.Accessibility.RESTRICTED,
         avatar_url: DEFAULT_AVATAR,
         banner_url: DEFAULT_BANNER,
-        group_data_type: 1,
         visibility: Group.Visibility.PROTECTED
       }
     )
@@ -1199,6 +1198,8 @@ module.exports = bookshelf.Model.extend(merge({
       homeView: data.home_view || 'CHAT'
     }
 
+    const homeRoute = defaultSettings.homeView === 'CHAT' ? '/chat/general' : defaultSettings.homeView === 'MAP' ? '/map' : '/stream'
+
     // eslint-disable-next-line camelcase
     const access_code = attrs.access_code || await Group.getNewAccessCode()
     const group = new Group(merge(attrs, {
@@ -1206,7 +1207,8 @@ module.exports = bookshelf.Model.extend(merge({
       created_at: new Date(),
       created_by_id: userId,
       settings: defaultSettings,
-      calendar_token: uuidv4()
+      calendar_token: uuidv4(),
+      home_route: homeRoute
     }))
 
     await bookshelf.transaction(async trx => {
@@ -1261,6 +1263,9 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     await Queue.classMethod('Group', 'notifyAboutCreate', { groupId: group.id })
+
+    // Send email to creator
+    await Queue.classMethod('Group', 'sendGroupCreatedEmail', { groupId: group.id })
 
     return group
   },
@@ -1549,17 +1554,17 @@ module.exports = bookshelf.Model.extend(merge({
       .then(g => {
         const creator = g.relations.creator
         const recipient = process.env.NEW_GROUP_EMAIL
-        const locale = creator.getLocale()
+        const L = getLocaleStrings(creator.getLocale())
         return Email.sendRawEmail({
           email: recipient,
           data: {
-            subject: locales[locale].groupCreatedNotifySubject(g.get('name')),
-            body: `${locales[locale].Group()}
-              ${locales[locale].Name()}: ${g.get('name')}
+            subject: L.groupCreatedNotifySubject(g.get('name')),
+            body: `${L.Group()}
+              ${L.Name()}: ${g.get('name')}
               URL: ${Frontend.Route.group(g)}
-              ${locales[locale].CreatorEmail()}: ${creator.get('email')}
-              ${locales[locale].CreatorName()}: ${creator.get('name')}
-              ${locales[locale].CreatorURL()}: ${Frontend.Route.profile(creator)}
+              ${L.CreatorEmail()}: ${creator.get('email')}
+              ${L.CreatorName()}: ${creator.get('name')}
+              ${L.CreatorURL()}: ${Frontend.Route.profile(creator)}
             `.replace(/^\s+/gm, '').replace(/\n/g, '<br/>\n')
           },
           extraOptions: {
@@ -1568,6 +1573,32 @@ module.exports = bookshelf.Model.extend(merge({
               address: 'dev+bot@hylo.com'
             }
           }
+        })
+      })
+  },
+
+  sendGroupCreatedEmail: function (opts) {
+    return Group.find(opts.groupId, { withRelated: ['creator'] })
+      .then(async group => {
+        if (!group) return
+        const creator = group.relations.creator
+        if (!creator) return
+
+        const userLocale = creator.getLocale()
+        const userName = creator.get('name') || ''
+        const firstName = userName.split(' ')[0] || userName
+
+        Email.sendGroupCreatedEmail({
+          email: creator.get('email'),
+          data: {
+            first_name: firstName,
+            group_name: group.get('name'),
+            add_purpose_url: Frontend.Route.groupSettings(group),
+            edit_welcome_page_url: Frontend.Route.groupSettings(group) + '/welcome',
+            stewardship_support_url: 'https://hylozoic.gitbook.io/hylo/about/community-stewardship-support-program-csaas',
+            community_call_url: 'https://www.hylo.com/participate/'
+          },
+          locale: userLocale
         })
       })
   },

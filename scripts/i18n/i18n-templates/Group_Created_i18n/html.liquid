@@ -1,0 +1,65 @@
+{% snippet "header_redesign" %}
+
+<style type='text/css'>
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .action-section {
+    margin: 20px 0;
+  }
+  .action-description {
+    margin-bottom: 10px;
+  }
+</style>
+
+<p>
+  {% set first_name_var = first_name %}
+  {% trans %}Dear {{first_name_var}},{% endtrans %}
+</p>
+
+<p>
+  {% set group_name_var = group_name %}
+  {% trans %}Congratulations on creating {{group_name_var}}! You've opened a space for collaboration - now let's get it ready for members.{% endtrans %}
+</p>
+
+<p>{% trans %}Here are the best next steps:{% endtrans %}</p>
+
+<div class='action-section'>
+  <h3>{% trans %}Add your group purpose{% endtrans %}</h3>
+  <p class='action-description'>{% trans %}Tell members what this space is for and what you're building together. A clear and concise purpose helps people feel confident joining.{% endtrans %}</p>
+  {% if add_purpose_url %}
+    <a class='btn btn-blue' href="{{add_purpose_url}}" clicktracking="off">{% trans %}Add Purpose →{% endtrans %}</a>
+  {% endif %}
+</div>
+
+<div class='action-section'>
+  <h3>{% trans %}Customize your Welcome page{% endtrans %}</h3>
+  <p class='action-description'>{% trans %}Design the first experience new members see. A strong Welcome page helps orient people and invites participation from day one.{% endtrans %}</p>
+  {% if edit_welcome_page_url %}
+    <a class='btn btn-blue' href="{{edit_welcome_page_url}}" clicktracking="off">{% trans %}Edit Welcome Page →{% endtrans %}</a>
+  {% endif %}
+</div>
+
+<div class='action-section'>
+  <h3>{% trans %}Get professional community stewardship support{% endtrans %}</h3>
+  <p class='action-description'>{% trans %}Want help growing and facilitating your community? The Hylo team offers hands-on support for customization, onboarding, and engagement.{% endtrans %}</p>
+  {% if stewardship_support_url %}
+    <a class='btn btn-blue' href="{{stewardship_support_url}}" clicktracking="off">{% trans %}Learn about Stewardship Support →{% endtrans %}</a>
+  {% endif %}
+</div>
+
+<p>{% trans %}We're glad you're here and excited to support your journey as an organizer. If you need anything along the way, we're here to help.{% endtrans %}</p>
+
+<p>{% trans %}Warmly,{% endtrans %}</p>
+
+<p>{% trans %}The Hylo Team{% endtrans %}</p>
+
+<p>
+  {% trans %}P.S. Join an upcoming Hylo Community Call to meet fellow organizers and the stewardship team.{% endtrans %}
+  {% if community_call_url %}
+    <a class='btn btn-blue' href="{{community_call_url}}" clicktracking="off" style='margin-top: 10px; display: inline-block;'>{% trans %}Join the Next Call →{% endtrans %}</a>
+  {% endif %}
+</p>
+
+{% snippet "footer_redesign" %}

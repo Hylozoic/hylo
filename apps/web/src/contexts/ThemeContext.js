@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { themes, defaultTheme } from '../themes'
+import { WebViewMessageTypes } from '@hylo/shared'
+import { sendMessageToWebView } from 'util/webView'
 
 const ThemeContext = createContext()
 
@@ -60,9 +62,12 @@ export function ThemeProvider ({ children }) {
       document.documentElement.style.setProperty(`--${key}`, value)
     })
 
-    // Update root class for dark mode
+    // Update root class and color-scheme for dark mode
+    // Setting color-scheme tells the browser (and iOS WebView) to use
+    // dark-themed native UI chrome (keyboard, scrollbars, form controls, etc.)
     document.documentElement.classList.remove('light', 'dark')
     document.documentElement.classList.add(effectiveColorScheme)
+    document.documentElement.style.colorScheme = effectiveColorScheme
 
     // Save preferences
     window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme)
@@ -71,6 +76,12 @@ export function ThemeProvider ({ children }) {
     } else {
       window.localStorage.removeItem(COLOR_SCHEME_STORAGE_KEY)
     }
+
+    // Notify the native mobile app so it can style safe area insets to match
+    sendMessageToWebView(WebViewMessageTypes.THEME_CHANGE, {
+      themeName: currentTheme,
+      colorScheme: effectiveColorScheme
+    })
   }, [currentTheme, colorScheme, effectiveColorScheme])
 
   const value = {

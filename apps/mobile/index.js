@@ -7,26 +7,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { makeAsyncStorage } from '@urql/storage-rn'
 import { Provider } from 'react-redux'
 import { AppRegistry, Platform, AppState, UIManager } from 'react-native'
-import Timer from 'react-native-background-timer'
+// DEPRECATED: react-native-background-timer removed - old workaround no longer needed
+// See: https://github.com/facebook/react-native/issues/12981 (from 2017)
+// import Timer from 'react-native-background-timer'
 import * as Sentry from '@sentry/react-native'
 import { OneSignal } from 'react-native-onesignal'
 import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
-import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
+// DEPRECATED: Subscription exchange no longer needed - web app handles all real-time updates
+// import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
 import { sentryConfig, isTest } from 'config'
 import store from 'store'
 import { name as appName } from './app.json'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-html'
+// DEPRECATED: react-native-render-html no longer needed - only deprecated screens used it
+// import { TRenderEngineProvider, defaultSystemFonts } from 'react-native-render-html'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 import ErrorBoundary from 'screens/ErrorBoundary'
 import VersionCheck from 'components/VersionCheck'
 import RootNavigator from 'navigation/RootNavigator'
-import { ToastProvider } from 'components/Toast'
+// DEPRECATED: Toast only used by deprecated screens
+// import { ToastProvider } from 'components/Toast'
 import './i18n'
 import { ActionSheetProvider } from '@expo/react-native-action-sheet'
-import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
+// DEPRECATED: HyloHTML styles no longer needed - only deprecated screens used HyloHTML
+// import { baseStyle, tagsStyles, classesStyles } from 'components/HyloHTML/HyloHTML.styles'
 import './src/style/global.css'
 
 if (__DEV__) {
@@ -55,15 +61,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
-if (Platform.OS === 'android') {
-  // We get these long polling warnings in development, which can actually cause
-  // problems in production.  Here's a workaround.
-  // https://github.com/facebook/react-native/issues/12981
-  setTimeout = (fn, ms = 0) => Timer.setTimeout(fn, ms)
-  setInterval = (fn, ms = 0) => Timer.setInterval(fn, ms)
-  clearTimeout = (fn, ms = 0) => Timer.clearTimeout(fn, ms)
-  clearInterval = (fn, ms = 0) => Timer.clearInterval(fn, ms)
-}
+// DEPRECATED: Old Android timer workaround removed
+// This was a workaround for React Native issue #12981 from 2017
+// No longer needed with modern React Native versions
+// if (Platform.OS === 'android') {
+//   setTimeout = (fn, ms = 0) => Timer.setTimeout(fn, ms)
+//   setInterval = (fn, ms = 0) => Timer.setInterval(fn, ms)
+//   clearTimeout = (fn, ms = 0) => Timer.clearTimeout(fn, ms)
+//   clearInterval = (fn, ms = 0) => Timer.clearInterval(fn, ms)
+// }
 
 AppRegistry.registerComponent(appName, () => App)
 
@@ -116,8 +122,17 @@ if (Platform.OS === 'ios') {
 export default function App () {
   const [appState, setAppState] = useState(AppState.currentState)
   const storage = makeAsyncStorage({ storage: AsyncStorage })
+
+  // MOSTLY DEPRECATED: URQL is now minimally used in the mobile app.
+  // The web app (loaded via PrimaryWebView) handles all data fetching, caching, and subscriptions.
+  //
+  // Still needed for:
+  // - Native auth screens (Login, Signup, JoinGroup)
+  // - Auth-related hooks (useLogout, useAuth)
+  //
+  // DEPRECATED: subscriptionExchange removed - web app handles all real-time updates
   const urqlClient = useMakeUrqlClient({
-    subscriptionExchange: mobileSubscriptionExchange,
+    // subscriptionExchange: mobileSubscriptionExchange, // No longer needed
     storage
   })
 
@@ -160,24 +175,12 @@ export default function App () {
           <UrqlProvider value={urqlClient}>
             <AuthProvider>
               <ActionSheetProvider>
-                {/*
-                  `TRenderEngineProvider` is the react-native-render-html rendering engine.
-                  It is app-wide for performance reasons. The styles applied are global and
-                  not readily overridden. For more details see: https://bit.ly/3MeJCIR
-                */}
-                <TRenderEngineProvider
-                  baseStyle={baseStyle}
-                  tagsStyles={tagsStyles}
-                  classesStyles={classesStyles}
-                  systemFonts={[...defaultSystemFonts, 'Circular-Book']}
-                >
-                  <Provider store={store}>
-                    <ToastProvider>
-                      <VersionCheck />
-                      <RootNavigator />
-                    </ToastProvider>
-                  </Provider>
-                </TRenderEngineProvider>
+                {/* DEPRECATED: TRenderEngineProvider removed - only deprecated screens used HyloHTML */}
+                <Provider store={store}>
+                  {/* DEPRECATED: ToastProvider removed - only deprecated screens used Toast */}
+                  <VersionCheck />
+                  <RootNavigator />
+                </Provider>
               </ActionSheetProvider>
             </AuthProvider>
           </UrqlProvider>

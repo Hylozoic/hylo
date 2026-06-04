@@ -6,7 +6,7 @@
   bottom: 0;
   left: 0;
   z-index: 20;
-  height: 100vh;
+  height: 100dvh;
   top: 0px;
 }
 
@@ -16,7 +16,7 @@
   width: 100%;
   margin: 0 auto;
   display: flex;
-  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
 }
 
 .modal::-webkit-scrollbar {
@@ -54,6 +54,6 @@ body, body * {
 
   .modal {
     top: 56px;
-    height: calc(100vh - 106px);
+    height: calc(100dvh - 106px);
   }
 }

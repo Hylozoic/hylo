@@ -173,6 +173,13 @@ export {
   createStripeCheckoutSession,
   checkStripeStatus
 } from './stripe'
+export {
+  membershipChangeCommit
+} from './membershipChange'
+export {
+  addEmailEnabledTester,
+  removeEmailEnabledTester
+} from './emailEnabledTesters'
 export { default as findOrCreateThread } from '../../models/post/findOrCreateThread'
 
 export async function updateMe (sessionId, userId, changes) {

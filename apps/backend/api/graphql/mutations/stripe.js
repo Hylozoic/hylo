@@ -10,8 +10,9 @@
 
 import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
+import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
 
-/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount */
+/* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount, User, Queue, Frontend */
 
 /**
  * Helper function to convert a database account ID to an external Stripe account ID
@@ -30,6 +31,42 @@ async function getExternalAccountId (accountId) {
     throw new GraphQLError('Stripe account record not found')
   }
   return stripeAccount.get('stripe_account_external_id')
+}
+
+async function getGroupAdminLocale (group) {
+  try {
+    const admins = await group.membersWithResponsibilities([Responsibility.Common.RESP_ADMINISTRATION]).fetch()
+    if (!admins?.models?.length) {
+      return 'en'
+    }
+
+    const localeCounts = {}
+    for (const adminMembership of admins.models) {
+      const admin = adminMembership.relations.user || await User.find(adminMembership.get('user_id'))
+      const locale = admin?.getLocale?.()?.toLowerCase()?.split('-')?.[0]
+      if (locale) {
+        localeCounts[locale] = (localeCounts[locale] || 0) + 1
+      }
+    }
+
+    const localeEntries = Object.entries(localeCounts)
+    if (!localeEntries.length) {
+      return 'en'
+    }
+
+    localeEntries.sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1]
+      if (a[0] === 'en') return -1
+      if (b[0] === 'en') return 1
+      return a[0].localeCompare(b[0])
+    })
+
+    return localeEntries[0][0]
+  } catch (error) {
+    console.error('Error resolving group admin locale, defaulting to English:', error)
+  }
+
+  return 'en'
 }
 
 module.exports = {
@@ -92,6 +129,24 @@ module.exports = {
 
       // Save the database ID to the group
       await group.save({ stripe_account_id: stripeAccountRecord.id })
+
+      try {
+        const actor = await User.find(userId)
+        if (actor) {
+          Queue.classMethod('Email', 'sendNewStripeConnectedAccountAdminNotification', {
+            groupName: group.get('name'),
+            groupSlug: group.get('slug') || '',
+            groupUrl: Frontend.Route.group(group),
+            groupId: String(group.id),
+            stripeAccountExternalId: account.id,
+            actorName: actor.get('name'),
+            actorEmail: actor.get('email'),
+            actorProfileUrl: Frontend.Route.profile(actor)
+          })
+        }
+      } catch (notifyErr) {
+        console.error('Failed to queue new Stripe account admin notification:', notifyErr)
+      }
 
       return {
         id: groupId,
@@ -255,6 +310,8 @@ module.exports = {
       // Default renewal_policy to 'automatic' for subscription-based products
       const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
 
+      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -263,7 +320,8 @@ module.exports = {
         description: product.description,
         price_in_cents: priceInCents,
         currency: currency || 'usd',
-        access_grants: accessGrants || {},
+        access_grants: cleanAccessGrants,
+        metadata: offeringMetadata,
         renewal_policy: effectiveRenewalPolicy,
         duration: duration || null,
         publish_status: publishStatus || 'unpublished'
@@ -363,7 +421,22 @@ module.exports = {
       }
 
       // Fields that are platform-only (don't sync with Stripe)
-      if (accessGrants !== undefined) updateAttrs.access_grants = accessGrants
+      if (accessGrants !== undefined) {
+        const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+        const nextMeta = { ...parseJsonObject(product.get('metadata')) }
+        if (offeringMetadata.buyButtonText != null) {
+          nextMeta.buyButtonText = offeringMetadata.buyButtonText
+        } else {
+          delete nextMeta.buyButtonText
+        }
+        if (offeringMetadata.slidingScale != null) {
+          nextMeta.slidingScale = offeringMetadata.slidingScale
+        } else {
+          delete nextMeta.slidingScale
+        }
+        updateAttrs.access_grants = cleanAccessGrants
+        updateAttrs.metadata = nextMeta
+      }
       if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
       if (duration !== undefined) updateAttrs.duration = duration
       if (publishStatus !== undefined) {
@@ -453,6 +526,7 @@ module.exports = {
     groupId,
     offeringId,
     quantity,
+    adjustableQuantity,
     successUrl,
     cancelUrl,
     metadata
@@ -486,6 +560,9 @@ module.exports = {
       if (!stripeAccountId) {
         throw new GraphQLError('Group does not have a Stripe account configured')
       }
+      if (group.get('stripe_sales_paused')) {
+        throw new GraphQLError('This group cannot accept payments right now. Please contact the group stewards.')
+      }
 
       // Get the Stripe price ID from the offering
       const stripePriceId = offering.get('stripe_price_id')
@@ -493,34 +570,115 @@ module.exports = {
         throw new GraphQLError('Offering does not have a Stripe price ID')
       }
 
+      // Sliding scale: stripe_products.metadata.slidingScale (legacy: access_grants)
+      const slidingScale = getSlidingScaleFromOffering(offering)
+      const parseOptionalInt = (value) => {
+        if (value == null || value === '') return null
+        const parsed = parseInt(value, 10)
+        return Number.isNaN(parsed) ? null : parsed
+      }
+      const inferredAdjustableQuantity = slidingScale?.enabled
+        ? {
+            enabled: true,
+            minimum: parseOptionalInt(slidingScale.minimum),
+            maximum: parseOptionalInt(slidingScale.maximum)
+          }
+        : null
+
+      const effectiveAdjustableQuantity = adjustableQuantity || inferredAdjustableQuantity
+
       // Convert database ID to external account ID if needed
       const externalAccountId = await getExternalAccountId(stripeAccountId)
 
-      // Fetch the actual price from Stripe to calculate the application fee accurately
-      const priceObject = await StripeService.getPrice(externalAccountId, stripePriceId)
+      // If sliding scale is enabled, we should charge using a shared unit price
+      // for the offering currency (1 unit * chosen quantity).
+      const offeringCurrency = offering.get('currency') || 'usd'
+      const effectiveLocale = await getGroupAdminLocale(group)
+      const isSlidingScaleEnabled = effectiveAdjustableQuantity?.enabled
 
-      // Calculate the total amount (price * quantity)
-      const totalAmount = priceObject.unit_amount * (quantity || 1)
+      // Safety defaults:
+      // - minimum defaults to 1 (avoid $0 purchases granting access)
+      // - maximum defaults to 999999 (Stripe adjustable_quantity supported upper bound)
+      const effectiveMinimum = isSlidingScaleEnabled
+        ? (effectiveAdjustableQuantity.minimum ?? 1)
+        : null
+      const effectiveMaximum = isSlidingScaleEnabled
+        ? (effectiveAdjustableQuantity.maximum ?? 999999)
+        : null
 
-      // Calculate application fee (7% of total)
-      // TODO STRIPE: Consider making this configurable per group or product
-      const applicationFeePercentage = 0.07 // 7%
-      const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+      const sanitizedAdjustableQuantity = isSlidingScaleEnabled
+        ? {
+            enabled: true,
+            minimum: effectiveMinimum,
+            maximum: effectiveMaximum
+          }
+        : null
 
       // Determine checkout mode based on renewal policy
       // If automatic renewal, use subscription mode; otherwise payment mode
       const renewalPolicy = offering.get('renewal_policy')
       const checkoutMode = renewalPolicy === 'automatic' ? 'subscription' : 'payment'
 
+      let effectiveStripePriceId = stripePriceId
+      if (sanitizedAdjustableQuantity?.enabled) {
+        // In subscription mode, Stripe requires a recurring price.
+        // Ensure our shared sliding-scale unit price matches the offering's interval.
+        const duration = offering.get('duration')
+        let billingInterval = null
+        let billingIntervalCount = 1
+
+        if (checkoutMode === 'subscription') {
+          if (duration === 'day') {
+            billingInterval = 'day'
+            billingIntervalCount = 1
+          } else if (duration === 'month') {
+            billingInterval = 'month'
+            billingIntervalCount = 1
+          } else if (duration === 'season') {
+            billingInterval = 'month'
+            billingIntervalCount = 3
+          } else if (duration === 'annual') {
+            billingInterval = 'year'
+            billingIntervalCount = 1
+          } else {
+            throw new GraphQLError('Sliding scale subscriptions require a recurring duration (month, season, annual, or day)')
+          }
+        }
+
+        effectiveStripePriceId = await StripeService.ensureSlidingScaleUnitPriceExists(
+          externalAccountId,
+          offeringCurrency,
+          billingInterval,
+          billingIntervalCount,
+          effectiveLocale
+        )
+      }
+
+      // Fetch the actual price from Stripe to calculate the application fee accurately
+      const priceObject = await StripeService.getPrice(externalAccountId, effectiveStripePriceId)
+
+      // Calculate the total amount (price * initialQuantity)
+      // If adjustableQuantity is provided, we use it to pick a safe initial quantity
+      // for fee calculation until the customer picks their final quantity in Stripe Checkout.
+      const initialQuantity = sanitizedAdjustableQuantity?.minimum ?? quantity ?? 1
+      const totalAmount = priceObject.unit_amount * initialQuantity
+
+      // Calculate application fee (7% of total)
+      // TODO STRIPE: Consider making this configurable per group or product
+      const applicationFeePercentage = 0.07 // 7%
+      const applicationFeeAmount = Math.round(totalAmount * applicationFeePercentage)
+
       // Create the checkout session
       const checkoutSession = await StripeService.createCheckoutSession({
         accountId: externalAccountId,
-        priceId: stripePriceId,
-        quantity: quantity || 1,
+        priceId: effectiveStripePriceId,
+        quantity: initialQuantity,
         applicationFeeAmount,
         successUrl: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&offering_id=${offeringId}`,
         cancelUrl,
         mode: checkoutMode,
+        adjustableQuantity: sanitizedAdjustableQuantity,
+        locale: effectiveLocale,
         metadata: {
           groupId,
           offeringId,

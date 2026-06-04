@@ -10,7 +10,8 @@
 
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CheckCircle, AlertCircle, ExternalLink, Clock } from 'lucide-react'
 
 import Button from 'components/ui/button'
 import SettingsControl from 'components/SettingsControl'
@@ -96,9 +97,25 @@ function AccountSetupSection ({ loading, onCreateAccount, group, currentUser, t 
     <>
       <div className='mb-4'>
         <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
-        <p className='text-sm text-foreground/70 mb-4'>
+        <p className='text-sm text-foreground/70 mb-3'>
           {t('Set up Stripe Connect to accept payments. If you already have a Stripe account, Stripe will prompt you to connect it during onboarding.')}
         </p>
+        <div className='rounded-md border border-border bg-background/50 p-3 text-sm text-foreground/80 space-y-2'>
+          <p className='font-medium text-foreground'>{t('What happens next')}</p>
+          <ol className='list-decimal list-inside space-y-1.5'>
+            <li>{t('Submit this form to create your group\'s connected account.')}</li>
+            <li>{t('You will be sent to Stripe to confirm business details and, if needed, link a bank account for payouts.')}</li>
+            <li className='mt-1 mb-1 pl-0.5'>
+              <div className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'>
+                <Clock className='w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                <span className='text-sm font-semibold text-foreground leading-snug'>
+                  {t('When Stripe sends you back here, we will refresh your status. Verification often takes a couple of hours but can take longer.')}
+                </span>
+              </div>
+            </li>
+            <li>{t('Once payments are enabled, open the Paid Offerings tab to create what you want to sell.')}</li>
+          </ol>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className='space-y-4'>
@@ -198,13 +215,27 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
                   ? t('Account Status: Pending')
                   : t('Stripe Account Setup Required')}
             </h3>
-            <p className='text-sm text-foreground/70'>
-              {isFullyOnboarded
-                ? t('Your Stripe account is fully set up and ready to accept payments.')
-                : isPending
-                  ? t('Your account details have been submitted to Stripe and are being reviewed. This process typically takes a few minutes to a few hours.')
-                  : t('Complete your account setup to start accepting payments.')}
-            </p>
+            {isFullyOnboarded && (
+              <p className='text-sm text-foreground/70'>
+                {t('Your Stripe account is fully set up and ready to accept payments.')}
+              </p>
+            )}
+            {isPending && (
+              <div
+                className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25 mt-1'
+                role='status'
+              >
+                <Clock className='w-6 h-6 sm:w-7 sm:h-7 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                <p className='text-sm sm:text-base font-semibold text-foreground leading-snug m-0'>
+                  {t('Your account details have been submitted to Stripe and are being reviewed. Verification often completes within a couple of hours, but it can take from a few minutes to a day or longer.')}
+                </p>
+              </div>
+            )}
+            {!isFullyOnboarded && !isPending && (
+              <p className='text-sm text-foreground/70'>
+                {t('Complete your account setup to start accepting payments.')}
+              </p>
+            )}
           </div>
         </div>
         <Button
@@ -215,6 +246,55 @@ function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding
         >
           {loading ? t('Checking...') : t('Check Stripe Status')}
         </Button>
+      </div>
+
+      <div className='rounded-md border border-border bg-background/40 p-4 mb-4 text-sm text-foreground/80'>
+        {isFullyOnboarded && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('Next steps in Hylo')}</p>
+            <ol className='list-decimal list-inside space-y-1.5'>
+              <li>
+                {t('Use the')}{' '}
+                <Link className='text-accent underline-offset-2 hover:underline' to='offerings'>{t('Paid Offerings')}</Link>
+                {' '}
+                {t('tab to create offerings for memberships, track access, roles, and more.')}
+              </li>
+              <li>{t('Publish at least one offering before turning on a group paywall or track paywalls, if you use those.')}</li>
+              <li>{t('Use Paid Content Access any time to see who has purchased or been granted access.')}</li>
+            </ol>
+          </div>
+        )}
+        {isPending && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('While you wait')}</p>
+            <ul className='list-disc list-inside space-y-1.5'>
+              <li>{t('Use Check Stripe Status above to pull the latest state from Stripe.')}</li>
+              <li>
+                {t('When Accept Payments and Receive Payouts show Yes, open the')}{' '}
+                <Link className='text-accent underline-offset-2 hover:underline' to='offerings'>{t('Paid Offerings')}</Link>
+                {' '}
+                {t('tab to create what you want to sell.')}
+              </li>
+            </ul>
+          </div>
+        )}
+        {!isFullyOnboarded && !isPending && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('Before you open Stripe')}</p>
+            <ol className='list-decimal list-inside space-y-1.5'>
+              <li>{t('Click Complete Onboarding below. You will leave Hylo and finish setup on Stripe\'s site.')}</li>
+              <li className='mt-1 mb-1 pl-0.5'>
+                <div className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'>
+                  <Clock className='w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                  <span className='text-sm font-semibold text-foreground leading-snug'>
+                    {t('After Stripe redirects you back here, we check your status automatically. Verification often takes a couple of hours but can take longer.')}
+                  </span>
+                </div>
+              </li>
+              <li>{t('When your account is active, use the Paid Offerings tab to create what you want to sell.')}</li>
+            </ol>
+          </div>
+        )}
       </div>
 
       <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>

@@ -2,10 +2,7 @@
 import { sendMessageFromAxolotl } from '../services/MessagingService'
 
 import { pick } from 'lodash/fp'
-import { es } from '../../lib/i18n/es'
-import { en } from '../../lib/i18n/en'
-
-const locales = { es, en }
+import { getLocaleStrings } from '../../lib/i18n/locales'
 
 module.exports = bookshelf.Model.extend({
   tableName: 'moderation_actions',
@@ -94,21 +91,23 @@ module.exports = bookshelf.Model.extend({
     const reporterLocale = reporter.getLocale()
     const reporteeLocale = reportee.getLocale()
 
+    const reporterL = getLocaleStrings(reporterLocale)
+    const reporteeL = getLocaleStrings(reporteeLocale)
     const reporterSubject = type === 'created'
-      ? locales[reporterLocale].moderationYouFlaggedAPost()
-      : locales[reporterLocale].moderationClearedYourFlag()
+      ? reporterL.moderationYouFlaggedAPost()
+      : reporterL.moderationClearedYourFlag()
 
     const reporterMessageContent = type === 'created'
-      ? `${locales[reporterLocale].moderationYouFlaggedPostEmailContent({ post, group })}`
-      : `${locales[reporterLocale].moderationReporterClearedPostEmailContent({ post, group })}`
+      ? `${reporterL.moderationYouFlaggedPostEmailContent({ post, group })}`
+      : `${reporterL.moderationReporterClearedPostEmailContent({ post, group })}`
 
     const reporteeSubject = type === 'created'
-      ? locales[reporteeLocale].moderationYourPostWasFlagged()
-      : locales[reporteeLocale].moderationClearedFlagFromYourPost()
+      ? reporteeL.moderationYourPostWasFlagged()
+      : reporteeL.moderationClearedFlagFromYourPost()
 
     const reporteeMessageContent = type === 'created'
-      ? `${locales[reporteeLocale].moderationFlaggedPostEmailContent({ post, group })}`
-      : `${locales[reporteeLocale].moderationClearedPostEmailContent({ post, group })}`
+      ? `${reporteeL.moderationFlaggedPostEmailContent({ post, group })}`
+      : `${reporteeL.moderationClearedPostEmailContent({ post, group })}`
 
     Queue.classMethod('Email', 'sendModerationAction', {
       email: reporter.get('email'),

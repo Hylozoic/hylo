@@ -6,13 +6,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.1] - 2026-05-07
+
+### Changed
+- Added (via Hylo) to the Sender of all email notifications that were missing it
+
+### Fixed
+- Don't include actions and submissions in new post counts for topics/chat rooms
+
+## [6.4.0] - 2026-04-14
+
+### Added
+- The ability to subscribe to a calendar of all the events you have RSVPed to across Hylo in any calendar app. Access the URL from the All My Groups Events page.
+- The ability to subscribe to a calendar of all the events for a Group in any calendar app. Access the URL from the Group's Events page.
+
+## [6.3.4] - 2026-04-12
+
+### Added
+- groupUpdated socket push which reloads the group when its context menu has been updated
+
+### Fixed
+- Unnecessary calls to update last read post in a chat room after creating a new post
+
+## [6.3.3] - 2026-04-10
+
+### Added
+- API call to load a custom view on demand
+
+## [6.3.2] - 2026-04-02
+
+### Fixed
+- Bug viewing recent activity on a profile
+
+## [6.3.1] - 2026-03-11
+
+### Added
+- New email to group stewards when creating a group
+- Translation of all our emails in Portugese, French, German, Hindi, and Spanish
+
 ## [6.3.0] - 2026-01-27
 
 ### Added
 - Ability to subscribe to a group's calendar
 
 ### Fixed
-- Cross site scripting security hole related to javascript being embedded in DMs and then executed when the DM is viewed
+- Cross site scripting security hole related to javascript being embedded in DMs and then executed when the DM is viewed. Thank you to [Shivam Pandit](https://www.linkedin.com/in/pandit-shivam) for finding and reporting this vulnerability.
 
 ## [6.2.7] - 2026-01-13
 
@@ -127,7 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for peer to peer group relationships.
 
-s## [6.1.17] - 2025-08-27
+## [6.1.17] - 2025-08-27
 
 ### Changed
 - If somehow trying to log in as a different user while already logged in, log out as current user andlog in as the new user

@@ -1,3 +1,9 @@
+// DEPRECATED: This component is no longer used.
+// All toast notifications are now handled by the web app in the WebView.
+// Kept for reference only.
+// Last used: 2025-01-28
+
+/*
 import React, { useEffect, useRef } from 'react'
 import { Animated, Text, View, TouchableOpacity } from 'react-native'
 import { Check, AlertCircle, X } from 'lucide-react-native'
@@ -89,4 +95,10 @@ export default function Toast ({ text1, text2, type = 'default', onHide, duratio
       </TouchableOpacity>
     </Animated.View>
   )
-} 
+}
+*/
+
+// No-op export - component is deprecated
+export default function Toast () {
+  return null
+}

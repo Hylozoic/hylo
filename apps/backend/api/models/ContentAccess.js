@@ -236,6 +236,7 @@ module.exports = bookshelf.Model.extend({
    * @param {String|Number} [params.commonRoleId] - Optional common role
    * @param {String} params.sessionId - Stripe checkout session ID
    * @param {String} [params.stripeSubscriptionId] - Stripe subscription ID (for recurring purchases)
+   * @param {String} [params.stripeCustomerId] - Stripe customer ID on connected account (cus_...)
    * @param {Date} [params.expiresAt] - When access expires
    * @param {Object} [params.metadata] - Additional metadata
    * @param {Object} options - Options including transacting
@@ -251,6 +252,7 @@ module.exports = bookshelf.Model.extend({
     commonRoleId,
     sessionId,
     stripeSubscriptionId,
+    stripeCustomerId,
     expiresAt,
     metadata = {}
   }, { transacting } = {}) {
@@ -265,6 +267,7 @@ module.exports = bookshelf.Model.extend({
       access_type: this.Type.STRIPE_PURCHASE,
       stripe_session_id: sessionId,
       stripe_subscription_id: stripeSubscriptionId,
+      stripe_customer_id: stripeCustomerId || null,
       expires_at: expiresAt,
       metadata
     }, { transacting })

@@ -17,6 +17,7 @@ export default function acceptInvitation (inviteCodes = {}) {
               group {
                 id
                 accessibility
+                homeRoute
                 name
                 purpose
                 paywall
@@ -37,8 +38,12 @@ export default function acceptInvitation (inviteCodes = {}) {
               }
               settings {
                 agreementsAcceptedAt
+                digestFrequency
                 joinQuestionsAnsweredAt
+                postNotifications
+                sendEmail
                 showJoinForm
+                sendPushNotifications
               }
             }
             error

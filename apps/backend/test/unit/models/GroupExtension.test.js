@@ -23,8 +23,8 @@ describe('GroupExtension', function () {
   })
 
   after(async function () {
-    await groupExtension.destroy()
-    await extension.destroy()
+    if (groupExtension) await groupExtension.destroy()
+    if (extension) await extension.destroy()
   })
 
   it('an extension can be created', function () {

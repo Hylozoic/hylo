@@ -13,11 +13,477 @@ const Stripe = require('stripe')
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-10-29.clover'
 })
-const { en } = require('../../lib/i18n/en')
-const { es } = require('../../lib/i18n/es')
-const locales = { en, es }
+/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend, SubscriptionChangeEvent */
 
-/* global bookshelf, StripeAccount, StripeProduct, ContentAccess, GroupMembership, Group, User, Track, Frontend */
+const Email = require('../services/Email')
+
+// Dispute rate thresholds matching Stripe's own early-warning and critical levels
+const DISPUTE_RATE_WARNING_THRESHOLD = 0.0075 // 0.75% — Stripe early warning
+const DISPUTE_RATE_CRITICAL_THRESHOLD = 0.01 // 1.0% — Stripe serious risk
+const DISPUTE_SPIKE_WINDOW_DAYS = 7
+const DISPUTE_SPIKE_COUNT = 20
+const ALERT_COOLDOWN_HOURS = 24
+const STRIPE_LOG_TYPES = {
+  REFUND: 'refund',
+  DISPUTE: 'dispute',
+  ALERT: 'alert'
+}
+
+function shouldBypassStripeWebhookSignatureCheck () {
+  return process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE === 'true'
+}
+
+/**
+ * Detects optional Hylo platform contribution line items (matches current and legacy Stripe product names).
+ *
+ * @param {String} productName - Product name from Stripe line item
+ * @returns {Boolean}
+ */
+function isHyloPlatformContributionLineItem (productName) {
+  const n = (productName || '').toLowerCase()
+  return (
+    n.includes('hylo platform donation') ||
+    n.includes('donation to hylo') ||
+    n.includes('hylo platform contribution') ||
+    n.includes('contribution to hylo') ||
+    n.includes('recurring donation to hylo') ||
+    n.includes('recurring contribution to hylo')
+  )
+}
+
+/**
+ * Looks up the internal StripeAccount row and linked Group for a given Stripe Connect account ID.
+ *
+ * @param {string} connectedAccountId - External Stripe account ID (acct_...)
+ * @returns {Promise<{ stripeAccountRow, group }|null>}
+ */
+async function findGroupForConnectedAccount (connectedAccountId) {
+  if (!connectedAccountId) return null
+  const stripeAccountRow = await StripeAccount.where({ stripe_account_external_id: connectedAccountId }).fetch()
+  if (!stripeAccountRow) return null
+  const group = await Group.where({ stripe_account_id: stripeAccountRow.id }).fetch()
+  if (!group) return null
+  return { stripeAccountRow, group }
+}
+
+/**
+ * Computes current dispute/refund stats for a group and sends alert emails for any thresholds
+ * that are newly exceeded and not on cooldown.
+ *
+ * @param {number} groupId
+ * @param {object} group - Bookshelf Group model instance
+ * @param {object} stripeAccountRow - Bookshelf StripeAccount model instance
+ */
+async function checkAndSendDisputeAlerts (groupId, group, stripeAccountRow) {
+  const now = new Date()
+  const cutoff90d = new Date(now - 90 * 24 * 60 * 60 * 1000)
+  const cutoff7d = new Date(now - DISPUTE_SPIKE_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+
+  const [disputeCount90d, disputeCount7d, refundCount90d, totalCharges90d] = await Promise.all([
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.DISPUTE })
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.DISPUTE })
+      .where('created_at', '>', cutoff7d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.REFUND })
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10)),
+    // Proxy for total charges: paid content_access records created in last 90d
+    bookshelf.knex('content_access')
+      .where({ group_id: groupId })
+      .whereNotIn('status', ['cancelled'])
+      .whereNotNull('stripe_customer_id')
+      .where('created_at', '>', cutoff90d)
+      .count('id as count').then(r => parseInt(r[0].count, 10))
+  ])
+
+  const disputeRate90d = totalCharges90d > 0 ? disputeCount90d / totalCharges90d : 0
+
+  const baseAlertLog = {
+    group_id: groupId,
+    stripe_account_id: stripeAccountRow.id,
+    log_type: STRIPE_LOG_TYPES.ALERT,
+    metadata: {
+      dispute_count_90d: disputeCount90d,
+      refund_count_90d: refundCount90d,
+      dispute_count_7d: disputeCount7d,
+      total_charges_90d: totalCharges90d,
+      dispute_rate_90d: disputeRate90d
+    }
+  }
+
+  const emailOpts = {
+    groupName: group.get('name'),
+    groupSlug: group.get('slug'),
+    groupUrl: Frontend.Route.group(group),
+    stripeAccountId: stripeAccountRow.get('stripe_account_external_id'),
+    stripeDashboardUrl: group.stripeDashboardUrl ? group.stripeDashboardUrl() : '',
+    disputeCount90d,
+    disputeCount7d,
+    refundCount90d,
+    totalCharges90d,
+    disputeRate90d
+  }
+
+  async function isAlertOnCooldown (alertType) {
+    const cutoff = new Date(Date.now() - ALERT_COOLDOWN_HOURS * 60 * 60 * 1000)
+    const row = await bookshelf.knex('stripe_logs')
+      .where({ group_id: groupId, log_type: STRIPE_LOG_TYPES.ALERT, alert_type: alertType })
+      .where('created_at', '>', cutoff)
+      .first()
+    return !!row
+  }
+
+  // Check each threshold independently with its own cooldown
+  if (disputeRate90d >= DISPUTE_RATE_CRITICAL_THRESHOLD) {
+    const alertType = 'dispute_rate_critical'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute rate critical — ${(disputeRate90d * 100).toFixed(2)}% exceeds Stripe's 1.0% threshold`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  } else if (disputeRate90d >= DISPUTE_RATE_WARNING_THRESHOLD) {
+    const alertType = 'dispute_rate_warning'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute rate warning — ${(disputeRate90d * 100).toFixed(2)}% exceeds Stripe's 0.75% early-warning threshold`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  }
+
+  if (disputeCount7d >= DISPUTE_SPIKE_COUNT) {
+    const alertType = 'dispute_spike'
+    const onCooldown = await isAlertOnCooldown(alertType)
+    if (!onCooldown) {
+      const label = `Dispute spike — ${disputeCount7d} disputes in the last ${DISPUTE_SPIKE_WINDOW_DAYS} days (threshold: ${DISPUTE_SPIKE_COUNT})`
+      await bookshelf.knex('stripe_logs').insert({
+        ...baseAlertLog,
+        alert_type: alertType,
+        threshold_triggered: label
+      })
+      await Email.sendStripeAlertEmail({ ...emailOpts, alertType, thresholdTriggered: label })
+    }
+  }
+}
+
+async function insertStripeLog (row) {
+  try {
+    await bookshelf.knex('stripe_logs').insert(row)
+  } catch (e) {
+    if (e.code !== '23505') throw e
+  }
+}
+
+async function upsertDisputeLog ({ groupId, stripeAccountId, dispute }) {
+  const existing = await bookshelf.knex('stripe_logs')
+    .where({ log_type: STRIPE_LOG_TYPES.DISPUTE, external_id: dispute.id })
+    .first()
+  if (existing) {
+    await bookshelf.knex('stripe_logs')
+      .where({ id: existing.id })
+      .update({
+        status: dispute.status,
+        reason: dispute.reason || null,
+        amount: dispute.amount,
+        currency: dispute.currency || 'usd',
+        charge_id: dispute.charge,
+        updated_at: new Date()
+      })
+    return
+  }
+
+  if (!groupId || !stripeAccountId) return
+
+  await insertStripeLog({
+    group_id: groupId,
+    stripe_account_id: stripeAccountId,
+    log_type: STRIPE_LOG_TYPES.DISPUTE,
+    external_id: dispute.id,
+    charge_id: dispute.charge,
+    amount: dispute.amount,
+    currency: dispute.currency || 'usd',
+    reason: dispute.reason || null,
+    status: dispute.status,
+    metadata: {}
+  })
+}
+
+/**
+ * Request options for Stripe API calls when the webhook is for a Connect connected account.
+ *
+ * @param {object} event - Stripe Event
+ * @returns {{ stripeAccount?: string }}
+ */
+function getStripeConnectRequestOptions (event) {
+  const acct = event.account
+  if (!acct) return {}
+  return { stripeAccount: acct }
+}
+
+/**
+ * Ensures Connect webhooks reference a Stripe account we know (avoids acting on wrong-tenant payloads).
+ *
+ * @param {object} event - Stripe Event
+ * @returns {Promise<boolean>} true if ok to process
+ */
+async function verifyStripeConnectAccountKnown (event) {
+  const acct = event.account
+  if (!acct) return true
+
+  const row = await StripeAccount.where({ stripe_account_external_id: acct }).fetch()
+  if (!row) {
+    console.warn(`Stripe webhook: unknown connected account ${acct} for event ${event.id} type ${event.type}`)
+    return false
+  }
+  return true
+}
+
+/**
+ * Returns true if this event was already fully processed (successful completion recorded).
+ *
+ * @param {string} eventId
+ * @returns {Promise<boolean>}
+ */
+async function isStripeWebhookAlreadyProcessed (eventId) {
+  const row = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: eventId }).first()
+  return !!row
+}
+
+/**
+ * Persists successful webhook handling so Stripe retries become no-ops.
+ *
+ * @param {string} eventId
+ */
+async function markStripeWebhookProcessed (eventId) {
+  try {
+    await bookshelf.knex('stripe_webhook_processed_events').insert({ stripe_event_id: eventId })
+  } catch (e) {
+    if (e.code === '23505') {
+      return
+    }
+    throw e
+  }
+}
+
+const SCHEDULED_CHANGE_MODES = new Set([
+  'scheduled_period_end'
+])
+
+const IMMEDIATE_MEMBERSHIP_SYNC_MODES = new Set([
+  'immediate_upgrade',
+  'past_due_no_proration'
+])
+
+function getPrimaryPriceId (subscription) {
+  return subscription?.items?.data?.[0]?.price?.id || null
+}
+
+/**
+ * @param {number|null|undefined} unixSec
+ * @returns {Date|null}
+ */
+function dateFromStripeUnixSeconds (unixSec) {
+  if (unixSec == null || !Number.isFinite(Number(unixSec))) return null
+  const d = new Date(Number(unixSec) * 1000)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * Resolves billing period bounds when subscription top-level fields are missing (some invoices / API shapes).
+ *
+ * @param {object} subscription
+ * @param {object} invoice Stripe invoice from webhook
+ * @returns {{ periodStart: Date|null, periodEnd: Date|null }}
+ */
+function resolveSubscriptionInvoicePeriodBounds (subscription, invoice) {
+  let periodEnd = dateFromStripeUnixSeconds(subscription?.current_period_end)
+  let periodStart = dateFromStripeUnixSeconds(subscription?.current_period_start)
+
+  if (!periodEnd && invoice?.lines?.data?.length) {
+    for (const line of invoice.lines.data) {
+      const end = dateFromStripeUnixSeconds(line?.period?.end)
+      if (end) {
+        periodEnd = end
+        break
+      }
+    }
+  }
+  if (!periodStart && invoice?.lines?.data?.length) {
+    for (const line of invoice.lines.data) {
+      const start = dateFromStripeUnixSeconds(line?.period?.start)
+      if (start) {
+        periodStart = start
+        break
+      }
+    }
+  }
+  if (!periodEnd) {
+    periodEnd = dateFromStripeUnixSeconds(invoice?.period_end)
+  }
+  if (!periodStart) {
+    periodStart = dateFromStripeUnixSeconds(invoice?.period_start)
+  }
+  return { periodStart, periodEnd }
+}
+
+/**
+ * After membershipChangeCommit immediate paths, subscription metadata carries hylo_correlation_id.
+ * Sync content_access.product_id when Stripe primary price matches the change event target.
+ *
+ * @param {object} subscription event.data.object
+ * @param {object} event Stripe event
+ */
+async function markImmediateMembershipChangeSyncedFromSubscription (subscription, event) {
+  const correlationId = subscription?.metadata?.hylo_correlation_id
+  if (!correlationId) return
+
+  const currentPriceId = getPrimaryPriceId(subscription)
+  if (!currentPriceId) return
+
+  const changeEvent = await SubscriptionChangeEvent.query((qb) => {
+    qb.where({
+      correlation_id: correlationId,
+      stripe_subscription_id: subscription.id
+    })
+    qb.whereIn('mode', Array.from(IMMEDIATE_MEMBERSHIP_SYNC_MODES))
+    qb.whereIn('status', ['pending', 'applied'])
+    qb.orderBy('id', 'desc')
+  }).fetch()
+
+  if (!changeEvent) {
+    return
+  }
+
+  const payload = changeEvent.get('payload') || {}
+  const targetStripePriceId = payload.targetStripePriceId
+  if (!targetStripePriceId || targetStripePriceId !== currentPriceId) {
+    return
+  }
+
+  await syncContentAccessForAppliedSubscriptionChange(changeEvent, event)
+}
+
+async function syncContentAccessForAppliedSubscriptionChange (changeEvent, event) {
+  const toProductId = changeEvent.get('to_product_id')
+  if (!toProductId) return
+
+  const subscriptionId = changeEvent.get('stripe_subscription_id')
+  if (!subscriptionId) return
+
+  const fromProductId = changeEvent.get('from_product_id')
+  const now = new Date()
+  const baseQuery = bookshelf.knex('content_access')
+    .where({
+      stripe_subscription_id: subscriptionId,
+      status: ContentAccess.Status.ACTIVE
+    })
+
+  if (fromProductId) {
+    baseQuery.where({ product_id: fromProductId })
+  }
+
+  const updatedCount = await baseQuery.update({
+    product_id: toProductId,
+    updated_at: now
+  })
+
+  if (updatedCount > 0) {
+    const payload = changeEvent.get('payload') || {}
+    await changeEvent.save({
+      payload: {
+        ...payload,
+        syncedContentAccessAt: now.toISOString(),
+        syncedContentAccessCount: updatedCount,
+        syncedFromWebhookType: event.type,
+        syncedFromWebhookEventId: event.id
+      }
+    }, { patch: true })
+  }
+}
+
+async function markScheduledChangeEventAppliedFromSubscription (subscription, event) {
+  const correlationId = subscription?.metadata?.hylo_correlation_id
+  if (!correlationId) return
+
+  const pending = await SubscriptionChangeEvent.where({
+    correlation_id: correlationId
+  }).fetch()
+
+  if (!pending || pending.get('status') !== 'pending') {
+    return
+  }
+
+  if (!SCHEDULED_CHANGE_MODES.has(pending.get('mode'))) {
+    return
+  }
+
+  const payload = pending.get('payload') || {}
+  const targetStripePriceId = payload.targetStripePriceId || null
+  const currentPriceId = getPrimaryPriceId(subscription)
+  if (!targetStripePriceId || !currentPriceId || targetStripePriceId !== currentPriceId) {
+    return
+  }
+
+  await syncContentAccessForAppliedSubscriptionChange(pending, event)
+
+  const payloadAfterSync = pending.get('payload') || {}
+
+  await pending.save({
+    status: 'applied',
+    applied_at: new Date(),
+    payload: {
+      ...payloadAfterSync,
+      applied: true,
+      appliedFromWebhookType: event.type,
+      appliedFromWebhookEventId: event.id
+    }
+  }, { patch: true })
+}
+
+async function markLifetimeChangeEventAppliedForSubscriptionEnd (subscriptionId, event) {
+  if (!subscriptionId) return
+
+  const pendingEvents = await SubscriptionChangeEvent.query((qb) => {
+    qb.where({
+      stripe_subscription_id: subscriptionId,
+      mode: 'lifetime_no_proration',
+      status: 'pending'
+    })
+    qb.orderBy('id', 'desc')
+  }).fetchAll()
+
+  if (!pendingEvents || !pendingEvents.length) {
+    return
+  }
+
+  await Promise.all(pendingEvents.models.map(async (changeEvent) => {
+    const payload = changeEvent.get('payload') || {}
+    await changeEvent.save({
+      status: 'applied',
+      applied_at: new Date(),
+      payload: {
+        ...payload,
+        applied: true,
+        appliedFromWebhookType: event.type,
+        appliedFromWebhookEventId: event.id
+      }
+    }, { patch: true })
+  }))
+}
 
 module.exports = {
 
@@ -106,35 +572,62 @@ module.exports = {
    */
   webhook: async function (req, res) {
     try {
-      // Get the webhook signature from headers
-      const signature = req.headers['stripe-signature']
-
-      if (!signature) {
-        console.error('Missing Stripe signature header')
-        return res.status(400).json({ error: 'Missing signature' })
-      }
-
-      if (!process.env.STRIPE_WEBHOOK_SECRET) {
-        console.error('STRIPE_WEBHOOK_SECRET environment variable is not set')
-        return res.status(500).json({ error: 'Webhook secret not configured' })
-      }
-
-      // Verify webhook signature
-      // req.body should be a Buffer from bodyParser.raw() middleware
       let event
-      try {
-        event = stripe.webhooks.constructEvent(
-          req.body,
-          signature,
-          process.env.STRIPE_WEBHOOK_SECRET
-        )
-      } catch (err) {
-        console.error('Webhook signature verification failed:', err.message)
-        return res.status(400).json({ error: 'Invalid signature' })
+      if (global.__stripeWebhookConstructEvent) {
+        event = global.__stripeWebhookConstructEvent(req.body, req.headers)
+      } else if (shouldBypassStripeWebhookSignatureCheck()) {
+        if (!req.body) {
+          return res.status(400).json({ error: 'Missing webhook payload' })
+        }
+        try {
+          const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : req.body
+          event = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody
+        } catch (err) {
+          console.error('Webhook payload parsing failed in bypass mode:', err.message)
+          return res.status(400).json({ error: 'Invalid webhook payload' })
+        }
+      } else {
+        // Get the webhook signature from headers
+        const signature = req.headers['stripe-signature']
+
+        if (!signature) {
+          console.error('Missing Stripe signature header')
+          return res.status(400).json({ error: 'Missing signature' })
+        }
+
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+          console.error('STRIPE_WEBHOOK_SECRET environment variable is not set')
+          return res.status(500).json({ error: 'Webhook secret not configured' })
+        }
+
+        // Verify webhook signature
+        // req.body should be a Buffer from bodyParser.raw() middleware
+        try {
+          event = stripe.webhooks.constructEvent(
+            req.body,
+            signature,
+            process.env.STRIPE_WEBHOOK_SECRET
+          )
+        } catch (err) {
+          console.error('Webhook signature verification failed:', err.message)
+          return res.status(400).json({ error: 'Invalid signature' })
+        }
       }
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`Processing webhook event: ${event.type}`)
+      }
+
+      const connectOk = await verifyStripeConnectAccountKnown(event)
+      if (!connectOk) {
+        return res.json({ received: true, skipped: 'unknown_connect_account' })
+      }
+
+      if (await isStripeWebhookAlreadyProcessed(event.id)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Duplicate Stripe webhook event ${event.id}, skipping handlers`)
+        }
+        return res.json({ received: true, duplicate: true })
       }
 
       // Handle different event types
@@ -177,11 +670,25 @@ module.exports = {
           await handlers.handleChargeRefunded(event)
           break
 
+        case 'charge.dispute.created':
+          await handlers.handleDisputeCreated(event)
+          break
+
+        case 'charge.dispute.updated':
+          await handlers.handleDisputeUpdated(event)
+          break
+
+        case 'charge.dispute.closed':
+          await handlers.handleDisputeClosed(event)
+          break
+
         default:
           if (process.env.NODE_ENV === 'development') {
             console.log(`Unhandled event type: ${event.type}`)
           }
       }
+
+      await markStripeWebhookProcessed(event.id)
 
       // Return a 200 response to acknowledge receipt of the event
       return res.json({ received: true })
@@ -258,6 +765,7 @@ module.exports = {
   handleCheckoutSessionCompleted: async function (event) {
     try {
       const session = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Checkout session completed: ${session.id}`)
       }
@@ -367,6 +875,7 @@ module.exports = {
         userId: userIdNum,
         sessionId: session.id,
         stripeSubscriptionId,
+        stripeCustomerId: session.customer || null,
         metadata: {
           paymentAmount: session.amount_total,
           currency: session.currency,
@@ -378,8 +887,7 @@ module.exports = {
         console.log(`Created ${accessRecords.length} content access records for user ${userId}`)
       }
 
-      // Handle donation transfer if customer added optional donation item
-      // Check line items for donation to Hylo
+      // Transfer platform contribution to Hylo if the customer added the optional line item
       let donationAmount = 0
       try {
         // Get the group to find the connected account ID first
@@ -402,65 +910,36 @@ module.exports = {
 
             const externalAccountId = await getExternalAccountId(stripeAccountId)
 
-            // Retrieve full session with line items expanded to check for donations
+            // Retrieve full session with line items expanded to check for platform contributions
             const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
               expand: ['line_items']
             }, {
               stripeAccount: externalAccountId
             })
 
-            // Look for donation line items in the session
-            // Track donation details for acknowledgment email
-            const donationDetails = {
-              isRecurring: false,
-              recurringInterval: null,
-              donationType: 'one-time'
-            }
-
-            // Sum all donations (one-time and recurring) in case customer added both
+            // Sum platform contribution line items (one-time and recurring)
             if (fullSession.line_items?.data) {
               for (const lineItem of fullSession.line_items.data) {
                 const productName = lineItem.price?.product?.name || lineItem.description || ''
-                const isDonation = productName.toLowerCase().includes('donation to hylo')
+                const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
 
-                if (isDonation) {
-                  // Calculate donation amount: unit_amount * quantity
+                if (isPlatformContribution) {
                   const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
                   donationAmount += itemDonationAmount
 
-                  // Track donation type and recurring details
-                  const isRecurring = lineItem.price?.recurring !== null && lineItem.price?.recurring !== undefined
-                  if (isRecurring) {
-                    donationDetails.isRecurring = true
-                    donationDetails.donationType = 'recurring'
-                    // Map Stripe interval to template format
-                    const interval = lineItem.price.recurring.interval
-                    if (interval === 'month') {
-                      donationDetails.recurringInterval = 'monthly'
-                    } else if (interval === 'year') {
-                      donationDetails.recurringInterval = 'annually'
-                    } else if (interval === 'week') {
-                      donationDetails.recurringInterval = 'weekly'
-                    } else if (interval === 'day') {
-                      donationDetails.recurringInterval = 'daily'
-                    } else {
-                      donationDetails.recurringInterval = interval
-                    }
-                  }
-
                   if (process.env.NODE_ENV === 'development') {
-                    console.log(`Found ${isRecurring ? 'recurring' : 'one-time'} donation: ${itemDonationAmount} ${session.currency || 'usd'}`)
+                    const isRecurring = lineItem.price?.recurring != null
+                    console.log(`Found ${isRecurring ? 'recurring' : 'one-time'} platform contribution: ${itemDonationAmount} ${session.currency || 'usd'}`)
                   }
                 }
               }
             }
 
-            // Transfer donation if present
             if (donationAmount > 0) {
               const paymentIntentId = session.payment_intent
 
               if (paymentIntentId) {
-                await StripeService.transferDonationToPlatform({
+                await StripeService.transferContributionToPlatform({
                   connectedAccountId: externalAccountId,
                   paymentIntentId,
                   donationAmount,
@@ -468,113 +947,15 @@ module.exports = {
                 })
 
                 if (process.env.NODE_ENV === 'development') {
-                  console.log(`Transferred donation of ${donationAmount} ${session.currency || 'usd'} to platform`)
-                }
-
-                // Send Donation Acknowledgment email
-                try {
-                  const user = await User.find(userId)
-                  if (user && user.get('email')) {
-                    const userLocale = user.getLocale()
-                    const donationDate = new Date(session.created * 1000)
-                    const donationDateFormatted = donationDate.toLocaleDateString(
-                      userLocale === 'es' ? 'es-ES' : 'en-US',
-                      {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }
-                    )
-
-                    const donationAmountFormatted = StripeService.formatPrice(donationAmount, session.currency || 'usd')
-
-                    // Get group and offering info for context
-                    const group = await Group.find(groupId)
-                    const offering = await StripeProduct.where({ id: offeringId }).fetch()
-                    let purchaseContext = null
-                    if (offering) {
-                      purchaseContext = offering.get('name')
-                    }
-
-                    // Determine next donation date for recurring donations
-                    let nextDonationDate = null
-                    if (donationDetails.isRecurring && donationDetails.recurringInterval) {
-                      const nextDate = new Date(donationDate)
-                      if (donationDetails.recurringInterval === 'monthly') {
-                        nextDate.setMonth(nextDate.getMonth() + 1)
-                      } else if (donationDetails.recurringInterval === 'annually') {
-                        nextDate.setFullYear(nextDate.getFullYear() + 1)
-                      } else if (donationDetails.recurringInterval === 'weekly') {
-                        nextDate.setDate(nextDate.getDate() + 7)
-                      } else if (donationDetails.recurringInterval === 'daily') {
-                        nextDate.setDate(nextDate.getDate() + 1)
-                      }
-                      nextDonationDate = nextDate.toLocaleDateString(
-                        userLocale === 'es' ? 'es-ES' : 'en-US',
-                        {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        }
-                      )
-                    }
-
-                    // Fiscal sponsor info (use env var or default)
-                    const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                    const localeObj = locales[userLocale] || locales.en
-                    const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
-                    const impactMessage = donationDetails.isRecurring
-                      ? localeObj.donationRecurringImpactMessage()
-                      : localeObj.donationImpactMessage()
-
-                    const emailData = {
-                      user_name: user.get('name'),
-                      donation_amount: donationAmountFormatted,
-                      donation_type: donationDetails.donationType,
-                      donation_date: donationDateFormatted,
-                      is_tax_deductible: true,
-                      fiscal_sponsor_name: fiscalSponsorName,
-                      tax_receipt_info: taxReceiptInfo,
-                      is_recurring: donationDetails.isRecurring,
-                      impact_message: impactMessage
-                    }
-
-                    if (donationDetails.isRecurring) {
-                      emailData.next_donation_date = nextDonationDate
-                      emailData.recurring_interval = donationDetails.recurringInterval
-                      emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
-                    }
-
-                    if (purchaseContext) {
-                      emailData.purchase_context = purchaseContext
-                    }
-
-                    if (group) {
-                      emailData.group_name = group.get('name')
-                    }
-
-                    Queue.classMethod('Email', 'sendDonationAcknowledgment', {
-                      email: user.get('email'),
-                      data: emailData,
-                      version: 'Redesign 2025',
-                      locale: userLocale
-                    })
-
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`Queued Donation Acknowledgment email to user ${userId}`)
-                    }
-                  }
-                } catch (emailError) {
-                  // Log error but don't fail the entire webhook - email can be retried
-                  console.error('Error queueing donation acknowledgment email:', emailError)
+                  console.log(`Transferred platform contribution of ${donationAmount} ${session.currency || 'usd'} to platform`)
                 }
               }
             }
           }
         }
       } catch (donationError) {
-        // Log error but don't fail the entire webhook - donation transfer can be retried
-        console.error('Error processing donation transfer:', donationError)
+        // Log error but don't fail the entire webhook - contribution transfer can be retried
+        console.error('Error processing platform contribution transfer:', donationError)
       }
 
       // Send purchase confirmation email to user
@@ -701,7 +1082,7 @@ module.exports = {
             let stripeReceiptUrl = null
             if (session.invoice) {
               try {
-                const invoice = await stripe.invoices.retrieve(session.invoice)
+                const invoice = await stripe.invoices.retrieve(session.invoice, {}, connectOpts)
                 stripeReceiptUrl = invoice.hosted_invoice_url || invoice.invoice_pdf
               } catch (invoiceError) {
                 // Receipt URL is optional, continue without it
@@ -827,6 +1208,7 @@ module.exports = {
   handleProductUpdated: async function (event) {
     try {
       const product = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Product updated in Stripe: ${product.id}`)
       }
@@ -843,7 +1225,7 @@ module.exports = {
       // Get the current price information
       const expandedProduct = await stripe.products.retrieve(product.id, {
         expand: ['default_price']
-      })
+      }, connectOpts)
 
       // Check if our database record needs updating
       const needsUpdate = {}
@@ -916,10 +1298,11 @@ module.exports = {
 
       // If metadata is missing, try to find the checkout session
       if (!offeringId || !userId) {
+        const connectOpts = getStripeConnectRequestOptions(event)
         const sessions = await stripe.checkout.sessions.list({
           subscription: subscription.id,
           limit: 1
-        })
+        }, connectOpts)
 
         if (sessions && sessions.data.length > 0) {
           const session = sessions.data[0]
@@ -1013,6 +1396,7 @@ module.exports = {
         userId: userIdNum,
         sessionId: sessionId || subscription.id, // Use subscription ID if no session
         stripeSubscriptionId: subscription.id,
+        stripeCustomerId: subscription.customer || null,
         metadata: {
           created_via_webhook: 'customer.subscription.created',
           subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -1037,6 +1421,8 @@ module.exports = {
   handleSubscriptionUpdated: async function (event) {
     try {
       const subscription = event.data.object
+      await markScheduledChangeEventAppliedFromSubscription(subscription, event)
+      await markImmediateMembershipChangeSyncedFromSubscription(subscription, event)
       // Determine if subscription is scheduled to be cancelled
       // Stripe has two cancellation modes:
       // 1. cancel_at_period_end: true - Cancel at end of billing period
@@ -1163,6 +1549,7 @@ module.exports = {
   handleSubscriptionDeleted: async function (event) {
     try {
       const subscription = event.data.object
+      await markLifetimeChangeEventAppliedForSubscriptionEnd(subscription.id, event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Subscription deleted: ${subscription.id}`)
       }
@@ -1398,6 +1785,7 @@ module.exports = {
   handleInvoicePaid: async function (event) {
     try {
       const invoice = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Invoice paid: ${invoice.id}`)
       }
@@ -1445,7 +1833,7 @@ module.exports = {
           // Cancel the subscription at period end
           await stripe.subscriptions.update(subscriptionId, {
             cancel_at_period_end: true
-          })
+          }, connectOpts)
 
           // Don't extend access - let it expire naturally
           if (process.env.NODE_ENV === 'development') {
@@ -1456,22 +1844,47 @@ module.exports = {
         }
       }
 
-      // Get subscription details to get the new period end
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-      const newExpiresAt = new Date(subscription.current_period_end * 1000)
+      // Get subscription details to get the new period end (expand lines on invoice fallback below)
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['items.data.price', 'items.data.plan']
+      }, connectOpts)
+
+      let { periodStart, periodEnd } = resolveSubscriptionInvoicePeriodBounds(subscription, invoice)
+      if (!periodEnd && invoice?.id) {
+        try {
+          const invFull = await stripe.invoices.retrieve(invoice.id, { expand: ['lines.data'] }, connectOpts)
+          const again = resolveSubscriptionInvoicePeriodBounds(subscription, invFull)
+          if (again.periodEnd) periodEnd = again.periodEnd
+          if (again.periodStart) periodStart = again.periodStart
+        } catch (invErr) {
+          console.error('invoice.paid: invoice retrieve for period fallback failed:', invErr.message)
+        }
+      }
+      const newExpiresAt = periodEnd
+
+      if (!newExpiresAt) {
+        console.error(
+          `invoice.paid: could not resolve current_period_end / invoice period for subscription ${subscriptionId}; skip extendAccess`
+        )
+        return
+      }
+
+      const extraMeta = {
+        renewed_at: new Date().toISOString(),
+        invoice_id: invoice.id,
+        billing_reason: invoice.billing_reason
+      }
+      if (periodStart) {
+        extraMeta.subscription_period_start = periodStart.toISOString()
+      }
+      extraMeta.subscription_period_end = newExpiresAt.toISOString()
 
       // Extend access for all associated records
       await Promise.all(accessRecords.map(async (access) => {
         await ContentAccess.extendAccess(
           access.id,
           newExpiresAt,
-          {
-            renewed_at: new Date().toISOString(),
-            invoice_id: invoice.id,
-            subscription_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            subscription_period_end: newExpiresAt.toISOString(),
-            billing_reason: invoice.billing_reason
-          }
+          extraMeta
         )
       }))
 
@@ -1557,8 +1970,7 @@ module.exports = {
         console.error('Error queueing subscription renewed email:', emailError)
       }
 
-      // Handle recurring donations from subscription renewal invoices
-      // Check invoice line items for recurring donations
+      // Handle recurring platform contributions on subscription renewal invoices
       let donationAmount = 0
       try {
         // Get group ID from the first access record to find connected account
@@ -1596,54 +2008,27 @@ module.exports = {
                   stripeAccount: externalAccountId
                 })
 
-                // Look for recurring donation line items in the invoice
-                // Track donation details for acknowledgment email
-                const donationDetails = {
-                  isRecurring: true,
-                  recurringInterval: null,
-                  donationType: 'recurring'
-                }
-
                 if (fullInvoice.lines?.data) {
                   for (const lineItem of fullInvoice.lines.data) {
                     const productName = lineItem.price?.product?.name || lineItem.description || ''
-                    const isRecurringDonation = productName.toLowerCase().includes('recurring donation to hylo')
+                    const isPlatformContribution = isHyloPlatformContributionLineItem(productName)
 
-                    if (isRecurringDonation) {
-                      // Calculate donation amount: unit_amount * quantity
+                    if (isPlatformContribution) {
                       const itemDonationAmount = (lineItem.price.unit_amount || 0) * (lineItem.quantity || 0)
                       donationAmount += itemDonationAmount
 
-                      // Track recurring interval
-                      if (lineItem.price?.recurring) {
-                        const interval = lineItem.price.recurring.interval
-                        if (interval === 'month') {
-                          donationDetails.recurringInterval = 'monthly'
-                        } else if (interval === 'year') {
-                          donationDetails.recurringInterval = 'annually'
-                        } else if (interval === 'week') {
-                          donationDetails.recurringInterval = 'weekly'
-                        } else if (interval === 'day') {
-                          donationDetails.recurringInterval = 'daily'
-                        } else {
-                          donationDetails.recurringInterval = interval
-                        }
-                      }
-
                       if (process.env.NODE_ENV === 'development') {
-                        console.log(`Found recurring donation in renewal invoice: ${itemDonationAmount} ${invoice.currency || 'usd'}`)
+                        console.log(`Found recurring platform contribution in renewal invoice: ${itemDonationAmount} ${invoice.currency || 'usd'}`)
                       }
                     }
                   }
                 }
 
-                // Transfer recurring donation if present
                 if (donationAmount > 0) {
-                  // For invoices, we need to get the charge ID from the payment intent
                   const paymentIntentId = invoice.payment_intent
 
                   if (paymentIntentId) {
-                    await StripeService.transferDonationToPlatform({
+                    await StripeService.transferContributionToPlatform({
                       connectedAccountId: externalAccountId,
                       paymentIntentId,
                       donationAmount,
@@ -1651,127 +2036,7 @@ module.exports = {
                     })
 
                     if (process.env.NODE_ENV === 'development') {
-                      console.log(`Transferred recurring donation of ${donationAmount} ${invoice.currency || 'usd'} to platform from subscription renewal`)
-                    }
-
-                    // Send Donation Acknowledgment email for recurring donation
-                    try {
-                      const firstAccess = accessRecords.at(0)
-                      const userId = firstAccess.get('user_id')
-                      const user = await User.find(userId)
-
-                      if (user && user.get('email')) {
-                        const userLocale = user.getLocale()
-                        const donationDate = new Date(invoice.created * 1000)
-                        const donationDateFormatted = donationDate.toLocaleDateString(
-                          userLocale === 'es' ? 'es-ES' : 'en-US',
-                          {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }
-                        )
-
-                        const donationAmountFormatted = StripeService.formatPrice(donationAmount, invoice.currency || 'usd')
-
-                        // Get group and offering info for context
-                        const productId = firstAccess.get('product_id')
-                        const offering = productId ? await StripeProduct.where({ id: productId }).fetch() : null
-                        let purchaseContext = null
-                        if (offering) {
-                          purchaseContext = offering.get('name')
-                        }
-
-                        // Determine next donation date (based on subscription renewal date)
-                        let nextDonationDate = null
-                        if (donationDetails.recurringInterval) {
-                          // Get subscription to find next billing date
-                          try {
-                            const subscription = await stripe.subscriptions.retrieve(invoice.subscription, {
-                              stripeAccount: externalAccountId
-                            })
-                            if (subscription.current_period_end) {
-                              const nextDate = new Date(subscription.current_period_end * 1000)
-                              nextDonationDate = nextDate.toLocaleDateString(
-                                userLocale === 'es' ? 'es-ES' : 'en-US',
-                                {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                }
-                              )
-                            }
-                          } catch (subError) {
-                            // Fallback: calculate from interval
-                            const nextDate = new Date(donationDate)
-                            if (donationDetails.recurringInterval === 'monthly') {
-                              nextDate.setMonth(nextDate.getMonth() + 1)
-                            } else if (donationDetails.recurringInterval === 'annually') {
-                              nextDate.setFullYear(nextDate.getFullYear() + 1)
-                            } else if (donationDetails.recurringInterval === 'weekly') {
-                              nextDate.setDate(nextDate.getDate() + 7)
-                            } else if (donationDetails.recurringInterval === 'daily') {
-                              nextDate.setDate(nextDate.getDate() + 1)
-                            }
-                            nextDonationDate = nextDate.toLocaleDateString(
-                              userLocale === 'es' ? 'es-ES' : 'en-US',
-                              {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              }
-                            )
-                          }
-                        }
-
-                        // Fiscal sponsor info (use env var or default)
-                        const fiscalSponsorName = process.env.FISCAL_SPONSOR_NAME || 'our fiscal sponsor'
-                        const localeObj = locales[userLocale] || locales.en
-                        const taxReceiptInfo = localeObj.donationTaxReceiptInfo()
-                        const impactMessage = localeObj.donationRecurringImpactMessage()
-
-                        const emailData = {
-                          user_name: user.get('name'),
-                          donation_amount: donationAmountFormatted,
-                          donation_type: donationDetails.donationType,
-                          donation_date: donationDateFormatted,
-                          is_tax_deductible: true,
-                          fiscal_sponsor_name: fiscalSponsorName,
-                          tax_receipt_info: taxReceiptInfo,
-                          is_recurring: true,
-                          impact_message: impactMessage
-                        }
-
-                        if (nextDonationDate) {
-                          emailData.next_donation_date = nextDonationDate
-                        }
-                        if (donationDetails.recurringInterval) {
-                          emailData.recurring_interval = donationDetails.recurringInterval
-                        }
-                        emailData.manage_donation_url = `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`
-
-                        if (purchaseContext) {
-                          emailData.purchase_context = purchaseContext
-                        }
-
-                        if (group) {
-                          emailData.group_name = group.get('name')
-                        }
-
-                        Queue.classMethod('Email', 'sendDonationAcknowledgment', {
-                          email: user.get('email'),
-                          data: emailData,
-                          version: 'Redesign 2025',
-                          locale: userLocale
-                        })
-
-                        if (process.env.NODE_ENV === 'development') {
-                          console.log(`Queued Donation Acknowledgment email to user ${userId} for recurring donation`)
-                        }
-                      }
-                    } catch (emailError) {
-                      // Log error but don't fail the entire webhook - email can be retried
-                      console.error('Error queueing donation acknowledgment email for recurring donation:', emailError)
+                      console.log(`Transferred recurring platform contribution of ${donationAmount} ${invoice.currency || 'usd'} to platform from subscription renewal`)
                     }
                   }
                 }
@@ -1780,8 +2045,8 @@ module.exports = {
           }
         }
       } catch (donationError) {
-        // Log error but don't fail the entire webhook - donation transfer can be retried
-        console.error('Error processing recurring donation from invoice:', donationError)
+        // Log error but don't fail the entire webhook - contribution transfer can be retried
+        console.error('Error processing recurring platform contribution from invoice:', donationError)
       }
     } catch (error) {
       console.error('Error handling invoice.paid:', error)
@@ -1796,6 +2061,7 @@ module.exports = {
   handleInvoicePaymentFailed: async function (event) {
     try {
       const invoice = event.data.object
+      const connectOpts = getStripeConnectRequestOptions(event)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Invoice payment failed: ${invoice.id}`)
       }
@@ -1887,7 +2153,7 @@ module.exports = {
             failureReason = invoice.last_payment_error.message
           } else if (invoice.payment_intent) {
             try {
-              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent)
+              const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent, {}, connectOpts)
               if (paymentIntent.last_payment_error?.message) {
                 failureReason = paymentIntent.last_payment_error.message
               }
@@ -2051,8 +2317,110 @@ module.exports = {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Processed ${accessRecords.length} access records for refunded charge ${charge.id}`)
       }
+
+      // Write an analytics/log record for this refund
+      const connectedResult = await findGroupForConnectedAccount(connectedAccountId)
+      if (connectedResult) {
+        const { stripeAccountRow, group } = connectedResult
+        const primaryAccess = accessRecords[0]
+        await insertStripeLog({
+          group_id: group.id,
+          stripe_account_id: stripeAccountRow.id,
+          log_type: STRIPE_LOG_TYPES.REFUND,
+          external_id: charge.id,
+          charge_id: charge.id,
+          content_access_id: primaryAccess ? primaryAccess.id : null,
+          amount: charge.amount_refunded || charge.amount,
+          currency: charge.currency || 'usd',
+          reason: charge.refunds?.data?.[0]?.reason || null,
+          metadata: {}
+        })
+      }
     } catch (error) {
       console.error('Error handling charge.refunded:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.created webhook events.
+   * Records the dispute and checks alert thresholds.
+   */
+  handleDisputeCreated: async function (event) {
+    try {
+      const dispute = event.data.object
+      const connectedAccountId = event.account
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute created: ${dispute.id} on account: ${connectedAccountId || 'platform'}`)
+      }
+
+      const connectedResult = await findGroupForConnectedAccount(connectedAccountId)
+      if (!connectedResult) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`No group found for connected account ${connectedAccountId}, skipping dispute record`)
+        }
+        return
+      }
+
+      const { stripeAccountRow, group } = connectedResult
+
+      await upsertDisputeLog({
+        stripeAccountId: stripeAccountRow.id,
+        groupId: group.id,
+        dispute
+      })
+
+      // Check thresholds and fire alert emails if needed
+      await checkAndSendDisputeAlerts(group.id, group, stripeAccountRow)
+    } catch (error) {
+      console.error('Error handling charge.dispute.created:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.updated webhook events.
+   * Updates the dispute status in our records.
+   */
+  handleDisputeUpdated: async function (event) {
+    try {
+      const dispute = event.data.object
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute updated: ${dispute.id} status: ${dispute.status}`)
+      }
+
+      await upsertDisputeLog({
+        stripeAccountId: null,
+        groupId: null,
+        dispute
+      })
+    } catch (error) {
+      console.error('Error handling charge.dispute.updated:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Handle charge.dispute.closed webhook events.
+   * Updates the final dispute status (won/lost/charge_refunded).
+   */
+  handleDisputeClosed: async function (event) {
+    try {
+      const dispute = event.data.object
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Dispute closed: ${dispute.id} outcome: ${dispute.status}`)
+      }
+
+      await upsertDisputeLog({
+        stripeAccountId: null,
+        groupId: null,
+        dispute
+      })
+    } catch (error) {
+      console.error('Error handling charge.dispute.closed:', error)
       throw error
     }
   },

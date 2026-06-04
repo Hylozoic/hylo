@@ -5,6 +5,12 @@ import RoundImage from 'components/RoundImage'
 import classes from './PeopleListItem.module.scss'
 
 const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, className }, ref) => {
+  const handleTouchEnd = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onClick) onClick()
+  }
+
   return (
     <li
       ref={ref}
@@ -15,6 +21,7 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
       )}
       onClick={onClick}
       onMouseOver={onMouseOver}
+      onTouchEnd={handleTouchEnd}
     >
       <div className='min-w-[30px]'><RoundImage url={person.avatarUrl} medium /></div>
       <div className='ml-2 flex gap-2 items-baseline'>

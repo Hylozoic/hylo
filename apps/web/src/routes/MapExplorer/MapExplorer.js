@@ -14,7 +14,7 @@ import booleanWithin from '@turf/boolean-within'
 import center from '@turf/center'
 import combine from '@turf/combine'
 import { featureCollection, point } from '@turf/helpers'
-import isWebView from 'util/webView'
+import { isLegacyWebView } from 'util/webView'
 import Dropdown from 'components/Dropdown'
 import CreateMenu from 'components/CreateMenu'
 import Icon from 'components/Icon'
@@ -400,7 +400,10 @@ function MapExplorer (props) {
 
   const onMapClick = useCallback((info, e) => {
     if (info.objects) {
-      if (viewport.zoom >= 20 && hideDrawer) {
+      // On mobile, at high zoom levels (18-20), toggle drawer when clicking cluster
+      if (isMobileDevice() && viewport.zoom >= 18 && viewport.zoom <= 20) {
+        toggleDrawer()
+      } else if (viewport.zoom >= 20 && hideDrawer) {
         setHideDrawer(false)
         setTimeout(() => {
           mapRef.current.resize()
@@ -734,7 +737,7 @@ function MapExplorer (props) {
   }, [showSavedSearches])
 
   const { hideNavLayout } = layoutFlags
-  const withoutNav = isWebView() || hideNavLayout
+  const withoutNav = isLegacyWebView() || hideNavLayout
 
   return (
     <div className={cn(classes.container, { [classes.noUser]: !currentUser, [classes.withoutNav]: withoutNav })}>

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Button from 'components/ui/button'
+import HyloHTML from 'components/HyloHTML'
 import { DollarSign, CreditCard, LogIn } from 'lucide-react'
 import { getHost } from 'store/middleware/apiMiddleware'
 import fetchPublicStripeOfferings from 'store/actions/fetchPublicStripeOfferings'
@@ -83,7 +84,7 @@ export default function PaywallOfferingsSection ({ group }) {
    */
   const handlePurchase = useCallback(async (offering) => {
     if (!group?.id || !offering?.id) {
-      alert(t('Unable to process payment. Please contact support.'))
+      window.alert(t('Unable to process payment. Please contact support.'))
       return
     }
 
@@ -128,7 +129,7 @@ export default function PaywallOfferingsSection ({ group }) {
       window.location.href = checkoutData.url
     } catch (error) {
       console.error('Error creating checkout session:', error)
-      alert(t('Failed to start payment process: {{error}}', { error: error.message }))
+      window.alert(t('Failed to start payment process: {{error}}', { error: error.message }))
       setCheckoutLoading(null)
     }
   }, [group, barriersState, barriersExpanded])
@@ -238,23 +239,60 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
   const hasRoles = allRoles.length > 0
   const hasAccessGrants = grantsGroupAccess || hasTracks || hasRoles
 
+  const slidingScaleDisplay = useMemo(() => {
+    if (!offering?.priceInCents) return null
+    const accessGrants = parseAccessGrants(offering.accessGrants)
+    const slidingScale = accessGrants.slidingScale || accessGrants.sliding_scale
+    if (!slidingScale?.enabled) return null
+
+    const unitAmount = offering.priceInCents / 100
+    const currencyCode = offering.currency?.toUpperCase() || 'USD'
+
+    const minQuantity = slidingScale.minimum != null ? Number(slidingScale.minimum) : 1
+    const maxQuantity = slidingScale.maximum != null ? Number(slidingScale.maximum) : null
+
+    const minAmount = unitAmount * minQuantity
+    if (maxQuantity != null) {
+      const maxAmount = unitAmount * maxQuantity
+      return t('Pay {{min}} - {{max}} {{currency}} (your choice)', {
+        min: minAmount.toFixed(2),
+        max: maxAmount.toFixed(2),
+        currency: currencyCode
+      })
+    }
+
+    return t('Pay at least {{min}} {{currency}} (your choice)', {
+      min: minAmount.toFixed(2),
+      currency: currencyCode
+    })
+  }, [offering?.priceInCents, offering?.accessGrants, offering?.currency, t])
+
   return (
-    <div className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'>
+    <div
+      className='border-2 border-foreground/20 rounded-lg p-4 hover:border-foreground/40 transition-colors'
+      data-testid='paywall-offering-card'
+      data-offering-id={offering.id}
+    >
       <div className='flex items-start justify-between mb-2'>
         <div className='flex-1'>
           <h4 className='font-semibold text-foreground mb-1'>{offering.name}</h4>
           {offering.description && (
-            <p className='text-sm text-foreground/70 mb-2'>{offering.description}</p>
+            <div className='text-sm text-foreground/70 mb-2 global-postContent'>
+              <HyloHTML html={offering.description} />
+            </div>
           )}
           <div className='flex items-center gap-4 text-sm text-foreground/60'>
-            {offering.priceInCents && (
+            {slidingScaleDisplay && (
+              <span>{slidingScaleDisplay}</span>
+            )}
+            {!slidingScaleDisplay && offering.priceInCents && (
               <span>
                 {t('Price')}: ${(offering.priceInCents / 100).toFixed(2)} {offering.currency?.toUpperCase()}
               </span>
             )}
             {offering.duration && (
               <span>
-                {t('Duration')}: {offering.duration === 'month' ? t('1 Month') : offering.duration === 'season' ? t('1 Season') : offering.duration === 'annual' ? t('1 Year') : offering.duration}
+                {t('Duration')}: {offering.duration === 'month' ? t('Monthly (recurring)') : offering.duration === 'season' ? t('Every 3 months (recurring)') : offering.duration === 'annual' ? t('Annual (recurring)') : offering.duration}
               </span>
             )}
             {!offering.duration && (
@@ -332,7 +370,7 @@ function OfferingCard ({ offering, group, checkoutLoading, onPurchase, isPurchas
           ? (
             <>
               <CreditCard className='w-4 h-4' />
-              {checkoutLoading === offering.id ? t('Processing...') : t('Purchase Access')}
+              {checkoutLoading === offering.id ? t('Processing...') : (offering.buyButtonText || t('Purchase Access'))}
             </>
             )
           : (

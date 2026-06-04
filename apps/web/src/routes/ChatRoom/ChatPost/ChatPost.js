@@ -27,7 +27,6 @@ import useReactionActions from 'hooks/useReactionActions'
 import useViewPostDetails from 'hooks/useViewPostDetails'
 import deletePost from 'store/actions/deletePost'
 import removePost from 'store/actions/removePost'
-import isWebView from 'util/webView'
 import updatePost from 'store/actions/updatePost'
 import getMe from 'store/selectors/getMe'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
@@ -320,7 +319,7 @@ export default function ChatPost ({
             onEnter={handleEditSave}
             placeholder='Edit Post'
             ref={editorRef}
-            showMenu={!isWebView()}
+            showMenu
             className={cn(styles.editing, 'p-0 m-0')}
           />
         )}
@@ -346,7 +345,7 @@ export default function ChatPost ({
         {!isEmpty(fileAttachments) && (
           <CardFileAttachments attachments={fileAttachments} />
         )}
-        <div className='w-full flex flex-row gap-2 justify-between'>
+        <div className='w-full flex flex-row gap-2 justify-between pl-[40px] xs:pl-[48px] my-[2px]'>
           {postReactions && postReactions.length > 0 && (
             <div onClick={handleClick}>
               <EmojiRow
@@ -360,7 +359,7 @@ export default function ChatPost ({
           )}
           {commentsTotal > 0 && (
             <div onClick={handleClick}>
-              <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 xs:ml-[48px] mb-[2px] items-center justify-center inline-flex'>
+              <span className='ChatPost_commenters bg-darkening/5 rounded-lg py-2 px-2 items-center justify-center inline-flex'>
                 <RoundImageRow imageUrls={commenterAvatarUrls.slice(0, 3)} className={styles.commenters} onClick={handleClick} small />
                 <span className='text-sm text-foreground' onClick={handleClick}>
                   {commentsTotal} {commentsTotal === 1 ? 'reply' : 'replies'}

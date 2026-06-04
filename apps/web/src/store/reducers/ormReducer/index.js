@@ -97,6 +97,7 @@ import clearCacheFor from './clearCacheFor'
 import { find, get, values } from 'lodash/fp'
 import extractModelsFromAction from '../ModelExtractor/extractModelsFromAction'
 import { isPromise } from 'util/index'
+import { homeRoutePathForWidget } from '@hylo/navigation'
 import { reorderTree, replaceHomeWidget } from 'util/contextWidgets'
 
 export default function ormReducer (state = orm.getEmptyState(), action) {
@@ -650,6 +651,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
       const newWidgets = replaceHomeWidget({ widgets: contextWidgets, newHomeWidgetId: meta.contextWidgetId })
       group.update({ contextWidgets: { items: structuredClone(newWidgets) } })
+
+      const homeWidget = contextWidgets.find(w => w.id === meta.contextWidgetId)
+      const homeRoute = homeRoutePathForWidget(homeWidget)
+      group.update({ homeRoute })
       break
     }
 

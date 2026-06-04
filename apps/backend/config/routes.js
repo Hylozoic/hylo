@@ -19,6 +19,8 @@ module.exports.routes = {
   'GET    /noo/admin/login/oauth':                        'AdminSessionController.oauth',
   'GET    /noo/admin/logout':                             'AdminSessionController.destroy',
   'GET    /noo/admin/raw-metrics':                        'AdminController.rawMetrics',
+  'GET    /noo/admin/stripe-analytics':                   'AdminController.stripeAnalytics',
+  'POST   /noo/admin/stripe-sales-pause':                 'AdminController.setStripeSalesPaused',
   'GET    /noo/admin/login-as/:userId':                   'AdminController.loginAsUser',
 
   'POST   /noo/hook/comment':                             'CommentController.createFromEmail',

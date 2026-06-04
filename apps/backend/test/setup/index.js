@@ -12,37 +12,52 @@ const path = require('path')
 const Promise = require('bluebird')
 const root = require('root-path')
 
-// Mock Stripe before any modules are loaded
-const mockStripe = function (apiKey) {
-  return {
-    accounts: {
-      create: async () => ({}),
-      retrieve: async () => ({}),
-      update: async () => ({})
-    },
-    accountLinks: {
-      create: async () => ({})
-    },
-    products: {
-      create: async () => ({}),
-      update: async () => ({}),
-      list: async () => ({})
-    },
-    prices: {
+// Mock Stripe before any modules are loaded (must support `new Stripe(key, opts)` — see stripe-node v17)
+function TestStripeClient () {
+  if (!(this instanceof TestStripeClient)) {
+    return new TestStripeClient()
+  }
+  this.accounts = {
+    create: async () => ({}),
+    retrieve: async () => ({}),
+    update: async () => ({})
+  }
+  this.accountLinks = {
+    create: async () => ({})
+  }
+  this.products = {
+    create: async () => ({}),
+    update: async () => ({}),
+    list: async () => ({})
+  }
+  this.prices = {
+    create: async () => ({}),
+    retrieve: async () => ({})
+  }
+  this.checkout = {
+    sessions: {
       create: async () => ({}),
       retrieve: async () => ({})
-    },
-    checkout: {
-      sessions: {
-        create: async () => ({}),
-        retrieve: async () => ({})
-      }
+    }
+  }
+  this.subscriptions = {
+    retrieve: async () => ({})
+  }
+  this.invoices = {
+    retrieve: async () => ({})
+  }
+  this.paymentIntents = {
+    retrieve: async () => ({})
+  }
+  this.webhooks = {
+    constructEvent: () => {
+      throw new Error('stripe.webhooks.constructEvent is not stubbed for this test')
     }
   }
 }
 
 // Set up mock-require to intercept all Stripe imports
-mock('stripe', mockStripe)
+mock('stripe', TestStripeClient)
 
 const TestSetup = function () {
   this.tables = []
@@ -50,6 +65,11 @@ const TestSetup = function () {
 }
 
 const setup = new TestSetup()
+
+setup.restoreDefaultStripeMock = () => {
+  mock.stop('stripe')
+  mock('stripe', TestStripeClient)
+}
 
 before(function (done) {
   this.timeout(50000)
@@ -101,6 +121,51 @@ before(function (done) {
 
 afterEach(() => nock.cleanAll())
 
+// Split SQL statements on semicolons while ignoring semicolons inside
+// dollar-quoted function/procedure bodies (e.g. $$ ... $$, $tag$ ... $tag$).
+function splitSqlStatements (sql) {
+  const statements = []
+  let current = ''
+  let i = 0
+  let dollarTag = null
+
+  while (i < sql.length) {
+    const ch = sql[i]
+
+    if (!dollarTag && ch === '$') {
+      const m = sql.slice(i).match(/^\$[A-Za-z_][A-Za-z0-9_]*\$/) || (sql.slice(i, i + 2) === '$$' ? ['$$'] : null)
+      if (m) {
+        dollarTag = m[0]
+        current += dollarTag
+        i += dollarTag.length
+        continue
+      }
+    }
+
+    if (dollarTag && sql.startsWith(dollarTag, i)) {
+      current += dollarTag
+      i += dollarTag.length
+      dollarTag = null
+      continue
+    }
+
+    if (!dollarTag && ch === ';') {
+      const stmt = current.trim()
+      if (stmt) statements.push(stmt)
+      current = ''
+      i += 1
+      continue
+    }
+
+    current += ch
+    i += 1
+  }
+
+  const last = current.trim()
+  if (last) statements.push(last)
+  return statements
+}
+
 TestSetup.prototype.createSchema = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.transaction(trx => {
@@ -108,45 +173,10 @@ TestSetup.prototype.createSchema = function () {
       .then(() => bookshelf.knex.raw('create schema public').transacting(trx))
       .then(() => {
         const script = fs.readFileSync(root('migrations/schema.sql')).toString()
-
-        // Remove comment lines
         const cleaned = script.split(/\n/)
           .filter(line => !line.startsWith('--') && !line.startsWith('\\'))
-          .join(' ')
-          .replace(/\s+/g, ' ')
-
-        // Split by semicolon but preserve dollar-quoted strings
-        const commands = []
-        let inDollarQuote = false
-        let currentCommand = ''
-
-        for (let i = 0; i < cleaned.length; i++) {
-          const char = cleaned[i]
-          const nextChar = cleaned[i + 1] || ''
-
-          // Check if we're entering or exiting a dollar-quoted string
-          if (char === '$' && nextChar === '$') {
-            inDollarQuote = !inDollarQuote
-            currentCommand += char
-            if (nextChar) currentCommand += cleaned[++i]
-          } else if (char === ';' && !inDollarQuote) {
-            currentCommand += char
-            const trimmed = currentCommand.trim()
-            if (trimmed) {
-              commands.push(trimmed)
-            }
-            currentCommand = ''
-          } else {
-            currentCommand += char
-          }
-        }
-
-        // Add the last command if any
-        if (currentCommand.trim()) {
-          commands.push(currentCommand.trim())
-        }
-
-        return commands.filter(line => line !== '')
+          .join('\n')
+        return splitSqlStatements(cleaned)
       })
       .then(commands => {
         return Promise.map(commands, command => {

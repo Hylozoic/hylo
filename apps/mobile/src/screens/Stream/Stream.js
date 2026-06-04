@@ -1,3 +1,7 @@
+// DEPRECATED: This native screen is no longer used.
+// All functionality is now handled by PrimaryWebView displaying the web app.
+// Kept for reference only.
+
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useNavigation, useIsFocused } from '@react-navigation/native'
 import { View, TouchableOpacity, Dimensions, Text } from 'react-native'

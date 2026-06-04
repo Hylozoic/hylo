@@ -3,6 +3,23 @@ const setup = require(rootPath('test/setup'))
 const factories = require(rootPath('test/setup/factories'))
 const CommentController = require(rootPath('api/controllers/CommentController'))
 
+// Match production: inbound email uses multipart/form-data; factories.mock.request().pipe feeds req.body into Busboy.
+function attachMultipartEmailFields (req, fields) {
+  const boundary = '----testboundary' + Math.random().toString(36).slice(2, 14)
+  let body = ''
+  for (const [name, value] of Object.entries(fields)) {
+    body += `--${boundary}\r\n`
+    body += `Content-Disposition: form-data; name="${name}"\r\n\r\n`
+    body += `${value}\r\n`
+  }
+  body += `--${boundary}--\r\n`
+  req.headers['content-type'] = `multipart/form-data; boundary=${boundary}`
+  req.body = Buffer.from(body, 'utf8')
+  req.is = function (mime) {
+    return mime === 'multipart/form-data'
+  }
+}
+
 describe('CommentController', function () {
   var fixtures, req, res
 
@@ -32,21 +49,27 @@ describe('CommentController', function () {
 
   describe('#createFromEmail', function () {
     beforeEach(() => {
-      req.params['stripped-text'] = 'foo bar baz'
-      req.params['To'] = 'wa'
+      attachMultipartEmailFields(req, {
+        'stripped-text': 'foo bar baz',
+        to: 'wa'
+      })
     })
 
     it('raises an error with an invalid address', function () {
       const send = spy(() => {})
       res.status = spy(() => ({send}))
-      CommentController.createFromEmail(req, res)
-      expect(res.status).to.have.been.called.with(422)
-      expect(send).to.have.been.called.with('Invalid reply address: wa')
+      return CommentController.createFromEmail(req, res).then(() => {
+        expect(res.status).to.have.been.called.with(422)
+        expect(send).to.have.been.called.with('Invalid reply address: wa')
+      })
     })
 
     it('creates a comment with created_from=email', function () {
       Analytics.track = spy(Analytics.track)
-      req.params.To = Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+      attachMultipartEmailFields(req, {
+        'stripped-text': 'foo bar baz',
+        to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+      })
 
       return CommentController.createFromEmail(req, res)
       .then(async () => {
@@ -62,7 +85,10 @@ describe('CommentController', function () {
     })
 
     it("doesn't use markdown when the comment is for a thread", () => {
-      req.params.To = Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+      attachMultipartEmailFields(req, {
+        'stripped-text': 'foo bar baz',
+        to: Email.postReplyAddress(fixtures.p1.id, fixtures.u3.id)
+      })
       return fixtures.p1.save({type: Post.Type.THREAD}, {patch: true})
       .then(() => CommentController.createFromEmail(req, res))
       .then(() => fixtures.p1.comments().fetch())

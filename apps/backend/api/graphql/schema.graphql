@@ -76,6 +76,9 @@ type Query {
     sortBy: String
   ): ContentAccessQuerySet
 
+  # A Group CustomView by ID (stream, collection, or external link)
+  customView(id: ID): CustomView
+
   contextWidgets(groupId: ID, includeUnordered: Boolean): ContextWidgetQuerySet
 
   # Query for PersonConnections
@@ -235,6 +238,26 @@ type Query {
     # Filter by payment type: 'subscription', 'one_time'
     paymentType: String
   ): UserTransactionQuerySet
+
+  # Published recurring offerings that grant group access (for subscription change UI). Excludes test-only day duration.
+  membershipChangeEligibleOfferings(groupId: ID!): MembershipChangeEligibleOfferingsResult
+
+  # Rule outcome for changing between two offerings (does not call Stripe). Optional flags for Stripe-backed state.
+  membershipChangePreview(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+    isPastDue: Boolean
+    isSlidingScaleQuantityOnly: Boolean
+  ): MembershipChangePreview
+
+  # Stripe upcoming invoice preview for immediate-proration membership changes.
+  # For non-immediate modes, returns mode/reason with null pricing fields.
+  membershipChangeInvoicePreview(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+  ): MembershipChangeInvoicePreview
 
   # Query notifications for the currently logged in user
   notifications(
@@ -439,6 +462,9 @@ type Query {
   ): TopicQuerySet
 
   track(id: ID): Track
+
+  # Query for email-enabled testers (admin only)
+  emailEnabledTesters: [EmailEnabledTester]
 }
 
 union Update = Message | MessageThread | Notification
@@ -923,6 +949,8 @@ type Group {
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
   geoShape: JSON
+  # Cached path for group home redirect (e.g. /stream, /map, /chat/general). Used so we can redirect without loading context widgets.
+  homeRoute: String
   # home widget
   homeWidget: ContextWidget
   # The current invite link for this group
@@ -1421,6 +1449,8 @@ type GroupSettings {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
@@ -2786,6 +2816,54 @@ type TrackUser {
   user: Person
 }
 
+# Preview of subscription change rules (v1)
+type MembershipChangePreview {
+  mode: String!
+  reason: String
+  meta: JSON
+}
+
+type MembershipChangeEligibleOfferingsResult {
+  offerings: [StripeOffering]
+  success: Boolean
+}
+
+type MembershipChangeInvoicePreviewLine {
+  description: String
+  amount: Int
+  currency: String
+  proration: Boolean
+}
+
+type MembershipChangeInvoicePreview {
+  mode: String!
+  reason: String
+  amountDue: Int
+  currency: String
+  subtotal: Int
+  total: Int
+  nextPaymentAttempt: Date
+  lines: [MembershipChangeInvoicePreviewLine]
+  # Hylo linear unused-time credit (same basis as customer balance on commit); may also appear as a line
+  hyloPrepaidCreditCents: Int
+}
+
+# Result of membershipChangeCommit mutation
+type MembershipChangeCommitResult {
+  success: Boolean!
+  message: String
+  # Resolved mode from subscriptionChangeRules (e.g. immediate_upgrade)
+  mode: String
+  subscriptionChangeEventId: ID
+}
+
+# Pending membership plan change (row in subscription_change_events, status pending)
+type PendingMembershipSubscriptionChange {
+  mode: String!
+  effectiveAt: Date
+  toOffering: StripeOffering
+}
+
 # Stripe offering for paid content access
 type StripeOffering {
   id: ID
@@ -2809,8 +2887,10 @@ type StripeOffering {
   # Optional track this offering grants access to (legacy field)
   track: Track
   trackId: ID
-  # JSONB object defining what access this offering grants
+  # JSONB object defining what access this offering grants (scopes only; API merges metadata for presentation)
   accessGrants: JSON
+  # Presentation / checkout options (buyButtonText, slidingScale), not access scopes
+  metadata: JSON
   # Tracks this offering grants access to (resolved from accessGrants.trackIds)
   tracks: [Track]
   # Renewal policy: automatic or manual
@@ -2819,6 +2899,8 @@ type StripeOffering {
   duration: String
   # Publish status: unpublished, unlisted, published
   publishStatus: PublishStatus
+  # Optional custom label for the buy button (e.g. "Join now", "Subscribe"); stored in metadata.buyButtonText
+  buyButtonText: String
 }
 
 type ContentAccess {
@@ -2934,6 +3016,8 @@ type UserTransaction {
   manageUrl: String
   # URL to view receipt
   receiptUrl: String
+  # When a plan change is scheduled for period end (or lifetime path), surfaced from subscription_change_events
+  pendingMembershipSubscriptionChange: PendingMembershipSubscriptionChange
 }
 
 type UserTransactionQuerySet {
@@ -3064,6 +3148,15 @@ type UserSettings {
   streamSortBy: String
   # The most recent stream post type filter used by this person
   streamPostType: String
+}
+
+# Email-enabled tester account (for staging/testing environments)
+type EmailEnabledTester {
+  id: ID!
+  userId: ID!
+  user: Person
+  createdAt: Date
+  updatedAt: Date
 }
 
 # Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
@@ -3520,6 +3613,10 @@ type Mutation {
     # Your unique invitation token
     invitationToken: String
   ): InvitationUseResult
+  # Add a user to the email-enabled testers list (admin only)
+  addEmailEnabledTester(userId: ID!): EmailEnabledTester
+  # Remove a user from the email-enabled testers list (admin only)
+  removeEmailEnabledTester(userId: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -3570,6 +3667,7 @@ type Mutation {
     groupId: ID!
     offeringId: ID!
     quantity: Int
+    adjustableQuantity: AdjustableQuantityInput
     successUrl: String!
     cancelUrl: String!
     metadata: JSON
@@ -3577,6 +3675,15 @@ type Mutation {
 
   # Check Stripe account status and update database values
   checkStripeStatus(groupId: ID!): StripeStatusCheckResult
+
+  # Apply a membership subscription change (Stripe Connect). Call membershipChangePreview first; unsupported modes error until implemented.
+  membershipChangeCommit(
+    groupId: ID!
+    fromOfferingId: ID!
+    toOfferingId: ID!
+    # Sliding-scale quantity-only change: same offering, new unit count (next-cycle behavior in Stripe rules)
+    newQuantity: Int
+  ): MembershipChangeCommitResult
 }
 
 # Result of acceptGroupRelationshipInvite mutation
@@ -4073,6 +4180,8 @@ input GroupSettingsInput {
   askGroupToGroupJoinQuestions: Boolean
   # Whether to require questions being answered when a person requests to join this group
   askJoinQuestions: Boolean
+  # Default digest frequency for new members (daily or weekly). Used to set group_membership.settings.digestFrequency when a user joins.
+  defaultDigestFrequency: String
   # Whether to display group extension data on the profile for special group types like farms
   hideExtensionData: Boolean
   # How precisely to display group locations on the map and the group profile, to enable obfuscating the location
@@ -4118,6 +4227,7 @@ input StripeOfferingInput {
   currency: String
   # JSONB object defining what access this offering grants
   # Format: { "trackIds": [1, 2], "groupRoleIds": [3, 4], "commonRoleIds": [5, 6], "groupIds": [7, 8] }
+  # buyButtonText and slidingScale may be sent here for convenience; they are stored in metadata
   accessGrants: JSON
   # Renewal policy: automatic or manual
   renewalPolicy: String
@@ -4125,6 +4235,14 @@ input StripeOfferingInput {
   duration: String
   # Publish status: unpublished, unlisted, published, archived
   publishStatus: PublishStatus
+}
+
+# Adjustable quantity settings for Stripe Checkout line items.
+# Used for sliding-scale / pay-what-you-want flows.
+input AdjustableQuantityInput {
+  enabled: Boolean
+  minimum: Int
+  maximum: Int
 }
 
 # Details passed along when Flagging a Post
@@ -4302,6 +4420,8 @@ input PostInput {
   location: String
   # Id to location object with geocoded location deatils
   locationId: ID
+  # Topic name of the chat room the user is currently viewing. When set, that topic follow's last_read_post_id is always updated regardless of new_post_count.
+  markAsReadTopicName: String
   # People to add as members to a project type Post
   memberIds: [ID]
   # Link to a project management tool or service. Only used for Projects right now

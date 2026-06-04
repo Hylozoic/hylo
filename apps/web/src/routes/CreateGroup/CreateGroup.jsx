@@ -191,11 +191,11 @@ function CreateGroup () {
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
-    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, search: false })
+    setHeaderDetails({ title: t('Create a new group'), icon: '', info: '', backButton: true, mobileBackButton: true, search: false })
   }, [])
 
   return (
-    <div className='CreateGroupContainer w-full h-full flex justify-center mt-10'>
+    <div className='CreateGroupContainer w-full h-full flex justify-center mt-10 px-4'>
       <div className='CreateGroupInnerContainer flex flex-col mx-auto w-full max-w-screen-sm items-center'>
         <UploadAttachmentButton
           type='groupBanner'

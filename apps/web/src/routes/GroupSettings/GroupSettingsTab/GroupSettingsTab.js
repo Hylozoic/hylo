@@ -20,6 +20,7 @@ import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import {
   DEFAULT_BANNER,
   DEFAULT_AVATAR,
+  DEFAULT_DIGEST_FREQUENCY,
   LOCATION_PRECISION
 } from 'store/models/Group'
 import { bgImageStyle, cn } from 'util/index'
@@ -135,7 +136,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
     aboutVideoUri, avatarUrl, bannerUrl, description, geoShape, location, stewardDescriptor, stewardDescriptorPlural, name, purpose, settings, websiteUrl
   } = edits
 
-  const { locationDisplayPrecision, showSuggestedSkills } = settings
+  const { defaultDigestFrequency: defaultDigestFrequencySetting = 'daily', locationDisplayPrecision, showSuggestedSkills } = settings
   const editableMapLocation = group?.locationObject || currentUser.locationObject
 
   t('Display exact location')
@@ -265,6 +266,26 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
         />
       </SettingsSection>
 
+      <SettingsSection>
+        <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Default notification settings')}</h3>
+        <p className='text-foreground/70 text-sm mb-4'>{t('When a new member joins this group, their email digest frequency will be set to:')}</p>
+        <div className='mb-5'>
+          <Dropdown
+            id='group-settings-default-digest-frequency-dropdown'
+            className='bg-darkening/20 rounded-lg text-foreground w-full p-4 outline-none focus:outline-focus focus:outline-2 text-base'
+            toggleChildren={(
+              <span className='text-base w-full flex justify-between'>
+                {t(DEFAULT_DIGEST_FREQUENCY[defaultDigestFrequencySetting] || DEFAULT_DIGEST_FREQUENCY.daily)}
+                <Icon name='ArrowDown' />
+              </span>
+            )}
+            items={Object.keys(DEFAULT_DIGEST_FREQUENCY).map(value => ({
+              label: t(DEFAULT_DIGEST_FREQUENCY[value]),
+              onClick: () => updateSettingDirectly('settings.defaultDigestFrequency')(value)
+            }))}
+          />
+        </div>
+      </SettingsSection>
       <SettingsSection>
         <div className='pb-[30px]'>
           <h3 className='text-foreground text-xl mb-4 mt-0'>{t('Relevant skills & interests')}</h3>
