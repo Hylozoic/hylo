@@ -80,10 +80,19 @@ export default async function makeUrqlClient ({
         const tokens = getCachedTokens()
         if (!tokens?.refresh_token) return
         try {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔑 urql authExchange: refreshing access token')
+          }
           const refreshed = await refreshTokens(tokens.refresh_token)
           await saveTokens({ ...tokens, ...refreshed })
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔑 urql authExchange: token refresh succeeded ✓')
+          }
         } catch (err) {
           // Refresh token is dead — clear so the app drops to the logged-out state.
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('🔑 urql authExchange: token refresh failed, clearing Keychain tokens:', err.message)
+          }
           await clearTokens()
         }
       }

@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { useNavigation } from '@react-navigation/native'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import Intercom from '@intercom/intercom-react-native'
 import mixpanel from 'services/mixpanel'
@@ -24,21 +23,19 @@ export const logoutServices = async () => {
   }
 }
 
-export const useLogout = ({ loadingRedirect = true } = {}) => {
-  const navigation = useNavigation()
+// After logout(), AuthContext.checkAuth() sets isAuthorized=false and RootNavigator
+// swaps NonAuthRoot for AuthRoot — no stack reset is required. A previous reset to a
+// non-existent "Loading" route caused: "The action 'RESET' ... was not handled".
+export const useLogout = () => {
   const { logout } = useAuth()
   const logoutRedirect = useCallback(async () => {
     try {
-      loadingRedirect && navigation.reset({
-        index: 0,
-        routes: [{ name: 'Loading' }]
-      })
       await logout()
       await logoutServices()
     } catch (error) {
       console.error('Error during logout:', error.message)
     }
-  }, [navigation])
+  }, [logout])
 
   return logoutRedirect
 }

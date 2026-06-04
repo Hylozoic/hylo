@@ -45,7 +45,21 @@ export default function SocialAuth ({
         // GraphQL and the WebView handoff use the same Bearer/Keychain credential
         // as email/password login.
         if (response?.payload?.access_token) {
+          if (__DEV__) {
+            console.log('🔑 SocialAuth: saving tokens to Keychain after social login', {
+              hasAccessToken: !!response.payload.access_token,
+              hasRefreshToken: !!response.payload.refresh_token,
+              expiresIn: response.payload.expires_in
+            })
+          }
           await saveTokens(response.payload)
+          if (__DEV__) {
+            console.log('🔑 SocialAuth: tokens saved to Keychain ✓')
+          }
+        } else {
+          if (__DEV__) {
+            console.warn('🔑 SocialAuth: no access_token in social login response — tokens NOT saved', response?.payload)
+          }
         }
         await handleOnComplete()
       }

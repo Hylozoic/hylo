@@ -16,8 +16,13 @@ export async function loadTokens () {
   try {
     const creds = await Keychain.getGenericPassword({ service: SERVICE })
     cachedTokens = creds ? JSON.parse(creds.password) : null
+    if (__DEV__) {
+      console.log('🔑 tokenStore.loadTokens:', cachedTokens
+        ? `found (access=${cachedTokens.access_token?.slice(0, 10)}…, expiresAt=${new Date(cachedTokens.expires_at).toISOString()})`
+        : 'no tokens in Keychain')
+    }
   } catch (err) {
-    console.warn('Failed to load tokens from Keychain:', err)
+    console.warn('🔑 tokenStore.loadTokens failed:', err)
     cachedTokens = null
   }
   return cachedTokens

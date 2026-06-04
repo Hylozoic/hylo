@@ -6,7 +6,6 @@ import AutoHeightWebView from 'react-native-autoheight-webview'
 import { getSessionCookie, clearSessionCookie, ensureWebViewCookies, sessionCookieFromToken } from 'util/session'
 import { parseWebViewMessage } from '.'
 import { useAuth } from '@hylo/contexts/AuthContext'
-import Loading from 'components/Loading'
 
 /* Should probably just be applied to Hylo Web stylesheet 
   as what this solves is not necessarily WebView specific, 
@@ -45,6 +44,8 @@ const HyloWebView = React.forwardRef(({
   customStyle: providedCustomStyle = '',
   enableScrolling = false,
   mobileAppVersion,
+  onLoadStart: externalOnLoadStart,
+  onLoadEnd: externalOnLoadEnd,
   ...forwardedProps
 }, webViewRef) => {
   const [cookie, setCookie] = useState()
@@ -102,15 +103,23 @@ const HyloWebView = React.forwardRef(({
     }
   }, [cookie, isLoading])
 
-  // Clear error state when component re-focuses
+  // Derive session cookie on every focus so the WebView always loads authenticated.
+  // Token-auth path first (mints a fresh server session from the Keychain access
+  // token), then falls back to any existing session cookie stored in AsyncStorage
+  // (covers the cookie-based signup flow and the Google/Apple social login path
+  // where a server session was created during the login itself).
   useFocusEffect(
     useCallback(() => {
       const getCookieAsync = async () => {
         try {
-          // Token-auth path: derive a fresh session cookie from the native access
-          // token so the WebView loads authenticated. Falls back to any existing
-          // cookie (the cookie-based signup flow) when there's no token.
-          const newCookie = await sessionCookieFromToken() || await getSessionCookie()
+          const fromToken = await sessionCookieFromToken()
+          if (__DEV__) {
+            console.log('🔑 HyloWebView cookie bridge:', fromToken ? 'token→session ✓' : 'no token, falling back to stored cookie')
+          }
+          const newCookie = fromToken || await getSessionCookie()
+          if (__DEV__) {
+            console.log('🔑 HyloWebView final cookie:', newCookie ? `found (${newCookie.slice(0, 30)}…)` : 'none — WebView will not load')
+          }
           // Populate the WebView's native cookie jar BEFORE calling setCookie().
           // setCookie() makes `cookie` truthy which immediately renders the WebView
           // and starts loading. If we populate the jar after, there's a race where
@@ -121,25 +130,32 @@ const HyloWebView = React.forwardRef(({
             await ensureWebViewCookies()
           }
           setCookie(newCookie)
+          // If there's no cookie, mark isLoading=false so the session-recovery
+          // debounce (`!cookie && !isLoading`) can fire and trigger logout.
+          // Without this, isLoading stays true forever (no WebView ever loads)
+          // and the user gets stuck on the spinner indefinitely.
+          if (!newCookie) setIsLoading(false)
         } catch (error) {
-          // Cookie retrieval failed - will trigger native logout after debounce
-          console.error('Cookie retrieval failed', error)
+          // Cookie retrieval failed - mark loading done so the debounce can fire.
+          console.error('🔑 HyloWebView cookie retrieval failed:', error)
+          setIsLoading(false)
         }
       }
       getCookieAsync()
     }, [])
   )
 
-
-
-  // WebView event handlers
-  const handleLoadStart = useCallback(() => {
+  // WebView event handlers — call both internal state updater and any external handler
+  // passed via props (e.g. PrimaryWebView's onLoadEnd) so both layers stay in sync.
+  const handleLoadStart = useCallback((event) => {
     setIsLoading(true)
-  }, [])
+    externalOnLoadStart?.(event)
+  }, [externalOnLoadStart])
 
   const handleLoadEnd = useCallback((event) => {
     setIsLoading(false)
-  }, [])
+    externalOnLoadEnd?.(event)
+  }, [externalOnLoadEnd])
 
   const handleMessage = message => {
     const parsedMessage = parseWebViewMessage(message)
@@ -152,17 +168,13 @@ const HyloWebView = React.forwardRef(({
     messageHandler && messageHandler(parsedMessage)
   }
 
-
   // While the session cookie is still being resolved (initial mount + the
-  // token→cookie bridge network call) show a loader rather than a blank screen.
-  // `cookie === undefined` means "not resolved yet"; `null` means "resolved, none".
+  // token→cookie bridge network call) return null — the parent (PrimaryWebView)
+  // shows its own overlay spinner during this window, so no separate indicator
+  // is needed here. `cookie === undefined` means "not resolved yet"; `null`
+  // means "resolved, none found".
   if (cookie === undefined && uri) {
-    return (
-      <Loading
-        size='large'
-        style={[{ flex: 1, alignItems: 'center', justifyContent: 'center' }, style]}
-      />
-    )
+    return null
   }
 
   // No session cookie means the native session is out of sync with the WebView.
@@ -180,6 +192,7 @@ const HyloWebView = React.forwardRef(({
       // Must run before page JS so window.HyloMobileV2 is visible when the web app's
       // router initialises. Must end with `true` to avoid an Android WebView crash.
       injectedJavaScriptBeforeContentLoaded={injectedJavaScriptBeforeContentLoaded}
+      {...forwardedProps}
       customScript=''
       customStyle={customStyle}
       geolocationEnabled
@@ -225,7 +238,6 @@ const HyloWebView = React.forwardRef(({
       // Recommended setting from AutoHeightWebView docs, with disclaimer about a
       // potential Android issue. It helpfully disables iOS zoom feature.
       viewportContent='width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1'
-      {...forwardedProps}
     />
   )
 })
