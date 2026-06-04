@@ -302,6 +302,13 @@ module.exports = {
     // NOTE: this was `req.session.authenticated` but that doesn't seem to
     // populate in the case (or in time) for a POST request? This works.
     if (req.session.userId) {
+      // Mobile token-auth clients opt in via header and get a token pair back
+      // (e.g. the password-reset magic link), so the native app ends up on the
+      // same Keychain-token path as the other login methods. Web is unaffected.
+      if (req.get('X-Hylo-Token-Auth') === '1') {
+        const user = await User.find(req.session.userId, {}, false)
+        return res.ok(await mintTokensForUser(user))
+      }
       return shouldRedirect
         ? res.redirect(nextUrl)
         : res.ok({ success: true })
