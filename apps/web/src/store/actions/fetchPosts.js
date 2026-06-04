@@ -9,6 +9,7 @@ export default function fetchPosts ({
   announcementsOnly,
   beforeTime,
   childPostInclusion = 'yes',
+  includePostGroups = true,
   collectionToFilterOut,
   context,
   cursor,
@@ -31,7 +32,7 @@ export default function fetchPosts ({
   let query, extractModel, getItems
 
   if (context === 'groups') {
-    query = groupQuery(childPostInclusion === 'yes')
+    query = groupQuery(childPostInclusion === 'yes', includePostGroups)
     extractModel = 'Group'
     getItems = get('payload.data.group.posts')
   } else if (context === 'all' || context === 'public' || context === CONTEXT_MY) {
@@ -82,7 +83,7 @@ export default function fetchPosts ({
   }
 }
 
-const groupQuery = childPostInclusion => `query GroupPostsQuery (
+const groupQuery = (childPostInclusion, includePostGroups = true) => `query GroupPostsQuery (
   $activePostsOnly: Boolean,
   $afterTime: Date,
   $beforeTime: Date,
@@ -109,7 +110,7 @@ const groupQuery = childPostInclusion => `query GroupPostsQuery (
     name
     avatarUrl
     bannerUrl
-    ${groupViewPostsQueryFragment(childPostInclusion)}
+    ${groupViewPostsQueryFragment(childPostInclusion, { includeGroups: includePostGroups })}
   }
 }`
 

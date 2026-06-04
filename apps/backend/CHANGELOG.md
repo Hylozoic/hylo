@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.5] - 2026-06-01
+
+### Fixed
+- Make sure post notifications show the post over the correct home view
+- Non-chat posts being opened in a group with a chat home view now use /post/:id as a path segment (opens the full post modal overlaid above the chat) rather than ?postId= (which was going to the the inline-chat-message highlight pattern reserved for chat-type posts), so you can see the full post and comments.
+- If a non-chat post has no topics on it (which can happen if it was created by Zapier for example) and the home view is a chat room, open the post on its own at the fall through url of /group/:slug/post/:postId, because if we try to open it in the chat based home then the post isn't there and can't be viewed.
+
+## [6.4.4] - 2026-05-27
+
+### Fixed
+- Mobile: Notification URLs should always go to the right place
+
+## [6.4.3] - 2026-05-27
+
+### Added
+- Member CSV export includes a `joined_at` column which has the date time of when the member joined the group.
+
+### Fixed
+- Weird reordering of custom views when editing
+
+## [6.4.2] - 2026-05-20
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+
 ## [6.4.1] - 2026-05-07
 
 ### Changed

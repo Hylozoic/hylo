@@ -10,6 +10,28 @@ import { senderNameViaHylo } from '../../lib/email/senderNameViaHylo'
 // Workers run sendUnsent concurrently; rows claimed longer ago than this are eligible again.
 const STALE_NOTIFICATION_CLAIM_MINUTES = 30
 
+// Extracts pathname + search from a full route URL so query params (e.g. commentId, postId)
+// are preserved in push notification deep links. Using .pathname alone silently drops them.
+function routeToPath (routeURL) {
+  const parsed = new URL(routeURL)
+  return parsed.pathname + parsed.search
+}
+
+// Returns the best group to use for a push notification deep link.
+// Prefers the activity's group_id, but only if the reader is actually a member of it.
+// Falls back to groupForFrontendRouteForUser, which checks post groups against the reader's
+// memberships and returns null for public posts (producing a /public/post/... URL).
+async function groupForPushRoute (post, activity, userId) {
+  const activityGroupId = activity.get('group_id')
+  if (activityGroupId) {
+    const userGroupIds = await Group.pluckIdsForMember(userId)
+    if (userGroupIds.includes(activityGroupId)) {
+      return Group.find(activityGroupId)
+    }
+  }
+  return post.groupForFrontendRouteForUser(userId)
+}
+
 const UNSENT_NOTIFICATION_BATCH_SIZE = 200
 
 const TYPE = {
@@ -183,7 +205,7 @@ module.exports = bookshelf.Model.extend({
     const locale = this.locale()
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(Frontend.Route.group(group)).pathname
+        const path = routeToPath(Frontend.Route.group(group))
         const alertText = PushNotification.textForApprovedJoinRequest(group, this.actor(), locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -196,7 +218,7 @@ module.exports = bookshelf.Model.extend({
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
+        const path = routeToPath(Frontend.Route.post(post, group))
         const alertText = PushNotification.textForAnnouncement(post, group, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -207,7 +229,7 @@ module.exports = bookshelf.Model.extend({
     return this.load(['contribution', 'contribution.post'])
       .then(() => {
         const { contribution } = this.relations.activity.relations
-        const path = new URL(Frontend.Route.post(contribution.relations.post)).pathname
+        const path = routeToPath(Frontend.Route.post(contribution.relations.post))
         const alertText = PushNotification.textForContribution(contribution, version, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -216,7 +238,7 @@ module.exports = bookshelf.Model.extend({
   sendTrackCompletedPush: async function () {
     const track = this.track()
     const locale = this.locale()
-    const path = new URL(Frontend.Route.track(track)).pathname
+    const path = routeToPath(Frontend.Route.track(track))
     const alertText = PushNotification.textForTrackCompleted(track, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -224,7 +246,7 @@ module.exports = bookshelf.Model.extend({
   sendTrackEnrollmentPush: async function () {
     const track = this.track()
     const locale = this.locale()
-    const path = new URL(Frontend.Route.track(track)).pathname
+    const path = routeToPath(Frontend.Route.track(track))
     const alertText = PushNotification.textForTrackEnrollment(track, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -237,7 +259,7 @@ module.exports = bookshelf.Model.extend({
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
+        const path = routeToPath(Frontend.Route.post(post, group))
         const alertText = PushNotification.textForEventInvitation(post, actor, locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -245,32 +267,33 @@ module.exports = bookshelf.Model.extend({
 
   sendPostPush: async function (version) {
     const post = this.post()
-    const groupIds = Activity.groupIds(this.relations.activity)
+    const activity = this.relations.activity
+    const reader = this.reader()
     const locale = this.locale()
     const tags = post.relations.tags
     const firstTag = tags && tags.first()?.get('name')
-    if (isEmpty(groupIds)) throw new Error('no group ids in activity')
-    // TODO: include all groups in the notification?
-    return Group.find(groupIds[0])
-      .then(group => {
-        const path = new URL(Frontend.Route.post(post, group)).pathname
-        const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
-        return this.reader().sendPushNotification(alertText, path)
-      })
+
+    const group = await groupForPushRoute(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.post(post, group))
+    const alertText = PushNotification.textForPost(post, group, firstTag, version, locale)
+    return reader.sendPushNotification(alertText, path)
   },
 
   sendCommentPush: async function (version) {
     const comment = this.comment()
     const post = comment.relations.post
     const reader = this.reader()
-    const group = await post.groupForFrontendRouteForUser(reader.id)
+    const activity = this.relations.activity
     const locale = this.locale()
-    const path = new URL(Frontend.Route.comment({ comment, group, post })).pathname
-    const alertText = PushNotification.textForComment(comment, version, locale)
-    if (!(await this.reader().enabledNotification(TYPE.Comment, MEDIUM.Push))) {
+
+    if (!(await reader.enabledNotification(TYPE.Comment, MEDIUM.Push))) {
       return Promise.resolve()
     }
-    return this.reader().sendPushNotification(alertText, path)
+
+    const group = await groupForPushRoute(post, activity, reader.id)
+    const path = routeToPath(Frontend.Route.comment({ comment, group, post }))
+    const alertText = PushNotification.textForComment(comment, version, locale)
+    return reader.sendPushNotification(alertText, path)
   },
 
   sendJoinRequestPush: function () {
@@ -279,7 +302,7 @@ module.exports = bookshelf.Model.extend({
     if (isEmpty(groupIds)) throw new Error('no group ids in activity')
     return Group.find(groupIds[0])
       .then(group => {
-        const path = new URL(Frontend.Route.groupJoinRequests(group)).pathname
+        const path = routeToPath(Frontend.Route.groupJoinRequests(group))
         const alertText = PushNotification.textForJoinRequest(group, this.actor(), locale)
         return this.reader().sendPushNotification(alertText, path)
       })
@@ -290,7 +313,7 @@ module.exports = bookshelf.Model.extend({
     const parentGroup = await this.relations.activity.group().fetch()
     const locale = this.locale()
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
-    const path = new URL(Frontend.Route.groupRelationshipInvites(childGroup)).pathname
+    const path = routeToPath(Frontend.Route.groupRelationshipInvites(childGroup))
     const alertText = PushNotification.textForGroupChildGroupInvite(parentGroup, childGroup, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -305,16 +328,16 @@ module.exports = bookshelf.Model.extend({
     const groupMemberType = reason.split(':')[2]
     let alertPath, alertText
     if (whichGroup === 'parent' && groupMemberType === 'moderator') {
-      alertPath = new URL(Frontend.Route.group(childGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(childGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedParentModerator(parentGroup, childGroup, this.actor(), locale)
     } else if (whichGroup === 'parent' && groupMemberType === 'member') {
-      alertPath = new URL(Frontend.Route.group(childGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(childGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedParentMember(parentGroup, childGroup, this.actor(), locale)
     } else if (whichGroup === 'child' && groupMemberType === 'moderator') {
-      alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedChildModerator(parentGroup, childGroup, this.actor(), locale)
     } else if (whichGroup === 'child' && groupMemberType === 'member') {
-      alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupChildGroupInviteAcceptedChildMember(parentGroup, childGroup, this.actor(), locale)
     }
     return this.reader().sendPushNotification(alertText, alertPath)
@@ -325,7 +348,7 @@ module.exports = bookshelf.Model.extend({
     const childGroup = await this.relations.activity.group().fetch()
     const locale = this.locale()
     if (!childGroup || !parentGroup) throw new Error('Missing a group in activity')
-    const path = new URL(Frontend.Route.groupRelationshipJoinRequests(parentGroup)).pathname
+    const path = routeToPath(Frontend.Route.groupRelationshipJoinRequests(parentGroup))
     const alertText = PushNotification.textForGroupParentGroupJoinRequest(parentGroup, childGroup, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -340,16 +363,16 @@ module.exports = bookshelf.Model.extend({
     const groupMemberType = reason.split(':')[2]
     let alertPath, alertText
     if (whichGroup === 'parent' && groupMemberType === 'moderator') {
-      alertPath = new URL(Frontend.Route.group(childGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(childGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedParentModerator(parentGroup, childGroup, this.actor(), locale)
     } else if (whichGroup === 'parent' && groupMemberType === 'member') {
-      alertPath = new URL(Frontend.Route.group(childGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(childGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedParentMember(parentGroup, childGroup, locale)
     } else if (whichGroup === 'child' && groupMemberType === 'moderator') {
-      alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedChildModerator(parentGroup, childGroup, this.actor(), locale)
     } else if (whichGroup === 'child' && groupMemberType === 'member') {
-      alertPath = new URL(Frontend.Route.group(parentGroup)).pathname
+      alertPath = routeToPath(Frontend.Route.group(parentGroup))
       alertText = PushNotification.textForGroupParentGroupJoinRequestAcceptedChildMember(parentGroup, childGroup, locale)
     }
     return this.reader().sendPushNotification(alertText, alertPath)
@@ -360,7 +383,7 @@ module.exports = bookshelf.Model.extend({
     const toGroup = await this.relations.activity.otherGroup().fetch()
     const locale = this.locale()
     if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
-    const path = new URL(Frontend.Route.groupRelationshipInvites(toGroup)).pathname
+    const path = routeToPath(Frontend.Route.groupRelationshipInvites(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInvite(fromGroup, toGroup, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -372,7 +395,7 @@ module.exports = bookshelf.Model.extend({
     if (!fromGroup || !toGroup) throw new Error('Missing a group in activity')
 
     // Only moderators get peer relationship acceptance notifications
-    const alertPath = new URL(Frontend.Route.group(toGroup)).pathname
+    const alertPath = routeToPath(Frontend.Route.group(toGroup))
     const alertText = PushNotification.textForGroupPeerGroupInviteAccepted(fromGroup, toGroup, this.actor(), locale)
     return this.reader().sendPushNotification(alertText, alertPath)
   },
@@ -381,7 +404,7 @@ module.exports = bookshelf.Model.extend({
     await this.load(['activity.projectContribution', 'activity.projectContribution.project', 'activity.projectContribution.user'])
     const projectContribution = this.projectContribution()
     const locale = this.locale()
-    const path = new URL(Frontend.Route.post(projectContribution.relations.project)).pathname
+    const path = routeToPath(Frontend.Route.post(projectContribution.relations.project))
     const alertText = PushNotification.textForDonationTo(projectContribution, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -390,7 +413,7 @@ module.exports = bookshelf.Model.extend({
     await this.load(['activity.projectContribution', 'activity.projectContribution.project', 'activity.projectContribution.user'])
     const projectContribution = this.projectContribution()
     const locale = this.locale()
-    const path = new URL(Frontend.Route.post(projectContribution.relations.project)).pathname
+    const path = routeToPath(Frontend.Route.post(projectContribution.relations.project))
     const alertText = PushNotification.textForDonationFrom(projectContribution, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -399,7 +422,7 @@ module.exports = bookshelf.Model.extend({
     const group = await this.relations.activity.group().fetch()
     const actor = await this.relations.activity.actor().fetch()
     const locale = this.locale()
-    const path = new URL(Frontend.Route.profile(actor, group)).pathname
+    const path = routeToPath(Frontend.Route.profile(actor, group))
     const alertText = PushNotification.textForMemberJoinedGroup(group, actor, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -1029,7 +1052,7 @@ module.exports = bookshelf.Model.extend({
     const actor = this.actor()
     const locale = this.locale()
     const group = await fundingRound.group().fetch()
-    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const alertText = PushNotification.textForFundingRoundNewSubmission(fundingRound, post, actor, locale)
     return this.reader().sendPushNotification(alertText, path)
   },
@@ -1067,7 +1090,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRound = this.fundingRound()
     const locale = this.locale()
     const group = await fundingRound.group().fetch()
-    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const phase = meta.phase
     const alertText = PushNotification.textForFundingRoundPhaseTransition(fundingRound, phase, locale)
@@ -1140,7 +1163,7 @@ module.exports = bookshelf.Model.extend({
     const fundingRound = this.fundingRound()
     const locale = this.locale()
     const group = await fundingRound.group().fetch()
-    const path = new URL(Frontend.Route.fundingRound(fundingRound, group)).pathname
+    const path = routeToPath(Frontend.Route.fundingRound(fundingRound, group))
     const meta = this.relations.activity.get('meta')
     const reminderType = meta.reminderType
     const alertText = PushNotification.textForFundingRoundReminder(fundingRound, reminderType, locale)

@@ -28,6 +28,7 @@ export default gql`
         id
         name
         slug
+        homeRoute
       }
       otherGroup {
         id

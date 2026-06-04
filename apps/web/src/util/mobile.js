@@ -29,6 +29,17 @@ export function isMobileDevice () {
   )
 }
 
+// Phones only — excludes tablets and iPadOS desktop UA (see isMobileDevice).
+// Use for layouts that need a side-by-side nav + content column (e.g. DMs).
+export function isPhoneDevice () {
+  return (
+    isMobile.apple.phone ||
+    isMobile.apple.ipod ||
+    isMobile.android.phone ||
+    isMobile.seven_inch
+  )
+}
+
 export function downloadApp () {
   if (isMobileDevice()) {
     if (isMobile.apple.device) {

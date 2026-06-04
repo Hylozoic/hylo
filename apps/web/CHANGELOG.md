@@ -6,6 +6,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.4.10] - 2026-06-01
+
+### Changed
+- In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.
+
+### Fixed
+- Tracking whether group location is set in the Group Setup widget in the group menu
+- Make sure post notifications show the post over the correct home view
+- Non-chat posts being opened in a group with a chat home view now use /post/:id as a path segment (opens the full post modal overlaid above the chat) rather than ?postId= (which was going to the the inline-chat-message highlight pattern reserved for chat-type posts), so you can see the full post and comments.
+- If a non-chat post has no topics on it (which can happen if it was created by Zapier for example) and the home view is a chat room, open the post on its own at the fall through url of /group/:slug/post/:postId, because if we try to open it in the chat based home then the post isn't there and can't be viewed.
+- Using a join link when already a member takes you to correct home view
+- Make sure new posts created in requests and offers view appear immediately
+- Fix issue where after creating a post the saved draft was not removed
+
+## [6.4.9] - 2026-05-27
+
+### Fixed
+- Don't show child post label incorrectly on all Stream posts
+- Mobile: Notification URLs should always go to the right place
+
+## [6.4.8] - 2026-05-27
+
+### Added
+- Add group join date to the member export CSV
+
+### Changed
+- Show post type and icon in view header when viewing standalone post route
+- Remove X to close button when viewing a standalone Post Detail route
+
+### Fixed
+- Mobile: Issue where closing a post open from a chat room would take you to the stream
+- Adding a custom view directly to the bottom of the Context Menu
+- Toggling of Make Public toggle
+- Child post label being on top of post card three dot menu
+- Weird reordering of custom views when editing
+- Avoid infinity scroll query trigger for calendar view
+
+## [6.4.7] - 2026-05-20
+
+### Added
+- Drafts! When creating or editing a post, chat, comment or direct message, we auto save drafts as you go and reload them when you come back to that same page/field. If you try to leave a post while editing it you will be asked if you want to save your draft or discard it. All saved drafts can be found in the new My Home -> My Drafts page.
+
+### Changed
+- When viewing a post outisde of a group context, closing it now goes back to last viewed group instead of opening up global nav menu in confusing way.
+- Refine what hylo links open in the android app
+- If the mobile app receives OIDC urls, redirect them to the browser
+
+### Fixed
+- Correctly load data when directly loading the Custom Views setting tab.
+- Wrapping of long links in post location field on post cards.
+- Display of DMs on iPad
+- Direct Messages with long strings overflowing the screen and causing horizontal scrollbars
+- Always scroll down to bottom of messages list when focusing on messages box on mobile
+
 ## [6.4.6] - 2026-05-07
 
 ### Added

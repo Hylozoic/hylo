@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess */
+/* global FundingRound ContentAccess Draft */
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
 import { TextHelpers } from '@hylo/shared'
@@ -144,6 +144,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             q.whereNotNull('order')
           }
           q.orderBy('order', 'asc')
+          q.orderBy('id', 'asc')
         })
       }
     },
@@ -662,7 +663,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         { chatRooms: { querySet: true } },
         { childGroups: { querySet: true } },
         { contextWidgets: { querySet: true } },
-        { customViews: { querySet: true } },
+        {
+          customViews: {
+            querySet: true,
+            filter: relation => relation.query(q => {
+              q.orderBy('id', 'asc')
+            })
+          }
+        },
         { groupRelationshipInvitesFrom: { querySet: true } },
         { groupRelationshipInvitesTo: { querySet: true } },
         { groupRoles: { querySet: true } },
@@ -1579,6 +1587,36 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'id',
         'type'
+      ]
+    },
+
+    Draft: {
+      model: Draft,
+      attributes: [
+        'id',
+        'type',
+        'group_id',
+        'topic_id',
+        'post_id',
+        'message_thread_id',
+        'post_type',
+        'is_edit',
+        'navigate_to'
+      ],
+      getters: {
+        data: draft => {
+          const raw = draft.get('data')
+          return typeof raw === 'string' ? raw : JSON.stringify(raw)
+        },
+        updatedAt: draft => {
+          const v = draft.get('updated_at')
+          return v ? new Date(v).toISOString() : null
+        }
+      },
+      relations: [
+        'post',
+        { messageThread: { typename: 'MessageThread' } },
+        'group'
       ]
     },
 

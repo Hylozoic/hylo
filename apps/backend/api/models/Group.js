@@ -938,41 +938,47 @@ module.exports = bookshelf.Model.extend(merge({
       }
 
       if (changes.custom_views) {
-        const currentViews = await this.customViews().fetch({ transacting })
-        let currentView = currentViews.shift()
-        // TODO: more validation?
         const newViews = changes.custom_views.filter(cv => trim(cv.name) !== '')
-        let newView = newViews.shift()
-        // Update current views, add new ones, delete old ones and try to be efficient about it
-        while (currentView || newView) {
-          if (newView) {
-            const topics = newView && newView.topics
-            delete newView.topics
-            delete newView.id
-            if (currentView) {
-              await currentView.save(newView, { transacting })
+        const existingViews = (await this.customViews().fetch({ transacting })).models
+        const existingById = {}
+        for (const view of existingViews) {
+          existingById[view.id] = view
+        }
+        const keptIds = new Set()
 
-              // If this custom view has a collection then update the name of the collection to match the custom view's name
-              const collection = await currentView.collection().fetch()
-              if (collection && collection.get('name') !== currentView.get('name')) {
-                await collection.save({ name: currentView.get('name') })
-              }
-            } else {
-              currentView = await CustomView.forge({ ...newView, group_id: this.id }).save({}, { transacting })
-                .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+        for (const incoming of newViews) {
+          const topics = incoming.topics
+          const incomingData = { ...incoming }
+          delete incomingData.topics
+          const incomingId = incomingData.id
+          delete incomingData.id
+          if (incomingData.order == null) incomingData.order = 1
+
+          let currentView
+          const existingView = incomingId && (existingById[incomingId] || existingById[parseInt(incomingId, 10)])
+          if (existingView) {
+            currentView = existingView
+            await currentView.save(incomingData, { transacting })
+            keptIds.add(currentView.id)
+
+            const collection = await currentView.collection().fetch()
+            if (collection && collection.get('name') !== currentView.get('name')) {
+              await collection.save({ name: currentView.get('name') })
             }
-
-            await currentView.updateTopics(topics, transacting)
-          } else if (currentView) {
-            // Delete associated context widgets
-            await ContextWidget.where({ group_id: this.id, custom_view_id: currentView.id }).destroy({ transacting })
-
-            await currentView.destroy({ transacting })
           } else {
-            break
+            currentView = await CustomView.forge({ ...incomingData, group_id: this.id }).save({}, { transacting })
+              .tap((currentView) => Queue.classMethod('Group', 'doesMenuUpdate', { customView: currentView, groupIds: [this.id] }))
+            keptIds.add(currentView.id)
           }
-          currentView = currentViews.shift()
-          newView = newViews.shift()
+
+          await currentView.updateTopics(topics, transacting)
+        }
+
+        for (const view of existingViews) {
+          if (!keptIds.has(view.id)) {
+            await ContextWidget.where({ group_id: this.id, custom_view_id: view.id }).destroy({ transacting })
+            await view.destroy({ transacting })
+          }
         }
       }
 

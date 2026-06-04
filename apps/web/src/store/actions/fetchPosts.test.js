@@ -20,3 +20,13 @@ it('works for all groups', async () => {
   })
   expect(posts).toMatchSnapshot()
 })
+
+it('omits post groups for chat room queries', () => {
+  const posts = fetchPosts({
+    context: 'groups',
+    filter: 'chat',
+    includePostGroups: false,
+    slug: 'foo'
+  })
+  expect(posts.graphql.query).not.toMatch(/\bgroups\s*\{/)
+})

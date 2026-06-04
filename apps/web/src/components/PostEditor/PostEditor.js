@@ -4,7 +4,7 @@ import { debounce, get, isEqual, isEmpty, uniqBy, uniqueId } from 'lodash/fp'
 import { TriangleAlert, X } from 'lucide-react'
 import { DateTimeHelpers } from '@hylo/shared'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +21,14 @@ import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from 'components/ui/dialog'
 import LinkPreview from './LinkPreview'
 import { DateTimePicker } from 'components/ui/datetimepicker'
 import PublicToggle from 'components/PublicToggle'
@@ -84,8 +92,64 @@ import { setQuerystringParam } from '@hylo/navigation'
 import { sanitizeURL } from 'util/url'
 import ActionsBar from './ActionsBar'
 import HyloHTML from 'components/HyloHTML'
-
 import styles from './PostEditor.module.scss'
+import useDraft, { hasDraftContent, hasPostDraftPayloadContent } from 'hooks/useDraft'
+
+const serializeTopics = (topics = []) =>
+  (topics || [])
+    .filter(Boolean)
+    .map(topic => ({ id: topic.id, name: topic.name, slug: topic.slug }))
+
+const serializeGroupIds = (groups = []) =>
+  (groups || [])
+    .filter(Boolean)
+    .map(group => group.id)
+
+const normalizeDate = value => {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+const buildPostDraftPayload = (post = {}) => ({
+  title: post.title || '',
+  details: post.details || '',
+  type: post.type || '',
+  topics: serializeTopics(post.topics),
+  groups: serializeGroupIds(post.groups),
+  isPublic: !!post.isPublic,
+  location: post.location || '',
+  locationId: post.locationId || null,
+  linkPreview: post.linkPreview || null,
+  linkPreviewFeatured: !!post.linkPreviewFeatured,
+  acceptContributions: !!post.acceptContributions,
+  completionAction: post.completionAction || null,
+  completionActionSettings: post.completionActionSettings || null,
+  proposalOptions: (post.proposalOptions || []).map(option => ({ ...option })),
+  startTime: normalizeDate(post.startTime),
+  endTime: normalizeDate(post.endTime),
+  timezone: post.timezone || '',
+  donationsLink: post.donationsLink || '',
+  projectManagementLink: post.projectManagementLink || '',
+  quorum: post.quorum || 0,
+  votingMethod: post.votingMethod || null,
+  sendAnnouncement: !!post.sendAnnouncement,
+  trackId: post.trackId || null
+})
+
+const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
+  if (!draft) return base
+  const resolveGroup = (id) => groupOptions.find(group => group.id === id) || base.groups?.find(group => group.id === id) || { id }
+  return {
+    ...base,
+    ...draft,
+    topics: draft.topics ? draft.topics.map(topic => ({ ...topic })) : base.topics,
+    groups: draft.groups ? draft.groups.map(resolveGroup) : base.groups,
+    proposalOptions: draft.proposalOptions ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
+    startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
+    endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
+  }
+}
 
 const emojiOptions = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '✅✅', '👍', '👎', '⁉️', '‼️', '❓', '❗', '🚫', '➡️', '🛑', '✅', '🛑🛑', '🌈', '🔴', '🔵', '🟤', '🟣', '🟢', '🟡', '🟠', '⚫', '⚪', '🤷🤷', '📆', '🤔', '❤️', '👏', '🎉', '🔥', '🤣', '😢', '😡', '🤷', '💃🕺', '⛔', '🙏', '👀', '🙌', '💯', '🔗', '🚀', '💃', '🕺', '🫶💯']
 const MAX_TITLE_LENGTH = 80
@@ -116,7 +180,7 @@ const getMyAdminGroups = createSelector(
  * @param {string} props.selectedLocation - Pre-selected location if any
  */
 
-function PostEditor ({
+function PostEditorInner ({
   context,
   customTopicName, // When we can't determine topic from the URL. Used for funding round chat rooms
   markAsReadTopicName = null,
@@ -128,10 +192,13 @@ function PostEditor ({
   onCancel,
   onSave,
   afterSave,
-  selectedLocation
-}) {
+  selectedLocation,
+  draftId
+}, ref) {
   const dispatch = useDispatch()
   const urlLocation = useLocation()
+  const { pathname, search } = urlLocation
+  const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
@@ -146,9 +213,59 @@ function PostEditor ({
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
+  const createPostType = postType || (modal ? 'discussion' : 'chat')
   const topicName = customTopicName || (routeParams.topicName && decodeURIComponent(routeParams.topicName))
   const hiddenTopic = topicName?.startsWith('‡')
   const topic = useSelector(state => getTopicForCurrentRoute(state, topicName))
+  // Draft storage is scoped by semantic context
+  // Inline chat composer scopes by topicId.
+  // For create modal, also scope by topicId when opened from a chat room so each room keeps an independent modal draft.
+  // Non-chat modal composers use a topic-agnostic slot.
+  const openedFromChatRoom = !!topicName
+  const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
+
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
+    type: 'post',
+    postId: editing ? editingPostId : undefined,
+    groupId: currentGroup?.id,
+    topicId: draftTopicId,
+    postType: editing ? undefined : createPostType,
+    isEdit: editing,
+    navigateTo: navigateToForDraft,
+    debounceMs: 1500,
+    skip: !currentUser
+  })
+
+  // Stable key used to detect context changes (navigating between chat rooms, etc.)
+  const draftContextKey = useMemo(() => {
+    if (editing) return `edit:${editingPostId}`
+    return `new:${currentGroup?.id || 'none'}:${draftTopicId || 'none'}:${createPostType || 'none'}`
+  }, [editing, editingPostId, currentGroup?.id, draftTopicId, createPostType])
+
+  const loadDraftJSON = useCallback(() => {
+    if (!serverLoadedData) return null
+    try {
+      return typeof serverLoadedData === 'string' ? JSON.parse(serverLoadedData) : serverLoadedData
+    } catch {
+      return null
+    }
+  }, [serverLoadedData])
+
+  const saveDraftJSON = useCallback((value) => {
+    if (!value || !hasPostDraftPayloadContent(value)) return
+    saveServerDraft(JSON.stringify(value))
+  }, [saveServerDraft])
+
+  const draftLoadedRef = useRef(false)
+  const lastSavedChatDetailsRef = useRef('')
+  /** True after chat body had visible draft content this room — delete server draft when cleared. */
+  const chatComposerHadContentRef = useRef(false)
+  /** True after non-chat post had title or description draft content — delete server draft when both cleared. */
+  const postComposerHadBodyDraftRef = useRef(false)
+  const inSessionDraftByTypeRef = useRef({})
+  const pendingTypeSwitchRef = useRef(null)
+  /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
+  const isSubmittedRef = useRef(false)
 
   // Default topic to use when not in a chatroom — available immediately from the store
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -216,14 +333,16 @@ function PostEditor ({
     timezone: DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).zoneName,
     title: '',
     topics: topic ? [topic] : (generalTopic && postType !== 'action' ? [generalTopic] : []),
-    type: postType || (modal ? 'discussion' : 'chat'),
+    type: createPostType,
     votingMethod: VOTING_METHOD_SINGLE,
     ...(inputPost || {}),
     startTime: typeof inputPost?.startTime === 'string' ? new Date(inputPost.startTime) : inputPost?.startTime,
     endTime: typeof inputPost?.endTime === 'string' ? new Date(inputPost.endTime) : inputPost?.endTime
-  }), [inputPost?.id, postType, currentGroup, topic, generalTopic, context])
+  }), [inputPost?.id, createPostType, currentGroup, topic, generalTopic, context])
 
-  const [currentPost, setCurrentPost] = useState(initialPost)
+  const [currentPost, setCurrentPostState] = useState(initialPost)
+  const [editorInitialContent, setEditorInitialContent] = useState(initialPost.details || '')
+  const [typeSwitchDialog, setTypeSwitchDialog] = useState(null)
   const [invalidMessage, setInvalidMessage] = useState('')
   const [hasDescription, setHasDescription] = useState(initialPost.details?.length > 0) // TODO: an optimization to not run isValid no every character changed in the description
   const [announcementSelected, setAnnouncementSelected] = useState(false)
@@ -255,6 +374,31 @@ function PostEditor ({
 
   const myAdminGroups = useSelector(state => getMyAdminGroups(state, groupOptions))
 
+  const initialDraftPayload = useMemo(() => buildPostDraftPayload(initialPost), [initialPost])
+
+  const setCurrentPost = useCallback((value) => {
+    if (typeof value === 'function') {
+      setCurrentPostState(prev => {
+        const next = value(prev)
+        return next === prev ? prev : next
+      })
+    } else {
+      setCurrentPostState(prev => {
+        return value === prev ? prev : value
+      })
+    }
+  }, [])
+
+  const applyPostToEditor = useCallback((nextPost) => {
+    setCurrentPostState(nextPost)
+    const details = nextPost.details || ''
+    setHasDescription(hasDraftContent(details))
+    setEditorInitialContent(details)
+    editorRef.current?.setContent(details)
+    lastSavedChatDetailsRef.current = details
+    draftLoadedRef.current = true
+  }, [])
+
   /**
    * Filters the available group options to find only those groups
    * that are currently selected in the post.
@@ -265,6 +409,125 @@ function PostEditor ({
   Might be worth cross-checking the use of selectedGroups (which is consistent in data shape),
   and currentPost.groups (which is not consistent in data shape). https://github.com/Hylozoic/hylo/discussions/605
   */
+
+  useEffect(() => {
+    draftLoadedRef.current = false
+    lastSavedChatDetailsRef.current = initialPost.details || ''
+    chatComposerHadContentRef.current = false
+    postComposerHadBodyDraftRef.current = false
+  }, [draftContextKey])
+
+  useEffect(() => {
+    if (!serverDraftLoaded || draftLoadedRef.current) return
+    const activeType = createPostType
+    const serverDraft = loadDraftJSON()
+    const sessionDraft = inSessionDraftByTypeRef.current[activeType]
+    const mergedServerPost = mergeDraftIntoPost(initialPost, serverDraft, groupOptions)
+
+    const pendingTypeSwitch = pendingTypeSwitchRef.current
+    if (!editing && pendingTypeSwitch?.toType === activeType) {
+      pendingTypeSwitchRef.current = null
+      const carriedPost = mergeDraftIntoPost(initialPost, pendingTypeSwitch.carriedPayload, groupOptions)
+      const hasSavedForTarget = !!serverDraft && hasPostDraftPayloadContent(serverDraft)
+      const hasCarriedContent = hasPostDraftPayloadContent(pendingTypeSwitch.carriedPayload)
+
+      if (hasSavedForTarget && hasCarriedContent) {
+        setTypeSwitchDialog({
+          targetType: activeType,
+          carriedPost,
+          savedPost: mergedServerPost
+        })
+      }
+
+      applyPostToEditor(carriedPost)
+      return
+    }
+
+    const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
+    applyPostToEditor(mergedPost)
+  }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
+
+  // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
+  // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
+  // server load effect cannot overwrite their changes when the response eventually arrives.
+  //
+  // When the payload matches initial values we only reset local dirty state.
+  // When title and description are both empty, cancel pending saves and delete the server draft
+  // if the user had draft body content this session (see chat branch above for chat-only rules).
+  useEffect(() => {
+    if (isSubmittedRef.current) return
+    if (typeSwitchDialog) return
+    if (isChat) {
+      const details = currentPost.details || ''
+      const initialDetails = initialPost.details || ''
+      const chatPayload = buildPostDraftPayload(currentPost)
+
+      // Empty body: cancel pending debounced save (useDraft) and drop server draft if user had typed this visit.
+      // Must run before `details === initialDetails` — both are often '' after the user deletes everything.
+      if (!hasPostDraftPayloadContent(chatPayload)) {
+        saveServerDraft(JSON.stringify(chatPayload))
+        setIsDirty(false)
+        lastSavedChatDetailsRef.current = details
+        if (chatComposerHadContentRef.current) {
+          chatComposerHadContentRef.current = false
+          clearDraft({ deleteOnServer: true }).catch(() => {})
+        }
+        return
+      }
+
+      if (details === initialDetails) {
+        setIsDirty(false)
+        return
+      }
+
+      if (details === lastSavedChatDetailsRef.current) {
+        if (hasPostDraftPayloadContent(chatPayload)) {
+          chatComposerHadContentRef.current = true
+        }
+        setIsDirty(true)
+        return
+      }
+
+      chatComposerHadContentRef.current = true
+      draftLoadedRef.current = true
+      lastSavedChatDetailsRef.current = details
+      saveDraftJSON(chatPayload)
+      setIsDirty(true)
+      return
+    }
+
+    const payload = buildPostDraftPayload(currentPost)
+
+    if (!hasPostDraftPayloadContent(payload)) {
+      saveServerDraft(JSON.stringify(payload))
+      setIsDirty(false)
+      if (postComposerHadBodyDraftRef.current) {
+        postComposerHadBodyDraftRef.current = false
+        clearDraft({ deleteOnServer: true }).catch(() => {})
+      }
+      if (!isEqual(payload, initialDraftPayload)) {
+        draftLoadedRef.current = true
+      }
+      return
+    }
+
+    postComposerHadBodyDraftRef.current = true
+
+    if (!isEqual(payload, initialDraftPayload)) {
+      draftLoadedRef.current = true
+      saveDraftJSON(payload)
+      setIsDirty(true)
+      return
+    }
+    setIsDirty(false)
+  }, [currentPost, initialDraftPayload, initialPost.details, isChat, saveDraftJSON, saveServerDraft, setIsDirty, typeSwitchDialog, clearDraft])
+
+  // Ensure the chat composer keeps keyboard focus when navigating between rooms
+  useEffect(() => {
+    if (modal || !isChat) return
+    const id = setTimeout(() => editorRef.current?.focus('end'), 150)
+    return () => clearTimeout(id)
+  }, [draftContextKey, isChat, modal])
 
   const selectedGroups = useMemo(() => {
     if (!groupOptions || !currentPost?.groups) return []
@@ -403,9 +666,15 @@ function PostEditor ({
 
   useEffect(() => {
     if (currentTrack?.actionDescriptor && !currentPost.completionActionSettings) {
-      setCurrentPost({ ...currentPost, completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) } })
+      setCurrentPost(prev => {
+        if (prev.completionActionSettings) return prev
+        return {
+          ...prev,
+          completionActionSettings: { instructions: t('postCompletionActions.button.instructions', { actionDescriptor: currentTrack?.actionDescriptor }) }
+        }
+      })
     }
-  }, [currentTrack?.actionDescriptor, currentPost.completionActionSettings])
+  }, [currentPost.completionActionSettings, currentTrack?.actionDescriptor, setCurrentPost, t])
 
   useEffect(() => {
     if (autoFocus && isChat) {
@@ -438,12 +707,12 @@ function PostEditor ({
   }, [initialPost.type])
 
   useEffect(() => {
-    reset()
+    if (initialPost.id) reset()
   }, [initialPost.id])
 
   useEffect(() => {
-    setCurrentPost({ ...currentPost, linkPreview })
-  }, [linkPreview])
+    setCurrentPost(prev => (prev.linkPreview === linkPreview ? prev : { ...prev, linkPreview }))
+  }, [linkPreview, setCurrentPost])
 
   useEffect(() => {
     // When switching between chatrooms (route topic changes), reset topics to only the new route topic
@@ -475,6 +744,10 @@ function PostEditor ({
       return prev
     })
   }, [topic?.id])
+
+  useEffect(() => {
+    setCurrentPost(prev => (prev.sendAnnouncement === announcementSelected ? prev : { ...prev, sendAnnouncement: announcementSelected }))
+  }, [announcementSelected, setCurrentPost])
 
   // Auto-add topic when groups are selected
   // If we're in a chatroom (topic from URL exists), use that topic
@@ -518,12 +791,18 @@ function PostEditor ({
     editorRef.current?.setContent(initialPost.details)
     setHasDescription(initialPost.details?.length > 0)
     dispatch(clearLinkPreview())
-    setCurrentPost({ ...initialPost, linkPreview: null, linkPreviewFeatured: false })
+    setCurrentPost(() => ({ ...initialPost, linkPreview: null, linkPreviewFeatured: false }))
+    setEditorInitialContent(initialPost.details || '')
     dispatch(clearAttachments('post', 'new', 'image'))
     dispatch(clearAttachments('post', 'new', 'file'))
     setShowLocation(POST_TYPES_SHOW_LOCATION_BY_DEFAULT.includes(initialPost.type) || selectedLocation)
     setAnnouncementSelected(false)
     setShowAnnouncementModal(false)
+    clearDraft()
+    chatComposerHadContentRef.current = false
+    postComposerHadBodyDraftRef.current = false
+    isSubmittedRef.current = false
+    setIsDirty(false)
     if (autoFocus && isChat) {
       setTimeout(() => {
         editorRef.current && editorRef.current.focus()
@@ -534,7 +813,7 @@ function PostEditor ({
     } else {
       toFieldRef?.current?.reset()
     }
-  }, [initialPost, autoFocus, isChat])
+  }, [clearDraft, initialPost, autoFocus, isChat, selectedLocation, setCurrentPost])
 
   /**
    * Calculates an end time based on start time, preserving duration if both times exist
@@ -552,7 +831,18 @@ function PostEditor ({
   }, [currentPost.startTime, currentPost.endTime])
 
   const handlePostTypeSelection = useCallback((type) => {
-    setIsDirty(true)
+    if (type === currentPost.type) return
+
+    const currentPayload = buildPostDraftPayload(currentPost)
+    inSessionDraftByTypeRef.current[currentPost.type] = currentPayload
+    pendingTypeSwitchRef.current = {
+      fromType: currentPost.type,
+      toType: type,
+      carriedPayload: {
+        ...currentPayload,
+        type
+      }
+    }
 
     if (modal) {
       // Track the post type in the URL. So you can share the url with others. And maybe some other reason I'm forgetting right now
@@ -564,61 +854,43 @@ function PostEditor ({
       dispatch(changeQuerystringParam(urlLocation, 'newPostType', null, null, true))
     }
 
-    setCurrentPost({ ...currentPost, type })
+    setCurrentPost(prev => ({ ...prev, type }))
     if (type === 'chat') {
       setTimeout(() => { editorRef.current && editorRef.current.focus() }, 100)
     } else {
       setTimeout(() => { titleInputRef.current && titleInputRef.current.focus() }, 100)
     }
-  }, [currentPost, urlLocation])
+  }, [currentPost, dispatch, modal, navigate, setCurrentPost, urlLocation])
+
+  const handleKeepCurrentTypeContent = useCallback(() => {
+    if (typeSwitchDialog?.targetType && typeSwitchDialog?.carriedPost) {
+      inSessionDraftByTypeRef.current[typeSwitchDialog.targetType] = buildPostDraftPayload(typeSwitchDialog.carriedPost)
+    }
+    setTypeSwitchDialog(null)
+  }, [typeSwitchDialog])
+
+  const handleLoadSavedTypeDraft = useCallback(() => {
+    if (!typeSwitchDialog?.savedPost || !typeSwitchDialog?.targetType) {
+      setTypeSwitchDialog(null)
+      return
+    }
+
+    inSessionDraftByTypeRef.current[typeSwitchDialog.targetType] = buildPostDraftPayload(typeSwitchDialog.savedPost)
+    applyPostToEditor(typeSwitchDialog.savedPost)
+    setTypeSwitchDialog(null)
+  }, [applyPostToEditor, typeSwitchDialog])
 
   const handleTitleChange = useCallback((event) => {
     const title = event.target.value
-    if (title !== currentPost.title) {
-      title.length >= MAX_TITLE_LENGTH
-        ? setTitleLengthError(true)
-        : setTitleLengthError(false)
-      setIsDirty(true)
-      setCurrentPost({ ...currentPost, title })
-    }
-  }, [currentPost])
+    setTitleLengthError(title.length >= MAX_TITLE_LENGTH)
+    setCurrentPost(prev => (title === prev.title ? prev : { ...prev, title }))
+  }, [setCurrentPost])
 
-  const handleDetailsChange = useCallback((event) => {
-    const details = editorRef.current.getText()
-
-    // Track whether description has content for validation
-    setHasDescription(details.length > 0)
-
-    // Mark the form as dirty to enable save functionality
-    setIsDirty(true)
-  }, [])
-
-  const handleToggleContributions = useCallback(() => {
-    setCurrentPost({ ...currentPost, acceptContributions: !currentPost.acceptContributions })
-  }, [currentPost])
-
-  const handleStartTimeChange = (startTime) => {
-    // force endTime to track startTime
-    const endTime = calcEndTime(startTime)
-    validateTimeChange(startTime, endTime)
-    setCurrentPost({ ...currentPost, startTime, endTime })
-    endTimeRef.current.setValue(endTime)
-  }
-
-  const handleEndTimeChange = useCallback((endTime) => {
-    validateTimeChange(currentPost.startTime, endTime)
-    setCurrentPost({ ...currentPost, endTime })
-  }, [currentPost])
-
-  const handleDonationsLinkChange = useCallback((evt) => {
-    const donationsLink = evt.target.value
-    setCurrentPost({ ...currentPost, donationsLink })
-  }, [currentPost])
-
-  const handleProjectManagementLinkChange = useCallback((evt) => {
-    const projectManagementLink = evt.target.value
-    setCurrentPost({ ...currentPost, projectManagementLink })
-  }, [currentPost])
+  const handleDetailsChange = useCallback((html) => {
+    const detailsText = editorRef.current?.getText?.() || ''
+    setHasDescription(detailsText.length > 0)
+    setCurrentPost(prev => ({ ...prev, details: html }))
+  }, [setCurrentPost])
 
   const handleBudgetChange = useCallback((evt) => {
     const budget = evt.target.value
@@ -638,13 +910,42 @@ function PostEditor ({
     }
   }, [])
 
+  const handleToggleContributions = useCallback(() => {
+    setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
+  }, [setCurrentPost])
+
+  const handleStartTimeChange = (startTime) => {
+    // force endTime to track startTime
+    const endTime = calcEndTime(startTime)
+    validateTimeChange(startTime, endTime)
+    setCurrentPost(prev => ({ ...prev, startTime, endTime }))
+    endTimeRef.current.setValue(endTime)
+  }
+
+  const handleEndTimeChange = useCallback((endTime) => {
+    setCurrentPost(prev => {
+      validateTimeChange(prev.startTime, endTime)
+      return { ...prev, endTime }
+    })
+  }, [setCurrentPost, validateTimeChange])
+
+  const handleDonationsLinkChange = useCallback((evt) => {
+    const donationsLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, donationsLink }))
+  }, [setCurrentPost])
+
+  const handleProjectManagementLinkChange = useCallback((evt) => {
+    const projectManagementLink = evt.target.value
+    setCurrentPost(prev => ({ ...prev, projectManagementLink }))
+  }, [setCurrentPost])
+
   const handleLocationChange = useCallback((locationObject) => {
-    setCurrentPost({
-      ...currentPost,
+    setCurrentPost(prev => ({
+      ...prev,
       location: locationObject.fullText,
       locationId: locationObject.id
-    })
-  }, [currentPost])
+    }))
+  }, [setCurrentPost])
 
   // The useRef and useEventCallback is needed to make sure the currentPost.linkPreview is updated in the debounce function
   const debouncedFetchLinkPreview = useRef(
@@ -659,33 +960,27 @@ function PostEditor ({
   }, [currentPost.linkPreview, debouncedFetchLinkPreview])
 
   const handleAddTopic = useEventCallback((topic) => {
-    const { topics } = currentPost
-    if (topics?.length >= MAX_POST_TOPICS) return
-
-    setCurrentPost({ ...currentPost, topics: [...topics, topic] })
-    setIsDirty(true)
-  }, [currentPost])
+    setCurrentPost(prev => {
+      const topics = prev.topics || []
+      if (topics.length >= MAX_POST_TOPICS) return prev
+      return { ...prev, topics: [...topics, topic] }
+    })
+  }, [setCurrentPost])
 
   const handleFeatureLinkPreview = useCallback(featured => {
-    setCurrentPost({ ...currentPost, linkPreviewFeatured: featured })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, linkPreviewFeatured: featured }))
+  }, [setCurrentPost])
 
   const handleRemoveLinkPreview = useCallback(() => {
     dispatch(removeLinkPreview())
-    setCurrentPost({ ...currentPost, linkPreview: null, linkPreviewFeatured: false })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, linkPreview: null, linkPreviewFeatured: false }))
+  }, [dispatch, setCurrentPost])
 
   const handleAddToOption = useCallback((toOptions) => {
     const groups = uniqBy('id', toOptions.map(toOption => toOption.group))
     const topics = uniqBy('id', toOptions.filter(toOption => toOption.topic).map(toOption => toOption.topic))
-    const hasChanged = !isEqual(initialPost.groups, groups) || !isEqual(initialPost.topics, topics)
-
-    setCurrentPost({ ...currentPost, groups, topics })
-
-    if (hasChanged) {
-      setIsDirty(true)
-    }
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, groups, topics }))
+  }, [setCurrentPost])
 
   /**
    * Custom delete handler for ToField that implements conditional pill removal
@@ -720,14 +1015,12 @@ function PostEditor ({
   }, [])
 
   const togglePublic = useCallback(() => {
-    const { isPublic } = currentPost
-    setCurrentPost({ ...currentPost, isPublic: !isPublic })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, isPublic: !prev.isPublic }))
+  }, [setCurrentPost])
 
   const toggleAnonymousVote = useCallback(() => {
-    const { isAnonymousVote } = currentPost
-    setCurrentPost({ ...currentPost, isAnonymousVote: !isAnonymousVote })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, isAnonymousVote: !prev.isAnonymousVote }))
+  }, [setCurrentPost])
 
   // const toggleStrictProposal = () => {
   //   const { isStrictProposal } = currentPost
@@ -735,12 +1028,12 @@ function PostEditor ({
   // }
 
   const handleUpdateProjectMembers = useCallback((members) => {
-    setCurrentPost({ ...currentPost, members })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, members }))
+  }, [setCurrentPost])
 
   const handleUpdateEventInvitations = useCallback((eventInvitations) => {
-    setCurrentPost({ ...currentPost, eventInvitations })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, eventInvitations }))
+  }, [setCurrentPost])
 
   /**
    * Determines if the current form state is valid for submission
@@ -902,10 +1195,23 @@ function PostEditor ({
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
+    // Prevent any draft saves triggered by re-renders during or after the mutation.
+    isSubmittedRef.current = true
+    // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+    cancelPendingSave()
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
-    if (afterSave) afterSave(savedPost.payload.data.createPost)
-  }, [afterSave, announcementSelected, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, fileAttachments, imageAttachments, isEditing, onSave, selectedLocation])
+    if (!savedPost.error) {
+      await clearDraft()
+      setIsDirty(false)
+      if (afterSave) {
+        const returnedPost = isEditing
+          ? savedPost?.payload?.data?.updatePost
+          : savedPost?.payload?.data?.createPost
+        afterSave(returnedPost)
+      }
+    }
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks
@@ -924,6 +1230,12 @@ function PostEditor ({
     }
   }, [announcementSelected, currentPost.type, currentPost.proposalOptions, isEditing, isValid, initialPost.proposalOptions, save, loading])
 
+  // Allow parents (e.g. CreateModal) to trigger save/reset flows without duplicating editor logic
+  useImperativeHandle(ref, () => ({
+    submit: () => doSave(),
+    resetToInitial: () => reset()
+  }))
+
   const buttonLabel = useCallback(() => {
     if (postPending) return t('Posting...')
     if (isEditing) return t('Save')
@@ -935,12 +1247,12 @@ function PostEditor ({
   }, [showAnnouncementModal])
 
   const handleSetQuorum = useCallback((quorum) => {
-    setCurrentPost({ ...currentPost, quorum })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, quorum }))
+  }, [setCurrentPost])
 
   const handleSetProposalType = useCallback((votingMethod) => {
-    setCurrentPost({ ...currentPost, votingMethod })
-  }, [currentPost])
+    setCurrentPost(prev => ({ ...prev, votingMethod }))
+  }, [setCurrentPost])
 
   /**
    * Applies a proposal template to the current post
@@ -948,20 +1260,21 @@ function PostEditor ({
    */
   const handleUseTemplate = useCallback((template) => {
     const templateData = PROPOSAL_TEMPLATES[template]
-    setCurrentPost({
-      ...currentPost,
+    setCurrentPost(prev => ({
+      ...prev,
       proposalOptions: templateData.form.proposalOptions.map(option => { return { ...option, tempId: generateTempID() } }),
-      title: currentPost.title.length > 0 ? currentPost.title : templateData.form.title,
+      title: prev.title.length > 0 ? prev.title : templateData.form.title,
       quorum: templateData.form.quorum,
       votingMethod: templateData.form.votingMethod
-    })
-  }, [currentPost])
+    }))
+  }, [setCurrentPost])
 
   const handleAddOption = useCallback(() => {
-    const { proposalOptions } = currentPost
-    const newOptions = [...proposalOptions, { text: '', emoji: '', color: '', tempId: generateTempID() }]
-    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
-  }, [currentPost])
+    setCurrentPost(prev => {
+      const newOptions = [...(prev.proposalOptions || []), { text: '', emoji: '', color: '', tempId: generateTempID() }]
+      return { ...prev, proposalOptions: newOptions }
+    })
+  }, [setCurrentPost])
 
   /**
    * Checks if the current user can make an announcement in all selected groups
@@ -981,6 +1294,7 @@ function PostEditor ({
   const postLocation = currentPost.location || selectedLocation
   const locationPrompt = currentPost.type === 'proposal' ? t('Is there a relevant location for this proposal?') : t('Where is your {{type}} located?', { type: currentPost.type })
   const hasStripeAccount = get('hasStripeAccount', currentUser)
+
   /**
    * Handles the To field container click, focusing the actual ToField
    * This improves UX by making the entire container clickable
@@ -1125,7 +1439,7 @@ function PostEditor ({
               onAltEnter={doSave}
               onAddTopic={handleAddTopic}
               onAddLink={handleAddLinkPreview}
-              contentHTML={currentPost.details}
+              contentHTML={editorInitialContent}
               groupIds={groupIds}
               menuClassName={cn({ 'pr-16': isChat })}
               showMenu
@@ -1148,7 +1462,6 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
-          onChange={() => setIsDirty(true)}
         />
         <AttachmentManager
           type='post'
@@ -1157,7 +1470,6 @@ function PostEditor ({
           showAddButton
           showLabel
           showLoading
-          onChange={() => setIsDirty(true)}
         />
       </div>
       {currentPost.type === 'project' && (
@@ -1233,9 +1545,14 @@ function PostEditor ({
                 <Select
                   value={option.emoji || 'no_emoji'}
                   onValueChange={(emoji) => {
-                    const newOptions = [...currentPost.proposalOptions]
-                    newOptions[index].emoji = emoji === 'no_emoji' ? '' : emoji
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                    setCurrentPost(prev => {
+                      const newOptions = [...(prev.proposalOptions || [])]
+                      newOptions[index] = {
+                        ...newOptions[index],
+                        emoji: emoji === 'no_emoji' ? '' : emoji
+                      }
+                      return { ...prev, proposalOptions: newOptions }
+                    })
                   }}
                 >
                   <SelectTrigger className='w-fit p-2 border-2 border-foreground/30 rounded-md'>
@@ -1260,21 +1577,28 @@ function PostEditor ({
                   placeholder={t('Describe option')}
                   value={option.text}
                   onChange={(evt) => {
-                    const newOptions = [...currentPost.proposalOptions]
-                    newOptions[index].text = evt.target.value
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
+                    const value = evt.target.value
+                    setCurrentPost(prev => {
+                      const newOptions = [...(prev.proposalOptions || [])]
+                      newOptions[index] = {
+                        ...newOptions[index],
+                        text: value
+                      }
+                      return { ...prev, proposalOptions: newOptions }
+                    })
                   }}
                   disabled={loading}
                 />
                 <div
                   className='p-2 hover:cursor-pointer hover:scale-125 transition-all'
                   onClick={() => {
-                    const newOptions = currentPost.proposalOptions.filter(element => {
-                      if (option.id) return element.id !== option.id
-                      return element.tempId !== option.tempId
+                    setCurrentPost(prev => {
+                      const newOptions = (prev.proposalOptions || []).filter(element => {
+                        if (option.id) return element.id !== option.id
+                        return element.tempId !== option.tempId
+                      })
+                      return { ...prev, proposalOptions: newOptions }
                     })
-
-                    setCurrentPost({ ...currentPost, proposalOptions: newOptions })
                   }}
                 >
                   <X className='w-4 h-4 text-foreground' />
@@ -1518,6 +1842,32 @@ function PostEditor ({
         type={currentPost.type}
         valid={isValid}
       />
+      <Dialog open={!!typeSwitchDialog} onOpenChange={(open) => !open && handleKeepCurrentTypeContent()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Load saved {{type}} draft?', { type: typeSwitchDialog?.targetType ? t(typeSwitchDialog?.targetType) : t('post') })}</DialogTitle>
+            <DialogDescription>
+              {t('You already have a saved draft for this post type. Keep what you are currently writing, or replace it with the saved draft.')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm border border-foreground/20 hover:bg-foreground/10 transition-colors'
+              onClick={handleKeepCurrentTypeContent}
+            >
+              {t('Keep what I am writing')}
+            </button>
+            <button
+              type='button'
+              className='rounded-lg px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive/80 transition-colors'
+              onClick={handleLoadSavedTypeDraft}
+            >
+              {t('Load saved draft')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -1530,23 +1880,40 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   const { completionAction, completionActionSettings } = currentPost
 
   const handleCompletionActionChange = useCallback((value) => {
-    const completionActionSettings = {
-      instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
-    }
-    if (value === 'selectMultiple' || value === 'selectOne') {
-      completionActionSettings.options = []
-    }
-    setCurrentPost({ ...currentPost, completionAction: value, completionActionSettings })
-  }, [currentPost, setCurrentPost, currentTrack?.actionDescriptor, t])
+    setCurrentPost(prev => {
+      const nextSettings = {
+        instructions: t('postCompletionActions.' + value + '.instructions', { actionDescriptor: currentTrack?.actionDescriptor })
+      }
+      if (value === 'selectMultiple' || value === 'selectOne') {
+        nextSettings.options = []
+      }
+      return { ...prev, completionAction: value, completionActionSettings: nextSettings }
+    })
+  }, [currentTrack?.actionDescriptor, setCurrentPost, t])
 
   const handleAddOption = useCallback(() => {
-    const newOptions = [...completionActionSettings.options, '']
-    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
-  }, [completionActionSettings, currentPost, setCurrentPost])
+    setCurrentPost(prev => {
+      const options = [...(prev.completionActionSettings?.options || []), '']
+      return {
+        ...prev,
+        completionActionSettings: {
+          ...(prev.completionActionSettings || {}),
+          options
+        }
+      }
+    })
+  }, [setCurrentPost])
 
   const handleInstructionsChange = useCallback((evt) => {
-    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, instructions: evt.target.value } })
-  }, [completionActionSettings, currentPost, setCurrentPost])
+    const value = evt.target.value
+    setCurrentPost(prev => ({
+      ...prev,
+      completionActionSettings: {
+        ...(prev.completionActionSettings || {}),
+        instructions: value
+      }
+    }))
+  }, [setCurrentPost])
 
   return (
     <div className='flex flex-col items-start border-2 border-dashed border-foreground/30 transition-all bg-background rounded-md p-3 mt-4 mb-2 gap-2'>
@@ -1582,20 +1949,34 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
                   placeholder={t('Add description')}
                   value={option}
                   onChange={(evt) => {
-                    const newOptions = [...completionActionSettings.options]
-                    newOptions[index] = evt.target.value
-                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
+                    const value = evt.target.value
+                    setCurrentPost(prev => {
+                      const options = [...(prev.completionActionSettings?.options || [])]
+                      options[index] = value
+                      return {
+                        ...prev,
+                        completionActionSettings: {
+                          ...(prev.completionActionSettings || {}),
+                          options
+                        }
+                      }
+                    })
                   }}
                   disabled={loading}
                 />
                 <Icon
                   name='Ex'
                   onClick={() => {
-                    const newOptions = completionActionSettings?.options?.filter(element => {
-                      return element !== option
+                    setCurrentPost(prev => {
+                      const options = (prev.completionActionSettings?.options || []).filter(element => element !== option)
+                      return {
+                        ...prev,
+                        completionActionSettings: {
+                          ...(prev.completionActionSettings || {}),
+                          options
+                        }
+                      }
                     })
-
-                    setCurrentPost({ ...currentPost, completionActionSettings: { ...completionActionSettings, options: newOptions } })
                   }}
                 />
               </div>
@@ -1611,4 +1992,4 @@ function CompletionActionSection ({ currentPost, loading, setCurrentPost }) {
   )
 }
 
-export default PostEditor
+export default forwardRef(PostEditorInner)
