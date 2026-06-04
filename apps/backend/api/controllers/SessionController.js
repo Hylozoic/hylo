@@ -1,6 +1,8 @@
 import passport from 'passport'
 import appleSigninAuth from 'apple-signin-auth'
 import crypto from 'crypto'
+import OIDCAdapter from '../services/oidc/KnexAdapter'
+import { mintTokensForUser } from '../services/OIDCTokens'
 
 const rollbar = require('../../lib/rollbar')
 
@@ -117,7 +119,16 @@ const finishOAuth = function (strategy, req, res, next) {
         ? upsertLinkedAccount
         : upsertUser)(req, provider, profile)
       .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
-      .then(() => respond())
+      .then(async () => {
+        // Mobile token-auth clients opt in via header and get a token pair back;
+        // existing (web/popup) callers fall through to the normal response.
+        if (req.get('X-Hylo-Token-Auth') === '1') {
+          const authedUser = await User.find(req.session.userId)
+          res.ok(await mintTokensForUser(authedUser))
+          return resolve()
+        }
+        return respond()
+      })
       .catch(respond)
     }
 
@@ -149,6 +160,49 @@ module.exports = {
     })
   },
 
+  // First-party native login: validates email/password the same way as `create` but
+  // returns an OAuth token pair (for the mobile app) instead of establishing a cookie
+  // session. The mobile app stores these in the device Keychain.
+  nativeLogin: async function (req, res) {
+    try {
+      const email = req.param('email') ? req.param('email').toLowerCase() : null
+      const password = req.param('password')
+      const user = await User.authenticate(email, password)
+      // Mirror UserSession.login: a successful login reactivates a self-deactivated
+      // account. Deleted/pending accounts can't authenticate, so this is safe.
+      await user.save({ active: true, last_login_at: new Date() }, { patch: true, autoRefresh: true })
+      const tokens = await mintTokensForUser(user)
+      return res.ok(tokens)
+    } catch (err) {
+      // 422 means 'well-formed but semantically invalid'
+      return res.status(422).send(err.message)
+    }
+  },
+
+  // Exchanges a valid mobile access token (Authorization: Bearer) for a server session,
+  // emitting a Set-Cookie. The mobile app calls this just before loading the WebView so
+  // the embedded web app is authenticated with a freshly-derived session.
+  fromToken: async function (req, res) {
+    try {
+      const match = (req.headers.authorization || '').match(/^Bearer (.+)$/i)
+      if (!match) return res.status(401).json({ error: 'Missing bearer token' })
+
+      const accessToken = await (new OIDCAdapter('AccessToken')).find(match[1])
+      const valid = accessToken && accessToken.exp && new Date(accessToken.exp * 1000) > Date.now()
+      if (!valid) return res.status(401).json({ error: 'Invalid token' })
+
+      // Skip the active-user filter (third arg false), matching how checkJWT resolves
+      // the authenticated user from a token.
+      const user = await User.find(accessToken.accountId, {}, false)
+      if (!user) return res.status(401).json({ error: 'Unknown user' })
+
+      await UserSession.login(req, user, 'token')
+      return res.ok({ success: true })
+    } catch (err) {
+      return res.status(401).json({ error: err.message })
+    }
+  },
+
   finishAppleOAuth: async function (req, res, next) {
     const { nonce, user, identityToken, email, fullName } = req.body
     // Check nonce or identityToken with nonce or audience (clientId) or both? See:
@@ -167,7 +221,15 @@ module.exports = {
         email,
         name: fullName.givenName + ' ' + fullName.familyName
       })
-        .then(user => res.ok(user))
+        .then(async result => {
+          // Mobile token-auth clients opt in via header and get a token pair back;
+          // existing (web) callers are unaffected.
+          if (req.get('X-Hylo-Token-Auth') === '1') {
+            const authedUser = await User.find(req.session.userId)
+            return res.ok(await mintTokensForUser(authedUser))
+          }
+          return res.ok(result)
+        })
         .catch(function (err) {
           // 422 means 'well-formed but semantically invalid'
           res.status(422).send(err.message)

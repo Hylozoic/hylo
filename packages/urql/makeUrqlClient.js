@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createClient, fetchExchange } from 'urql'
+import { authExchange } from '@urql/exchange-auth'
 import { getIntrospectionQuery } from 'graphql'
 import { cacheExchange } from '@urql/exchange-graphcache'
 import { devtoolsExchange } from '@urql/devtools'
@@ -7,6 +8,8 @@ import { devtoolsExchange } from '@urql/devtools'
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
 import { setSessionCookie } from 'util/session'
+import { loadTokens, getCachedTokens, saveTokens, clearTokens } from 'util/tokenStore'
+import { refreshTokens } from 'util/authApi'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -48,10 +51,50 @@ export default async function makeUrqlClient ({
     ...(providedStorageAdapter ? { storage: providedStorageAdapter } : {})
   })
 
+  // Bearer token auth (mobile token-auth path). Attaches the Keychain access
+  // token to every operation and refreshes it transparently. When no token is
+  // present (e.g. the cookie-based signup flow), operations pass through
+  // unchanged and rely on the session cookie as before.
+  const auth = authExchange(async (utils) => {
+    await loadTokens()
+
+    const shouldRefresh = (tokens) =>
+      tokens?.refresh_token && tokens?.expires_at && Date.now() > (tokens.expires_at - 60000)
+
+    return {
+      addAuthToOperation (operation) {
+        const tokens = getCachedTokens()
+        if (!tokens?.access_token) return operation
+        return utils.appendHeaders(operation, {
+          Authorization: `Bearer ${tokens.access_token}`
+        })
+      },
+      willAuthError () {
+        return shouldRefresh(getCachedTokens())
+      },
+      didAuthError (error) {
+        return error?.response?.status === 401 ||
+          error?.graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED')
+      },
+      async refreshAuth () {
+        const tokens = getCachedTokens()
+        if (!tokens?.refresh_token) return
+        try {
+          const refreshed = await refreshTokens(tokens.refresh_token)
+          await saveTokens({ ...tokens, ...refreshed })
+        } catch (err) {
+          // Refresh token is dead — clear so the app drops to the logged-out state.
+          await clearTokens()
+        }
+      }
+    }
+  })
+
   const client = createClient({
     exchanges: [
       devtoolsExchange,
       cache,
+      auth,
       fetchExchange,
       providedSubscriptionExchange
     ].filter(Boolean), // Filter out undefined/null exchanges (e.g., when subscriptionExchange is not provided)

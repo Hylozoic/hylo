@@ -3,6 +3,9 @@ import { Platform } from 'react-native'
 import Config from 'react-native-config'
 import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
+import apiHost from 'util/apiHost'
+import { getTokens, saveTokens } from 'util/tokenStore'
+import { refreshTokens } from 'util/authApi'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -60,6 +63,48 @@ export async function ensureWebViewCookies () {
   await syncCookiesToWebView(cookieObj).catch(err =>
     console.warn('Failed to pre-populate WebView cookie jar:', err)
   )
+}
+
+async function postSessionFromToken (accessToken) {
+  return fetch(`${apiHost}/noo/session/from-token`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`
+    }
+  })
+}
+
+/**
+ * Token-auth WebView handoff: exchanges the native access token for a server
+ * session cookie (via POST /noo/session/from-token), persists it, and mirrors it
+ * into the WebView's cookie jar so the web app loads authenticated with no login
+ * flash. Returns the cookie string, or null when there's no token or the
+ * exchange fails (the caller then falls back to any existing cookie).
+ *
+ * Retries once after a transparent refresh if the access token has expired.
+ */
+export async function sessionCookieFromToken () {
+  let tokens = await getTokens()
+  if (!tokens?.access_token) return null
+
+  try {
+    let resp = await postSessionFromToken(tokens.access_token)
+
+    if (resp.status === 401 && tokens.refresh_token) {
+      const refreshed = await refreshTokens(tokens.refresh_token)
+      tokens = await saveTokens({ ...tokens, ...refreshed })
+      resp = await postSessionFromToken(tokens.access_token)
+    }
+
+    if (!resp.ok) return null
+
+    await setSessionCookie(resp)
+    return getSessionCookie()
+  } catch (err) {
+    console.warn('Failed to derive WebView session from token:', err)
+    return null
+  }
 }
 
 /**
