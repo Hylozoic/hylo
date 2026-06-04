@@ -32,22 +32,49 @@ class Member extends React.Component {
       currentUserResponsibilities,
       roles,
       showAnswers,
+      square,
       t
     } = this.props
 
     // Use data from Redux store if available, otherwise fall back to the member prop
     const { id, name, location, tagline, avatarUrl, bannerUrl } = member
 
+    const removeDropdown = currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS) && (
+      <Dropdown
+        id='member-dropdown'
+        alignRight
+        className={classes.dropdown}
+        toggleChildren={<Icon name='More' />}
+        items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember), red: true }]}
+      />
+    )
+
+    // Single-column groups render members as a grid of square cards.
+    if (square) {
+      return (
+        <div className={cn('relative flex flex-col aspect-square bg-card/100 rounded-lg p-3 shadow-lg transition-all hover:scale-102 overflow-hidden', className)} data-testid='member-card'>
+          <div className='absolute inset-0 w-full h-full bg-cover bg-center z-0 opacity-30' style={bgImageStyle(bannerUrl)} />
+          {removeDropdown}
+          <div onClick={goToPerson(id, group.slug)} className='relative z-10 h-full flex flex-col items-center justify-center text-center gap-1 cursor-pointer'>
+            <div className='w-16 h-16 rounded-full bg-cover bg-center border-2 border-card shadow-md' style={bgImageStyle(avatarUrl)} />
+            <div className='flex flex-wrap items-center justify-center gap-1'>
+              <span className='font-bold text-sm leading-tight'>{name}</span>
+              <div className='text-sm inline-flex gap-1'>
+                {roles.map(role => (
+                  <BadgeEmoji key={role.id + role.common} expanded {...role} responsibilities={role.responsibilities} id={id} />
+                ))}
+              </div>
+            </div>
+            {location && <div className='text-xs text-foreground/70 flex items-center gap-1 max-w-full'><MapPin className='w-3 h-3 shrink-0' /> <span className='truncate'>{location}</span></div>}
+            {tagline && <div className='text-xs text-foreground/90 line-clamp-2'>{tagline}</div>}
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className={cn('flex flex-col gap-2 bg-card/100 rounded-lg p-2 shadow-lg hover:bg-card/100 transition-all hover:scale-102 relative overflow-hidden', className)} data-testid='member-card'>
-        {(currentUserResponsibilities.includes(RESP_REMOVE_MEMBERS)) &&
-          <Dropdown
-            id='member-dropdown'
-            alignRight
-            className={classes.dropdown}
-            toggleChildren={<Icon name='More' />}
-            items={[{ icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove'), onClick: (e) => this.removeOnClick(e, id, name, removeMember), red: true }]}
-          />}
+        {removeDropdown}
         <div onClick={goToPerson(id, group.slug)} className='flex flex-row gap-2 z-10 relative cursor-pointer'>
           <div className='min-w-16 min-h-16 max-h-16 rounded-full bg-cover' style={bgImageStyle(avatarUrl)} />
           <div className='flex flex-col gap-0 justify-center'>
@@ -97,7 +124,8 @@ Member.propTypes = {
     avatarUrl: string,
     bannerUrl: string
   }).isRequired,
-  showAnswers: bool
+  showAnswers: bool,
+  square: bool
 }
 
 export default withTranslation()(Member)

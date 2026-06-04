@@ -27,6 +27,10 @@ import { pinGroup } from 'store/actions/pinGroup'
 
 const NotificationsDropdown = React.lazy(() => import('../GlobalNav/NotificationsDropdown'))
 
+// Framed tile for system (non-group) icons — mirrors the bg-primary tiles in the GlobalNav sidebar,
+// so they read as the same kind of element as the group/avatar tabs rather than bare glyphs.
+const SYSTEM_ICON_FRAME = 'flex items-center justify-center w-[26px] h-[26px] rounded-sm bg-primary text-primary-foreground shadow-sm'
+
 function TabAvatar ({ img, label, size = 26, className }) {
   const isDefaultAvatar = img === DEFAULT_AVATAR
   if (img && !isDefaultAvatar) {
@@ -112,7 +116,7 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
           : img
             ? <TabAvatar img={img} label={label} />
             : children
-              ? <span className='w-[26px] h-[26px] flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5'>{children}</span>
+              ? <span className={cn(SYSTEM_ICON_FRAME, '[&>svg]:w-4 [&>svg]:h-4')}>{children}</span>
               : null}
         {(badgeCount > 0 || badgeCount === '-') && (
           <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
@@ -261,6 +265,10 @@ export default function TopNav ({ currentUser }) {
     }
   }, [fixedTabs.length, groupTabs.length])
 
+  // My Home renders as the first item in the bar, ahead of notifications.
+  const homeTab = fixedTabs.find(tab => tab.key === 'home')
+  const nonHomeFixedTabs = fixedTabs.filter(tab => tab.key !== 'home')
+
   const visibleGroups = groupTabs.slice(0, visibleGroupCount)
   const overflowGroups = groupTabs.slice(visibleGroupCount)
   const hasOverflow = overflowGroups.length > 0
@@ -278,18 +286,33 @@ export default function TopNav ({ currentUser }) {
         boxShadow: '0 1px 3px hsl(var(--darkening) / 0.15)'
       }}
     >
-      <div className='absolute inset-0 bg-theme-highlight/30 dark:bg-theme-highlight/50 z-0' />
+      <div className='absolute inset-0 bg-gradient-to-b from-theme-background/75 to-theme-highlight dark:bg-gradient-to-b dark:from-theme-background/90 dark:to-theme-highlight/100 z-0' />
+
+      {/* User home — first item */}
+      {homeTab && (
+        <TopNavTab
+          label={homeTab.label}
+          img={homeTab.img}
+          url={homeTab.url}
+          badgeCount={homeTab.badgeCount}
+          isActive={currentBase === homeTab.url}
+          onNavigate={handleNavigate}
+          iconOnly={iconOnly}
+        />
+      )}
 
       {/* Notifications button */}
       <Suspense fallback={
-        <div className='relative z-10 flex items-center px-3 border-r border-foreground/10'>
-          <Bell className='w-7 h-7' />
+        <div className='relative z-10 flex items-center px-2 border-r border-foreground/10'>
+          <span className={SYSTEM_ICON_FRAME}><Bell className='w-4 h-4' /></span>
         </div>
       }
       >
         <NotificationsDropdown renderToggleChildren={showBadge =>
-          <div className='relative z-10 flex items-center px-3 border-r border-foreground/10 cursor-pointer hover:bg-foreground/10 transition-colors'>
-            <BadgedIcon name='Notifications' className='!text-foreground cursor-pointer text-2xl' />
+          <div className='relative z-10 flex items-center px-2 border-r border-foreground/10 cursor-pointer hover:bg-foreground/5 transition-colors'>
+            <span className={SYSTEM_ICON_FRAME}>
+              <BadgedIcon name='Notifications' className='!text-primary-foreground cursor-pointer text-base' />
+            </span>
           </div>}
         />
       </Suspense>
@@ -299,7 +322,7 @@ export default function TopNav ({ currentUser }) {
         ref={tabContainerRef}
         className='relative z-10 flex items-stretch flex-1 overflow-hidden'
       >
-        {fixedTabs.map(tab => (
+        {nonHomeFixedTabs.map(tab => (
           <TopNavTab
             key={tab.key}
             label={tab.label}
@@ -337,18 +360,18 @@ export default function TopNav ({ currentUser }) {
           <PopoverTrigger asChild>
             <div
               className={cn(
-                'relative z-10 flex items-center gap-1 h-full px-2 cursor-pointer select-none shrink-0',
+                'relative z-10 flex items-center h-full px-2 cursor-pointer select-none shrink-0',
                 'border-r border-foreground/10 transition-colors duration-150',
-                'hover:bg-foreground/10'
+                'hover:bg-foreground/5'
               )}
             >
-              <div className='relative'>
-                <Layers className='w-5 h-5 text-foreground/60' />
+              <div className='relative flex items-center gap-1 h-[26px] px-2 rounded-md bg-primary text-primary-foreground shadow-sm'>
+                <Layers className='w-4 h-4' />
+                <span className='text-xs font-bold'>{overflowGroups.length}</span>
                 {overflowHasBadge && (
                   <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
                 )}
               </div>
-              <span className='text-xs font-bold text-foreground/60'>{overflowGroups.length}</span>
             </div>
           </PopoverTrigger>
           <PopoverContent side='bottom' align='start' className='w-64 max-h-80 overflow-y-auto p-1'>
@@ -398,11 +421,11 @@ export default function TopNav ({ currentUser }) {
       )}
 
       {/* Action buttons */}
-      <div className='relative z-10 flex items-center gap-1 px-1.5 border-l border-foreground/10'>
+      <div className='relative z-10 flex items-center gap-1.5 px-2 border-l border-foreground/10'>
         <Popover>
           <PopoverTrigger>
-            <div className='flex items-center justify-center w-8 h-8 rounded hover:bg-foreground/10 transition-colors cursor-pointer'>
-              <PlusCircle className='w-5 h-5' />
+            <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
+              <PlusCircle />
             </div>
           </PopoverTrigger>
           <PopoverContent side='bottom' align='end'>
@@ -412,15 +435,15 @@ export default function TopNav ({ currentUser }) {
 
         <SettingsMenu
           currentUser={currentUser}
-          triggerClassName='flex items-center justify-center w-8 h-8 rounded hover:bg-foreground/10 transition-colors cursor-pointer'
+          triggerClassName={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}
           contentSide='bottom'
           contentAlign='end'
         />
 
         <Popover>
           <PopoverTrigger>
-            <div className='flex items-center justify-center w-8 h-8 rounded hover:bg-foreground/10 transition-colors cursor-pointer'>
-              <HelpCircle className='w-5 h-5' />
+            <div className={cn(SYSTEM_ICON_FRAME, 'cursor-pointer transition-all hover:drop-shadow [&>svg]:w-4 [&>svg]:h-4')}>
+              <HelpCircle />
             </div>
           </PopoverTrigger>
           <PopoverContent side='bottom' align='end'>

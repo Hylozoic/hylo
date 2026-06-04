@@ -1,5 +1,5 @@
 import { cn, bgImageStyle } from 'util/index'
-import { Bell, Settings, Users, Copy, ExternalLink, GripHorizontal, Plus, Pencil, Trash, House, X, Grid3x3 } from 'lucide-react'
+import { Bell, Settings, Users, GripHorizontal, Plus, Pencil, Trash, House, X, Grid3x3 } from 'lucide-react'
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -153,7 +153,7 @@ function AddViewCard ({ parentId, handlePositionedAdd, onShowAllViews, t, isChat
     <div
       className={cn(
         'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-foreground/20',
-        'p-2 gap-1.5 w-[calc(50%-6px)] aspect-square sm:p-3 sm:gap-3 sm:w-[240px] sm:h-[240px] sm:aspect-auto'
+        'p-2 gap-1.5 w-[calc(50%-6px)] aspect-[16/9] sm:p-3 sm:gap-3 sm:w-[230px] sm:h-[129px] sm:aspect-auto'
       )}
     >
       <button
@@ -179,7 +179,6 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
   const title = widget.title?.startsWith('widget-') ? t(widget.title) : widget.title
   const externalLink = widget.customView?.externalLink || widget.url
   const isExternal = !!(widget.customView?.externalLink || (widget.url && widget.url.startsWith('http')))
-  const [copied, setCopied] = useState(false)
   const isWelcome = widget.view === 'welcome'
   const welcomeText = isWelcome && group?.welcomePage
     ? group.welcomePage.replace(/<[^>]*>/g, '').trim()
@@ -209,13 +208,6 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
     }
   }
 
-  const handleCopy = (e) => {
-    e.stopPropagation()
-    navigator.clipboard.writeText(externalLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
   return (
     <div
       ref={setNodeRef}
@@ -223,7 +215,7 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
       onClick={handleClick}
       className={cn(
         'group relative flex flex-col rounded-xl border-2 border-foreground/10 bg-card/50',
-        'transition-all p-2 w-[calc(50%-6px)] aspect-square sm:p-3 sm:w-[240px] sm:h-[240px] sm:aspect-auto',
+        'transition-all p-2 w-[calc(50%-6px)] aspect-[16/9] sm:p-3 sm:w-[230px] sm:h-[129px] sm:aspect-auto',
         isEditing ? 'cursor-grab' : 'cursor-pointer hover:border-foreground/30 hover:shadow-md'
       )}
     >
@@ -241,34 +233,20 @@ function WidgetCard ({ widget, groupSlug, groupId, navigate, t, isEditing, group
 
       {/* Icon + title centered in available space */}
       <div className='flex-1 flex flex-col items-center justify-center gap-1.5 text-center'>
-        <span className='text-foreground/60 flex items-center justify-center w-[32px] h-[32px] [&>svg]:!w-full [&>svg]:!h-full [&>span]:!text-[32px] [&>span]:!leading-none'>
-          <WidgetIconResolver widget={widget} />
-        </span>
+        {widget.viewGroup
+          ? (
+            <div
+              className='w-[50px] h-[50px] rounded-lg bg-cover bg-center shrink-0 border border-foreground/10'
+              style={bgImageStyle(widget.avatarUrl)}
+            />
+            )
+          : (
+            <span className='text-foreground/60 flex items-center justify-center w-[32px] h-[32px] [&>svg]:!w-full [&>svg]:!h-full [&>span]:!text-[32px] [&>span]:!leading-none'>
+              <WidgetIconResolver widget={widget} />
+            </span>
+            )}
         <h3 className='text-base font-semibold text-foreground line-clamp-2'>{title}</h3>
       </div>
-
-      {/* Content pinned to bottom */}
-      {!isEditing && isExternal && externalLink && (
-        <div className='flex flex-col gap-2 mt-auto'>
-          <div className='flex items-center gap-1.5 bg-foreground/5 rounded-lg px-2 py-1.5'>
-            <span className='truncate text-xs text-foreground/50 flex-1'>{copied ? t('Copied to clipboard') : externalLink}</span>
-            <button
-              onClick={handleCopy}
-              className='shrink-0 p-1 rounded hover:bg-foreground/10 transition-colors'
-              title={copied ? t('Copied!') : t('Copy link')}
-            >
-              <Copy className='w-3.5 h-3.5 text-foreground/40' />
-            </button>
-          </div>
-          <button
-            onClick={handleClick}
-            className='w-full text-xs py-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground/80 transition-colors flex items-center justify-center gap-1'
-          >
-            <ExternalLink className='w-3 h-3' />
-            {t('View {{title}}', { title })}
-          </button>
-        </div>
-      )}
 
       {!isEditing && isMap && staticMapUrl && (
         <div className='mt-auto -mx-2 -mb-2 rounded-b-lg overflow-hidden'>
@@ -366,6 +344,10 @@ export default function OneColumnLayout ({ group }) {
     return isEditing ? widgets : widgets.filter(w => !isHiddenInContextMenuResolver(w))
   }, [contextWidgets, isEditing])
 
+  // The home widget is always pinned to the top, regardless of its order.
+  const homeWidget = useMemo(() => orderedWidgets.find(w => w.type === 'home'), [orderedWidgets])
+  const nonHomeWidgets = useMemo(() => orderedWidgets.filter(w => w.type !== 'home'), [orderedWidgets])
+
   const bannerUrl = group?.bannerUrl || DEFAULT_BANNER
   const avatarUrl = group?.avatarUrl || DEFAULT_AVATAR
   const isDefaultAvatar = avatarUrl === DEFAULT_AVATAR
@@ -439,10 +421,26 @@ export default function OneColumnLayout ({ group }) {
         </CardDropZone>
       )}
 
+      {/* Home — always pinned to the top */}
+      {homeWidget && (
+        <WidgetSection
+          widget={homeWidget}
+          groupSlug={groupSlug}
+          groupId={group?.id}
+          navigate={navigate}
+          t={t}
+          isEditing={isEditing}
+          group={group}
+          dispatch={dispatch}
+          handlePositionedAdd={handlePositionedAdd}
+          onShowAllViews={(parentId) => setAllViewsModalParentId(parentId || '')}
+        />
+      )}
+
       {/* Standalone cards (no children) */}
-      {orderedWidgets.some(w => !w.childWidgets?.length) && (
+      {nonHomeWidgets.some(w => !w.childWidgets?.length) && (
         <div className='flex flex-wrap gap-3'>
-          {orderedWidgets
+          {nonHomeWidgets
             .filter(w => !w.childWidgets?.length)
             .map(widget => (
               <React.Fragment key={widget.id}>
@@ -475,7 +473,7 @@ export default function OneColumnLayout ({ group }) {
       )}
 
       {/* Sections (widgets with children) */}
-      {orderedWidgets
+      {nonHomeWidgets
         .filter(w => w.childWidgets?.length > 0)
         .map(widget => (
           <WidgetSection
@@ -519,20 +517,17 @@ export default function OneColumnLayout ({ group }) {
           <div className='absolute inset-0 bg-cover bg-center' style={{ ...bgImageStyle(bannerUrl), opacity: 0.7 }} />
           <div className='absolute inset-0 bg-darkening/50' />
 
-          <div className='absolute top-3 left-3 z-30'>
+          <div className='absolute top-3 left-1/2 -translate-x-1/2 z-30 w-full max-w-[1000px] px-3 flex items-center justify-between'>
             <button onClick={() => navigate(currentUserSettingsUrl('notifications?group=' + group.id))}>
               <Bell className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
             </button>
-          </div>
 
-          {canAdminister && (
-            <button
-              onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}
-              className='absolute top-3 right-3 z-30'
-            >
-              <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
-            </button>
-          )}
+            {canAdminister && (
+              <button onClick={() => navigate(groupUrl(groupSlug, 'settings', {}))}>
+                <Settings className='w-6 h-6 text-white drop-shadow-md hover:scale-110 transition-all' />
+              </button>
+            )}
+          </div>
 
           <div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-1'>
             <div
@@ -572,7 +567,7 @@ export default function OneColumnLayout ({ group }) {
               {cardGrid}
               <DragOverlay dropAnimation={null}>
                 {activeWidget && (
-                  <div className='w-[calc(50%-6px)] sm:w-[240px] opacity-80 rotate-2'>
+                  <div className='w-[calc(50%-6px)] sm:w-[230px] opacity-80 rotate-2'>
                     <WidgetCard
                       widget={activeWidget}
                       groupSlug={groupSlug}

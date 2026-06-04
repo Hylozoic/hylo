@@ -769,8 +769,9 @@ export default function AuthLayoutRouter (props) {
                   ],
               // Hide nav on small screens for full-page Create Group flow
               { 'hidden sm:relative': isCreateGroupRoute },
-              // Simple group views take the full viewport — hide the nav entirely.
-              { hidden: isOneColumnGroup && !isSimpleGroupHomeOrSettings },
+              // Simple group views take the full viewport on phone, but the GlobalNav
+              // sidebar stays visible on desktop so you can still navigate between contexts.
+              { 'hidden sm:flex': isOneColumnGroup && !isSimpleGroupHomeOrSettings },
               // Phone settings use master-detail in the center column — hide the sidebar.
               { hidden: isPhoneSettings }
             )}

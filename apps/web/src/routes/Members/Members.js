@@ -49,6 +49,9 @@ function Members (props) {
 
   const [showAnswers, setShowAnswers] = useState(false)
 
+  // Single-column groups show the member directory as a grid of square cards.
+  const isOneColumnLayout = context === 'groups' && group?.settings?.layout === 'one-column'
+
   // Action creators
   const changeSearch = useCallback(term =>
     dispatch(changeQuerystringParam(location, 'q', term)), [location])
@@ -145,7 +148,7 @@ function Members (props) {
             </div>
           )}
         </div>
-        <div className='flex flex-col gap-2'>
+        <div className={isOneColumnLayout ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'flex flex-col gap-2'}>
           {members.map(member => (
             <Member
               group={group}
@@ -155,6 +158,7 @@ function Members (props) {
               context={context}
               canSeeJoinAnswers={canSeeJoinAnswers}
               showAnswers={showAnswers}
+              square={isOneColumnLayout}
             />
           ))}
         </div>

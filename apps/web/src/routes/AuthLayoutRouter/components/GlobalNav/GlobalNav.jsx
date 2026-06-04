@@ -50,7 +50,7 @@ import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import GlobalNavItem from './GlobalNavItem'
 import GlobalNavTooltipContainer from './GlobalNavTooltipContainer'
-import getMyGroups from 'store/selectors/getMyGroups'
+import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
 import { isMobileDevice, downloadApp } from 'util/mobile'
 import isWebView, { sendMessageToWebView, getMobileAppVersion } from 'util/webView'
 import { getCookieConsent } from 'util/cookieConsent'
@@ -111,6 +111,7 @@ function SortableGlobalNavItem ({ group, index, isVisible, showTooltip, isContai
         url={`/groups/${group.slug}`}
         className={isVisible}
         showTooltip={isContainerHovered}
+        childGroups={group.childGroups}
         isPinned
       />
     </div>
@@ -340,7 +341,7 @@ export default function GlobalNav (props) {
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const sortedGroups = useSelector(getMyGroups)
+  const sortedGroups = useSelector(getMyGroupsWithChildren)
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
@@ -858,6 +859,7 @@ export default function GlobalNav (props) {
                     url={`/groups/${group.slug}`}
                     className={isVisible(4 + actualIndex)}
                     showTooltip={isContainerHovered}
+                    childGroups={group.childGroups}
                   />
                 </RightClickMenuTrigger>
                 <RightClickMenuContent>
