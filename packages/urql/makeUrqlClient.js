@@ -8,8 +8,8 @@ import { devtoolsExchange } from '@urql/devtools'
 import fetch from 'cross-fetch'
 import apiHost from 'util/apiHost'
 import { setSessionCookie } from 'util/session'
-import { loadTokens, getCachedTokens, saveTokens, clearTokens } from 'util/tokenStore'
-import { refreshTokens } from 'util/authApi'
+import { loadTokens, getCachedTokens, clearTokens, refreshAndSaveTokens } from 'util/tokenStore'
+import { authLog, maskToken } from 'util/authDebug'
 import keys from './keys'
 import resolvers from './resolvers'
 import optimistic from './optimistic'
@@ -64,7 +64,14 @@ export default async function makeUrqlClient ({
     return {
       addAuthToOperation (operation) {
         const tokens = getCachedTokens()
-        if (!tokens?.access_token) return operation
+        const opName = operation?.query?.definitions?.find(d => d.kind === 'OperationDefinition')?.name?.value
+        if (!tokens?.access_token) {
+          // No Bearer attached → this GraphQL request relies entirely on the
+          // session cookie. On the iOS reopen bug this is the smoking gun.
+          authLog(`urql op "${opName}": NO bearer (cookie-only)`)
+          return operation
+        }
+        authLog(`urql op "${opName}": bearer ${maskToken(tokens.access_token)}`)
         return utils.appendHeaders(operation, {
           Authorization: `Bearer ${tokens.access_token}`
         })
@@ -77,23 +84,26 @@ export default async function makeUrqlClient ({
           error?.graphQLErrors?.some(e => e.extensions?.code === 'UNAUTHENTICATED')
       },
       async refreshAuth () {
-        const tokens = getCachedTokens()
-        if (!tokens?.refresh_token) return
+        if (!getCachedTokens()?.refresh_token) return
         try {
           if (process.env.NODE_ENV === 'development') {
             console.log('🔑 urql authExchange: refreshing access token')
           }
-          const refreshed = await refreshTokens(tokens.refresh_token)
-          await saveTokens({ ...tokens, ...refreshed })
+          // Single-flight: shared with the WebView session bridge so the rotating
+          // refresh token is never spent twice (which would revoke the grant).
+          await refreshAndSaveTokens()
           if (process.env.NODE_ENV === 'development') {
             console.log('🔑 urql authExchange: token refresh succeeded ✓')
           }
         } catch (err) {
-          // Refresh token is dead — clear so the app drops to the logged-out state.
+          // Only drop to logged-out on a genuine auth failure (the refresh token
+          // is dead/revoked). Transient network/server errors (no 4xx status)
+          // must NOT wipe the Keychain, or a brief blip logs the user out.
+          const isAuthFailure = err.status >= 400 && err.status < 500
           if (process.env.NODE_ENV === 'development') {
-            console.warn('🔑 urql authExchange: token refresh failed, clearing Keychain tokens:', err.message)
+            console.warn(`🔑 urql authExchange: token refresh failed (${isAuthFailure ? 'clearing Keychain tokens' : 'transient, keeping tokens'}):`, err.message)
           }
-          await clearTokens()
+          if (isAuthFailure) await clearTokens()
         }
       }
     }
@@ -110,10 +120,12 @@ export default async function makeUrqlClient ({
     fetch: async (...args) => {
       const response = await fetch(...args)
 
-      if (response.headers.get('set-cookie')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('!!! setting cookie in urql fetch', response.headers.get('set-cookie'))
-        }
+      const setCookieHeader = response.headers.get('set-cookie')
+      if (setCookieHeader) {
+        // Legacy behaviour: the backend refreshes the session cookie on (nearly)
+        // every GraphQL response, and we persist it. Logging it lets us see how
+        // much the app is still leaning on the cookie vs the Bearer token.
+        authLog('urql fetch: response Set-Cookie present → persisting session cookie')
         await setSessionCookie(response)
       }
 
