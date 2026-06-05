@@ -35,18 +35,32 @@ const hasLinkedAccount = function (user, service) {
   return !!user.relations.linkedAccounts.where({provider_key: service})[0]
 }
 
-const upsertUser = (req, service, profile) => {
+// Records a successful login WITHOUT establishing a cookie session. Used by the
+// mobile token-auth path so social logins behave exactly like /noo/login/native:
+// bearer token only, no server session cookie. Mirrors the reactivation side
+// effect of UserSession.login (a self-deactivated account is reactivated on login).
+const recordTokenLogin = (user) =>
+  user.save({ last_login_at: new Date(), active: true }, { patch: true, autoRefresh: true })
+
+// Resolves (or creates) the user for a verified social profile and always returns
+// that user. For web/popup callers (`tokenAuth` falsy) it establishes a cookie
+// session via UserSession.login; for mobile token-auth it records the login without
+// a cookie (the native app authenticates with the minted bearer token, and a stray
+// server session cookie would leak into the WebView jar and desync auth).
+const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
   return findUser(service, profile.email, profile.id)
-  .then(user => {
+  .then(async (user) => {
     if (user) {
-      return UserSession.login(req, user, service)
+      if (tokenAuth) {
+        await recordTokenLogin(user)
+      } else {
+        await UserSession.login(req, user, service)
+      }
       // if this is a new account, link it to the user
-      .then(async (session) => {
-        if (!(await hasLinkedAccount(user, service))) {
-          await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
-        }
-        return session
-      })
+      if (!(await hasLinkedAccount(user, service))) {
+        await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
+      }
+      return user
     }
 
     const attrs = _.merge(_.pick(profile, 'email', 'name'), {
@@ -54,12 +68,14 @@ const upsertUser = (req, service, profile) => {
       email_validated: true // When using oAuth email is already verified
     })
 
-    return User.create(attrs)
-    .then(async (user) => {
-      await Analytics.trackSignup(user.id, req)
-      await UserSession.login(req, user, service)
-      return user
-    })
+    const newUser = await User.create(attrs)
+    await Analytics.trackSignup(newUser.id, req)
+    if (tokenAuth) {
+      await recordTokenLogin(newUser)
+    } else {
+      await UserSession.login(req, newUser, service)
+    }
+    return newUser
   })
 }
 
@@ -115,26 +131,28 @@ const finishOAuth = function (strategy, req, res, next) {
       if (err || !profile) return respond(err || 'no user')
       if (!profile.email) return respond('no email')
 
-      // Mobile token-auth is always a fresh LOGIN, so resolve the account from the
-      // verified social profile (upsertUser). Only treat it as "attach this social
-      // account to the user I'm already logged in as" (upsertLinkedAccount) for the
-      // web popup flow. Otherwise a stale/lingering session cookie would cause the
-      // social login to be linked onto — and resolved as — the wrong account.
       const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
-      return (UserSession.isLoggedIn(req) && !isTokenAuth
-        ? upsertLinkedAccount
-        : upsertUser)(req, provider, profile)
-      .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
-      .then(async () => {
-        // Mobile token-auth clients opt in via header and get a token pair back;
-        // existing (web/popup) callers fall through to the normal response.
-        if (req.get('X-Hylo-Token-Auth') === '1') {
-          const authedUser = await User.find(req.session.userId)
-          res.ok(await mintTokensForUser(authedUser))
+
+      // Mobile token-auth: always a fresh LOGIN resolved from the verified social
+      // profile (never "attach to the account I'm already in" — that path is web-only
+      // and a stale session cookie there resolved to the wrong account). Returns a
+      // token pair and establishes NO cookie session, so the resolved `user` (not
+      // req.session.userId) drives the downstream writes and token mint.
+      if (isTokenAuth) {
+        return upsertUser(req, provider, profile, { tokenAuth: true })
+        .then(async (user) => {
+          await UserExternalData.store(user.id, provider, profile._json)
+          res.ok(await mintTokensForUser(user))
           return resolve()
-        }
-        return respond()
-      })
+        })
+        .catch(respond)
+      }
+
+      // Web/popup flow (cookie session, unchanged): attach to the current session
+      // when already logged in, otherwise resolve/create from the profile.
+      return (UserSession.isLoggedIn(req) ? upsertLinkedAccount : upsertUser)(req, provider, profile)
+      .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
+      .then(() => respond())
       .catch(respond)
     }
 
@@ -222,19 +240,20 @@ module.exports = {
 
     // Confirm that identityToken was verified:
     if (appleIdTokenClaims.sub === user) {
+      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
       upsertUser(req, 'apple', {
         id: user,
         email,
         name: fullName.givenName + ' ' + fullName.familyName
-      })
-        .then(async result => {
-          // Mobile token-auth clients opt in via header and get a token pair back;
-          // existing (web) callers are unaffected.
-          if (req.get('X-Hylo-Token-Auth') === '1') {
-            const authedUser = await User.find(req.session.userId)
+      }, { tokenAuth: isTokenAuth })
+        .then(async authedUser => {
+          // Mobile token-auth clients opt in via header and get a token pair back
+          // (no cookie session was created — mint from the resolved user). Existing
+          // (web) callers are unaffected.
+          if (isTokenAuth) {
             return res.ok(await mintTokensForUser(authedUser))
           }
-          return res.ok(result)
+          return res.ok(authedUser)
         })
         .catch(function (err) {
           // 422 means 'well-formed but semantically invalid'
