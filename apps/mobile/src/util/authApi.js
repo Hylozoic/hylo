@@ -31,7 +31,13 @@ export async function refreshTokens (refreshToken) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString()
   })
-  if (!res.ok) throw new Error('token refresh failed')
+  if (!res.ok) {
+    // Tag the status so callers can distinguish a dead/rotated refresh token
+    // (4xx → log out) from a transient server/network failure (don't log out).
+    const error = new Error('token refresh failed')
+    error.status = res.status
+    throw error
+  }
   return res.json()
 }
 

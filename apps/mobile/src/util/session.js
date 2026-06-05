@@ -4,8 +4,7 @@ import Config from 'react-native-config'
 import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
 import apiHost from 'util/apiHost'
-import { getTokens, saveTokens } from 'util/tokenStore'
-import { refreshTokens } from 'util/authApi'
+import { getTokens, refreshAndSaveTokens } from 'util/tokenStore'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -92,8 +91,9 @@ export async function sessionCookieFromToken () {
     let resp = await postSessionFromToken(tokens.access_token)
 
     if (resp.status === 401 && tokens.refresh_token) {
-      const refreshed = await refreshTokens(tokens.refresh_token)
-      tokens = await saveTokens({ ...tokens, ...refreshed })
+      // Shared single-flight refresh (see tokenStore.refreshAndSaveTokens): avoids
+      // racing the urql authExchange and spending the rotating refresh token twice.
+      tokens = await refreshAndSaveTokens()
       resp = await postSessionFromToken(tokens.access_token)
     }
 

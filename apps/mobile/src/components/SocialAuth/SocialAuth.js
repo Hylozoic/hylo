@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@hylo/contexts/AuthContext'
 import { isIOS } from 'util/platform'
 import { saveTokens } from 'util/tokenStore'
+import { authLog, authEvent, maskToken } from 'util/authDebug'
 import { loginWithApple, loginWithGoogle } from './actions'
 import AppleLoginButton from './AppleLoginButton'
 import GoogleLoginButton from './GoogleLoginButton'
@@ -34,6 +35,17 @@ export default function SocialAuth ({
 
       const response = await dispatch(loginWith(token))
 
+      // Diagnostic (staging-visible, also a Sentry event): what did the social
+      // verify endpoint return? The decisive question for the iOS reopen bug is
+      // whether a token pair came back, or only a session cookie (legacy path).
+      authEvent('SocialAuth response', {
+        error: !!response.error,
+        hasAccessToken: !!response?.payload?.access_token,
+        hasRefreshToken: !!response?.payload?.refresh_token,
+        accessToken: maskToken(response?.payload?.access_token),
+        payloadKeys: response?.payload ? Object.keys(response.payload) : null
+      })
+
       if (response.error) {
         const errorMessage = response?.payload?.response?.body
 
@@ -46,6 +58,9 @@ export default function SocialAuth ({
         // as email/password login.
         if (response?.payload?.access_token) {
           await saveTokens(response.payload)
+          authLog('SocialAuth: tokens saved to Keychain ✓')
+        } else {
+          authLog('SocialAuth: NO access_token in response — tokens NOT saved, falling back to cookie')
         }
         await handleOnComplete()
       }
