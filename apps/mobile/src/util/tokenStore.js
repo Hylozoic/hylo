@@ -1,4 +1,6 @@
 import * as Keychain from 'react-native-keychain'
+import { refreshTokens } from 'util/authApi'
+import { authLog, maskToken } from 'util/authDebug'
 
 // Secure, native credential store for the OAuth/OIDC token pair minted by the
 // backend (`/noo/login/native`, social verify endpoints, `/noo/oauth/token`).
@@ -16,13 +18,11 @@ export async function loadTokens () {
   try {
     const creds = await Keychain.getGenericPassword({ service: SERVICE })
     cachedTokens = creds ? JSON.parse(creds.password) : null
-    if (__DEV__) {
-      console.log('🔑 tokenStore.loadTokens:', cachedTokens
-        ? `found (access=${cachedTokens.access_token?.slice(0, 10)}…, expiresAt=${new Date(cachedTokens.expires_at).toISOString()})`
-        : 'no tokens in Keychain')
-    }
+    authLog('tokenStore.loadTokens:', cachedTokens
+      ? `found access=${maskToken(cachedTokens.access_token)} refresh=${maskToken(cachedTokens.refresh_token)} expiresAt=${cachedTokens.expires_at ? new Date(cachedTokens.expires_at).toISOString() : 'n/a'}`
+      : 'no tokens in Keychain')
   } catch (err) {
-    console.warn('🔑 tokenStore.loadTokens failed:', err)
+    authLog('tokenStore.loadTokens FAILED:', err?.message)
     cachedTokens = null
   }
   return cachedTokens
@@ -48,10 +48,40 @@ export async function saveTokens (tokens) {
   const stamped = { ...tokens, expires_at: Date.now() + expiresIn * 1000 }
   cachedTokens = stamped
   await Keychain.setGenericPassword('tokens', JSON.stringify(stamped), { service: SERVICE })
+  authLog('tokenStore.saveTokens: saved access=' + maskToken(stamped.access_token) + ' refresh=' + maskToken(stamped.refresh_token))
   return stamped
 }
 
 export async function clearTokens () {
   cachedTokens = null
   await Keychain.resetGenericPassword({ service: SERVICE })
+}
+
+// Shared in-flight refresh promise. Multiple subsystems try to refresh on app
+// reopen (the urql authExchange for GraphQL + the WebView session bridge), and
+// each was independently POSTing the stored refresh token. Because the
+// `hylo-mobile` OIDC client is public, oidc-provider ROTATES refresh tokens:
+// the first refresh consumes the token, and a second use of the now-consumed
+// token makes the provider revoke the whole grant — silently logging the user
+// out on reopen. Funnelling every caller through one promise guarantees the
+// refresh token is spent exactly once per rotation and everyone gets the new pair.
+let refreshPromise = null
+
+// Refreshes the access/refresh token pair (single-flight) and persists the
+// rotated result. Concurrent callers share the same in-flight request.
+export async function refreshAndSaveTokens () {
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    const tokens = cachedTokens || await loadTokens()
+    if (!tokens?.refresh_token) throw new Error('No refresh token to refresh')
+    const refreshed = await refreshTokens(tokens.refresh_token)
+    return saveTokens({ ...tokens, ...refreshed })
+  })()
+
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
 }
