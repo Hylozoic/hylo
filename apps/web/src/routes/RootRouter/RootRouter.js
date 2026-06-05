@@ -16,8 +16,6 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
-import { sendMessageToWebView } from 'util/webView'
-import { WebViewMessageTypes } from '@hylo/shared'
 
 if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
@@ -119,11 +117,13 @@ export default function RootRouter () {
       </Routes>
     )
   }
-  // Safety net: never show the web login page inside the new mobile WebView.
-  // If the session expires or logout happens through any path, signal native to handle it.
+  // In the v2 mobile WebView, native owns auth (token-based) and is the source of truth.
+  // A passive auth-check miss here (e.g. a transient WebView cookie desync on resume) must
+  // NOT log the native app out — only an explicit user-initiated logout sends LOGOUT (see
+  // GlobalNav/ContextMenu). Render a neutral loading state instead of the web login page;
+  // native's own token check surfaces the native login screen if the session is truly gone.
   if (!isAuthorized && window.HyloMobileV2) {
-    sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    return null
+    return <Loading type='fullscreen' />
   }
 
   if (!isAuthorized) {

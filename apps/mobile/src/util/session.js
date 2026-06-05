@@ -109,16 +109,26 @@ export async function sessionCookieFromToken () {
 
 /**
  * Writes each key-value pair from a parsed cookie object into the WebView's native
- * cookie store for HYLO_WEB_BASE_URL. Called after every setSessionCookie to keep
- * the AsyncStorage cookie and the WebView's jar in sync.
+ * cookie store. Called after every setSessionCookie to keep the AsyncStorage cookie
+ * and the WebView's jar in sync.
+ *
+ * The cookie is set for BOTH the web origin (HYLO_WEB_BASE_URL, used for page
+ * navigation) and the API origin (apiHost, used by in-WebView fetch/XHR to
+ * /noo/graphql). On iOS the WKWebView cookie store is host-scoped, so a cookie set
+ * only for the web origin is NOT sent to the API origin — after a cold resume the web
+ * app's GraphQL calls then arrive unauthenticated, the RootRouter sees no session, and
+ * (previously) the app was logged out. Setting it for apiHost too keeps the WebView's
+ * GraphQL requests authenticated from the bridged token session.
  */
 async function syncCookiesToWebView (cookieObj) {
-  const url = Config.HYLO_WEB_BASE_URL
-  if (!url || !cookieObj) return
+  const urls = [Config.HYLO_WEB_BASE_URL, apiHost].filter(Boolean)
+  if (urls.length === 0 || !cookieObj) return
 
   await Promise.all(
-    Object.entries(cookieObj).map(([name, value]) =>
-      CookieManager.set(url, { name, value, path: '/' }, USE_WEBKIT)
+    urls.flatMap(url =>
+      Object.entries(cookieObj).map(([name, value]) =>
+        CookieManager.set(url, { name, value, path: '/' }, USE_WEBKIT)
+      )
     )
   )
 }
