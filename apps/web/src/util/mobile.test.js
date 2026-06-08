@@ -35,4 +35,19 @@ describe('isPhoneDevice with tablet UA', () => {
     const { isPhoneDevice: isPhone } = require('./mobile')
     expect(isPhone()).toBe(false)
   })
+
+  it('isTabletDevice is true for tablets', () => {
+    const { isTabletDevice: isTablet } = require('./mobile')
+    expect(isTablet()).toBe(true)
+  })
+
+  it('isCompactLayoutDevice is true for tablets', () => {
+    const { isCompactLayoutDevice: isCompact } = require('./mobile')
+    expect(isCompact()).toBe(true)
+  })
+
+  it('isDrawerNavLayout is true for tablets even at wide viewport', () => {
+    const { isDrawerNavLayout: isDrawerNav } = require('./mobile')
+    expect(isDrawerNav(1024)).toBe(true)
+  })
 })

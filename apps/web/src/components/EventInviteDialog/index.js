@@ -1,3 +1,1 @@
-import connector from './EventInviteDialog.connector'
-import component from './EventInviteDialog'
-export default connector(component)
+export { default } from './EventInviteDialog'
