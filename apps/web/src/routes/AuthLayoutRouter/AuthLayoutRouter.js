@@ -1,4 +1,3 @@
-import isMobile from 'ismobilejs'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { matchPath, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -75,6 +74,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
+import { isCompactLayoutDevice, isDrawerNavLayout } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
@@ -151,6 +151,13 @@ export default function AuthLayoutRouter (props) {
   const backdropRef = useRef(null)
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
+  const compactLayout = isCompactLayoutDevice()
+
+  // Phones and tablets share compact layout styling (see typography.scss).
+  useEffect(() => {
+    document.documentElement.classList.toggle('compact-layout', compactLayout)
+    return () => document.documentElement.classList.remove('compact-layout')
+  }, [compactLayout])
 
   // Keep isNavOpen ref in sync for use in touch handlers
   useEffect(() => { isNavOpenRef.current = isNavOpen }, [isNavOpen])
@@ -159,13 +166,13 @@ export default function AuthLayoutRouter (props) {
   // mount into the DOM (after the loading screen), preventing any flash.
   const setNavContainerRef = useCallback((node) => {
     navContainerRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.transform = isNavOpenRef.current ? 'translateX(0)' : 'translateX(-100%)'
     }
   }, [])
   const setBackdropRef = useCallback((node) => {
     backdropRef.current = node
-    if (node && window.innerWidth < 640) {
+    if (node && isDrawerNavLayout(window.innerWidth)) {
       node.style.opacity = isNavOpenRef.current ? '1' : '0'
       node.style.pointerEvents = isNavOpenRef.current ? 'auto' : 'none'
     }
@@ -174,7 +181,7 @@ export default function AuthLayoutRouter (props) {
   // Clear mobile nav inline styles when resizing to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 640) {
+      if (!isDrawerNavLayout(window.innerWidth)) {
         const navEl = navContainerRef.current
         const backdropEl = backdropRef.current
         if (navEl) { navEl.style.transform = ''; navEl.style.transition = '' }
@@ -189,7 +196,7 @@ export default function AuthLayoutRouter (props) {
   useEffect(() => {
     const navEl = navContainerRef.current
     const backdropEl = backdropRef.current
-    if (!navEl || !backdropEl || window.innerWidth >= 640) return
+    if (!navEl || !backdropEl || !isDrawerNavLayout(window.innerWidth)) return
     if (isDraggingNavRef.current) return // Drag handler manages position during drag
 
     navEl.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1)'
@@ -268,7 +275,7 @@ export default function AuthLayoutRouter (props) {
     document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
-      if (window.innerWidth >= 640) return
+      if (!isDrawerNavLayout(window.innerWidth)) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
@@ -589,7 +596,7 @@ export default function AuthLayoutRouter (props) {
 
   if (currentUserLoading) {
     return (
-      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
+      <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout })}>
         <Helmet>
           <title>Hylo</title>
           <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
@@ -695,14 +702,14 @@ export default function AuthLayoutRouter (props) {
         {/* )} */}
       </Routes>
 
-      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
+      <div className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': compactLayout, [classes.mapView]: isMapView, [classes.detailOpen]: hasDetail })}>
         <div ref={resizeRef} className={cn(classes.main, { [classes.mapView]: isMapView, [classes.withoutNav]: withoutNav, [classes.mainPad]: !withoutNav })}>
           {/* Mobile nav backdrop overlay - not shown on create-group so back chevron gets first tap */}
           {/* TODO: this is a hack for the create group route, which we may make a modal handle a different better way  */}
           {!withoutNav && !isCreateGroupRoute && (
             <div
               ref={setBackdropRef}
-              className='sm:hidden fixed inset-0 z-[100] bg-black/50'
+              className={cn('fixed inset-0 z-[100] bg-black/50', !compactLayout && 'sm:hidden')}
               style={{ opacity: 0, pointerEvents: 'none' }}
               onClick={() => dispatch(toggleNavMenu(false))}
             />
@@ -711,13 +718,12 @@ export default function AuthLayoutRouter (props) {
             ref={setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              // Mobile: fixed drawer, full-width, off-screen by default (JS manages transform)
+              // Mobile/tablet: fixed drawer, full-width, off-screen by default (JS manages transform)
               'fixed left-0 top-0 z-[101] h-dvh w-full',
-              // Desktop: back in normal flow
-              'sm:relative sm:z-50 sm:h-full sm:w-auto',
-              'sm:max-w-420',
-              // Hide nav on small screens for full-page Create Group flow
-              { 'hidden sm:relative': isCreateGroupRoute }
+              // Desktop only: back in normal flow
+              !compactLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420',
+              // Hide nav for full-page Create Group flow
+              isCreateGroupRoute && (compactLayout ? 'hidden' : 'hidden sm:relative')
             )}
           >
             {!withoutNav && (
@@ -930,8 +936,8 @@ export default function AuthLayoutRouter (props) {
         <CookieConsentLinker />
       </div>
       <Toaster
-        position={isMobile.any ? 'top-center' : 'bottom-left'}
-        style={isMobile.any ? {} : { left: '80px' }}
+        position={compactLayout ? 'top-center' : 'bottom-left'}
+        style={compactLayout ? {} : { left: '80px' }}
       />
     </IntercomProvider>
   )

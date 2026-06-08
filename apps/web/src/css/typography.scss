@@ -317,6 +317,25 @@ h3,
   }
 }
 
+// Tablets use compact layout even when the viewport is wider than 600px.
+html.compact-layout {
+  h1,
+  .hdr-headline {
+    font-size: 20px;
+  }
+
+  h2,
+  .hdr-subheadline {
+    font-size: 16px;
+    line-height: 20px;
+  }
+
+  .bdy-lt-lg {
+    font-size: 15px;
+    line-height: 22px;
+  }
+}
+
 @media screen and (max-width: 375px) {
   .bdy-lt-sm {
     font-size: 12px;
