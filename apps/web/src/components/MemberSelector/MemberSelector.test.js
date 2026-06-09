@@ -1,5 +1,3 @@
-jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
-
 import React from 'react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
@@ -8,6 +6,8 @@ import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 import fetchPeople from 'store/actions/fetchPeople'
 import MemberSelector, { Suggestion } from './MemberSelector'
 import { addMember } from './MemberSelector.store'
+
+jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
 
 jest.mock('store/actions/fetchPeople', () => jest.fn((args) => ({
   type: 'MOCK_FETCH_PEOPLE',
