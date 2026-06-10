@@ -49,6 +49,7 @@ describe('Notification', function () {
       .then(() => group.posts().attach(post))
       .then(() => factories.user({ email: 'readersemail@hylo.com' }).save())
       .then(u => { reader = u })
+      .then(() => group.members().attach(reader))
       .then(() => new Activity({
         post_id: post.id
       }).save())
@@ -155,7 +156,8 @@ describe('Notification', function () {
       })
 
       it('uses a public post URL for comment push when the post is public and the reader is not in the linked group', () => {
-        return post.save({ is_public: true }, { patch: true })
+        return group.members().detach(reader)
+          .then(() => post.save({ is_public: true }, { patch: true }))
           .then(() => preloadNotification(activities.newComment, Notification.MEDIUM.Push))
           .then(notification => notification.send())
           .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
@@ -164,6 +166,7 @@ describe('Notification', function () {
             const pn = pns.first()
             expect(pn.get('path')).to.match(/\/public\/post\//)
           })
+          .finally(() => group.members().attach(reader))
       })
 
       it('includes commentId as a query param in the comment push path', () => {
@@ -184,8 +187,7 @@ describe('Notification', function () {
           actor_id: actor.id,
           group_id: group.id
         }
-        return group.members().attach(reader)
-          .then(() => preloadNotification(activityWithGroup, Notification.MEDIUM.Push))
+        return preloadNotification(activityWithGroup, Notification.MEDIUM.Push)
           .then(notification => notification.send())
           .then(() => PushNotification.where({ user_id: reader.id }).fetchAll())
           .then(pns => {
@@ -194,7 +196,6 @@ describe('Notification', function () {
             expect(path).to.contain('/groups/my-group/')
             expect(path).to.contain(`commentId=${comment.id}`)
           })
-          .finally(() => group.members().detach(reader))
       })
 
       it('sends a push for a mention in a comment', () => {

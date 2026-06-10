@@ -1,97 +1,105 @@
-import React, { createRef } from 'react'
-import { withTranslation } from 'react-i18next'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
 import Loading from 'components/Loading'
 import PostCard from 'components/PostCard'
 import CommentCard from 'components/CommentCard'
+import isPendingFor from 'store/selectors/isPendingFor'
+import {
+  getRecentActivity,
+  fetchRecentActivity,
+  hasMoreActivity,
+  FETCH_RECENT_ACTIVITY
+} from './RecentActivity.store'
 
-class RecentActivity extends React.Component {
-  static defaultProps = {
-    routeParams: {}
-  }
+export default function RecentActivity ({ routeParams = {} }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
+  const personId = routeParams.personId
 
-  state = {
-    offset: 0,
-    items: [],
-    loadingMore: false
-  }
+  const activityItems = useSelector(state => getRecentActivity(state, { routeParams }))
+  const person = useSelector(state => state.orm?.Person?.itemsById?.[personId])
+  const hasMore = hasMoreActivity(person)
+  const loading = useSelector(state => isPendingFor(FETCH_RECENT_ACTIVITY, state))
 
-  sentinelRef = createRef()
-  observer = null
+  const [offset, setOffset] = useState(0)
+  const [items, setItems] = useState([])
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef(null)
+  const offsetRef = useRef(0)
 
-  componentDidMount () {
-    this.loadInitial()
-    this.setupObserver()
-  }
+  useEffect(() => {
+    offsetRef.current = offset
+  }, [offset])
 
-  componentDidUpdate (prevProps, prevState) {
-    // If activityItems prop changes, update local items
-    if (prevProps.activityItems !== this.props.activityItems) {
-      // If offset is 0, replace; otherwise, append
-      this.setState(state => ({
-        items: this.state.offset === 0 ? this.props.activityItems : [...state.items, ...this.props.activityItems],
-        loadingMore: false
-      }))
-    }
-  }
+  const fetchRecent = useCallback((nextOffset) => {
+    dispatch(fetchRecentActivity(personId, 10, nextOffset))
+  }, [dispatch, personId])
 
-  componentWillUnmount () {
-    if (this.observer) this.observer.disconnect()
-  }
+  useEffect(() => {
+    offsetRef.current = 0
+    setOffset(0)
+    setItems([])
+    setLoadingMore(false)
+    fetchRecent(0)
+  }, [personId, fetchRecent])
 
-  setupObserver = () => {
+  useEffect(() => {
+    if (activityItems === undefined) return
+    const o = offsetRef.current
+    setItems(prev => (o === 0 ? activityItems : [...prev, ...activityItems]))
+    setLoadingMore(false)
+  }, [activityItems])
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    setOffset(prev => {
+      const next = prev + 10
+      dispatch(fetchRecentActivity(personId, 10, next))
+      return next
+    })
+  }, [dispatch, personId, hasMore, loadingMore])
+
+  const loadMoreRef = useRef(loadMore)
+  loadMoreRef.current = loadMore
+
+  useEffect(() => {
     if (typeof window === 'undefined' || !window.IntersectionObserver) return
-    this.observer = new window.IntersectionObserver(
+    const observer = new window.IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          this.loadMore()
+          loadMoreRef.current()
         }
       },
       { rootMargin: '200px' }
     )
-    if (this.sentinelRef.current) {
-      this.observer.observe(this.sentinelRef.current)
-    }
-  }
+    const el = sentinelRef.current
+    if (el) observer.observe(el)
+    return () => observer.disconnect()
+  }, [personId])
 
-  loadInitial = () => {
-    this.setState({ offset: 0, items: [] }, () => {
-      this.props.fetchRecentActivity(0)
-    })
-  }
+  const itemSelected = useCallback(
+    selectedItemId => selectedItemId === routeParams.postId,
+    [routeParams.postId]
+  )
 
-  loadMore = () => {
-    if (this.state.loadingMore || !this.props.hasMore) return
-    this.setState(
-      state => ({ loadingMore: true, offset: state.offset + 10 }),
-      () => this.props.fetchRecentActivity(this.state.offset)
-    )
-  }
+  if (loading && offset === 0) return <Loading />
 
-  itemSelected = selectedItemId => selectedItemId === this.props.routeParams.postId
-
-  render () {
-    const { t } = this.props
-    if (this.props.loading && this.state.offset === 0) return <Loading />
-
-    const { items, loadingMore } = this.state
-
-    return (
-      <div>
-        {items && items.map((item, i) => (
-          <div className='bg-transparent' key={i} data-testid='activity-item'>
-            {Object.prototype.hasOwnProperty.call(item, 'title')
-              ? <PostCard post={item} expanded={this.itemSelected(item.id)} />
-              : <CommentCard comment={item} expanded={this.itemSelected(item.post.id)} />}
-          </div>
-        ))}
-        {loadingMore && <Loading />}
-        {!this.props.hasMore && !loadingMore && items.length > 0 && (
-          <div className='text-center text-gray-500 py-4'>{t('No more activity to load')}</div>
-        )}
-        <div ref={this.sentinelRef} />
-      </div>
-    )
-  }
+  return (
+    <div>
+      {items && items.map((item, i) => (
+        <div className='bg-transparent' key={i} data-testid='activity-item'>
+          {Object.prototype.hasOwnProperty.call(item, 'title')
+            ? <PostCard post={item} expanded={itemSelected(item.id)} />
+            : <CommentCard comment={item} expanded={itemSelected(item.post.id)} />}
+        </div>
+      ))}
+      {loadingMore && <Loading />}
+      {!hasMore && !loadingMore && items.length > 0 && (
+        <div className='text-center text-gray-500 py-4'>{t('No more activity to load')}</div>
+      )}
+      <div ref={sentinelRef} />
+    </div>
+  )
 }
-
-export default withTranslation()(RecentActivity)

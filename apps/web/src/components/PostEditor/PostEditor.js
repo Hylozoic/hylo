@@ -224,7 +224,7 @@ function PostEditorInner ({
   const openedFromChatRoom = !!topicName
   const draftTopicId = (!modal || openedFromChatRoom) ? topic?.id : undefined
 
-  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, clearDraft } = useDraft({
+  const { loadedData: serverLoadedData, isLoaded: serverDraftLoaded, saveDraft: saveServerDraft, cancelPendingSave, clearDraft } = useDraft({
     type: 'post',
     postId: editing ? editingPostId : undefined,
     groupId: currentGroup?.id,
@@ -264,6 +264,8 @@ function PostEditorInner ({
   const postComposerHadBodyDraftRef = useRef(false)
   const inSessionDraftByTypeRef = useRef({})
   const pendingTypeSwitchRef = useRef(null)
+  /** Set to true when the post has been successfully submitted, preventing draft saves during teardown/navigation. */
+  const isSubmittedRef = useRef(false)
 
   // Default topic to use when not in a chatroom — available immediately from the store
   const generalTopic = useSelector(state => !topicName ? getTopicForCurrentRoute(state, DEFAULT_CHAT_TOPIC) : null)
@@ -442,6 +444,7 @@ function PostEditorInner ({
   // When title and description are both empty, cancel pending saves and delete the server draft
   // if the user had draft body content this session (see chat branch above for chat-only rules).
   useEffect(() => {
+    if (isSubmittedRef.current) return
     if (typeSwitchDialog) return
     if (isChat) {
       const details = currentPost.details || ''
@@ -787,6 +790,7 @@ function PostEditorInner ({
     clearDraft()
     chatComposerHadContentRef.current = false
     postComposerHadBodyDraftRef.current = false
+    isSubmittedRef.current = false
     setIsDirty(false)
     if (autoFocus && isChat) {
       setTimeout(() => {
@@ -1180,6 +1184,10 @@ function PostEditorInner ({
     const saveFunc = isEditing ? updatePost : createPost
     setAnnouncementSelected(false)
     if (onSave) onSave(postToSave)
+    // Prevent any draft saves triggered by re-renders during or after the mutation.
+    isSubmittedRef.current = true
+    // Cancel any in-flight debounced draft save so it cannot fire during the async mutation.
+    cancelPendingSave()
     if (!modal) reset()
     const savedPost = await dispatch(saveFunc(postToSave))
     if (!savedPost.error) {
@@ -1192,7 +1200,7 @@ function PostEditorInner ({
         afterSave(returnedPost)
       }
     }
-  }, [afterSave, announcementSelected, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, fileAttachments, imageAttachments, isEditing, modal, onSave, reset, selectedLocation, setIsDirty])
 
   /**
    * Initiates the save process with validation and confirmation checks

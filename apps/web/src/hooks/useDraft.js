@@ -273,8 +273,25 @@ export default function useDraft ({
   }, [dispatch, skip, type])
 
   /**
+   * Cancels any pending debounced save without touching Redux or the server.
+   * Call this at the start of a submit to ensure no in-flight save fires during
+   * the async mutation (e.g. createPost taking >1 s).
+   */
+  const cancelPendingSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    pendingSaveRef.current = null
+  }, [])
+
+  /**
    * Call on successful submit to clear local draft state and optionally delete on server.
    * Some submit mutations already delete their own drafts on the backend.
+   *
+   * Uses activeDraftIdRef (kept in sync via useEffect) instead of the selector-based
+   * draft?.id so that this callback is stable and does not cause dependent effects to
+   * re-run when the draft is removed from the Redux store.
    */
   const clearDraft = useCallback(async ({ deleteOnServer = true } = {}) => {
     if (saveTimerRef.current) {
@@ -283,19 +300,12 @@ export default function useDraft ({
     }
     pendingSaveRef.current = null
 
-    // Read id before removeDraftByContext so deleteOnServer still works when ORM drops the model
-    const idToDelete = deleteOnServer ? (draft?.id || activeDraftIdRef.current) : null
+    // Use the ref — it is always current and does not make this callback unstable.
+    const idToDelete = deleteOnServer ? activeDraftIdRef.current : null
 
     dispatch(removeDraftByContext(contextRef.current))
 
-    if (!deleteOnServer) {
-      activeDraftIdRef.current = null
-      lastSavedDedupeKeyRef.current = null
-      window.dispatchEvent(new Event('hylo:drafts-changed'))
-      return
-    }
-
-    if (!idToDelete) {
+    if (!deleteOnServer || !idToDelete) {
       activeDraftIdRef.current = null
       lastSavedDedupeKeyRef.current = null
       window.dispatchEvent(new Event('hylo:drafts-changed'))
@@ -312,7 +322,7 @@ export default function useDraft ({
         console.warn('[useDraft] delete draft failed:', err)
       }
     }
-  }, [dispatch, draft?.id])
+  }, [dispatch])
 
   return {
     /** Raw draft data string from server (JSON or HTML depending on type). Null until loaded. */
@@ -321,6 +331,7 @@ export default function useDraft ({
     isLoaded,
     saveDraft,
     flushSaveDraft,
+    cancelPendingSave,
     clearDraft
   }
 }

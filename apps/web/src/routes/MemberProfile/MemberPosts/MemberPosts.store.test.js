@@ -5,7 +5,6 @@ import {
   fetchMemberPosts,
   getMemberPosts
 } from './MemberPosts.store'
-import { mapStateToProps } from './MemberPosts.connector'
 
 describe('fetchMemberPosts', () => {
   it('returns the correct action', () => {
@@ -52,10 +51,9 @@ describe('connector', () => {
     })
   })
 
-  describe('mapStateToProps', () => {
-    it('returns a posts array property of the correct length', () => {
-      const actual = mapStateToProps(state, props).posts.length
-      expect(actual).toBe(2)
+  describe('posts selector length', () => {
+    it('returns a posts array of the correct length', () => {
+      expect(getMemberPosts(state, props).length).toBe(2)
     })
   })
 })

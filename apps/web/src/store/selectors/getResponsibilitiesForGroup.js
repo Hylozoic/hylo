@@ -1,3 +1,4 @@
+import { createSelector } from 'reselect'
 import orm from '../models'
 import { createSelector as ormCreateSelector } from 'redux-orm'
 import getMe from './getMe'
@@ -15,6 +16,11 @@ const getResponsibilitiesForGroup = ormCreateSelector(
     const resp = groupRolesForGroup.map(groupRole => groupRole.responsibilities.items || []).flat()
     return [...resp, ...commonResp]
   }
+)
+
+export const getResponsibilityTitlesForGroup = createSelector(
+  getResponsibilitiesForGroup,
+  (responsibilities) => responsibilities.map(r => r.title)
 )
 
 export default getResponsibilitiesForGroup

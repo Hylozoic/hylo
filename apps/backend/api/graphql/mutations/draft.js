@@ -104,10 +104,10 @@ export async function saveDraft (userId, { type, data, postId, groupId, topicId,
   return Draft.forge(attrs).save()
 }
 
-/** Deletes a draft after verifying ownership. */
+/** Deletes a draft after verifying ownership. Returns success silently when already gone. */
 export async function deleteDraft (userId, id) {
   const draft = await Draft.where({ id }).fetch({ require: false })
-  if (!draft) throw new GraphQLError('Draft not found')
+  if (!draft) return { success: true }
   if (String(draft.get('user_id')) !== String(userId)) {
     throw new GraphQLError("You don't have permission to delete this draft")
   }

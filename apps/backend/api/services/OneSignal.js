@@ -30,12 +30,17 @@ function createNotificationObject ({ readerId, alert, path, appId, badgeNo }) {
   notification.target_channel = 'push'
 
   if (alert) notification.contents = { en: alert }
-  // Use HTTPS universal links so all app versions handle the URL correctly without custom-scheme
-  // parsing. HTTPS is intercepted by iOS/Android as a universal link when associated domains are
-  // configured, and falls back gracefully to the web app in a browser if the app isn't installed.
-  // IN LOCAL DEV: set path manually, e.g.: notification.app_url = 'https://www.hylo.com/groups/heart-orchard/post/78041'
-  const pushHost = process.env.DOMAIN || 'www.hylo.com'
-  if (path) notification.app_url = `https://${pushHost}${path}`
+
+  if (path) {
+    // Send path in additionalData so the mobile click listener can navigate in-app
+    // without iOS calling openURL (which opens Safari before bouncing back to the app).
+    // app_url with hyloapp:// is kept alongside as a fallback for older app versions
+    // that don't yet have the additionalData click handler — they open the app via
+    // the custom scheme as before. Once old versions are no longer in circulation,
+    // app_url can be removed.
+    notification.data = { path }
+    notification.app_url = 'hyloapp:/' + path
+  }
 
   if (badgeNo) {
     notification.ios_badgeType = 'SetTo'
