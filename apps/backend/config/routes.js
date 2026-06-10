@@ -28,6 +28,8 @@ module.exports.routes = {
   'POST   /noo/hook/batchCommentForm':                    'CommentController.createBatchFromEmailForm',
 
   'POST   /noo/login':                                    'SessionController.create',
+  'POST   /noo/login/native':                             'SessionController.nativeLogin',
+  'POST   /noo/session/from-token':                       'SessionController.fromToken',
   'GET    /noo/login/token':                              'SessionController.createWithToken',
   'POST   /noo/login/token':                              'SessionController.createWithToken',
   'GET    /noo/login/jwt':                                'SessionController.createWithJWT',

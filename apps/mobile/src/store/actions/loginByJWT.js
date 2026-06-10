@@ -8,7 +8,8 @@ export default function loginByJWT (loginJWT) {
         method: 'POST',
         path: '/noo/login/jwt',
         headers: {
-          Authorization: `Bearer ${loginJWT}`
+          Authorization: `Bearer ${loginJWT}`,
+          'X-Hylo-Token-Auth': '1'
         }
       }
     }

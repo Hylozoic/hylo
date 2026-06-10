@@ -1,4 +1,5 @@
 import mixpanel from 'mixpanel-browser'
+import { WebViewMessageTypes } from '@hylo/shared'
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -16,10 +17,31 @@ import PublicPostDetail from 'routes/PublicLayoutRouter/PublicPostDetail'
 import checkLogin from 'store/actions/checkLogin'
 import { getAuthorized } from 'store/selectors/getAuthState'
 import { sendMessageToWebView } from 'util/webView'
-import { WebViewMessageTypes } from '@hylo/shared'
 
 if (!isTest && config.mixpanel.token) {
   mixpanel.init(config.mixpanel.token, { debug: !isProduction })
+}
+
+// In the v2 mobile WebView, a failed auth check is almost always a transient cookie
+// desync (e.g. social-login resume), NOT a real logout. Ask native to re-establish
+// the session from its token and reload us, retrying a bounded number of times before
+// concluding the native session is genuinely gone.
+const MOBILE_REAUTH_ATTEMPTS_KEY = 'hyloMobileReauthAttempts'
+const MAX_MOBILE_REAUTH_ATTEMPTS = 2
+
+function readMobileReauthAttempts () {
+  try {
+    return parseInt(window.sessionStorage?.getItem(MOBILE_REAUTH_ATTEMPTS_KEY) || '0', 10) || 0
+  } catch (e) {
+    return 0
+  }
+}
+
+function writeMobileReauthAttempts (n) {
+  try {
+    if (n === 0) window.sessionStorage?.removeItem(MOBILE_REAUTH_ATTEMPTS_KEY)
+    else window.sessionStorage?.setItem(MOBILE_REAUTH_ATTEMPTS_KEY, String(n))
+  } catch (e) { /* sessionStorage unavailable — re-auth simply won't be bounded */ }
 }
 
 /**
@@ -102,6 +124,30 @@ export default function RootRouter () {
     }
   }, [])
 
+  // Mobile WebView re-auth handshake. Once checkLogin has resolved:
+  // - authorized → reset the attempt counter (healthy session).
+  // - unauthorized inside the v2 WebView → ask native to re-mint the session from
+  //   its token and reload us (VERIFY_AUTH). After MAX attempts without success the
+  //   native session really is gone, so send LOGOUT to let native show its login UI.
+  // Non-mobile web is unaffected (window.HyloMobileV2 is undefined → falls through).
+  useEffect(() => {
+    if (loading) return
+    if (isAuthorized) {
+      writeMobileReauthAttempts(0)
+      return
+    }
+    if (!window.HyloMobileV2) return
+
+    const attempts = readMobileReauthAttempts()
+    if (attempts < MAX_MOBILE_REAUTH_ATTEMPTS) {
+      writeMobileReauthAttempts(attempts + 1)
+      sendMessageToWebView(WebViewMessageTypes.VERIFY_AUTH)
+    } else {
+      writeMobileReauthAttempts(0)
+      sendMessageToWebView(WebViewMessageTypes.LOGOUT)
+    }
+  }, [loading, isAuthorized])
+
   if (loading) {
     if (isNeutralRootSessionLoadingPath(pathname)) {
       return <Loading type='fullscreen' />
@@ -118,11 +164,13 @@ export default function RootRouter () {
       </Routes>
     )
   }
-  // Safety net: never show the web login page inside the new mobile WebView.
-  // If the session expires or logout happens through any path, signal native to handle it.
+  // In the v2 mobile WebView, native owns auth (token-based) and is the source of truth.
+  // A passive auth-check miss here (e.g. a transient WebView cookie desync on resume) must
+  // NOT log the native app out. The effect above drives the recovery handshake (VERIFY_AUTH
+  // → native re-mints the session and reloads); we just render a neutral loading state while
+  // that round-trips, instead of the web login page.
   if (!isAuthorized && window.HyloMobileV2) {
-    sendMessageToWebView(WebViewMessageTypes.LOGOUT)
-    return null
+    return <Loading type='fullscreen' />
   }
 
   if (!isAuthorized) {

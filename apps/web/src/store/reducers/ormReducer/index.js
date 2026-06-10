@@ -560,10 +560,18 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case INVITE_PEOPLE_TO_EVENT_PENDING: {
       meta.inviteeIds.forEach(inviteeId => {
-        EventInvitation.create({
-          event: meta.eventId,
-          person: inviteeId
-        })
+        const alreadyInvited = EventInvitation.all()
+          .toModelArray()
+          .some(ei =>
+            sameId(ei.event?.id ?? ei.event, meta.eventId) &&
+            sameId(ei.person?.id ?? ei.person, inviteeId)
+          )
+        if (!alreadyInvited) {
+          EventInvitation.create({
+            event: meta.eventId,
+            person: inviteeId
+          })
+        }
       })
       clearCacheFor(Post, meta.eventId)
       break

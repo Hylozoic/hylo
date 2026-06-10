@@ -31,6 +31,11 @@ export const WebViewMessageTypes = {
   LEFT_GROUP: 'LEFT_GROUP',
   GROUP_DELETED: 'GROUP_DELETED',
   LOGOUT: 'LOGOUT',
+  // Web app reported itself unauthenticated inside the v2 mobile WebView. Native
+  // auth (the Keychain token) is the source of truth, so native re-mints the
+  // session cookie from its token and reloads — instead of the web side logging
+  // the native app out on a transient WebView cookie desync.
+  VERIFY_AUTH: 'VERIFY_AUTH',
   NAVIGATION: 'NAVIGATION',
   THEME_CHANGE: 'THEME_CHANGE',
   EDITOR: {

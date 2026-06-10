@@ -2,7 +2,6 @@ import orm from 'store/models'
 import payload from '../MemberProfile.test.json'
 import normalized from '../MemberProfile.normalized.test.json'
 import { fetchMemberComments, getMemberComments } from './MemberComments.store'
-import { mapStateToProps } from './MemberComments.connector'
 
 describe('fetchMemberComments', () => {
   it('returns the correct action', () => {
@@ -51,10 +50,9 @@ describe('connector', () => {
     })
   })
 
-  describe('mapStateToProps', () => {
-    it('returns a comments array property of the correct length', () => {
-      const actual = mapStateToProps(state, props).comments.length
-      expect(actual).toBe(2)
+  describe('comments selector length', () => {
+    it('returns a comments array of the correct length', () => {
+      expect(getMemberComments(state, props).length).toBe(2)
     })
   })
 })

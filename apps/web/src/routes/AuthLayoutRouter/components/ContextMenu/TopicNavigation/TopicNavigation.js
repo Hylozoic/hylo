@@ -1,20 +1,50 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import { push } from 'redux-first-history'
+import { get } from 'lodash/fp'
 import { cn } from 'util/index'
 import { Link, NavLink } from 'react-router-dom'
+import { topicsUrl, allGroupsUrl } from '@hylo/navigation'
 import Badge from 'components/Badge'
 import Icon from 'components/Icon'
+import resetNewPostCount from 'store/actions/resetNewPostCount'
+import { FETCH_POSTS } from 'store/constants'
+import { makeDropQueryResults } from 'store/reducers/queryResults'
 import badgeHoverStyles from '../../../../../components/Badge/component.module.scss'
+import { getTopicsFromSubscribedGroupTopics } from './TopicNavigation.store'
 import styles from './TopicNavigation.module.scss'
 
-export default function TopicNavigation ({
-  topics,
-  goBack,
-  seeAllUrl,
-  clearBadge,
-  clearStream
-}) {
-  // XXX: not sure exactly what this doing and if we need, we have not been doing this for a while and things seemed to work
+const dropPostResults = makeDropQueryResults(FETCH_POSTS)
+
+export default function TopicNavigation (props) {
+  const {
+    topics: topicsProp,
+    seeAllUrl: seeAllUrlProp,
+    backUrl,
+    routeParams
+  } = props
+
+  const dispatch = useDispatch()
+  const streamFetchPostsParam = useSelector(state => get('Stream.fetchPostsParam', state))
+  const topicsFromStore = useSelector(state => getTopicsFromSubscribedGroupTopics(state, props))
+
+  const topics = topicsProp ?? topicsFromStore
+  const seeAllUrl = seeAllUrlProp ?? topicsUrl(routeParams, allGroupsUrl())
+
+  const clearBadge = useCallback((id) => {
+    dispatch(resetNewPostCount(id, 'TopicFollow'))
+  }, [dispatch])
+
+  const clearStream = useCallback(() => {
+    dispatch(dropPostResults(streamFetchPostsParam))
+  }, [dispatch, streamFetchPostsParam])
+
+  const goBack = useCallback((event) => {
+    event.preventDefault()
+    dispatch(push(backUrl))
+  }, [dispatch, backUrl])
+
   const handleClearTopic = groupTopic => {
     const { current, groupTopicId, newPostCount } = groupTopic
 
