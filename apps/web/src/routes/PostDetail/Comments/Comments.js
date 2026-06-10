@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { func, object, string } from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
@@ -49,22 +49,13 @@ const Comments = ({
     scrollToBottom?.()
   }, [dispatch, post, scrollToBottom])
 
-  const ensureSelectedCommentPresent = useCallback(() => {
-    if (selectedCommentId && comments.length > 0) {
-      const commentIds = []
-      comments.forEach(comment => {
-        commentIds.push(comment.id)
-        comment.childComments.forEach(comment => commentIds.push(comment.id))
-      })
-      if (!commentsPending && !commentIds.includes(selectedCommentId.toString())) {
-        fetchComments().then(() => {})
-      }
-    }
-  }, [comments, commentsPending, selectedCommentId, fetchComments])
-
   useEffect(() => {
-    ensureSelectedCommentPresent()
-  }, [ensureSelectedCommentPresent])
+    if (!selectedCommentId || comments.length === 0 || commentsPending) return
+    const allIds = comments.flatMap(c => [c.id, ...c.childComments.map(cc => cc.id)])
+    if (!allIds.includes(selectedCommentId.toString())) {
+      fetchComments()
+    }
+  }, [selectedCommentId, commentsPending, fetchComments])
 
   const { ref, width } = useResizeDetector({ handleHeight: false })
 

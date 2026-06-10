@@ -220,6 +220,11 @@ describe('buildKey', () => {
     expect(buildKey('actionType', { context: 'groups', slug: 'foo', search: null }))
       .toEqual('{"type":"actionType","params":{"context":"groups","slug":"foo"}}')
   })
+
+  it('omits empty array parameters', () => {
+    expect(buildKey('FETCH_POSTS', { context: 'groups', slug: 'foo', topics: [] }))
+      .toEqual('{"type":"FETCH_POSTS","params":{"context":"groups","slug":"foo"}}')
+  })
 })
 
 describe('matchNewPostIntoQueryResults', () => {

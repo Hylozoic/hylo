@@ -51,7 +51,7 @@ function TopicsSettingsTab ({ group }) {
     groupSlug: group.slug,
     sortBy: selectedSort,
     autocomplete: search
-  }), [group, selectedSort, search])
+  }), [group.slug, group.id, selectedSort, search])
 
   const topics = useSelector(state => getTopics(state, fetchTopicsParams))
   const hasMore = useSelector(state => getHasMoreTopics(state, fetchTopicsParams))

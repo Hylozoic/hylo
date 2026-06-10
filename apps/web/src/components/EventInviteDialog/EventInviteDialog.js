@@ -54,7 +54,7 @@ const EventInviteDialog = ({
       setPageFetched(pageSize)
     }
     fetch()
-  }, [searchTerm])
+  }, [searchTerm, forGroups, fetchPeopleDebounced])
 
   const { observe } = useInView({
     onEnter: () => {

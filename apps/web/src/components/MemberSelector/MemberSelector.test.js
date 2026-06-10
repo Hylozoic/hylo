@@ -1,5 +1,3 @@
-jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
-
 import React from 'react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
@@ -7,7 +5,9 @@ import { act, render, screen, fireEvent, waitFor, generateStore } from 'util/tes
 import { LayoutFlagsProvider } from 'contexts/LayoutFlagsContext'
 import fetchPeople from 'store/actions/fetchPeople'
 import MemberSelector, { Suggestion } from './MemberSelector'
-import { addMember } from './MemberSelector.store'
+import { addMember, SET_MEMBERS } from './MemberSelector.store'
+
+jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
 
 jest.mock('store/actions/fetchPeople', () => jest.fn((args) => ({
   type: 'MOCK_FETCH_PEOPLE',
@@ -57,7 +57,9 @@ describe('MemberSelector', () => {
   it('calls onChange when members change', async () => {
     const onChange = jest.fn()
     const { store } = renderMemberSelector({ onChange })
-    store.dispatch(addMember({ id: 1, name: 'Ada' }))
+    await act(async () => {
+      store.dispatch(addMember({ id: 1, name: 'Ada' }))
+    })
     await waitFor(() => expect(onChange).toHaveBeenCalledWith([{ id: 1, name: 'Ada' }]))
   })
 
@@ -73,6 +75,36 @@ describe('MemberSelector', () => {
         { id: 2, name: 'Bob' }
       ])
     })
+  })
+
+  it('does not re-sync when initialMembers is a new empty array reference', async () => {
+    const store = generateStore({ MemberSelector: { members: [], autocomplete: '' } })
+    const dispatchSpy = jest.spyOn(store, 'dispatch')
+    const onChange = jest.fn()
+
+    const { rerender } = render(
+      <MemberSelector initialMembers={[]} onChange={onChange} />,
+      { wrapper: ({ children }) => withStore(store, children) }
+    )
+    await waitFor(() => {
+      expect(store.getState().MemberSelector.members).toEqual([])
+    })
+    dispatchSpy.mockClear()
+
+    await act(async () => {
+      rerender(
+        <MemberSelector initialMembers={[]} onChange={onChange} />,
+        { wrapper: ({ children }) => withStore(store, children) }
+      )
+      rerender(
+        <MemberSelector initialMembers={[]} onChange={onChange} />,
+        { wrapper: ({ children }) => withStore(store, children) }
+      )
+    })
+
+    const setMembersCalls = dispatchSpy.mock.calls.filter(call => call[0]?.type === SET_MEMBERS)
+    expect(setMembersCalls.length).toBe(0)
+    dispatchSpy.mockRestore()
   })
 
   it('handles input change', async () => {

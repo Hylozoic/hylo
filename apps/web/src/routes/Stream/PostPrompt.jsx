@@ -1,15 +1,23 @@
 import React, { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'util/index'
-import { createPostUrl } from '@hylo/navigation'
 
 export default function PostPrompt (props) {
-  const { className, firstName = '', querystringParams = {}, postTypesAvailable, routeParams = {} } = props
+  const { className, firstName = '', postTypesAvailable } = props
   const { t } = useTranslation()
+  const location = useLocation()
 
   const type = useMemo(() => postTypesAvailable && postTypesAvailable.length === 1 ? postTypesAvailable[0] : 'default', [postTypesAvailable])
+  const newPostType = postTypesAvailable?.[0]
+  const createPostPath = useMemo(() => {
+    const basePath = location.pathname.replace(/\/create\/.*$/, '')
+    const params = new URLSearchParams()
+    if (newPostType) params.set('newPostType', newPostType)
+    const query = params.toString()
+    return `${basePath}/create/post${query ? `?${query}` : ''}`
+  }, [location.pathname, newPostType])
 
   const postPromptString = useMemo(() => {
     const postPrompts = {
@@ -26,7 +34,7 @@ export default function PostPrompt (props) {
 
   return (
     <div>
-      <Link to={createPostUrl(routeParams, { ...querystringParams, newPostType: postTypesAvailable?.[0] })}>
+      <Link to={createPostPath}>
         <div className={cn('border-2 mt-6 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-2 text-foreground background-black/10 rounded-lg border-dashed relative mb-4 hover:border-t-foreground/100 hover:border-x-foreground/90 transition-all hover:border-b-foreground/80 flex items-center gap-2', className)}>
           <Plus className='w-4 h-4' />
           {postPromptString}

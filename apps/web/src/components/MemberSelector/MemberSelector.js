@@ -44,7 +44,13 @@ const MemberSelector = forwardRef(function MemberSelector (props, ref) {
     [dispatch]
   )
 
+  const prevInitialMemberIdsRef = useRef()
   useEffect(() => {
+    const ids = initialMembers.map(m => m.id)
+    if (prevInitialMemberIdsRef.current !== undefined && isEqual(ids, prevInitialMemberIdsRef.current)) {
+      return
+    }
+    prevInitialMemberIdsRef.current = ids
     dispatch(setMembersAction(initialMembers))
   }, [dispatch, initialMembers])
 

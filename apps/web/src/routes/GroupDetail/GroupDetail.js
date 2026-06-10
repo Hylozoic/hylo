@@ -194,7 +194,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
                 {stewards.map(p => (
                   <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
                     <Avatar avatarUrl={p.avatarUrl} medium className='shrink-0' />
-                    <span>{p.name}</span>
+                    <span className='text-foreground'>{p.name}</span>
                   </Link>
                 ))}
               </div>
