@@ -1,7 +1,7 @@
 import isMobile from 'ismobilejs'
 import { get, isEmpty } from 'lodash/fp'
 import { Bookmark } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
@@ -121,14 +121,15 @@ export default function Stream (props) {
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly'], location)
 
   const search = querystringParams.search
+  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
+  const isCalendarViewMode = viewMode === 'calendar'
   let sortBy = querystringParams.s || customView?.defaultSort || defaultSortBy
   if (!customView && sortBy === 'order') {
     sortBy = 'updated'
   }
-  if (view === 'events') {
+  if (view === 'events' || isCalendarViewMode) {
     sortBy = 'start_time'
   }
-  const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
   const activePostsOnly = (querystringParams.activeOnly === 'true') || (!querystringParams.activeOnly && ((customView?.type === 'stream' && customView.activePostsOnly) || defaultActivePostsOnly))
   const childPostInclusion = querystringParams.c || defaultChildPostInclusion
   const timeframe = querystringParams.timeframe || 'future'
@@ -146,7 +147,6 @@ export default function Stream (props) {
   // for calendar viewmode
   const [calendarMode, setCalendarMode] = useState('month')
   const [calendarDate, setCalendarDate] = useState(new Date())
-  const isCalendarViewMode = viewMode === 'calendar'
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
@@ -193,14 +193,15 @@ export default function Stream (props) {
       params.afterTime = luxonDate.startOf('month').startOf('week', { useLocaleWeeks: true }).startOf('day').toISO()
       params.beforeTime = luxonDate.endOf('month').endOf('week', { useLocaleWeeks: true }).plus({ day: 1 }).endOf('day').toISO()
       params.order = 'asc'
+      // Stream calendar has no view-level postTypes; events view already sets types: ['event']
+      if (!params.filter && !params.types?.length) {
+        params.filter = 'event'
+      }
     } else if (view === 'events') {
       const today = DateTimeHelpers.dateTimeNow(getLocaleFromLocalStorage()).toISO()
       params.afterTime = timeframe === 'future' ? today : undefined
       params.beforeTime = timeframe === 'past' ? today : undefined
       params.order = timeframe === 'future' ? 'asc' : 'desc'
-    }
-    if (view === 'events' || isCalendarViewMode) {
-      dispatch(dropPostResults(params))
     }
     if (context === CONTEXT_MY) {
       switch (view) {
@@ -267,9 +268,10 @@ export default function Stream (props) {
   const pending = useSelector(state => state.pending[FETCH_POSTS])
 
   const fetchPostsFrom = useCallback((offset) => {
-    if (pending || hasMore === false) return
+    if (pending && offset > 0) return
+    if (hasMore === false && offset > 0) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }, [pending, hasMore, fetchPostsParam])
+  }, [dispatch, pending, hasMore, fetchPostsParam])
 
   useEffect(() => {
     if (customViewId) {
@@ -288,12 +290,37 @@ export default function Stream (props) {
   }, [topicName])
 
   useEffect(() => {
+    if (view === 'events' || isCalendarViewMode) {
+      dispatch(dropPostResults(fetchPostsParam))
+    }
+  }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
+
+  useEffect(() => {
     if (isDraftsView) return
     if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
       // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
       fetchPostsFrom(0)
     }
   }, [fetchPostsParam, isDraftsView])
+
+  useEffect(() => {
+    if (!isCalendarViewMode || isDraftsView) return
+    if (customViewId && customView?.type !== 'stream' && customView?.type !== 'collection') return
+    if (topicName && !topic) return
+    if (pending || hasMore !== true || posts.length === 0) return
+    fetchPostsFrom(posts.length)
+  }, [
+    isCalendarViewMode,
+    isDraftsView,
+    customViewId,
+    customView?.type,
+    topicName,
+    topic,
+    pending,
+    hasMore,
+    posts.length,
+    fetchPostsFrom
+  ])
 
   const changePostTypeFilter = useCallback(postType => {
     dispatch(updateUserSettings({ settings: { streamPostType: postType || '' } }))
@@ -329,8 +356,26 @@ export default function Stream (props) {
 
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
+  // Refresh calendar when returning from the create modal (a post may have been created)
+  const prevPathWasCreateRef = useRef(false)
+  useEffect(() => {
+    const isCreatePath = location.pathname.includes('/create/')
+    if (prevPathWasCreateRef.current && !isCreatePath && isCalendarViewMode) {
+      dispatch(dropPostResults(fetchPostsParam))
+      fetchPostsFrom(0)
+    }
+    prevPathWasCreateRef.current = isCreatePath
+  }, [location.pathname, isCalendarViewMode, dispatch, fetchPostsParam, fetchPostsFrom])
+
   const ViewComponent = viewComponent[viewMode]
   const hasPostPrompt = currentUserHasMemberships && context !== CONTEXT_MY && view !== 'explore'
+  // Calendar view applies on both `/events` (default) and `/stream?v=calendar`.
+  // Default new-post type to event in calendar mode; `/events` list view uses COMMON_VIEWS postTypes.
+  const postTypesForPrompt = useMemo(() => {
+    if (view === 'events') return postTypesAvailable || ['event']
+    if (isCalendarViewMode) return ['event']
+    return postTypesAvailable
+  }, [view, isCalendarViewMode, postTypesAvailable])
 
   const info = useMemo(() => {
     if (customView?.type === 'stream') {
@@ -356,6 +401,10 @@ export default function Stream (props) {
   }, [customView, topicName])
 
   const noPostsMessage = view === 'events' ? t('No {{timeFrame}} events', { timeFrame: timeframe === 'future' ? t('upcoming') : t('past') }) : 'No posts'
+
+  const calendarInitialLoading = (pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && posts.length === 0
+  const calendarFetchingMore = pending && isCalendarViewMode && posts.length > 0
+  const showCalendar = !customViewLoading && !topicBlockingStreams && isCalendarViewMode && (posts.length > 0 || !pending)
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -409,9 +458,7 @@ export default function Stream (props) {
             avatarUrl={currentUser.avatarUrl}
             firstName={currentUser.firstName()}
             newPost={newPost}
-            querystringParams={querystringParams}
-            routeParams={routeParams}
-            postTypesAvailable={postTypesAvailable}
+            postTypesAvailable={postTypesForPrompt}
           />
         )}
         <ViewControls
@@ -421,6 +468,17 @@ export default function Stream (props) {
           changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
           changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
         />
+        {calendarFetchingMore && (
+          <div
+            aria-live='polite'
+            className='sticky top-2 z-20 flex justify-end pointer-events-none h-0 overflow-visible'
+          >
+            <Loading
+              type='inline'
+              className='mr-1 sm:mr-2 rounded-full bg-midground/90 px-2 py-1 shadow-sm backdrop-blur-sm'
+            />
+          </div>
+        )}
         {!isCalendarViewMode && (
           <MasonryGrid
             enabled={viewMode === 'grid' || viewMode === 'bigGrid'}
@@ -449,7 +507,7 @@ export default function Stream (props) {
             ))}
           </MasonryGrid>
         )}
-        {!pending && !customViewLoading && isCalendarViewMode && (
+        {showCalendar && (
           <div className='calendarView'>
             <Calendar
               posts={posts}
@@ -478,7 +536,7 @@ export default function Stream (props) {
             ? <StreamSkeleton wrapWithMainColumn={false} />
             : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
         )}
-        {(pending || topicBlockingStreams || customViewLoading) && isCalendarViewMode && <Loading />}
+        {calendarInitialLoading && <Loading />}
 
         {!isCalendarViewMode && (
           <ScrollListener
