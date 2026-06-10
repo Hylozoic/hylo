@@ -173,6 +173,9 @@ module.exports = {
         param: function (name) {
           return this.params[name]
         },
+        get: function (name) {
+          return this.headers[name]
+        },
         session: {
           regenerate: function(callback) {
             callback()

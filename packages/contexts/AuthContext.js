@@ -26,7 +26,7 @@ export const useAuthStore = create((set) => ({
 
 const AuthContext = createContext(null)
 
-export function AuthProvider ({ children }) {
+export function AuthProvider ({ children, authAdapter }) {
   const { setIsAuthenticated, setIsAuthorized } = useAuthStore()
   // network-only is required here (not cache-and-network):
   // After social login (Google/Apple), the urql cache still holds {me: null} from
@@ -56,19 +56,34 @@ export function AuthProvider ({ children }) {
   }, [isAuthenticated, isAuthorized])
 
   // **Login function**
+  // When an authAdapter is provided (mobile token auth) the login mechanism is
+  // delegated to it; otherwise we use the default cookie-session login mutation
+  // (web/desktop). Either way we refresh auth state afterwards.
   const login = useCallback(async ({ email, password }) => {
-    const { data } = await executeLogin({ email, password })
-    if (data?.login?.error) throw new Error(data.login.error)
+    if (authAdapter?.login) {
+      await authAdapter.login({ email, password })
+    } else {
+      const { data } = await executeLogin({ email, password })
+      if (data?.login?.error) throw new Error(data.login.error)
+    }
     // Refresh auth state
     await checkAuth()
-  }, [executeLogin, checkAuth])
+  }, [authAdapter, executeLogin, checkAuth])
 
   // **Logout function**
+  // Always tear down the server session, then let the adapter revoke/clear any
+  // native tokens. Both are safe no-ops when not applicable, so cookie and token
+  // sessions are cleaned up regardless of how the user logged in.
   const logout = useCallback(async () => {
     await executeLogout()
+    try {
+      await authAdapter?.logout?.()
+    } catch (err) {
+      console.warn('authAdapter.logout failed:', err)
+    }
     // Refresh auth state
     await checkAuth()
-  }, [executeLogout, checkAuth])
+  }, [authAdapter, executeLogout, checkAuth])
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, isAuthorized, login, logout, error, fetching, currentUser, checkAuth }}>
