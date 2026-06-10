@@ -141,6 +141,64 @@ export default function makeModels (userId, isAdmin, apiClient) {
     return viewIds.map(id => byView.get(String(id)) || [])
   }, { cacheKeyFn: id => String(id) })
 
+  const blockGroupMemberEnumerationForAnonymous = !userId && !apiClient
+
+  /** Returns a relation query that matches no rows (used for public GraphQL without session). */
+  function emptyGroupPeopleRelation (relation) {
+    return relation.query(q => q.whereRaw('false'))
+  }
+
+  /**
+   * When public_member_directory is false on the parent group, only active members of that group
+   * (plus admins and super API clients) may load members / stewards / moderators / memberships.
+   * Anonymous callers are handled by blockGroupMemberEnumerationForAnonymous above.
+   */
+  function applyPublicMemberDirectoryGuard (relation) {
+    if (blockGroupMemberEnumerationForAnonymous) {
+      return emptyGroupPeopleRelation(relation)
+    }
+    if (!userId || isAdmin || (apiClient && apiClient.super)) {
+      return relation
+    }
+    const groupId = relation.relatedData.parentId
+    return relation.query(q => {
+      q.whereRaw(
+        `(
+          COALESCE((SELECT (g.settings->>'public_member_directory')::boolean FROM groups g WHERE g.id = ?), false) = true
+          OR EXISTS (
+            SELECT 1 FROM group_memberships gm_priv
+            WHERE gm_priv.group_id = ?
+              AND gm_priv.user_id = ?
+              AND gm_priv.active = true
+          )
+        )`,
+        [groupId, groupId, userId]
+      )
+    })
+  }
+
+  /** Adds the same guard as applyPublicMemberDirectoryGuard inside an existing .query(q => ...) block. */
+  function appendPublicMemberDirectoryGuard (q, groupId) {
+    if (blockGroupMemberEnumerationForAnonymous) {
+      q.whereRaw('false')
+      return
+    }
+    if (userId && !isAdmin && !(apiClient && apiClient.super)) {
+      q.whereRaw(
+        `(
+          COALESCE((SELECT (g.settings->>'public_member_directory')::boolean FROM groups g WHERE g.id = ?), false) = true
+          OR EXISTS (
+            SELECT 1 FROM group_memberships gm_priv
+            WHERE gm_priv.group_id = ?
+              AND gm_priv.user_id = ?
+              AND gm_priv.active = true
+          )
+        )`,
+        [groupId, groupId, userId]
+      )
+    }
+  }
+
   // Mirrors Post#followers() (following + active posts_users + active users) for GraphQL totals
   async function postActiveFollowersCount (post) {
     const row = await bookshelf.knex('posts_users')
@@ -780,7 +838,12 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'website_url'
       ],
       relations: [
-        { activeMembers: { querySet: true } },
+        {
+          activeMembers: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
         { agreements: { querySet: true } },
         { childGroups: { querySet: true } },
         { groupRelationshipInvitesFrom: { querySet: true } },
@@ -801,15 +864,30 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         { groupToGroupJoinQuestions: { querySet: true } },
         { joinQuestions: { querySet: true } },
-        { moderators: { querySet: true } },
-        { stewards: { querySet: true } },
+        {
+          moderators: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
+        {
+          stewards: {
+            querySet: true,
+            filter: relation => applyPublicMemberDirectoryGuard(relation)
+          }
+        },
         {
           memberships: {
             querySet: true,
-            filter: (relation, { userId }) =>
+            filter: (relation, { userId: membershipUserId }) =>
               relation.query(q => {
-                if (userId) {
-                  q.where('group_memberships.user_id', userId)
+                const groupId = relation.relatedData.parentId
+                appendPublicMemberDirectoryGuard(q, groupId)
+                if (blockGroupMemberEnumerationForAnonymous) {
+                  return
+                }
+                if (membershipUserId) {
+                  q.where('group_memberships.user_id', membershipUserId)
                 }
               })
           }
@@ -817,9 +895,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         {
           members: {
             querySet: true,
-            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }) =>
-              relation.query(q => {
-                filterAndSortUsers({ autocomplete, boundingBox, groupId: relation.relatedData.parentId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
+            filter: (relation, { id, autocomplete, boundingBox, excludeGroupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability }) => {
+              if (blockGroupMemberEnumerationForAnonymous) {
+                return emptyGroupPeopleRelation(relation)
+              }
+              const groupId = relation.relatedData.parentId
+              return relation.query(q => {
+                appendPublicMemberDirectoryGuard(q, groupId)
+                filterAndSortUsers({ autocomplete, boundingBox, groupId, groupRoleId, groupRoleIds, order, search, sortBy, trackCompleted, fundingRoundCapability })(q)
                 if (excludeGroupId) {
                   q.whereNotIn('users.id',
                     bookshelf.knex('group_memberships')
@@ -828,6 +911,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
                   )
                 }
               })
+            }
           }
         },
         { parentGroups: { querySet: true } },

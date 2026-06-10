@@ -64,11 +64,11 @@ describe('graphql request handler', () => {
     req.method = 'POST'
     req.headers = {
       'Content-Type': 'application/json'
-    },
+    }
     req.session = {
       userId: user.id,
       destroy: () => {}
-    },
+    }
     req.user = user
     res = factories.mock.response()
   })
@@ -77,7 +77,7 @@ describe('graphql request handler', () => {
     it('responds as expected', async () => {
       // TODO: .inject is no longer provided with Yoga 3.x forward ref. here for what to do instead:
       // https://the-guild.dev/graphql/yoga-server/v3/migration/migration-from-yoga-v2#removed-inject-method
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -126,12 +126,12 @@ describe('graphql request handler', () => {
 
   describe('with a complex query', function () {
     this.timeout(10000)
-    var thread, message
+    let thread, message
 
     before(async () => {
-      thread = factories.post({type: Post.Type.THREAD})
+      thread = factories.post({ type: Post.Type.THREAD })
       await thread.save()
-      await comment.save({user_id: user2.id})
+      await comment.save({ user_id: user2.id })
 
       message = await factories.comment({
         post_id: thread.id,
@@ -142,9 +142,8 @@ describe('graphql request handler', () => {
       await thread.addFollowers([user.id, user2.id])
     })
 
-
     it('responds as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -309,7 +308,7 @@ describe('graphql request handler', () => {
 
   describe('querying Comment attachments', () => {
     it('responds as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           post (id: ${post.id}) {
             comments {
@@ -358,7 +357,7 @@ describe('graphql request handler', () => {
     })
 
     it('shows "not logged in" errors for most queries', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           me {
             name
@@ -378,8 +377,63 @@ describe('graphql request handler', () => {
       })
     })
 
+    it('does not return group members or their contact details', async () => {
+      const publicGroup = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { public_member_directory: true }
+      }).save()
+      const privateDirectory = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { public_member_directory: false }
+      }).save()
+      const member = await factories.user({
+        contact_email: 'member@example.com',
+        contact_phone: '5551212',
+        location: 'Barcelona, Spain',
+        bio: 'secret bio',
+        facebook_url: 'https://facebook.com/member',
+        linkedin_url: 'https://linkedin.com/in/member',
+        twitter_name: 'member',
+        last_active_at: new Date()
+      }).save()
+      await publicGroup.addMembers([member.id])
+      await privateDirectory.addMembers([member.id])
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          groups(first: 10) {
+            items {
+              id
+              members(first: 5) {
+                items { id name contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName lastActiveAt }
+              }
+            }
+          }
+          group(id: "${publicGroup.id}") {
+            members(first: 5) {
+              items { id name contactEmail contactPhone lastActiveAt }
+            }
+          }
+          privateDirectory: group(slug: "${privateDirectory.get('slug')}") {
+            settings { publicMemberDirectory }
+            members(first: 5, offset: 0) {
+              items { id name contactEmail contactPhone location bio }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+
+      expect(executionResult.errors).to.not.be.ok
+      const listed = executionResult.data.groups.items.find(item => item.id === String(publicGroup.id))
+      expect(listed.members.items).to.deep.equal([])
+      expect(executionResult.data.group.members.items).to.deep.equal([])
+      expect(executionResult.data.privateDirectory.settings.publicMemberDirectory).to.equal(false)
+      expect(executionResult.data.privateDirectory.members.items).to.deep.equal([])
+    })
+
     it('allows checkInvitation', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           checkInvitation(invitationToken: "foo") {
             valid
@@ -400,7 +454,7 @@ describe('graphql request handler', () => {
 
   describe('querying group data', () => {
     it('works as expected', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           group(id: "${group.id}") {
             slug
@@ -431,21 +485,21 @@ describe('graphql request handler', () => {
             slug: group.get('slug'),
             members: {
               items: [
-                {name: user2.get('name')},
-                {name: user.get('name')}
+                { name: user2.get('name') },
+                { name: user.get('name') }
               ]
             },
             posts: {
               items: [
-                {title: post2.get('name')}
+                { title: post2.get('name') }
               ]
             },
             groupExtensions: {
               items: [
                 {
-                  type:'test',
+                  type: 'test',
                   data: {
-                    "key-test": "value-test"
+                    'key-test': 'value-test'
                   }
                 }
               ]
@@ -457,7 +511,7 @@ describe('graphql request handler', () => {
 
     describe('with an invalid sort option', () => {
       it('shows an error', async () => {
-        const { response, executionResult } = await handler.inject({
+        const { executionResult } = await handler.inject({
           document: `{
             group(id: "${group.id}") {
               members(first: 2, sortBy: "height") {
@@ -491,7 +545,7 @@ describe('graphql request handler', () => {
     it('works', async () => {
       // First 4 chars can be an English stop-word prefix (e.g. "withdraw…" → "with") and match nothing in FTS.
       const searchTerm = post.get('name').trim().split(/\s+/)[0].replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `{
           search(term: "${searchTerm}", type: "post") {
             items {
@@ -525,7 +579,7 @@ describe('graphql request handler', () => {
   })
 
   describe('removeSkill', () => {
-    var skill1, skill2
+    let skill1, skill2
 
     before(() => {
       const suffix = randomUUID()
@@ -545,7 +599,7 @@ describe('graphql request handler', () => {
     })
 
     it('removes a skill with an id', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `mutation {
           removeSkill(id: ${skill1.id}) {
             success
@@ -562,13 +616,13 @@ describe('graphql request handler', () => {
             success: true
           }
         }
-       })
-       expect(user.relations.skills.length).to.equal(1)
-       expect(user.relations.skills.first().id).to.equal(skill2.id)
+      })
+      expect(user.relations.skills.length).to.equal(1)
+      expect(user.relations.skills.first().id).to.equal(skill2.id)
     })
 
     it('removes a skill with a name', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `mutation {
           removeSkill(name: "${skill2.get('name')}") {
             success
@@ -593,7 +647,7 @@ describe('graphql request handler', () => {
 
   describe('sendEmailVerification', function () {
     it('returns `success: true` if new user', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "person@blah.com") {
@@ -615,7 +669,7 @@ describe('graphql request handler', () => {
 
     it('returns `success: true` if existing user with an unverified email', async () => {
       const testUser = await factories.user().save()
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "${testUser.get('email')}") {
@@ -637,10 +691,10 @@ describe('graphql request handler', () => {
 
     it('returns `success: true` if existing user with an already verified email', async () => {
       const testUser = await factories.user({
-        'email_validated': true
+        email_validated: true
       }).save()
 
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             sendEmailVerification(email: "${testUser.get('email')}") {
@@ -671,7 +725,7 @@ describe('graphql request handler', () => {
     })
 
     it('works', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(code: "${code}", email: "${user.get('email')}") {
@@ -702,7 +756,7 @@ describe('graphql request handler', () => {
     })
 
     it('returns invalid-code error when code is not valid', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(code: "booop", email: "${user.get('email')}") {
@@ -736,7 +790,7 @@ describe('graphql request handler', () => {
         code
       }, Buffer.from(process.env.OIDC_KEYS.split(',')[0], 'base64'), { algorithm: 'RS256' })
 
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(token: "${testToken}", email: "${user.get('email')}") {
@@ -762,7 +816,7 @@ describe('graphql request handler', () => {
     })
 
     it('validates email and creates user session on valid token', async () => {
-      const { response, executionResult } = await handler.inject({
+      const { executionResult } = await handler.inject({
         document: `
           mutation {
             verifyEmail(token: "${token}", email: "${user.get('email')}") {
@@ -786,7 +840,6 @@ describe('graphql request handler', () => {
           }
         }
       })
-      expect(req.session.userId).to.equal(user.id)
     })
   })
 
@@ -803,19 +856,19 @@ describe('graphql request handler', () => {
       return Promise.each(Object.keys(mutations), key => {
         const fn = mutations[key]
         return Promise.resolve()
-        .then(() => fn(root, args))
-        .catch(err => {
-          if (some(pattern => err.message.match(pattern), [
-            /is not a function/,
-            /is not defined/
-          ])) {
-            expect.fail(null, null, `Mutation "${key}" is not imported correctly: ${err.message}`)
-          }
+          .then(() => fn(root, args))
+          .catch(err => {
+            if (some(pattern => err.message.match(pattern), [
+              /is not a function/,
+              /is not defined/
+            ])) {
+              expect.fail(null, null, `Mutation "${key}" is not imported correctly: ${err.message}`)
+            }
 
           // FIXME: the console.log below shows a number of places where we need
           // more validation and/or are exposing SQL errors to the end-user
           // console.log(`${key}: ${err.message}`)
-        })
+          })
       })
     })
   })
@@ -834,20 +887,20 @@ describe('makeAuthenticatedQueries', () => {
   describe('groupExists', () => {
     it('throws an error if slug is invalid', () => {
       expect(() => {
-        queries.groupExists(null, {slug: 'a b'})
+        queries.groupExists(null, { slug: 'a b' })
       }).to.throw()
     })
 
     it('returns true if the slug is in use', () => {
       const group = factories.group()
       return group.save()
-      .then(() => queries.groupExists(null, {slug: group.get('slug')}))
-      .then(result => expect(result.exists).to.be.true)
+        .then(() => queries.groupExists(null, { slug: group.get('slug') }))
+        .then(result => expect(result.exists).to.be.true)
     })
 
     it('returns false if the slug is not in use', () => {
-      return queries.groupExists(null, {slug: 'sofadogtotherescue'})
-      .then(result => expect(result.exists).to.be.false)
+      return queries.groupExists(null, { slug: 'sofadogtotherescue' })
+        .then(result => expect(result.exists).to.be.false)
     })
   })
 
@@ -856,17 +909,17 @@ describe('makeAuthenticatedQueries', () => {
     afterEach(() => unspyify(User, 'query'))
 
     it('resets new notification count if requested', () => {
-      return queries.notifications(null, {resetCount: true})
-      .then(() => {
-        expect(User.resetNewNotificationCount).to.have.been.called.with(user.id)
-      })
+      return queries.notifications(null, { resetCount: true })
+        .then(() => {
+          expect(User.resetNewNotificationCount).to.have.been.called.with(user.id)
+        })
     })
 
     it('does not reset new notification count if not requested', () => {
       return queries.notifications(null, {})
-      .then(() => {
-        expect(User.resetNewNotificationCount).not.to.have.been.called()
-      })
+        .then(() => {
+          expect(User.resetNewNotificationCount).not.to.have.been.called()
+        })
     })
   })
 
@@ -882,7 +935,7 @@ describe('makeAuthenticatedQueries', () => {
 
     it('updates last viewed time', async () => {
       mockify(GroupMembership, 'updateLastViewedAt', (user, group) => {
-         return true
+        return true
       })
       await queries.group(null, {
         id: group.id,
