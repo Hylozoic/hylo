@@ -15,6 +15,7 @@ import { OneSignal } from 'react-native-onesignal'
 import useLinkingStore from 'navigation/linking/store'
 import KeyboardManager from 'react-native-keyboard-manager'
 import { AuthProvider } from '@hylo/contexts/AuthContext'
+import { mobileAuthAdapter } from 'util/authAdapter'
 // DEPRECATED: Subscription exchange no longer needed - web app handles all real-time updates
 // import mobileSubscriptionExchange from 'urql/mobileSubscriptionExchange'
 import { useMakeUrqlClient } from '@hylo/urql/makeUrqlClient'
@@ -193,7 +194,7 @@ export default function App () {
       <KeyboardProvider>
         <ErrorBoundary>
           <UrqlProvider value={urqlClient}>
-            <AuthProvider>
+            <AuthProvider authAdapter={mobileAuthAdapter}>
               <ActionSheetProvider>
                 {/* DEPRECATED: TRenderEngineProvider removed - only deprecated screens used HyloHTML */}
                 <Provider store={store}>

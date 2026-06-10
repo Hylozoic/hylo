@@ -2,10 +2,12 @@ import isMobile from 'ismobilejs'
 import PropTypes from 'prop-types'
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
 import { TextHelpers } from '@hylo/shared'
+import { groupInviteUrl } from '@hylo/navigation'
 import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Button from 'components/Button'
@@ -14,10 +16,19 @@ import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
 import { GROUP_VISIBILITY } from 'store/models/Group'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { regenerateAccessCode as regenerateAccessCodeAction, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
+import {
+  createInvitations as createInvitationsAction,
+  getPendingInvites,
+  expireInvitation as expireInvitationAction,
+  resendInvitation as resendInvitationAction,
+  reinviteAll as reinviteAllAction
+} from './InviteSettingsTab.store'
 
 import classes from './InviteSettingsTab.module.scss'
 
-const { object, func, string } = PropTypes
+const { object } = PropTypes
 
 const parseEmailList = emails =>
   (emails || '').split(/,|\n/).map(email => {
@@ -27,19 +38,18 @@ const parseEmailList = emails =>
   })
 
 function InviteSettingsTab (props) {
-  const {
-    group,
-    regenerateAccessCode,
-    inviteLink,
-    createInvitations,
-    trackAnalyticsEvent,
-    pendingCreate,
-    pending,
-    pendingInvites = [],
-    expireInvitation,
-    resendInvitation,
-    reinviteAll
-  } = props
+  const { group, pendingCreate } = props
+  const dispatch = useDispatch()
+  const inviteLink = groupInviteUrl(group)
+  const pending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
+  const pendingInvites = useSelector(state => getPendingInvites(state, { groupId: group.id }))
+
+  const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, message) => dispatch(createInvitationsAction(group.id, emails, message)), [dispatch, group.id])
+  const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
+  const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
+  const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
+  const trackAnalyticsEventDispatch = useCallback((eventNames, analyticsData) => dispatch(trackAnalyticsEvent(eventNames, analyticsData)), [dispatch])
 
   const { t } = useTranslation()
 
@@ -97,7 +107,7 @@ I'm inviting you to join {{name}} on Hylo.
         const numGood = invitations.length - badEmails.length
         if (numGood > 0) {
           successMessage = t('Sent {{numGood}} {{email}}', { numGood, email: numGood === 1 ? 'email' : 'emails' })
-          trackAnalyticsEvent('Group Invitations Sent', { numGood })
+          trackAnalyticsEventDispatch('Group Invitations Sent', { numGood })
         }
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)
@@ -318,9 +328,7 @@ I'm inviting you to join {{name}} on Hylo.
 }
 
 InviteSettingsTab.propTypes = {
-  group: object,
-  regenerateAccessCode: func,
-  inviteLink: string
+  group: object
 }
 
 export default InviteSettingsTab

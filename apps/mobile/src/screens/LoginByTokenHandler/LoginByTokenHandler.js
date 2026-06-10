@@ -4,6 +4,7 @@ import { StackActions, useFocusEffect, useRoute } from '@react-navigation/native
 import { useAuth } from '@hylo/contexts/AuthContext'
 import loginByToken from 'store/actions/loginByToken'
 import loginByJWT from 'store/actions/loginByJWT'
+import { saveTokens } from 'util/tokenStore'
 import useLinkingStore from 'navigation/linking/store'
 import { navigationRef } from 'navigation/linking/helpers'
 import { openURL } from 'hooks/useOpenURL'
@@ -39,6 +40,13 @@ export default function LoginByTokenHandler () {
               const response = await dispatch(loginByJWT(jwt))
 
               if (response?.error) throw response.error
+
+              // Persist the token pair returned by the token-auth header so the
+              // magic-link login lands on the same Keychain-token path (Bearer +
+              // transparent refresh) as the other login methods.
+              if (response?.payload?.access_token) {
+                await saveTokens(response.payload)
+              }
 
               await checkAuth()
             } else if (loginToken && userID) {

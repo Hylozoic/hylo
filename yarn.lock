@@ -5,6 +5,18 @@ __metadata:
   version: 8
   cacheKey: 10
 
+"@0no-co/graphql.web@npm:^1.0.13":
+  version: 1.2.0
+  resolution: "@0no-co/graphql.web@npm:1.2.0"
+  peerDependencies:
+    graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
+  peerDependenciesMeta:
+    graphql:
+      optional: true
+  checksum: 10/bb53b2e013686df0c8ca518430e9371bd14bd26910c1ab5b7bebd76cea1867ba6160d7e01924a04af846e90d99cb8f101f35960f89a76a8a91ce1d70f74d321d
+  languageName: node
+  linkType: hard
+
 "@0no-co/graphql.web@npm:^1.0.5":
   version: 1.1.1
   resolution: "@0no-co/graphql.web@npm:1.1.1"
@@ -11075,6 +11087,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@urql/core@npm:^5.1.1":
+  version: 5.2.0
+  resolution: "@urql/core@npm:5.2.0"
+  dependencies:
+    "@0no-co/graphql.web": "npm:^1.0.13"
+    wonka: "npm:^6.3.2"
+  checksum: 10/b49378550b7581e223f96c3abff33952e0409cebdef6f233250275b9548244ae99e793c9f5791b0ce707955f85c27fed5031719ea1f1279a190ffa0f9299231a
+  languageName: node
+  linkType: hard
+
 "@urql/devtools@npm:^2.0.3":
   version: 2.0.3
   resolution: "@urql/devtools@npm:2.0.3"
@@ -11084,6 +11106,18 @@ __metadata:
     "@urql/core": ">= 1.14.0"
     graphql: ">= 0.11.0"
   checksum: 10/01fc26d9b166f273af347b77005f19a72ff289793699a3dbbaa8a8213f323da897cb6a162c47fbaf50ef5f7e2f3f536608dfe7e0b65e12055686a9bf51aba5f0
+  languageName: node
+  linkType: hard
+
+"@urql/exchange-auth@npm:^2":
+  version: 2.2.1
+  resolution: "@urql/exchange-auth@npm:2.2.1"
+  dependencies:
+    "@urql/core": "npm:^5.1.1"
+    wonka: "npm:^6.3.2"
+  peerDependencies:
+    "@urql/core": ^5.0.0
+  checksum: 10/e58837d85c8b18a441e262ab6c631b4cc7250d681072b2ef3a45812188d4cef25aebde3f9cd90b249315ce060fa868de8bfeeda6a11b975689a867c42d3a8a77
   languageName: node
   linkType: hard
 
@@ -28073,6 +28107,7 @@ __metadata:
     "@types/redux-logger": "npm:^3"
     "@types/validator": "npm:^13"
     "@urql/devtools": "npm:^2.0.3"
+    "@urql/exchange-auth": "npm:^2"
     "@urql/exchange-graphcache": "npm:^7.2.1"
     "@urql/storage-rn": "npm:^1.1.1"
     babel-jest: "npm:^29.6.3"
@@ -28126,6 +28161,7 @@ __metadata:
     react-native-image-picker: "npm:^8.2.0"
     react-native-keyboard-controller: "npm:^1.18.6"
     react-native-keyboard-manager: "npm:^6.5.16-0"
+    react-native-keychain: "npm:^10.0.0"
     react-native-onesignal: "npm:^5.2.13"
     react-native-picker-select: "npm:^9.3.1"
     react-native-prompt-android: "npm:^1.1.0"
@@ -32844,6 +32880,13 @@ __metadata:
   peerDependencies:
     react-native: ">=0.60"
   checksum: 10/ea7950835fb0d1b0d5a90420f04117f0fb67f885a327595bc28bc3fc4dfc15149082880aa4d4b4736600940150579f16557c3b5ef0dd0ebedc9182b1093e9c2d
+  languageName: node
+  linkType: hard
+
+"react-native-keychain@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "react-native-keychain@npm:10.0.0"
+  checksum: 10/f06f2214ec7f8ac6fe63a30bee8a434e2d14c316be4b67821d7c25f1f540869ca852a567949783a560b0f7ca97f18be50c409cb35cb2cde3d49fb0700338604a
   languageName: node
   linkType: hard
 

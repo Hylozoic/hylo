@@ -1,7 +1,6 @@
 import orm from 'store/models'
 import normalized from '../MemberProfile.normalized.test.json'
 import { fetchRecentActivity, getRecentActivity } from './RecentActivity.store'
-import { mapStateToProps } from './RecentActivity.connector'
 
 describe('fetchRecentActivity', () => {
   it('returns the correct action', () => {
@@ -57,10 +56,9 @@ describe('connector', () => {
     })
   })
 
-  describe('mapStateToProps', () => {
-    it('returns an activityItems property of the correct length', () => {
-      const actual = mapStateToProps(state, props).activityItems.length
-      expect(actual).toBe(2)
+  describe('activity selector length', () => {
+    it('returns activity items of the correct length', () => {
+      expect(getRecentActivity(state, props).length).toBe(2)
     })
   })
 })
