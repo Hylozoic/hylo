@@ -121,3 +121,9 @@ jest.mock('react-native-webview', () => {
 
 // https://github.com/react-native-clipboard/clipboard
 jest.mock('@react-native-clipboard/clipboard', () => mockClipboard)
+
+jest.mock('react-native-keychain', () => ({
+  getGenericPassword: jest.fn().mockResolvedValue(false),
+  setGenericPassword: jest.fn().mockResolvedValue(true),
+  resetGenericPassword: jest.fn().mockResolvedValue(true)
+}))
