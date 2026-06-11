@@ -7,6 +7,7 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 import React, { useCallback, useMemo, useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
+import useRouteParams from 'hooks/useRouteParams'
 import { useTranslation } from 'react-i18next'
 import { Tooltip as ReactTooltip } from 'react-tooltip'
 import { createSelector } from 'reselect'
@@ -36,7 +37,6 @@ import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
-import useRouteParams from 'hooks/useRouteParams'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import fetchAllMyGroupsChatRooms from 'store/actions/fetchAllMyGroupsChatRooms'
 import {
@@ -140,12 +140,15 @@ const buildPostDraftPayload = (post = {}) => ({
 const mergeDraftIntoPost = (base, draft, groupOptions = []) => {
   if (!draft) return base
   const resolveGroup = (id) => groupOptions.find(group => group.id === id) || base.groups?.find(group => group.id === id) || { id }
+  const draftGroups = Array.isArray(draft.groups) && draft.groups.length > 0
+    ? draft.groups.map(resolveGroup)
+    : base.groups
   return {
     ...base,
     ...draft,
-    topics: draft.topics ? draft.topics.map(topic => ({ ...topic })) : base.topics,
-    groups: draft.groups ? draft.groups.map(resolveGroup) : base.groups,
-    proposalOptions: draft.proposalOptions ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
+    topics: draft.topics?.length ? draft.topics.map(topic => ({ ...topic })) : base.topics,
+    groups: draftGroups,
+    proposalOptions: draft.proposalOptions?.length ? draft.proposalOptions.map(option => ({ ...option })) : base.proposalOptions,
     startTime: draft.startTime ? new Date(draft.startTime) : base.startTime,
     endTime: draft.endTime ? new Date(draft.endTime) : base.endTime
   }
@@ -200,12 +203,14 @@ function PostEditorInner ({
   const { pathname, search } = urlLocation
   const navigateToForDraft = `${pathname}${search || ''}`
   const routeParams = useParams()
+  const parsedRouteParams = useRouteParams()
+  const groupSlug = routeParams.groupSlug || parsedRouteParams.groupSlug
   const navigate = useNavigate()
   const hourCycle = getHourCycle()
   const { t } = useTranslation()
 
   const currentUser = useSelector(getMe)
-  const currentGroup = useSelector(state => getGroupForSlug(state, routeParams.groupSlug))
+  const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentTrack = useSelector(state => getTrack(state, routeParams.trackId))
   const currentFundingRound = useSelector(state => getFundingRound(state, routeParams.fundingRoundId))
 
@@ -390,14 +395,21 @@ function PostEditorInner ({
   }, [])
 
   const applyPostToEditor = useCallback((nextPost) => {
-    setCurrentPostState(nextPost)
-    const details = nextPost.details || ''
+    let post = nextPost
+    if (!editing && currentGroup?.id) {
+      const hasCurrentGroup = post.groups?.some(g => g?.id === currentGroup.id)
+      if (!hasCurrentGroup) {
+        post = { ...post, groups: [currentGroup, ...(post.groups || [])] }
+      }
+    }
+    setCurrentPostState(post)
+    const details = post.details || ''
     setHasDescription(hasDraftContent(details))
     setEditorInitialContent(details)
     editorRef.current?.setContent(details)
     lastSavedChatDetailsRef.current = details
     draftLoadedRef.current = true
-  }, [])
+  }, [currentGroup, editing])
 
   /**
    * Filters the available group options to find only those groups
@@ -446,6 +458,14 @@ function PostEditorInner ({
     const mergedPost = mergeDraftIntoPost(initialPost, sessionDraft || serverDraft, groupOptions)
     applyPostToEditor(mergedPost)
   }, [applyPostToEditor, createPostType, draftContextKey, editing, serverDraftLoaded, groupOptions, initialPost, loadDraftJSON])
+
+  useEffect(() => {
+    if (editing || !currentGroup?.id) return
+    setCurrentPost(prev => {
+      if (prev.groups?.length > 0) return prev
+      return { ...prev, groups: [currentGroup] }
+    })
+  }, [currentGroup?.id, editing, setCurrentPost])
 
   // Persist structural updates (title, metadata, etc.) whenever the draft changes after initial hydration.
   // When the user edits before the server responds, mark draftLoadedRef = true immediately so the
@@ -628,7 +648,6 @@ function PostEditorInner ({
       if (!g) return []
 
       // Get all selected topic options for this group
-      // If no topics are selected for a group, no pill is shown (group is not in selection)
       const chatRoomOptions = g.chatRooms?.toModelArray()
         ?.filter(cr =>
           cr?.groupTopic?.topic?.id &&
@@ -658,6 +677,16 @@ function PostEditorInner ({
             topic: t,
             avatarUrl: g.avatarUrl
           }))
+      }
+
+      // Events and other non-chat posts: show the group when no topic is selected
+      if (chatRoomOptions.length === 0 && (!currentPost.topics || currentPost.topics.length === 0)) {
+        return [{
+          id: `group-${g.id}`,
+          group: g,
+          name: g.name,
+          avatarUrl: g.avatarUrl
+        }]
       }
 
       return chatRoomOptions
@@ -991,6 +1020,11 @@ function PostEditorInner ({
    */
   const handleToOptionDelete = useCallback((deletedOption, allSelected) => {
     const groupId = deletedOption.group?.id
+
+    // Group-only pill (no topic), e.g. events
+    if (!deletedOption.topic) {
+      return allSelected.filter(o => o.group?.id !== groupId)
+    }
 
     // Check if we're deleting the #general pill
     if (deletedOption.topic?.name === DEFAULT_CHAT_TOPIC) {
