@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.4.10] - 2026-06-01
+## [6.4.11] - 2026-07-01
+
+## [6.4.10] - 2026-06-10
 
 ### Changed
 - In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.
