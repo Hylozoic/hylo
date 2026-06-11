@@ -106,11 +106,41 @@ function getSlidingScaleFromOffering (product) {
   return null
 }
 
+/**
+ * Whether access grants only include tracks (no group or role access).
+ * Track purchases are one-time; such offerings must not use recurring billing.
+ *
+ * @param {unknown} accessGrants
+ * @returns {boolean}
+ */
+function accessGrantsGrantTracksOnly (accessGrants) {
+  const ag = parseJsonObject(accessGrants)
+  const hasTracks = Array.isArray(ag.trackIds) && ag.trackIds.length > 0
+  const hasGroups = Array.isArray(ag.groupIds) && ag.groupIds.length > 0
+  const hasCommonRoles = Array.isArray(ag.commonRoleIds) && ag.commonRoleIds.length > 0
+  const hasGroupRoles = Array.isArray(ag.groupRoleIds) && ag.groupRoleIds.length > 0
+  return hasTracks && !hasGroups && !hasCommonRoles && !hasGroupRoles
+}
+
+/**
+ * One-time duration for tracks-only offerings; otherwise pass through requested duration.
+ *
+ * @param {unknown} accessGrants
+ * @param {string|null|undefined} duration
+ * @returns {string|null}
+ */
+function effectiveOfferingDuration (accessGrants, duration) {
+  if (accessGrantsGrantTracksOnly(accessGrants)) return null
+  return duration || null
+}
+
 module.exports = {
   BUY_BUTTON_TEXT_MAX_LENGTH,
   parseJsonObject,
   extractOfferingPresentationFields,
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering,
-  getSlidingScaleFromOffering
+  getSlidingScaleFromOffering,
+  accessGrantsGrantTracksOnly,
+  effectiveOfferingDuration
 }

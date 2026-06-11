@@ -353,6 +353,26 @@ describe('Stripe Mutations', () => {
         })
       ).to.be.rejectedWith('You must be a group administrator to create offerings')
     })
+
+    it('forces one-time duration for track-only offerings', async () => {
+      const result = await createStripeOffering(adminUser.id, {
+        groupId: group.id,
+        accountId: 'acct_test_123',
+        name: 'Paid Track',
+        description: 'Track access only',
+        priceInCents: 500,
+        currency: 'usd',
+        accessGrants: { trackIds: [99] },
+        duration: 'month',
+        publishStatus: 'published'
+      })
+
+      expect(result.success).to.be.true
+      const savedProduct = await StripeProduct.where({ id: result.databaseId }).fetch()
+      expect(savedProduct.get('duration')).to.equal(null)
+      expect(savedProduct.get('renewal_policy')).to.equal('manual')
+      expect(savedProduct.get('access_grants')).to.deep.equal({ trackIds: [99] })
+    })
   })
 
   describe('updateStripeOffering', () => {

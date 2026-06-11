@@ -30,7 +30,7 @@ import ViewControls from 'components/StreamViewControls'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
-import changeQuerystringParam from 'store/actions/changeQuerystringParam'
+import changeQuerystringParam, { changeQuerystringParams } from 'store/actions/changeQuerystringParam'
 import fetchCustomView from 'store/actions/fetchCustomView'
 import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
@@ -122,7 +122,7 @@ export default function Stream (props) {
   const defaultActivePostsOnly = systemView?.defaultActivePostsOnly || get('settings.activePostsOnly', currentUser) || false
   const defaultChildPostInclusion = get('settings.streamChildPosts', currentUser) || systemView?.defaultChildPostInclusion || 'yes'
 
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly'], location)
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'calendarMode', 'calendarDate'], location)
 
   const search = querystringParams.search
   const viewMode = querystringParams.v || customView?.defaultViewMode || defaultViewMode
@@ -148,9 +148,16 @@ export default function Stream (props) {
 
   const topics = topic ? [topic.id] : customView?.type === 'stream' ? customView?.topics?.toModelArray().map(t => t.id) : []
 
-  // for calendar viewmode
-  const [calendarMode, setCalendarMode] = useState('month')
-  const [calendarDate, setCalendarDate] = useState(new Date())
+  const calendarModes = ['day', 'week', 'month']
+  const calendarMode = calendarModes.includes(querystringParams.calendarMode)
+    ? querystringParams.calendarMode
+    : 'month'
+  const calendarDate = useMemo(() => {
+    const dateParam = querystringParams.calendarDate
+    if (!dateParam) return new Date()
+    const parsed = DateTimeHelpers.toDateTime(dateParam, { locale: getLocaleFromLocalStorage() })
+    return parsed.isValid ? parsed.toJSDate() : new Date()
+  }, [querystringParams.calendarDate])
   const eventCalendarUrl = useMemo(() => group?.eventCalendarUrl || '', [group])
   const rsvpCalendarUrl = useMemo(() => currentUser?.rsvpCalendarUrl || '', [currentUser])
 
@@ -358,6 +365,27 @@ export default function Stream (props) {
     dispatch(changeQuerystringParam(location, 'timeframe', timeframe, 'future'))
   }, [location])
 
+  const updateCalendarQueryParams = useCallback((updates) => {
+    const params = {}
+    if (updates.mode !== undefined) {
+      params.calendarMode = updates.mode
+    }
+    if (updates.date !== undefined) {
+      params.calendarDate = DateTimeHelpers.toDateTime(updates.date, { locale: getLocaleFromLocalStorage() }).toISODate()
+    }
+    if (Object.keys(params).length > 0) {
+      dispatch(changeQuerystringParams(location, params))
+    }
+  }, [dispatch, location])
+
+  const changeCalendarMode = useCallback(mode => {
+    updateCalendarQueryParams({ mode })
+  }, [updateCalendarQueryParams])
+
+  const changeCalendarDate = useCallback(date => {
+    updateCalendarQueryParams({ date })
+  }, [updateCalendarQueryParams])
+
   const newPost = useCallback(() => dispatch(push(createPostUrl(routeParams, querystringParams))), [routeParams, querystringParams])
 
   // Refresh calendar when returning from the create modal (a post may have been created)
@@ -529,9 +557,10 @@ export default function Stream (props) {
                     routeParams={routeParams}
                     querystringParams={querystringParams}
                     date={calendarDate}
-                    setDate={setCalendarDate}
+                    setDate={changeCalendarDate}
                     mode={calendarMode}
-                    setMode={setCalendarMode}
+                    setMode={changeCalendarMode}
+                    updateCalendarView={updateCalendarQueryParams}
                   />
                   {group && calendarMode === 'month' && <GroupCalendarSubscribe eventCalendarUrl={eventCalendarUrl} />}
                   {!group && view === 'events' && calendarMode === 'month' && (

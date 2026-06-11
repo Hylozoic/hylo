@@ -28,7 +28,7 @@ import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
-import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
+import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess, lineItemsGrantTracksOnly, offeringDurationForLineItems } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 
 function estimateStripeCardFeeUsdStyle (amount) {
@@ -73,6 +73,33 @@ function OfferingPriceFeeBreakdown ({ price, currency, t }) {
         {t('Estimates only. Stripe fees vary by country, payment method, and account settings.')}
       </div>
     </div>
+  )
+}
+
+function OfferingDurationControl ({ lineItems, duration, onChange, t }) {
+  const tracksOnly = lineItemsGrantTracksOnly(lineItems)
+
+  return (
+    <SettingsControl
+      label={t('Duration')}
+      helpText={tracksOnly
+        ? t('Track access is always a one-time purchase. Recurring billing is not available for track-only offerings.')
+        : t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
+      value={tracksOnly ? '' : duration}
+      onChange={onChange}
+      renderControl={(props) => (
+        <select {...props} disabled={tracksOnly} className='w-full p-2 rounded-md bg-background border border-border'>
+          <option value=''>{t('Lifetime / No expiration')}</option>
+          {!tracksOnly && (
+            <>
+              <option value='month'>{t('Monthly (recurring)')}</option>
+              <option value='season'>{t('Every 3 months (recurring)')}</option>
+              <option value='annual'>{t('Annual (recurring)')}</option>
+            </>
+          )}
+        </select>
+      )}
+    />
   )
 }
 
@@ -176,6 +203,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
     }
   }, [editingOffering])
 
+  // Track-only offerings are always one-time purchases
+  useEffect(() => {
+    if (lineItemsGrantTracksOnly(formData.lineItems) && formData.duration) {
+      setFormData(prev => ({ ...prev, duration: '' }))
+    }
+  }, [formData.lineItems, formData.duration])
+
   const handleCreateOffering = useCallback(async (e) => {
     e.preventDefault()
 
@@ -244,6 +278,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const duration = offeringDurationForLineItems(formData.lineItems, formData.duration)
 
       const result = await dispatch(createOffering(
         group.id,
@@ -253,7 +288,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         priceInCents,
         formData.currency,
         Object.keys(accessGrants).length > 0 ? accessGrants : null,
-        formData.duration || null,
+        duration,
         formData.publishStatus || 'unpublished'
       ))
 
@@ -329,11 +364,12 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       }
 
       const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
+      const effectiveDuration = offeringDurationForLineItems(formData.lineItems, formData.duration)
 
       const updates = {}
       if (formData.name !== editingOffering.name) updates.name = formData.name
       if (description !== (editingOffering.description || '')) updates.description = description || null
-      if (formData.duration !== (editingOffering.duration || '')) updates.duration = formData.duration || null
+      if (effectiveDuration !== (editingOffering.duration || null)) updates.duration = effectiveDuration
       if (formData.publishStatus !== (editingOffering.publishStatus || 'unpublished')) updates.publishStatus = formData.publishStatus || 'unpublished'
 
       // Compare accessGrants
@@ -586,19 +622,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 </div>
               </div>
             )}
-            <SettingsControl
-              label={t('Duration')}
-              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
-              value={formData.duration}
+            <OfferingDurationControl
+              lineItems={formData.lineItems}
+              duration={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-              renderControl={(props) => (
-                <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
-                  <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='month'>{t('Monthly (recurring)')}</option>
-                  <option value='season'>{t('Every 3 months (recurring)')}</option>
-                  <option value='annual'>{t('Annual (recurring)')}</option>
-                </select>
-              )}
+              t={t}
             />
 
             <SettingsControl
@@ -677,19 +705,11 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 />
               </div>
             </div>
-            <SettingsControl
-              label={t('Duration')}
-              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
-              value={formData.duration}
+            <OfferingDurationControl
+              lineItems={formData.lineItems}
+              duration={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-              renderControl={(props) => (
-                <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
-                  <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='month'>{t('Monthly (recurring)')}</option>
-                  <option value='season'>{t('Every 3 months (recurring)')}</option>
-                  <option value='annual'>{t('Annual (recurring)')}</option>
-                </select>
-              )}
+              t={t}
             />
 
             <SettingsControl

@@ -123,6 +123,48 @@ export function offeringHasGroupAccess (offering) {
 }
 
 /**
+ * Checks if access grants only grant track access (no groups or roles).
+ * Track access is always one-time; offerings with tracks-only should not be recurring.
+ *
+ * @param {string|object|null|undefined} accessGrants
+ * @returns {boolean}
+ */
+export function accessGrantsGrantTracksOnly (accessGrants) {
+  const ag = parseAccessGrants(accessGrants)
+  const hasTracks = Array.isArray(ag.trackIds) && ag.trackIds.length > 0
+  const hasGroups = Array.isArray(ag.groupIds) && ag.groupIds.length > 0
+  const hasCommonRoles = Array.isArray(ag.commonRoleIds) && ag.commonRoleIds.length > 0
+  const hasGroupRoles = Array.isArray(ag.groupRoleIds) && ag.groupRoleIds.length > 0
+  return hasTracks && !hasGroups && !hasCommonRoles && !hasGroupRoles
+}
+
+/**
+ * Checks if line items selection only includes tracks (no groups or roles).
+ *
+ * @param {{ tracks?: Array, groups?: Array, roles?: Array }} lineItems
+ * @returns {boolean}
+ */
+export function lineItemsGrantTracksOnly (lineItems) {
+  if (!lineItems) return false
+  const hasTracks = Array.isArray(lineItems.tracks) && lineItems.tracks.length > 0
+  const hasGroups = Array.isArray(lineItems.groups) && lineItems.groups.length > 0
+  const hasRoles = Array.isArray(lineItems.roles) && lineItems.roles.length > 0
+  return hasTracks && !hasGroups && !hasRoles
+}
+
+/**
+ * Resolves offering duration for create/update; tracks-only offerings are always one-time.
+ *
+ * @param {{ tracks?: Array, groups?: Array, roles?: Array }} lineItems
+ * @param {string|null|undefined} duration
+ * @returns {string|null}
+ */
+export function offeringDurationForLineItems (lineItems, duration) {
+  if (lineItemsGrantTracksOnly(lineItems)) return null
+  return duration || null
+}
+
+/**
  * Checks if an offering has any role access grants
  * @param {object} offering - The offering object with groupRoles/commonRoles relations or accessGrants
  * @returns {boolean} True if the offering grants access to any roles

@@ -10,7 +10,7 @@
 
 import { GraphQLError } from 'graphql'
 import StripeService from '../../services/StripeService'
-import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
+import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject, effectiveOfferingDuration, accessGrantsGrantTracksOnly } from '../../../lib/stripeOfferingMetadata'
 
 /* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount, User, Queue, Frontend */
 
@@ -276,20 +276,23 @@ module.exports = {
       // Convert database ID to external account ID if needed
       const externalAccountId = await getExternalAccountId(accountId)
 
+      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+      const effectiveDuration = effectiveOfferingDuration(cleanAccessGrants, duration)
+
       // Determine billing interval based on duration for recurring products
       // Map duration to Stripe interval and interval_count
       let billingInterval = null
       let billingIntervalCount = 1
-      if (duration === 'day') {
+      if (effectiveDuration === 'day') {
         billingInterval = 'day'
         billingIntervalCount = 1 // Daily - for testing subscription expiration
-      } else if (duration === 'month') {
+      } else if (effectiveDuration === 'month') {
         billingInterval = 'month'
         billingIntervalCount = 1
-      } else if (duration === 'season') {
+      } else if (effectiveDuration === 'season') {
         billingInterval = 'month'
         billingIntervalCount = 3 // Quarterly - every 3 months
-      } else if (duration === 'annual') {
+      } else if (effectiveDuration === 'annual') {
         billingInterval = 'year'
         billingIntervalCount = 1
       }
@@ -310,8 +313,6 @@ module.exports = {
       // Default renewal_policy to 'automatic' for subscription-based products
       const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
 
-      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
-
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
         stripe_product_id: product.id,
@@ -323,7 +324,7 @@ module.exports = {
         access_grants: cleanAccessGrants,
         metadata: offeringMetadata,
         renewal_policy: effectiveRenewalPolicy,
-        duration: duration || null,
+        duration: effectiveDuration,
         publish_status: publishStatus || 'unpublished'
       })
 
@@ -421,8 +422,10 @@ module.exports = {
       }
 
       // Fields that are platform-only (don't sync with Stripe)
+      let nextAccessGrants = parseJsonObject(product.get('access_grants'))
       if (accessGrants !== undefined) {
         const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+        nextAccessGrants = cleanAccessGrants
         const nextMeta = { ...parseJsonObject(product.get('metadata')) }
         if (offeringMetadata.buyButtonText != null) {
           nextMeta.buyButtonText = offeringMetadata.buyButtonText
@@ -438,7 +441,17 @@ module.exports = {
         updateAttrs.metadata = nextMeta
       }
       if (renewalPolicy !== undefined) updateAttrs.renewal_policy = renewalPolicy
-      if (duration !== undefined) updateAttrs.duration = duration
+
+      const effectiveDuration = effectiveOfferingDuration(
+        nextAccessGrants,
+        duration !== undefined ? duration : product.get('duration')
+      )
+      if (duration !== undefined || accessGrants !== undefined) {
+        updateAttrs.duration = effectiveDuration
+        if (accessGrantsGrantTracksOnly(nextAccessGrants)) {
+          updateAttrs.renewal_policy = 'manual'
+        }
+      }
       if (publishStatus !== undefined) {
         // Validate publish status
         const validStatuses = ['unpublished', 'unlisted', 'published', 'archived']
@@ -614,30 +627,30 @@ module.exports = {
           }
         : null
 
-      // Determine checkout mode based on renewal policy
-      // If automatic renewal, use subscription mode; otherwise payment mode
+      // Determine checkout mode based on renewal policy and effective duration
+      // Track-only offerings are always one-time, even if legacy data has a recurring duration
       const renewalPolicy = offering.get('renewal_policy')
-      const checkoutMode = renewalPolicy === 'automatic' ? 'subscription' : 'payment'
+      const effectiveDuration = effectiveOfferingDuration(offering.get('access_grants'), offering.get('duration'))
+      const checkoutMode = renewalPolicy === 'automatic' && effectiveDuration ? 'subscription' : 'payment'
 
       let effectiveStripePriceId = stripePriceId
       if (sanitizedAdjustableQuantity?.enabled) {
         // In subscription mode, Stripe requires a recurring price.
         // Ensure our shared sliding-scale unit price matches the offering's interval.
-        const duration = offering.get('duration')
         let billingInterval = null
         let billingIntervalCount = 1
 
         if (checkoutMode === 'subscription') {
-          if (duration === 'day') {
+          if (effectiveDuration === 'day') {
             billingInterval = 'day'
             billingIntervalCount = 1
-          } else if (duration === 'month') {
+          } else if (effectiveDuration === 'month') {
             billingInterval = 'month'
             billingIntervalCount = 1
-          } else if (duration === 'season') {
+          } else if (effectiveDuration === 'season') {
             billingInterval = 'month'
             billingIntervalCount = 3
-          } else if (duration === 'annual') {
+          } else if (effectiveDuration === 'annual') {
             billingInterval = 'year'
             billingIntervalCount = 1
           } else {
