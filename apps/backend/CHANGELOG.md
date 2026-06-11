@@ -6,7 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.4.6] - 2026-07-01
+## [6.5.1] - 2026-07-01
+
+## [6.5.0] - 2026-06-12
+
+### Added
+- 'Paid Content' released
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
 
 ## [6.4.5] - 2026-06-10
 
