@@ -353,6 +353,20 @@ describe('Stripe Mutations', () => {
         })
       ).to.be.rejectedWith('You must be a group administrator to create offerings')
     })
+
+    it('rejects track-only offerings with recurring duration', async () => {
+      await expect(
+        createStripeOffering(adminUser.id, {
+          groupId: group.id,
+          accountId: 'acct_test_123',
+          name: 'Track Course',
+          description: 'One-time track access',
+          priceInCents: 500,
+          accessGrants: { trackIds: [1] },
+          duration: 'month'
+        })
+      ).to.be.rejectedWith('Track-only offerings must use a one-time price')
+    })
   })
 
   describe('updateStripeOffering', () => {
@@ -511,6 +525,16 @@ describe('Stripe Mutations', () => {
           name: 'Unauthorized Update'
         })
       ).to.be.rejectedWith('You must be a group administrator to update offerings')
+    })
+
+    it('rejects updating to track-only access with recurring duration', async () => {
+      await expect(
+        updateStripeOffering(adminUser.id, {
+          offeringId: testProduct.id,
+          accessGrants: { trackIds: [1] },
+          duration: 'month'
+        })
+      ).to.be.rejectedWith('Track-only offerings must use a one-time price')
     })
 
     it('rejects update for non-existent offering', async () => {

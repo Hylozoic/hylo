@@ -9,8 +9,16 @@
  */
 
 import { GraphQLError } from 'graphql'
+import { validateOfferingDurationForAccessGrants } from '../../../lib/offeringAccessGrants'
 import StripeService from '../../services/StripeService'
 import { extractOfferingPresentationFields, getSlidingScaleFromOffering, parseJsonObject } from '../../../lib/stripeOfferingMetadata'
+
+function assertValidOfferingDurationForAccessGrants (accessGrants, duration) {
+  const error = validateOfferingDurationForAccessGrants(accessGrants, duration)
+  if (error) {
+    throw new GraphQLError(error)
+  }
+}
 
 /* global StripeProduct, Responsibility, Group, GroupMembership, StripeAccount, User, Queue, Frontend */
 
@@ -295,6 +303,9 @@ module.exports = {
       }
       // lifetime and null duration = one-time payment (no interval)
 
+      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
+      assertValidOfferingDurationForAccessGrants(cleanAccessGrants, duration)
+
       // Create the product on the connected account
       const product = await StripeService.createProduct({
         accountId: externalAccountId,
@@ -309,8 +320,6 @@ module.exports = {
       // Save offering to database for tracking and association with content
       // Default renewal_policy to 'automatic' for subscription-based products
       const effectiveRenewalPolicy = renewalPolicy || (billingInterval ? 'automatic' : 'manual')
-
-      const { cleanAccessGrants, offeringMetadata } = extractOfferingPresentationFields(accessGrants)
 
       const stripeProduct = await StripeProduct.create({
         group_id: groupId,
@@ -397,6 +406,13 @@ module.exports = {
       if (!hasAdmin) {
         throw new GraphQLError('You must be a group administrator to update offerings')
       }
+
+      const existingAccessGrants = parseJsonObject(product.get('access_grants'))
+      const effectiveAccessGrants = accessGrants !== undefined
+        ? extractOfferingPresentationFields(accessGrants).cleanAccessGrants
+        : existingAccessGrants
+      const effectiveDuration = duration !== undefined ? duration : product.get('duration')
+      assertValidOfferingDurationForAccessGrants(effectiveAccessGrants, effectiveDuration)
 
       // Prepare update attributes (only include provided fields)
       const updateAttrs = {}

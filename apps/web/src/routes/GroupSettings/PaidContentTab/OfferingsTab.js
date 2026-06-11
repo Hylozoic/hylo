@@ -28,6 +28,7 @@ import { offeringUrl, origin } from '@hylo/navigation'
 import fetchGroupTracks from 'store/actions/fetchGroupTracks'
 import useDebounce from 'hooks/useDebounce'
 import getCommonRoles from 'store/selectors/getCommonRoles'
+import { validateOfferingDurationForAccessGrants, isRecurringOfferingDuration } from '@hylo/shared'
 import { parseAccessGrants, offeringHasTrackAccess, offeringHasGroupAccess, offeringHasRoleAccess } from 'util/accessGrants'
 import { queryHyloAPI } from 'util/graphql'
 
@@ -154,6 +155,19 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
   const [expandedOfferingId, setExpandedOfferingId] = useState(null)
   const descriptionEditorRef = useRef(null)
 
+  const grantsOnlyTracks = useMemo(() => {
+    const hasTracks = formData.lineItems.tracks.length > 0
+    const hasGroups = formData.lineItems.groups.length > 0
+    const hasRoles = formData.lineItems.roles.length > 0
+    return hasTracks && !hasGroups && !hasRoles
+  }, [formData.lineItems])
+
+  useEffect(() => {
+    if (grantsOnlyTracks && isRecurringOfferingDuration(formData.duration)) {
+      setFormData(prev => ({ ...prev, duration: '' }))
+    }
+  }, [grantsOnlyTracks, formData.duration])
+
   /**
    * Toggle subscriber view for an offering
    * Implements accordion behavior - only one offering can be expanded at a time
@@ -243,6 +257,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
         if (maximum != null) accessGrants.slidingScale.maximum = maximum
       }
 
+      const durationError = validateOfferingDurationForAccessGrants(accessGrants, formData.duration)
+      if (durationError) {
+        window.alert(t(durationError))
+        setCreating(false)
+        return
+      }
+
       const description = descriptionEditorRef.current?.getHTML?.() ?? formData.description ?? ''
 
       const result = await dispatch(createOffering(
@@ -310,6 +331,13 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
       const trimmedButtonText = formData.buyButtonText?.trim?.()
       if (trimmedButtonText) {
         accessGrants.buyButtonText = trimmedButtonText.slice(0, BUY_BUTTON_TEXT_MAX_LENGTH)
+      }
+
+      const durationError = validateOfferingDurationForAccessGrants(accessGrants, formData.duration)
+      if (durationError) {
+        window.alert(t(durationError))
+        setUpdating(false)
+        return
       }
 
       // Parse existing accessGrants for comparison
@@ -586,17 +614,30 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 </div>
               </div>
             )}
+            <LineItemsSelector
+              group={group}
+              lineItems={formData.lineItems}
+              onLineItemsChange={(lineItems) => setFormData(prev => ({ ...prev, lineItems }))}
+              t={t}
+            />
+
             <SettingsControl
               label={t('Duration')}
-              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
+              helpText={grantsOnlyTracks
+                ? t('Tracks are sold as one-time purchases. Recurring billing is only available when the offering includes group or role access.')
+                : t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
-                  <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='month'>{t('Monthly (recurring)')}</option>
-                  <option value='season'>{t('Every 3 months (recurring)')}</option>
-                  <option value='annual'>{t('Annual (recurring)')}</option>
+                  <option value=''>{t('One-time purchase (lifetime access)')}</option>
+                  {!grantsOnlyTracks && (
+                    <>
+                      <option value='month'>{t('Monthly (recurring)')}</option>
+                      <option value='season'>{t('Every 3 months (recurring)')}</option>
+                      <option value='annual'>{t('Annual (recurring)')}</option>
+                    </>
+                  )}
                 </select>
               )}
             />
@@ -622,13 +663,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                   <option value='archived'>{t('Archived')}</option>
                 </select>
               )}
-            />
-
-            <LineItemsSelector
-              group={group}
-              lineItems={formData.lineItems}
-              onLineItemsChange={(lineItems) => setFormData(prev => ({ ...prev, lineItems }))}
-              t={t}
             />
 
             <div className='flex gap-2 justify-end pt-2 border-t border-foreground/10'>
@@ -677,17 +711,30 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 />
               </div>
             </div>
+            <LineItemsSelector
+              group={group}
+              lineItems={formData.lineItems}
+              onLineItemsChange={(lineItems) => setFormData(prev => ({ ...prev, lineItems }))}
+              t={t}
+            />
+
             <SettingsControl
               label={t('Duration')}
-              helpText={t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
+              helpText={grantsOnlyTracks
+                ? t('Tracks are sold as one-time purchases. Recurring billing is only available when the offering includes group or role access.')
+                : t('Recurring billing interval. Monthly, seasonal, and annual options auto-renew each period. Leave empty for one-time payment with lifetime access.')}
               value={formData.duration}
               onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
               renderControl={(props) => (
                 <select {...props} className='w-full p-2 rounded-md bg-background border border-border'>
-                  <option value=''>{t('Lifetime / No expiration')}</option>
-                  <option value='month'>{t('Monthly (recurring)')}</option>
-                  <option value='season'>{t('Every 3 months (recurring)')}</option>
-                  <option value='annual'>{t('Annual (recurring)')}</option>
+                  <option value=''>{t('One-time purchase (lifetime access)')}</option>
+                  {!grantsOnlyTracks && (
+                    <>
+                      <option value='month'>{t('Monthly (recurring)')}</option>
+                      <option value='season'>{t('Every 3 months (recurring)')}</option>
+                      <option value='annual'>{t('Annual (recurring)')}</option>
+                    </>
+                  )}
                 </select>
               )}
             />
@@ -713,13 +760,6 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                   <option value='archived'>{t('Archived')}</option>
                 </select>
               )}
-            />
-
-            <LineItemsSelector
-              group={group}
-              lineItems={formData.lineItems}
-              onLineItemsChange={(lineItems) => setFormData(prev => ({ ...prev, lineItems }))}
-              t={t}
             />
 
             <div className='flex gap-2 justify-end pt-2'>
