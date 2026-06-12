@@ -35,10 +35,10 @@ function AddLocation () {
     setLocation(loc.fullText)
   }
 
+  // Called inside .then() — server has confirmed signupInProgress=false, so navigating to
+  // returnToPath here is safe: any subsequent fetchForCurrentUser also sees the committed value.
   const goToNextStep = useCallback(() => {
-    if (!returnToPath) {
-      dispatch(push('/welcome/explore'))
-    }
+    dispatch(push(returnToPath || '/welcome/explore'))
   }, [dispatch, returnToPath])
 
   const submit = async () => {

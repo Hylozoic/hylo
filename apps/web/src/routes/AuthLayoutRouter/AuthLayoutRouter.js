@@ -78,6 +78,7 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
+import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
@@ -632,12 +633,15 @@ export default function AuthLayoutRouter (props) {
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
-  if (!signupInProgress && returnToPath) {
-    const returnToPathName = new URL(returnToPath, 'https://hylo.com')?.pathname
-    if (location.pathname === returnToPathName) {
+  // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
+  // the PENDING optimistic update sets signupInProgress=false before the server confirms,
+  // which would cause a premature redirect followed by a race with fetchForCurrentUser.
+  // AddLocation.goToNextStep() handles the redirect after the server actually confirms.
+  if (!signupInProgress && returnToPath && !isWelcomeContext) {
+    if (isAtReturnToPath(location, returnToPath)) {
       dispatch(setReturnToPath())
     } else {
-      return <Navigate to={returnToPath} />
+      return <Navigate to={returnToPath} replace />
     }
   }
 
