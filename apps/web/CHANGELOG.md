@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [6.5.1] - 2026-07-10
+
+## [6.5.0] - 2026-06-12
+
+### Added
+- 'Paid Content' released, integrating with Stripe.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- Calendar settings are now integrated into navigation, providing better user experience when navigating.
+
+### Fixed
+- Calendar event creation streamlined.
+- Search query streamlined.
+
 ## [6.4.11] - 2026-07-01
 
 ### Changed
