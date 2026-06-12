@@ -1,5 +1,5 @@
 import { trim } from 'lodash'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Button from 'components/ui/button'
@@ -12,6 +12,65 @@ import PaywallOfferingsSection from './PaywallOfferingsSection'
 import Icon from 'components/Icon'
 
 import classes from './GroupDetail.module.scss'
+
+/** Agreements list with per-item "I agree" below description; optional "accept all" when more than 3. */
+function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAgreements, introText }) {
+  const { t } = useTranslation()
+  const showAcceptAllRow = agreements.length > 3
+  const allIndividualChecked = agreements.length > 0 && acceptedAgreements.length >= agreements.length &&
+    agreements.every((_, index) => acceptedAgreements[index])
+
+  const toggleAgreement = useCallback((index) => {
+    setAcceptedAgreements(prev => {
+      const next = [...prev]
+      next[index] = !prev[index]
+      return next
+    })
+  }, [setAcceptedAgreements])
+
+  const handleAcceptAllChange = useCallback((event) => {
+    const checked = event.target.checked
+    setAcceptedAgreements(agreements.map(() => checked))
+  }, [agreements, setAcceptedAgreements])
+
+  return (
+    <div className='mb-4'>
+      <h3 className='text-foreground font-bold mb-2'>{t('Agreements')}</h3>
+      <p className='text-foreground/60 text-sm mb-3'>{introText}</p>
+      {agreements.map((agreement, index) => (
+        <div
+          key={agreement.id || index}
+          className='p-3 mb-2 bg-input rounded-xl'
+        >
+          <strong className='text-foreground'>{agreement.title}</strong>
+          {agreement.description && (
+            <div className='text-foreground/70 text-sm mt-1'>{agreement.description}</div>
+          )}
+          <label className='flex items-center gap-2 mt-3 cursor-pointer select-none'>
+            <input
+              type='checkbox'
+              checked={!!acceptedAgreements[index]}
+              onChange={() => toggleAgreement(index)}
+              className='h-4 w-4 shrink-0 rounded border-foreground/30 text-selected focus:ring-selected'
+            />
+            <span className='text-foreground text-sm'>{t('I agree to the above')}</span>
+          </label>
+        </div>
+      ))}
+      {showAcceptAllRow && (
+        <label className='flex items-center gap-3 p-3 mt-2 bg-input rounded-xl cursor-pointer hover:bg-input/80 transition-colors select-none w-full'>
+          <input
+            type='checkbox'
+            checked={allIndividualChecked}
+            onChange={handleAcceptAllChange}
+            className='h-4 w-4 shrink-0 rounded border-foreground/30 text-selected focus:ring-selected'
+          />
+          <span className='text-foreground text-sm font-medium'>{t('I agree to all of the above')}</span>
+        </label>
+      )}
+    </div>
+  )
+}
 
 export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
@@ -125,6 +184,10 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
   const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
   const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
 
+  useEffect(() => {
+    setAcceptedAgreements(agreements.map(() => false))
+  }, [agreements.length])
+
   // Toggle behavior: barriers are hidden until first button click
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings.askJoinQuestions && group.joinQuestions?.length > 0
@@ -138,14 +201,6 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       newAnswers[index].answer = answerValue
       setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
       return newAnswers
-    })
-  }
-
-  const toggleAgreement = (index) => () => {
-    setAcceptedAgreements(prev => {
-      const newState = [...prev]
-      newState[index] = !newState[index]
-      return newState
     })
   }
 
@@ -192,29 +247,12 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
         <>
           {/* Agreements Section */}
           {hasAgreements && (
-            <div className='mb-4'>
-              <h3 className='text-foreground font-bold mb-2'>{t('Agreements')}</h3>
-              <p className='text-foreground/60 text-sm mb-3'>{t('Please review and accept the following agreements to join')}:</p>
-              {agreements.map((agreement, index) => (
-                <label
-                  key={agreement.id || index}
-                  className='flex items-start gap-3 p-3 mb-2 bg-input rounded-xl cursor-pointer hover:bg-input/80 transition-colors'
-                >
-                  <input
-                    type='checkbox'
-                    checked={acceptedAgreements[index]}
-                    onChange={toggleAgreement(index)}
-                    className='mt-1 h-4 w-4 rounded border-foreground/30 text-selected focus:ring-selected'
-                  />
-                  <div className='flex-1'>
-                    <strong className='text-foreground'>{agreement.title}</strong>
-                    {agreement.description && (
-                      <div className='text-foreground/70 text-sm mt-1'>{agreement.description}</div>
-                    )}
-                  </div>
-                </label>
-              ))}
-            </div>
+            <AgreementsBarrierBlock
+              agreements={agreements}
+              acceptedAgreements={acceptedAgreements}
+              setAcceptedAgreements={setAcceptedAgreements}
+              introText={<>{t('Please review and accept the following agreements to join')}:</>}
+            />
           )}
 
           {/* Join Questions Section */}
@@ -265,6 +303,10 @@ export function JoinBarriers ({ group, onBarriersStateChange }) {
   const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
   const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
 
+  useEffect(() => {
+    setAcceptedAgreements(agreements.map(() => false))
+  }, [agreements.length])
+
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
   const hasBarriers = hasAgreements || hasRequiredQuestions
@@ -287,14 +329,6 @@ export function JoinBarriers ({ group, onBarriersStateChange }) {
     })
   }
 
-  const toggleAgreement = (index) => () => {
-    setAcceptedAgreements(prev => {
-      const newState = [...prev]
-      newState[index] = !newState[index]
-      return newState
-    })
-  }
-
   if (!hasBarriers) {
     return null
   }
@@ -303,29 +337,12 @@ export function JoinBarriers ({ group, onBarriersStateChange }) {
     <div className='JoinBarriers mb-4'>
       {/* Agreements Section */}
       {hasAgreements && (
-        <div className='mb-4'>
-          <h3 className='text-foreground font-bold mb-2'>{t('Agreements')}</h3>
-          <p className='text-foreground/60 text-sm mb-3'>{t('Please review and accept the following agreements')}:</p>
-          {agreements.map((agreement, index) => (
-            <label
-              key={agreement.id || index}
-              className='flex items-start gap-3 p-3 mb-2 bg-input rounded-xl cursor-pointer hover:bg-input/80 transition-colors'
-            >
-              <input
-                type='checkbox'
-                checked={acceptedAgreements[index]}
-                onChange={toggleAgreement(index)}
-                className='mt-1 h-4 w-4 rounded border-foreground/30 text-selected focus:ring-selected'
-              />
-              <div className='flex-1'>
-                <strong className='text-foreground'>{agreement.title}</strong>
-                {agreement.description && (
-                  <div className='text-foreground/70 text-sm mt-1'>{agreement.description}</div>
-                )}
-              </div>
-            </label>
-          ))}
-        </div>
+        <AgreementsBarrierBlock
+          agreements={agreements}
+          acceptedAgreements={acceptedAgreements}
+          setAcceptedAgreements={setAcceptedAgreements}
+          introText={<>{t('Please review and accept the following agreements')}:</>}
+        />
       )}
 
       {/* Join Questions Section */}
