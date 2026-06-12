@@ -36,6 +36,19 @@ describe('Post', function () {
       await post.markAsRead(u1.id)
       expect((await post.lastReadAtForUser(u1.id)).getTime()).to.be.closeTo(new Date().getTime(), 2000)
     })
+
+    it('marks only the latest message as unread', async () => {
+      await post.addFollowers([u1.id])
+      const earlier = new Date(Date.now() - 60000)
+      const later = new Date()
+      await factories.comment({ post_id: post.id, created_at: earlier }).save()
+      await factories.comment({ post_id: post.id, created_at: later }).save()
+      await post.save({ updated_at: later }, { patch: true })
+      await post.markAsRead(u1.id)
+      await post.markAsUnread(u1.id)
+      expect(await post.unreadCountForUser(u1.id)).to.equal(1)
+      expect((await post.lastReadAtForUser(u1.id)).getTime()).to.be.closeTo(later.getTime() - 1, 2000)
+    })
   })
 
   describe('#getCommenters', function () {

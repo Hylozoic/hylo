@@ -271,6 +271,12 @@ export async function markThreadRead (root, { messageThreadId }, context) {
   return messageThread
 }
 
+export async function markThreadUnread (root, { messageThreadId }, context) {
+  const messageThread = await Post.find(messageThreadId)
+  await messageThread.markAsUnread(context.currentUserId)
+  return messageThread
+}
+
 export function unlinkAccount (userId, provider) {
   return User.find(userId)
     .then(user => {

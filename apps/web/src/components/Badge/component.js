@@ -8,7 +8,7 @@ export default function Badge ({ number, expanded, className, border, onClick })
   // Render a simple 16px white circle when number is '-'
   if (number === '-') {
     return (
-      <span className={cn(classes.badgeWrapper, className)} onClick={onClick} role='status'>
+      <span className={cn(classes.badgeWrapper, expanded && classes.badgeWrapperExpanded, className)} onClick={onClick} role='status'>
         <span className={cn(expanded ? classes.badge : classes.badgeCollapsed, { [classes.border]: border })}>
           <span className='w-3 h-3 bg-white rounded-full' />
         </span>
@@ -17,7 +17,7 @@ export default function Badge ({ number, expanded, className, border, onClick })
   }
 
   return (
-    <span className={cn(classes.badgeWrapper, className)} onClick={onClick} role='status'>
+    <span className={cn(classes.badgeWrapper, expanded && classes.badgeWrapperExpanded, className)} onClick={onClick} role='status'>
       <span className={cn(expanded ? classes.badge : classes.badgeCollapsed, { [classes.border]: border })}>
         {number === '-'
           ? <span className='w-3 h-3 bg-white rounded-full' />

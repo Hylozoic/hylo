@@ -90,6 +90,7 @@ import {
   markActivityRead,
   markAllActivitiesRead,
   markThreadRead,
+  markThreadUnread,
   messageGroupStewards,
   pinPost,
   processStripeToken,
@@ -608,6 +609,8 @@ export function makeMutations ({ fetchOne }) {
     markAllActivitiesRead: (root, args, context) => markAllActivitiesRead(context.currentUserId),
 
     markThreadRead,
+
+    markThreadUnread,
 
     messageGroupStewards: (root, { groupId }, context) => messageGroupStewards(context.currentUserId, groupId),
 
