@@ -54,6 +54,7 @@ import {
   UPDATE_POST,
   UPDATE_POST_PENDING,
   UPDATE_THREAD_READ_TIME,
+  MARK_THREAD_UNREAD,
   UPDATE_USER_SETTINGS_PENDING as UPDATE_USER_SETTINGS_GLOBAL_PENDING,
   UPDATE_WIDGET,
   USE_INVITATION,
@@ -1010,6 +1011,20 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         unseenThreadCount: Math.max(0, me.unseenThreadCount - 1)
       })
       MessageThread.withId(meta.id).markAsRead()
+      break
+    }
+
+    case MARK_THREAD_UNREAD: {
+      if (payload?.api) {
+        const thread = MessageThread.withId(meta.id)
+        if (thread && thread.unreadCount === 0) {
+          me = Me.first()
+          me.update({
+            unseenThreadCount: (me.unseenThreadCount || 0) + 1
+          })
+        }
+        thread?.markAsUnread()
+      }
       break
     }
 

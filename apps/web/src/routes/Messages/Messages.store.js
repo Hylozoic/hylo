@@ -9,6 +9,7 @@ import {
   FETCH_THREAD,
   FETCH_THREADS,
   UPDATE_THREAD_READ_TIME,
+  MARK_THREAD_UNREAD,
   CREATE_MESSAGE,
   FIND_OR_CREATE_THREAD
 } from 'store/constants'
@@ -18,6 +19,7 @@ import FindOrCreateThreadMutation from '@graphql/mutations/FindOrCreateThreadMut
 import CreateMessageMutation from '@graphql/mutations/CreateMessageMutation'
 import MessageThreadQuery from '@graphql/queries/MessageThreadQuery'
 import MessageThreadMessagesQuery from '@graphql/queries/MessageThreadMessagesQuery'
+import MarkThreadUnreadMutation from '@graphql/mutations/MarkThreadUnreadMutation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import filterDeletedUsers from 'util/filterDeletedUsers'
 
@@ -178,6 +180,20 @@ export function updateThreadReadTime (id) {
       }
     },
     meta: { id }
+  }
+}
+
+export function markThreadUnread (id) {
+  return {
+    type: MARK_THREAD_UNREAD,
+    graphql: {
+      query: MarkThreadUnreadMutation,
+      variables: { messageThreadId: id }
+    },
+    meta: {
+      id,
+      extractModel: 'MessageThread'
+    }
   }
 }
 

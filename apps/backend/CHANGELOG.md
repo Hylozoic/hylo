@@ -14,6 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 'Paid Content' released
 - Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
 
+### Fixed
+- Search query streamlined.
+
+## [6.4.6] - 2026-07-01
+
+### Changed
+- Backend changed required to allow mobile to log in via Open ID Connect and oAuth. To fix always asking users to log in when they open the mobile app.
+
+### Fixed
+- Don't error out trying to delete a draft that doesnt exist
+- Correct URL to event posts in RSVP emails
+- Links to posts from email notifications should now work more consistently on mobile
+- Deleting of unused container widgets
+
 ## [6.4.5] - 2026-06-10
 
 ### Fixed

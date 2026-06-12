@@ -8,6 +8,7 @@ import { Tooltip } from 'react-tooltip'
 import { useSelector, useDispatch } from 'react-redux'
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 import Avatar from 'components/Avatar'
+import BadgeEmoji from 'components/BadgeEmoji'
 import ClickCatcher from 'components/ClickCatcher'
 import FarmGroupDetailBody from 'components/FarmGroupDetailBody'
 import GroupAboutVideoEmbed from 'components/GroupAboutVideoEmbed'
@@ -40,6 +41,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import getMyMemberships from 'store/selectors/getMyMemberships'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getResponsibilitiesForGroup from 'store/selectors/getResponsibilitiesForGroup'
+import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import fetchForCurrentUser from 'store/actions/fetchForCurrentUser'
 import { cn, inIframe } from 'util/index'
 import { groupUrl, personUrl, removeGroupFromUrl } from '@hylo/navigation'
@@ -56,6 +58,37 @@ import g from './GroupDetail.module.scss'
 import m from '../MapExplorer/MapDrawer/MapDrawer.module.scss' // eslint-disable-line no-unused-vars
 
 const MAX_DETAILS_LENGTH = 144
+
+/** Renders a steward row with role emoji pills (tooltips match Membership / MemberProfile). */
+function StewardWithRoles ({ personId, name, avatarUrl, groupId, groupSlug }) {
+  const roles = useSelector(state => getRolesForGroup(state, { person: personId, groupId }))
+  const visibleRoles = useMemo(
+    () => roles.filter(role => role.common || role.active !== false),
+    [roles]
+  )
+
+  return (
+    <div className={g.steward}>
+      <Link to={personUrl(personId, groupSlug)} className={g.stewardMain}>
+        <Avatar avatarUrl={avatarUrl} medium className='shrink-0' />
+        <span className='text-foreground'>{name}</span>
+      </Link>
+      {visibleRoles.length > 0 && (
+        <div className={g.stewardRoles}>
+          {visibleRoles.map(role => (
+            <BadgeEmoji
+              key={`${groupId}-${personId}-${role.common ? 'c' : 'g'}-${role.id}`}
+              expanded
+              {...role}
+              responsibilities={role.responsibilities}
+              id={`${groupId}-${personId}-${role.common ? 'c' : 'g'}-${role.id}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function GroupDetail ({ forCurrentGroup = false }) {
   const dispatch = useDispatch()
@@ -266,10 +299,14 @@ function GroupDetail ({ forCurrentGroup = false }) {
               <h3 className='text-xl font-bold py-2'>{group.stewardDescriptorPlural || t('Stewards')}</h3>
               <div className={g.stewards}>
                 {stewards.map(p => (
-                  <Link to={personUrl(p.id, group.slug)} key={p.id} className={g.steward}>
-                    <Avatar avatarUrl={p.avatarUrl} medium className='shrink-0' />
-                    <span className='text-foreground'>{p.name}</span>
-                  </Link>
+                  <StewardWithRoles
+                    key={p.id}
+                    personId={p.id}
+                    name={p.name}
+                    avatarUrl={p.avatarUrl}
+                    groupId={group.id}
+                    groupSlug={group.slug}
+                  />
                 ))}
               </div>
             </div>

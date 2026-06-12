@@ -39,6 +39,15 @@ export function markAsRead (messageThreadInstance) {
   return messageThreadInstance
 }
 
+export function markAsUnread (messageThreadInstance) {
+  messageThreadInstance.update({
+    lastReadAt: '0',
+    unreadCount: 1
+  })
+
+  return messageThreadInstance
+}
+
 export function newMessageReceived (messageThreadInstance, bumpUnreadCount) {
   const update = bumpUnreadCount
     ? { unreadCount: messageThreadInstance.unreadCount + 1, updatedAt: new Date().toString() }
@@ -68,6 +77,10 @@ class MessageThread extends Model {
 
   markAsRead () {
     return markAsRead(this)
+  }
+
+  markAsUnread () {
+    return markAsUnread(this)
   }
 
   participantAttributes (currentUser, maxShown) {
