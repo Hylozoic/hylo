@@ -328,7 +328,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
             <div
               ref={agreementsSectionRef}
               id='agreements'
-              className='border-2 border-dashed border-foreground/20 rounded-xl p-4'
+              className='border-2 border-dashed border-foreground/20 rounded-xl p-4 mb-4'
             >
               <div className='flex flex-row flex-wrap items-center justify-between gap-2 gap-y-1 mb-2'>
                 <h2 className='m-0 text-xl font-bold py-2'>{t('Agreements')}</h2>
