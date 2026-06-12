@@ -1,18 +1,18 @@
 import React from 'react'
 import { render, screen, fireEvent, AllTheProviders } from 'util/testing/reactTestingLibraryExtended'
 import Search from './Search'
-import { FETCH_SEARCH, getSearchResults } from './Search.store'
+import { FETCH_SEARCH } from './Search.store'
 import orm from 'store/models'
 import { ViewHeaderContext } from 'contexts/ViewHeaderContext'
 
 // Mock debounce to execute immediately in tests
 jest.mock('lodash/fp', () => {
-  const original = jest.requireActual('lodash/fp');
+  const original = jest.requireActual('lodash/fp')
   return {
     ...original,
     debounce: (wait, fn) => (...args) => fn(...args)
-  };
-});
+  }
+})
 
 jest.mock('./Search.store', () => {
   // Create a stable reference for the mock results and a cache for memoization
@@ -84,7 +84,7 @@ beforeEach(() => {
   mockGetHasMoreSearchResults.mockClear()
 })
 
-function testProviders(mockResults = []) {
+function testProviders (mockResults = []) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
 
@@ -180,12 +180,18 @@ describe('Search', () => {
     __setMockResults(mockResults)
 
     // Create a component with props to simulate search terms
-    const props = { searchForInput: "walking" }
+    const props = { searchForInput: 'walking' }
     render(<Search {...props} />, { wrapper: testProviders(mockResults) })
 
     // The component needs to be updated to actually show skills that match
     // This test might need adjustment based on how your component actually works
     // expect(screen.getByText('walking')).toBeInTheDocument()
+  })
+
+  it('does not fetch search results until the term is at least two characters', () => {
+    render(<Search />, { wrapper: testProviders([]) })
+
+    expect(mockFetchSearchResults).not.toHaveBeenCalled()
   })
 
   it('navigates to person profile when clicked', () => {
