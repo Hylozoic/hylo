@@ -246,6 +246,21 @@ describe('mutations/context_widgets', () => {
       expect(deletedWidget).to.be.null
     })
 
+    it('allows deletion of user container widgets (type container, no entity links)', async () => {
+      const container = await factories.contextWidget({
+        group_id: group.id,
+        title: 'My container',
+        type: 'container',
+        view: null,
+        order: null,
+        parent_id: null,
+        auto_added: true
+      }).save()
+
+      const result = await deleteContextWidget(user.id, container.id)
+      expect(result).to.deep.equal({ success: true })
+    })
+
     it('prevents deletion of system widgets', async () => {
       const homeWidget = await ContextWidget.where({ type: 'home', group_id: group.id }).fetch()
 

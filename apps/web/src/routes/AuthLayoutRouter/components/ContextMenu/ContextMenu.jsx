@@ -2,7 +2,7 @@ import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } f
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import isMobile from 'ismobilejs'
 import { get } from 'lodash/fp'
-import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
+import { ChevronLeft, CircleX, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -553,18 +553,18 @@ function ActionMenu ({ widget }) {
   }, [widget.id, group.id])
 
   return (
-    <span className='text-sm font-bold cursor-pointer flex items-center'>
-      {widget.isEditable && <Pencil onClick={handleEditWidget} />}
+    <span className='text-sm font-bold cursor-pointer flex items-center gap-1'>
+      {widget.isEditable && <Pencil className='h-6 w-6' onClick={handleEditWidget} />}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Trash onClick={handleRemoveWidget} />
+          <CircleX className='h-6 w-6' onClick={handleRemoveWidget} aria-hidden />
         </TooltipTrigger>
         <TooltipContent>{t('Remove from Menu')}</TooltipContent>
       </Tooltip>
       {widget.isValidHomeWidget && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <House onClick={handleWidgetHomePromotion} />
+            <House className='h-6 w-6' onClick={handleWidgetHomePromotion} />
           </TooltipTrigger>
           <TooltipContent>{t('Set as Home View')}</TooltipContent>
         </Tooltip>
