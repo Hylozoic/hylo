@@ -754,6 +754,8 @@
   "Manually": "Manually",
   "Map": "Map",
   "Mark all as read": "Mark all as read",
+  "Mark as read": "Mark as read",
+  "Mark as unread": "Mark as unread",
   "Max Token Allocation": "Max Token Allocation",
   "Max Tokens per Submission": "Max Tokens per Submission",
   "Max {{tokenName}} allowed per submission": "Max {{tokenName}} allowed per submission",

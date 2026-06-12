@@ -3023,6 +3023,8 @@ type Mutation {
   markAllActivitiesRead: GenericResult
   # Marks a MessageThread as read
   markThreadRead(messageThreadId: ID): MessageThread,
+  # Marks a MessageThread as unread
+  markThreadUnread(messageThreadId: ID): MessageThread,
   # Send a message to all the stewards of a Group
   messageGroupStewards(groupId: ID): ID
   # Pin a post within a Group. Only a group moderator can call this.
