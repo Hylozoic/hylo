@@ -31,6 +31,8 @@ import { CENTER_COLUMN_ID } from 'util/scrolling'
 
 import classes from './Search.module.scss'
 
+const MIN_SEARCH_TERM_LENGTH = 2
+
 export default function Search (props) {
   const dispatch = useDispatch()
   const location = useLocation()
@@ -42,6 +44,7 @@ export default function Search (props) {
   const groupIds = useMemo(() => group ? [group.id] : null, [group.id])
   const [searchForInput, setSearchForInput] = useState(searchFromQueryString)
   const [filter, setFilter] = useState('all')
+  const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
   const queryResultProps = { search: searchForInput, type: filter, groupIds }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
@@ -65,17 +68,18 @@ export default function Search (props) {
   )
 
   const fetchSearchResultsAction = useCallback(() => {
+    if (!searchTermReady) return
     return fetchSearchResultsDebounced({ search: searchForInput, filter, groupIds })
-  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds])
+  }, [fetchSearchResultsDebounced, searchForInput, filter, groupIds, searchTermReady])
 
-  const fetchMoreSearchResults = useCallback(() => hasMore
-    ? fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length, groupIds })
-    : () => {},
-  [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length, groupIds])
+  const fetchMoreSearchResults = useCallback(() => {
+    if (!searchTermReady || !hasMore) return () => {}
+    return fetchSearchResultsDebounced({ search: searchForInput, filter, offset: searchResults.length, groupIds })
+  }, [fetchSearchResultsDebounced, hasMore, searchForInput, filter, searchResults.length, groupIds, searchTermReady])
 
   useEffect(() => {
     fetchSearchResultsAction()
-  }, [searchForInput, filter, groupIds])
+  }, [fetchSearchResultsAction])
 
   const handleClearGroup = useCallback(() => {
     dispatch(changeQuerystringParam(location, 'groupSlug', null, null, false))

@@ -161,7 +161,7 @@ export default {
         event_name: this.title(),
         event_description: this.details(),
         event_location: this.get('location'),
-        event_url: calInvite.url,
+        event_url: Frontend.Route.post(this, this.relations.groups.first()),
         response: eventInvitation.getHumanResponse(),
         group_names: groupNames,
         newDate,
