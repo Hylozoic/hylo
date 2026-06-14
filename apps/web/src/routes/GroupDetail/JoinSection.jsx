@@ -72,6 +72,105 @@ function AgreementsBarrierBlock ({ agreements, acceptedAgreements, setAcceptedAg
   )
 }
 
+/**
+ * JoinBarriers - agreements and join questions that must be satisfied before join or purchase
+ * Used by JoinQuestionsAndButtons (join) and PaywallOfferingsSection (checkout)
+ */
+export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = false }) {
+  const { t } = useTranslation()
+  const [questionAnswers, setQuestionAnswers] = useState(
+    (group.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
+  )
+  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(
+    () => !group.settings?.askJoinQuestions || !(group.joinQuestions || []).length
+  )
+
+  // joinQuestions often arrive after first paint; useState only uses its initial value once
+  useEffect(() => {
+    const questions = group.joinQuestions || []
+    setQuestionAnswers(questions.map(q => ({ questionId: q.questionId, text: q.text, answer: '' })))
+    setAllQuestionsAnswered(!group.settings?.askJoinQuestions || questions.length === 0)
+  }, [group.joinQuestions?.length, group.settings?.askJoinQuestions])
+
+  const agreements = group.agreements || []
+  const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
+  const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
+
+  useEffect(() => {
+    setAcceptedAgreements(agreements.map(() => false))
+  }, [agreements.length])
+
+  const hasAgreements = agreements.length > 0
+  const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
+  const hasBarriers = hasAgreements || hasRequiredQuestions
+  const canProceed = allQuestionsAnswered && allAgreementsAccepted
+
+  useEffect(() => {
+    if (onBarriersStateChange) {
+      onBarriersStateChange({
+        canProceed,
+        questionAnswers,
+        hasBarriers,
+        allQuestionsAnswered,
+        allAgreementsAccepted
+      })
+    }
+  }, [canProceed, questionAnswers, hasBarriers, allQuestionsAnswered, allAgreementsAccepted, onBarriersStateChange])
+
+  const setAnswer = (index) => (event) => {
+    const answerValue = event.target.value
+    setQuestionAnswers(prevAnswers => {
+      const newAnswers = [...prevAnswers]
+      newAnswers[index].answer = answerValue
+      setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
+      return newAnswers
+    })
+  }
+
+  if (!hasBarriers) {
+    return null
+  }
+
+  const agreementsIntro = joinIntroCopy
+    ? <>{t('Please review and accept the following agreements to join')}:</>
+    : <>{t('Please review and accept the following agreements')}:</>
+
+  const questionsIntro = joinIntroCopy
+    ? t('Please answer the following to join')
+    : t('Please answer the following')
+
+  return (
+    <div className='JoinBarriers mb-4'>
+      {hasAgreements && (
+        <AgreementsBarrierBlock
+          agreements={agreements}
+          acceptedAgreements={acceptedAgreements}
+          setAcceptedAgreements={setAcceptedAgreements}
+          introText={agreementsIntro}
+        />
+      )}
+
+      {hasRequiredQuestions && (
+        <div className='mb-4'>
+          <div className='text-foreground/60 font-medium text-base mb-2'>{questionsIntro}:</div>
+          {questionAnswers.map((q, index) => (
+            <div className='bg-input rounded-xl p-2 mb-4' key={index}>
+              <h3>{q.text}</h3>
+              <textarea
+                name={`question_${q.questionId}`}
+                className='w-full bg-input rounded-xl p-2'
+                onChange={setAnswer(index)}
+                value={q.answer}
+                placeholder={t('Type your answer here...')}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function JoinSection ({ accessCode, addSkill, currentUser, fullPage, group, groupsWithPendingRequests, invitationRole, invitationToken, joinGroup, requestToJoinGroup, removeSkill, routeParams, t }) {
   const hasPendingRequest = groupsWithPendingRequests[group.id]
 
@@ -165,48 +264,29 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
 }
 
 function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
-  const [questionAnswers, setQuestionAnswers] = useState(() =>
-    (group.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
-  )
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(
-    () => !group.settings?.askJoinQuestions || !(group.joinQuestions || []).length
-  )
-
-  // joinQuestions often arrive after first paint; useState only uses its initial value once
-  useEffect(() => {
-    const questions = group.joinQuestions || []
-    setQuestionAnswers(questions.map(q => ({ questionId: q.questionId, text: q.text, answer: '' })))
-    setAllQuestionsAnswered(!group.settings?.askJoinQuestions || questions.length === 0)
-  }, [group.joinQuestions?.length, group.settings?.askJoinQuestions])
-
-  // Track agreement acceptance - initialize all as unchecked
   const agreements = group.agreements || []
-  const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
-  const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
+  const hasAgreements = agreements.length > 0
+  const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
+  const hasBarriers = hasAgreements || hasRequiredQuestions
+  const [barriersExpanded, setBarriersExpanded] = useState(!hasBarriers)
+
+  const [barriersState, setBarriersState] = useState(null)
+
+  const handleBarriersStateChange = useCallback((state) => {
+    setBarriersState(state)
+  }, [])
 
   useEffect(() => {
-    setAcceptedAgreements(agreements.map(() => false))
-  }, [agreements.length])
+    setBarriersState(null)
+  }, [group.id])
 
-  // Toggle behavior: barriers are hidden until first button click
-  const hasAgreements = agreements.length > 0
-  const hasRequiredQuestions = group.settings.askJoinQuestions && group.joinQuestions?.length > 0
-  const hasBarriers = hasAgreements || hasRequiredQuestions
-  const [barriersExpanded, setBarriersExpanded] = useState(!hasBarriers) // Start expanded only if no barriers
-
-  const setAnswer = (index) => (event) => {
-    const answerValue = event.target.value
-    setQuestionAnswers(prevAnswers => {
-      const newAnswers = [...prevAnswers]
-      newAnswers[index].answer = answerValue
-      setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
-      return newAnswers
-    })
-  }
-
-  const canJoin = allQuestionsAnswered && allAgreementsAccepted
+  const canJoin = !hasBarriers || barriersState?.canProceed === true
 
   const getDisabledReason = () => {
+    if (!hasBarriers || !barriersState) {
+      return ''
+    }
+    const { allQuestionsAnswered, allAgreementsAccepted } = barriersState
     if (!allQuestionsAnswered && !allAgreementsAccepted) {
       return t('You must answer all questions and accept all agreements to join')
     }
@@ -219,21 +299,17 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
     return ''
   }
 
-  // Handle button click: expand barriers on first click, join on subsequent clicks
   const handleButtonClick = () => {
     if (hasBarriers && !barriersExpanded) {
-      // First click with barriers: expand the barriers UI
       setBarriersExpanded(true)
     } else if (canJoin) {
-      // All barriers satisfied: perform the join
-      joinGroup(group.id, questionAnswers)
+      joinGroup(group.id, hasBarriers ? (barriersState?.questionAnswers ?? []) : [])
     }
   }
 
-  // Determine button state and text
   const getButtonText = () => {
     if (hasBarriers && !barriersExpanded) {
-      return joinText // Show original join text for initial state
+      return joinText
     }
     return joinText
   }
@@ -242,35 +318,10 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
 
   return (
     <div className='JoinSection-QuestionsAndButton border-2 border-dashed border-foreground/20 rounded-xl p-4 w-full mt-4 mb-8'>
-      {/* Barriers Section - only shown when expanded */}
       {barriersExpanded && (
-        <>
-          {/* Agreements Section */}
-          {hasAgreements && (
-            <AgreementsBarrierBlock
-              agreements={agreements}
-              acceptedAgreements={acceptedAgreements}
-              setAcceptedAgreements={setAcceptedAgreements}
-              introText={<>{t('Please review and accept the following agreements to join')}:</>}
-            />
-          )}
-
-          {/* Join Questions Section */}
-          {hasRequiredQuestions && (
-            <>
-              <div className='text-foreground/60 font-medium text-base mb-2'>{t('Please answer the following to join')}:</div>
-              {questionAnswers.map((q, index) => (
-                <div className='bg-input rounded-xl p-2 mb-4' key={index}>
-                  <h3>{q.text}</h3>
-                  <textarea name={`question_${q.questionId}`} className='w-full bg-input rounded-xl p-2' onChange={setAnswer(index)} value={q.answer} placeholder={t('Type your answer here...')} />
-                </div>
-              ))}
-            </>
-          )}
-        </>
+        <JoinBarriers group={group} onBarriersStateChange={handleBarriersStateChange} joinIntroCopy />
       )}
 
-      {/* Join Button */}
       <Button
         variant='secondary'
         className='JoinSection-JoinButton border-2 border-selected w-full font-bold rounded-xl p-2 whitespace-normal'
@@ -281,88 +332,6 @@ function JoinQuestionsAndButtons ({ group, joinGroup, joinText, t }) {
       >
         {getButtonText()}
       </Button>
-    </div>
-  )
-}
-
-/**
- * JoinBarriers - Reusable component for displaying and tracking agreement/question barriers
- * Used by both JoinSection (for regular joins) and PaywallOfferingsSection (for purchases)
- */
-export function JoinBarriers ({ group, onBarriersStateChange }) {
-  const { t } = useTranslation()
-  const [questionAnswers, setQuestionAnswers] = useState(
-    (group.joinQuestions || []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
-  )
-  const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(
-    !group.settings?.askJoinQuestions || (group.joinQuestions || []).length === 0
-  )
-
-  // Track agreement acceptance - initialize all as unchecked
-  const agreements = group.agreements || []
-  const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
-  const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
-
-  useEffect(() => {
-    setAcceptedAgreements(agreements.map(() => false))
-  }, [agreements.length])
-
-  const hasAgreements = agreements.length > 0
-  const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
-  const hasBarriers = hasAgreements || hasRequiredQuestions
-  const canProceed = allQuestionsAnswered && allAgreementsAccepted
-
-  // Notify parent of barriers state changes
-  React.useEffect(() => {
-    if (onBarriersStateChange) {
-      onBarriersStateChange({ canProceed, questionAnswers, hasBarriers })
-    }
-  }, [canProceed, questionAnswers, hasBarriers, onBarriersStateChange])
-
-  const setAnswer = (index) => (event) => {
-    const answerValue = event.target.value
-    setQuestionAnswers(prevAnswers => {
-      const newAnswers = [...prevAnswers]
-      newAnswers[index].answer = answerValue
-      setAllQuestionsAnswered(newAnswers.every(a => trim(a.answer).length > 0))
-      return newAnswers
-    })
-  }
-
-  if (!hasBarriers) {
-    return null
-  }
-
-  return (
-    <div className='JoinBarriers mb-4'>
-      {/* Agreements Section */}
-      {hasAgreements && (
-        <AgreementsBarrierBlock
-          agreements={agreements}
-          acceptedAgreements={acceptedAgreements}
-          setAcceptedAgreements={setAcceptedAgreements}
-          introText={<>{t('Please review and accept the following agreements')}:</>}
-        />
-      )}
-
-      {/* Join Questions Section */}
-      {hasRequiredQuestions && (
-        <div className='mb-4'>
-          <div className='text-foreground/60 font-medium text-base mb-2'>{t('Please answer the following')}:</div>
-          {questionAnswers.map((q, index) => (
-            <div className='bg-input rounded-xl p-2 mb-4' key={index}>
-              <h3>{q.text}</h3>
-              <textarea
-                name={`question_${q.questionId}`}
-                className='w-full bg-input rounded-xl p-2'
-                onChange={setAnswer(index)}
-                value={q.answer}
-                placeholder={t('Type your answer here...')}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
