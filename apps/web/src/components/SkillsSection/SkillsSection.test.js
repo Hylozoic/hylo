@@ -1,12 +1,12 @@
+import React from 'react'
+import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import SkillsSection from './SkillsSection'
+
 jest.mock('components/ui/tooltip', () => ({ TooltipProvider: ({ children }) => children }))
 jest.mock('components/ui/button', () => ({
   __esModule: true,
   default: ({ children, ...props }) => <button type='button' {...props}>{children}</button>
 }))
-
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import SkillsSection from './SkillsSection'
 
 describe('SkillsSection', () => {
   const mockSkills = [

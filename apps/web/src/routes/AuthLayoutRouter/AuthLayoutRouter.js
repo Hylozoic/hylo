@@ -35,6 +35,7 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getMyGroupMembership from 'store/selectors/getMyGroupMembership'
 import { getSignupInProgress } from 'store/selectors/getAuthState'
 import getLastViewedGroup from 'store/selectors/getLastViewedGroup'
+import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   POST_DETAIL_MATCH, GROUP_DETAIL_MATCH, postUrl
 } from '@hylo/navigation'
@@ -44,6 +45,8 @@ import AllView from 'routes/AllView'
 import ChatRoom from 'routes/ChatRoom'
 import CreateGroup from 'routes/CreateGroup'
 import GroupDetail from 'routes/GroupDetail'
+import PaymentSuccess from 'routes/GroupDetail/PaymentSuccess'
+import PaymentFailure from 'routes/GroupDetail/PaymentFailure'
 import GroupSettings from 'routes/GroupSettings'
 import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
@@ -62,6 +65,8 @@ import Messages from 'routes/Messages'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
+import MyTransactions from 'routes/MyTransactions'
+import OfferingDetails from 'routes/OfferingDetails/OfferingDetails'
 import PostDetail from 'routes/PostDetail'
 import Search from 'routes/Search'
 import Stream from 'routes/Stream'
@@ -73,6 +78,7 @@ import Tracks from 'routes/Tracks'
 import UserSettings from 'routes/UserSettings'
 import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
+import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isLegacyWebView } from 'util/webView'
@@ -531,6 +537,24 @@ export default function AuthLayoutRouter (props) {
     }
   }, [currentGroupSlug, dispatch])
 
+  // Redirect to stream if user is a member but doesn't have access (expired subscription)
+  useEffect(() => {
+    if (currentGroupSlug && currentGroupMembership && currentGroup?.paywall && currentGroup?.canAccess === false) {
+      const currentPath = location.pathname
+      const streamPath = `/groups/${currentGroupSlug}/stream`
+      const onOfferingPurchasePath = currentPath.startsWith(`/groups/${currentGroupSlug}/offerings/`)
+      // Only redirect if not already on stream page; keep offering URLs so members can buy access
+      if (!currentPath.includes('/stream') && !onOfferingPurchasePath) {
+        // Mobile web: LOCATION_CHANGE only closes the group drawer, not the sliding nav + backdrop.
+        // Close the nav so the paywall / no-access stream view is visible after redirect.
+        if (typeof window !== 'undefined' && window.innerWidth < 640) {
+          dispatch(toggleNavMenu(false))
+        }
+        navigate(streamPath, { replace: true })
+      }
+    }
+  }, [currentGroupSlug, currentGroupMembership, currentGroup?.paywall, currentGroup?.canAccess, location.pathname, navigate, dispatch])
+
   // Pre-load context menu data for all membership groups in paginated batches.
   // This ensures context menus render immediately when switching groups.
   // Batches are processed sequentially (10 groups at a time) with a delay
@@ -609,12 +633,15 @@ export default function AuthLayoutRouter (props) {
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
-  if (!signupInProgress && returnToPath) {
-    const returnToPathName = new URL(returnToPath, 'https://hylo.com')?.pathname
-    if (location.pathname === returnToPathName) {
+  // Only redirect to returnToPath when outside the welcome wizard. Inside the wizard,
+  // the PENDING optimistic update sets signupInProgress=false before the server confirms,
+  // which would cause a premature redirect followed by a race with fetchForCurrentUser.
+  // AddLocation.goToNextStep() handles the redirect after the server actually confirms.
+  if (!signupInProgress && returnToPath && !isWelcomeContext) {
+    if (isAtReturnToPath(location, returnToPath)) {
       dispatch(setReturnToPath())
     } else {
-      return <Navigate to={returnToPath} />
+      return <Navigate to={returnToPath} replace />
     }
   }
 
@@ -629,8 +656,12 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
   }
 
-  // Looking at a group that doesn't exist or current user doesn't have access to it
-  if (currentGroupSlug && !currentGroup && !currentGroupLoading) {
+  // Looking at a group that doesn't exist or current user doesn't have access to it.
+  // Skip this when the URL carries invite/join credentials: FetchForGroup has no accessCode,
+  // so hidden groups look missing until GroupDetail runs GroupDetailsQuery with those params.
+  const groupInviteBypass =
+    !!getQuerystringParam('accessCode', location) || !!getQuerystringParam('token', location)
+  if (currentGroupSlug && !currentGroup && !currentGroupLoading && !groupInviteBypass) {
     return <NotFound />
   }
 
@@ -816,6 +847,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='public/post/:postId/create/*' element={<Stream context='public' />} />
                 <Route path='all/*' element={<Stream context='my' />} />
                 <Route path='public/*' element={<Navigate to='/public/stream' replace />} />
+                {/* Must be before `groups/:groupSlug/*` so `/groups/:slug/offerings/:id` is not handled only by the group splat + inner Navigate-to-stream */}
+                <Route path='groups/:groupSlug/offerings/:offeringId' element={<OfferingDetails />} />
                 {/* **** Group Routes **** */}
                 <Route path='create-group/*' element={<CreateGroup />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={<JoinGroup />} />
@@ -856,6 +889,9 @@ export default function AuthLayoutRouter (props) {
                             <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
                             <Route path='funding-rounds/*' element={<FundingRounds />} />
                             <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                            <Route path='payment/success' element={<PaymentSuccess />} />
+                            <Route path='payment/cancel' element={<PaymentFailure />} />
+                            <Route path='payment/failure' element={<PaymentFailure />} />
                             <Route path='settings/*' element={<GroupSettings context='groups' />} />
                             <Route path='all-views' element={<AllView context='groups' />} />
                             <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
@@ -874,6 +910,7 @@ export default function AuthLayoutRouter (props) {
                 <Route path='my/mentions/*' element={<Stream context='my' view='mentions' />} />
                 <Route path='my/saved-posts/*' element={<Stream context='my' view='saved-posts' />} />
                 <Route path='my/tracks/*' element={<MyTracks />} />
+                <Route path='my/transactions' element={<MyTransactions />} />
                 <Route path='my/*' element={<UserSettings />} />
                 <Route path='my' element={<Navigate to='/my/posts' replace />} />
                 {/* **** Management Routes (Admin Only) **** */}

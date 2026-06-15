@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import type { CalendarProps } from './calendar-types'
 import CalendarHeader from './header/calendar-header'
 import CalendarBody from './body/calendar-body'
 import CalendarBodyDayCalendar from './body/day/calendar-body-day-calendar'
@@ -24,8 +23,9 @@ export default function Calendar ({
   date,
   setDate,
   mode,
-  setMode
-}: CalendarProps) {
+  setMode,
+  updateCalendarView
+}) {
   // map posts objects to calendar "event" objects
   const events = posts.map((post) => {
     return {
@@ -50,6 +50,7 @@ export default function Calendar ({
       setMode={setMode}
       date={date}
       setDate={setDate}
+      updateCalendarView={updateCalendarView}
       calendarIconIsToday={calendarIconIsToday}
     >
       <div className='lg:hidden'>

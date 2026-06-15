@@ -614,6 +614,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     return pu.save({ last_read_at: new Date(), completion_response: JSON.stringify(pu.get('completion_response')) })
   },
 
+  async markAsUnread (userId) {
+    const pu = await this.loadPostInfoForUser(userId)
+    const latestComment = await this.comments().query(q => {
+      q.orderBy('created_at', 'desc')
+      q.orderBy('comments.id', 'desc')
+      q.limit(1)
+    }).fetchOne()
+
+    if (!latestComment) return pu
+
+    const lastReadAt = new Date(new Date(latestComment.get('created_at')).getTime() - 1)
+    return pu.save({ last_read_at: lastReadAt, completion_response: JSON.stringify(pu.get('completion_response')) })
+  },
+
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {
     pushToSockets(postRoom(this.id), 'userTyping', { userId, userName, isTyping }, socketToExclude)
   },
