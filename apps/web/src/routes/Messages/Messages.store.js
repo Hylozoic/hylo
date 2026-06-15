@@ -294,21 +294,22 @@ export const getCurrentMessageThread = ormCreateSelector(
   }
 )
 
-export const getThreadResults = makeGetQueryResults(FETCH_THREADS)
+export const getThreadResults = (state) => {
+  const search = getThreadSearch(state)
+  return makeGetQueryResults(FETCH_THREADS)(state, search ? { search } : {})
+}
 
 export const getThreadsHasMore = createSelector(getThreadResults, get('hasMore'))
 
 export const getThreads = ormCreateSelector(
   orm,
-  getThreadSearch,
   getThreadResults,
-  (session, threadSearch, searchResults) => {
+  (session, searchResults) => {
     if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return []
     return session.MessageThread.all()
       .orderBy(thread => -new Date(thread.updatedAt))
       .toModelArray()
       .filter(thread => includes(thread.id, searchResults.ids))
-      .filter(filterThreadsByParticipant(threadSearch))
   }
 )
 
