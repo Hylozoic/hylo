@@ -314,7 +314,7 @@ msgid ""
 " settings."
 msgstr ""
 
-msgid "Thank you for your generous donation of "
+msgid "Thank you for your generous contribution of "
 msgstr ""
 
 msgid " to Hylo!"
@@ -325,50 +325,50 @@ msgid ""
 " community building."
 msgstr ""
 
-msgid "Donation Date:"
+msgid "Contribution date:"
 msgstr ""
 
-msgid "Donation Type:"
+msgid "Contribution type:"
 msgstr ""
 
-msgid "Tax-Deductible Donation"
+msgid "Tax-deductible contribution"
 msgstr ""
 
 msgid ""
-"Your donation is tax-deductible in the United States. Hylo is fiscally "
+"Your contribution is tax-deductible in the United States. Hylo is fiscally "
 "sponsored by "
 msgstr ""
 
 msgid ", a 501(c)(3) nonprofit organization."
 msgstr ""
 
-msgid "This is a recurring donation that will automatically repeat "
+msgid "This is a recurring contribution that will automatically repeat "
 msgstr ""
 
 msgid "."
 msgstr ""
 
-msgid "Next Donation:"
+msgid "Next contribution:"
 msgstr ""
 
-msgid "Manage Recurring Donation"
+msgid "Manage recurring contribution"
 msgstr ""
 
-msgid "This donation was made as part of your "
+msgid "This contribution was made as part of your "
 msgstr ""
 
-msgid "Thank you for your donation to Hylo"
+msgid "Thank you for your contribution to Hylo"
 msgstr ""
 
 #, python-format
 msgid ""
-"Your donation is tax-deductible in the United States. Hylo is fiscally "
+"Your contribution is tax-deductible in the United States. Hylo is fiscally "
 "sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit "
 "organization."
 msgstr ""
 
 #, python-format
-msgid "This donation was made as part of your %(purchase_context_var)s."
+msgid "This contribution was made as part of your %(purchase_context_var)s."
 msgstr ""
 
 #, python-format

@@ -10,7 +10,7 @@ This document tracks how we plan to grow end-to-end (E2E) coverage for `apps/web
 
 - **Frontend:** Playwright starts the Vite dev server via `playwright.config.js` (`webServer: yarn dev`). Isolated runs default to **`http://localhost:3330`** (`E2E_WEB_PORT`) so your normal dev server can stay on `:3000`.
 - **Backend:** The web app’s `package.json` sets `"proxy": "localhost:3001"`. The browser’s network calls to the app’s origin are proxied to the Sails API — so **E2E is not mocked** unless we add Playwright `page.route()` / MSW or change proxying.
-- **Auth setup:** `e2e/auth.setup.js` logs in with real credentials from `E2E_TEST_USERNAME` and `E2E_TEST_PASSWORD` in `apps/web/.env` and saves `e2e/.auth/session.json`.
+- **Auth setup:** `e2e/auth.setup.js` logs in as the seeded user **`e2e.user@hylo.test`** / **`e2e-password-123`** (from `apps/backend/scripts/seed-e2e-baseline.js`) and saves `e2e/.auth/session.json`. Extra profiles: `auth.session-mutate.setup.js`, `auth.track-viewer.setup.js` (see §4.5).
 - **Projects:** `chromium` / `mobile-chrome` (authenticated session), `chromium-unauth` / `mobile-unauth` (`e2e/unauthenticated.routes.spec.js` only, no session). Run all with `yarn test:e2e`, mobile authed with `yarn test:e2e:mobile`, unauthenticated matrix with `yarn test:e2e:unauth`.
 - **Isolated mode (default):** all Playwright scripts now go through isolated orchestration (`run-isolated-e2e.js`) so E2E does not hit your regular `:3001` dev backend.
 - **Seed source:** isolated runs default to `E2E_SEED_PROFILE=e2e`, which runs `apps/backend/scripts/seed-e2e-baseline.js` (single `pg` connection, minimal rows — not legacy Knex dummy/farm seeds).
@@ -70,6 +70,7 @@ Covered by `e2e/unauthenticated.routes.spec.js` on **`chromium-unauth`** and **`
 | `/oauth/login/:uid`, `/oauth/consent/:uid` | done | done | |
 | `/post/:id`, post URL redirects | done | done | |
 | Join + public group + unknown route | done | done | |
+| Paid content: public offering deep link (`/groups/:slug/offerings/:id`) | done | done | Batch **P5** — `unauthenticated.routes.spec.js` |
 | `/signup/*` deeper steps (verify email, etc.) | — | — | Needs §2 hooks when we E2E those |
 | `/reset-password` submit + email | — | — | Needs §2 hooks |
 
@@ -92,6 +93,42 @@ High-level tracker only; **§4.4** breaks this into small batches. Update this t
 | Batch K — welcome wizard | done | done | `authenticated.welcome-management.spec.js` §4.4 |
 | Batch L — create group & happy-path join | done | done | `authenticated.create-group-join.spec.js` §4.4 |
 | Batch M — group welcome modal | done | done | `authenticated.group-welcome-modal.spec.js` §4.4 |
+| Paid content / Stripe (batches **P1–P8**) | done | done | See **§4.5** |
+
+### 4.5 Paid content & Stripe (batches P1–P8)
+
+These batches cover **Hylo UI + GraphQL** around Connect offerings, paywalls, and post-checkout shells. They **do not** complete real Stripe Checkout or card charges; isolated E2E uses seeded products and (where needed) backend test hooks (`STRIPE_WEBHOOK_BYPASS_SIGNATURE`, synthetic `acct_e2e_*` account status in `StripeService`). Batches **P1–P8** are implemented as of 2026-05-09.
+
+**Seed source:** `apps/backend/scripts/seed-e2e-baseline.js` — Stripe account row, `e2e-public-group` + offerings, **`e2e-paywall-group`** (paywall on, published offering, **`e2e.user` plain membership** without Coordinator so stream paywall applies), **`e2e.track-viewer@hylo.test`** (public group only, no Coordinator — track paywall visible), access-controlled **E2E Paid Track** + track-scoped offering, etc.
+
+**Stable selectors:** Paywall offering cards expose `data-testid="paywall-offering-card"` and `data-offering-id` (`PaywallOfferingsSection.jsx`) for specs that must resolve offering IDs.
+
+| Batch | Theme | Spec file(s) | Session / projects |
+|-------|--------|----------------|---------------------|
+| **P1** | Group **Paid Content** admin tabs (account, offerings, content-access) | `e2e/authenticated.paid-content-admin.spec.js` | Primary `session.json` → `chromium`, `mobile-chrome` |
+| **P2** | **Paywall discovery** while logged in: group shell + **OfferingDetails** (`Buy Now`); seeded offering name | `e2e/authenticated.paywall-discovery.spec.js` (`Batch P2`) | Primary session |
+| **P2** (logged out) | Paywall **Sign up to Purchase → /login**; cookie banner dismiss helper | `e2e/unauthenticated.routes.spec.js` (`Batch P2`) | `chromium-unauth`, `mobile-unauth` |
+| **P3** | **Track paywall** (access-controlled track, **Purchase Access**) | `e2e/authenticated.track-paywall.spec.js` | `e2e/.auth/track-viewer-session.json` via **`setup-track-viewer`** → `chromium-track-paywall`, `mobile-track-paywall` |
+| **P4** | **My Transactions** empty state + group **`payment/success`**, **`payment/cancel`**, **`payment/failure`** (failure uses same shell as cancel) | `e2e/authenticated.paid-content-pages.spec.js` | Primary session |
+| **P5** | **Unauthenticated** deep link **`/groups/e2e-paywall-group/offerings/:id`** (`Sign up to Purchase`) | `e2e/unauthenticated.routes.spec.js` (`Batch P5`) | `chromium-unauth`, `mobile-unauth` |
+| **P6** | **Group stream** paywall when member **lacks paid access** (`/groups/…/stream`) | `e2e/authenticated.paywall-discovery.spec.js` (`Batch P6`) | Primary session |
+| **P7** | **OfferingDetails** in auth shell: **`/groups/e2e-public-group/offerings/:id`** (`Buy Now`, seeded **E2E Membership Monthly**) | `e2e/authenticated.offering-details.spec.js` | Primary session |
+| **P8** | **OfferingDetails** unknown id → **error shell**; **My Transactions** filter UX (**Active** → empty filtered copy vs baseline) | `e2e/authenticated.paid-content-p8.spec.js` | Primary session |
+
+**Run (examples):**
+
+```bash
+cd apps/web && yarn test:e2e --grep "Batch P1"
+cd apps/web && yarn test:e2e --grep "Batch P3"   # uses `chromium-track-paywall` / `mobile-track-paywall`
+cd apps/web && yarn test:e2e --grep "Batch P6"
+cd apps/web && yarn test:e2e --grep "Batch P7"
+cd apps/web && yarn test:e2e --grep "Batch P8"
+cd apps/web && yarn test:e2e:unauth --grep "Batch P2|Batch P5"
+```
+
+**Batch P8 notes:** Unknown offering id → **`Error`** heading + **Offering not found** message. Transactions test uses **`#filter-status`** → **Active** (Radix); expects **No transactions found** + filter hint copy.
+
+**Auth setup notes:** `e2e/helpers/waitForLoginEmailVisible.js` (`gotoLoginAndWaitForEmail`) chains `waitPastRootSessionLoading`, optional `load`, **`#email`** visibility (not the sign-in heading — avoids i18n / lazy-route paint races). **No second in-helper `goto`:** stacked waits used to exceed the setup project timeout (Playwright killed the test mid–`#email`). Defaults target **cold Vite** (~**180s** goto + form, tighter loader gate so one attempt stays under **720s** project timeout); flakes rely on Playwright **`setup` project `retries`**. Optional env: `E2E_AUTH_GOTO_TIMEOUT_MS`, `E2E_AUTH_LOGIN_FORM_TIMEOUT_MS`.
 
 ### 4.3 Email-dependent flows (tie to §2)
 
@@ -180,14 +217,16 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 - **Deep link under `/groups/:slug/…` jumps to `…/stream`** — `AuthLayoutRouter` treats a missing membership `lastReadAt` as a first visit and navigates to the group home. Baseline seed sets `lastReadAt` on seeded memberships so E2E can open `/moderation`, `/settings`, etc. directly.
 - **`EADDRINUSE` on the API port** — Another process is bound there; set `E2E_BACKEND_PORT` or let the runner pick a free port in its scan range.
 - **Debugging DB state** — `E2E_KEEP_DB=1` skips the final `dropdb` so you can inspect data; you may still need session termination before the *next* run’s recreate step (the script does that automatically at **start** of each run).
-
----
+- **Playwright setup: `#email` never appears** — RootRouter waits on `checkLogin` before the login form mounts. Setups use `waitPastRootSessionLoading` + long `domcontentloaded` timeouts; ensure the isolated API is reachable (`VITE_API_HOST` / proxy). See §4.5.
+- **`page.goto('/login')` TimeoutError (e.g. 120s / 180s)** — First hit to `/login` waits on Vite cold compile; on a loaded machine or **many workers**, raise `E2E_AUTH_GOTO_TIMEOUT_MS` or run with **`E2E_PLAYWRIGHT_WORKERS=4`** so the dev server keeps up.
+- **Vite `[WebServer] Proxy error … ECONNRESET` then `ECONNREFUSED` on `/noo/graphql`** — The **Sails API** (Playwright `VITE_API_HOST`, often `:3101`) **stopped** while Vite on `:3330` kept running. Earlier **Node stack traces** in the terminal are usually from that crashed API process (OOM, unhandled rejection, etc.). Check the **first** error above the proxy spam; re-run with **`E2E_KEEP_DB=1`** if you need to inspect DB. Isolated runner defaults **`NODE_OPTIONS=--max-old-space-size=4096`** for the API when you have not set `NODE_OPTIONS` yourself. If the API still dies mid-suite, try lowering **`E2E_PLAYWRIGHT_WORKERS`** or raising heap via **`NODE_OPTIONS`** in your shell before `yarn test:e2e:isolated`.
 
 ## 7. References in repo
 
 - Playwright config: `apps/web/playwright.config.js`
-- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`, `authenticated.welcome-management.spec.js`, `authenticated.create-group-join.spec.js`, `authenticated.group-welcome-modal.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`)
-- Auth setup: `apps/web/e2e/auth.setup.js`
+- Specs: `apps/web/e2e/*.spec.js` (incl. `authenticated.shell.spec.js`, `authenticated.all-context.spec.js`, `authenticated.public-context.spec.js`, `authenticated.group-workspace.spec.js`, `authenticated.post-detail.spec.js`, `authenticated.members-profiles.spec.js`, `authenticated.messages.spec.js`, `authenticated.my-account.spec.js`, `authenticated.group-settings-moderation.spec.js`, `authenticated.create-edit-modals.spec.js`, `authenticated.welcome-management.spec.js`, `authenticated.create-group-join.spec.js`, `authenticated.group-welcome-modal.spec.js`, **`authenticated.paid-content-admin.spec.js`**, **`authenticated.paywall-discovery.spec.js`**, **`authenticated.track-paywall.spec.js`**, **`authenticated.paid-content-pages.spec.js`**, **`authenticated.offering-details.spec.js`**, **`authenticated.paid-content-p8.spec.js`**, `unauthenticated.routes.spec.js`; shared `e2e/helpers/waitPastRootSessionLoading.js`, **`e2e/helpers/waitForLoginEmailVisible.js`**, **`e2e/helpers/fetchOfferingIdForGroup.js`**, **`e2e/helpers/sessionAuth.js`** (`ensureBrowserSessionDestroyed`))
+- Auth setup: `apps/web/e2e/auth.setup.js`, `e2e/auth.session-mutate.setup.js`, `e2e/auth.track-viewer.setup.js`
+- Paid content seed: `apps/backend/scripts/seed-e2e-baseline.js`
 - Mobile UA helpers: `apps/web/src/util/mobile.js`, `ismobilejs` usage across routes
 - Top-level routing: `apps/web/src/routes/RootRouter/RootRouter.js`
 - Authenticated shell routes: `apps/web/src/routes/AuthLayoutRouter/AuthLayoutRouter.js`
@@ -223,3 +262,9 @@ The deterministic `e2e` seed profile creates a fixed login account (`e2e.user@hy
 | 2026-05-04 | Batch L: `e2e/authenticated.create-group-join.spec.js`; `seed-e2e-baseline.js` adds join-host user, `e2e-join-code-group` / `e2e-invite-token-group`, invite token row |
 | 2026-05-04 | Batch M: `e2e/authenticated.group-welcome-modal.spec.js`; `seed-e2e-baseline.js` adds `e2e-welcome-overlay` + `showJoinForm` membership |
 | 2026-05-04 | GitHub Actions: `.github/workflows/playwright.yml` (Postgres + Redis, `yarn test:e2e:isolated`, Playwright HTML report artifact); §6 CI/CD |
+| 2026-05-09 | **§4.5** Paid content / Stripe batches **P1–P7** (incl. **P7** `authenticated.offering-details.spec.js`); auth hardening: `waitForLoginEmailVisible.js`; `fetchForGroup` includes `paywall` / `canAccess`; §4.1/§4.2/§7 |
+| 2026-05-09 | Auth setup: setup projects **timeout 720s**; `gotoLoginAndWaitForEmail` — no inner double-`goto`, default goto/form waits **120s**, loader gate tightened so one attempt fits project wall clock; Playwright **`retries`** cover flakes |
+| 2026-05-09 | E2E helpers: **`fetchOfferingIdForGroup.js`** (GraphQL offering id); paywall P2 offering test uses it + longer timeouts; **`ensureBrowserSessionDestroyed`** before post-logout `goto('/')` in `authenticated.auth-session.spec.js`; map post-detail waits **120s**; §7 |
+| 2026-05-09 | **§4.5 Batch P8** — `authenticated.paid-content-p8.spec.js` (unknown offering id error shell; My Transactions filter empty state); §4.2 / §7 |
+| 2026-05-09 | `gotoLoginAndWaitForEmail`: restore **180s** default goto/`#email` timeouts (120s was too tight for cold `/login` on full suite); loader gate slightly tightened to keep under 720s setup wall clock |
+| 2026-05-09 | E2E seed: **`lastReadAt` tiers** so `e2e.user` public/private memberships win “last viewed” over paywall/welcome (fixes flaky Batch A `GET /` landing on `e2e-paywall-group/stream`); isolated API default **`NODE_OPTIONS=--max-old-space-size=4096`** when unset; troubleshooting for Vite **proxy ECONNREFUSED**; `fetchTrackIdByName` clearer errors on non-JSON responses |

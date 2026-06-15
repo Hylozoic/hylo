@@ -126,6 +126,81 @@ Change your `.env` file to have:
 PROTOCOL=https
 ```
 
+### Stripe Integration (Local Development)
+
+To test Stripe webhooks locally, you need to install the Stripe CLI and forward webhook events to your local server.
+
+#### Installing the Stripe CLI
+
+**macOS (Homebrew):**
+```shell
+brew install stripe/stripe-cli/stripe
+```
+
+**Linux:**
+```shell
+# Download the latest linux tar.gz from https://github.com/stripe/stripe-cli/releases/latest
+tar -xvf stripe_X.X.X_linux_x86_64.tar.gz
+sudo mv stripe /usr/local/bin
+```
+
+For other installation methods, see the [Stripe CLI documentation](https://stripe.com/docs/stripe-cli#install).
+
+#### Setting Up Your Stripe Sandbox Environment
+
+Before you can test Stripe locally, you need access to a personal sandbox environment:
+
+1. **Get access to the team Stripe account** - Ask an existing team member with admin permissions on the Stripe account to invite you to the Hylo Stripe team.
+
+2. **Create your personal sandbox** - Once you have access, log into the [Stripe Dashboard](https://dashboard.stripe.com) and create a sandbox environment by cloning the production configuration:
+   - Navigate to the sandbox/test environment selector (top-left of dashboard)
+   - Click "New sandbox" or ask a team member with permissions to create one for you
+   - Clone from the production environment to get all the existing products, prices, and webhook configurations
+
+3. **Get your sandbox API keys** - In your sandbox environment:
+   - Go to Developers → API keys
+   - Copy your **Publishable key** (`pk_test_...`) and **Secret key** (`sk_test_...`)
+
+4. **Add the keys to your `.env` file**:
+```
+STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+```
+
+#### Authenticating with Stripe CLI
+
+After installing the CLI, authenticate with your Stripe account:
+```shell
+stripe login
+```
+
+This will open a browser window to complete the authentication. Make sure you select your personal sandbox environment when prompted.
+
+#### Listening for Webhook Events
+
+To forward Stripe webhook events to your local backend server, run:
+```shell
+stripe listen --forward-to localhost:3001/noo/stripe/webhook
+```
+
+This will output a webhook signing secret that looks like `whsec_...`. Copy this value and add it to your `.env` file:
+```
+STRIPE_WEBHOOK_SECRET=whsec_your_signing_secret_here
+```
+
+**Note:** The webhook signing secret changes each time you run `stripe listen`, so you'll need to update your `.env` file accordingly when restarting the listener.
+
+#### Triggering Test Events
+
+You can trigger test webhook events to verify your integration:
+```shell
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.created
+stripe trigger invoice.paid
+```
+
+For more information about Stripe webhooks, see the [Stripe Webhooks documentation](https://stripe.com/docs/webhooks).
+
 ### Setting up to handle auth with JWTs and become an OpenID Connect provider
 - Run `yarn generate-rsa-key-base64`
 - Copy generated base64 string to .env file: `OIDC_KEYS=base64key`
