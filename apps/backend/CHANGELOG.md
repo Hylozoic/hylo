@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.5.0] - 2026-06-12
 
 ### Added
-- 'Paid Content' released
+- 'Paid Content' released.
 - Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- DM search is now a full-history search.
+- DMs can be read/unread.
 
 ### Fixed
 - Search query streamlined.
