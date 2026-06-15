@@ -19,7 +19,10 @@ import {
   fetchSearchResults,
   FETCH_SEARCH,
   getSearchResults,
-  getHasMoreSearchResults
+  getHasMoreSearchResults,
+  getHasFetchedSearchResults,
+  getSearchError,
+  formatSearchErrorMessage
 } from './Search.store'
 import { personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
@@ -27,6 +30,7 @@ import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import getPreviousLocation from 'store/selectors/getPreviousLocation'
 import { cn } from 'util/index'
+import { heyAxolotl, puzzledAxolotl } from 'util/assets'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 
 import classes from './Search.module.scss'
@@ -47,8 +51,14 @@ export default function Search (props) {
   const searchTermReady = searchForInput.trim().length >= MIN_SEARCH_TERM_LENGTH
   const queryResultProps = { search: searchForInput, type: filter, groupIds }
   const searchResults = useSelector(state => getSearchResults(state, queryResultProps))
+  const hasFetched = useSelector(state => getHasFetchedSearchResults(state, queryResultProps))
   const hasMore = useSelector(state => getHasMoreSearchResults(state, queryResultProps))
+  const searchError = useSelector(state => getSearchError(state, queryResultProps))
+  const searchErrorMessage = searchError ? formatSearchErrorMessage(searchError, t) : null
   const pending = useSelector(state => !!state.pending[FETCH_SEARCH])
+  const showLoading = searchTermReady && !searchError && (pending || !hasFetched)
+  const showEmptyState = searchTermReady && hasFetched && !pending && !searchError && searchResults.length === 0
+  const showErrorState = searchTermReady && !pending && searchError && searchResults.length === 0
   const inputRef = React.useRef(null)
 
   const showPerson = useCallback(personId => dispatch(push(personUrl(personId))), [dispatch])
@@ -162,7 +172,26 @@ export default function Search (props) {
               term={searchForInput}
               showPerson={showPerson}
             />)}
-          {pending && <Loading type='bottom' />}
+          {showErrorState && (
+            <SearchStatus
+              imageSrc={puzzledAxolotl}
+              message={searchErrorMessage}
+              variant='error'
+            />
+          )}
+          {showEmptyState && (
+            <SearchStatus
+              imageSrc={heyAxolotl}
+              message={t('No results for this search')}
+              subtitle={t('Try searching with different keywords')}
+            />
+          )}
+          {searchErrorMessage && searchResults.length > 0 && (
+            <div className='text-center text-destructive py-4 px-2'>
+              {searchErrorMessage}
+            </div>
+          )}
+          {showLoading && <Loading type='bottom' />}
           <ScrollListener onBottom={() => fetchMoreSearchResults()} elementId={CENTER_COLUMN_ID} />
         </div>
 
@@ -194,6 +223,26 @@ function TabBar ({ filter, setSearchFilter }) {
           {label}
         </span>
       ))}
+    </div>
+  )
+}
+
+function SearchStatus ({ imageSrc, message, subtitle, variant = 'empty' }) {
+  return (
+    <div className='flex flex-col items-center justify-center py-10 px-4 text-center'>
+      <img
+        src={imageSrc}
+        alt=''
+        className='w-40 max-w-[50%] h-auto object-contain mb-4 opacity-90'
+      />
+      <p className={cn('text-lg font-medium', variant === 'error' ? 'text-destructive' : 'text-foreground/80')}>
+        {message}
+      </p>
+      {subtitle && (
+        <p className='text-sm text-foreground/60 mt-2 max-w-md'>
+          {subtitle}
+        </p>
+      )}
     </div>
   )
 }
