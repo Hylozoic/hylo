@@ -20,7 +20,7 @@ export default function presentQuerySet (models, options, querySetId) {
   return {
     id: querySetId || null,
     total,
-    hasMore: offset + limit < total,
+    hasMore: options.hasMore != null ? options.hasMore : offset + limit < total,
     items: models
   }
 }
