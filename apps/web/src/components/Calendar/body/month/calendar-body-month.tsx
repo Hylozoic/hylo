@@ -11,7 +11,16 @@ import { getLocaleFromLocalStorage } from 'util/locale'
 
 export default function CalendarBodyMonth () {
   const { t } = useTranslation()
-  const { date, events, setDate, setMode } = useCalendarContext()
+  const { date, events, setDate, setMode, updateCalendarView } = useCalendarContext()
+
+  const openDayView = (day) => {
+    if (updateCalendarView) {
+      updateCalendarView({ date: day, mode: 'day' })
+      return
+    }
+    setDate(day)
+    setMode('day')
+  }
   const luxonDate = DateTimeHelpers.toDateTime(date, { locale: getLocaleFromLocalStorage() })
   const maxEventsPerDay = 3
 
@@ -86,8 +95,7 @@ export default function CalendarBodyMonth () {
                   )}
                   onClick={(e) => {
                     e.stopPropagation()
-                    setDate(day)
-                    setMode('day')
+                    openDayView(day)
                   }}
                 >
                   <div
@@ -123,8 +131,7 @@ export default function CalendarBodyMonth () {
                           className='text-xs text-muted-foreground leading-none'
                           onClick={(e) => {
                             e.stopPropagation()
-                            setDate(day)
-                            setMode('day')
+                            openDayView(day)
                           }}
                         >
                           {`+${dayEvents.length - maxEventsPerDay} ${t('more')}...`}

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 import { cn } from 'util/index'
 import useRouteParams from 'hooks/useRouteParams'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -11,7 +12,8 @@ import styles from 'routes/Stream/Stream.module.scss'
 export default function CalendarBodyDay () {
   const { date, events, group } = useCalendarContext()
   const routeParams = useRouteParams()
-  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe'], location)
+  const location = useLocation()
+  const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'calendarMode', 'calendarDate'], location)
   const dayEvents = events.filter((event) => inWeek(event.start, date, event.end))
   return (
     <div className='flex flex-grow p-0'>
