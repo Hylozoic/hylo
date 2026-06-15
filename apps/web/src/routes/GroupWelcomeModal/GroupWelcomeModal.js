@@ -38,17 +38,18 @@ export default function GroupWelcomeModal (props) {
   const welcomeModalRef = useRef(null)
   const numAgreements = group?.agreements?.length || 0
   const [currentAgreements, setCurrentAgreements] = useState(Array(numAgreements).fill(false))
+  const collectMemberEmails = currentGroup?.settings?.collectMemberEmails
 
   const numCheckedAgreements = currentAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
   const checkedAllAgreements = numCheckedAgreements === numAgreements
 
-  const agreementsChanged = numAgreements > 0 &&
+  const agreementsChanged = (numAgreements > 0 || collectMemberEmails) &&
     (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
 
   const [questionAnswers, setQuestionAnswers] = useState(group?.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
-  const hasFirstPage = numAgreements > 0
+  const hasFirstPage = numAgreements > 0 || collectMemberEmails
   const hasSecondPage = (group?.settings?.askJoinQuestions && questionAnswers?.length > 0 && !joinQuestionsAnsweredAt) ||
     (group?.settings?.showSuggestedSkills && group?.suggestedSkills?.length > 0)
 
@@ -162,14 +163,22 @@ export default function GroupWelcomeModal (props) {
                   <h2>{t('Our Purpose')}</h2>
                   <p>{group.purpose}</p>
                 </div>}
-              {group.agreements?.length > 0 && (
+              {(group.agreements?.length > 0 || collectMemberEmails) && (
                 <div className='mt-4 border-2 border-dashed border-foreground/20 rounded-xl p-4'>
                   <h2 className='text-center'>{t('Our Agreements')}</h2>
                   {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
                     ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
                     : null}
+                  {collectMemberEmails && (
+                    <div className='flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 mb-4'>
+                      <span className='text-amber-600 dark:text-amber-400 text-lg mt-0.5'>⚠</span>
+                      <p className='text-sm text-amber-800 dark:text-amber-300 m-0'>
+                        {t('Note: This group requires you to share your email address with group stewards. By continuing, you consent to your email address being visible to the stewards of this group.')}
+                      </p>
+                    </div>
+                  )}
                   <ol className='p-0'>
-                    {group.agreements.map((agreement, i) => {
+                    {(group.agreements || []).map((agreement, i) => {
                       return (
                         <li className={cn('border-b-2 border-b-dashed border-foreground/20 p-4', { 'border-b-2': group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
                           <h3>{agreement.title}</h3>

@@ -16,14 +16,15 @@ module.exports = {
     const group = await new Group({ id: groupId })
       .fetch()
 
+    const collectMemberEmails = group.get('settings')?.collectMemberEmails
+
     const results = []
     const questions = {}
 
     for (const u of users) {
-      const userData = u.pick([
-        'id', 'name', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio',
-        'url', 'twitter_name', 'facebook_url', 'linkedin_url'
-      ])
+      const pickedFields = ['id', 'name', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio', 'url', 'twitter_name', 'facebook_url', 'linkedin_url']
+      if (collectMemberEmails) pickedFields.push('email')
+      const userData = u.pick(pickedFields)
       const membership = await GroupMembership.forPair(u.id, groupId).fetch()
       const joinedAtRaw = membership?.get('created_at')
       userData.joined_at = joinedAtRaw
@@ -65,15 +66,18 @@ module.exports = {
     }
 
     // send data as CSV response
-    output(results, [
-      'id', 'name', 'joined_at', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
+    const columns = [
+      'id', 'name', 'joined_at', 'contact_email', 'contact_phone',
+      ...(collectMemberEmails ? ['email'] : []),
+      'location', 'avatar_url', 'tagline', 'bio',
       { key: 'url', header: 'personal_url' },
       'twitter_name', 'facebook_url', 'linkedin_url',
       'skills', 'skills_to_learn',
       'affiliations',
       'groups',
       'last_active_at'
-    ], email, group.get('name'), questions)
+    ]
+    output(results, columns, email, group.get('name'), questions)
   },
 
   /**

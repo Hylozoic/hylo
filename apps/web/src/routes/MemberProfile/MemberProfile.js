@@ -145,6 +145,9 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const locationWithoutUsa = person.location && person.location.replace(', United States', '')
   const isCurrentUser = currentUser && currentUser.id === personId
   const isAxolotl = AXOLOTL_ID === personId
+  // Show account email to stewards when group has collectMemberEmails enabled
+  const canSeeAccountEmail = !isCurrentUser && group?.settings?.collectMemberEmails && person.email &&
+    group.stewards?.toRefArray()?.some(s => String(s.id) === String(currentUser?.id))
   const contentDropDownItems = [
     { id: 'Overview', label: t('Overview'), title: t('{{name}}\'s recent activity', { name: person.name }), component: RecentActivity },
     { id: 'Posts', label: t('Posts'), title: t('{{name}}\'s posts', { name: person.name }), component: MemberPosts },
@@ -203,6 +206,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} />
           </div>
+          {canSeeAccountEmail && (
+            <div className='flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-2 mb-4 text-sm text-amber-800 dark:text-amber-300'>
+              <Icon name='Email' className='w-4 h-4 shrink-0' />
+              <span className='font-medium mr-1'>{t('Account Email')}:</span>
+              <a href={`mailto:${person.email}`} className='hover:underline break-all'>{person.email}</a>
+            </div>
+          )}
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}

@@ -58,6 +58,7 @@ export function fetchGroupSettings (slug) {
             allowGroupInvites
             askGroupToGroupJoinQuestions
             askJoinQuestions
+            collectMemberEmails
             defaultDigestFrequency
             hideExtensionData
             locationDisplayPrecision

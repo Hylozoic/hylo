@@ -96,7 +96,7 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
     settings,
     visibility
   } = edits
-  const { askJoinQuestions, askGroupToGroupJoinQuestions, hideExtensionData } = settings
+  const { askJoinQuestions, askGroupToGroupJoinQuestions, collectMemberEmails, hideExtensionData } = settings
   const { name, slug, type } = group
 
   const visibilityIcons = {
@@ -226,6 +226,24 @@ function PrivacySettingsTab ({ group, fetchPending, parentGroups, updateGroupSet
             save={updateSettingDirectly('joinQuestions', true)}
             disabled={!askJoinQuestions}
           />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection>
+        <h3 className='text-foreground font-bold mb-2'>{t('Collect Email Addresses from Members')}</h3>
+        <div className='space-y-4'>
+          <div className='flex items-center justify-between'>
+            <div className='space-y-1'>
+              <h4 className='text-foreground font-medium'>{t('Share member email addresses with group stewards')}</h4>
+              <p className='text-foreground/70 text-sm'>
+                {t('By default we do not give group stewards access to members\' email addresses for privacy. If you turn this on, every member will be warned that joining this group will expose their email address to group stewards. You will then be able to see and export the email address of each member.')}
+              </p>
+            </div>
+            <Switch
+              checked={!!collectMemberEmails}
+              onCheckedChange={() => updateSettingDirectly('settings.collectMemberEmails')(!collectMemberEmails)}
+            />
+          </div>
         </div>
       </SettingsSection>
 
