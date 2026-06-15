@@ -26,6 +26,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { isMobileDevice, isPhoneDevice } from 'util/mobile'
 import { CENTER_COLUMN_ID } from 'util/scrolling'
 import MessagesMobile from './MessagesMobile'
+import { canAddThreadParticipant } from './messageThreadLimits'
 
 import {
   createMessage,
@@ -229,7 +230,12 @@ const Messages = () => {
   }
 
   const addParticipant = (participant) => {
-    setParticipants(prevParticipants => [...prevParticipants, participant])
+    setParticipants(prevParticipants => {
+      if (!canAddThreadParticipant([...prevParticipants, participant], currentUser?.id)) {
+        return prevParticipants
+      }
+      return [...prevParticipants, participant]
+    })
   }
 
   const removeParticipant = (participant) => {
@@ -267,6 +273,7 @@ const Messages = () => {
           removePerson={removeParticipant}
           peopleSelectorOpen={peopleSelectorOpen}
           autoFocus={forNewThread}
+          maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
         />
       </div>
       )
@@ -274,6 +281,7 @@ const Messages = () => {
       <Header
         messageThread={messageThread}
         currentUser={currentUser}
+        threadId={messageThreadId}
       />
       )
 

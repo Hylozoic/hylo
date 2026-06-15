@@ -10,6 +10,7 @@ import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { sendIsTyping } from 'client/websockets'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
+import { canAddThreadParticipant } from './messageThreadLimits'
 
 export const NEW_THREAD_ID = 'new'
 
@@ -159,6 +160,7 @@ const MessagesMobile = ({
             peopleSelectorOpen={peopleSelectorOpen}
             autoFocus
             inputRef={peopleSelectorInputRef}
+            maxParticipantsReached={!canAddThreadParticipant(participants, currentUser?.id)}
           />
         </div>
       </div>
@@ -177,6 +179,7 @@ const MessagesMobile = ({
             <Header
               messageThread={messageThread}
               currentUser={currentUser}
+              threadId={messageThreadId}
             />
           </div>
         </div>

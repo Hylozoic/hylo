@@ -84,6 +84,7 @@ import {
   joinProject,
   leaveFundingRound,
   leaveGroup,
+  leaveMessageThread,
   leaveProject,
   leaveTrack,
   logout,
@@ -599,6 +600,8 @@ export function makeMutations ({ fetchOne }) {
     leaveFundingRound: (root, { id }, context) => leaveFundingRound(context.currentUserId, id),
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
+
+    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 

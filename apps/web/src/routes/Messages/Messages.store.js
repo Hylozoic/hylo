@@ -10,6 +10,7 @@ import {
   FETCH_THREADS,
   UPDATE_THREAD_READ_TIME,
   MARK_THREAD_UNREAD,
+  LEAVE_MESSAGE_THREAD,
   CREATE_MESSAGE,
   FIND_OR_CREATE_THREAD
 } from 'store/constants'
@@ -20,6 +21,7 @@ import CreateMessageMutation from '@graphql/mutations/CreateMessageMutation'
 import MessageThreadQuery from '@graphql/queries/MessageThreadQuery'
 import MessageThreadMessagesQuery from '@graphql/queries/MessageThreadMessagesQuery'
 import MarkThreadUnreadMutation from '@graphql/mutations/MarkThreadUnreadMutation'
+import LeaveMessageThreadMutation from '@graphql/mutations/LeaveMessageThreadMutation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import filterDeletedUsers from 'util/filterDeletedUsers'
 
@@ -197,6 +199,19 @@ export function markThreadUnread (id) {
   }
 }
 
+export function leaveMessageThread (messageThreadId) {
+  return {
+    type: LEAVE_MESSAGE_THREAD,
+    graphql: {
+      query: LeaveMessageThreadMutation,
+      variables: { messageThreadId }
+    },
+    meta: {
+      messageThreadId
+    }
+  }
+}
+
 // Selectors
 
 export const getParticipantsFromQuerystring = ormCreateSelector(
@@ -309,6 +324,19 @@ export const getThreads = ormCreateSelector(
       .toModelArray()
       .filter(thread => includes(thread.id, searchResults.ids))
       .filter(filterThreadsByParticipant(threadSearch))
+  }
+)
+
+export const getMostRecentThreadId = ormCreateSelector(
+  orm,
+  getThreadResults,
+  (session, searchResults) => {
+    if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return null
+    const thread = session.MessageThread.all()
+      .orderBy(t => -new Date(t.updatedAt))
+      .toModelArray()
+      .find(t => includes(t.id, searchResults.ids))
+    return thread ? thread.id : null
   }
 )
 

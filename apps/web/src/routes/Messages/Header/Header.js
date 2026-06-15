@@ -4,11 +4,12 @@ import Icon from 'components/Icon'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { others } from 'store/models/MessageThread'
 import { cn } from 'util/index'
+import LeaveThreadButton from '../LeaveThreadButton'
 
 const MEASURE_GAP = 8 // gap-2 = 0.5rem = 8px
 const OTHERS_RESERVE = 100 // reserve space for "N others ▼" pill
 
-export default function Header ({ currentUser, messageThread, pending }) {
+export default function Header ({ currentUser, messageThread, pending, threadId }) {
   const [showAll, setShowAll] = useState(false)
   const [maxVisible, setMaxVisible] = useState(null)
   const containerRef = useRef(null)
@@ -19,8 +20,6 @@ export default function Header ({ currentUser, messageThread, pending }) {
     if (!currentUser) return participants
     return filter(p => p.id !== currentUser.id, participants)
   }, [participants, currentUser])
-
-  const threadId = get('id', messageThread)
 
   // Reset when thread changes
   useEffect(() => {
@@ -137,6 +136,9 @@ export default function Header ({ currentUser, messageThread, pending }) {
             </>
             )}
       </div>
+      {threadId && threadId !== 'new' && (
+        <LeaveThreadButton threadId={threadId} className='flex-shrink-0 ml-2' />
+      )}
     </div>
   )
 }

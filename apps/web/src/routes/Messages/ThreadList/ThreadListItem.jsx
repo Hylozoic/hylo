@@ -12,6 +12,7 @@ import { cn } from 'util/index'
 import { useDispatch } from 'react-redux'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { markThreadUnread, updateThreadReadTime } from '../Messages.store'
+import LeaveThreadButton from '../LeaveThreadButton'
 
 import classes from './ThreadList.module.scss'
 
@@ -66,6 +67,7 @@ export default function ThreadListItem ({
         >
           {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
         </button>
+        <LeaveThreadButton threadId={id} />
       </div>
     </li>
   )

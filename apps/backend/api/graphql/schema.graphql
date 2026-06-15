@@ -3009,6 +3009,8 @@ type Mutation {
   leaveFundingRound(id: ID): FundingRound
   # Leave a group
   leaveGroup(id: ID): ID
+  # Leave a direct message thread
+  leaveMessageThread(messageThreadId: ID): GenericResult
   # Remove yourself as a member of a project Post
   leaveProject(id: ID): GenericResult
   # Leave a track
