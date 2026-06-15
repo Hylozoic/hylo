@@ -1886,7 +1886,9 @@ type Me {
     # Determines sort order, either 'ASC' or 'DESC'
     order: String,
     # NOT USED RIGHT NOW
-    sortBy: String
+    sortBy: String,
+    # Return threads whose participant name or message text match this term (case-insensitive)
+    search: String
   ): MessageThreadQuerySet
 
   # The set of Posts the logged in user has created

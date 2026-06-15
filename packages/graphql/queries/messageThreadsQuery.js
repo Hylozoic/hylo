@@ -2,11 +2,11 @@ import { gql } from 'urql'
 import messageThreadFieldsFragment from '../fragments/messageThreadFieldsFragment'
 
 export default gql` 
-  query MessageThreadsQuery ($first: Int = 20, $offset: Int, $firstMessages: Int = 1) {
+  query MessageThreadsQuery ($first: Int = 20, $offset: Int, $firstMessages: Int = 1, $search: String) {
     me {
       id
       unseenThreadCount
-      messageThreads(sortBy: "updatedAt", order: "desc", first: $first, offset: $offset) {
+      messageThreads(sortBy: "updatedAt", order: "desc", first: $first, offset: $offset, search: $search) {
         total
         hasMore
         items {

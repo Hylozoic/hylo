@@ -42,5 +42,6 @@ export type CalendarProps = {
   setMode: (mode: Mode) => void
   date: Date
   setDate: (date: Date) => void
+  updateCalendarView?: (updates: { date?: Date; mode?: Mode }) => void
   calendarIconIsToday?: boolean
 }

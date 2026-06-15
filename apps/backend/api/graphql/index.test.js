@@ -264,6 +264,47 @@ describe('graphql request handler', () => {
         }
       })
     })
+
+    it('filters messageThreads by search (case-insensitive)', async () => {
+      await user2.save({ name: 'Jodie Crowe' }, { patch: true })
+      await message.save({ text: 'Hey Jodie!!' }, { patch: true })
+
+      const { executionResult: noMatch } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "zzznomatch") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(noMatch.data.me.messageThreads.items).to.deep.equal([])
+
+      const { executionResult: byName } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "jodie") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(byName.data.me.messageThreads.items).to.deep.equal([{ id: thread.id }])
+
+      const { executionResult: byMessage } = await handler.inject({
+        document: `{
+          me {
+            messageThreads(search: "hey jodie") {
+              items { id }
+            }
+          }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(byMessage.data.me.messageThreads.items).to.deep.equal([{ id: thread.id }])
+    })
   })
 
   describe('querying Comment attachments', () => {

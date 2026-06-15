@@ -26,6 +26,7 @@ const {
   mergeAccessGrantsForPresentation,
   getBuyButtonTextFromOffering
 } = require('../../lib/stripeOfferingMetadata')
+import { messageThreadSearchFilter } from './messageThreadSearch'
 
 // this defines what subset of attributes and relations in each Bookshelf model
 // should be exposed through GraphQL, and what query filters should be applied
@@ -206,7 +207,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        { messageThreads: { typename: 'MessageThread', querySet: true } },
+        { messageThreads: { typename: 'MessageThread', querySet: true, filter: messageThreadSearchFilter(userId) } },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
         { tracksEnrolledIn: { querySet: true } },
         { cookieConsent: { alias: 'cookieConsentPreferences' } }
