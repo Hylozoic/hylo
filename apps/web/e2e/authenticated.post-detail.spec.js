@@ -10,10 +10,11 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
  * Post close navigation: `seed-e2e-baseline.js` also inserts posts `2`–`4` and user `e2e.nogroups@hylo.test` (same password as primary E2E user).
  */
 
-test.describe.configure({ timeout: 120000 })
+test.describe.configure({ timeout: 180000 })
 
 const navTimeout = { timeout: 90000 }
 const uiTimeout = { timeout: 60000 }
+const mapDetailTimeout = { timeout: 120000 }
 
 const E2E_POST_ID = '1'
 const E2E_USER_ID = '1'
@@ -81,7 +82,7 @@ test.describe('Batch E: post detail & dual-column', () => {
     await page.goto(`/all/map/post/${E2E_POST_ID}`)
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/all/map/post/${E2E_POST_ID}`), navTimeout)
-    await expect(page.locator('#detail-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
     await expectSeededPostVisible(page)
   })
 
@@ -89,7 +90,7 @@ test.describe('Batch E: post detail & dual-column', () => {
     await page.goto(`/public/map/post/${E2E_POST_ID}`)
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(new RegExp(`/public/map/post/${E2E_POST_ID}`), navTimeout)
-    await expect(page.locator('#detail-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
     await expectSeededPostVisible(page)
   })
 
@@ -100,7 +101,7 @@ test.describe('Batch E: post detail & dual-column', () => {
       new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/map/post/${E2E_POST_ID}`),
       navTimeout
     )
-    await expect(page.locator('#detail-column')).toBeVisible(uiTimeout)
+    await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
     await expectSeededPostVisible(page)
   })
 

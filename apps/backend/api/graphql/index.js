@@ -21,6 +21,13 @@ export const yoga = createYoga({
       sails.log.info(inspect(params?.variables))
     }
 
+    // AUTH_DEBUG diagnostic: the final identity GraphQL will use for this request,
+    // plus whether it was driven by a Bearer token (api_client set) or a cookie.
+    if (process.env.AUTH_DEBUG) {
+      const opName = params?.operationName
+      sails.log.info(`[auth] graphql context op=${opName || '?'} currentUserId=${req.session.userId} viaToken=${!!req.api_client} hasCookieHeader=${!!req.headers.cookie}`)
+    }
+
     // Update user last active time unless this is an oAuth login
     if (req.session.userId && !req.api_client) {
       await User.query().where({ id: req.session.userId }).update({ last_active_at: new Date() })

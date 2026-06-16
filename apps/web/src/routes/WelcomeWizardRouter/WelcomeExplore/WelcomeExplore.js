@@ -1,10 +1,13 @@
 import { get } from 'lodash/fp'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { bgImageStyle } from 'util/index'
+import getMe from 'store/selectors/getMe'
 
-const WelcomeExplore = ({ currentUser }) => {
+const WelcomeExplore = () => {
+  const currentUser = useSelector(getMe)
   const { t } = useTranslation()
 
   const getValue = (field) => {

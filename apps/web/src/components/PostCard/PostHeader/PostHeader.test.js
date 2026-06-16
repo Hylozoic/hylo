@@ -1,7 +1,6 @@
 import React from 'react'
 import { render, screen } from 'util/testing/reactTestingLibraryExtended'
 import PostHeader, { TopicsLine } from './PostHeader'
-import { RESP_ADMINISTRATION } from 'store/constants'
 
 jest.mock('luxon', () => ({
   __esModule: true,
@@ -11,25 +10,34 @@ jest.mock('luxon', () => ({
   })
 }))
 
-const defaultProps = {
+const routeParams = { groupSlug: 'fooc' }
+
+const buildPost = (overrides = {}) => ({
   id: 1,
-  createdTimestamp: 'a few seconds ago',
-  exactCreatedTimestamp: '2024-07-23 16:30',
-  group: { id: 1, name: 'FooC', slug: 'fooc' },
+  announcement: false,
   creator: {
     name: 'JJ',
     avatarUrl: 'foo.png',
     id: 123,
+    tagline: '',
     moderatedGroupMemberships: []
   },
+  createdTimestamp: 'a few seconds ago',
+  exactCreatedTimestamp: '2024-07-23 16:30',
   type: 'discussion',
-  roles: [{
-    id: 1,
-    name: 'Coordinator',
-    common: true,
-    emoji: '👑',
-    responsibilities: [{ id: 1, name: 'Administration' }]
-  }]
+  proposalOutcome: null,
+  proposalStatus: null,
+  endTime: null,
+  startTime: null,
+  fulfilledAt: null,
+  savedAt: null,
+  ...overrides
+})
+
+const defaultProps = {
+  routeParams,
+  post: buildPost(),
+  group: { id: 1, name: 'FooC', slug: 'fooc' }
 }
 
 describe('PostHeader', () => {
@@ -42,14 +50,13 @@ describe('PostHeader', () => {
 
     expect(screen.getByText('JJ')).toBeInTheDocument()
     expect(screen.getByText('a few seconds ago')).toBeInTheDocument()
-    expect(screen.getByText('👑')).toBeInTheDocument()
   })
 
   it('renders post header with type', () => {
     render(
       <PostHeader
         {...defaultProps}
-        type='request'
+        post={buildPost({ type: 'request' })}
       />
     )
 
@@ -76,7 +83,7 @@ describe('PostHeader with announcement', () => {
     render(
       <PostHeader
         {...defaultProps}
-        announcement
+        post={buildPost({ announcement: true })}
       />
     )
 
@@ -89,9 +96,11 @@ describe('PostHeader with date range', () => {
     render(
       <PostHeader
         {...defaultProps}
-        type='request'
-        startTime={new Date('2028-11-29')}
-        endTime={new Date('2034-11-29')}
+        post={buildPost({
+          type: 'request',
+          startTime: new Date('2028-11-29'),
+          endTime: new Date('2034-11-29')
+        })}
       />
     )
 

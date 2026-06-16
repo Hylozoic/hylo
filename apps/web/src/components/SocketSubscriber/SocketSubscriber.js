@@ -1,41 +1,57 @@
 import PropTypes from 'prop-types'
-import React from 'react'
-const { func } = PropTypes
+import { useEffect } from 'react'
+import { getSocket, socketUrl } from 'client/websockets'
+import { isEqual } from 'lodash'
+import rollbar from 'client/rollbar'
 
-export default class SocketSubscriber extends React.Component {
-  static propTypes = {
-    subscribe: func,
-    unsubscribe: func
-  }
-
-  setup () {
-    // see the connector to understand why this is called "reconnectHandler"
-    this.reconnectHandler = this.props.subscribe()
-  }
-
-  teardown () {
-    this.props.unsubscribe(this.reconnectHandler)
-  }
-
-  componentDidMount () {
-    this.setup()
-  }
-
-  UNSAFE_componentWillReceiveProps (nextProps) {
-    if (this.props.id !== nextProps.id) this.teardown()
-  }
-
-  componentDidUpdate (prevProps) {
-    if (this.props.id && this.props.id !== prevProps.id) {
-      this.setup()
+export default function SocketSubscriber ({ id, type }) {
+  useEffect(() => {
+    if (!['post', 'group', 'user'].includes(type)) {
+      throw new Error(`unrecognized SocketSubscriber type "${type}"`)
     }
-  }
 
-  componentWillUnmount () {
-    this.teardown()
-  }
+    if (!id) {
+      return undefined
+    }
 
-  render () {
-    return null
-  }
+    const socket = getSocket()
+
+    const subscribe = (oldHandler) => {
+      if (oldHandler) socket.off('reconnect', oldHandler)
+
+      const newHandler = () => {
+        const label = `SocketSubscriber(${type})`
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`connecting ${label} ${id}...`)
+        }
+        socket.post(socketUrl(`/noo/${type}/${id}/subscribe`), (body, jwr) => {
+          if (!isEqual(body, {})) {
+            rollbar.error(`Failed to connect ${label}: ${body}`)
+          }
+        })
+      }
+
+      socket.on('reconnect', newHandler)
+      newHandler()
+
+      return newHandler
+    }
+
+    const unsubscribe = (oldHandler) => {
+      const s = getSocket()
+      s.off('reconnect', oldHandler)
+      s.post(socketUrl(`/noo/${type}/${id}/unsubscribe`))
+    }
+
+    const reconnectHandler = subscribe()
+
+    return () => unsubscribe(reconnectHandler)
+  }, [id, type])
+
+  return null
+}
+
+SocketSubscriber.propTypes = {
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  type: PropTypes.string.isRequired
 }

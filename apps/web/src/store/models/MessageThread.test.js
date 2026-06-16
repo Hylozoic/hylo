@@ -27,6 +27,21 @@ describe('MessageThread', () => {
     const thread = MessageThread.create({ id: '1', updatedAt, lastReadAt })
     expect(thread.isUnread()).toBeFalsy()
   })
+
+  it('marks a thread as unread', () => {
+    const session = orm.session(orm.getEmptyState())
+    const { MessageThread } = session
+
+    const thread = MessageThread.create({
+      id: '1',
+      updatedAt: new Date('2018-01-01'),
+      lastReadAt: new Date('2018-01-02'),
+      unreadCount: 0
+    })
+    thread.markAsUnread()
+    expect(thread.unreadCount).toBe(1)
+    expect(thread.isUnread()).toBeTruthy()
+  })
 })
 
 describe('formatNames', () => {

@@ -1,10 +1,10 @@
 import { isEqual, trim } from 'lodash/fp'
-import { Eye, EyeOff, ImagePlus, Plus } from 'lucide-react'
+import { Eye, EyeOff, ImagePlus, Info, Lock, LockOpen, Plus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
-import { useParams, Navigate } from 'react-router-dom'
+import { useParams, Navigate, Link } from 'react-router-dom'
 import Button from 'components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
 import HyloEditor from 'components/HyloEditor'
@@ -57,6 +57,7 @@ function TrackEditor (props) {
   const roles = useMemo(() => [...commonRoles.map(role => ({ ...role, type: 'common' })), ...groupRoles.map(role => ({ ...role, type: 'group' }))], [commonRoles, groupRoles])
 
   const [trackState, setTrackState] = useState(Object.assign({
+    accessControlled: false,
     actionDescriptor: currentGroup.settings.actionDescriptor || 'Action',
     actionDescriptorPlural: currentGroup.settings.actionDescriptorPlural || 'Actions',
     bannerUrl: '',
@@ -73,6 +74,7 @@ function TrackEditor (props) {
   const [edited, setEdited] = useState(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [showAccessControlInfo, setShowAccessControlInfo] = useState(false)
   const [nameCharacterCount, setNameCharacterCount] = useState(0)
   const descriptionEditorRef = useRef(null)
   const welcomeMessageEditorRef = useRef(null)
@@ -120,6 +122,7 @@ function TrackEditor (props) {
 
   const onSubmit = useCallback(() => {
     let {
+      accessControlled,
       actionDescriptor,
       actionDescriptorPlural,
       bannerUrl,
@@ -144,6 +147,7 @@ function TrackEditor (props) {
     const save = editingTrack ? updateTrack : createTrack
 
     dispatch(save({
+      accessControlled,
       actionDescriptor,
       actionDescriptorPlural,
       bannerUrl,
@@ -173,7 +177,7 @@ function TrackEditor (props) {
     return <Navigate to={groupUrl(currentGroup.slug)} />
   }
 
-  const { actionDescriptor, actionDescriptorPlural, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
+  const { accessControlled, actionDescriptor, actionDescriptorPlural, bannerUrl, completionRole, completionMessage, description, name, publishedAt, welcomeMessage } = trackState
 
   return (
     <>
@@ -369,6 +373,44 @@ function TrackEditor (props) {
           </Button>
         </div>
       </div>
+
+      <div className='flex flex-col border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 transition-all focus-within:border-focus border-2 border-transparent mb-4'>
+        <div className='flex items-center gap-2'>
+          <button
+            className={cn(
+              'p-2 rounded-md transition-colors',
+              accessControlled ? 'bg-accent text-white' : 'bg-foreground/10'
+            )}
+            onClick={() => updateField('accessControlled')(!accessControlled)}
+          >
+            {accessControlled ? <Lock className='w-5 h-5' /> : <LockOpen className='w-5 h-5' />}
+          </button>
+          <span>{accessControlled ? t('Access Controlled') : t('Free Access')}</span>
+          <button
+            className='p-1 rounded-md hover:bg-foreground/10 transition-colors'
+            onClick={() => setShowAccessControlInfo(!showAccessControlInfo)}
+          >
+            <Info className='w-4 h-4 text-foreground/50' />
+          </button>
+        </div>
+        {showAccessControlInfo && (
+          <p className='text-xs text-foreground/60 ml-1'>
+            {t('When enabled, users will need to purchase access or be granted access by an admin before they can enroll in this track.')}
+          </p>
+        )}
+        {accessControlled && currentGroup.stripeAccountId && (
+          <p className='text-sm text-accent font-bold ml-1'>
+            {t('You must create an offering that includes this track for users to purchase access.')}{' '}
+            <Link
+              to={groupUrl(currentGroup.slug, 'settings/paid-content/offerings')}
+              className='underline hover:text-accent/80'
+            >
+              {t('Go to Paid Content Settings')}
+            </Link>
+          </p>
+        )}
+      </div>
+
       {/* Transparent spacer so the scroll container extends past the keyboard */}
       {keyboardHeight > 0 && <div style={{ height: keyboardHeight }} />}
     </>

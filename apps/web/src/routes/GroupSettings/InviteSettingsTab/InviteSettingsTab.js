@@ -2,10 +2,12 @@ import isMobile from 'ismobilejs'
 import PropTypes from 'prop-types'
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
 import TextareaAutosize from 'react-textarea-autosize'
 import CopyToClipboard from 'react-copy-to-clipboard'
 import { Tooltip } from 'react-tooltip'
 import { TextHelpers } from '@hylo/shared'
+import { groupInviteUrl } from '@hylo/navigation'
 import { isEmpty } from 'lodash'
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import Button from 'components/Button'
@@ -14,10 +16,19 @@ import Icon from 'components/Icon'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { cn } from 'util/index'
 import { GROUP_VISIBILITY } from 'store/models/Group'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { regenerateAccessCode as regenerateAccessCodeAction, FETCH_GROUP_SETTINGS } from '../GroupSettings.store'
+import {
+  createInvitations as createInvitationsAction,
+  getPendingInvites,
+  expireInvitation as expireInvitationAction,
+  resendInvitation as resendInvitationAction,
+  reinviteAll as reinviteAllAction
+} from './InviteSettingsTab.store'
 
 import classes from './InviteSettingsTab.module.scss'
 
-const { object, func, string } = PropTypes
+const { object } = PropTypes
 
 const parseEmailList = emails =>
   (emails || '').split(/,|\n/).map(email => {
@@ -27,19 +38,18 @@ const parseEmailList = emails =>
   })
 
 function InviteSettingsTab (props) {
-  const {
-    group,
-    regenerateAccessCode,
-    inviteLink,
-    createInvitations,
-    trackAnalyticsEvent,
-    pendingCreate,
-    pending,
-    pendingInvites = [],
-    expireInvitation,
-    resendInvitation,
-    reinviteAll
-  } = props
+  const { group, pendingCreate } = props
+  const dispatch = useDispatch()
+  const inviteLink = groupInviteUrl(group)
+  const pending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
+  const pendingInvites = useSelector(state => getPendingInvites(state, { groupId: group.id }))
+
+  const regenerateAccessCode = useCallback(() => dispatch(regenerateAccessCodeAction(group.id)), [dispatch, group.id])
+  const createInvitations = useCallback((emails, message) => dispatch(createInvitationsAction(group.id, emails, message)), [dispatch, group.id])
+  const expireInvitation = useCallback((invitationToken) => dispatch(expireInvitationAction(invitationToken)), [dispatch])
+  const resendInvitation = useCallback((invitationToken) => dispatch(resendInvitationAction(invitationToken)), [dispatch])
+  const reinviteAll = useCallback(() => dispatch(reinviteAllAction(group.id)), [dispatch, group.id])
+  const trackAnalyticsEventDispatch = useCallback((eventNames, analyticsData) => dispatch(trackAnalyticsEvent(eventNames, analyticsData)), [dispatch])
 
   const { t } = useTranslation()
 
@@ -54,6 +64,7 @@ I'm inviting you to join {{name}} on Hylo.
   const [reset, setReset] = useState(false)
   const [emails, setEmails] = useState('')
   const [message, setMessage] = useState(defaultMessage)
+  const [selectedRoleId, setSelectedRoleId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const sendingRef = useRef(false)
@@ -70,7 +81,19 @@ I'm inviting you to join {{name}} on Hylo.
     if (sendingRef.current) return
     sendingRef.current = true
 
-    createInvitations(parseEmailList(emails), message)
+    // Parse the selected role - format is "common-{id}" or "group-{id}"
+    let commonRoleId = null
+    let groupRoleId = null
+    if (selectedRoleId) {
+      const [type, id] = selectedRoleId.split('-')
+      if (type === 'common') {
+        commonRoleId = parseInt(id, 10)
+      } else if (type === 'group') {
+        groupRoleId = parseInt(id, 10)
+      }
+    }
+
+    createInvitations(parseEmailList(emails), message, commonRoleId, groupRoleId)
       .then(res => {
         sendingRef.current = false
         const { invitations } = res.payload.data.createInvitation
@@ -84,11 +107,12 @@ I'm inviting you to join {{name}} on Hylo.
         const numGood = invitations.length - badEmails.length
         if (numGood > 0) {
           successMessage = t('Sent {{numGood}} {{email}}', { numGood, email: numGood === 1 ? 'email' : 'emails' })
-          trackAnalyticsEvent('Group Invitations Sent', { numGood })
+          trackAnalyticsEventDispatch('Group Invitations Sent', { numGood })
         }
         setEmails(badEmails.join('\n'))
         setErrorMessage(errorMessage)
         setSuccessMessage(successMessage)
+        setSelectedRoleId('') // Reset role selection after sending
       })
   }
 
@@ -228,6 +252,23 @@ I'm inviting you to join {{name}} on Hylo.
           disabled={pendingCreate}
           onChange={(event) => setMessage(event.target.value)}
         />
+        <div className='mt-4 mb-2'>{t('Assign a role to invitees (optional):')}</div>
+        <select
+          className='rounded-lg bg-input text-foreground focus:outline-none focus:ring-0 focus:ring-offset-0 border-2 border-transparent focus:border-focus p-2'
+          value={selectedRoleId}
+          disabled={pendingCreate}
+          onChange={(event) => setSelectedRoleId(event.target.value)}
+        >
+          <option value=''>{t('No special role')}</option>
+          <option value='common-1'>{t('Coordinator')}</option>
+          <option value='common-2'>{t('Moderator')}</option>
+          <option value='common-3'>{t('Host')}</option>
+          {group.groupRoles?.items?.filter(role => role.active).map(role => (
+            <option key={`group-${role.id}`} value={`group-${role.id}`}>
+              {role.emoji ? `${role.emoji} ` : ''}{role.name}
+            </option>
+          ))}
+        </select>
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
             {errorMessage && <span className={classes.error}>{errorMessage}</span>}
@@ -287,9 +328,7 @@ I'm inviting you to join {{name}} on Hylo.
 }
 
 InviteSettingsTab.propTypes = {
-  group: object,
-  regenerateAccessCode: func,
-  inviteLink: string
+  group: object
 }
 
 export default InviteSettingsTab

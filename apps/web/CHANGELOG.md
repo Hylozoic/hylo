@@ -6,7 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.4.10] - 2026-06-01
+## [6.5.0] - 2026-06-15
+
+### Added
+- 'Paid Content' released, integrating with Stripe.
+- Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
+- Calendar settings are now integrated into navigation, providing better user experience when navigating.
+- Search: Better error and no-result user experience.
+- Direct Message threads can be marked as read/unread.
+
+### Fixed
+- Calendar event creation streamlined.
+- Search query streamlined.
+- Group menu editing streamlined
+
+## [6.4.11] - 2026-07-01
+
+### Changed
+- Many improvements to editing of Group Menu, and All Views in general
+- Container type widgets/views show a Container icon
+- Tooltips over views that explain what type of widget they are (except for unique ones like About or Tracks right now)
+- Show all the views in the All Views while editing, even ones alreadt in the menu, to remove confusion. Except don't show containers that are already in the Group Menu.
+- Change Trash icon to X icon to remove widgets from the GroupMenu so as not to confuse with the trash icon that deletes a widget from AllViews
+- Allow better event creation when on the calendar view of the stream component
+- Post view uses post type and title in the view header
+- Show role badges in the Stewards section of the group About page
+
+### Fixed
+- Text styling in about page steward list
+- Calendar data loading; fix some infinite loading loops
+
+## [6.4.10] - 2026-06-10
 
 ### Changed
 - In-app notifications for non-chat posts open them over the home view. Instead of as an individual post view.

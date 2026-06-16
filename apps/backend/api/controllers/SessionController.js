@@ -1,6 +1,8 @@
 import passport from 'passport'
 import appleSigninAuth from 'apple-signin-auth'
 import crypto from 'crypto'
+import OIDCAdapter from '../services/oidc/KnexAdapter'
+import { mintTokensForUser } from '../services/OIDCTokens'
 
 const rollbar = require('../../lib/rollbar')
 
@@ -33,18 +35,32 @@ const hasLinkedAccount = function (user, service) {
   return !!user.relations.linkedAccounts.where({provider_key: service})[0]
 }
 
-const upsertUser = (req, service, profile) => {
+// Records a successful login WITHOUT establishing a cookie session. Used by the
+// mobile token-auth path so social logins behave exactly like /noo/login/native:
+// bearer token only, no server session cookie. Mirrors the reactivation side
+// effect of UserSession.login (a self-deactivated account is reactivated on login).
+const recordTokenLogin = (user) =>
+  user.save({ last_login_at: new Date(), active: true }, { patch: true, autoRefresh: true })
+
+// Resolves (or creates) the user for a verified social profile and always returns
+// that user. For web/popup callers (`tokenAuth` falsy) it establishes a cookie
+// session via UserSession.login; for mobile token-auth it records the login without
+// a cookie (the native app authenticates with the minted bearer token, and a stray
+// server session cookie would leak into the WebView jar and desync auth).
+const upsertUser = (req, service, profile, { tokenAuth = false } = {}) => {
   return findUser(service, profile.email, profile.id)
-  .then(user => {
+  .then(async (user) => {
     if (user) {
-      return UserSession.login(req, user, service)
+      if (tokenAuth) {
+        await recordTokenLogin(user)
+      } else {
+        await UserSession.login(req, user, service)
+      }
       // if this is a new account, link it to the user
-      .then(async (session) => {
-        if (!(await hasLinkedAccount(user, service))) {
-          await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
-        }
-        return session
-      })
+      if (!(await hasLinkedAccount(user, service))) {
+        await LinkedAccount.create(user.id, { type: service, profile }, { updateUser: true })
+      }
+      return user
     }
 
     const attrs = _.merge(_.pick(profile, 'email', 'name'), {
@@ -52,12 +68,14 @@ const upsertUser = (req, service, profile) => {
       email_validated: true // When using oAuth email is already verified
     })
 
-    return User.create(attrs)
-    .then(async (user) => {
-      await Analytics.trackSignup(user.id, req)
-      await UserSession.login(req, user, service)
-      return user
-    })
+    const newUser = await User.create(attrs)
+    await Analytics.trackSignup(newUser.id, req)
+    if (tokenAuth) {
+      await recordTokenLogin(newUser)
+    } else {
+      await UserSession.login(req, newUser, service)
+    }
+    return newUser
   })
 }
 
@@ -113,9 +131,26 @@ const finishOAuth = function (strategy, req, res, next) {
       if (err || !profile) return respond(err || 'no user')
       if (!profile.email) return respond('no email')
 
-      return (UserSession.isLoggedIn(req)
-        ? upsertLinkedAccount
-        : upsertUser)(req, provider, profile)
+      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
+
+      // Mobile token-auth: always a fresh LOGIN resolved from the verified social
+      // profile (never "attach to the account I'm already in" — that path is web-only
+      // and a stale session cookie there resolved to the wrong account). Returns a
+      // token pair and establishes NO cookie session, so the resolved `user` (not
+      // req.session.userId) drives the downstream writes and token mint.
+      if (isTokenAuth) {
+        return upsertUser(req, provider, profile, { tokenAuth: true })
+        .then(async (user) => {
+          await UserExternalData.store(user.id, provider, profile._json)
+          res.ok(await mintTokensForUser(user))
+          return resolve()
+        })
+        .catch(respond)
+      }
+
+      // Web/popup flow (cookie session, unchanged): attach to the current session
+      // when already logged in, otherwise resolve/create from the profile.
+      return (UserSession.isLoggedIn(req) ? upsertLinkedAccount : upsertUser)(req, provider, profile)
       .then(() => UserExternalData.store(req.session.userId, provider, profile._json))
       .then(() => respond())
       .catch(respond)
@@ -149,6 +184,49 @@ module.exports = {
     })
   },
 
+  // First-party native login: validates email/password the same way as `create` but
+  // returns an OAuth token pair (for the mobile app) instead of establishing a cookie
+  // session. The mobile app stores these in the device Keychain.
+  nativeLogin: async function (req, res) {
+    try {
+      const email = req.param('email') ? req.param('email').toLowerCase() : null
+      const password = req.param('password')
+      const user = await User.authenticate(email, password)
+      // Mirror UserSession.login: a successful login reactivates a self-deactivated
+      // account. Deleted/pending accounts can't authenticate, so this is safe.
+      await user.save({ active: true, last_login_at: new Date() }, { patch: true, autoRefresh: true })
+      const tokens = await mintTokensForUser(user)
+      return res.ok(tokens)
+    } catch (err) {
+      // 422 means 'well-formed but semantically invalid'
+      return res.status(422).send(err.message)
+    }
+  },
+
+  // Exchanges a valid mobile access token (Authorization: Bearer) for a server session,
+  // emitting a Set-Cookie. The mobile app calls this just before loading the WebView so
+  // the embedded web app is authenticated with a freshly-derived session.
+  fromToken: async function (req, res) {
+    try {
+      const match = (req.headers.authorization || '').match(/^Bearer (.+)$/i)
+      if (!match) return res.status(401).json({ error: 'Missing bearer token' })
+
+      const accessToken = await (new OIDCAdapter('AccessToken')).find(match[1])
+      const valid = accessToken && accessToken.exp && new Date(accessToken.exp * 1000) > Date.now()
+      if (!valid) return res.status(401).json({ error: 'Invalid token' })
+
+      // Skip the active-user filter (third arg false), matching how checkJWT resolves
+      // the authenticated user from a token.
+      const user = await User.find(accessToken.accountId, {}, false)
+      if (!user) return res.status(401).json({ error: 'Unknown user' })
+
+      await UserSession.login(req, user, 'token')
+      return res.ok({ success: true })
+    } catch (err) {
+      return res.status(401).json({ error: err.message })
+    }
+  },
+
   finishAppleOAuth: async function (req, res, next) {
     const { nonce, user, identityToken, email, fullName } = req.body
     // Check nonce or identityToken with nonce or audience (clientId) or both? See:
@@ -162,12 +240,21 @@ module.exports = {
 
     // Confirm that identityToken was verified:
     if (appleIdTokenClaims.sub === user) {
+      const isTokenAuth = req.get('X-Hylo-Token-Auth') === '1'
       upsertUser(req, 'apple', {
         id: user,
         email,
         name: fullName.givenName + ' ' + fullName.familyName
-      })
-        .then(user => res.ok(user))
+      }, { tokenAuth: isTokenAuth })
+        .then(async authedUser => {
+          // Mobile token-auth clients opt in via header and get a token pair back
+          // (no cookie session was created — mint from the resolved user). Existing
+          // (web) callers are unaffected.
+          if (isTokenAuth) {
+            return res.ok(await mintTokensForUser(authedUser))
+          }
+          return res.ok(authedUser)
+        })
         .catch(function (err) {
           // 422 means 'well-formed but semantically invalid'
           res.status(422).send(err.message)
@@ -234,6 +321,13 @@ module.exports = {
     // NOTE: this was `req.session.authenticated` but that doesn't seem to
     // populate in the case (or in time) for a POST request? This works.
     if (req.session.userId) {
+      // Mobile token-auth clients opt in via header and get a token pair back
+      // (e.g. the password-reset magic link), so the native app ends up on the
+      // same Keychain-token path as the other login methods. Web is unaffected.
+      if (req.get('X-Hylo-Token-Auth') === '1') {
+        const user = await User.find(req.session.userId, {}, false)
+        return res.ok(await mintTokensForUser(user))
+      }
       return shouldRedirect
         ? res.redirect(nextUrl)
         : res.ok({ success: true })

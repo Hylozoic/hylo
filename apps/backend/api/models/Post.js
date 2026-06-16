@@ -429,14 +429,16 @@ module.exports = bookshelf.Model.extend(Object.assign({
       type: this.get('type'),
       start_time: type === 'oneline' && this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), timezone: this.get('timezone'), locale }),
       title: this.summary(),
-      unfollow_url: Frontend.Route.unfollow(this, group) + clickthroughParams,
+      unfollow_url: Frontend.appendQueryString(Frontend.Route.unfollow(this, group), clickthroughParams),
       user: {
         id: user.id,
         name: user.get('name'),
         avatar_url: user.get('avatar_url'),
-        profile_url: Frontend.Route.profile(user) + clickthroughParams
+        profile_url: Frontend.appendQueryString(Frontend.Route.profile(user), clickthroughParams)
       },
-      url: context ? Frontend.Route.mapPost(this, context, slug) + clickthroughParams : Frontend.Route.post(this, group, '', fundingRound) + clickthroughParams,
+      url: context
+        ? Frontend.appendQueryString(Frontend.Route.mapPost(this, context, slug), clickthroughParams)
+        : Frontend.appendQueryString(Frontend.Route.post(this, group, '', fundingRound), clickthroughParams),
       when: this.get('start_time') && DateTimeHelpers.formatDatePair({ start: this.get('start_time'), end: this.get('end_time'), timezone: this.get('timezone') })
     }
   },
@@ -610,6 +612,20 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const pu = await this.loadPostInfoForUser(userId)
     // XXX: don't know why we need to save the completion_response here but it errors without
     return pu.save({ last_read_at: new Date(), completion_response: JSON.stringify(pu.get('completion_response')) })
+  },
+
+  async markAsUnread (userId) {
+    const pu = await this.loadPostInfoForUser(userId)
+    const latestComment = await this.comments().query(q => {
+      q.orderBy('created_at', 'desc')
+      q.orderBy('comments.id', 'desc')
+      q.limit(1)
+    }).fetchOne()
+
+    if (!latestComment) return pu
+
+    const lastReadAt = new Date(new Date(latestComment.get('created_at')).getTime() - 1)
+    return pu.save({ last_read_at: lastReadAt, completion_response: JSON.stringify(pu.get('completion_response')) })
   },
 
   pushTypingToSockets: function (userId, userName, isTyping, socketToExclude) {

@@ -1,12 +1,63 @@
+/* eslint-disable import/first */
 process.env.NODE_ENV = 'test'
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes'
+process.env.STRIPE_API_KEY = process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
 
 import nock from 'nock'
 import './core'
+const mock = require('mock-require')
 const skiff = require('../../lib/skiff')
 const fs = require('fs')
 const path = require('path')
 const Promise = require('bluebird')
 const root = require('root-path')
+
+// Mock Stripe before any modules are loaded (must support `new Stripe(key, opts)` — see stripe-node v17)
+function TestStripeClient () {
+  if (!(this instanceof TestStripeClient)) {
+    return new TestStripeClient()
+  }
+  this.accounts = {
+    create: async () => ({}),
+    retrieve: async () => ({}),
+    update: async () => ({})
+  }
+  this.accountLinks = {
+    create: async () => ({})
+  }
+  this.products = {
+    create: async () => ({}),
+    update: async () => ({}),
+    list: async () => ({})
+  }
+  this.prices = {
+    create: async () => ({}),
+    retrieve: async () => ({})
+  }
+  this.checkout = {
+    sessions: {
+      create: async () => ({}),
+      retrieve: async () => ({})
+    }
+  }
+  this.subscriptions = {
+    retrieve: async () => ({})
+  }
+  this.invoices = {
+    retrieve: async () => ({})
+  }
+  this.paymentIntents = {
+    retrieve: async () => ({})
+  }
+  this.webhooks = {
+    constructEvent: () => {
+      throw new Error('stripe.webhooks.constructEvent is not stubbed for this test')
+    }
+  }
+}
+
+// Set up mock-require to intercept all Stripe imports
+mock('stripe', TestStripeClient)
 
 const TestSetup = function () {
   this.tables = []
@@ -14,6 +65,11 @@ const TestSetup = function () {
 }
 
 const setup = new TestSetup()
+
+setup.restoreDefaultStripeMock = () => {
+  mock.stop('stripe')
+  mock('stripe', TestStripeClient)
+}
 
 before(function (done) {
   this.timeout(50000)
@@ -23,7 +79,7 @@ before(function (done) {
   global.sails = skiff.sails
 
   skiff.lift({
-    log: {level: process.env.LOG_LEVEL || 'warn'},
+    log: { level: process.env.LOG_LEVEL || 'warn' },
     silent: true,
     start: function () {
       const { database } = bookshelf.knex.client.connectionSettings
@@ -136,6 +192,10 @@ TestSetup.prototype.createSchema = function () {
 TestSetup.prototype.clearDb = function () {
   if (!this.initialized) throw new Error('not initialized')
   return bookshelf.knex.transaction(trx => trx.raw('set constraints all deferred')
+    .then(() => {
+      // Delete from user_scopes first to avoid foreign key constraint violations
+      return trx.raw('delete from public.user_scopes')
+    })
     .then(() => Promise.map(this.tables, table => { if (!['public.common_roles', 'public.responsibilities', 'public.common_roles_responsibilities', 'public.tags', 'public.platform_agreements'].includes(table)) { return trx.raw('delete from ' + table) } })))
 }
 

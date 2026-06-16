@@ -3,6 +3,9 @@ import { Platform } from 'react-native'
 import Config from 'react-native-config'
 import CookieManager from '@react-native-cookies/cookies'
 import { isNull, isUndefined, omitBy, reduce } from 'lodash'
+import apiHost from 'util/apiHost'
+import { getTokens, refreshAndSaveTokens } from 'util/tokenStore'
+import { authLog, maskToken, AUTH_DEBUG } from 'util/authDebug'
 
 const COOKIE_KEY = Config.SESSION_COOKIE_KEY || 'hylo_session_cookie'
 
@@ -60,6 +63,97 @@ export async function ensureWebViewCookies () {
   await syncCookiesToWebView(cookieObj).catch(err =>
     console.warn('Failed to pre-populate WebView cookie jar:', err)
   )
+  await logCookieJar('after ensureWebViewCookies')
+}
+
+/**
+ * Diagnostic: dumps the cookies the WebView/native HTTP stacks actually hold for
+ * the API host and the web host, so we can see WHICH cookie is sent to api-*.hylo.com
+ * (the one the WebView's CheckLogin resolves) and whether it's correctly scoped. The
+ * API-host jar is the decisive one — that's where the WebView's GraphQL requests go.
+ * Staging-visible (AUTH_DEBUG); no-op otherwise.
+ */
+export async function logCookieJar (label) {
+  if (!AUTH_DEBUG) return
+  try {
+    const webUrl = Config.HYLO_WEB_BASE_URL
+    const [apiJar, webJar] = await Promise.all([
+      CookieManager.get(apiHost, USE_WEBKIT),
+      CookieManager.get(webUrl, USE_WEBKIT)
+    ])
+    const describe = jar => Object.values(jar || {})
+      .map(c => `${c.name}@${c.domain || '?'}${c.path || ''}=${maskToken(c.value)}`)
+      .join(', ') || 'none'
+    authLog(`cookie jar [${label}] ${apiHost} → ${describe(apiJar)} || ${webUrl} → ${describe(webJar)}`)
+  } catch (e) {
+    authLog(`cookie jar [${label}] read failed: ${e.message}`)
+  }
+}
+
+async function postSessionFromToken (accessToken) {
+  return fetch(`${apiHost}/noo/session/from-token`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`
+    }
+  })
+}
+
+/**
+ * Token-auth WebView handoff: exchanges the native access token for a server
+ * session cookie (via POST /noo/session/from-token), persists it, and mirrors it
+ * into the WebView's cookie jar so the web app loads authenticated with no login
+ * flash. Returns the cookie string, or null when there's no token or the
+ * exchange fails (the caller then falls back to any existing cookie).
+ *
+ * Retries once after a transparent refresh if the access token has expired.
+ */
+export async function sessionCookieFromToken () {
+  let tokens = await getTokens()
+  if (!tokens?.access_token) return null
+
+  try {
+    let resp = await postSessionFromToken(tokens.access_token)
+
+    if (resp.status === 401 && tokens.refresh_token) {
+      // Shared single-flight refresh (see tokenStore.refreshAndSaveTokens): avoids
+      // racing the urql authExchange and spending the rotating refresh token twice.
+      tokens = await refreshAndSaveTokens()
+      resp = await postSessionFromToken(tokens.access_token)
+    }
+
+    if (!resp.ok) return null
+
+    await setSessionCookie(resp)
+    await logCookieJar('after from-token sync')
+    return getSessionCookie()
+  } catch (err) {
+    console.warn('Failed to derive WebView session from token:', err)
+    return null
+  }
+}
+
+/**
+ * Derives the registrable cookie domain (e.g. `.hylo.com`) from a base URL so the
+ * mirrored session cookie is sent across sibling subdomains.
+ *
+ * This is the crux of the iOS social-login logout bug: the web app is served from
+ * HYLO_WEB_BASE_URL (e.g. staging.hylo.com) but its GraphQL/auth requests go to
+ * API_HOST (e.g. api-staging.hylo.com). A cookie set without a Domain is host-only
+ * for staging.hylo.com and is never sent to api-staging.hylo.com — so the WebView's
+ * own auth check (CheckLogin) falls back to a stale anonymous cookie and reports
+ * itself logged out. Scoping the cookie to `.hylo.com` lets it reach the API host
+ * and overrides that stale cookie. Returns undefined for localhost/IPs (host-only
+ * is correct there, which is why this never reproduced on local dev).
+ */
+function cookieDomainForUrl (url) {
+  const noScheme = String(url).replace(/^[a-z]+:\/\//i, '')
+  const host = noScheme.split('/')[0].split(':')[0]
+  if (!host || host === 'localhost' || /^[0-9.]+$/.test(host)) return undefined
+  const labels = host.split('.')
+  if (labels.length < 2) return undefined
+  return '.' + labels.slice(-2).join('.')
 }
 
 /**
@@ -71,9 +165,16 @@ async function syncCookiesToWebView (cookieObj) {
   const url = Config.HYLO_WEB_BASE_URL
   if (!url || !cookieObj) return
 
+  const domain = cookieDomainForUrl(url)
+  const secure = /^https:/i.test(url)
+
   await Promise.all(
     Object.entries(cookieObj).map(([name, value]) =>
-      CookieManager.set(url, { name, value, path: '/' }, USE_WEBKIT)
+      CookieManager.set(
+        url,
+        { name, value, path: '/', secure, ...(domain ? { domain } : {}) },
+        USE_WEBKIT
+      )
     )
   )
 }

@@ -262,8 +262,10 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     for (const topic of topics) {
       queriesToMatch.push(
-        // Add to the past posts in a chat room (past because of order: 'asc')
-        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
+        // Add to the past posts in a chat room
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'desc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' },
+        // Add to new/unread posts in a chat room
+        { context: 'groups', slug: group.slug, sortBy: 'id', order: 'asc', topic: topic.id, filter: 'chat', childPostInclusion: 'no' }
       )
     }
 
@@ -411,14 +413,16 @@ export function makeDropQueryResults (actionType) {
 export function buildKey (type, params) {
   return JSON.stringify({
     type,
-    params: omitBy(isNull, pick(queryParamWhitelist, params))
+    params: omitBy(v => isNull(v) || (Array.isArray(v) && isEmpty(v)), pick(queryParamWhitelist, params))
   })
 }
 
 export const queryParamWhitelist = [
   'autocomplete',
   'activePostsOnly',
+  'afterTime',
   'announcementsOnly',
+  'beforeTime',
   'childPostInclusion',
   'context',
   'collectionToFilterOut',

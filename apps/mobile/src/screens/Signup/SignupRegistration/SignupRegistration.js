@@ -35,7 +35,7 @@ export default function SignupRegistration ({ navigation, route }) {
   const { t } = useTranslation()
   const confirmAlert = useConfirmAlert()
   const [, register] = useMutation(registerMutation)
-  const logout = useLogout({ loadingRedirect: false })
+  const logout = useLogout()
   const passwordControlRef = useRef()
   const confirmPasswordControlRef = useRef()
   const [loading, setLoading] = useState()

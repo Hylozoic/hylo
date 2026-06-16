@@ -46,6 +46,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     visibility
     websiteUrl
     welcomePage
+    paywall
+    canAccess
     groupRoles {
       items {
         id

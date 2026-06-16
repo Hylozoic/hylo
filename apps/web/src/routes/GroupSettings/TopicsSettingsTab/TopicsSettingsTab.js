@@ -1,9 +1,26 @@
-import { find } from 'lodash/fp'
-import { arrayOf, func, number, shape, string, object, bool } from 'prop-types'
-import React, { Component } from 'react'
-import { withTranslation, useTranslation } from 'react-i18next'
+import { find, get } from 'lodash/fp'
+import { object } from 'prop-types'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
+import debounced from 'util/debounced'
+import isPendingFor from 'store/selectors/isPendingFor'
+import fetchTopics, { fetchDefaultTopics } from 'store/actions/fetchTopics'
+import { FETCH_TOPICS } from 'store/constants'
+import {
+  setSort,
+  setSearch,
+  getDefaultTopics,
+  getTopics,
+  getHasMoreTopics,
+  getTotalTopics,
+  getSort,
+  getSearch,
+  setGroupTopicVisibility,
+  setGroupTopicIsDefault
+} from './TopicsSettingsTab.store'
+import { createTopic } from 'components/CreateTopic/CreateTopic.store'
 import CreateTopic from 'components/CreateTopic'
-// import { GroupCell } from 'components/GroupsList/GroupsList'
 import Dropdown from 'components/Dropdown'
 import Icon from 'components/Icon'
 import SingleTopicSelector from 'components/TopicSelector/SingleTopicSelector'
@@ -22,148 +39,149 @@ const visibilityOptions = Object.keys(TOPIC_VISIBILITY).reduce((result, option) 
 
 const TOPIC_LIST_ID = 'topic-list'
 
-const topicType = shape({
-  id: string,
-  name: string.isRequired,
-  postsTotal: number,
-  followersTotal: number,
-  isSubscribed: bool
-})
+function TopicsSettingsTab ({ group }) {
+  const { t } = useTranslation()
+  const dispatch = useDispatch()
 
-class TopicsSettingsTab extends Component {
-  state = {
-    createTopicModalVisible: false
-  }
+  const selectedSort = useSelector(getSort)
+  const search = useSelector(getSearch)
 
-  static propTypes = {
-    group: object.isRequired,
-    defaultTopics: arrayOf(topicType),
-    topics: arrayOf(topicType),
-    selectedSort: string,
-    setSort: func,
-    search: string,
-    setSearch: func,
-    setGroupTopicVisibility: func.isRequired,
-    totalTopics: number
-  }
+  const fetchTopicsParams = useMemo(() => ({
+    group,
+    groupSlug: group.slug,
+    sortBy: selectedSort,
+    autocomplete: search
+  }), [group.slug, group.id, selectedSort, search])
 
-  updateCachedTopicsState (state, props) {
-    return { totalTopicsCached: props.totalTopics }
-  }
+  const topics = useSelector(state => getTopics(state, fetchTopicsParams))
+  const hasMore = useSelector(state => getHasMoreTopics(state, fetchTopicsParams))
+  const totalTopics = useSelector(state => getTotalTopics(state, fetchTopicsParams))
+  const fetchIsPending = useSelector(state => isPendingFor(FETCH_TOPICS, state))
+  const defaultTopics = useSelector(state => getDefaultTopics(state, fetchTopicsParams))
 
-  componentDidMount () {
-    this.props.fetchTopics()
-    this.props.fetchDefaultTopics()
+  const [totalTopicsCached, setTotalTopicsCached] = useState(undefined)
 
-    // Caching totalTopics because the total returned in the queryset
-    // changes when there is a search term
-    this.setState(this.updateCachedTopicsState)
-  }
+  const fetchTopicsDispatched = useCallback((vars) => dispatch(fetchTopics(vars)), [dispatch])
+  const fetchDefaultTopicsDispatched = useCallback(() => dispatch(fetchDefaultTopics({ ...fetchTopicsParams })), [dispatch, fetchTopicsParams])
 
-  componentDidUpdate (prevProps) {
-    if (!this.state.totalTopicsCached && !prevProps.totalTopics && this.props.totalTopics) {
-      this.setState(this.updateCachedTopicsState)
-    }
-    if (prevProps.fetchTopicsParams.groupSlug !== this.props.fetchTopicsParams.groupSlug) {
-      this.props.fetchTopics()
-      this.props.fetchDefaultTopics()
-    } else if (prevProps.selectedSort !== this.props.selectedSort || prevProps.search !== this.props.search) {
-      this.props.fetchTopics()
-    }
-  }
-
-  setGroupTopicVisibility = (groupTopicId, value) => (e) => {
-    e.preventDefault()
-    this.props.setGroupTopicVisibility(groupTopicId, value)
-  }
-
-  removeSuggestedTopic = (groupTopicId) => (e) => {
-    e.preventDefault()
-    this.props.setGroupTopicIsDefault(groupTopicId, false)
-  }
-
-  toggleTopicModal = () =>
-    this.setState({
-      createTopicModalVisible: !this.state.createTopicModalVisible
+  const fetchTopicsBound = useCallback(() => {
+    debounced(fetchTopicsDispatched, {
+      ...fetchTopicsParams,
+      first: 20
     })
+  }, [fetchTopicsDispatched, fetchTopicsParams])
 
-  render () {
-    const {
-      group,
-      defaultTopics,
-      topics,
-      search,
-      setSearch,
-      selectedSort,
-      setSort,
-      fetchMoreTopics,
-      fetchIsPending,
-      t
-    } = this.props
-    const { totalTopicsCached } = this.state
+  const fetchMoreTopics = useCallback(() => {
+    if (!fetchIsPending && hasMore) {
+      debounced(fetchTopicsDispatched, {
+        ...fetchTopicsParams,
+        offset: get('length', topics, 0),
+        first: 10
+      })
+    }
+  }, [fetchTopicsDispatched, fetchTopicsParams, fetchIsPending, hasMore, topics])
 
-    return (
-      <div className={styles.wrapper}>
-        <div className={styles.defaultTopics}>
-          <div className={styles.title}>{t('Group Suggested Topics')}</div>
-          <p>
-            {t(`Set default topics for your group which will be suggested first when
+  const setSortBound = useCallback((id) => dispatch(setSort(id)), [dispatch])
+  const setSearchBound = useCallback((s) => dispatch(setSearch(s)), [dispatch])
+  const setGroupTopicVisibilityBound = useCallback((a, b) => dispatch(setGroupTopicVisibility(a, b)), [dispatch])
+  const setGroupTopicIsDefaultBound = useCallback((a, b) => dispatch(setGroupTopicIsDefault(a, b)), [dispatch])
+  const createTopicBound = useCallback((a, b, c, d) => dispatch(createTopic(a, b, c, d)), [dispatch])
+
+  useEffect(() => {
+    fetchTopicsBound()
+    fetchDefaultTopicsDispatched()
+  }, [group.slug, fetchTopicsBound, fetchDefaultTopicsDispatched])
+
+  const skipSortSearchEffect = useRef(true)
+  useEffect(() => {
+    if (skipSortSearchEffect.current) {
+      skipSortSearchEffect.current = false
+      return
+    }
+    fetchTopicsBound()
+  }, [selectedSort, search, fetchTopicsBound])
+
+  useEffect(() => {
+    if (!totalTopicsCached && totalTopics) {
+      setTotalTopicsCached(totalTopics)
+    }
+  }, [totalTopics, totalTopicsCached])
+
+  const setGroupTopicVisibilityHandler = useCallback((groupTopicId, value) => (e) => {
+    e.preventDefault()
+    setGroupTopicVisibilityBound(groupTopicId, value)
+  }, [setGroupTopicVisibilityBound])
+
+  const removeSuggestedTopic = useCallback((groupTopicId) => (e) => {
+    e.preventDefault()
+    setGroupTopicIsDefaultBound(groupTopicId, false)
+  }, [setGroupTopicIsDefaultBound])
+
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.defaultTopics}>
+        <div className={styles.title}>{t('Group Suggested Topics')}</div>
+        <p>
+          {t(`Set default topics for your group which will be suggested first when
             members are creating a new post.
             Every new member will also be subscribed to these topics when they join.`)}
-          </p>
-          <div className={styles.defaultTopicList}>
-            {defaultTopics.map(topic =>
-              <TopicListItem
-                key={topic.id}
-                singleGroup={group}
-                topic={topic}
-                setGroupTopicVisibility={this.setGroupTopicVisibility}
-                removeSuggestedTopic={this.removeSuggestedTopic}
-                isSuggested
-              />
-            )}
-            <div className={styles.defaultTopicSelector}>
-              <SingleTopicSelector
-                currentGroup={group}
-                placeholder={t('Add a suggested topic')}
-                onSelectTopic={(topic) => {
-                  topic && this.props.createTopic(topic.name, group.id, true, false)
-                }}
-              />
-            </div>
-          </div>
-        </div>
-        <div className={styles.allTopics}>
-          <div className={styles.title}>{t('Topic List Editor')}</div>
-          <p>
-            {t(`Below is a list of every topic that any member of your group has used to date. You can choose to hide
-            topics that you would prefer members of your group don't use, or pin topics to the top of the list
-            to make sure people pay attention to posts in those topics.`)}
-          </p>
-          <div className={styles.controls}>
-            <SearchBar {...{ search, setSearch, selectedSort, setSort, fetchIsPending, totalTopicsCached }} />
-            <CreateTopic
-              buttonText={t('Add a Topic')}
-              groupId={group.id}
-              groupSlug={group.slug}
-              topics={topics}
+        </p>
+        <div className={styles.defaultTopicList}>
+          {defaultTopics.map(topic =>
+            <TopicListItem
+              key={topic.id}
+              singleGroup={group}
+              topic={topic}
+              setGroupTopicVisibility={setGroupTopicVisibilityHandler}
+              removeSuggestedTopic={removeSuggestedTopic}
+              isSuggested
             />
-          </div>
-          <div className={styles.topicList} id={TOPIC_LIST_ID}>
-            {topics.map(topic =>
-              <TopicListItem
-                key={topic.id}
-                singleGroup={group}
-                topic={topic}
-                setGroupTopicVisibility={this.setGroupTopicVisibility}
-              />
-            )}
-            <ScrollListener onBottom={() => fetchMoreTopics()} elementId={TOPIC_LIST_ID} />
+          )}
+          <div className={styles.defaultTopicSelector}>
+            <SingleTopicSelector
+              currentGroup={group}
+              placeholder={t('Add a suggested topic')}
+              onSelectTopic={(topic) => {
+                topic && createTopicBound(topic.name, group.id, true, false)
+              }}
+            />
           </div>
         </div>
       </div>
-    )
-  }
+      <div className={styles.allTopics}>
+        <div className={styles.title}>{t('Topic List Editor')}</div>
+        <p>
+          {t(`Below is a list of every topic that any member of your group has used to date. You can choose to hide
+            topics that you would prefer members of your group don't use, or pin topics to the top of the list
+            to make sure people pay attention to posts in those topics.`)}
+        </p>
+        <div className={styles.controls}>
+          <SearchBar {...{ search, setSearch: setSearchBound, selectedSort, setSort: setSortBound, fetchIsPending, totalTopicsCached }} />
+          <CreateTopic
+            buttonText={t('Add a Topic')}
+            groupId={group.id}
+            groupSlug={group.slug}
+            topics={topics}
+          />
+        </div>
+        <div className={styles.topicList} id={TOPIC_LIST_ID}>
+          {topics.map(topic =>
+            <TopicListItem
+              key={topic.id}
+              singleGroup={group}
+              topic={topic}
+              setGroupTopicVisibility={setGroupTopicVisibilityHandler}
+            />
+          )}
+          <ScrollListener onBottom={() => fetchMoreTopics()} elementId={TOPIC_LIST_ID} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+TopicsSettingsTab.propTypes = {
+  group: object.isRequired
 }
 
 export function SearchBar ({ search, setSearch, selectedSort, setSort, fetchIsPending, totalTopicsCached }) {
@@ -237,4 +255,4 @@ export function TopicListItem ({ topic, singleGroup, setGroupTopicVisibility, re
   )
 }
 
-export default withTranslation()(TopicsSettingsTab)
+export default TopicsSettingsTab
