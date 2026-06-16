@@ -611,7 +611,9 @@ export default function AuthLayoutRouter (props) {
     })
   }, [newVersionAvailable])
 
-  if (currentUserLoading) {
+  // Post-detail deep links render the real route tree immediately so PostDialog /
+  // PostDetail can paint while user bootstrap runs in parallel.
+  if (currentUserLoading && !paramPostId) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
         <Helmet>
@@ -624,12 +626,15 @@ export default function AuthLayoutRouter (props) {
   }
 
   // Layout props, flags, and event handlers
-  const intercomProps = {
-    hideDefaultLauncher: true,
-    userHash: currentUser.intercomHash,
-    email: currentUser.email,
-    name: currentUser.name,
-    userId: currentUser.id
+  let intercomProps = null
+  if (currentUser) {
+    intercomProps = {
+      hideDefaultLauncher: true,
+      userHash: currentUser.intercomHash,
+      email: currentUser.email,
+      name: currentUser.name,
+      userId: currentUser.id
+    }
   }
   const showMenuBadge = some(m => m.newPostCount > 0, memberships)
 
@@ -637,7 +642,7 @@ export default function AuthLayoutRouter (props) {
   // the PENDING optimistic update sets signupInProgress=false before the server confirms,
   // which would cause a premature redirect followed by a race with fetchForCurrentUser.
   // AddLocation.goToNextStep() handles the redirect after the server actually confirms.
-  if (!signupInProgress && returnToPath && !isWelcomeContext) {
+  if (!currentUserLoading && !signupInProgress && returnToPath && !isWelcomeContext) {
     if (isAtReturnToPath(location, returnToPath)) {
       dispatch(setReturnToPath())
     } else {
@@ -645,7 +650,7 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  if (signupInProgress && !isWelcomeContext) {
+  if (!currentUserLoading && signupInProgress && !isWelcomeContext) {
     return <Navigate to='/welcome' replace />
   }
 
@@ -667,7 +672,13 @@ export default function AuthLayoutRouter (props) {
 
   /* First time viewing a group redirect to welcome page if it exists, otherwise home view */
   // XXX: this is a hack, figure out better way to do this
-  if (currentGroupMembership && !get('lastViewedAt', currentGroupMembership)) {
+  // Skip when landing on a post deep link — user came for the post, not onboarding.
+  if (
+    !paramPostId &&
+    currentUser &&
+    currentGroupMembership &&
+    !get('lastViewedAt', currentGroupMembership)
+  ) {
     const lastViewedAt = (new Date()).toISOString()
     dispatch(setMembershipLastViewedAt(currentGroup.id, currentUser.id, lastViewedAt))
     if (currentGroup?.settings?.showWelcomePage) {
@@ -677,8 +688,8 @@ export default function AuthLayoutRouter (props) {
     }
   }
 
-  return (
-    <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+  const layout = (
+    <>
       {/* Pull-to-refresh indicator - shows during and after gesture */}
       {(isPulling || isRefreshing) && (
         <div className='fixed top-4 left-1/2 -translate-x-1/2 z-50'>
@@ -703,9 +714,11 @@ export default function AuthLayoutRouter (props) {
       <Helmet>
         <title>{currentGroup ? `${currentGroup.name} | ` : ''}Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
-        <script id='greencheck' type='application/json'>
-          {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
-        </script>
+        {currentUser && (
+          <script id='greencheck' type='application/json'>
+            {`{ 'id': '${currentUser.id}', 'fullname': '${currentUser.name}', 'description': '${currentUser.tagline}', 'image': '${currentUser.avatarUrl}' }`}
+          </script>
+        )}
       </Helmet>
 
       <Routes>
@@ -751,7 +764,7 @@ export default function AuthLayoutRouter (props) {
               { 'hidden sm:relative': isCreateGroupRoute }
             )}
           >
-            {!withoutNav && (
+            {!withoutNav && currentUser && (
               <>
                 <GlobalNav
                   group={currentGroup}
@@ -970,6 +983,16 @@ export default function AuthLayoutRouter (props) {
         position={isMobile.any ? 'top-center' : 'bottom-left'}
         style={isMobile.any ? {} : { left: '80px' }}
       />
-    </IntercomProvider>
+    </>
   )
+
+  if (intercomProps) {
+    return (
+      <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
+        {layout}
+      </IntercomProvider>
+    )
+  }
+
+  return layout
 }

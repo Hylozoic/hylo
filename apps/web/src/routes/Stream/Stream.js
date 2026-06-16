@@ -284,6 +284,11 @@ export default function Stream (props) {
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
   }, [dispatch, pending, hasMore, fetchPostsParam])
 
+  const postDialogOpen = useMemo(
+    () => /\/post\/\d+/.test(location.pathname),
+    [location.pathname]
+  )
+
   useEffect(() => {
     if (customViewId) {
       dispatch(fetchCustomView(customViewId))
@@ -308,11 +313,23 @@ export default function Stream (props) {
 
   useEffect(() => {
     if (isDraftsView) return
-    if ((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic)) {
-      // Fetch posts, unless the custom view has not fully loaded yet, or the topic has not fully loaded yet
-      fetchPostsFrom(0)
+    if (!((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic))) return
+
+    const run = () => fetchPostsFrom(0)
+
+    // When a post dialog is open over the stream, defer the list fetch so fetchPost
+    // and PostDetail can claim the connection first; stream still warms in the background.
+    if (postDialogOpen) {
+      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        const id = window.requestIdleCallback(run, { timeout: 3000 })
+        return () => window.cancelIdleCallback?.(id)
+      }
+      const id = setTimeout(run, 1200)
+      return () => clearTimeout(id)
     }
-  }, [fetchPostsParam, isDraftsView])
+
+    run()
+  }, [fetchPostsParam, isDraftsView, postDialogOpen, fetchPostsFrom, customViewId, customView?.type, topicName, topic])
 
   useEffect(() => {
     if (!isCalendarViewMode || isDraftsView) return

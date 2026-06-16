@@ -1,5 +1,5 @@
 import React from 'react'
-import { useParams, useLocation, Routes, Route } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
 import orm from 'store/models'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
@@ -220,5 +220,105 @@ it('shows NotFound if the group does not exist', async () => {
 
   await waitForElementToBeRemoved(screen.queryByTestId('loading-screen'))
 
-  expect(screen.getByText(`Oops, there's nothing to see here.`)).toBeInTheDocument()
+  expect(screen.getByText('Oops, there\'s nothing to see here.')).toBeInTheDocument()
+})
+
+const defaultBootstrapHandlers = () => [
+  graphql.query('MeQuery', () => {
+    return new Promise(() => {})
+  }),
+  graphql.query('FetchForGroup', () => {
+    return HttpResponse.json({
+      data: {
+        group: {
+          id: '1',
+          slug: 'test-group',
+          name: 'Test Group'
+        }
+      }
+    })
+  }),
+  graphql.query('FetchPost', () => {
+    return HttpResponse.json({
+      data: {
+        post: {
+          id: '123',
+          title: 'Test Post',
+          details: 'Post body',
+          type: 'discussion',
+          creator: { id: '1', name: 'Creator', avatarUrl: '' },
+          groups: [{ id: '1', slug: 'test-group', name: 'Test Group' }],
+          commentersTotal: 0,
+          commentsTotal: 0,
+          comments: { items: [], hasMore: false, total: 0 },
+          attachments: [],
+          topics: []
+        }
+      }
+    })
+  }),
+  graphql.query('GroupDetailsQuery', () => {
+    return HttpResponse.json({ data: { group: null } })
+  }),
+  graphql.query('GroupWelcomeQuery', () => {
+    return HttpResponse.json({ data: { group: null } })
+  }),
+  graphql.query('PostsQuery', () => {
+    return HttpResponse.json({ data: { group: null } })
+  }),
+  graphql.query('GroupPostsQuery', () => {
+    return HttpResponse.json({ data: { group: null } })
+  }),
+  graphql.query('MessageThreadsQuery', () => {
+    return HttpResponse.json({ data: { me: null } })
+  }),
+  graphql.query('MyPendingJoinRequestsQuery', () => {
+    return HttpResponse.json({ data: { joinRequests: null } })
+  }),
+  graphql.query('NotificationsQuery', () => {
+    return HttpResponse.json({ data: { notifications: null } })
+  }),
+  graphql.query('FetchCommonRoles', () => {
+    return HttpResponse.json({ data: { commonRoles: [] } })
+  }),
+  graphql.query('FetchPlatformAgreements', () => {
+    return HttpResponse.json({ data: { platformAgreements: null } })
+  })
+]
+
+it('skips full-page bootstrap shell for post-detail deep links', () => {
+  mockGraphqlServer.use(...defaultBootstrapHandlers())
+
+  useParamsMocked.mockReturnValue({
+    context: 'groups',
+    groupSlug: 'test-group',
+    view: 'stream',
+    postId: '123'
+  })
+  useLocationMocked.mockReturnValue({
+    pathname: '/groups/test-group/stream/post/123',
+    search: ''
+  })
+
+  render(
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/groups/test-group/stream/post/123']) }
+  )
+
+  expect(screen.queryByTestId('loading-screen')).not.toBeInTheDocument()
+  expect(document.getElementById('center-column-container')).toBeInTheDocument()
+})
+
+it('shows full-page bootstrap shell for non-post routes while user loads', () => {
+  mockGraphqlServer.use(...defaultBootstrapHandlers())
+
+  useParamsMocked.mockReturnValue({ context: 'groups', groupSlug: 'test-group' })
+  useLocationMocked.mockReturnValue({ pathname: '/groups/test-group', search: '' })
+
+  render(
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/groups/test-group']) }
+  )
+
+  expect(screen.getByTestId('loading-screen')).toBeInTheDocument()
 })
