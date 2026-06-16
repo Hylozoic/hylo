@@ -2,12 +2,65 @@ import { createSelector as ormCreateSelector } from 'redux-orm'
 import { createSelector } from 'reselect'
 import orm from 'store/models'
 import { isEmpty, includes, get } from 'lodash/fp'
-import { makeGetQueryResults } from 'store/reducers/queryResults'
+import { buildKey, makeGetQueryResults } from 'store/reducers/queryResults'
 import postFieldsFragment from '@graphql/fragments/postFieldsFragment'
 import presentPost from 'store/presenters/presentPost'
 import presentComment from 'store/presenters/presentComment'
 
 export const MODULE_NAME = 'Search'
+
+const defaultState = {}
+
+function getQueryVariables (action) {
+  return action.meta?.graphql?.variables || {}
+}
+
+function isHtml (value) {
+  return typeof value === 'string' && /^\s*</.test(value)
+}
+
+/** Returns a user-facing search error message from a failed query payload */
+export function formatSearchErrorMessage (error, t) {
+  if (!error) return null
+
+  const genericMessage = t('Oh no, something went wrong! Check your internet connection and try again')
+
+  const tryParseMessage = (value) => {
+    if (typeof value !== 'string' || isHtml(value)) return null
+    try {
+      const parsed = JSON.parse(value)
+      return parsed.error || parsed.message || null
+    } catch (e) {
+      return value
+    }
+  }
+
+  return tryParseMessage(get('response.body', error)) ||
+    tryParseMessage(error.message) ||
+    genericMessage
+}
+
+export default function reducer (state = defaultState, action) {
+  if (action.type === FETCH_SEARCH + '_PENDING') {
+    const key = buildKey(FETCH_SEARCH, getQueryVariables(action))
+    if (!state[key]) return state
+    const { [key]: _, ...rest } = state
+    return rest
+  }
+
+  if (action.type === FETCH_SEARCH) {
+    const key = buildKey(FETCH_SEARCH, getQueryVariables(action))
+    if (action.error) {
+      return { ...state, [key]: action.payload }
+    }
+    if (state[key]) {
+      const { [key]: _, ...rest } = state
+      return rest
+    }
+  }
+
+  return state
+}
 
 export const SET_SEARCH_TERM = `${MODULE_NAME}/SET_SEARCH_TERM`
 export const SET_SEARCH_FILTER = `${MODULE_NAME}/SET_SEARCH_FILTER`
@@ -130,3 +183,12 @@ export const getSearchResults = ormCreateSelector(
 )
 
 export const getHasMoreSearchResults = createSelector(getSearchResultResults, get('hasMore'))
+
+export function getHasFetchedSearchResults (state, props) {
+  return getSearchResultResults(state, props) != null
+}
+
+export function getSearchError (state, props) {
+  const key = buildKey(FETCH_SEARCH, props)
+  return state.Search?.[key]
+}

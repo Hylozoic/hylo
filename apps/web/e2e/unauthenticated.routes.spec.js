@@ -32,6 +32,20 @@ test.beforeEach(async ({ context, page }, testInfo) => {
 const uiTimeout = { timeout: 60000 }
 const routeTimeout = { timeout: 60000 }
 
+/**
+ * Cookie consent toast can sit above paywall CTAs on mobile and block clicks.
+ * @param {import('@playwright/test').Page} page
+ */
+async function dismissCookieConsentBannerIfPresent (page) {
+  const btn = page.getByRole('button', { name: /Reject Non-Essential/i })
+  try {
+    await btn.waitFor({ state: 'visible', timeout: 4000 })
+    await btn.click()
+  } catch {
+    // Banner absent or already dismissed
+  }
+}
+
 test.describe('root and auth shell', () => {
   test('GET / redirects to /login', async ({ page }) => {
     await page.goto('/')
@@ -173,6 +187,53 @@ test.describe('join and public group', () => {
       waitUntil: 'domcontentloaded'
     })
     await expect(page).toHaveURL(/\/login/, { timeout: 25000 })
+  })
+})
+
+test.describe('Batch P2: paywall discovery (unauthenticated)', () => {
+  const PAYWALL_GROUP_SLUG = 'e2e-paywall-group'
+  const PAYWALL_OFFERING_NAME = 'E2E Paywall Stream Monthly'
+
+  test('GET seeded paywall group shows offering and Sign up to Purchase → login', async ({ page }) => {
+    await page.goto(`/groups/${PAYWALL_GROUP_SLUG}`, { waitUntil: 'domcontentloaded' })
+    await waitPastRootSessionLoading(page)
+    await dismissCookieConsentBannerIfPresent(page)
+
+    await expect(page.getByRole('heading', { name: /This group requires a fee to join/i })).toBeVisible(uiTimeout)
+    await expect(page.getByText(PAYWALL_OFFERING_NAME)).toBeVisible(uiTimeout)
+    await page.getByRole('button', { name: /Sign up to Purchase/i }).click()
+    await expect(page).toHaveURL(/\/login/, routeTimeout)
+    // Paywall sends `/login?returnToUrl=…` then NonAuthLayoutRouter copies return path into Redux and `replace`s to `/login` (no query)
+    await expect(page.getByRole('heading', { name: /Sign in to Hylo/i })).toBeVisible(uiTimeout)
+  })
+})
+
+test.describe('Batch P5: public offering details (unauthenticated)', () => {
+  test.describe.configure({ timeout: 180000 })
+
+  const PAYWALL_GROUP_SLUG = 'e2e-paywall-group'
+  const PAYWALL_OFFERING_NAME = 'E2E Paywall Stream Monthly'
+
+  test('GET /groups/:slug/offerings/:id loads offering shell and Sign up to Purchase', async ({ page }) => {
+    await page.goto(`/groups/${PAYWALL_GROUP_SLUG}`, { waitUntil: 'domcontentloaded' })
+    await waitPastRootSessionLoading(page)
+    await dismissCookieConsentBannerIfPresent(page)
+
+    const card = page.getByTestId('paywall-offering-card').first()
+    await expect(card).toBeVisible(uiTimeout)
+    const offeringId = await card.getAttribute('data-offering-id')
+    expect(offeringId).toBeTruthy()
+
+    await page.goto(`/groups/${PAYWALL_GROUP_SLUG}/offerings/${offeringId}`, {
+      waitUntil: 'domcontentloaded'
+    })
+    await waitPastRootSessionLoading(page)
+    await dismissCookieConsentBannerIfPresent(page)
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: PAYWALL_OFFERING_NAME })
+    ).toBeVisible(uiTimeout)
+    await expect(page.getByRole('button', { name: /Sign up to Purchase/i })).toBeVisible(uiTimeout)
   })
 })
 

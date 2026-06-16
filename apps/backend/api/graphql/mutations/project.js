@@ -2,12 +2,10 @@ import { GraphQLError } from 'graphql'
 import { uniq } from 'lodash/fp'
 import { createPost } from './post'
 
-const getStripe = () => {
-  if (!process.env.STRIPE_API_KEY) {
-    return null
-  }
-  return require('stripe')(process.env.STRIPE_API_KEY)
-}
+const Stripe = require('stripe')
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null
 
 export function createProject (userId, data) {
   // add creator as a member of project on creation
@@ -140,6 +138,10 @@ export async function createStripePaymentNotifications (contribution, creatorId)
 }
 
 export async function processStripeToken (userId, projectId, token, amount) {
+  if (!stripe) {
+    throw new GraphQLError('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.')
+  }
+
   const applicationFeeFraction = 0.01
   const project = await Post.find(projectId)
   if (!project) {
@@ -154,10 +156,6 @@ export async function processStripeToken (userId, projectId, token, amount) {
   // amount is in dollars, chargeAmount is in cents
   const chargeAmount = Number(amount) * 100
   const applicationFee = chargeAmount * applicationFeeFraction
-  const stripe = getStripe()
-  if (!stripe) {
-    throw new GraphQLError('Stripe is not configured')
-  }
   await stripe.charges.create({
     amount: chargeAmount,
     currency: 'usd',

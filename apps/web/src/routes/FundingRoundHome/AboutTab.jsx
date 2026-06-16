@@ -69,7 +69,7 @@ export default function AboutTab ({ canSubmit, canVote, round }) {
       {round.description && (
         <HyloHTML html={round.description} />
       )}
-      {(round.criteria && !!(new DOMParser().parseFromString(round.criteria, 'text/html').body.textContent?.trim())) && (
+      {(round.criteria && !!(new window.DOMParser().parseFromString(round.criteria, 'text/html').body.textContent?.trim())) && (
         <div>
           <h2 className='text-lg font-semibold'>{t('Submission Criteria')}</h2>
           <HyloHTML html={round.criteria} />

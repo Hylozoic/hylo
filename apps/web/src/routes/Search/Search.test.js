@@ -4,7 +4,6 @@ import Search from './Search'
 import { FETCH_SEARCH } from './Search.store'
 import orm from 'store/models'
 import { ViewHeaderContext } from 'contexts/ViewHeaderContext'
-
 // Mock debounce to execute immediately in tests
 jest.mock('lodash/fp', () => {
   const original = jest.requireActual('lodash/fp')
@@ -47,6 +46,9 @@ jest.mock('./Search.store', () => {
     fetchSearchResults: jest.fn(),
     FETCH_SEARCH: 'FETCH_SEARCH',
     getHasMoreSearchResults: jest.fn(() => false),
+    getHasFetchedSearchResults: jest.fn(() => true),
+    getSearchError: jest.fn(() => null),
+    formatSearchErrorMessage: jest.fn(() => null),
     // Expose a way to update mock results that maintains the cache
     __setMockResults: (newResults) => {
       currentMockResults = newResults

@@ -3,7 +3,8 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 import {
   dismissCookiePreferencesIfOpen,
   openGlobalNavSettingsMenu,
-  clickGlobalNavLogout
+  clickGlobalNavLogout,
+  ensureBrowserSessionDestroyed
 } from './helpers/sessionAuth.js'
 
 /**
@@ -36,6 +37,7 @@ test.describe('authenticated: logout and session', () => {
     await expect(page).toHaveURL(/\/login/, navTimeout)
     await expect(page.getByRole('heading', { name: /sign in to hylo/i })).toBeVisible(uiTimeout)
 
+    await ensureBrowserSessionDestroyed(page)
     await page.goto('/')
     await waitPastRootSessionLoading(page)
     await expect(page).toHaveURL(/\/login/, navTimeout)
