@@ -6,17 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.5.1] - 2026-07-10
+## [6.5.1] - 2026-06-16
 
-## [6.5.0] - 2026-06-12
+### Fixed
+- Fix occasional mobile app WebView infinite reload loop
+
+## [6.5.0] - 2026-06-15
 
 ### Added
 - 'Paid Content' released, integrating with Stripe.
 - Groups can now raise funds via their membership, or pay-gate group membership, tracks or group roles.
 - Calendar settings are now integrated into navigation, providing better user experience when navigating.
 - Search: Better error and no-result user experience.
-- Calendar actions reflected in navigation state.
-- DMs can be read/unread.
+- Direct Message threads can be marked as read/unread.
 
 ### Fixed
 - Calendar event creation streamlined.

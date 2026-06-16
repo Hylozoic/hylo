@@ -6,9 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [6.5.1] - 2026-07-01
+## [6.5.1] - 2026-06-16
 
-## [6.5.0] - 2026-06-12
+### Fixed
+- Security issues
+
+## [6.5.0] - 2026-06-15
 
 ### Added
 - 'Paid Content' released.
