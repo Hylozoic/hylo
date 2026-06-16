@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Search performance: concurrent materialized view refresh, `sort_ts` baked into `search_index`, semi-join group access filter, `limit + 1` pagination via `hasMore`, and `statement_timeout` on search queries
 
+## [6.5.1] - 2026-06-16
+
+### Fixed
+- Security issues
+
 ## [6.5.0] - 2026-06-15
 
 ### Added
