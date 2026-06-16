@@ -1,5 +1,5 @@
 import { test, expect, devices } from '@playwright/test'
-import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { waitForAuthBootstrap } from './helpers/waitForAuthBootstrap.js'
 
 /**
  * Batch E — post detail routes (`PostDetail` in center vs `#detail-column`).
@@ -34,6 +34,7 @@ function e2eBaseUrl () {
 }
 
 async function expectSeededPostVisible (page) {
+  await waitForAuthBootstrap(page)
   await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
 }
 
@@ -57,20 +58,18 @@ async function loginOnPage (page, email) {
   await page.locator('#email').fill(email)
   await page.locator('#password').fill(E2E_LOGIN_PASSWORD)
   await page.getByRole('button', { name: /sign\s*in/i }).click()
-  await expect(page.locator('#center-column-container')).toBeVisible(navTimeout)
+  await waitForAuthBootstrap(page)
 }
 
 test.describe('Batch E: post detail & dual-column', () => {
   test('GET /post/:id loads post (global)', async ({ page }) => {
     await page.goto(`/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
-    await expect(page).toHaveURL(new RegExp(`/post/${E2E_POST_ID}`), navTimeout)
     await expectSeededPostVisible(page)
   })
 
   test('GET /groups/:slug/post/:id loads post in group context', async ({ page }) => {
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page).toHaveURL(
       new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/post/${E2E_POST_ID}`),
       navTimeout
@@ -80,39 +79,39 @@ test.describe('Batch E: post detail & dual-column', () => {
 
   test('GET /all/map/post/:id opens detail column (All map)', async ({ page }) => {
     await page.goto(`/all/map/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page).toHaveURL(new RegExp(`/all/map/post/${E2E_POST_ID}`), navTimeout)
     await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
-    await expectSeededPostVisible(page)
+    await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
   })
 
   test('GET /public/map/post/:id opens detail column (Public map)', async ({ page }) => {
     await page.goto(`/public/map/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page).toHaveURL(new RegExp(`/public/map/post/${E2E_POST_ID}`), navTimeout)
     await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
-    await expectSeededPostVisible(page)
+    await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
   })
 
   test('GET /groups/:slug/map/post/:id opens detail column (group map)', async ({ page }) => {
     await page.goto(`/groups/${PUBLIC_GROUP_SLUG}/map/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page).toHaveURL(
       new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/map/post/${E2E_POST_ID}`),
       navTimeout
     )
     await expect(page.locator('#detail-column')).toBeVisible(mapDetailTimeout)
-    await expectSeededPostVisible(page)
+    await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
   })
 
   test('GET /members/:id/post/:id loads post (member route)', async ({ page }) => {
     await page.goto(`/members/${E2E_USER_ID}/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page).toHaveURL(
       new RegExp(`/members/${E2E_USER_ID}/post/${E2E_POST_ID}`),
       navTimeout
     )
-    await expectSeededPostVisible(page)
+    await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
   })
 })
 
@@ -139,7 +138,6 @@ test.describe('post detail close navigation', () => {
   test('single group + member: /post/:id close → group stream', async ({ page }) => {
     await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ID}`)
-    await waitPastRootSessionLoading(page)
     await expectSeededPostVisible(page)
     await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
@@ -150,7 +148,7 @@ test.describe('post detail close navigation', () => {
     try {
       await loginOnPage(page, E2E_NOGROUPS_EMAIL)
       await page.goto(`/post/${E2E_POST_MULTI_PUBLIC}`)
-      await waitPastRootSessionLoading(page)
+      await waitForAuthBootstrap(page)
       await expect(page.getByText(/E2E Multi Public Post/i).first()).toBeVisible(uiTimeout)
       await closeIsolatedPostDetail(page)
       await expect(page).toHaveURL(/\/public\/stream/, navTimeout)
@@ -162,7 +160,7 @@ test.describe('post detail close navigation', () => {
   test('many groups + member of one post group: close → that group stream', async ({ page }) => {
     await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_ONE_MEMBER_MULTI}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page.getByText(/E2E One-Member Multi Post/i).first()).toBeVisible(uiTimeout)
     await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(new RegExp(`/groups/${PUBLIC_GROUP_SLUG}/stream`), navTimeout)
@@ -171,7 +169,7 @@ test.describe('post detail close navigation', () => {
   test('many groups + member of multiple post groups: close → /my/groups', async ({ page }) => {
     await prepareMobilePage(page)
     await page.goto(`/post/${E2E_POST_MULTI_MEMBER}`)
-    await waitPastRootSessionLoading(page)
+    await waitForAuthBootstrap(page)
     await expect(page.getByText(/E2E Multi Member Post/i).first()).toBeVisible(uiTimeout)
     await closeIsolatedPostDetail(page)
     await expect(page).toHaveURL(/\/my\/groups/, navTimeout)

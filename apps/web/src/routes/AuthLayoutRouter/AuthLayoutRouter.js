@@ -89,6 +89,23 @@ import useNewAppVersion from 'hooks/useNewAppVersion'
 
 import classes from './AuthLayoutRouter.module.scss'
 
+/**
+ * In-context notification post URLs may render before Me bootstrap finishes.
+ * Isolated `/post/:id`, edit URLs, and other entry points wait for Me in the store.
+ */
+function isFastPathPostDetailUrl (pathname) {
+  if (!/\/post\/\d+/.test(pathname)) return false
+  if (/\/edit(\/|$)/.test(pathname)) return false
+  if (/^\/post\/\d+(\/|$)/.test(pathname)) return false
+  return (
+    /\/stream\/post\/\d+/.test(pathname) ||
+    /\/map\/post\/\d+/.test(pathname) ||
+    /^\/groups\/[^/]+\/post\/\d+(\/|$)/.test(pathname) ||
+    /^\/(all|public|my)\/post\/\d+(\/|$)/.test(pathname) ||
+    /^\/members\/[^/]+\/post\/\d+(\/|$)/.test(pathname)
+  )
+}
+
 export default function AuthLayoutRouter (props) {
   const resizeRef = useRef()
   const navigate = useNavigate()
@@ -611,9 +628,10 @@ export default function AuthLayoutRouter (props) {
     })
   }, [newVersionAvailable])
 
-  // Post-detail deep links render the real route tree immediately so PostDialog /
-  // PostDetail can paint while user bootstrap runs in parallel.
-  if (currentUserLoading && !paramPostId) {
+  // In-context post deep links render during bootstrap so PostDialog / PostDetail can paint
+  // while fetchForCurrentUser runs in parallel. All other routes wait for bootstrap to finish.
+  const fastPathPostDetail = isFastPathPostDetailUrl(location.pathname)
+  if (!fastPathPostDetail && currentUserLoading) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
         <Helmet>
@@ -654,7 +672,14 @@ export default function AuthLayoutRouter (props) {
     return <Navigate to='/welcome' replace />
   }
 
-  if (!currentGroupMembership && hasDetail && paramPostId && currentGroupSlug) {
+  if (
+    !currentUserLoading &&
+    currentUser &&
+    !currentGroupMembership &&
+    hasDetail &&
+    paramPostId &&
+    currentGroupSlug
+  ) {
     /* There are times when users will be send to a path where they have access to the POST on that path but not to the GROUP on that path
       This redirect replaces the non-accessible groupSlug from the path with '/all', for a better UI experience
     */
@@ -733,9 +758,11 @@ export default function AuthLayoutRouter (props) {
 
         {/* DEPRECATED: Now always show GroupWelcomeModal */}
         {/* {!isWebView() && ( */}
-        <>
-          <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-        </>
+        {currentUser && (
+          <>
+            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+          </>
+        )}
         {/* )} */}
       </Routes>
 
@@ -776,7 +803,7 @@ export default function AuthLayoutRouter (props) {
               </>
             )}
 
-            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
+            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && currentUser && (
               <Routes>
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
@@ -785,7 +812,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
-              </Routes>}
+              </Routes>
+            )}
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative flex-1 min-w-0' id='center-column-container'>
@@ -875,7 +903,7 @@ export default function AuthLayoutRouter (props) {
                        instead of a bare spinner. */
                     currentGroupLoading && !paramPostId
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership
+                      : currentGroupSlug && !currentGroupMembership && !paramPostId
                         ? <GroupDetail context='groups' group={currentGroup} />
                         : (
                           <Routes>
@@ -986,13 +1014,13 @@ export default function AuthLayoutRouter (props) {
     </>
   )
 
-  if (intercomProps) {
-    return (
-      <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
-        {layout}
-      </IntercomProvider>
-    )
-  }
-
-  return layout
+  return (
+    <IntercomProvider
+      appId={isTest ? '' : config.intercom.appId}
+      autoBoot={Boolean(intercomProps)}
+      autoBootProps={intercomProps || {}}
+    >
+      {layout}
+    </IntercomProvider>
+  )
 }

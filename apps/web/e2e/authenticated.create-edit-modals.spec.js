@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
+import { waitForAuthBootstrap } from './helpers/waitForAuthBootstrap.js'
 
 /**
  * Batch J — `CreateModal` routes (chooser + post edit) for `groups` / `all` / `public` / `my`.
@@ -16,13 +16,13 @@ const E2E_POST_ID = '1'
 const PUBLIC_GROUP_SLUG = 'e2e-public-group'
 
 async function expectCreateChooserShell (page, urlPattern) {
-  await waitPastRootSessionLoading(page)
+  await waitForAuthBootstrap(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
   await expect(page.getByRole('heading', { name: /What would you like to create/i })).toBeVisible(uiTimeout)
 }
 
 async function expectEditPostShell (page, urlPattern) {
-  await waitPastRootSessionLoading(page)
+  await waitForAuthBootstrap(page)
   await expect(page).toHaveURL(urlPattern, navTimeout)
   await expect(page.getByText(/E2E Public Post/i).first()).toBeVisible(uiTimeout)
 }

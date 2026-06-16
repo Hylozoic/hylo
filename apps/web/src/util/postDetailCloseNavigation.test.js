@@ -1,9 +1,9 @@
+import { isPhoneDevice } from 'util/mobile'
+import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
+
 jest.mock('util/mobile', () => ({
   isPhoneDevice: jest.fn(() => false)
 }))
-
-import { isPhoneDevice } from 'util/mobile'
-import { getPostDetailCloseDestination, memberGroupIdsFromMe, shouldUseSmartPostClose } from './postDetailCloseNavigation'
 
 function meWithGroups (groupIds) {
   return {
@@ -93,6 +93,12 @@ describe('getPostDetailCloseDestination', () => {
       pathname: '/',
       search: '?x=1'
     })
+  })
+
+  it('returns null when post has groups but Me memberships are not loaded', () => {
+    const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
+    expect(getPostDetailCloseDestination({ ...base, post, me: null })).toBeNull()
+    expect(getPostDetailCloseDestination({ ...base, post, me: {} })).toBeNull()
   })
 })
 

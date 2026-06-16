@@ -84,28 +84,32 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     showPeopleDialog: false
   })
   const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
+  const [postFetchSettled, setPostFetchSettled] = useState(false)
   const commentFormRef = useRef(null)
 
   const activityHeader = useRef(null)
   const { t } = useTranslation()
 
   const postDetailCloseDestination = useMemo(() => {
-    return post
-      ? getPostDetailCloseDestination({
-        pathname: location.pathname,
-        search: location.search,
-        post,
-        me: currentUser
-      })
-      : {
-          pathname: removePostFromUrl(location.pathname) || '/',
-          search: location.search
-        }
+    if (!post) return null
+    return getPostDetailCloseDestination({
+      pathname: location.pathname,
+      search: location.search,
+      post,
+      me: currentUser
+    })
   }, [post, location.pathname, location.search, currentUser])
 
   useEffect(() => {
+    setPostFetchSettled(false)
     onPostIdChange()
   }, [postId])
+
+  useEffect(() => {
+    if (postId && !pending) {
+      setPostFetchSettled(true)
+    }
+  }, [pending, postId])
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
@@ -118,8 +122,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       icon: getPostTypeIcon(postType),
       info: '',
       search: false,
-      mobileBackButton: true,
-      backTo: postDetailCloseDestination
+      mobileBackButton: Boolean(postDetailCloseDestination),
+      backTo: postDetailCloseDestination || undefined
     })
   }, [isIsolatedPostView, post?.type, post?.title, t, setHeaderDetails, postDetailCloseDestination])
 
@@ -178,8 +182,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       })
       return
     }
-    navigate(postDetailCloseDestination)
-  }, [useSmartPostClose, navigate, postDetailCloseDestination, location.pathname, location.search])
+    const dest = post
+      ? getPostDetailCloseDestination({
+        pathname: location.pathname,
+        search: location.search,
+        post,
+        me: currentUser
+      })
+      : null
+    if (!dest) return
+    navigate(dest)
+  }, [useSmartPostClose, navigate, post, currentUser, location.pathname, location.search])
 
   const attemptClose = useCallback(() => {
     if (inPostDialog && commentFormRef.current?.hasUnsavedContent?.()) {
@@ -474,8 +487,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const showPeopleDialog = hasPeople && state.showPeopleDialog
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
-  if (!post && !pending) return <NotFound />
-  if (!post && pending) return <PostDetailSkeleton />
+  if (!post) {
+    if (pending || !postFetchSettled) return <PostDetailSkeleton />
+    return <NotFound />
+  }
 
   const headerStyle = {
     width: state.headerWidth + 'px'

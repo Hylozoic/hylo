@@ -322,3 +322,17 @@ it('shows full-page bootstrap shell for non-post routes while user loads', () =>
 
   expect(screen.getByTestId('loading-screen')).toBeInTheDocument()
 })
+
+it('shows full-page bootstrap shell for isolated /post/:id while bootstrap runs', () => {
+  mockGraphqlServer.use(...defaultBootstrapHandlers())
+
+  useParamsMocked.mockReturnValue({ context: '', view: 'post', postId: '123' })
+  useLocationMocked.mockReturnValue({ pathname: '/post/123', search: '' })
+
+  render(
+    <AuthLayoutRouter />,
+    { wrapper: testWrapper({}, ['/post/123']) }
+  )
+
+  expect(screen.getByTestId('loading-screen')).toBeInTheDocument()
+})
