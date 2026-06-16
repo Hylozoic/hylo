@@ -1,3 +1,22 @@
+# Refund Processed template strings
+#, python-format
+msgid "Refund Processed: %(offering_name)s"
+msgstr "Remboursement traité : %(offering_name)s"
+
+msgid "Your refund has been processed successfully."
+msgstr "Votre remboursement a été traité avec succès."
+
+msgid "We've issued a refund for your purchase of "
+msgstr "Nous avons émis un remboursement pour votre achat de "
+
+msgid "Refund amount:"
+msgstr "Montant du remboursement :"
+
+msgid "Refund date:"
+msgstr "Date du remboursement :"
+
+msgid "If you have any questions, reply to this email or contact"
+msgstr "Si vous avez des questions, répondez à cet e-mail ou contactez"
 # Translation file for SendWithUs templates
 # Language: fr-FR
 # Generated automatically
@@ -288,8 +307,8 @@ msgstr "Cliquez ici [ %(email_settings_url)s ] pour vous désabonner ou modifier
 msgid "No new search results"
 msgstr "Aucun nouveau résultat de recherche"
 
-msgid "Thank you for your generous donation of "
-msgstr "Merci pour votre généreux don de "
+msgid "Thank you for your generous contribution of "
+msgstr "Merci pour votre généreuse contribution de "
 
 msgid " to Hylo!"
 msgstr " à Hylo !"
@@ -297,37 +316,37 @@ msgstr " à Hylo !"
 msgid "Your support helps us continue building tools for social coordination and community building."
 msgstr "Votre soutien nous aide à continuer à construire des outils pour la coordination sociale et le renforcement des communautés."
 
-msgid "Donation Date:"
-msgstr "Date du don :"
+msgid "Contribution date:"
+msgstr "Date de la contribution :"
 
-msgid "Donation Type:"
-msgstr "Type de don :"
+msgid "Contribution type:"
+msgstr "Type de contribution :"
 
-msgid "Tax-Deductible Donation"
-msgstr "Don déductible des impôts"
+msgid "Tax-deductible contribution"
+msgstr "Contribution déductible des impôts"
 
 #, python-format
-msgid "Your donation is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
-msgstr "Votre don est déductible des impôts aux États-Unis. Hylo est parrainé par %(fiscal_sponsor_name_var)s, organisation à but non lucratif 501(c)(3)."
+msgid "Your contribution is tax-deductible in the United States. Hylo is fiscally sponsored by %(fiscal_sponsor_name_var)s, a 501(c)(3) nonprofit organization."
+msgstr "Votre contribution est déductible des impôts aux États-Unis. Hylo est parrainé par %(fiscal_sponsor_name_var)s, organisation à but non lucratif 501(c)(3)."
 
-msgid "This is a recurring donation that will automatically repeat "
-msgstr "Ce don récurrent sera automatiquement renouvelé "
+msgid "This is a recurring contribution that will automatically repeat "
+msgstr "Il s'agit d'une contribution récurrente qui se renouvellera automatiquement "
 
 msgid "."
 msgstr "."
 
-msgid "Next Donation:"
-msgstr "Prochain don :"
+msgid "Next contribution:"
+msgstr "Prochaine contribution :"
 
-msgid "Manage Recurring Donation"
-msgstr "Gérer le don récurrent"
+msgid "Manage recurring contribution"
+msgstr "Gérer la contribution récurrente"
 
 #, python-format
-msgid "This donation was made as part of your %(purchase_context_var)s."
-msgstr "Ce don a été effectué dans le cadre de votre %(purchase_context_var)s."
+msgid "This contribution was made as part of your %(purchase_context_var)s."
+msgstr "Cette contribution a été effectuée dans le cadre de votre %(purchase_context_var)s."
 
-msgid "Thank you for your donation to Hylo"
-msgstr "Merci pour votre don à Hylo"
+msgid "Thank you for your contribution to Hylo"
+msgstr "Merci pour votre contribution à Hylo"
 
 #, python-format
 msgid "%(subject)s"
