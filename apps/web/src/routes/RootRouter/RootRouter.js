@@ -105,17 +105,22 @@ export default function RootRouter () {
       const me = action?.payload?.data?.me
       if (debugCheckLogin) {
         const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
-        console.info('[Hylo checkLogin]', `${ms}ms`, { hasMe: !!me, pathname })
+        console.info('[Hylo checkLogin]', `${ms}ms`, {
+          hasMe: !!me,
+          pathname: typeof window !== 'undefined' ? window.location.pathname : ''
+        })
       }
     } catch (err) {
       if (debugCheckLogin) {
         const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
-        console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, { pathname })
+        console.info('[Hylo checkLogin]', `${ms}ms`, 'error', err?.message || err, {
+          pathname: typeof window !== 'undefined' ? window.location.pathname : ''
+        })
       }
     } finally {
       setLoading(false)
     }
-  }, [dispatch, pathname])
+  }, [dispatch])
 
   useEffect(() => {
     runCheckLogin()
@@ -136,7 +141,7 @@ export default function RootRouter () {
         navigate(path)
       })
     }
-  }, [runCheckLogin])
+  }, [runCheckLogin, navigate])
 
   // Native re-minted the session cookie — re-run checkLogin without a full page reload.
   useEffect(() => {
