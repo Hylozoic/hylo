@@ -33,7 +33,6 @@ import {
 import { TextHelpers, WebViewMessageTypes } from '@hylo/shared'
 
 import GroupMenuHeader from 'components/GroupMenuHeader'
-import OneColumnLayout from './OneColumnLayout'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
 import WidgetIconResolver from 'components/WidgetIconResolver'

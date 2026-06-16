@@ -59,13 +59,44 @@ function Member ({
     />
   )
 
+  const showJoinAnswersBlock = canSeeJoinAnswers && showAnswers && member.groupJoinQuestionAnswers?.items?.length > 0
+
+  const joinAnswersBlock = showJoinAnswersBlock && (
+    <div
+      className={cn(
+        'flex flex-col gap-2 z-10 relative',
+        square && 'flex-1 min-h-0 overflow-y-auto w-full text-left px-0.5'
+      )}
+    >
+      <div className={cn('text-sm font-semibold text-foreground/80 border-t border-foreground/20 pt-2', square && 'text-xs')}>
+        {t('Join Question Responses')}
+      </div>
+      {member.groupJoinQuestionAnswers.items.map((item) => (
+        <div key={item.id} className='flex flex-col gap-1'>
+          <div className={cn('text-xs font-medium text-foreground/70', square && 'text-[10px]')}>
+            {item.question.text}
+          </div>
+          <div className={cn('text-sm text-foreground/90 pl-2 border-l-2 border-foreground/20', square && 'text-xs pl-1.5')}>
+            {item.answer}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
   // Single-column groups render members as a grid of square cards.
   if (square) {
     return (
-      <div className={cn('relative flex flex-col aspect-square bg-card/100 rounded-lg p-3 shadow-lg transition-all hover:scale-102 overflow-hidden', className)} data-testid='member-card'>
+      <div className={cn('relative flex flex-col aspect-square bg-card/100 rounded-lg p-3 shadow-lg transition-all hover:scale-102 overflow-hidden min-h-0', className)} data-testid='member-card'>
         <div className='absolute inset-0 w-full h-full bg-cover bg-center z-0 opacity-30' style={bgImageStyle(bannerUrl)} />
         {removeDropdown}
-        <div onClick={goToPerson(id, group.slug)} className='relative z-10 h-full flex flex-col items-center justify-center text-center gap-1 cursor-pointer'>
+        <div
+          onClick={goToPerson(id, group.slug)}
+          className={cn(
+            'relative z-10 flex flex-col items-center text-center gap-1 cursor-pointer',
+            showJoinAnswersBlock ? 'shrink-0 justify-start pt-1' : 'min-h-0 flex-1 justify-center'
+          )}
+        >
           <div className='w-16 h-16 rounded-full bg-cover bg-center border-2 border-card shadow-md' style={bgImageStyle(avatarUrl)} />
           <div className='flex flex-wrap items-center justify-center gap-1'>
             <span className='font-bold text-sm leading-tight'>{name}</span>
@@ -78,6 +109,7 @@ function Member ({
           {location && <div className='text-xs text-foreground/70 flex items-center gap-1 max-w-full'><MapPin className='w-3 h-3 shrink-0' /> <span className='truncate'>{location}</span></div>}
           {tagline && <div className='text-xs text-foreground/90 line-clamp-2'>{tagline}</div>}
         </div>
+        {joinAnswersBlock}
       </div>
     )
   }
@@ -100,23 +132,7 @@ function Member ({
           {tagline && <div className='text-base text-foreground/100'>{tagline}</div>}
         </div>
       </div>
-      {canSeeJoinAnswers && showAnswers && member.groupJoinQuestionAnswers?.items?.length > 0 && (
-        <div className='flex flex-col gap-2 z-10 relative'>
-          <div className='text-sm font-semibold text-foreground/80 border-t border-foreground/20 pt-2'>
-            {t('Join Question Responses')}
-          </div>
-          {member.groupJoinQuestionAnswers.items.map((item) => (
-            <div key={item.id} className='flex flex-col gap-1'>
-              <div className='text-xs font-medium text-foreground/70'>
-                {item.question.text}
-              </div>
-              <div className='text-sm text-foreground/90 pl-2 border-l-2 border-foreground/20'>
-                {item.answer}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {joinAnswersBlock}
       <div className='absolute inset-0 w-full h-full bg-cover bg-center z-0 opacity-30' style={bgImageStyle(bannerUrl)} />
     </div>
   )
