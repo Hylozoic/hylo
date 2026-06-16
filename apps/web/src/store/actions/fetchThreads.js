@@ -16,11 +16,9 @@ export default function (first = 10, offset = 0, { muted = false, search } = {})
       extractModel: 'Me',
       extractQueryResults: {
         getItems: get('payload.data.me.messageThreads'),
-        getRouteParams: action => {
-          const params = { muted: action.graphql.variables.muted || false }
-          if (action.graphql.variables.search) {
-            params.search = action.graphql.variables.search
-          }
+        getRouteParams: () => {
+          const params = { muted }
+          if (search) params.search = search
           return params
         }
       }
