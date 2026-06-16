@@ -612,8 +612,9 @@ export default function AuthLayoutRouter (props) {
   }, [newVersionAvailable])
 
   // Post-detail deep links render the real route tree immediately so PostDialog /
-  // PostDetail can paint while user bootstrap runs in parallel.
-  if (currentUserLoading && !paramPostId) {
+  // PostDetail can paint while user bootstrap runs in parallel. All other routes
+  // stay on BootstrapShell until bootstrap completes and Me is in the store.
+  if (!paramPostId && (currentUserLoading || !currentUser)) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
         <Helmet>
@@ -733,9 +734,11 @@ export default function AuthLayoutRouter (props) {
 
         {/* DEPRECATED: Now always show GroupWelcomeModal */}
         {/* {!isWebView() && ( */}
-        <>
-          <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
-        </>
+        {currentUser && (
+          <>
+            <Route path='groups/:groupSlug/*' element={<GroupWelcomeModal />} />
+          </>
+        )}
         {/* )} */}
       </Routes>
 
@@ -776,7 +779,7 @@ export default function AuthLayoutRouter (props) {
               </>
             )}
 
-            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) &&
+            {(!currentGroupSlug || (currentGroup && currentGroupMembership)) && currentUser && (
               <Routes>
                 <Route path='public/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='my/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
@@ -785,7 +788,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='messages/:messageThreadId' element={<ThreadList />} />
                 <Route path='messages' element={<ThreadList />} />
-              </Routes>}
+              </Routes>
+            )}
           </div> {/* END NavContainer */}
 
           <div className='AuthLayoutRouterCenterContainer flex flex-col h-full w-full relative flex-1 min-w-0' id='center-column-container'>
@@ -986,13 +990,13 @@ export default function AuthLayoutRouter (props) {
     </>
   )
 
-  if (intercomProps) {
-    return (
-      <IntercomProvider appId={isTest ? '' : config.intercom.appId} autoBoot autoBootProps={intercomProps}>
-        {layout}
-      </IntercomProvider>
-    )
-  }
-
-  return layout
+  return (
+    <IntercomProvider
+      appId={isTest ? '' : config.intercom.appId}
+      autoBoot={Boolean(intercomProps)}
+      autoBootProps={intercomProps || {}}
+    >
+      {layout}
+    </IntercomProvider>
+  )
 }

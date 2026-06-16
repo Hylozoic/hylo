@@ -108,10 +108,20 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: /sign\s*in/i }).click()
 
   // After password login the URL often stays `/login` while RootRouter swaps to AuthLayoutRouter (`path='*'`).
-  // Bootstrap shows `data-testid='loading-screen'` only while `fetchForCurrentUser` runs; on fast CI that
-  // can unmount before Playwright observes it, so wait for the main shell instead.
+  // Bootstrap shows `data-testid='loading-screen'` while MeQuery runs; the real shell uses
+  // `#center-column-container`.
   const authShell = page.locator('#center-column-container')
-  await expect(authShell).toBeVisible({ timeout: AUTH_BOOTSTRAP_MS })
+  try {
+    await expect(authShell).toBeVisible({ timeout: AUTH_BOOTSTRAP_MS })
+  } catch (e) {
+    const url = page.url()
+    const errorBoundary = await page.getByTestId('error-boundary-container').count()
+    const loadingScreen = await page.getByTestId('loading-screen').count()
+    const bootstrapShell = await page.getByTestId('bootstrap-shell').count()
+    throw new Error(
+      `${e.message}\n[e2e auth.setup] url=${url} errorBoundary=${errorBoundary} loadingScreen=${loadingScreen} bootstrapShell=${bootstrapShell}`
+    )
+  }
 
   console.log('Authenticated successfully')
 

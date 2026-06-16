@@ -32,7 +32,7 @@ export default function GroupWelcomeModal (props) {
   const currentGroup = useSelector(state => getGroupForSlug(state, params.groupSlug))
   const group = presentGroup(currentGroup)
   const currentMembership = useSelector(state => getMyGroupMembership(state, params.groupSlug))
-  const membershipAgreements = currentMembership?.agreements.toModelArray()
+  const membershipAgreements = currentMembership?.agreements?.toModelArray?.() ?? []
   const { agreementsAcceptedAt, joinQuestionsAnsweredAt } = currentMembership?.settings || {}
   const [page, setPage] = useState(1)
   const welcomeModalRef = useRef(null)
@@ -43,9 +43,11 @@ export default function GroupWelcomeModal (props) {
   const checkedAllAgreements = numCheckedAgreements === numAgreements
 
   const agreementsChanged = numAgreements > 0 &&
-    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup.settings.agreementsLastUpdatedAt)
+    (!agreementsAcceptedAt || agreementsAcceptedAt < currentGroup?.settings?.agreementsLastUpdatedAt)
 
-  const [questionAnswers, setQuestionAnswers] = useState(group?.joinQuestions.map(q => { return { questionId: q.questionId, text: q.text, answer: '' } }))
+  const [questionAnswers, setQuestionAnswers] = useState(() =>
+    (group?.joinQuestions ?? []).map(q => ({ questionId: q.questionId, text: q.text, answer: '' }))
+  )
   const [allQuestionsAnswered, setAllQuestionsAnswered] = useState(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
 
   // Only show first page (agreements) if there are agreements that need to be accepted
@@ -61,7 +63,7 @@ export default function GroupWelcomeModal (props) {
 
   useEffect(() => {
     if (numAgreements > 0) {
-      setCurrentAgreements(group.agreements.map(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted))
+      setCurrentAgreements((group?.agreements ?? []).map(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted))
     } else {
       setCurrentAgreements([])
     }
@@ -84,7 +86,7 @@ export default function GroupWelcomeModal (props) {
   useEffect(() => {
     // After the member joins the group, make sure we know whether they have already answered the questions or not
     setAllQuestionsAnswered(!group?.settings?.askJoinQuestions || !!joinQuestionsAnsweredAt)
-  }, [currentMembership?.settings.joinQuestionsAnsweredAt])
+  }, [currentMembership?.settings?.joinQuestionsAnsweredAt])
 
   if (!showWelcomeModal || !group || !currentMembership) return null
 
@@ -166,7 +168,7 @@ export default function GroupWelcomeModal (props) {
               {agreementsChanged && (
                 <div className='mt-4 border-2 border-dashed border-foreground/20 rounded-xl p-4'>
                   <h2 className='text-center'>{t('Our Agreements')}</h2>
-                  {currentMembership?.settings.agreementsAcceptedAt && agreementsChanged
+                  {currentMembership?.settings?.agreementsAcceptedAt && agreementsChanged
                     ? <p className={classes.agreementsChanged}>{t('The agreements have changed since you last accepted them. Please review and accept them again.')}</p>
                     : null}
                   <ol className='p-0'>

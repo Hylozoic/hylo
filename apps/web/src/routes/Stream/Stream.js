@@ -329,7 +329,7 @@ export default function Stream (props) {
     }
 
     run()
-  }, [fetchPostsParam, isDraftsView, postDialogOpen, fetchPostsFrom, customViewId, customView?.type, topicName, topic])
+  }, [fetchPostsParam, isDraftsView, postDialogOpen])
 
   useEffect(() => {
     if (!isCalendarViewMode || isDraftsView) return
