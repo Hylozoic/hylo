@@ -207,7 +207,22 @@ export default function makeModels (userId, isAdmin, apiClient) {
             }
           }
         },
-        { messageThreads: { typename: 'MessageThread', querySet: true, filter: messageThreadSearchFilter(userId) } },
+        {
+          messageThreads: {
+            typename: 'MessageThread',
+            querySet: true,
+            filter: (relation, args) => {
+              let result = relation.query(q => {
+                if (args.muted) {
+                  q.whereNotNull('posts_users.muted_at')
+                } else {
+                  q.whereNull('posts_users.muted_at')
+                }
+              })
+              return messageThreadSearchFilter(userId)(result, args)
+            }
+          }
+        },
         { tagFollows: { alias: 'topicFollows', querySet: true } },
         { tracksEnrolledIn: { querySet: true } },
         { cookieConsent: { alias: 'cookieConsentPreferences' } }
@@ -1212,7 +1227,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
       getters: {
         unreadCount: t => t.unreadCountForUser(userId),
         lastReadAt: t => t.lastReadAtForUser(userId),
-        participantsTotal: t => postActiveFollowersCount(t)
+        participantsTotal: t => postActiveFollowersCount(t),
+        isMuted: t => t.isMutedForUser(userId)
       },
       relations: [
         { followers: { alias: 'participants' } },

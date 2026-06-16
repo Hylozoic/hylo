@@ -4,7 +4,7 @@ import Icon from 'components/Icon'
 import ProfileCardDialog from 'components/ProfileCardDialog/ProfileCardDialog'
 import { others } from 'store/models/MessageThread'
 import { cn } from 'util/index'
-import LeaveThreadButton from '../LeaveThreadButton'
+import MuteThreadButton from '../MuteThreadButton'
 
 const MEASURE_GAP = 8 // gap-2 = 0.5rem = 8px
 const OTHERS_RESERVE = 100 // reserve space for "N others ▼" pill
@@ -137,7 +137,11 @@ export default function Header ({ currentUser, messageThread, pending, threadId 
             )}
       </div>
       {threadId && threadId !== 'new' && (
-        <LeaveThreadButton threadId={threadId} className='flex-shrink-0 ml-2' />
+        <MuteThreadButton
+          threadId={threadId}
+          isMuted={!!messageThread?.isMuted}
+          className='flex-shrink-0 ml-2'
+        />
       )}
     </div>
   )

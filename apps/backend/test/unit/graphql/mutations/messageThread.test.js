@@ -1,8 +1,8 @@
 import '../../../setup'
 import factories from '../../../setup/factories'
-import { leaveMessageThread } from '../../../../api/graphql/mutations/messageThread'
+import { muteMessageThread, unmuteMessageThread } from '../../../../api/graphql/mutations/messageThread'
 
-describe('leaveMessageThread', () => {
+describe('muteMessageThread', () => {
   let user, otherUser, thread
 
   before(async () => {
@@ -12,21 +12,22 @@ describe('leaveMessageThread', () => {
     await thread.addFollowers([user.id, otherUser.id])
   })
 
-  it('removes the user from the thread', async () => {
-    await leaveMessageThread(user.id, thread.id)
-
-    const followers = await thread.followers().fetch()
-    expect(followers.pluck('id')).to.deep.equal([otherUser.id])
+  it('mutes the thread for the user', async () => {
+    await muteMessageThread(user.id, thread.id)
 
     const postUser = await PostUser.find(thread.id, user.id)
-    expect(postUser.get('following')).to.equal(false)
-    expect(postUser.get('active')).to.equal(false)
+    expect(postUser.get('muted_at')).to.exist
+    expect(postUser.get('following')).to.equal(true)
+    expect(postUser.get('active')).to.equal(true)
+
+    const followers = await thread.followers().fetch()
+    expect(followers.pluck('id')).to.include.members([user.id, otherUser.id])
   })
 
   it('throws if the thread does not exist', async () => {
     let err
     try {
-      await leaveMessageThread(user.id, '999999')
+      await muteMessageThread(user.id, '999999')
     } catch (error) {
       err = error
     }
@@ -37,10 +38,28 @@ describe('leaveMessageThread', () => {
     const outsider = await factories.user().save()
     let err
     try {
-      await leaveMessageThread(outsider.id, thread.id)
+      await muteMessageThread(outsider.id, thread.id)
     } catch (error) {
       err = error
     }
     expect(err.message).to.equal('You are not a participant in this thread')
+  })
+})
+
+describe('unmuteMessageThread', () => {
+  let user, thread
+
+  before(async () => {
+    user = await factories.user().save()
+    thread = await factories.post({ type: Post.Type.THREAD, user_id: user.id }).save()
+    await thread.addFollowers([user.id])
+    await muteMessageThread(user.id, thread.id)
+  })
+
+  it('unmutes the thread for the user', async () => {
+    await unmuteMessageThread(user.id, thread.id)
+
+    const postUser = await PostUser.find(thread.id, user.id)
+    expect(postUser.get('muted_at')).to.equal(null)
   })
 })

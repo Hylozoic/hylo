@@ -1,9 +1,6 @@
 import { GraphQLError } from 'graphql'
 
-/**
- * Remove the current user from a direct message thread.
- */
-export async function leaveMessageThread (userId, messageThreadId) {
+async function findParticipantPostUser (userId, messageThreadId) {
   const post = await Post.find(messageThreadId)
   if (!post || !post.isThread()) {
     throw new GraphQLError('Message thread not found')
@@ -14,6 +11,33 @@ export async function leaveMessageThread (userId, messageThreadId) {
     throw new GraphQLError('You are not a participant in this thread')
   }
 
-  await post.updateFollowers([userId], { following: false, active: false })
+  return { post, postUser }
+}
+
+/**
+ * Mute a direct message thread for the current user.
+ */
+export async function muteMessageThread (userId, messageThreadId) {
+  const { postUser } = await findParticipantPostUser(userId, messageThreadId)
+
+  if (postUser.get('muted_at')) {
+    return { success: true }
+  }
+
+  await postUser.updateAndSave({ muted_at: new Date() })
+  return { success: true }
+}
+
+/**
+ * Unmute a direct message thread for the current user.
+ */
+export async function unmuteMessageThread (userId, messageThreadId) {
+  const { postUser } = await findParticipantPostUser(userId, messageThreadId)
+
+  if (!postUser.get('muted_at')) {
+    return { success: true }
+  }
+
+  await postUser.updateAndSave({ muted_at: null })
   return { success: true }
 }

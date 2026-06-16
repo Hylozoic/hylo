@@ -12,14 +12,14 @@ import { cn } from 'util/index'
 import { useDispatch } from 'react-redux'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { markThreadUnread, updateThreadReadTime } from '../Messages.store'
-import LeaveThreadButton from '../LeaveThreadButton'
+import MuteThreadButton from '../MuteThreadButton'
 
 import classes from './ThreadList.module.scss'
 
 const MAX_THREAD_PREVIEW_LENGTH = 60
 
 export default function ThreadListItem ({
-  currentUser, active, id, thread, latestMessage, unreadCount, isUnread
+  currentUser, active, id, thread, latestMessage, unreadCount, isUnread, isMuted
 }) {
   const { t } = useTranslation()
   const latestMessagePreview = TextHelpers.presentHTMLToText(latestMessage?.text, { truncate: MAX_THREAD_PREVIEW_LENGTH })
@@ -67,7 +67,7 @@ export default function ThreadListItem ({
         >
           {isUnread ? <MailOpen className='w-4 h-4' /> : <Mail className='w-4 h-4' />}
         </button>
-        <LeaveThreadButton threadId={id} />
+        <MuteThreadButton threadId={id} isMuted={isMuted} />
       </div>
     </li>
   )
@@ -81,7 +81,8 @@ ThreadListItem.propTypes = {
     text: PropTypes.string.isRequired
   }),
   thread: PropTypes.object,
-  unreadCount: PropTypes.number
+  unreadCount: PropTypes.number,
+  isMuted: PropTypes.bool
 }
 
 function ThreadAvatars ({ avatarUrls }) {

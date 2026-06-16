@@ -85,7 +85,8 @@ import {
   joinProject,
   leaveFundingRound,
   leaveGroup,
-  leaveMessageThread,
+  muteMessageThread,
+  unmuteMessageThread,
   leaveProject,
   leaveTrack,
   logout,
@@ -688,7 +689,9 @@ export function makeMutations ({ fetchOne }) {
 
     leaveGroup: (root, { id }, context) => leaveGroup(context.currentUserId, id),
 
-    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
+    muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
+
+    unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 

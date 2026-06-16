@@ -10,7 +10,8 @@ import {
   FETCH_THREADS,
   UPDATE_THREAD_READ_TIME,
   MARK_THREAD_UNREAD,
-  LEAVE_MESSAGE_THREAD,
+  MUTE_MESSAGE_THREAD,
+  UNMUTE_MESSAGE_THREAD,
   CREATE_MESSAGE,
   FIND_OR_CREATE_THREAD
 } from 'store/constants'
@@ -21,7 +22,8 @@ import CreateMessageMutation from '@graphql/mutations/CreateMessageMutation'
 import MessageThreadQuery from '@graphql/queries/MessageThreadQuery'
 import MessageThreadMessagesQuery from '@graphql/queries/MessageThreadMessagesQuery'
 import MarkThreadUnreadMutation from '@graphql/mutations/MarkThreadUnreadMutation'
-import LeaveMessageThreadMutation from '@graphql/mutations/LeaveMessageThreadMutation'
+import MuteMessageThreadMutation from '@graphql/mutations/MuteMessageThreadMutation'
+import UnmuteMessageThreadMutation from '@graphql/mutations/UnmuteMessageThreadMutation'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import filterDeletedUsers from 'util/filterDeletedUsers'
 
@@ -29,6 +31,9 @@ export const MODULE_NAME = 'Messages'
 export const UPDATE_MESSAGE_TEXT = `${MODULE_NAME}/UPDATE_MESSAGE_TEXT`
 export const SET_THREAD_SEARCH = `${MODULE_NAME}/SET_THREAD_SEARCH`
 export const SET_CONTACTS_SEARCH = `${MODULE_NAME}/SET_CONTACTS_SEARCH`
+export const SET_THREAD_TAB = `${MODULE_NAME}/SET_THREAD_TAB`
+export const THREAD_TAB_INBOX = 'inbox'
+export const THREAD_TAB_MUTED = 'muted'
 
 // LOCAL STORE
 
@@ -45,6 +50,13 @@ export function setThreadSearch (threadSearch) {
   return {
     type: SET_THREAD_SEARCH,
     payload: threadSearch
+  }
+}
+
+export function setThreadTab (threadTab) {
+  return {
+    type: SET_THREAD_TAB,
+    payload: threadTab
   }
 }
 
@@ -67,6 +79,11 @@ export const getContactsSearch = createSelector(
   (state, props) => state.contactsSearch
 )
 
+export const getThreadTab = createSelector(
+  moduleSelector,
+  state => state.threadTab || THREAD_TAB_INBOX
+)
+
 export const getThreadSearch = createSelector(
   moduleSelector,
   (state, props) => get('threadSearch', state)
@@ -76,7 +93,8 @@ export const getThreadSearch = createSelector(
 
 export const defaultState = {
   contactsSearch: '',
-  threadSearch: ''
+  threadSearch: '',
+  threadTab: THREAD_TAB_INBOX
 }
 
 export default function reducer (state = defaultState, action) {
@@ -88,6 +106,8 @@ export default function reducer (state = defaultState, action) {
       return { ...state, contactsSearch: payload }
     case SET_THREAD_SEARCH:
       return { ...state, threadSearch: payload }
+    case SET_THREAD_TAB:
+      return { ...state, threadTab: payload }
     case UPDATE_MESSAGE_TEXT:
       return { ...state, [meta.messageThreadId]: meta.messageText }
     default:
@@ -199,11 +219,24 @@ export function markThreadUnread (id) {
   }
 }
 
-export function leaveMessageThread (messageThreadId) {
+export function muteMessageThread (messageThreadId) {
   return {
-    type: LEAVE_MESSAGE_THREAD,
+    type: MUTE_MESSAGE_THREAD,
     graphql: {
-      query: LeaveMessageThreadMutation,
+      query: MuteMessageThreadMutation,
+      variables: { messageThreadId }
+    },
+    meta: {
+      messageThreadId
+    }
+  }
+}
+
+export function unmuteMessageThread (messageThreadId) {
+  return {
+    type: UNMUTE_MESSAGE_THREAD,
+    graphql: {
+      query: UnmuteMessageThreadMutation,
       variables: { messageThreadId }
     },
     meta: {
@@ -309,16 +342,23 @@ export const getCurrentMessageThread = ormCreateSelector(
   }
 )
 
-export const getThreadResults = (state) => {
+function getThreadQueryParams (state, { muted } = {}) {
+  const params = { muted }
   const search = getThreadSearch(state)
-  return makeGetQueryResults(FETCH_THREADS)(state, search ? { search } : {})
+  if (search) params.search = search
+  return params
 }
 
-export const getThreadsHasMore = createSelector(getThreadResults, get('hasMore'))
+export const getActiveThreadResults = state => {
+  const muted = getThreadTab(state) === THREAD_TAB_MUTED
+  return makeGetQueryResults(FETCH_THREADS)(state, getThreadQueryParams(state, { muted }))
+}
+
+export const getThreadsHasMore = createSelector(getActiveThreadResults, get('hasMore'))
 
 export const getThreads = ormCreateSelector(
   orm,
-  getThreadResults,
+  state => getActiveThreadResults(state),
   (session, searchResults) => {
     if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return []
     return session.MessageThread.all()
@@ -328,18 +368,31 @@ export const getThreads = ormCreateSelector(
   }
 )
 
-export const getMostRecentThreadId = ormCreateSelector(
+export const getInboxThreadResults = state =>
+  makeGetQueryResults(FETCH_THREADS)(state, getThreadQueryParams(state, { muted: false }))
+
+export const getInboxThreads = ormCreateSelector(
   orm,
-  getThreadResults,
+  getInboxThreadResults,
   (session, searchResults) => {
-    if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return null
-    const thread = session.MessageThread.all()
-      .orderBy(t => -new Date(t.updatedAt))
+    if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return []
+    return session.MessageThread.all()
+      .orderBy(thread => -new Date(thread.updatedAt))
       .toModelArray()
-      .find(t => includes(t.id, searchResults.ids))
-    return thread ? thread.id : null
+      .filter(thread => includes(thread.id, searchResults.ids))
   }
 )
+
+export function getMostRecentThreadId (state, { muted = false, excludeId } = {}) {
+  const searchResults = makeGetQueryResults(FETCH_THREADS)(state, getThreadQueryParams(state, { muted }))
+  if (isEmpty(searchResults) || isEmpty(searchResults.ids)) return null
+  const session = orm.session(state.orm)
+  const thread = session.MessageThread.all()
+    .orderBy(t => -new Date(t.updatedAt))
+    .toModelArray()
+    .find(t => includes(t.id, searchResults.ids) && String(t.id) !== String(excludeId))
+  return thread ? thread.id : null
+}
 
 export const getMessages = createSelector(
   state => orm.session(state.orm),

@@ -15,7 +15,11 @@ import {
   setThreadSearch,
   getThreadSearch,
   getThreads,
-  getThreadsHasMore
+  getThreadsHasMore,
+  getThreadTab,
+  setThreadTab,
+  THREAD_TAB_INBOX,
+  THREAD_TAB_MUTED
 } from '../Messages.store'
 
 import Loading from 'components/Loading'
@@ -38,12 +42,17 @@ function ThreadList () {
   const threadsPending = useSelector(state => isPendingFor(fetchThreads, state))
   const hasMoreThreads = useSelector(state => getThreadsHasMore(state))
   const threadSearch = useSelector(state => getThreadSearch(state))
+  const threadTab = useSelector(getThreadTab)
+  const isMutedTab = threadTab === THREAD_TAB_MUTED
   const [searchInput, setSearchInput] = useState(threadSearch || '')
   const debouncedSearch = useDebounce(searchInput, 300)
 
   const fetchThreadsAction = useCallback(
-    (offset = 0) => dispatch(fetchThreads(20, offset, debouncedSearch || undefined)),
-    [debouncedSearch, dispatch]
+    (offset = 0) => dispatch(fetchThreads(20, offset, {
+      muted: isMutedTab,
+      search: debouncedSearch || undefined
+    })),
+    [debouncedSearch, dispatch, isMutedTab]
   )
   const fetchMoreThreadsAction = useCallback(
     () => hasMoreThreads && fetchThreadsAction(threads.length),
@@ -76,14 +85,17 @@ function ThreadList () {
 
   useEffect(() => {
     fetchThreadsAction(0).then((response) => {
-      if (!messageThreadId && !debouncedSearch) {
+      if (!messageThreadId && !debouncedSearch && !isMutedTab) {
         const firstThread = response.payload.data?.me?.messageThreads?.items[0]
         if (firstThread) {
           navigate(`/messages/${firstThread.id}`, { replace: true })
         }
       }
     })
-  }, [debouncedSearch])
+  }, [debouncedSearch, isMutedTab])
+
+  const handleSelectInboxTab = () => dispatch(setThreadTab(THREAD_TAB_INBOX))
+  const handleSelectMutedTab = () => dispatch(setThreadTab(THREAD_TAB_MUTED))
 
   return (
     <div
@@ -111,6 +123,28 @@ function ThreadList () {
           <SquarePen />
         </Link>
       </div>
+      <div className='flex gap-2 px-2 pb-2'>
+        <button
+          type='button'
+          onClick={handleSelectInboxTab}
+          className={cn(
+            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            !isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
+          )}
+        >
+          {t('Inbox')}
+        </button>
+        <button
+          type='button'
+          onClick={handleSelectMutedTab}
+          className={cn(
+            'flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all',
+            isMutedTab ? 'bg-selected text-foreground' : 'bg-darkening/20 text-foreground/70 hover:bg-selected/50'
+          )}
+        >
+          {t('Muted')}
+        </button>
+      </div>
       <ul className={classes.list} id='thread-list-list' role='list'>
         {!isEmpty(threads) && threads.map(t => {
           const messages = itemsToArray(toRefArray(t.messages))
@@ -127,16 +161,21 @@ function ThreadList () {
               unreadCount={t.unreadCount}
               key={`thread-li-${t.id}`}
               isUnread={isUnread}
+              isMuted={isMutedTab}
             />
           )
         })}
         {threadsPending &&
           <Loading type='bottom' />}
-        {!threadsPending && isEmpty(threads) && !searchInput &&
+        {!threadsPending && isEmpty(threads) && !searchInput && !isMutedTab &&
           <div className={classes.noConversations}>
             {t('You have no active messages!')}
             <Link to='/messages/new' onClick={toggleNavMenuAction}>{t('Send a message')}</Link>
             {t('to get started.')}
+          </div>}
+        {!threadsPending && isEmpty(threads) && !searchInput && isMutedTab &&
+          <div className={classes.noConversations}>
+            {t('You have no muted conversations.')}
           </div>}
         {!threadsPending && isEmpty(threads) && searchInput &&
           <div className='text-center text-foreground border-2 border-dashed border-foreground/20 rounded-lg m-4 p-4 flex flex-col items-center justify-center'>
