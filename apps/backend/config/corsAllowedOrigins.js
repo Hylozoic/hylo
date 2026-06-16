@@ -18,7 +18,9 @@ const HYLO_TRUSTED_BROWSER_ORIGINS = [
   'http://localhost:3000',
   'https://localhost:3000',
   'http://localhost:3001',
-  'https://localhost:3001'
+  'https://localhost:3001',
+  'http://localhost:4321',
+  'https://localhost:4321'
 ]
 
 /** Builds the Set of allowed Origin header values (base list plus CORS_ALLOWED_ORIGINS). */
