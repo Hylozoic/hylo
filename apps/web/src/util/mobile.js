@@ -55,9 +55,9 @@ export function isCompactLayoutDevice () {
   return isPhoneDevice() || isTabletDevice()
 }
 
-// Slide-out nav drawer: phones, tablets, and narrow desktop windows.
+// Slide-out nav drawer: phones and narrow desktop windows (not tablets).
 export function isDrawerNavLayout (viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0) {
-  return isCompactLayoutDevice() || viewportWidth < 640
+  return isPhoneDevice() || viewportWidth < 640
 }
 
 export function downloadApp () {

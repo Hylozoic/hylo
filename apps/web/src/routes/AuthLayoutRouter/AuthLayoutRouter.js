@@ -54,13 +54,12 @@ import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
 import LandingPage from 'routes/LandingPage'
-import Loading from 'components/Loading'
 import BootstrapShell from 'components/Skeleton/BootstrapShell'
 import RouteBootstrapSkeleton from 'components/Skeleton/RouteBootstrapSkeleton'
 import MapExplorer from 'routes/MapExplorer'
 import MemberProfile from 'routes/MemberProfile'
 import Members from 'routes/Members'
-import Messages from 'routes/Messages'
+import MessagesLayout from 'routes/Messages/MessagesLayout'
 import ThreadList from 'routes/Messages/ThreadList'
 import Moderation from 'routes/Moderation'
 import MyTracks from 'routes/MyTracks'
@@ -80,7 +79,7 @@ import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
 import { getLocaleFromLocalStorage } from 'util/locale'
-import { isCompactLayoutDevice, isDrawerNavLayout } from 'util/mobile'
+import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
 import { isLegacyWebView } from 'util/webView'
 import store from 'store'
 import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.store'
@@ -158,6 +157,7 @@ export default function AuthLayoutRouter (props) {
   const isNavOpenRef = useRef(isNavOpen)
   const isDraggingNavRef = useRef(false)
   const compactLayout = isCompactLayoutDevice()
+  const phoneLayout = isPhoneDevice()
 
   // Phones and tablets share compact layout styling (see typography.scss).
   useEffect(() => {
@@ -740,7 +740,7 @@ export default function AuthLayoutRouter (props) {
           {!withoutNav && !isCreateGroupRoute && (
             <div
               ref={setBackdropRef}
-              className={cn('fixed inset-0 z-[100] bg-black/50', !compactLayout && 'sm:hidden')}
+              className={cn('fixed inset-0 z-[100] bg-black/50', !phoneLayout && 'sm:hidden')}
               style={{ opacity: 0, pointerEvents: 'none' }}
               onClick={() => dispatch(toggleNavMenu(false))}
             />
@@ -749,12 +749,12 @@ export default function AuthLayoutRouter (props) {
             ref={setNavContainerRef}
             className={cn(
               'AuthLayoutRouterNavContainer flex flex-row h-full flex-shrink-0 overflow-hidden',
-              // Mobile/tablet: fixed drawer, full-width, off-screen by default (JS manages transform)
+              // Phones: fixed drawer, full-width, off-screen by default (JS manages transform)
               'fixed left-0 top-0 z-[101] h-dvh w-full',
-              // Desktop only: back in normal flow
-              !compactLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420',
+              // Tablet and desktop: back in normal flow
+              !phoneLayout && 'sm:relative sm:z-50 sm:h-full sm:w-auto sm:max-w-420',
               // Hide nav for full-page Create Group flow
-              isCreateGroupRoute && (compactLayout ? 'hidden' : 'hidden sm:relative')
+              isCreateGroupRoute && (phoneLayout ? 'hidden' : 'hidden sm:relative')
             )}
           >
             {!withoutNav && (
@@ -776,8 +776,12 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
                 <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />
-                <Route path='messages/:messageThreadId' element={<ThreadList />} />
-                <Route path='messages' element={<ThreadList />} />
+                {isPhoneDevice() && (
+                  <>
+                    <Route path='messages/:messageThreadId' element={<ThreadList />} />
+                    <Route path='messages' element={<ThreadList />} />
+                  </>
+                )}
               </Routes>}
           </div> {/* END NavContainer */}
 
@@ -923,8 +927,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
-                <Route path='messages/:messageThreadId' element={<Messages />} />
-                <Route path='messages' element={<Loading />} />
+                <Route path='messages/:messageThreadId' element={<MessagesLayout />} />
+                <Route path='messages' element={<MessagesLayout />} />
                 <Route path='post/:postId/*' element={<PostDetail />} />
                 {/* Keep old settings paths for mobile */}
                 <Route path='settings/*' element={<UserSettings />} />

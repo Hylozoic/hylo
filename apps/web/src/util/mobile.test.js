@@ -46,8 +46,8 @@ describe('isPhoneDevice with tablet UA', () => {
     expect(isCompact()).toBe(true)
   })
 
-  it('isDrawerNavLayout is true for tablets even at wide viewport', () => {
+  it('isDrawerNavLayout is false for tablets at wide viewport', () => {
     const { isDrawerNavLayout: isDrawerNav } = require('./mobile')
-    expect(isDrawerNav(1024)).toBe(true)
+    expect(isDrawerNav(1024)).toBe(false)
   })
 })
