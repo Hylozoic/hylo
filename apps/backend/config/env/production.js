@@ -1,3 +1,5 @@
+const { HYLO_TRUSTED_BROWSER_ORIGINS } = require('../corsAllowedOrigins')
+
 /**
  * Production environment settings
  *
@@ -39,21 +41,6 @@ module.exports = {
   },
 
   sockets: {
-    onlyAllowOrigins: [
-      "https://www.hylo.com",
-      "https://hylo.com",
-      "https://api.hylo.com",
-      "https://staging.hylo.com",
-      "https://node1.hylo.com",
-      "https://review.hylo.com",
-      "https://api-staging.hylo.com",
-      "https://api-review.hylo.com",
-      "http://localhost:9000",
-      "https://localhost:9000",
-      "http://localhost:3000",
-      "https://localhost:3000",
-      "http://localhost:3001",
-      "https://localhost:3001"
-    ]
+    onlyAllowOrigins: [...HYLO_TRUSTED_BROWSER_ORIGINS]
   }
 };

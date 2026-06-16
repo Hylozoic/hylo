@@ -2,7 +2,7 @@ import { DndContext, DragOverlay, useDroppable, useDraggable, closestCorners } f
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { isCompactLayoutDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
-import { ChevronLeft, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House, Trash } from 'lucide-react'
+import { ChevronLeft, CircleX, Copy, GripHorizontal, Pencil, UserPlus, LogOut, Users, House } from 'lucide-react'
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { replace } from 'redux-first-history'
@@ -87,6 +87,8 @@ export default function ContextMenu (props) {
   const groupSlug = routeParams.groupSlug
   const group = useSelector(state => currentGroup || getGroupForSlug(state, groupSlug))
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
+  const hasAccess = group?.canAccess !== false // Default to true if not paywalled or if canAccess is undefined
+  const showPaywallBlock = group?.paywall && !hasAccess && groupSlug && routeParams.context === 'groups'
   const rootPath = baseUrl({ ...routeParams, view: null })
   const isPublicContext = routeParams.context === PUBLIC_CONTEXT_SLUG
   const isMyContext = routeParams.context === MY_CONTEXT_SLUG
@@ -288,6 +290,19 @@ export default function ContextMenu (props) {
                 <div className='px-2 w-full mb-[0.05em] mt-6'>
                   <ContextMenuItem widget={allViewsWidget} />
                 </div>
+              )}
+              {showPaywallBlock && (
+                <div
+                  className='absolute inset-0 bg-background/80 backdrop-blur-sm z-50 pointer-events-auto'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(groupUrl(groupSlug, 'stream'))
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                />
               )}
             </div>
           )}
@@ -553,18 +568,18 @@ function ActionMenu ({ widget }) {
   }, [widget.id, group.id])
 
   return (
-    <span className='text-sm font-bold cursor-pointer flex items-center'>
-      {widget.isEditable && <Pencil onClick={handleEditWidget} />}
+    <span className='text-sm font-bold cursor-pointer flex items-center gap-1'>
+      {widget.isEditable && <Pencil className='h-6 w-6' onClick={handleEditWidget} />}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Trash onClick={handleRemoveWidget} />
+          <CircleX className='h-6 w-6' onClick={handleRemoveWidget} aria-hidden />
         </TooltipTrigger>
         <TooltipContent>{t('Remove from Menu')}</TooltipContent>
       </Tooltip>
       {widget.isValidHomeWidget && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <House onClick={handleWidgetHomePromotion} />
+            <House className='h-6 w-6' onClick={handleWidgetHomePromotion} />
           </TooltipTrigger>
           <TooltipContent>{t('Set as Home View')}</TooltipContent>
         </Tooltip>
@@ -847,6 +862,7 @@ function GroupSettingsMenu ({ group }) {
     canManageTracks && { title: 'Tracks & Actions', url: 'settings/tracks' },
     canAdminister && { title: 'Custom Views', url: 'settings/views' },
     canAdminister && { title: 'Export Data', url: 'settings/export' },
+    canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, canManageTracks])
 

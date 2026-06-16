@@ -6,6 +6,7 @@ import Attachment from './Attachment'
 import Collection, { CollectionPost } from './Collection'
 import Comment from './Comment'
 import CommonRole from './CommonRole'
+import ContentAccess from './ContentAccess'
 import CustomView from './CustomView'
 import Draft from './Draft'
 import EventInvitation from './EventInvitation'
@@ -46,6 +47,7 @@ orm.register(
   CollectionPost,
   Comment,
   CommonRole,
+  ContentAccess,
   CustomView,
   Draft,
   EventInvitation,

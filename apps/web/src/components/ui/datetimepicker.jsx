@@ -527,6 +527,7 @@ const DateTimePicker = React.forwardRef(({ locale = DateTimeHelpers.getLocaleAsS
     onChange?.(newDay)
     setMonth(newDay)
     setDisplayDate(newDay)
+    setPopoverOpen(false)
   }
   useImperativeHandle(ref, () => ({
     ...buttonRef.current,

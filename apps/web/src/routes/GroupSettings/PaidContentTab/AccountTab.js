@@ -1,0 +1,360 @@
+/**
+ * AccountTab Components
+ *
+ * Contains components for Stripe account setup and status display:
+ * - AccountTab: Main tab for account setup/status
+ * - AccountSetupSection: Initial account creation form
+ * - StripeStatusSection: Status display for connected accounts
+ * - StatusBadge: Small status indicator component
+ */
+
+import React, { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+import { CheckCircle, AlertCircle, ExternalLink, Clock } from 'lucide-react'
+
+import Button from 'components/ui/button'
+import SettingsControl from 'components/SettingsControl'
+
+/**
+ * Account Tab Component
+ *
+ * Main tab showing account setup and status
+ */
+function AccountTab ({ group, currentUser, accountId, loading, onCreateAccount, onCheckStatus, onStartOnboarding }) {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      {!accountId
+        ? (
+          <AccountSetupSection
+            loading={loading}
+            onCreateAccount={onCreateAccount}
+            group={group}
+            currentUser={currentUser}
+            t={t}
+          />)
+        : (
+          <StripeStatusSection
+            group={group}
+            loading={loading}
+            onCheckStatus={onCheckStatus}
+            onStartOnboarding={onStartOnboarding}
+            t={t}
+          />)}
+    </>
+  )
+}
+
+/**
+ * Section for initial account setup
+ *
+ * Displayed when the group doesn't have a Stripe account yet.
+ * Provides a form to collect account information for creating a new Stripe account.
+ * Note: If the user already has a Stripe account, Stripe will prompt them to connect it during onboarding.
+ */
+function AccountSetupSection ({ loading, onCreateAccount, group, currentUser, t }) {
+  const [formData, setFormData] = useState({
+    email: currentUser?.email || '',
+    businessName: group?.name || '',
+    country: 'US'
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault()
+
+    // Validate required fields
+    if (!formData.email.trim()) {
+      window.alert(t('Email is required'))
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      window.alert(t('Please enter a valid email address'))
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await onCreateAccount({
+        email: formData.email.trim(),
+        businessName: formData.businessName.trim() || group.name,
+        country: formData.country
+      })
+    } catch (error) {
+      console.error('Error creating account:', error)
+      // Error state is handled by parent component
+    } finally {
+      setSubmitting(false)
+    }
+  }, [formData, onCreateAccount, group, t])
+
+  return (
+    <>
+      <div className='mb-4'>
+        <h3 className='text-lg font-semibold mb-2'>{t('Get started with payments')}</h3>
+        <p className='text-sm text-foreground/70 mb-3'>
+          {t('Set up Stripe Connect to accept payments. If you already have a Stripe account, Stripe will prompt you to connect it during onboarding.')}
+        </p>
+        <div className='rounded-md border border-border bg-background/50 p-3 text-sm text-foreground/80 space-y-2'>
+          <p className='font-medium text-foreground'>{t('What happens next')}</p>
+          <ol className='list-decimal list-inside space-y-1.5'>
+            <li>{t('Submit this form to create your group\'s connected account.')}</li>
+            <li>{t('You will be sent to Stripe to confirm business details and, if needed, link a bank account for payouts.')}</li>
+            <li className='mt-1 mb-1 pl-0.5'>
+              <div className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'>
+                <Clock className='w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                <span className='text-sm font-semibold text-foreground leading-snug'>
+                  {t('When Stripe sends you back here, we will refresh your status. Verification often takes a couple of hours but can take longer.')}
+                </span>
+              </div>
+            </li>
+            <li>{t('Once payments are enabled, open the Paid Offerings tab to create what you want to sell.')}</li>
+          </ol>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        <SettingsControl
+          label={t('Email')}
+          type='email'
+          value={formData.email}
+          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          placeholder={currentUser?.email || t('your-email@example.com')}
+          required
+          helpText={t('This email will be associated with your Stripe account')}
+        />
+
+        <SettingsControl
+          label={t('Business Name')}
+          value={formData.businessName}
+          onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+          placeholder={group?.name || t('Business or Organization Name')}
+          helpText={t('The name of your business or organization (defaults to group name)')}
+        />
+
+        <div className='flex gap-3'>
+          <div className='flex-1'>
+            <SettingsControl
+              label={t('Country')}
+              value={formData.country}
+              onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+              renderControl={(props) => (
+                <select {...props} className='w-full p-2 rounded-md bg-background border border-border text-foreground'>
+                  <option value='US'>{t('United States')}</option>
+                  <option value='CA'>{t('Canada')}</option>
+                  <option value='GB'>{t('United Kingdom')}</option>
+                  <option value='AU'>{t('Australia')}</option>
+                  <option value='IE'>{t('Ireland')}</option>
+                  <option value='NZ'>{t('New Zealand')}</option>
+                  <option value='DE'>{t('Germany')}</option>
+                  <option value='FR'>{t('France')}</option>
+                  <option value='ES'>{t('Spain')}</option>
+                  <option value='NL'>{t('Netherlands')}</option>
+                </select>
+              )}
+              helpText={t('Country where your business is located')}
+            />
+          </div>
+        </div>
+
+        <div className='flex gap-2 justify-end pt-4'>
+          <Button
+            type='submit'
+            disabled={loading || submitting}
+            className='w-full sm:w-auto'
+          >
+            {submitting ? t('Creating...') : t('Create Account')}
+          </Button>
+        </div>
+      </form>
+
+      <div className='mt-4 p-3 bg-background/50 rounded-md text-sm text-foreground/70'>
+        <p className='font-semibold mb-2'>{t('About Stripe Connect:')}</p>
+        <ul className='space-y-1 list-disc list-inside'>
+          <li>{t('Accept credit card and other payment methods')}</li>
+          <li>{t('Automatic payouts to your bank account')}</li>
+          <li>{t('Full dashboard access to view transactions')}</li>
+          <li>{t('Stripe handles all payment disputes and fraud')}</li>
+        </ul>
+      </div>
+    </>
+  )
+}
+
+/**
+ * Section showing Stripe account status from database
+ *
+ * Displays the current state of the connected account based on database values,
+ * and provides actions to check status with Stripe or complete onboarding.
+ */
+function StripeStatusSection ({ group, loading, onCheckStatus, onStartOnboarding, t }) {
+  const chargesEnabled = group?.stripeChargesEnabled
+  const payoutsEnabled = group?.stripePayoutsEnabled
+  const detailsSubmitted = group?.stripeDetailsSubmitted
+  const isFullyOnboarded = chargesEnabled && payoutsEnabled
+  const needsOnboarding = !detailsSubmitted
+  const isPending = detailsSubmitted && (!chargesEnabled || !payoutsEnabled)
+
+  return (
+    <div className='bg-card p-6 rounded-md text-foreground shadow-xl mb-4'>
+      <div className='flex items-start justify-between mb-4'>
+        <div className='flex items-start gap-3'>
+          {isFullyOnboarded
+            ? (<CheckCircle className='w-8 h-8 text-green-500 flex-shrink-0' />)
+            : (<AlertCircle className='w-8 h-8 text-amber-500 flex-shrink-0' />)}
+          <div>
+            <h3 className='text-lg font-semibold mb-1'>
+              {isFullyOnboarded
+                ? t('Account Active')
+                : isPending
+                  ? t('Account Status: Pending')
+                  : t('Stripe Account Setup Required')}
+            </h3>
+            {isFullyOnboarded && (
+              <p className='text-sm text-foreground/70'>
+                {t('Your Stripe account is fully set up and ready to accept payments.')}
+              </p>
+            )}
+            {isPending && (
+              <div
+                className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 sm:p-4 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25 mt-1'
+                role='status'
+              >
+                <Clock className='w-6 h-6 sm:w-7 sm:h-7 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                <p className='text-sm sm:text-base font-semibold text-foreground leading-snug m-0'>
+                  {t('Your account details have been submitted to Stripe and are being reviewed. Verification often completes within a couple of hours, but it can take from a few minutes to a day or longer.')}
+                </p>
+              </div>
+            )}
+            {!isFullyOnboarded && !isPending && (
+              <p className='text-sm text-foreground/70'>
+                {t('Complete your account setup to start accepting payments.')}
+              </p>
+            )}
+          </div>
+        </div>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={onCheckStatus}
+          disabled={loading}
+        >
+          {loading ? t('Checking...') : t('Check Stripe Status')}
+        </Button>
+      </div>
+
+      <div className='rounded-md border border-border bg-background/40 p-4 mb-4 text-sm text-foreground/80'>
+        {isFullyOnboarded && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('Next steps in Hylo')}</p>
+            <ol className='list-decimal list-inside space-y-1.5'>
+              <li>
+                {t('Use the')}{' '}
+                <Link className='text-accent underline-offset-2 hover:underline' to='offerings'>{t('Paid Offerings')}</Link>
+                {' '}
+                {t('tab to create offerings for memberships, track access, roles, and more.')}
+              </li>
+              <li>{t('Publish at least one offering before turning on a group paywall or track paywalls, if you use those.')}</li>
+              <li>{t('Use Paid Content Access any time to see who has purchased or been granted access.')}</li>
+            </ol>
+          </div>
+        )}
+        {isPending && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('While you wait')}</p>
+            <ul className='list-disc list-inside space-y-1.5'>
+              <li>{t('Use Check Stripe Status above to pull the latest state from Stripe.')}</li>
+              <li>
+                {t('When Accept Payments and Receive Payouts show Yes, open the')}{' '}
+                <Link className='text-accent underline-offset-2 hover:underline' to='offerings'>{t('Paid Offerings')}</Link>
+                {' '}
+                {t('tab to create what you want to sell.')}
+              </li>
+            </ul>
+          </div>
+        )}
+        {!isFullyOnboarded && !isPending && (
+          <div className='space-y-2'>
+            <p className='font-medium text-foreground'>{t('Before you open Stripe')}</p>
+            <ol className='list-decimal list-inside space-y-1.5'>
+              <li>{t('Click Complete Onboarding below. You will leave Hylo and finish setup on Stripe\'s site.')}</li>
+              <li className='mt-1 mb-1 pl-0.5'>
+                <div className='rounded-lg border-2 border-amber-500/60 bg-amber-500/[0.14] dark:bg-amber-400/10 p-3 flex gap-3 items-start shadow-sm ring-1 ring-inset ring-amber-500/25'>
+                  <Clock className='w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5' strokeWidth={2.25} aria-hidden />
+                  <span className='text-sm font-semibold text-foreground leading-snug'>
+                    {t('After Stripe redirects you back here, we check your status automatically. Verification often takes a couple of hours but can take longer.')}
+                  </span>
+                </div>
+              </li>
+              <li>{t('When your account is active, use the Paid Offerings tab to create what you want to sell.')}</li>
+            </ol>
+          </div>
+        )}
+      </div>
+
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
+        <StatusBadge
+          label={t('Details Submitted')}
+          value={detailsSubmitted}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Accept Payments')}
+          value={chargesEnabled}
+          t={t}
+        />
+        <StatusBadge
+          label={t('Receive Payouts')}
+          value={payoutsEnabled}
+          t={t}
+        />
+      </div>
+
+      {group?.stripeDashboardUrl && (
+        <div className='mb-4'>
+          <a
+            href={group.stripeDashboardUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-background'
+          >
+            <ExternalLink className='w-4 h-4' />
+            {t('Open Stripe Dashboard')}
+          </a>
+        </div>
+      )}
+
+      {needsOnboarding && (
+        <Button
+          onClick={() => onStartOnboarding()}
+          className='w-full sm:w-auto'
+        >
+          <ExternalLink className='w-4 h-4 mr-2' />
+          {t('Complete Onboarding')}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Badge showing a single status indicator
+ */
+function StatusBadge ({ label, value, t }) {
+  return (
+    <div className='flex items-center gap-2 p-3 bg-background rounded-md'>
+      <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-gray-400'}`} />
+      <div>
+        <p className='text-xs text-foreground/70'>{label}</p>
+        <p className='text-sm font-medium'>{value ? t('Yes') : t('No')}</p>
+      </div>
+    </div>
+  )
+}
+
+export default AccountTab

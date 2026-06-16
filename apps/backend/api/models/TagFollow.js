@@ -218,11 +218,11 @@ module.exports = bookshelf.Model.extend(Object.assign({
           count: postData.length,
           chat_topic: tagFollow.relations.tag.get('name'),
           // For the overall chat room URL use the URL of the last post in the email digest
-          chat_room_url: Frontend.Route.post(posts.models[posts.models.length - 1], tagFollow.relations.group) + clickthroughParams,
+          chat_room_url: Frontend.appendQueryString(Frontend.Route.post(posts.models[posts.models.length - 1], tagFollow.relations.group), clickthroughParams),
           // date: DateTimeHelpers.formatDatePair({ start: posts[0].get('created_at'), timezone: posts[0].get('timezone') }),
           email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, tagFollow.relations.user),
           group_name: tagFollow.relations.group.get('name'),
-          group_avatar_url: tagFollow.relations.group.get('avatar_url') + clickthroughParams,
+          group_avatar_url: Frontend.appendQueryString(tagFollow.relations.group.get('avatar_url'), clickthroughParams),
           posts: postData
         }
       })

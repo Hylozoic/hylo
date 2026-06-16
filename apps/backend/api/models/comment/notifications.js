@@ -120,7 +120,7 @@ export const sendDigests = async () => {
             participant_avatars: otherAvatarUrls[0],
             participant_names: participantNames,
             other_names: otherNames,
-            thread_url: Frontend.Route.thread(post) + clickthroughParams,
+            thread_url: Frontend.appendQueryString(Frontend.Route.thread(post), clickthroughParams),
             messages: filtered.map(presentComment)
           },
           sender: {
@@ -150,8 +150,8 @@ export const sendDigests = async () => {
             date: DateTimeHelpers.formatDatePair({ start: filtered[0].get('created_at'), timezone: post.get('timezone') }),
             email_settings_url: Frontend.Route.notificationsSettings(clickthroughParams, user),
             post_title: post.summary(),
-            post_creator_avatar_url: post.relations.user.get('avatar_url') + clickthroughParams,
-            thread_url: Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }) + clickthroughParams,
+            post_creator_avatar_url: Frontend.appendQueryString(post.relations.user.get('avatar_url'), clickthroughParams),
+            thread_url: Frontend.appendQueryString(Frontend.Route.comment({ comment: filtered[0], group: routeGroup, post }), clickthroughParams),
             comments: commentData,
             subject_prefix: some(hasMention, commentData)
               ? 'You were mentioned in'

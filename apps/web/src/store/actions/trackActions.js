@@ -137,6 +137,8 @@ export function fetchTrack (trackId) {
         ) {
           track (id: $id) {
             id
+            accessControlled
+            canAccess
             actionDescriptor
             actionDescriptorPlural
             bannerUrl

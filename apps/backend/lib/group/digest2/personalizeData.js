@@ -32,13 +32,7 @@ const addParamsToLinks = (text, params) => {
     const a = doc(el)
     const href = a.attr('href')
     if (href && href.startsWith(Frontend.Route.prefix)) {
-      let newHref = href + params
-      // if the original href has query params, fix the new value
-      if (newHref.match(/\?/g).length > 1) {
-        const i = newHref.lastIndexOf('?')
-        newHref = newHref.slice(0, i) + '&' + newHref.slice(i + 1)
-      }
-      a.attr('href', newHref)
+      a.attr('href', Frontend.appendQueryString(href, params))
     }
   })
   return doc.html()
@@ -124,7 +118,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
   }).toString()
 
   getPosts(filteredData).forEach(post => {
-    post.url = post.url + clickthroughParams
+    post.url = Frontend.appendQueryString(post.url, clickthroughParams)
     post.reply_url = Email.postReplyAddress(post.id, user.id)
     if (post.details) {
       post.details = addParamsToLinks(post.details, clickthroughParams)
@@ -133,7 +127,7 @@ const personalizeData = async (user, type, data, opts = {}) => {
 
   return Promise.props(merge(filteredData, {
     subject: generateSubjectLine(data, type, locale),
-    group_url: filteredData.group_url + clickthroughParams,
+    group_url: Frontend.appendQueryString(filteredData.group_url, clickthroughParams),
     recipient: {
       avatar_url: user.get('avatar_url'),
       name: user.get('name')

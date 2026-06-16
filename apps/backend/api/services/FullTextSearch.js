@@ -53,6 +53,38 @@ const createView = (lang, knex) => {
   )`, knex)
     .then(() => raw(`create index idx_fts_search on ${tableName}
       using gin(${columnName})`, knex))
+    .then(() => raw(`create index idx_search_index_post_id on ${tableName} (post_id) where post_id is not null`, knex))
+    .then(() => raw(`create index idx_search_index_user_id on ${tableName} (user_id) where user_id is not null`, knex))
+    .then(() => raw(`create index idx_search_index_comment_id on ${tableName} (comment_id) where comment_id is not null`, knex))
+}
+
+// Restrict FTS candidates to content the user can see: their groups plus public posts.
+const applyGroupAccessFilter = (qb, groupIds) => {
+  qb.andWhere(function () {
+    if (groupIds.length > 0) {
+      this.whereIn('post_id', function () {
+        this.select('post_id').from('groups_posts').whereIn('group_id', groupIds)
+      })
+        .orWhereIn('user_id', function () {
+          this.select('user_id').from('group_memberships').whereIn('group_id', groupIds)
+        })
+        .orWhereIn('comment_id', function () {
+          this.select('c.id')
+            .from('comments as c')
+            .join('groups_posts as gp', 'gp.post_id', 'c.post_id')
+            .whereIn('gp.group_id', groupIds)
+        })
+    }
+    this.orWhereIn('post_id', function () {
+      this.select('id').from('posts').where({ is_public: true, active: true })
+    })
+      .orWhereIn('comment_id', function () {
+        this.select('c.id')
+          .from('comments as c')
+          .join('posts as p', 'p.id', 'c.post_id')
+          .where({ 'p.is_public': true, 'c.active': true })
+      })
+  })
 }
 
 const search = (opts) => {
@@ -88,6 +120,10 @@ const search = (opts) => {
       comment: 'comment_id is not null'
     }[opts.type] || true))
 
+  if (opts.groupIds) {
+    applyGroupAccessFilter(query, opts.groupIds)
+  }
+
   if (!opts.subquery) {
     query = query.orderBy('rank', 'desc')
   }
@@ -100,20 +136,17 @@ const searchInGroups = (groupIds, opts) => {
   const columns = [`${alias}.post_id`, `${alias}.comment_id`, `${alias}.user_id`, 'rank', 'total']
   return bookshelf.knex
     .select(columns)
-    .from(search(omit(opts, 'limit', 'offset')).as(alias))
-    .leftJoin('group_memberships', 'group_memberships.user_id', `${alias}.user_id`)
+    .from(search({ ...omit(opts, 'limit', 'offset'), groupIds }).as(alias))
     .leftJoin('comments', 'comments.id', `${alias}.comment_id`)
     .leftJoin('posts', function () {
       this.on('posts.id', `${alias}.post_id`)
         .orOn('posts.id', 'comments.post_id')
     })
-    .leftJoin('groups_posts', function () {
-      this.on('groups_posts.post_id', `${alias}.post_id`)
-        .orOn('groups_posts.post_id', 'comments.post_id')
-    })
-    .where(function () {
-      this.whereIn('group_memberships.group_id', groupIds)
-        .orWhereIn('groups_posts.group_id', groupIds)
+    .leftJoin('group_memberships', function () {
+      this.on('group_memberships.user_id', `${alias}.user_id`)
+      if (groupIds.length > 0) {
+        this.andOnIn('group_memberships.group_id', groupIds)
+      }
     })
     .groupBy(columns)
     .orderByRaw('(("rank") * (case when greatest(max(posts.updated_at), max(comments.created_at), max(group_memberships.created_at)) is null then 1 else exp(-extract(epoch from (now() - greatest(max(posts.updated_at), max(comments.created_at), max(group_memberships.created_at)))) / 1209600.0) end)) desc, "rank" desc')
