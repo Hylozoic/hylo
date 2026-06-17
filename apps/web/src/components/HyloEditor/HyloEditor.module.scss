@@ -155,10 +155,17 @@
   :global {
     body.comment-composer-active {
       #detail-column,
-      #center-column {
+      #center-column,
+      .PostDialog-Content {
         // Extra scroll room so selection handles below the composer stay tappable
         scroll-padding-bottom: 48px;
       }
+    }
+
+    .PostDialog-Content {
+      -webkit-user-select: text;
+      user-select: text;
+      touch-action: auto;
     }
 
     .CommentForm,

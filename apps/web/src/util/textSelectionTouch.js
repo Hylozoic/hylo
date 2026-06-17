@@ -56,23 +56,10 @@ export function isCommentComposerTarget (el) {
 }
 
 /**
- * Returns true when a HyloEditor inside post detail is focused (reply box or inline edit).
+ * Returns true when the current selection is inside post detail (rendered comments,
+ * post body, or the comment composer). iOS may drop focus during handle drag.
  */
-export function isCommentEditorFocused () {
-  const active = document.activeElement
-  if (active) {
-    if (active.closest?.('.PostDetail .ProseMirror, .PostDetail [contenteditable="true"]')) {
-      return true
-    }
-  }
-  return isSelectionInPostDetailEditor()
-}
-
-/**
- * Returns true when the current selection is inside the post-detail comment composer
- * or an inline comment editor (iOS may drop focus during handle drag).
- */
-export function isSelectionInPostDetailEditor () {
+export function isSelectionInPostDetail () {
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false
 
@@ -82,9 +69,33 @@ export function isSelectionInPostDetailEditor () {
   if (!node || typeof node.closest !== 'function') return false
 
   const postDetail = document.querySelector('.PostDetail')
-  if (!postDetail?.contains(node)) return false
+  return !!postDetail?.contains(node)
+}
 
-  return !!node.closest('.ProseMirror, [contenteditable="true"], .CommentForm, .CommentFormWrapper')
+/** @deprecated Use isSelectionInPostDetail */
+export function isSelectionInPostDetailEditor () {
+  return isSelectionInPostDetail()
+}
+
+/**
+ * Returns true when a HyloEditor inside post detail is focused (reply box or inline edit).
+ */
+export function isCommentEditorFocused () {
+  const active = document.activeElement
+  if (active) {
+    if (active.closest?.('.PostDetail .ProseMirror, .PostDetail [contenteditable="true"]')) {
+      return true
+    }
+  }
+  return isSelectionInPostDetail()
+}
+
+/**
+ * Returns true for touches inside the post dialog card (not the backdrop).
+ */
+export function isPostDialogContentTarget (el) {
+  if (!el || typeof el.closest !== 'function') return false
+  return !!el.closest('.PostDialog-Content, .PostDetail')
 }
 
 /**
@@ -93,8 +104,9 @@ export function isSelectionInPostDetailEditor () {
 export function shouldBailTextSelectionGesture (target) {
   if (isTextInteractionTarget(target)) return true
   if (isCommentComposerTarget(target)) return true
+  if (isPostDialogContentTarget(target)) return true
   if (isCommentEditorFocused()) return true
-  if (isSelectionInPostDetailEditor()) return true
+  if (isSelectionInPostDetail()) return true
   return false
 }
 

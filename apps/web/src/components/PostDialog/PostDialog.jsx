@@ -3,6 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
+import {
+  hasActiveTextSelection,
+  isSelectionInPostDetail,
+  shouldBailTextSelectionGesture
+} from 'util/textSelectionTouch'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
 
@@ -39,6 +44,16 @@ const PostDialog = ({
   }, [dismiss])
 
   const handleInteractOutside = useCallback((e) => {
+    // Radix dismiss + RemoveScroll can steal iOS text-selection handle drags.
+    if (
+      shouldBailTextSelectionGesture(e.target) ||
+      hasActiveTextSelection() ||
+      isSelectionInPostDetail()
+    ) {
+      e.preventDefault()
+      return
+    }
+
     if (e.target.className.includes('fsp') || e.target.children[0].className.includes('fsp')) {
       // Don't close the dialog if the user is interacting with the filestack picker
       e.preventDefault()
@@ -59,19 +74,24 @@ const PostDialog = ({
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal container={portalContainer}>
+        {/*
+          Overlay is backdrop-only (sibling of Content). Previously Content was nested
+          inside the scrollable Overlay, so pull-to-close and overflow clipped iOS
+          selection handles on comments and the composer.
+        */}
         <Dialog.Overlay
-          className='PostDialog-Overlay bg-darkening/50 dark:bg-darkening/90 absolute left-0 right-0 bottom-0 grid place-items-center overflow-y-auto z-[100] h-full backdrop-blur-sm p-2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-200'
+          className='PostDialog-Overlay bg-darkening/50 dark:bg-darkening/90 absolute inset-0 z-[100] backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-200'
+        />
+        <Dialog.Content
+          onInteractOutside={handleInteractOutside}
+          onPointerDownOutside={handleInteractOutside}
+          className='PostDialog-Content absolute left-1/2 top-1/2 z-[101] min-w-[300px] w-[calc(100%-16px)] max-w-[750px] max-h-[calc(100%-16px)] overflow-y-auto overflow-x-visible bg-background p-3 rounded-md outline-none -translate-x-1/2 -translate-y-1/2 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 duration-300'
+          id='post-dialog-content'
         >
-          <Dialog.Content
-            onInteractOutside={handleInteractOutside}
-            className='PostDialog-Content min-w-[300px] w-full bg-background p-3 rounded-md z-[41] max-w-[750px] outline-none relative data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-4 duration-300'
-            id='post-dialog-content'
-          >
-            <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
-            <Dialog.Description className='sr-only'>Post Dialog</Dialog.Description>
-            <PostDetail ref={postDetailRef} inPostDialog onDismissEmbeddedDialog={dismiss} />
-          </Dialog.Content>
-        </Dialog.Overlay>
+          <Dialog.Title className='sr-only'>Post Dialog</Dialog.Title>
+          <Dialog.Description className='sr-only'>Post Dialog</Dialog.Description>
+          <PostDetail ref={postDetailRef} inPostDialog onDismissEmbeddedDialog={dismiss} />
+        </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   )

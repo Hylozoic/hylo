@@ -1,7 +1,7 @@
 import {
   hasActiveTextSelection,
   isCommentComposerTarget,
-  isSelectionInPostDetailEditor,
+  isSelectionInPostDetail,
   isTextInteractionTarget,
   createPersistentSelectionTracker
 } from './textSelectionTouch'
@@ -78,7 +78,7 @@ describe('isCommentComposerTarget', () => {
   })
 })
 
-describe('isSelectionInPostDetailEditor', () => {
+describe('isSelectionInPostDetail', () => {
   afterEach(() => {
     document.body.innerHTML = ''
     window.getSelection()?.removeAllRanges()
@@ -102,7 +102,25 @@ describe('isSelectionInPostDetailEditor', () => {
     range.selectNodeContents(p)
     window.getSelection().addRange(range)
 
-    expect(isSelectionInPostDetailEditor()).toBe(true)
+    expect(isSelectionInPostDetail()).toBe(true)
+  })
+
+  it('returns true when selection is inside rendered comment text', () => {
+    const postDetail = document.createElement('div')
+    postDetail.className = 'PostDetail'
+    const comment = document.createElement('div')
+    comment.className = 'CommentContainer'
+    const p = document.createElement('p')
+    p.textContent = 'existing comment body'
+    comment.appendChild(p)
+    postDetail.appendChild(comment)
+    document.body.appendChild(postDetail)
+
+    const range = document.createRange()
+    range.selectNodeContents(p)
+    window.getSelection().addRange(range)
+
+    expect(isSelectionInPostDetail()).toBe(true)
   })
 })
 
