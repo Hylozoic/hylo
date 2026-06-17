@@ -12,8 +12,11 @@ import PeopleMentions from './extensions/PeopleMentions'
 import TopicMentions from './extensions/TopicMentions'
 import Video from './extensions/Video'
 import HyloEditorMenuBar from './HyloEditorMenuBar'
+import { hasActiveTextSelection } from 'util/textSelectionTouch'
 import 'tippy.js/dist/tippy.css'
 import classes from './HyloEditor.module.scss'
+
+const EDITOR_SCROLL_BLUR_THRESHOLD_PX = 15
 
 const HyloEditor = React.forwardRef(({
   className,
@@ -42,6 +45,9 @@ const HyloEditor = React.forwardRef(({
 }, ref) => {
   const { t } = useTranslation()
   const editorRef = useRef(null)
+  const touchStartRef = useRef({ x: 0, y: 0 })
+  const persistentSelectionRef = useRef(false)
+  const selectionClearTimerRef = useRef(null)
   const [initialized, setInitialized] = useState(false)
   const [selectedLink, setSelectedLink] = useState()
 
@@ -142,9 +148,39 @@ const HyloEditor = React.forwardRef(({
     Video
   ]
 
-  const onTouchMove = (e) => {
-    // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
-    editorRef.current.commands.blur()
+  const onEditorSelectionChange = () => {
+    if (hasActiveTextSelection()) {
+      persistentSelectionRef.current = true
+      if (selectionClearTimerRef.current) {
+        clearTimeout(selectionClearTimerRef.current)
+        selectionClearTimerRef.current = null
+      }
+      return
+    }
+
+    if (selectionClearTimerRef.current) clearTimeout(selectionClearTimerRef.current)
+    selectionClearTimerRef.current = setTimeout(() => {
+      if (!hasActiveTextSelection()) persistentSelectionRef.current = false
+      selectionClearTimerRef.current = null
+    }, 150)
+  }
+
+  const onEditorTouchStart = (e) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const onEditorTouchMove = (e) => {
+    if (persistentSelectionRef.current || hasActiveTextSelection()) return
+
+    const touch = e.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
+
+    // Hide the keyboard when vertically scrolling the page — not when selecting text
+    if (deltaY > EDITOR_SCROLL_BLUR_THRESHOLD_PX && deltaY > deltaX * 1.5) {
+      editorRef.current?.commands.blur()
+    }
   }
 
   const editor = useEditor({
@@ -159,13 +195,22 @@ const HyloEditor = React.forwardRef(({
       onUpdate(editor.getHTML())
     },
     onFocus: () => {
-      document.addEventListener('touchmove', onTouchMove, { passive: false })
+      document.addEventListener('touchstart', onEditorTouchStart, { passive: true })
+      document.addEventListener('touchmove', onEditorTouchMove, { passive: true })
+      document.addEventListener('selectionchange', onEditorSelectionChange)
       if (onFocus) {
         onFocus()
       }
     },
     onBlur: () => {
-      document.removeEventListener('touchmove', onTouchMove, { passive: false })
+      document.removeEventListener('touchstart', onEditorTouchStart)
+      document.removeEventListener('touchmove', onEditorTouchMove)
+      document.removeEventListener('selectionchange', onEditorSelectionChange)
+      if (selectionClearTimerRef.current) {
+        clearTimeout(selectionClearTimerRef.current)
+        selectionClearTimerRef.current = null
+      }
+      persistentSelectionRef.current = false
       if (onBlur) {
         onBlur()
       }
