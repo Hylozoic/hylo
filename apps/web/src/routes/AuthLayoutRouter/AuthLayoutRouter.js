@@ -7,10 +7,6 @@ import { IntercomProvider } from 'react-use-intercom'
 import { Helmet } from 'react-helmet'
 import { get, some } from 'lodash/fp'
 import { cn } from 'util/index'
-import {
-  createPersistentSelectionTracker,
-  shouldBailTextSelectionGesture
-} from 'util/textSelectionTouch'
 import mixpanel from 'mixpanel-browser'
 import config, { isDev, isTest } from 'config/index'
 import CookieConsentLinker from 'components/CookieConsentLinker'
@@ -226,7 +222,6 @@ export default function AuthLayoutRouter (props) {
 
     const VELOCITY_THRESHOLD = 0.3 // px/ms — fast flick overrides position
     const POSITION_THRESHOLD = 0.4 // 40% of nav width to snap open
-    const NAV_OPEN_EDGE_WIDTH_PX = 70
 
     let touchStartX = null
     let touchStartY = null
@@ -263,29 +258,28 @@ export default function AuthLayoutRouter (props) {
 
     let touchTarget = null
     let touchStartedWithTextSelected = false
-    let touchActive = false
 
-    const selectionTracker = createPersistentSelectionTracker({
-      getActiveTouch: () => touchActive
-    })
+    let persistentHasSelection = false
+    const onSelectionChange = () => {
+      const hasSelection = !!(window.getSelection && window.getSelection().toString().length > 0)
+      if (hasSelection) {
+        persistentHasSelection = true
+      } else if (touchStartX === null) {
+        // Only clear when there is no active touch, so iOS's mid-gesture
+        // selectionchange (e.g. during handle drag) doesn't prematurely clear
+        // the flag and allow the nav swipe to activate.
+        persistentHasSelection = false
+      }
+    }
+    document.addEventListener('selectionchange', onSelectionChange)
 
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
-      // Post dialog: don't compete with text selection anywhere in the card
-      if (document.querySelector('.PostDialog-Content')) return
-      if (shouldBailTextSelectionGesture(e.target)) return
-      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
 
       const touch = e.touches[0]
-
-      // Swipe-to-open only from the left edge so horizontal drags in content
-      // (e.g. text selection handles) are not hijacked as nav gestures.
-      if (!isNavOpenRef.current && touch.clientX > NAV_OPEN_EDGE_WIDTH_PX) return
-
-      touchActive = true
       touchStartX = touch.clientX
       touchStartY = touch.clientY
       touchStartTime = Date.now()
@@ -296,7 +290,7 @@ export default function AuthLayoutRouter (props) {
 
       // Use the persistent flag so handle-drag touches are detected even when
       // iOS has temporarily cleared window.getSelection() at touchstart.
-      touchStartedWithTextSelected = selectionTracker.hasSelection
+      touchStartedWithTextSelected = persistentHasSelection
 
       // Determine gesture type based on current nav state
       isOpenGesture = !isNavOpenRef.current
@@ -307,20 +301,6 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchMove = (e) => {
       if (touchStartX === null) return
-      if (document.querySelector('.PostDialog-Content')) {
-        touchStartX = null
-        touchActive = false
-        return
-      }
-      if (
-        shouldBailTextSelectionGesture(e.target) ||
-        touchStartedWithTextSelected ||
-        selectionTracker.hasSelection
-      ) {
-        touchStartX = null
-        touchActive = false
-        return
-      }
 
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
@@ -388,8 +368,6 @@ export default function AuthLayoutRouter (props) {
       if (!isDragging || touchStartX === null) {
         touchStartX = null
         touchStartY = null
-        touchActive = false
-        selectionTracker.clearIfGone()
         return
       }
 
@@ -420,8 +398,10 @@ export default function AuthLayoutRouter (props) {
       touchStartX = null
       touchStartY = null
       isDragging = false
-      touchActive = false
-      selectionTracker.clearIfGone()
+      // Only clear the persistent selection flag once deselection is confirmed.
+      if (!window.getSelection || !window.getSelection().toString().length) {
+        persistentHasSelection = false
+      }
     }
 
     document.addEventListener('touchstart', handleTouchStart, { passive: true })
@@ -434,7 +414,7 @@ export default function AuthLayoutRouter (props) {
       document.removeEventListener('touchmove', handleTouchMove)
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
-      selectionTracker.destroy()
+      document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [withoutNav, dispatch])
 

@@ -3,13 +3,27 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import * as Dialog from '@radix-ui/react-dialog'
 
 import { removePostFromUrl } from '@hylo/navigation'
-import {
-  hasActiveTextSelection,
-  isSelectionInPostDetail,
-  shouldBailTextSelectionGesture
-} from 'util/textSelectionTouch'
 
 import PostDetail from 'routes/PostDetail/PostDetail'
+
+/** Returns true when the user has an active non-collapsed text selection. */
+function hasActiveTextSelection () {
+  const sel = window.getSelection()
+  if (!sel) return false
+  if (sel.toString().length > 0) return true
+  return sel.rangeCount > 0 && !sel.isCollapsed
+}
+
+/** Returns true when the selection anchor is inside the post detail card. */
+function isSelectionInPostDetail () {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return false
+  let node = sel.anchorNode
+  if (!node) return false
+  if (node.nodeType === 3) node = node.parentNode
+  const postDetail = document.querySelector('.PostDetail')
+  return !!postDetail?.contains(node)
+}
 
 const PostDialog = ({
   container
@@ -49,11 +63,7 @@ const PostDialog = ({
 
   const handleInteractOutside = useCallback((e) => {
     // Don't dismiss while the user is selecting text (iOS handle drags can register as outside).
-    if (
-      shouldBailTextSelectionGesture(e.target) ||
-      hasActiveTextSelection() ||
-      isSelectionInPostDetail()
-    ) {
+    if (hasActiveTextSelection() || isSelectionInPostDetail()) {
       e.preventDefault()
       return
     }

@@ -105,16 +105,6 @@
     pointer-events: auto;
   }
 
-  /* PostDialog uses modal={false}; explicit text selection for iOS WKWebView */
-  .PostDialog-Content,
-  .PostDialog-Content .global-postContent,
-  .PostDialog-Content .CommentContainer,
-  .PostDialog-Content .ProseMirror {
-    -webkit-user-select: text;
-    user-select: text;
-    -webkit-touch-callout: default;
-  }
-
   .global-postContent {
     h1, h2, h3, h4, h5, h6 {
       margin-bottom: 15px;

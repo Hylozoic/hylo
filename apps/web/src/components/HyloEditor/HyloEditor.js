@@ -142,15 +142,10 @@ const HyloEditor = React.forwardRef(({
     Video
   ]
 
-  const commentComposerTouchProps = type === 'comment'
-    ? {
-        handleDOMEvents: {
-          touchstart: () => false,
-          touchmove: () => false,
-          touchend: () => false
-        }
-      }
-    : {}
+  const onTouchMove = (e) => {
+    // Hide the keyboard when scrolling on mobile so you can't scroll down to empty white space on safari
+    editorRef.current.commands.blur()
+  }
 
   const editor = useEditor({
     content: contentHTML,
@@ -164,11 +159,13 @@ const HyloEditor = React.forwardRef(({
       onUpdate(editor.getHTML())
     },
     onFocus: () => {
+      document.addEventListener('touchmove', onTouchMove, { passive: false })
       if (onFocus) {
         onFocus()
       }
     },
     onBlur: () => {
+      document.removeEventListener('touchmove', onTouchMove, { passive: false })
       if (onBlur) {
         onBlur()
       }
@@ -180,8 +177,7 @@ const HyloEditor = React.forwardRef(({
           return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
         }
         return html
-      },
-      ...commentComposerTouchProps
+      }
     }
   })
 

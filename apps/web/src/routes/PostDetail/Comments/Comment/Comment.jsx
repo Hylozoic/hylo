@@ -179,7 +179,6 @@ function Comment ({
         </div>}
       {editing && (
         <HyloEditor
-          type='comment'
           className={styles.editing}
           contentHTML={text}
           onEscape={handleEditCancel}
