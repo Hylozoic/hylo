@@ -488,11 +488,11 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     search: (root, args, context) => {
       if (!args.first) args.first = 20
       return Search.fullTextSearch(context.currentUserId, args)
-        .then(({ models, total }) => {
+        .then(({ models, hasMore }) => {
           // FIXME this shouldn't be used directly here -- there should be some
           // way of integrating this into makeModels and using the presentation
           // logic that's already in the fetcher
-          return presentQuerySet(models, merge(args, { total }))
+          return presentQuerySet(models, merge(args, { hasMore }))
         })
     },
     skills: (root, args) => fetchMany('Skill', args),
