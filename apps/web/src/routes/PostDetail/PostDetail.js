@@ -323,7 +323,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const handleTouchMove = (e) => {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
-
       // Abort pull tracking when the user is in the comment editor or expanding a selection.
       // Re-check e.target — iOS selection handles may not match touchstart target.
       if (
