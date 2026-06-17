@@ -101,15 +101,17 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   }, [post, location.pathname, location.search, currentUser])
 
   useEffect(() => {
-    setPostFetchSettled(false)
+    if (!postSelector) {
+      setPostFetchSettled(false)
+    }
     onPostIdChange()
   }, [postId])
 
   useEffect(() => {
-    if (postId && !pending) {
+    if (postId && (postSelector || !pending)) {
       setPostFetchSettled(true)
     }
-  }, [pending, postId])
+  }, [pending, postId, postSelector])
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
@@ -488,7 +490,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
   if (!post) {
-    if (pending || !postFetchSettled) return <PostDetailSkeleton />
+    const awaitingFreshPost = !postSelector && (pending || !postFetchSettled)
+    if (awaitingFreshPost) return <PostDetailSkeleton />
     return <NotFound />
   }
 

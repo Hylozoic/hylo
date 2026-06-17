@@ -288,6 +288,8 @@ export default function Stream (props) {
     () => /\/post\/\d+/.test(location.pathname),
     [location.pathname]
   )
+  const prevPostDialogOpenRef = useRef(postDialogOpen)
+  const fetchPostsParamAtDialogOpenRef = useRef(fetchPostsParam)
 
   useEffect(() => {
     if (customViewId) {
@@ -316,10 +318,13 @@ export default function Stream (props) {
     if (!((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic))) return
 
     const run = () => fetchPostsFrom(0)
+    const wasDialogOpen = prevPostDialogOpenRef.current
+    prevPostDialogOpenRef.current = postDialogOpen
 
     // When a post dialog is open over the stream, defer the list fetch so fetchPost
     // and PostDetail can claim the connection first; stream still warms in the background.
     if (postDialogOpen) {
+      fetchPostsParamAtDialogOpenRef.current = fetchPostsParam
       if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
         const id = window.requestIdleCallback(run, { timeout: 3000 })
         return () => window.cancelIdleCallback?.(id)
@@ -328,8 +333,16 @@ export default function Stream (props) {
       return () => clearTimeout(id)
     }
 
+    const paramsChangedWhileDialogOpen =
+      wasDialogOpen && fetchPostsParam !== fetchPostsParamAtDialogOpenRef.current
+    const justClosedDialog = wasDialogOpen && !postDialogOpen
+
+    // Closing the dialog should not refetch an already-rendered stream — that only
+    // flips pending and flashes the loading skeleton over existing posts.
+    if (justClosedDialog && posts.length > 0 && !paramsChangedWhileDialogOpen) return
+
     run()
-  }, [fetchPostsParam, isDraftsView, postDialogOpen])
+  }, [fetchPostsParam, isDraftsView, postDialogOpen, posts.length])
 
   useEffect(() => {
     if (!isCalendarViewMode || isDraftsView) return
@@ -591,10 +604,8 @@ export default function Stream (props) {
                 </div>
               )}
 
-              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && (
-                posts.length === 0
-                  ? <StreamSkeleton wrapWithMainColumn={false} />
-                  : <StreamSkeleton wrapWithMainColumn={false} placeholderCount={2} />
+              {(pending || topicBlockingStreams || customViewLoading) && !isCalendarViewMode && posts.length === 0 && (
+                <StreamSkeleton wrapWithMainColumn={false} />
               )}
               {calendarInitialLoading && <Loading />}
 

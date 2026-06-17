@@ -59,7 +59,7 @@ describe('PostDetail', () => {
 
     const ormSession = orm.session(orm.getEmptyState())
     extractModelsForTest({
-      posts: [post],
+      posts: [post]
     }, 'Post', ormSession)
     extractModelsForTest({
       groups: [group]
@@ -98,7 +98,39 @@ describe('PostDetail', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument()
+      expect(screen.getByLabelText('Loading post')).toBeInTheDocument()
+    })
+  })
+
+  it('keeps showing cached post while a refresh is pending', async () => {
+    const group = {
+      id: '109',
+      slug: 'foo'
+    }
+
+    const ormSession = orm.session(orm.getEmptyState())
+    extractModelsForTest({
+      posts: [post]
+    }, 'Post', ormSession)
+    extractModelsForTest({
+      groups: [group]
+    }, 'Group', ormSession)
+
+    const reduxState = {
+      orm: ormSession.state,
+      pending: {
+        FETCH_POST: true
+      }
+    }
+
+    render(
+      <PostDetail />,
+      { wrapper: AllTheProviders(reduxState) }
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Post')).toBeInTheDocument()
+      expect(screen.queryByLabelText('Loading post')).not.toBeInTheDocument()
     })
   })
 
@@ -114,4 +146,3 @@ describe('PostDetail', () => {
     })
   })
 })
-
