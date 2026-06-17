@@ -212,13 +212,13 @@ const CommentForm = forwardRef(function CommentForm ({
     <>
       <div
         className={cn(
-          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
+          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent overflow-visible',
           { 'border-2 border-focus': isFocused },
           className
         )}
         onMouseDown={handleContainerMouseDown}
       >
-        <div className={cn('ml-0 mr-0 w-full min-w-0 cursor-text flex items-center', { [classes.disabled]: !currentUser })}>
+        <div className={cn('ml-0 mr-0 w-full min-w-0 cursor-text flex items-start', { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}

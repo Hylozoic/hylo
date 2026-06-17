@@ -47,6 +47,24 @@ export function isTextInteractionTarget (el) {
 }
 
 /**
+ * Returns true for the post-detail comment composer (including iOS selection handles
+ * that may not register as ProseMirror touch targets).
+ */
+export function isCommentComposerTarget (el) {
+  if (!el || typeof el.closest !== 'function') return false
+  return !!el.closest('.CommentForm, .CommentFormWrapper')
+}
+
+/**
+ * Returns true when a HyloEditor inside post detail is focused (reply box or inline edit).
+ */
+export function isCommentEditorFocused () {
+  const active = document.activeElement
+  if (!active) return false
+  return !!active.closest?.('.PostDetail .ProseMirror, .PostDetail [contenteditable="true"]')
+}
+
+/**
  * Tracks text selection across iOS quirks (temporary empty getSelection during handle drag).
  * @param {Object} options
  * @param {Function} options.getActiveTouch - Returns true while a gesture touch is in progress

@@ -153,7 +153,12 @@
   // iOS Safari zooms focused fields under 16px; overflow on contenteditable
   // ancestors breaks non-interactive selection handles.
   :global {
-    .HyloEditor_EditorContent1 {
+    .CommentForm,
+    .CommentFormWrapper {
+      overflow: visible;
+    }
+
+    .CommentForm .HyloEditor_EditorContent1 {
       overflow: visible;
       max-height: none;
     }

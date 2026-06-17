@@ -44,6 +44,8 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
+  isCommentComposerTarget,
+  isCommentEditorFocused,
   isTextInteractionTarget
 } from 'util/textSelectionTouch'
 import { removePostFromUrl } from '@hylo/navigation'
@@ -300,6 +302,9 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
       if (isTextInteractionTarget(e.target)) return
+      if (isCommentComposerTarget(e.target)) return
+      if (isCommentEditorFocused()) return
+      if (selectionTracker.hasSelection) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -322,7 +327,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       // period where iOS clears getSelection() during a handle drag.
       // elapsed >= 300ms catches the initial long-press before a selection exists.
       const elapsed = Date.now() - (touchStartTime.current || 0)
-      if (touchStartedWithTextSelected.current || elapsed >= 300) return
+      if (
+        touchStartedWithTextSelected.current ||
+        selectionTracker.hasSelection ||
+        isCommentEditorFocused() ||
+        elapsed >= 300
+      ) return
 
       const currentY = e.touches[0].clientY
       const rawDelta = currentY - touchStartY.current

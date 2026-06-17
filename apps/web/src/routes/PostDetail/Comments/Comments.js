@@ -88,7 +88,7 @@ const Comments = ({
       ))}
       {currentUser
         ? (
-          <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10')} style={style}>
+          <div className={cn('CommentFormWrapper bg-transparent relative bottom-0 w-full px-4 pb-0 z-10 overflow-visible')} style={style}>
             <CommentForm
               ref={commentFormRef}
               currentUser={currentUser}

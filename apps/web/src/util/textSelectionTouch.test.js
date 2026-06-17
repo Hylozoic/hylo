@@ -1,5 +1,6 @@
 import {
   hasActiveTextSelection,
+  isCommentComposerTarget,
   isTextInteractionTarget,
   createPersistentSelectionTracker
 } from './textSelectionTouch'
@@ -60,6 +61,19 @@ describe('isTextInteractionTarget', () => {
   it('returns false for ordinary static text nodes', () => {
     const p = document.createElement('p')
     expect(isTextInteractionTarget(p)).toBe(false)
+  })
+})
+
+describe('isCommentComposerTarget', () => {
+  it('returns true for elements inside CommentForm', () => {
+    const form = document.createElement('div')
+    form.className = 'CommentForm'
+    const child = document.createElement('span')
+    form.appendChild(child)
+    document.body.appendChild(form)
+
+    expect(isCommentComposerTarget(child)).toBe(true)
+    document.body.removeChild(form)
   })
 })
 
