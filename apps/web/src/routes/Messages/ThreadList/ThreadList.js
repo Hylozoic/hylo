@@ -21,6 +21,7 @@ import {
 import Loading from 'components/Loading'
 import ThreadListItem from './ThreadListItem'
 import { cn } from 'util/index'
+import { isPhoneDevice } from 'util/mobile'
 
 import classes from './ThreadList.module.scss'
 
@@ -88,7 +89,8 @@ function ThreadList () {
   return (
     <div
       className={cn(
-        'bg-background h-full flex flex-col flex-wrap overflow-hidden w-full min-w-0 sm:w-[300px] sm:flex-shrink-0'
+        'bg-background h-full flex flex-col flex-wrap overflow-hidden min-w-0',
+        isPhoneDevice() ? 'w-full' : 'w-[300px] flex-shrink-0'
       )}
       style={{ boxShadow: 'inset -15px 0 15px -10px hsl(var(--darkening) / 0.3)' }}
       onClick={handleContainerClick}
@@ -107,7 +109,7 @@ function ThreadList () {
             className='bg-transparent border-foreground pl-2 text-foreground placeholder:text-foreground/50 outline-none border-none w-full'
           />
         </div>
-        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={toggleNavMenuAction}>
+        <Link className='bg-darkening/20 rounded-lg text-foreground flex justify-center items-center w-10 h-10 hover:bg-selected/100 scale-100 hover:scale-105 transition-all hover:text-foreground flex-shrink-0' to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
           <SquarePen />
         </Link>
       </div>
@@ -135,7 +137,7 @@ function ThreadList () {
         {!threadsPending && isEmpty(threads) && !searchInput &&
           <div className={classes.noConversations}>
             {t('You have no active messages!')}
-            <Link to='/messages/new' onClick={toggleNavMenuAction}>{t('Send a message')}</Link>
+            <Link to='/messages/new' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>{t('Send a message')}</Link>
             {t('to get started.')}
           </div>}
         {!threadsPending && isEmpty(threads) && searchInput &&

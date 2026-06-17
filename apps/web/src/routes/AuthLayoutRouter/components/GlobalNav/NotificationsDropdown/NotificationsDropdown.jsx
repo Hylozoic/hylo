@@ -19,7 +19,7 @@ import {
 } from './NotificationsDropdown.store'
 import getMe from 'store/selectors/getMe'
 import { FETCH_NOTIFICATIONS } from 'store/constants'
-import { isMobileDevice } from 'util/mobile'
+import { isCompactLayoutDevice } from 'util/mobile'
 
 const NOTIFICATIONS_PAGE_SIZE = 20
 
@@ -28,7 +28,7 @@ function NotificationsDropdown ({ renderToggleChildren, className }) {
   const [modalOpen, setModalOpen] = useState(false)
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const isMobile = isMobileDevice()
+  const isMobile = isCompactLayoutDevice()
 
   const notifications = useSelector(getNotifications)
   const hasMore = useSelector(getHasMoreNotifications)

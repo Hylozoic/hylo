@@ -9,6 +9,7 @@ import Badge from 'components/Badge'
 import RoundImage from 'components/RoundImage'
 import { participantAttributes } from 'store/models/MessageThread'
 import { cn } from 'util/index'
+import { isPhoneDevice } from 'util/mobile'
 import { useDispatch } from 'react-redux'
 import { toggleNavMenu } from 'routes/AuthLayoutRouter/AuthLayoutRouter.store'
 import { markThreadUnread, updateThreadReadTime } from '../Messages.store'
@@ -37,7 +38,7 @@ export default function ThreadListItem ({
 
   return (
     <li className={cn('group flex flex-row items-stretch bg-transparent m-0 hover:scale-[1.02] transition-all hover:bg-selected/50', { [classes.unreadListItem]: isUnread, 'bg-transparent xs:bg-selected': active })}>
-      <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={toggleNavMenuAction}>
+      <Link to={`/messages/${id}`} className='flex flex-row flex-1 min-w-0 p-2' onClick={isPhoneDevice() ? toggleNavMenuAction : undefined}>
         <div className='mr-2 flex flex-col justify-center flex-shrink-0'>
           <ThreadAvatars avatarUrls={avatarUrls} />
         </div>
