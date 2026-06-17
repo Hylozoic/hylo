@@ -1,15 +1,25 @@
-/* globals bookshelf */
+/* globals bookshelf, Group */
 import { compact, omit } from 'lodash'
 
 const tableName = 'search_index'
 const columnName = 'document'
 const defaultLang = 'english'
+const searchStatementTimeoutMs = Number(process.env.SEARCH_STATEMENT_TIMEOUT_MS) || 20000
+const recencyHalfLifeSeconds = 1209600 // 14 days
 
 const raw = (str, knex = bookshelf.knex) => knex.raw(str)
 
-const dropView = knex => raw(`drop materialized view ${tableName}`, knex)
+const dropView = knex => raw(`drop materialized view if exists ${tableName}`, knex)
 
-const refreshView = () => raw(`refresh materialized view ${tableName}`)
+const refreshView = () => {
+  return raw(`refresh materialized view concurrently ${tableName}`)
+    .catch(err => {
+      if (err.message && err.message.includes('concurrently')) {
+        return raw(`refresh materialized view ${tableName}`)
+      }
+      throw err
+    })
+}
 
 const createView = (lang, knex) => {
   if (!lang) lang = defaultLang
@@ -18,9 +28,11 @@ const createView = (lang, knex) => {
 
   return raw(`create materialized view ${tableName} as (
     select
+      ('post-' || p.id::text) as row_key,
       p.id as post_id,
       null::bigint as user_id,
       null::bigint as comment_id,
+      p.updated_at as sort_ts,
       ${wv('p.name', 'B')} ||
       ${wv("coalesce(p.description, '')", 'C')} ||
       ${wv('u.name', 'D')} as ${columnName}
@@ -29,9 +41,20 @@ const createView = (lang, knex) => {
     where p.active = true and u.active = true
   ) union (
     select
+      ('user-' || u.id::text) as row_key,
       null as post_id,
       u.id as user_id,
       null as comment_id,
+      coalesce(
+        (
+          select max(gm.created_at)
+          from group_memberships gm
+          where gm.user_id = u.id and gm.active = true
+        ),
+        u.last_active_at,
+        u.updated_at,
+        u.created_at
+      ) as sort_ts,
       ${wv('u.name', 'A')} ||
       ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
       ${wv("coalesce(u.bio, '')", 'C')} as ${columnName}
@@ -42,15 +65,18 @@ const createView = (lang, knex) => {
     group by u.id
   ) union (
     select
+      ('comment-' || c.id::text) as row_key,
       null as post_id,
       null as user_id,
       c.id as comment_id,
+      c.created_at as sort_ts,
       ${wv('c.text', 'C')} ||
       ${wv('u.name', 'D')} as ${columnName}
     from comments c
     join users u on u.id = c.user_id
     where c.active = true and u.active = true
   )`, knex)
+    .then(() => raw(`create unique index idx_search_index_unique on ${tableName} (row_key)`, knex))
     .then(() => raw(`create index idx_fts_search on ${tableName}
       using gin(${columnName})`, knex))
     .then(() => raw(`create index idx_search_index_post_id on ${tableName} (post_id) where post_id is not null`, knex))
@@ -58,21 +84,35 @@ const createView = (lang, knex) => {
     .then(() => raw(`create index idx_search_index_comment_id on ${tableName} (comment_id) where comment_id is not null`, knex))
 }
 
+const applyMemberGroupFilter = (subquery, groupAccess) => {
+  const { groupIds, userId } = groupAccess
+  if (userId) {
+    subquery.whereIn('group_id', Group.selectIdsForMember(userId))
+  } else if (groupIds && groupIds.length > 0) {
+    subquery.whereIn('group_id', groupIds)
+  }
+}
+
 // Restrict FTS candidates to content the user can see: their groups plus public posts.
-const applyGroupAccessFilter = (qb, groupIds) => {
+const applyGroupAccessFilter = (qb, groupAccess) => {
   qb.andWhere(function () {
-    if (groupIds.length > 0) {
+    const hasMemberGroups = groupAccess.userId ||
+      (groupAccess.groupIds && groupAccess.groupIds.length > 0)
+
+    if (hasMemberGroups) {
       this.whereIn('post_id', function () {
-        this.select('post_id').from('groups_posts').whereIn('group_id', groupIds)
+        this.select('post_id').from('groups_posts')
+        applyMemberGroupFilter(this, groupAccess)
       })
         .orWhereIn('user_id', function () {
-          this.select('user_id').from('group_memberships').whereIn('group_id', groupIds)
+          this.select('user_id').from('group_memberships')
+          applyMemberGroupFilter(this, groupAccess)
         })
         .orWhereIn('comment_id', function () {
           this.select('c.id')
             .from('comments as c')
             .join('groups_posts as gp', 'gp.post_id', 'c.post_id')
-            .whereIn('gp.group_id', groupIds)
+          applyMemberGroupFilter(this, groupAccess)
         })
     }
     this.orWhereIn('post_id', function () {
@@ -86,6 +126,8 @@ const applyGroupAccessFilter = (qb, groupIds) => {
       })
   })
 }
+
+const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
 
 const search = (opts) => {
   const term = compact(opts.term.replace(/'/, '').split(' '))
@@ -107,7 +149,7 @@ const search = (opts) => {
       comment: 'comment_id'
     }[opts.type]
   } else {
-    columns = raw(`post_id, comment_id, user_id, ${rank} as rank, count(*) over () as total`)
+    columns = raw(`post_id, comment_id, user_id, sort_ts, ${rank} as rank`)
   }
 
   let query = bookshelf.knex
@@ -120,38 +162,54 @@ const search = (opts) => {
       comment: 'comment_id is not null'
     }[opts.type] || true))
 
-  if (opts.groupIds) {
-    applyGroupAccessFilter(query, opts.groupIds)
+  if (opts.groupAccess) {
+    applyGroupAccessFilter(query, opts.groupAccess)
   }
 
-  if (!opts.subquery) {
-    query = query.orderBy('rank', 'desc')
+  if (!opts.subquery && !opts.skipOrder) {
+    query = query.orderByRaw(`${recencyRankSql} desc, rank desc`)
   }
 
   return query
 }
 
-const searchInGroups = (groupIds, opts) => {
+const runWithStatementTimeout = (queryBuilder) => {
+  return bookshelf.knex.transaction(trx => {
+    return trx.raw(`set local statement_timeout = ${searchStatementTimeoutMs}`)
+      .then(() => queryBuilder.transacting(trx))
+  })
+}
+
+const recencyRankForAlias = (alias) =>
+  `(${alias}.rank * case when ${alias}.sort_ts is null then 1 else exp(-extract(epoch from (now() - ${alias}.sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+
+const buildSearchInGroupsQuery = (groupAccess, opts) => {
+  const limit = opts.limit || 20
+  const offset = opts.offset || 0
   const alias = 'search'
-  const columns = [`${alias}.post_id`, `${alias}.comment_id`, `${alias}.user_id`, 'rank', 'total']
   return bookshelf.knex
-    .select(columns)
-    .from(search({ ...omit(opts, 'limit', 'offset'), groupIds }).as(alias))
-    .leftJoin('comments', 'comments.id', `${alias}.comment_id`)
-    .leftJoin('posts', function () {
-      this.on('posts.id', `${alias}.post_id`)
-        .orOn('posts.id', 'comments.post_id')
-    })
-    .leftJoin('group_memberships', function () {
-      this.on('group_memberships.user_id', `${alias}.user_id`)
-      if (groupIds.length > 0) {
-        this.andOnIn('group_memberships.group_id', groupIds)
+    .select(
+      `${alias}.post_id`,
+      `${alias}.comment_id`,
+      `${alias}.user_id`,
+      `${alias}.rank`
+    )
+    .from(search({ ...omit(opts, 'limit', 'offset'), groupAccess, skipOrder: true }).as(alias))
+    .orderByRaw(`${recencyRankForAlias(alias)} desc, ${alias}.rank desc`)
+    .limit(limit + 1)
+    .offset(offset)
+}
+
+const searchInGroups = (groupAccess, opts) => {
+  const limit = opts.limit || 20
+  return runWithStatementTimeout(buildSearchInGroupsQuery(groupAccess, opts))
+    .then(rows => {
+      const hasMore = rows.length > limit
+      return {
+        items: rows.slice(0, limit),
+        hasMore
       }
     })
-    .groupBy(columns)
-    .orderByRaw('(("rank") * (case when greatest(max(posts.updated_at), max(comments.created_at), max(group_memberships.created_at)) is null then 1 else exp(-extract(epoch from (now() - greatest(max(posts.updated_at), max(comments.created_at), max(group_memberships.created_at)))) / 1209600.0) end)) desc, "rank" desc')
-    .limit(opts.limit || 20)
-    .offset(opts.offset || 0)
 }
 
 module.exports = {
@@ -159,5 +217,6 @@ module.exports = {
   dropView,
   refreshView,
   search,
+  buildSearchInGroupsQuery,
   searchInGroups
 }
