@@ -271,6 +271,8 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
+      // Post dialog: don't compete with text selection anywhere in the card
+      if (document.querySelector('.PostDialog-Content')) return
       if (shouldBailTextSelectionGesture(e.target)) return
       if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
@@ -305,6 +307,11 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchMove = (e) => {
       if (touchStartX === null) return
+      if (document.querySelector('.PostDialog-Content')) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
       if (
         shouldBailTextSelectionGesture(e.target) ||
         touchStartedWithTextSelected ||
