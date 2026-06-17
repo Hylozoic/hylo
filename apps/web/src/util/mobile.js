@@ -40,6 +40,15 @@ export function isPhoneDevice () {
   )
 }
 
+export function isIOSDevice () {
+  return (
+    isMobile.apple.phone ||
+    isMobile.apple.ipod ||
+    isMobile.apple.tablet ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
 export function downloadApp () {
   if (isMobileDevice()) {
     if (isMobile.apple.device) {

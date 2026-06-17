@@ -2,6 +2,10 @@
   .ProseMirror {
     // Matching Post Details color
     color: hsl(var(--foreground));
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    touch-action: manipulation;
   }
 
   .ProseMirror:focus {
@@ -144,5 +148,21 @@
 
   .post-chat-box {
     padding-top: 10px;
+  }
+
+  // iOS Safari zooms focused fields under 16px; overflow on contenteditable
+  // ancestors breaks non-interactive selection handles.
+  :global {
+    .HyloEditor_EditorContent1 {
+      overflow: visible;
+      max-height: none;
+    }
+
+    .HyloEditor_EditorContent1 .ProseMirror {
+      font-size: 16px;
+      line-height: 1.4;
+      overflow: visible;
+      max-height: none;
+    }
   }
 }

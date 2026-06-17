@@ -272,6 +272,7 @@ export default function AuthLayoutRouter (props) {
     const handleTouchStart = (e) => {
       if (window.innerWidth >= 640) return
       if (isTextInteractionTarget(e.target)) return
+      if (selectionTracker.hasSelection) return
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current
       if (!navEl || !backdropEl) return
@@ -304,6 +305,11 @@ export default function AuthLayoutRouter (props) {
 
     const handleTouchMove = (e) => {
       if (touchStartX === null) return
+      if (touchStartedWithTextSelected || selectionTracker.hasSelection) {
+        touchStartX = null
+        touchActive = false
+        return
+      }
 
       const navEl = navContainerRef.current
       const backdropEl = backdropRef.current

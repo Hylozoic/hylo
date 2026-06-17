@@ -100,8 +100,6 @@
   // Would be best on the container above but will be wrong height due
   // to `position: relative`
   [contenteditable="true"] {
-    max-height: 200px;
-    overflow-y: auto;
     padding-bottom: 1px;
   }
 }
@@ -131,18 +129,9 @@
     margin-bottom: 10px;
     z-index: 1000;
   }
-
-  .editor {
-    font-size: 14px;
-  }
 }
 
 @media screen and (max-width: 320px) {
-  .editor {
-    font-size: 12px;
-    padding: 0 10px 30px 0;
-  }
-
   .image {
     margin-left: 10px;
   }

@@ -171,13 +171,14 @@ const HyloEditor = React.forwardRef(({
   }
 
   const onEditorTouchMove = (e) => {
+    // Dismiss keyboard when the user scrolls the page — but never during text
+    // selection / handle drag (iOS clears getSelection() mid-gesture).
     if (persistentSelectionRef.current || hasActiveTextSelection()) return
 
     const touch = e.touches[0]
     const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
     const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
 
-    // Hide the keyboard when vertically scrolling the page — not when selecting text
     if (deltaY > EDITOR_SCROLL_BLUR_THRESHOLD_PX && deltaY > deltaX * 1.5) {
       editorRef.current?.commands.blur()
     }

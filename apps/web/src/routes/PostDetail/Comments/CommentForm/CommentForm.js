@@ -218,7 +218,7 @@ const CommentForm = forwardRef(function CommentForm ({
         )}
         onMouseDown={handleContainerMouseDown}
       >
-        <div className={cn('ml-0 mr-0 w-full cursor-text flex items-center overflow-x-hidden', { [classes.disabled]: !currentUser })}>
+        <div className={cn('ml-0 mr-0 w-full min-w-0 cursor-text flex items-center', { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
@@ -226,7 +226,7 @@ const CommentForm = forwardRef(function CommentForm ({
           <HyloEditor
             contentHTML={hyloContentHTML}
             onAltEnter={handleSubmit}
-            className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
+            className='w-full cursor-text flex'
             readOnly={!currentUser}
             onUpdate={handleEditorUpdate}
             onFocus={handleFocus}

@@ -1,4 +1,5 @@
 const SELECTION_CLEAR_DEBOUNCE_MS = 150
+const TEXT_NODE = 3
 
 /**
  * Returns true when the user has selected text in the document, a contenteditable,
@@ -6,17 +7,30 @@ const SELECTION_CLEAR_DEBOUNCE_MS = 150
  */
 export function hasActiveTextSelection () {
   const sel = window.getSelection()
-  if (sel && sel.toString().length > 0) return true
+  if (sel) {
+    if (sel.toString().length > 0) return true
+    if (sel.rangeCount > 0 && !sel.isCollapsed) return true
+  }
 
   const active = document.activeElement
   if (!active) return false
 
   const tag = active.tagName
-  if (tag !== 'TEXTAREA' && tag !== 'INPUT') return false
+  if (tag === 'TEXTAREA' || tag === 'INPUT') {
+    const { selectionStart, selectionEnd } = active
+    if (selectionStart != null && selectionEnd != null) {
+      return selectionStart !== selectionEnd
+    }
+  }
 
-  const { selectionStart, selectionEnd } = active
-  if (selectionStart == null || selectionEnd == null) return false
-  return selectionStart !== selectionEnd
+  if (active.isContentEditable && sel?.rangeCount > 0 && !sel.isCollapsed) {
+    const anchorNode = sel.anchorNode
+    if (anchorNode && active.contains(anchorNode.nodeType === TEXT_NODE ? anchorNode.parentNode : anchorNode)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 /**
