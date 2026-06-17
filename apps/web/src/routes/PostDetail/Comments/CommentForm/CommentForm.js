@@ -150,6 +150,12 @@ const CommentForm = forwardRef(function CommentForm ({
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('comment-composer-active')
+    }
+  }, [])
+
   const handleFocus = useCallback(() => {
     // On mobile, only prevent automatic focus (within first 500ms after mount or before user interaction)
     // Allow user-initiated focus so they can tap to open the keyboard
@@ -175,6 +181,9 @@ const CommentForm = forwardRef(function CommentForm ({
       }, 400)
     }
     setIsFocused(true)
+    if (isMobileDevice()) {
+      document.body.classList.add('comment-composer-active')
+    }
   }, [])
 
   useImperativeHandle(ref, () => ({
@@ -212,25 +221,29 @@ const CommentForm = forwardRef(function CommentForm ({
     <>
       <div
         className={cn(
-          'CommentForm flex flex-col items-start justify-between bg-input items-center rounded-lg p-2 border-2 border-transparent',
+          'CommentForm flex flex-col items-start justify-between bg-input rounded-lg p-2 border-2 border-transparent overflow-visible',
           { 'border-2 border-focus': isFocused },
           className
         )}
         onMouseDown={handleContainerMouseDown}
       >
-        <div className={cn('ml-0 mr-0 w-full min-w-0 cursor-text flex items-center', { [classes.disabled]: !currentUser })}>
+        <div className={cn('ml-0 mr-0 w-full min-w-0 cursor-text flex items-start', { [classes.disabled]: !currentUser })}>
           {currentUser
             ? <RoundImage url={currentUser.avatarUrl} small className='w-6 h-6' />
             : <Icon name='Person' className={classes.anonymousImage} dataTestId='icon-Person' />}
 
           <HyloEditor
+            type='comment'
             contentHTML={hyloContentHTML}
             onAltEnter={handleSubmit}
             className='w-full cursor-text flex'
             readOnly={!currentUser}
             onUpdate={handleEditorUpdate}
             onFocus={handleFocus}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => {
+              setIsFocused(false)
+              document.body.classList.remove('comment-composer-active')
+            }}
             placeholder={placeholderText}
             ref={editor}
           />

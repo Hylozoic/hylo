@@ -106,6 +106,10 @@ function Comment ({
     setShowActions(isOpen)
   }, [])
 
+  const handleDropdownItemClick = useCallback((onClick) => () => {
+    onClick()
+  }, [])
+
   const { id, creator, createdAt, editedAt, text, attachments } = comment
   const timestamp = DateTimeHelpers.humanDate(createdAt)
   const editedTimestamp = (editedAt || edited) ? t('edited') + ' ' + DateTimeHelpers.humanDate(editedAt) : false
@@ -150,7 +154,7 @@ function Comment ({
                 <Icon name='Replies' />
               </div>
               {dropdownItems.map(item => (
-                <div key={item.label} className={styles.commentAction} onClick={item.onClick}>
+                <div key={item.label} className={styles.commentAction} onClick={handleDropdownItemClick(item.onClick)}>
                   {React.isValidElement(item.icon)
                     ? React.cloneElement(item.icon, { 'data-testid': item.label })
                     : <Icon name={item.icon} dataTestId={item.label} />}
@@ -175,6 +179,7 @@ function Comment ({
         </div>}
       {editing && (
         <HyloEditor
+          type='comment'
           className={styles.editing}
           contentHTML={text}
           onEscape={handleEditCancel}

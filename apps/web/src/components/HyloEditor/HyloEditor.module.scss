@@ -153,9 +153,31 @@
   // iOS Safari zooms focused fields under 16px; overflow on contenteditable
   // ancestors breaks non-interactive selection handles.
   :global {
-    .HyloEditor_EditorContent1 {
+    body.comment-composer-active {
+      #detail-column,
+      #center-column {
+        // Extra scroll room so selection handles below the composer stay tappable
+        scroll-padding-bottom: 48px;
+      }
+    }
+
+    .CommentForm,
+    .CommentFormWrapper {
+      overflow: visible;
+    }
+
+    .CommentForm .HyloEditor_EditorContent1 {
       overflow: visible;
       max-height: none;
+    }
+
+    .CommentForm .ProseMirror {
+      font-size: 16px;
+      line-height: 1.4;
+      overflow: visible;
+      max-height: none;
+      touch-action: auto;
+      padding-bottom: 20px;
     }
 
     .HyloEditor_EditorContent1 .ProseMirror {

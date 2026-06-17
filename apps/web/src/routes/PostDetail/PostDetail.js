@@ -44,7 +44,7 @@ import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup
 import { cn } from 'util/index'
 import {
   createPersistentSelectionTracker,
-  isTextInteractionTarget
+  shouldBailTextSelectionGesture
 } from 'util/textSelectionTouch'
 import { removePostFromUrl } from '@hylo/navigation'
 import { getPostDetailCloseDestination, shouldUseSmartPostClose } from 'util/postDetailCloseNavigation'
@@ -234,6 +234,11 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const el = pullTouchRef.current
     if (!el) return
 
+    // PostDialog centers the post card; the comment box sits under the body (often
+    // mid-screen). Pull-to-close on the overlay runs at scrollTop=0 and steals
+    // vertical selection-handle drags. Close via the header X instead.
+    if (inPostDialog) return
+
     // The drag target is the dialog content wrapper (or the detail column if not in a dialog)
     const getDragTarget = () =>
       document.getElementById('post-dialog-content') || document.getElementById(DETAIL_COLUMN_ID)
@@ -299,7 +304,8 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
     const handleTouchStart = (e) => {
       if (!scrollContainer) return
-      if (isTextInteractionTarget(e.target)) return
+      if (shouldBailTextSelectionGesture(e.target)) return
+      if (selectionTracker.hasSelection) return
       touchStartY.current = e.touches[0].clientY
       touchStartScrollTop.current = scrollContainer.scrollTop
       touchStartAtBottom.current = isAtBottom(scrollContainer)
@@ -317,36 +323,42 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     const handleTouchMove = (e) => {
       if (touchStartY.current === null || touchStartScrollTop.current === null) return
       if (!scrollContainer || !dragTarget) return
-      // Don't trigger pull-to-close when the user is selecting or expanding text.
-      // touchStartedWithTextSelected uses the persistent flag so it survives the
-      // period where iOS clears getSelection() during a handle drag.
-      // elapsed >= 300ms catches the initial long-press before a selection exists.
-      const elapsed = Date.now() - (touchStartTime.current || 0)
-      if (touchStartedWithTextSelected.current || elapsed >= 300) return
+
+      // Abort pull tracking when the user is in the comment editor or expanding a selection.
+      // Re-check e.target — iOS selection handles may not match touchstart target.
+      if (
+        shouldBailTextSelectionGesture(e.target) ||
+        touchStartedWithTextSelected.current ||
+        selectionTracker.hasSelection
+      ) {
+        touchStartY.current = null
+        touchStartScrollTop.current = null
+        touchStartAtBottom.current = false
+        isDraggingDown.current = false
+        isDraggingUp.current = false
+        resetStyles()
+        return
+      }
 
       const currentY = e.touches[0].clientY
       const rawDelta = currentY - touchStartY.current
 
-      // Pull DOWN to close (at top)
-      if (rawDelta > 0 && scrollContainer.scrollTop <= 0 && touchStartScrollTop.current <= 0) {
+      // Pull DOWN to close (at top). Skip while the comment composer is active —
+      // vertical handle drags look like pull-down when scrollTop is 0 (PostDialog).
+      if (
+        rawDelta > 0 &&
+        scrollContainer.scrollTop <= 0 &&
+        touchStartScrollTop.current <= 0 &&
+        !document.body.classList.contains('comment-composer-active')
+      ) {
         e.preventDefault()
         isDraggingDown.current = true
         isDraggingUp.current = false
         const dampened = rawDelta * 0.45
         const progress = Math.min(dampened / PULL_THRESHOLD, 1.5)
         applyDragStyles(dampened, progress, 'down')
-      // Pull UP to close (at bottom)
-      } else if (rawDelta < 0 && isAtBottom(scrollContainer) && touchStartAtBottom.current) {
-        e.preventDefault()
-        isDraggingUp.current = true
+      } else if (isDraggingDown.current) {
         isDraggingDown.current = false
-        const absDelta = Math.abs(rawDelta)
-        const dampened = absDelta * 0.45
-        const progress = Math.min(dampened / PULL_THRESHOLD, 1.5)
-        applyDragStyles(dampened, progress, 'up')
-      } else if (isDraggingDown.current || isDraggingUp.current) {
-        isDraggingDown.current = false
-        isDraggingUp.current = false
         resetStyles()
       }
     }
@@ -420,7 +432,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       }
     }
   // Re-run when post loads (ref won't be set until post renders the JSX)
-  }, [postId, !!post])
+  }, [postId, !!post, inPostDialog])
 
   const scrollToBottom = useCallback(() => {
     const detail = document.getElementById(DETAIL_COLUMN_ID)

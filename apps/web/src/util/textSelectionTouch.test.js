@@ -1,5 +1,7 @@
 import {
   hasActiveTextSelection,
+  isCommentComposerTarget,
+  isSelectionInPostDetailEditor,
   isTextInteractionTarget,
   createPersistentSelectionTracker
 } from './textSelectionTouch'
@@ -63,6 +65,47 @@ describe('isTextInteractionTarget', () => {
   })
 })
 
+describe('isCommentComposerTarget', () => {
+  it('returns true for elements inside CommentForm', () => {
+    const form = document.createElement('div')
+    form.className = 'CommentForm'
+    const child = document.createElement('span')
+    form.appendChild(child)
+    document.body.appendChild(form)
+
+    expect(isCommentComposerTarget(child)).toBe(true)
+    document.body.removeChild(form)
+  })
+})
+
+describe('isSelectionInPostDetailEditor', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+    window.getSelection()?.removeAllRanges()
+  })
+
+  it('returns true when selection is inside a post-detail comment editor', () => {
+    const postDetail = document.createElement('div')
+    postDetail.className = 'PostDetail'
+    const form = document.createElement('div')
+    form.className = 'CommentForm'
+    const editor = document.createElement('div')
+    editor.className = 'ProseMirror'
+    const p = document.createElement('p')
+    p.textContent = 'hello world'
+    editor.appendChild(p)
+    form.appendChild(editor)
+    postDetail.appendChild(form)
+    document.body.appendChild(postDetail)
+
+    const range = document.createRange()
+    range.selectNodeContents(p)
+    window.getSelection().addRange(range)
+
+    expect(isSelectionInPostDetailEditor()).toBe(true)
+  })
+})
+
 describe('createPersistentSelectionTracker', () => {
   afterEach(() => {
     document.body.innerHTML = ''
@@ -89,7 +132,7 @@ describe('createPersistentSelectionTracker', () => {
 
     expect(tracker.hasSelection).toBe(true)
 
-    jest.advanceTimersByTime(150)
+    jest.advanceTimersByTime(300)
     expect(tracker.hasSelection).toBe(false)
 
     tracker.destroy()

@@ -142,6 +142,16 @@ const HyloEditor = React.forwardRef(({
     Video
   ]
 
+  const commentComposerTouchProps = type === 'comment'
+    ? {
+        handleDOMEvents: {
+          touchstart: () => false,
+          touchmove: () => false,
+          touchend: () => false
+        }
+      }
+    : {}
+
   const editor = useEditor({
     content: contentHTML,
     extensions,
@@ -170,7 +180,8 @@ const HyloEditor = React.forwardRef(({
           return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
         }
         return html
-      }
+      },
+      ...commentComposerTouchProps
     }
   })
 
