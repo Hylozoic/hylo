@@ -131,6 +131,12 @@ describe('Post', function () {
       .then(visible => expect(visible).to.be.true)
     })
 
+    it('is false if the post is public but type is chat', () => {
+      return post.save({ is_public: true, type: Post.Type.CHAT }, { patch: true })
+      .then(() => Post.isVisibleToUser(post.id, user.id))
+      .then(visible => expect(visible).to.be.false)
+    })
+
     it('is false if the user is not connected by group', () => {
       return Post.isVisibleToUser(post.id, user.id)
       .then(visible => expect(visible).to.be.false)

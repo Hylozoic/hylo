@@ -2,7 +2,9 @@ import { merge, pick } from 'lodash'
 import { getOr } from 'lodash/fp'
 
 export default async function setupPostAttrs (userId, params, create = false) {
-  if (params.isPublic) {
+  if (params.type === Post.Type.CHAT) {
+    params.isPublic = false
+  } else if (params.isPublic) {
     // Don't allow creating a public post unless at least one of the post's groups has allow_in_public set to true
     const groups = await Group.query(q => q.whereIn('id', params.group_ids)).fetchAll()
     const allowedToMakePublic = groups.find(g => g.get('allow_in_public'))

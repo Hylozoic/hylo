@@ -166,10 +166,15 @@ export const postFilter = (userId, isAdmin) => relation => {
       // non authenticated queries can only see public posts
       q.where('posts.is_public', true)
     } else if (!isAdmin) {
-      // Only show posts that are public or posted to a group the user is a member of
+      // Only show posts that are public or posted to a group the user is a member of.
+      // Chat posts always require group membership — is_public does not bypass that.
       q.where(q3 => {
         const selectIdsForMember = Group.selectIdsForMember(userId)
-        q3.whereIn('groups_posts.group_id', selectIdsForMember).orWhere('posts.is_public', true)
+        q3.whereIn('groups_posts.group_id', selectIdsForMember)
+          .orWhere(q4 => {
+            q4.where('posts.is_public', true)
+            q4.whereNot('posts.type', Post.Type.CHAT)
+          })
       })
 
       // Don't show posts from blocked users
@@ -187,8 +192,11 @@ export const reactionFilter = userId => relation => {
     q.andWhere('reactions.entity_type', 'post')
     q.andWhere(q2 => {
       const selectIdsForMember = Group.selectIdsForMember(userId)
-      q.whereIn('groups_posts.group_id', selectIdsForMember)
-      q.orWhere('posts.is_public', true)
+      q2.whereIn('groups_posts.group_id', selectIdsForMember)
+        .orWhere(q3 => {
+          q3.where('posts.is_public', true)
+          q3.whereNot('posts.type', Post.Type.CHAT)
+        })
     })
   })
 }

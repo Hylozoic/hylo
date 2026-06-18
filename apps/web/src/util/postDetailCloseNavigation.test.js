@@ -31,11 +31,48 @@ describe('getPostDetailCloseDestination', () => {
     })
   })
 
+  it('single group + not a member + not public → /my/groups', () => {
+    const me = meWithGroups([])
+    const post = { isPublic: false, groups: [{ id: '10', slug: 'alpha' }] }
+    expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
+      pathname: '/my/groups',
+      search: ''
+    })
+  })
+
   it('single group + not a member + public → /public/stream', () => {
     const me = meWithGroups([])
     const post = { isPublic: true, groups: [{ id: '10', slug: 'alpha' }] }
     expect(getPostDetailCloseDestination({ ...base, post, me })).toEqual({
       pathname: '/public/stream',
+      search: ''
+    })
+  })
+
+  it('member of URL group preserves chat context on close', () => {
+    const me = meWithGroups(['10'])
+    const post = { isPublic: false, type: 'chat', groups: [{ id: '10', slug: 'alpha' }] }
+    expect(getPostDetailCloseDestination({
+      pathname: '/groups/alpha/chat/general/post/99',
+      search: '?commentId=5',
+      post,
+      me,
+      groupSlug: 'alpha'
+    })).toEqual({
+      pathname: '/groups/alpha/chat/general',
+      search: ''
+    })
+  })
+
+  it('non-member closing a chat post goes to /my/groups', () => {
+    const me = meWithGroups([])
+    const post = { isPublic: true, type: 'chat', groups: [{ id: '10', slug: 'alpha' }] }
+    expect(getPostDetailCloseDestination({
+      pathname: '/groups/alpha/chat/general/post/99',
+      post,
+      me
+    })).toEqual({
+      pathname: '/my/groups',
       search: ''
     })
   })

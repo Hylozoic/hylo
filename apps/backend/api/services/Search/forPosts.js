@@ -1,6 +1,6 @@
 import { get } from 'lodash'
 import { countTotal } from '../../../lib/util/knex'
-import { filterAndSortPosts } from './util'
+import { filterAndSortPosts, isChatPostsFilter, restrictChatPostsToMembers } from './util'
 
 export default function forPosts (opts) {
   return Post.query(qb => {
@@ -114,6 +114,13 @@ export default function forPosts (opts) {
       qb.queryContext({ alreadyJoinedGroupPosts: true }) // Track this so we don't double join in filters.js
       qb.join('groups', 'groups_posts.group_id', '=', 'groups.id')
       qb.whereIn('groups.slug', opts.groupSlugs)
+    }
+
+    if (isChatPostsFilter(opts) && (opts.groupSlugs?.length || opts.groupIds?.length)) {
+      if (!qb.queryContext()?.alreadyJoinedGroupPosts) {
+        qb.join('groups_posts', 'groups_posts.post_id', '=', 'posts.id')
+      }
+      restrictChatPostsToMembers(qb, { userId: opts.currentUserId })
     }
 
     if (get(opts.groupIds, 'length') !== 1) {

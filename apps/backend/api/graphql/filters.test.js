@@ -152,7 +152,7 @@ describe('model filters', () => {
         where "posts"."active" = true
         and ("groups_posts"."group_id" in
           ${myGroupIdsSqlFragment(myId)}
-          or "posts"."is_public" = true
+          or ("posts"."is_public" = true and not "posts"."type" = 'chat')
         )
         and "posts"."user_id" not in ${blockedUserSqlFragment(myId)}`)
     })

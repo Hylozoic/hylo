@@ -99,9 +99,10 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
       pathname: location.pathname,
       search: location.search,
       post,
-      me: currentUser
+      me: currentUser,
+      groupSlug
     })
-  }, [post, location.pathname, location.search, currentUser])
+  }, [post, location.pathname, location.search, currentUser, groupSlug])
 
   useLayoutEffect(() => {
     postFetchStartedRef.current = null
@@ -132,7 +133,7 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
-  const useSmartPostClose = shouldUseSmartPostClose(view) && !inPostDialog
+  const useSmartPostClose = shouldUseSmartPostClose(view)
   useEffect(() => {
     if (!isIsolatedPostView) return
     const postType = post?.type || 'post'
@@ -190,12 +191,19 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
         pathname: location.pathname,
         search: location.search,
         post,
-        me: currentUser
+        me: currentUser,
+        groupSlug
       })
       : null
-    if (!dest) return
-    navigate(dest)
-  }, [useSmartPostClose, navigate, post, currentUser, location.pathname, location.search])
+    if (dest) {
+      navigate(dest)
+      return
+    }
+    navigate({
+      pathname: removePostFromUrl(location.pathname) || '/',
+      search: ''
+    })
+  }, [useSmartPostClose, navigate, post, currentUser, groupSlug, location.pathname, location.search])
 
   const attemptClose = useCallback(() => {
     if (inPostDialog && commentFormRef.current?.hasUnsavedContent?.()) {

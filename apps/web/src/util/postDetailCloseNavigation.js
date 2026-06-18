@@ -1,4 +1,4 @@
-import { removePostFromUrl, groupUrl } from '@hylo/navigation'
+import { removePostFromUrl, groupUrl, getGroupslugFromPath } from '@hylo/navigation'
 import { isPhoneDevice } from 'util/mobile'
 
 /**
@@ -40,9 +40,10 @@ export function meMembershipsReady (me) {
  * @param {string} [opts.search]
  * @param {{ groups?: { id: string|number, slug?: string }[], isPublic?: boolean }|null} opts.post
  * @param {object|null|undefined} opts.me
+ * @param {string} [opts.groupSlug] Group slug from the current URL (when in-context)
  * @returns {{ pathname: string, search: string }|null} null when Me memberships are not ready yet
  */
-export function getPostDetailCloseDestination ({ pathname, search = '', post, me }) {
+export function getPostDetailCloseDestination ({ pathname, search = '', post, me, groupSlug }) {
   const stripped = removePostFromUrl(pathname) || '/'
   const fallback = { pathname: stripped, search: search || '' }
 
@@ -53,15 +54,26 @@ export function getPostDetailCloseDestination ({ pathname, search = '', post, me
 
   const myIds = new Set(memberGroupIdsFromMe(me))
   const memberOf = groups.filter(g => myIds.has(String(g.id)))
-  const isPublic = !!post.isPublic
+  const isPublic = !!post.isPublic && post.type !== 'chat'
   const nG = groups.length
   const nM = memberOf.length
+  const urlGroupSlug = groupSlug || getGroupslugFromPath(pathname)
+
+  // Member of the group named in the URL — close back into that stream/chat context.
+  if (urlGroupSlug && memberOf.some(g => g.slug === urlGroupSlug)) {
+    return { pathname: stripped, search: '' }
+  }
+
+  // Chat posts are only reachable inside a group the user belongs to.
+  if (post.type === 'chat' && nM === 0) {
+    return { pathname: '/my/groups', search: '' }
+  }
 
   if (nG === 1) {
     if (nM === 1 && groups[0].slug) {
       return { pathname: groupUrl(groups[0].slug, 'stream'), search: '' }
     }
-    if (!isPublic) return fallback
+    if (!isPublic) return { pathname: '/my/groups', search: '' }
     return { pathname: '/public/stream', search: '' }
   }
 

@@ -3,6 +3,30 @@ import { chain, curry, includes, isEmpty, values } from 'lodash'
 import { DateTime } from 'luxon'
 import addTermToQueryBuilder from './addTermToQueryBuilder'
 
+// Returns true when a posts query is scoped to chat-room content
+export function isChatPostsFilter ({ filter, type, types } = {}) {
+  if (filter === 'chat' || type === 'chat') return true
+  return !!(types?.includes('chat') || types?.includes(Post.Type.CHAT))
+}
+
+// Chat posts are only visible through group relations when the user is a member
+export function restrictChatPostsToMembers (q, { userId, groupId }) {
+  if (!userId) {
+    q.whereRaw('false')
+    return
+  }
+
+  const membershipQuery = GroupMembership.query()
+    .select('group_id')
+    .where({ user_id: userId, active: true })
+
+  if (groupId) {
+    membershipQuery.where({ group_id: groupId })
+  }
+
+  q.whereIn('groups_posts.group_id', membershipQuery)
+}
+
 export const filterAndSortPosts = curry((opts, q) => {
   const {
     activePostsOnly = false,

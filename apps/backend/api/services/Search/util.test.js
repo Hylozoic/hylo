@@ -1,5 +1,6 @@
-import { filterAndSortPosts, filterAndSortGroups } from './util'
+import { filterAndSortPosts, filterAndSortGroups, isChatPostsFilter, restrictChatPostsToMembers } from './util'
 import { expectEqualQuery } from '../../../test/setup/helpers'
+import factories from '../../../test/setup/factories'
 
 describe('filterAndSortPosts', () => {
   let relation, query
@@ -61,6 +62,40 @@ describe('filterAndSortPosts', () => {
     expectEqualQuery(relation, `select * from "posts"
       where "posts"."type" in ('discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource')
       order by "posts"."updated_at" desc`)
+  })
+})
+
+describe('isChatPostsFilter', () => {
+  it('detects chat filter values', () => {
+    expect(isChatPostsFilter({ filter: 'chat' })).to.be.true
+    expect(isChatPostsFilter({ type: 'chat' })).to.be.true
+    expect(isChatPostsFilter({ types: ['chat'] })).to.be.true
+    expect(isChatPostsFilter({ filter: 'discussion' })).to.be.false
+  })
+})
+
+describe('restrictChatPostsToMembers', () => {
+  it('excludes chat posts when user is not a group member', async () => {
+    const member = await factories.user().save()
+    const outsider = await factories.user().save()
+    const group = await factories.group({ visibility: Group.Visibility.PUBLIC }).save()
+    await member.joinGroup(group)
+    const post = await factories.post({ type: Post.Type.CHAT, user_id: member.id }).save()
+    await group.posts().attach(post)
+
+    const outsiderPosts = await group.posts().query(q => {
+      restrictChatPostsToMembers(q, { userId: outsider.id, groupId: group.id })
+      filterAndSortPosts({ type: 'chat' }, q)
+    }).fetch()
+
+    expect(outsiderPosts.length).to.equal(0)
+
+    const memberPosts = await group.posts().query(q => {
+      restrictChatPostsToMembers(q, { userId: member.id, groupId: group.id })
+      filterAndSortPosts({ type: 'chat' }, q)
+    }).fetch()
+
+    expect(memberPosts.models.map(p => p.id)).to.include(post.id)
   })
 })
 

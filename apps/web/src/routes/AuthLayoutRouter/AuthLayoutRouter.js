@@ -100,6 +100,8 @@ function isFastPathPostDetailUrl (pathname) {
   return (
     /\/stream\/post\/\d+/.test(pathname) ||
     /\/map\/post\/\d+/.test(pathname) ||
+    /\/chat\/[^/]+\/post\/\d+/.test(pathname) ||
+    /\/topics\/[^/]+\/post\/\d+/.test(pathname) ||
     /^\/groups\/[^/]+\/post\/\d+(\/|$)/.test(pathname) ||
     /^\/(all|public|my)\/post\/\d+(\/|$)/.test(pathname) ||
     /^\/members\/[^/]+\/post\/\d+(\/|$)/.test(pathname)
@@ -631,6 +633,10 @@ export default function AuthLayoutRouter (props) {
   // In-context post deep links render during bootstrap so PostDialog / PostDetail can paint
   // while fetchForCurrentUser runs in parallel. All other routes wait for bootstrap to finish.
   const fastPathPostDetail = isFastPathPostDetailUrl(location.pathname)
+  const foreignGroupPostView =
+    paramPostId &&
+    currentGroupSlug &&
+    (currentUserLoading || (currentUser && !currentGroupMembership))
   if (!fastPathPostDetail && currentUserLoading) {
     return (
       <div data-testid='loading-screen' className={cn('flex flex-row items-stretch bg-midground h-full', { 'h-[100dvh]': isMobile.any })}>
@@ -676,14 +682,23 @@ export default function AuthLayoutRouter (props) {
     !currentUserLoading &&
     currentUser &&
     !currentGroupMembership &&
-    hasDetail &&
     paramPostId &&
     currentGroupSlug
   ) {
-    /* There are times when users will be send to a path where they have access to the POST on that path but not to the GROUP on that path
-      This redirect replaces the non-accessible groupSlug from the path with '/all', for a better UI experience
-    */
-    return <Navigate to={postUrl(paramPostId, { context: 'all', groupSlug: null })} />
+    const commentId = getQuerystringParam('commentId', location)
+    const isChatPostUrl = /\/chat\/[^/]+\/post\/\d+/.test(location.pathname)
+    // Chat posts require group membership — non-members should not load the post at all.
+    if (isChatPostUrl) {
+      return <Navigate to={`/groups/${currentGroupSlug}/about`} replace />
+    }
+    // User may access a public stream post but not the group in the URL — open at /post/:id
+    // so Stream/ChatRoom for that group never mounts behind the detail view.
+    return (
+      <Navigate
+        to={postUrl(paramPostId, { context: '' }, commentId ? { commentId } : {})}
+        replace
+      />
+    )
   }
 
   // Looking at a group that doesn't exist or current user doesn't have access to it.
@@ -900,46 +915,49 @@ export default function AuthLayoutRouter (props) {
                     /* When viewing a group, check membership first before rendering any group routes.
                        Skip the loading gate for post-detail URLs so PostDetail can render immediately
                        (post may be pre-fetched during bootstrap). Otherwise show route-shaped skeletons
-                       instead of a bare spinner. */
-                    currentGroupLoading && !paramPostId
+                       instead of a bare spinner. While Me is still loading, or when the user is not a
+                       member of the URL group but is viewing a post there, keep group routes unmounted. */
+                    foreignGroupPostView
                       ? <RouteBootstrapSkeleton />
-                      : currentGroupSlug && !currentGroupMembership && !paramPostId
-                        ? <GroupDetail context='groups' group={currentGroup} />
-                        : (
-                          <Routes>
-                            <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
-                            <Route path='welcome/*' element={<GroupWelcomePage />} />
-                            <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
-                            <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
-                            <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
-                            <Route path='events/*' element={<Stream context='groups' view='events' />} />
-                            <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
-                            <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
-                            <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
-                            <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
-                            <Route path='explore/*' element={<LandingPage />} />
-                            <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
-                            <Route path='groups/*' element={<Groups context='groups' />} />
-                            <Route path='members/create/*' element={<Members context='groups' />} />
-                            <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
-                            <Route path='members/*' element={<Members context='groups' />} />
-                            <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
-                            <Route path='topics' element={<AllTopics context='groups' />} />
-                            <Route path='tracks/:trackId/*' element={<TrackHome />} />
-                            <Route path='tracks/*' element={<Tracks />} />
-                            <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
-                            <Route path='funding-rounds/*' element={<FundingRounds />} />
-                            <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
-                            <Route path='payment/success' element={<PaymentSuccess />} />
-                            <Route path='payment/cancel' element={<PaymentFailure />} />
-                            <Route path='payment/failure' element={<PaymentFailure />} />
-                            <Route path='settings/*' element={<GroupSettings context='groups' />} />
-                            <Route path='all-views' element={<AllView context='groups' />} />
-                            <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
-                            <Route path='moderation/*' element={<Moderation context='groups' />} />
-                            <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
-                          </Routes>
-                          )
+                      : currentGroupLoading && !paramPostId
+                        ? <RouteBootstrapSkeleton />
+                        : currentGroupSlug && !currentGroupMembership && !paramPostId
+                          ? <GroupDetail context='groups' group={currentGroup} />
+                          : (
+                            <Routes>
+                              <Route path='about/*' element={<GroupDetail context='groups' forCurrentGroup />} />
+                              <Route path='welcome/*' element={<GroupWelcomePage />} />
+                              <Route path='map/*' element={<MapExplorer context='groups' view='map' />} />
+                              <Route path='stream/*' element={<Stream context='groups' view='stream' />} />
+                              <Route path='discussions/*' element={<Stream context='groups' view='discussions' />} />
+                              <Route path='events/*' element={<Stream context='groups' view='events' />} />
+                              <Route path='resources/*' element={<Stream context='groups' view='resources' />} />
+                              <Route path='projects/*' element={<Stream context='groups' view='projects' />} />
+                              <Route path='proposals/*' element={<Stream context='groups' view='proposals' />} />
+                              <Route path='requests-and-offers/*' element={<Stream context='groups' view='requests-and-offers' />} />
+                              <Route path='explore/*' element={<LandingPage />} />
+                              <Route path='custom/:customViewId/*' element={<Stream context='groups' view='custom' />} />
+                              <Route path='groups/*' element={<Groups context='groups' />} />
+                              <Route path='members/create/*' element={<Members context='groups' />} />
+                              <Route path='members/:personId/*' element={<MemberProfile context='groups' />} />
+                              <Route path='members/*' element={<Members context='groups' />} />
+                              <Route path='topics/:topicName/*' element={<Stream context='groups' />} />
+                              <Route path='topics' element={<AllTopics context='groups' />} />
+                              <Route path='tracks/:trackId/*' element={<TrackHome />} />
+                              <Route path='tracks/*' element={<Tracks />} />
+                              <Route path='funding-rounds/:fundingRoundId/*' element={<FundingRoundHome />} />
+                              <Route path='funding-rounds/*' element={<FundingRounds />} />
+                              <Route path='chat/:topicName/*' element={<ChatRoom context='groups' />} />
+                              <Route path='payment/success' element={<PaymentSuccess />} />
+                              <Route path='payment/cancel' element={<PaymentFailure />} />
+                              <Route path='payment/failure' element={<PaymentFailure />} />
+                              <Route path='settings/*' element={<GroupSettings context='groups' />} />
+                              <Route path='all-views' element={<AllView context='groups' />} />
+                              <Route path={POST_DETAIL_MATCH} element={<PostDetail />} />
+                              <Route path='moderation/*' element={<Moderation context='groups' />} />
+                              <Route path='*' element={<Navigate to={`/groups/${currentGroupSlug}${currentGroup?.homeRoute || '/stream'}`} replace />} />
+                            </Routes>
+                            )
                     }
                 />
                 {/* **** My Routes **** */}

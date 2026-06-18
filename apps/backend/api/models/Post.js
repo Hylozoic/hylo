@@ -921,7 +921,8 @@ module.exports = bookshelf.Model.extend(Object.assign({
   isVisibleToUser: async function (postId, userId) {
     if (!postId || !userId) return Promise.resolve(false)
     const post = await Post.find(postId)
-    if (post.isPublic()) return true
+    // Chat posts are never visible outside group membership, even if is_public is set.
+    if (post.isPublic() && !post.isChat()) return true
 
     const postGroupIds = await PostMembership.query()
       .where({ post_id: postId }).pluck('group_id')

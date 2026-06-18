@@ -19,7 +19,9 @@ import InvitationService from '../services/InvitationService'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
-  filterAndSortUsers
+  filterAndSortUsers,
+  isChatPostsFilter,
+  restrictChatPostsToMembers
 } from '../services/Search/util'
 const { createGroupRoleScope } = require('../../lib/scopes')
 const {
@@ -734,25 +736,33 @@ export default function makeModels (userId, isAdmin, apiClient) {
               topics,
               types
             }) =>
-              relation.query(filterAndSortPosts({
-                activePostsOnly,
-                afterTime,
-                beforeTime,
-                boundingBox,
-                collectionToFilterOut,
-                cursor,
-                forCollection,
-                isAnnouncement,
-                isFulfilled,
-                order,
-                search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
-                sortBy,
-                topic,
-                topics,
-                type: filter,
-                types
-              }))
+              relation.query(q => {
+                if (isChatPostsFilter({ filter, types })) {
+                  restrictChatPostsToMembers(q, {
+                    userId,
+                    groupId: relation.relatedData.parentId
+                  })
+                }
+                filterAndSortPosts({
+                  activePostsOnly,
+                  afterTime,
+                  beforeTime,
+                  boundingBox,
+                  collectionToFilterOut,
+                  cursor,
+                  forCollection,
+                  isAnnouncement,
+                  isFulfilled,
+                  order,
+                  search,
+                  showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
+                  sortBy,
+                  topic,
+                  topics,
+                  type: filter,
+                  types
+                })(q)
+              })
           }
         },
         {
@@ -841,23 +851,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
             querySet: true,
             arguments: () => [userId],
             filter: (relation, { activePostsOnly = false, afterTime, beforeTime, boundingBox, collectionToFilterOut, filter, forCollection, isFulfilled, order, search, sortBy, topic, topics, types }) =>
-              relation.query(filterAndSortPosts({
-                activePostsOnly,
-                afterTime,
-                beforeTime,
-                boundingBox,
-                collectionToFilterOut,
-                forCollection,
-                isFulfilled,
-                order,
-                search,
-                showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
-                sortBy,
-                topic,
-                topics,
-                type: filter,
-                types
-              }))
+              relation.query(q => {
+                if (isChatPostsFilter({ filter, types })) {
+                  restrictChatPostsToMembers(q, { userId })
+                }
+                filterAndSortPosts({
+                  activePostsOnly,
+                  afterTime,
+                  beforeTime,
+                  boundingBox,
+                  collectionToFilterOut,
+                  forCollection,
+                  isFulfilled,
+                  order,
+                  search,
+                  showPinnedFirst: false, // XXX: we have removed pinning for now, but plan to bring back.
+                  sortBy,
+                  topic,
+                  topics,
+                  type: filter,
+                  types
+                })(q)
+              })
           }
         },
         { widgets: { querySet: true } },
