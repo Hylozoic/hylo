@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 
 /**
@@ -17,11 +17,16 @@ export default function UnsavedDraftLeaveDialog ({
   saveDraftLabel = 'Save',
   discardLabel = 'Discard'
 }) {
+  const portalContainer = useMemo(
+    () => (typeof document !== 'undefined' ? document.getElementById('center-column-container') : null),
+    []
+  )
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className='fixed inset-0 bg-black/50 z-[100] backdrop-blur-sm' />
-        <Dialog.Content className='fixed inset-0 z-[100] flex items-center justify-center p-4'>
+      <Dialog.Portal container={portalContainer}>
+        <Dialog.Overlay className='fixed inset-0 bg-black/50 z-[200] backdrop-blur-sm' />
+        <Dialog.Content className='fixed inset-0 z-[200] flex items-center justify-center p-4'>
           <div className='bg-background text-foreground rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4'>
             <Dialog.Title className='text-lg font-semibold'>{title}</Dialog.Title>
             <Dialog.Description className='text-sm text-foreground/70'>{description}</Dialog.Description>
