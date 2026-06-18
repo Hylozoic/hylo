@@ -1,5 +1,6 @@
 .container {
-
+  -webkit-user-select: text;
+  user-select: text;
 
   .action-bar {
     display: none;
@@ -127,6 +128,7 @@
 
 .postContentContainer {
   margin-left: 42px;
+  overflow: visible;
   p {
     margin: 3px 0;
   }
@@ -237,10 +239,5 @@
 @media screen and (max-width: 410px) {
   .postContentContainer {
     margin-left: 35px;
-  }
-
-  .container {
-    -webkit-user-select: text;
-    user-select: text;
   }
 }

@@ -1,7 +1,7 @@
 const SELECTION_CLEAR_DEBOUNCE_MS = 300
 const TEXT_NODE = 3
 
-const READABLE_CONTENT_SELECTOR = '.global-postContent, .PostDetail, .ProseMirror, [contenteditable="true"], textarea, input'
+const READABLE_CONTENT_SELECTOR = '.global-postContent, .PostDetail, .ChatPost_container, .ChatRoom, .ProseMirror, [contenteditable="true"], textarea, input'
 
 /**
  * Returns true when the user has selected text in the document, a contenteditable,
