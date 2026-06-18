@@ -1,0 +1,138 @@
+import { ExpoConfig, ConfigContext } from 'expo/config'
+
+const API_HOST = process.env.API_HOST ?? 'http://localhost:3001'
+const HYLO_WEB_BASE_URL = process.env.HYLO_WEB_BASE_URL ?? 'http://localhost:3000'
+const SESSION_COOKIE_KEY = process.env.SESSION_COOKIE_KEY ?? 'hylo_session_cookie'
+const AUTH_DEBUG = process.env.AUTH_DEBUG ?? 'false'
+const IOS_GOOGLE_CLIENT_ID = process.env.IOS_GOOGLE_CLIENT_ID ?? ''
+const WEB_GOOGLE_CLIENT_ID = process.env.WEB_GOOGLE_CLIENT_ID ?? ''
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID ?? ''
+const ONESIGNAL_APN_MODE = process.env.ONESIGNAL_APN_MODE === 'production' ? 'production' : 'development'
+const SENTRY_DSN_URL = process.env.SENTRY_DSN_URL ?? ''
+const SENTRY_DEV_DSN_URL = process.env.SENTRY_DEV_DSN_URL ?? ''
+const INTERCOM_APP_ID = process.env.INTERCOM_APP_ID ?? ''
+const INTERCOM_IOS_API_KEY = process.env.INTERCOM_IOS_API_KEY ?? ''
+const INTERCOM_ANDROID_API_KEY = process.env.INTERCOM_ANDROID_API_KEY ?? ''
+const MIXPANEL_TOKEN = process.env.MIXPANEL_TOKEN ?? ''
+const IOS_BUNDLE_ID = 'com.hylo.HyloLeap'
+
+function getIosUrlScheme (iosGoogleClientId: string): string | undefined {
+  const match = iosGoogleClientId.match(/^([\w-]+)\.apps\.googleusercontent\.com$/)
+  if (!match) return undefined
+  return `com.googleusercontent.apps.${match[1]}`
+}
+
+const iosUrlScheme = getIosUrlScheme(IOS_GOOGLE_CLIENT_ID)
+
+function buildPlugins (): NonNullable<ExpoConfig['plugins']> {
+  const plugins: NonNullable<ExpoConfig['plugins']> = []
+
+  if (INTERCOM_APP_ID && INTERCOM_IOS_API_KEY && INTERCOM_ANDROID_API_KEY) {
+    plugins.push([
+      '@intercom/intercom-react-native',
+      {
+        appId: INTERCOM_APP_ID,
+        iosApiKey: INTERCOM_IOS_API_KEY,
+        androidApiKey: INTERCOM_ANDROID_API_KEY
+      }
+    ])
+  }
+
+  if (ONESIGNAL_APP_ID) {
+    plugins.push(['onesignal-expo-plugin', { mode: ONESIGNAL_APN_MODE }])
+  }
+
+  plugins.push(
+    'expo-dev-client',
+    'expo-asset',
+    'expo-apple-authentication',
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          extraPods: [
+            { name: 'AppAuth', modular_headers: true },
+            { name: 'GTMAppAuth', modular_headers: true },
+            { name: 'GTMSessionFetcher', modular_headers: true },
+            { name: 'GoogleUtilities', modular_headers: true },
+            { name: 'RecaptchaInterop', modular_headers: true }
+          ]
+        }
+      }
+    ],
+    iosUrlScheme
+      ? ['@react-native-google-signin/google-signin', { iosUrlScheme }]
+      : '@react-native-google-signin/google-signin'
+  )
+
+  if (process.env.SENTRY_ORG && process.env.SENTRY_PROJECT) {
+    plugins.push([
+      '@sentry/react-native/expo',
+      {
+        organization: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT
+      }
+    ])
+  }
+
+  return plugins
+}
+
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
+  name: 'Hylo',
+  slug: 'hylo-mobile-leap',
+  scheme: 'hyloapp',
+  version: '1.0.0',
+  orientation: 'portrait',
+  icon: './assets/icon.png',
+  userInterfaceStyle: 'automatic',
+  newArchEnabled: true,
+  splash: {
+    image: './assets/splash-icon.png',
+    resizeMode: 'contain',
+    backgroundColor: '#ffffff'
+  },
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: IOS_BUNDLE_ID,
+    ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
+    ...(ONESIGNAL_APP_ID
+      ? {
+          infoPlist: { UIBackgroundModes: ['remote-notification'] },
+          entitlements: {
+            'aps-environment': ONESIGNAL_APN_MODE,
+            'com.apple.security.application-groups': [`group.${IOS_BUNDLE_ID}.onesignal`]
+          }
+        }
+      : {})
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: './assets/android-icon-foreground.png',
+      backgroundImage: './assets/android-icon-background.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
+      backgroundColor: '#E6F4FE'
+    },
+    package: 'com.hylo.hyloleap'
+  },
+  plugins: buildPlugins(),
+  extra: {
+    API_HOST,
+    HYLO_WEB_BASE_URL,
+    SESSION_COOKIE_KEY,
+    AUTH_DEBUG: AUTH_DEBUG === 'true',
+    IOS_GOOGLE_CLIENT_ID,
+    WEB_GOOGLE_CLIENT_ID,
+    ONESIGNAL_APP_ID,
+    SENTRY_DSN_URL,
+    SENTRY_DEV_DSN_URL,
+    INTERCOM_APP_ID,
+    INTERCOM_IOS_API_KEY,
+    INTERCOM_ANDROID_API_KEY,
+    MIXPANEL_TOKEN,
+    eas: {
+      projectId: process.env.EAS_PROJECT_ID
+    }
+  }
+})
