@@ -277,12 +277,16 @@ export default function Stream (props) {
   const posts = useMemo(() => postsSelector.map(p => presentPost(p, groupId)), [groupId, postsSelector])
   const hasMore = useSelector(state => getHasMorePosts(state, fetchPostsParam))
   const pending = useSelector(state => state.pending[FETCH_POSTS])
+  const pendingRef = useRef(pending)
+  pendingRef.current = pending
+  const hasMoreRef = useRef(hasMore)
+  hasMoreRef.current = hasMore
 
   const fetchPostsFrom = useCallback((offset) => {
-    if (pending && offset > 0) return
-    if (hasMore === false && offset > 0) return
+    if (pendingRef.current && offset > 0) return
+    if (hasMoreRef.current === false && offset > 0) return
     dispatch(fetchPosts({ offset, ...fetchPostsParam }))
-  }, [dispatch, pending, hasMore, fetchPostsParam])
+  }, [dispatch, fetchPostsParam])
 
   const postDialogOpen = useMemo(
     () => /\/post\/\d+/.test(location.pathname),
