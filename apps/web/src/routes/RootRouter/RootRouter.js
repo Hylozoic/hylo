@@ -141,7 +141,11 @@ export default function RootRouter () {
         navigate(path)
       })
     }
-  }, [runCheckLogin, navigate])
+    // Mount-only: `navigate` is intentionally omitted. In the non-data router this app
+    // uses, `useNavigate()` returns a new identity on every route change, so including it
+    // here would re-run `checkLogin` on every in-app navigation — flashing the root spinner
+    // and remounting AuthLayoutRouter (its bootstrap skeleton) on each transition.
+  }, [runCheckLogin])
 
   // Native re-minted the session cookie — re-run checkLogin without a full page reload.
   useEffect(() => {
