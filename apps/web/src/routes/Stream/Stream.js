@@ -291,6 +291,13 @@ export default function Stream (props) {
   const prevPostDialogOpenRef = useRef(postDialogOpen)
   const fetchPostsParamAtDialogOpenRef = useRef(fetchPostsParam)
 
+  const streamPostsReady = posts.length > 0
+  const canFetchStreamPosts = useCallback(() => {
+    if (isDraftsView) return false
+    return (!customViewId || customView?.type === 'stream' || customView?.type === 'collection') &&
+      (!topicName || topic)
+  }, [isDraftsView, customViewId, customView?.type, topicName, topic])
+
   useEffect(() => {
     if (customViewId) {
       dispatch(fetchCustomView(customViewId))
@@ -314,35 +321,43 @@ export default function Stream (props) {
   }, [dispatch, fetchPostsParam, isCalendarViewMode, view])
 
   useEffect(() => {
-    if (isDraftsView) return
-    if (!((!customViewId || customView?.type === 'stream' || customView?.type === 'collection') && (!topicName || topic))) return
+    if (!canFetchStreamPosts()) return
 
-    const run = () => fetchPostsFrom(0)
     const wasDialogOpen = prevPostDialogOpenRef.current
     prevPostDialogOpenRef.current = postDialogOpen
 
-    // When a post dialog is open over the stream, defer the list fetch so fetchPost
-    // and PostDetail can claim the connection first; stream still warms in the background.
-    if (postDialogOpen) {
-      fetchPostsParamAtDialogOpenRef.current = fetchPostsParam
-      if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
-        const id = window.requestIdleCallback(run, { timeout: 3000 })
-        return () => window.cancelIdleCallback?.(id)
-      }
-      const id = setTimeout(run, 1200)
-      return () => clearTimeout(id)
-    }
+    if (postDialogOpen) return
 
     const paramsChangedWhileDialogOpen =
       wasDialogOpen && fetchPostsParam !== fetchPostsParamAtDialogOpenRef.current
     const justClosedDialog = wasDialogOpen && !postDialogOpen
 
     // Closing the dialog should not refetch an already-rendered stream — that only
-    // flips pending and flashes the loading skeleton over existing posts.
-    if (justClosedDialog && posts.length > 0 && !paramsChangedWhileDialogOpen) return
+    // flips pending and flashes loading UI over existing posts.
+    if (justClosedDialog && streamPostsReady && !paramsChangedWhileDialogOpen) return
 
-    run()
-  }, [fetchPostsParam, isDraftsView, postDialogOpen, posts.length])
+    fetchPostsFrom(0)
+  }, [fetchPostsParam, isDraftsView, postDialogOpen, streamPostsReady, canFetchStreamPosts, fetchPostsFrom])
+
+  useEffect(() => {
+    if (!postDialogOpen || !canFetchStreamPosts()) return
+
+    // Stream already rendered underneath — no background refetch while viewing a post.
+    if (streamPostsReady) {
+      fetchPostsParamAtDialogOpenRef.current = fetchPostsParam
+      return
+    }
+
+    fetchPostsParamAtDialogOpenRef.current = fetchPostsParam
+    const run = () => fetchPostsFrom(0)
+
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(run, { timeout: 3000 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const id = setTimeout(run, 1200)
+    return () => clearTimeout(id)
+  }, [fetchPostsParam, postDialogOpen, streamPostsReady, canFetchStreamPosts, fetchPostsFrom])
 
   useEffect(() => {
     if (!isCalendarViewMode || isDraftsView) return

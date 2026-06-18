@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
+import React, { useCallback, useState, useEffect, useLayoutEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useResizeDetector } from 'react-resize-detector'
 import { useTranslation } from 'react-i18next'
@@ -68,11 +68,15 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const currentGroup = useSelector(state => getGroupForSlug(state, groupSlug))
   const hasTracksResponsibility = useSelector(state => currentGroup && hasResponsibilityForGroup(state, { groupId: currentGroup.id, responsibility: RESP_MANAGE_TRACKS }))
   const postSelector = useSelector(state => getPost(state, postId))
+  const hasOrmPost = Boolean(postSelector)
   const post = useMemo(() => {
-    return postSelector ? presentPost(postSelector, get('id', currentGroup)) : null
+    if (!postSelector) return null
+    return presentPost(postSelector, get('id', currentGroup)) || postSelector.ref || null
   }, [postSelector, currentGroup])
   const currentUser = useSelector(getMe)
   const pending = useSelector(state => state.pending[FETCH_POST])
+  const postFetchStartedRef = useRef(null)
+  const postFetchSettledRef = useRef(false)
 
   const [state, setState] = useState({
     atHeader: false,
@@ -84,7 +88,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     showPeopleDialog: false
   })
   const [showCommentLeaveDraftDialog, setShowCommentLeaveDraftDialog] = useState(false)
-  const [postFetchSettled, setPostFetchSettled] = useState(false)
   const commentFormRef = useRef(null)
 
   const activityHeader = useRef(null)
@@ -100,18 +103,32 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     })
   }, [post, location.pathname, location.search, currentUser])
 
-  useEffect(() => {
-    if (!postSelector) {
-      setPostFetchSettled(false)
-    }
-    onPostIdChange()
-  }, [postId])
+  useLayoutEffect(() => {
+    postFetchStartedRef.current = null
+    postFetchSettledRef.current = hasOrmPost
+  }, [postId, hasOrmPost])
 
   useEffect(() => {
-    if (postId && (postSelector || !pending)) {
-      setPostFetchSettled(true)
+    if (!postId) return
+    postFetchStartedRef.current = postId
+    dispatch(fetchPost(postId, hasTracksResponsibility))
+
+    if (post) {
+      dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
+        postId: post.id,
+        groupId: post.groups.map(g => g.id),
+        isPublic: post.isPublic,
+        topics: post.topics?.map(t => t.name),
+        type: post.type
+      }))
     }
-  }, [pending, postId, postSelector])
+  }, [postId, hasTracksResponsibility, dispatch])
+
+  useEffect(() => {
+    if (!pending && postFetchStartedRef.current === postId) {
+      postFetchSettledRef.current = true
+    }
+  }, [pending, postId])
 
   const { setHeaderDetails } = useViewHeader()
   const isIsolatedPostView = view === 'post'
@@ -142,22 +159,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   }, [])
 
   const { ref } = useResizeDetector({ handleHeight: false, onResize: handleSetComponentPositions })
-
-  const onPostIdChange = useCallback(() => {
-    if (!pending) {
-      dispatch(fetchPost(postId, hasTracksResponsibility))
-    }
-
-    if (post) {
-      dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_OPENED, {
-        postId: post.id,
-        groupId: post.groups.map(g => g.id),
-        isPublic: post.isPublic,
-        topics: post.topics?.map(t => t.name),
-        type: post.type
-      }))
-    }
-  }, [postId, post, pending])
 
   const handleScroll = throttle(100, event => {
     const { scrollTop } = event.target
@@ -490,8 +491,12 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
   const handleTogglePeopleDialog = hasPeople && togglePeopleDialog ? togglePeopleDialog : undefined
 
   if (!post) {
-    const awaitingFreshPost = !postSelector && (pending || !postFetchSettled)
-    if (awaitingFreshPost) return <PostDetailSkeleton />
+    const awaitingUncachedPost = !hasOrmPost && (
+      pending ||
+      postFetchStartedRef.current !== postId ||
+      !postFetchSettledRef.current
+    )
+    if (awaitingUncachedPost) return <PostDetailSkeleton />
     return <NotFound />
   }
 
