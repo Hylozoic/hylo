@@ -1001,7 +1001,11 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       // deleting all attachments and removing topics here because we restore them from the result of the UPDATE_POST action
       post = Post.withId(meta.id)
       post.attachments.toModelArray().map(a => a.delete())
-      post.update({ topics: [] })
+      const updates = { ...(meta.data || {}) }
+      if (meta.topicNames !== undefined) {
+        updates.topics = []
+      }
+      post.update(updates)
       break
     }
 

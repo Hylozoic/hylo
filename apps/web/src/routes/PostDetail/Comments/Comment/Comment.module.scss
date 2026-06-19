@@ -123,17 +123,34 @@ $comment-row-padding: 25px;
   }
 }
 
-.cancelIcon {
-  color: $color-amaranth;
-  position: absolute;
-  top: 24px;
-  right: 10px;
-  width: 20px;
-  height: 20px;
+.editingContainer {
+  position: relative;
+  margin-left: $comment-left-margin;
 }
 
-.cancelIcon:hover {
+.editActions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+}
+
+.editActionIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   cursor: pointer;
+
+  &:first-child {
+    color: $color-gossamer;
+  }
+
+  &:last-child {
+    color: $color-amaranth;
+  }
 }
 
 .text {
@@ -158,8 +175,7 @@ $comment-row-padding: 25px;
 
 .editing {
   composes: bdy-lt-sm from 'css/typography.scss';
-  margin-left: $comment-left-margin;
-  padding: 10px;
+  padding: 10px 50px 10px 10px;
   border-radius: 0.5rem;
   border: 1px solid $color-cape-cod-10;
   overflow-y: auto;
