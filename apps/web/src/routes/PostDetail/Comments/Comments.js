@@ -26,7 +26,8 @@ const Comments = ({
   post,
   slug,
   commentFormRef,
-  scrollToBottom
+  scrollToBottom,
+  onCommentEditingChange
 }) => {
   const dispatch = useDispatch()
 
@@ -84,6 +85,7 @@ const Comments = ({
           selectedCommentId={selectedCommentId}
           post={post}
           onReplyThread={scrollToReplyInput}
+          onEditingChange={onCommentEditingChange}
         />
       ))}
       {currentUser
@@ -116,7 +118,8 @@ Comments.propTypes = {
   post: object,
   slug: string,
   commentFormRef: object, // ref object from parent (optional)
-  scrollToBottom: func
+  scrollToBottom: func,
+  onCommentEditingChange: func
 }
 
 export default Comments
