@@ -24,7 +24,6 @@ import PeopleTyping from 'components/PeopleTyping'
 import SocketSubscriber from 'components/SocketSubscriber'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { isMobileDevice, isPhoneDevice } from 'util/mobile'
-import { CENTER_COLUMN_ID } from 'util/scrolling'
 import MessagesMobile from './MessagesMobile'
 
 import {
@@ -93,7 +92,6 @@ const Messages = () => {
   const [forNewThread, setForNewThread] = useState(messageThreadId === NEW_THREAD_ID)
   const [peopleSelectorOpen, setPeopleSelectorOpen] = useState(false)
   const [participants, setParticipants] = useState([])
-  const [headerHeight, setHeaderHeight] = useState(0)
   const formRef = useRef(null)
   /** Avoid re-applying server draft whenever draft ORM updates (e.g. after saves). */
   const messageDraftRestoreDoneRef = useRef(false)
@@ -108,30 +106,6 @@ const Messages = () => {
     debounceMs: 800,
     skip: !isRealThread || !currentUser
   })
-
-  // Measure ViewHeader height to position Messages below it
-  useEffect(() => {
-    const measureHeader = () => {
-      const centerColumn = document.getElementById(CENTER_COLUMN_ID)
-      if (centerColumn) {
-        const header = centerColumn.querySelector('header')
-        if (header) {
-          setHeaderHeight(header.offsetHeight)
-        }
-      }
-    }
-
-    measureHeader()
-    // Re-measure on resize in case header height changes
-    window.addEventListener('resize', measureHeader)
-    // Also check after a short delay to catch dynamic content
-    const timer = setTimeout(measureHeader, 100)
-
-    return () => {
-      window.removeEventListener('resize', measureHeader)
-      clearTimeout(timer)
-    }
-  }, [])
 
   useEffect(() => {
     // Get group IDs from user's memberships to filter people who share a group
@@ -325,10 +299,7 @@ const Messages = () => {
   }
 
   return (
-    <div
-      className={cn('absolute left-0 right-0 bottom-0 flex flex-col w-full min-w-0', { [classes.messagesOpen]: messageThreadId })}
-      style={{ top: headerHeight > 0 ? `${headerHeight}px` : 0 }}
-    >
+    <div className={cn('flex flex-col h-full flex-1 min-w-0 w-full', { [classes.messagesOpen]: messageThreadId })}>
       <Helmet>
         <title>Messages | Hylo</title>
       </Helmet>

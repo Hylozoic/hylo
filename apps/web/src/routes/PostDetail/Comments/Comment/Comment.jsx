@@ -179,6 +179,7 @@ function Comment ({
           contentHTML={text}
           onEscape={handleEditCancel}
           onEnter={handleEditSave}
+          blurOnScroll={false}
           ref={editor}
         />
       )}

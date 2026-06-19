@@ -4,7 +4,7 @@ import forModerationActions from './Search/forModerationActions'
 import { countTotal } from '../../lib/util/knex'
 import { filterAndSortGroups } from './Search/util'
 import { transform } from 'lodash'
-import { get, isNil } from 'lodash/fp'
+import { isNil } from 'lodash/fp'
 
 module.exports = {
   forPosts,
@@ -207,14 +207,14 @@ module.exports = {
   },
 
   fullTextSearch: function (userId, args) {
-    let items, total
+    let items, hasMore
     args.limit = args.first
-    return fetchAllGroupIds(userId, args)
-      .then(groupIds =>
-        FullTextSearch.searchInGroups(groupIds, args))
-      .then(items_ => {
+    return fetchGroupAccess(userId, args)
+      .then(groupAccess =>
+        FullTextSearch.searchInGroups(groupAccess, args))
+      .then(({ items: items_, hasMore: hasMore_ }) => {
         items = items_
-        total = get('0.total', items)
+        hasMore = hasMore_
 
         const ids = transform(items, (ids, item) => {
           const type = item.post_id ? 'posts' : item.comment_id ? 'comments' : 'people'
@@ -232,13 +232,13 @@ module.exports = {
             items.map(presentResult(posts, comments, people))
         )
       })
-      .then(models => ({ models, total }))
+      .then(models => ({ models, hasMore }))
   }
 }
 
-const fetchAllGroupIds = (userId, { groupIds }) => {
-  if (groupIds) return Promise.resolve(groupIds)
-  return Group.pluckIdsForMember(userId)
+const fetchGroupAccess = (userId, { groupIds }) => {
+  if (groupIds) return Promise.resolve({ groupIds })
+  return Promise.resolve({ userId })
 }
 
 const obfuscate = text => Buffer.from(text).toString('hex')
