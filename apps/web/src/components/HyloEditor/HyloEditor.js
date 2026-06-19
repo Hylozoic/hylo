@@ -182,7 +182,17 @@ const HyloEditor = React.forwardRef(({
           return html.replace(/<img.*?>/g, '') // remove any images copied any pasted as HTML
         }
         return html
-      }
+      },
+      ...(!blurOnScroll && {
+        handleDOMEvents: {
+          touchstart: (_view, event) => {
+            event.stopPropagation()
+          },
+          touchmove: (_view, event) => {
+            event.stopPropagation()
+          }
+        }
+      })
     }
   })
 

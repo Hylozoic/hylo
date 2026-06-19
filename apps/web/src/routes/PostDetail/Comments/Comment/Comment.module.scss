@@ -180,6 +180,8 @@ $comment-row-padding: 25px;
   border: 1px solid $color-cape-cod-10;
   overflow-y: auto;
   max-height: 200px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .reply {

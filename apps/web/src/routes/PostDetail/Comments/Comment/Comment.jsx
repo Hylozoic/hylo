@@ -37,7 +37,8 @@ function Comment ({
   onReplyComment,
   selectedCommentId,
   slug,
-  post
+  post,
+  onEditingChange
 }) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -65,6 +66,12 @@ function Comment ({
       setTimeout(handleScrollToComment, 500)
     }
   }, [selectedCommentId, comment.id])
+
+  React.useEffect(() => {
+    if (!onEditingChange || !editing) return
+    onEditingChange(true)
+    return () => onEditingChange(false)
+  }, [editing, onEditingChange])
 
   const deleteCommentWithConfirm = useCallback((commentId, text) => {
     return window.confirm(text) && dispatch(deleteComment(commentId))
@@ -301,6 +308,7 @@ export default function CommentWithReplies (props) {
               {...props}
               comment={c}
               onReplyComment={(e) => onReplyComment(e, c.creator)}
+              onEditingChange={props.onEditingChange}
             />
           ))}
         </div>
