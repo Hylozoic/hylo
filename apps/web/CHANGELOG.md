@@ -8,8 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [6.5.1] - 2026-06-16
 
+### Changed
+- Improve speed of loading search results.
+
 ### Fixed
 - Fix occasional mobile app WebView infinite reload loop
+- Editing long comments on ipad/mobile. Don't close the keyboard when scrolling inside the comment form.
+- ipad UI should look/work better when using the app now
 
 ## [6.5.0] - 2026-06-15
 
