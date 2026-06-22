@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search query streamlined.
 - Group menu editing streamlined
 
-## [6.4.11] - 2026-07-01
+## [6.4.11] - 2026-06-11
 
 ### Changed
 - Many improvements to editing of Group Menu, and All Views in general
