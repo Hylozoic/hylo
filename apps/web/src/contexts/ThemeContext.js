@@ -8,6 +8,7 @@ const ThemeContext = createContext()
 const THEME_STORAGE_KEY = 'hylo-theme'
 const COLOR_SCHEME_STORAGE_KEY = 'hylo-color-scheme'
 const NAV_MODE_STORAGE_KEY = 'hylo-nav-mode'
+const STACK_GROUPS_STORAGE_KEY = 'hylo-stack-groups'
 
 // Theme migration map for handling renamed themes
 const THEME_MIGRATIONS = {
@@ -40,6 +41,11 @@ export function ThemeProvider ({ children }) {
   const [navMode, setNavMode] = useState(() => {
     const stored = window.localStorage.getItem(NAV_MODE_STORAGE_KEY)
     return stored === 'tabs' ? 'tabs' : 'sidebar'
+  })
+
+  // Whether parent groups display their subgroups as a stacked avatar (default on).
+  const [stackGroups, setStackGroups] = useState(() => {
+    return window.localStorage.getItem(STACK_GROUPS_STORAGE_KEY) !== 'false'
   })
 
   const [systemColorScheme, setSystemColorScheme] = useState(() => {
@@ -86,12 +92,15 @@ export function ThemeProvider ({ children }) {
     // Persist nav mode
     window.localStorage.setItem(NAV_MODE_STORAGE_KEY, navMode)
 
+    // Persist group stacking preference
+    window.localStorage.setItem(STACK_GROUPS_STORAGE_KEY, stackGroups)
+
     // Notify the native mobile app so it can style safe area insets to match
     sendMessageToWebView(WebViewMessageTypes.THEME_CHANGE, {
       themeName: currentTheme,
       colorScheme: effectiveColorScheme
     })
-  }, [currentTheme, colorScheme, effectiveColorScheme, navMode])
+  }, [currentTheme, colorScheme, effectiveColorScheme, navMode, stackGroups])
 
   const value = {
     currentTheme,
@@ -101,6 +110,8 @@ export function ThemeProvider ({ children }) {
     effectiveColorScheme,
     navMode,
     setNavMode,
+    stackGroups,
+    setStackGroups,
     availableThemes: Object.keys(themes)
   }
 

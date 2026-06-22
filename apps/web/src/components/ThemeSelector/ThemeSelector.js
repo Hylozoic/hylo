@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, LayoutList } from 'lucide-react'
+import { Moon, Sun, Palette, Trees, Waves, Mountain, Snowflake, TreePalm, Monitor, Flower2, Leaf, Gem, PanelLeft, LayoutList, Layers, LayoutGrid } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { themes } from '../../themes'
 import { cn } from 'util/index'
@@ -64,6 +64,8 @@ export default function ThemeSelector ({ className }) {
     setColorScheme,
     navMode,
     setNavMode,
+    stackGroups,
+    setStackGroups,
     availableThemes
   } = useTheme()
 
@@ -139,11 +141,45 @@ export default function ThemeSelector ({ className }) {
                 ? 'bg-selected text-selected-foreground'
                 : 'hover:bg-muted'
             )}
-            aria-label={t('Tabs')}
-            title={t('Tabs')}
+            aria-label={t('Top bar')}
+            title={t('Top bar')}
           >
             <LayoutList className='h-4 w-4' />
-            <span className='text-xs'>{t('Tabs')}</span>
+            <span className='text-xs'>{t('Top bar')}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className='flex items-center justify-between'>
+        <label className='text-sm font-medium'>{t('Group Display')}</label>
+        <div className='flex items-center gap-2 rounded-lg border-2 border-foreground/20 p-1'>
+          <button
+            onClick={() => setStackGroups(true)}
+            className={cn(
+              'p-2 rounded-md transition-colors flex items-center gap-1.5',
+              stackGroups
+                ? 'bg-selected text-selected-foreground'
+                : 'hover:bg-muted'
+            )}
+            aria-label={t('Stacked')}
+            title={t('Show subgroups stacked on their parent group')}
+          >
+            <Layers className='h-4 w-4' />
+            <span className='text-xs'>{t('Stacked')}</span>
+          </button>
+          <button
+            onClick={() => setStackGroups(false)}
+            className={cn(
+              'p-2 rounded-md transition-colors flex items-center gap-1.5',
+              !stackGroups
+                ? 'bg-selected text-selected-foreground'
+                : 'hover:bg-muted'
+            )}
+            aria-label={t('Flat')}
+            title={t('Show every group as its own item')}
+          >
+            <LayoutGrid className='h-4 w-4' />
+            <span className='text-xs'>{t('Flat')}</span>
           </button>
         </div>
       </div>

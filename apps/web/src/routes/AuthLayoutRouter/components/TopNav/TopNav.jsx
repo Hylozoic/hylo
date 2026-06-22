@@ -18,6 +18,7 @@ import {
 import BadgedIcon from 'components/BadgedIcon'
 import CreateMenu from 'components/CreateMenu'
 import { getMyGroupsWithChildren } from 'store/selectors/getMyGroups'
+import { useTheme } from 'contexts/ThemeContext'
 import useRouteParams from 'hooks/useRouteParams'
 import { baseUrl } from '@hylo/navigation'
 import { DEFAULT_AVATAR } from 'store/models/Group'
@@ -95,10 +96,10 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
         'TopNavTab group relative flex items-center h-full cursor-pointer select-none',
         'border-r border-foreground/10 transition-colors duration-150',
         'hover:bg-foreground/10',
+        '[&:has(+.TopNavTab-active)]:border-r-transparent',
         iconOnly ? 'px-1.5 justify-center' : 'px-3 gap-1.5',
         {
-          'bg-foreground/5': isActive,
-          'border-b-2 border-b-selected': isActive
+          'TopNavTab-active border-r-transparent': isActive
         }
       )}
       style={{
@@ -110,7 +111,8 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
         maxWidth: iconOnly ? (hasChildren ? 70 : 50) : 200
       }}
     >
-      <div className='relative shrink-0'>
+      {isActive && <span aria-hidden className='absolute inset-x-0.5 inset-y-[3px] rounded-lg bg-selected/70' />}
+      <div className='relative z-10 shrink-0'>
         {hasChildren
           ? <StackedAvatars parentImg={img} parentLabel={label} childGroups={childGroups} />
           : img
@@ -122,7 +124,7 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
           <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
         )}
       </div>
-      {!iconOnly && <span className='truncate text-xs font-medium text-foreground/80'>{label}</span>}
+      {!iconOnly && <span className={cn('relative z-10 truncate text-xs font-medium', isActive ? 'text-primary-foreground' : 'text-foreground/80')}>{label}</span>}
     </div>
   )
 
@@ -179,12 +181,18 @@ export default function TopNav ({ currentUser }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const routeParams = useRouteParams()
+  const { stackGroups } = useTheme()
   const sortedGroups = useSelector(getMyGroupsWithChildren)
   const tabContainerRef = useRef(null)
   const [visibleGroupCount, setVisibleGroupCount] = useState(sortedGroups.length)
   const [iconOnly, setIconOnly] = useState(false)
 
   const currentBase = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug })
+
+  // A group tab is active when its own group is open OR when one of its stacked subgroups is the active group.
+  const isGroupTabActive = useCallback((tab) =>
+    currentBase === tab.url || (tab.childGroups || []).some(child => child.slug === routeParams.groupSlug),
+  [currentBase, routeParams.groupSlug])
 
   const handleNavigate = useCallback((url) => {
     if (url) navigate(url)
@@ -207,9 +215,10 @@ export default function TopNav ({ currentUser }) {
       url: `/groups/${group.slug}`,
       img: group.avatarUrl,
       badgeCount: group.newPostCount ? '-' : 0,
-      childGroups: group.childGroups || []
+      // When stacking is off, subgroups don't nest into the parent's stack/dropdown.
+      childGroups: stackGroups ? (group.childGroups || []) : []
     })),
-  [sortedGroups])
+  [sortedGroups, stackGroups])
 
   // Measure available space and pick a layout mode like browser tabs:
   // 1. Named: every tab gets at least NAMED_TAB_MIN — names visible, truncated as space tightens.
@@ -345,7 +354,7 @@ export default function TopNav ({ currentUser }) {
             img={tab.img}
             url={tab.url}
             badgeCount={tab.badgeCount}
-            isActive={currentBase === tab.url}
+            isActive={isGroupTabActive(tab)}
             onNavigate={handleNavigate}
             iconOnly={iconOnly}
             childGroups={tab.childGroups}

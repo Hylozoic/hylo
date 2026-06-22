@@ -43,7 +43,9 @@ export default function GlobalNavItem ({
   const navigate = useNavigate()
   const routeParams = useRouteParams()
   const hasChildren = childGroups && childGroups.length > 0
-  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url
+  // A stack is selected when its parent group is active OR when one of its stacked subgroups is the active group.
+  const selected = baseUrl({ context: routeParams.context, groupSlug: routeParams.groupSlug }) === url ||
+    (hasChildren && childGroups.some(child => child.slug === routeParams.groupSlug))
   const [isHovered, setIsHovered] = useState(false)
   const [open, setOpen] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -183,10 +185,12 @@ export default function GlobalNavItem ({
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       className={cn(
-        'bg-primary relative transition-all ease-in-out duration-250 overflow-visible',
+        'relative transition-all ease-in-out duration-250 overflow-visible',
         'flex flex-col items-center justify-center w-14 h-14 min-h-10',
-        'rounded-lg drop-shadow-md opacity-60 hover:opacity-100',
-        'scale-90 hover:scale-100 hover:drop-shadow-lg text-3xl',
+        'rounded-lg opacity-60 hover:opacity-100',
+        'scale-90 hover:scale-100 text-3xl',
+        // Stacks read like the TopNav tabs: no tile background or shadow, just the layered avatars.
+        !hasChildren && 'bg-primary drop-shadow-md hover:drop-shadow-lg',
         {
           'border-3 border-selected opacity-100 scale-110 hover:scale-110': selected,
           'border-3 border-accent opacity-100 scale-100 hover:scale-105': badgeCount > 0 || badgeCount === '!' || badgeCount === '-',
@@ -207,15 +211,15 @@ export default function GlobalNavItem ({
         ? (
           <div
             className='relative'
-            style={{ width: 28 + (stackItems.length - 1) * 7, height: 28 + (stackItems.length - 1) * 7 }}
+            style={{ width: 32 + (stackItems.length - 1) * 8, height: 32 + (stackItems.length - 1) * 8 }}
           >
             {stackItems.map((item, i) => (
               <div
                 key={i}
-                className='absolute w-[28px] h-[28px] rounded-md bg-cover bg-center bg-primary border-2 border-primary shadow-sm'
+                className='absolute w-[32px] h-[32px] rounded-md bg-cover bg-center bg-primary border-2 border-primary shadow-sm'
                 style={{
-                  top: i * 7,
-                  left: i * 7,
+                  top: i * 8,
+                  left: i * 8,
                   zIndex: stackItems.length - i,
                   backgroundImage: `url(${item.avatarUrl})`
                 }}

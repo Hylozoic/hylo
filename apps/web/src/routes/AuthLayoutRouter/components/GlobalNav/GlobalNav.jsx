@@ -125,7 +125,7 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, availableThemes } = useTheme()
+  const { colorScheme, setColorScheme, currentTheme, setCurrentTheme, navMode, setNavMode, stackGroups, setStackGroups, availableThemes } = useTheme()
   const currentLocale = currentUser?.settings?.locale || i18n.language || getLocaleFromLocalStorage() || 'en'
 
   // Hide the Sidebar/Tabs toggle on phone viewports — tabs are forced off there.
@@ -265,12 +265,22 @@ function SettingsMenu ({ currentUser, triggerClassName, contentSide = 'right', c
                     {t('Sidebar')}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value='tabs'>
-                    {t('Tabs')}
+                    {t('Top bar')}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
               </>
             )}
+            <div className='px-2 py-1.5 text-sm font-semibold'>{t('Group Display')}</div>
+            <DropdownMenuRadioGroup value={stackGroups ? 'stacked' : 'flat'} onValueChange={value => setStackGroups(value === 'stacked')}>
+              <DropdownMenuRadioItem value='stacked'>
+                {t('Stacked')}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value='flat'>
+                {t('Flat')}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
             <div className='px-2 py-1.5 text-sm font-semibold'>{t('Color Scheme')}</div>
             <DropdownMenuRadioGroup value={currentTheme} onValueChange={setCurrentTheme}>
               {availableThemes.map(theme => (
@@ -341,7 +351,13 @@ export default function GlobalNav (props) {
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
   const dispatch = useDispatch()
-  const sortedGroups = useSelector(getMyGroupsWithChildren)
+  const { stackGroups } = useTheme()
+  const rawGroups = useSelector(getMyGroupsWithChildren)
+  // When stacking is off, flatten: every group renders as its own item with no subgroup stack.
+  const sortedGroups = useMemo(
+    () => stackGroups ? rawGroups : rawGroups.map(group => ({ ...group, childGroups: [] })),
+    [rawGroups, stackGroups]
+  )
   const isNavOpen = useSelector(state => get('AuthLayoutRouter.isNavOpen', state))
   const pinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder !== null), [sortedGroups])
   const unpinnedGroups = useMemo(() => sortedGroups.filter(group => group.navOrder === null), [sortedGroups])
