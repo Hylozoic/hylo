@@ -124,7 +124,8 @@ function TopNavTab ({ label, img, url, badgeCount = 0, children, isActive, onNav
           <span className='absolute -top-1.5 -right-1.5 z-10 w-2.5 h-2.5 rounded-full bg-accent border border-card' />
         )}
       </div>
-      {!iconOnly && <span className={cn('relative z-10 truncate text-xs font-medium', isActive ? 'text-primary-foreground' : 'text-foreground/80')}>{label}</span>}
+      {/* The tab bar background is dark in both light and dark themes, so labels are always light. */}
+      {!iconOnly && <span className={cn('relative z-10 truncate text-xs font-medium', isActive ? 'text-white' : 'text-white/80')}>{label}</span>}
     </div>
   )
 
