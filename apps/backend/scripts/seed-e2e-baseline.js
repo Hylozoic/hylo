@@ -3,9 +3,6 @@
  * Expects DATABASE_URL (same as backend).
  * Do not run manually against your dev DB — use `cd apps/web && yarn test:e2e` (isolated `hylo_e2e`).
  */
-const path = require('path')
-require('dotenv').config({ path: path.resolve(__dirname, '../.env'), override: false })
-
 const { Client } = require('pg')
 const bcrypt = require('bcrypt')
 
