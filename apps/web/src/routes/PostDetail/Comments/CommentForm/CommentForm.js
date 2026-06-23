@@ -228,6 +228,7 @@ const CommentForm = forwardRef(function CommentForm ({
             onAltEnter={handleSubmit}
             className='w-full max-h-[200px] overflow-y-auto cursor-text flex'
             readOnly={!currentUser}
+            blurOnScroll={false}
             onUpdate={handleEditorUpdate}
             onFocus={handleFocus}
             onBlur={() => setIsFocused(false)}
