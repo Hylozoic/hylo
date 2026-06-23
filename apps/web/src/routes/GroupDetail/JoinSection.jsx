@@ -246,26 +246,25 @@ export default function JoinSection ({ accessCode, addSkill, currentUser, fullPa
           ? t('This group has prerequisite groups you cannot see, you cannot join this group at this time')
           : group.accessibility === GROUP_ACCESSIBILITY.Open
             ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
-            : group.accessibility === GROUP_ACCESSIBILITY.Restricted
+            : group.accessibility === GROUP_ACCESSIBILITY.Restricted ||
+              group.accessibility === GROUP_ACCESSIBILITY.Closed
               ? hasJoinOrInviteLink
                 ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
-                : hasPendingRequest
-                  ? (
-                    <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
-                      <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
-                      <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
-                    </div>
-                    )
-                  : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
-              : group.accessibility === GROUP_ACCESSIBILITY.Closed
-                ? hasJoinOrInviteLink
-                  ? <JoinQuestionsAndButtons group={group} joinGroup={joinGroup} joinText={t('Join {{group.name}}', { group })} t={t} />
+                : group.accessibility === GROUP_ACCESSIBILITY.Restricted
+                  ? hasPendingRequest
+                    ? (
+                      <div className='border-2 border-dashed border-selected/100 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
+                        <h3 className='mt-0 text-foreground font-bold mb-2'>{t('Request to join pending')}</h3>
+                        <span> {t('You will be sent an email and notified on your device when the request is approved.')}</span>
+                      </div>
+                      )
+                    : <JoinQuestionsAndButtons group={group} joinGroup={requestToJoinGroup} joinText={t('Request Membership in {{group.name}}', { group })} t={t} />
                   : (
                     <div className='border-2 border-dashed border-foreground/20 rounded-md text-center p-4 text-foreground mt-4 mb-8'>
                       <p className='m-0'>{t('This group is invite only. You require a join or invite link in order to join.')}</p>
                     </div>
                     )
-                : null}
+              : null}
     </div>
   )
 }
